@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-209 · Shape construction: line and arrow (sharp, curved, polygon), loop fill
+
+`excali_scene::shape::generate_linear_shape` builds the body of a line or non-elbow arrow the way upstream's `_generateElementShape` does. A sharp element gives `linearPath`, or `polygon` when a closed loop is filled. A round element gives `curve`, and empty points become `[0, 0]`. Elbow arrows and non-linear elements return typed errors. The line goldens and arrow bodies match upstream op by op. PR: [#42](https://github.com/HutsonLabs/excali-rust/pull/42).
+
 ## 2026-09-28 · ex-m1 · Milestone check: M1 not yet reached
 
 The M1 check ran on `main` at 1a79b96. All phase 1 tasks ex-101 to ex-115 are merged. 754 workspace tests pass, the fixture corpus verifies and every goldens check is current. All 232 catalogue libraries round-trip byte for byte against upstream, and the `restore.test.ts` cases are ported. D1 is not met because the round trip loses data that upstream keeps: 24 elements with a string `strokeWidth` (ex-117) and 1245 legacy arrow bindings (ex-116, blocked by ex-507 and ex-510). The check added ex-g101, a document-level round trip of upstream's `diagramFixture` plus one test that covers every upstream fixture. PR: [#41](https://github.com/HutsonLabs/excali-rust/pull/41).
