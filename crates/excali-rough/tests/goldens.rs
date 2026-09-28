@@ -303,7 +303,8 @@ fn primitives_match_at_every_seed_and_roughness() {
 
 #[test]
 fn generator_edge_cases_match() {
-    assert!(check_file("rough-generator.json", true) >= 40);
+    // 76 GENERATOR fixtures (tools/goldens/fixtures.mjs) x roughness 0, 1, 2.
+    assert_eq!(check_file("rough-generator.json", true), 228);
 }
 
 #[test]
