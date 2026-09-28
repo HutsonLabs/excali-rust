@@ -32,6 +32,7 @@ MEMBER = """[package]
 name = "{name}"
 {version_line}
 edition.workspace = true
+publish = false
 """
 
 LOCK = """version = 4
@@ -132,6 +133,14 @@ class Check(unittest.TestCase):
     def test_member_must_inherit_the_workspace_version(self):
         problems = self.run_check(math_line='version = "26.9.1"')
         self.assertTrue(any("excali-math" in p and "version.workspace" in p for p in problems), problems)
+
+    def test_registry_hold_requires_publish_false(self):
+        # ADR-009 item 4: nothing is published to a registry while ex-801 is
+        # held, so every crate must say publish = false.
+        f = self.files()
+        f["members"]["excali-core"] = f["members"]["excali-core"].replace("publish = false\n", "")
+        problems = version.check(f["root"], f["members"], f["lock"])
+        self.assertTrue(any("excali-core" in p and "publish = false" in p for p in problems), problems)
 
     def test_lock_must_agree(self):
         problems = self.run_check(math="0.1.0")

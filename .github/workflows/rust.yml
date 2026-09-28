@@ -1,6 +1,7 @@
 # Rust gates on every pull request and on main: formatting, clippy with
 # warnings as errors, the test suite, the crate-graph gate (the workspace must
-# match site/content/architecture/overview.md), the wasm32 build of every
+# match site/content/architecture/overview.md), the calendar-version gate
+# (ADR-009), the wasm32 build of every
 # crate that targets it (ADR-008), and an MSRV check.
 #
 # The toolchain comes from rust-toolchain.toml; rustup installs it (with
@@ -36,6 +37,12 @@ jobs:
         run: python3 scripts/gates/test_workspace.py
       - name: crate-graph gate
         run: python3 scripts/gates/workspace.py check
+      # Calendar version YY.M.BUILD (ADR-009), inherited by every crate,
+      # publish = false while the registry hold stands, Cargo.lock in step.
+      - name: version gate tests
+        run: python3 scripts/gates/test_version.py
+      - name: version gate
+        run: python3 scripts/gates/version.py check
       - name: wasm32 build
         run: scripts/gates/wasm-build.sh
   msrv:
