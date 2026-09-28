@@ -10,7 +10,7 @@
 //! comes with it), so the snapshot tests apply the crate's
 //! `sync_invalid_indices` to the restored elements the same way. Scene-level
 //! passes (duplicate ids, invisibly small elements, binding repair) are
-//! `restoreElements`' and not ported here.
+//! `restoreElements`', tested in `restore_elements.rs`.
 //!
 //! The second part is the rules as readable tables. The exhaustive check
 //! against upstream's own output is `restore::element_tests::upstream_fixture`
