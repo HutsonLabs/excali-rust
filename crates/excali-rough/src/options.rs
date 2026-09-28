@@ -12,9 +12,10 @@ pub type Point = [f64; 2];
 /// update syntax, `Options { seed, roughness, ..Options::default() }` (or
 /// `..generator.default_options().clone()`).
 ///
-/// `fill` is not a field yet: filling (solid and pattern, `fillPath` and
-/// `fillSketch` op sets) is task ex-204. The fill-style fields below are
-/// carried because they are part of every resolved `Drawable`'s options.
+/// `fill` is the fill colour: `None` (rough.js `undefined`) draws no fill.
+/// Which values count as "no fill" depends on the method, as in rough.js:
+/// rectangle, polygon, ellipse and arc fill for any non-empty string,
+/// `curve` also skips `"none"`, and `path` also skips `"transparent"`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Options {
     pub max_randomness_offset: f64,
@@ -25,6 +26,10 @@ pub struct Options {
     pub curve_fitting: f64,
     pub curve_tightness: f64,
     pub curve_step_count: f64,
+    /// `fill`: the fill colour, `None` for no fill.
+    pub fill: Option<String>,
+    /// `fillStyle`: `hachure` (the default, and any unknown name),
+    /// `solid`, `zigzag`, `cross-hatch`, `dots`, `dashed` or `zigzag-line`.
     pub fill_style: String,
     pub fill_weight: f64,
     pub hachure_angle: f64,
@@ -59,6 +64,7 @@ impl Default for Options {
             curve_tightness: 0.0,
             curve_fitting: 0.95,
             curve_step_count: 9.0,
+            fill: None,
             fill_style: "hachure".to_owned(),
             fill_weight: -1.0,
             hachure_angle: -41.0,

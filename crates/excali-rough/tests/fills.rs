@@ -173,13 +173,19 @@ mod hachure_fill {
 
     #[test]
     fn open_polygons_are_closed_and_short_ones_skipped() {
-        let closed = vec![vec![[0.0, 0.0], [10.0, 0.0], [10.0, 10.0], [0.0, 10.0], [0.0, 0.0]]];
+        let closed = vec![vec![
+            [0.0, 0.0],
+            [10.0, 0.0],
+            [10.0, 10.0],
+            [0.0, 10.0],
+            [0.0, 0.0],
+        ]];
         assert_eq!(
             hachure_lines(&mut closed.clone(), 2.0, 0.0, 1.0),
             hachure_lines(&mut square(10.0), 2.0, 0.0, 1.0)
         );
         // one vertex: [p, p] after closing, not more than two, so no edges
-        assert!(hachure_lines(&mut vec![vec![[5.0, 5.0]]], 2.0, 0.0, 1.0).is_empty());
+        assert!(hachure_lines(&mut [vec![[5.0, 5.0]]], 2.0, 0.0, 1.0).is_empty());
     }
 
     #[test]
@@ -202,7 +208,12 @@ mod hachure_fill {
             hachure_lines(&mut p, 2.0, 30.0, 1.0);
         }
         // a scan line that no longer moves (|y| >= 2^53 with step 1)
-        let mut p = vec![vec![[0.0, 1e17], [10.0, 1e17], [10.0, 1e17 + 64.0], [0.0, 1e17 + 64.0]]];
+        let mut p = vec![vec![
+            [0.0, 1e17],
+            [10.0, 1e17],
+            [10.0, 1e17 + 64.0],
+            [0.0, 1e17 + 64.0],
+        ]];
         hachure_lines(&mut p, 2.0, 0.0, 1.0);
     }
 }
@@ -248,7 +259,12 @@ mod fillers {
         assert!(!set.ops.is_empty());
         // hachureLines(q, 8, 49, 1) leaves
         // [[0,0],[80,10.000000000000007],[90,60],[15.000000000000007,50]]
-        let expected = [[0.0, 0.0], [80.0, 10.000000000000007], [90.0, 60.0], [15.000000000000007, 50.0]];
+        let expected = [
+            [0.0, 0.0],
+            [80.0, 10.000000000000007],
+            [90.0, 60.0],
+            [15.000000000000007, 50.0],
+        ];
         for (a, e) in polygons[0].iter().zip(expected) {
             assert!(close(a[0], e[0]) && close(a[1], e[1]), "{polygons:?}");
         }
@@ -267,12 +283,17 @@ mod fillers {
         assert_eq!(d.sets.len(), 2);
         let fill = &d.sets[0];
         assert_eq!(fill.kind, OpSetType::FillSketch);
-        let lines = hachure_lines(&mut vec![vec![[0.0, 0.0], [100.0, 0.0], [100.0, 60.0], [0.0, 60.0]]], 8.0, 90.0, 1.0);
+        let lines = hachure_lines(
+            &mut [vec![[0.0, 0.0], [100.0, 0.0], [100.0, 60.0], [0.0, 60.0]]],
+            8.0,
+            90.0,
+            1.0,
+        );
         let dots: usize = lines
             .iter()
             .map(|[a, b]| {
                 let length = ((a[0] - b[0]).powi(2) + (a[1] - b[1]).powi(2)).sqrt();
-                (length / 8.0).ceil() as usize - 1
+                ((length / 8.0).ceil() - 1.0).max(0.0) as usize
             })
             .sum();
         assert!(dots > 0);
@@ -282,8 +303,14 @@ mod fillers {
         for op in &fill.ops {
             let data = op.data();
             for xy in data.chunks(2) {
-                assert!((-4.0 - 2.0 - 1.0..=100.0 + 2.0 + 1.0).contains(&xy[0]), "{op:?}");
-                assert!((-2.0 - 1.0..=60.0 + 8.0 + 2.0 + 1.0).contains(&xy[1]), "{op:?}");
+                assert!(
+                    (-4.0 - 2.0 - 1.0..=100.0 + 2.0 + 1.0).contains(&xy[0]),
+                    "{op:?}"
+                );
+                assert!(
+                    (-2.0 - 1.0..=60.0 + 8.0 + 2.0 + 1.0).contains(&xy[1]),
+                    "{op:?}"
+                );
             }
         }
         // Math.random: two drawings differ
@@ -299,7 +326,10 @@ mod fillers {
         assert_eq!(fill.kind, OpSetType::FillSketch);
         assert!(moves(&fill.ops) > 0);
         assert_eq!(moves(&fill.ops) % 2, 0);
-        assert!(fill.ops.iter().all(|op| op.data().iter().all(|v| v.is_finite())));
+        assert!(fill
+            .ops
+            .iter()
+            .all(|op| op.data().iter().all(|v| v.is_finite())));
     }
 
     #[test]
@@ -382,18 +412,32 @@ mod fillers {
         let tri = [[0.0, 0.0], [30.0, 30.0], [60.0, 0.0]];
         assert_eq!(g.polygon(&tri, &none).sets.len(), 2);
         assert_eq!(
-            g.arc(0.0, 0.0, 10.0, 10.0, 0.0, 3.0, true, &none).sets.len(),
+            g.arc(0.0, 0.0, 10.0, 10.0, 0.0, 3.0, true, &none)
+                .sets
+                .len(),
             2
         );
         // curve and path skip "none"; path also skips "transparent"
         assert_eq!(g.curve(&tri, &none).unwrap().sets.len(), 1);
-        assert_eq!(g.path("M 0 0 L 10 10 L 0 10 Z", &none).unwrap().sets.len(), 1);
+        assert_eq!(
+            g.path("M 0 0 L 10 10 L 0 10 Z", &none).unwrap().sets.len(),
+            1
+        );
         let transparent = Options {
             fill: Some("transparent".to_owned()),
             ..filled(1, "hachure")
         };
-        assert_eq!(g.path("M 0 0 L 10 10 L 0 10 Z", &transparent).unwrap().sets.len(), 1);
-        assert_eq!(g.rectangle(0.0, 0.0, 10.0, 10.0, &transparent).sets.len(), 2);
+        assert_eq!(
+            g.path("M 0 0 L 10 10 L 0 10 Z", &transparent)
+                .unwrap()
+                .sets
+                .len(),
+            1
+        );
+        assert_eq!(
+            g.rectangle(0.0, 0.0, 10.0, 10.0, &transparent).sets.len(),
+            2
+        );
     }
 
     #[test]

@@ -1,6 +1,7 @@
 //! `points-on-path` 0.2.1: an SVG path as polylines, one per subpath.
 //! rough.js uses it for path fills and for `simplification`.
 
+use crate::hachure_fill::PolygonList;
 use crate::path_data::{absolutize, normalize, parse_path, PathError};
 use crate::points_on_curve::{points_on_bezier_curves, simplify};
 use crate::Point;
@@ -16,6 +17,36 @@ pub fn points_on_path(
     tolerance: f64,
     distance: f64,
 ) -> Result<Vec<Vec<Point>>, PathError> {
+    Ok(points_on_path_list(path, tolerance, distance)?.to_vecs())
+}
+
+/// [`points_on_path`] keeping JavaScript's object identity: `simplify` turns
+/// a one-point subpath `[p]` into `[p, p]`, the same point twice, which the
+/// pattern fillers then rotate twice (see [`crate::hachure_fill`]).
+pub(crate) fn points_on_path_list(
+    path: &str,
+    tolerance: f64,
+    distance: f64,
+) -> Result<PolygonList, PathError> {
+    let sets = flatten(path, tolerance)?;
+    // `!distance`: 0 and NaN leave the sets as they are
+    if distance == 0.0 || distance.is_nan() {
+        return Ok(PolygonList::new(&sets));
+    }
+    let mut out = PolygonList::default();
+    for set in &sets {
+        let simplified = simplify(set, distance)?;
+        if set.len() == 1 && simplified.len() == 2 {
+            out.push_doubled(simplified[0]);
+        } else if !simplified.is_empty() {
+            out.push(&simplified);
+        }
+    }
+    Ok(out)
+}
+
+/// The subpaths flattened, before simplification.
+fn flatten(path: &str, tolerance: f64) -> Result<Vec<Vec<Point>>, PathError> {
     let normalized = normalize(&absolutize(&parse_path(path)?));
     let mut sets: Vec<Vec<Point>> = Vec::new();
     let mut current_points: Vec<Point> = Vec::new();
@@ -85,17 +116,5 @@ pub fn points_on_path(
         &mut sets,
         tolerance,
     )?;
-
-    // `!distance`: 0 and NaN leave the sets as they are
-    if distance == 0.0 || distance.is_nan() {
-        return Ok(sets);
-    }
-    let mut out = Vec::with_capacity(sets.len());
-    for set in &sets {
-        let simplified = simplify(set, distance)?;
-        if !simplified.is_empty() {
-            out.push(simplified);
-        }
-    }
-    Ok(out)
+    Ok(sets)
 }

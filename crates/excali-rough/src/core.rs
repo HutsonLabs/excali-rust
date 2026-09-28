@@ -70,6 +70,22 @@ impl OpSet {
             ops,
         }
     }
+
+    /// `{ type: 'fillPath', ops }`.
+    pub fn fill_path(ops: Vec<Op>) -> Self {
+        Self {
+            kind: OpSetType::FillPath,
+            ops,
+        }
+    }
+
+    /// `{ type: 'fillSketch', ops }`.
+    pub fn fill_sketch(ops: Vec<Op>) -> Self {
+        Self {
+            kind: OpSetType::FillSketch,
+            ops,
+        }
+    }
 }
 
 /// The generator method that made a [`Drawable`] (`Drawable.shape`).

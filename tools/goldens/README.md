@@ -43,7 +43,7 @@ on an arm64 machine only.
 | `random.json` | `Random.next()` sequences for 7 seeds | ex-203 |
 | `rough-primitives.json` | `line`, `rectangle`, `polygon`, `ellipse`, `circle`, `arc`, `curve`, `linearPath`, `path` × seeds 1, 7, 1041657908 × roughness 0, 1, 2 | ex-203, ex-206 |
 | `rough-generator.json` | generator edge cases × roughness 0, 1, 2: SVG path syntax (implicit commands, missing `M`, compact numbers, `S`/`T`, arcs), `simplification`, `stroke: "none"`, single stroke, preserveVertices, short point lists, line length bands, ellipse/arc geometry, seed wrap-around | ex-203 |
-| `rough-fills.json` | hachure, cross-hatch, zigzag, solid, dashed, zigzag-line at `fillWeight = sw/2`, `hachureGap = sw*4` | ex-204 |
+| `rough-fills.json` | hachure, cross-hatch, zigzag, solid, dashed, zigzag-line at `fillWeight = sw/2`, `hachureGap = sw*4`, the seeds × roughness grid, and `edge/` cases: curve and closed-arc fills, subpaths, a concave polygon, unrotated scans and `Math.round` halves, default and sub-0.1 gaps, single fill stroke, roughness 0 and 2, fill `none`/`transparent`, a lone moveto under `simplification` | ex-204 |
 | `rough-options.json` | multi-stroke, preserveVertices, curveFitting, bowing, dashes, hachure angle, and the dashed/dotted stroke rule | ex-205 |
 | `elements-upstream-fixtures.json` | upstream `tests/fixtures/elementFixture.ts` and the export test's 100×100 variants | all |
 | `elements-rectangle.json`, `elements-diamond.json`, `elements-ellipse.json` | seeds × roughness, fills, stroke styles, adjustRoughness sizes, corner radius, dark theme | ex-208 |
@@ -69,7 +69,10 @@ Every file is `{ "description", "cases": [...] }` and every case has a unique
 `id`.
 
 - **rough cases:** `{ id, method, args, options, drawable }`. The call was
-  `new RoughGenerator()[method](...args, options)`.
+  `new RoughGenerator()[method](...args, options)` on a fresh copy of
+  `args`: rough.js's pattern fillers rotate the polygon points in place and
+  back (hachure-fill `rotatePoints`), which moves them in the last bits, so
+  fixture arrays shared between cases would otherwise drift.
 - **element cases:** `{ id, element, renderConfig, shapes }`. The call was
   `ShapeCache.generateElementShape(element, renderConfig)`, with
   `embedsValidationStatus` built from `renderConfig.validatedEmbeds`.
