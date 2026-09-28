@@ -332,6 +332,7 @@ dependencies = [
  "ttf-parser",
  "unicode-properties",
  "wuff",
+ "yoke",
 ]
 
 [[package]]

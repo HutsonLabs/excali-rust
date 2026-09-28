@@ -52,6 +52,11 @@ jsonschema = { version = "0.58.1", default-features = false }
 ttf-parser = "0.25.1"
 rustybuzz = "0.20.1"
 wuff = "0.2.9"
+# Keeps each face parsed for shaping (rustybuzz::Face borrows its sfnt
+# bytes) together with those bytes, so a face is parsed once when loaded
+# rather than on every measured run. Already in the tree through url's
+# IDNA (icu_collections); the derive checks the face is covariant.
+yoke = { version = "0.8.3", default-features = false, features = ["alloc", "derive"] }
 unicode-properties = { version = "0.1.4", default-features = false, features = ["general-category"] }
 # Test-only: golden digests and base64 payloads.
 sha2 = "0.11.0"

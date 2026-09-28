@@ -14,6 +14,7 @@ rustybuzz = { workspace = true }
 ttf-parser = { workspace = true }
 unicode-properties = { workspace = true }
 wuff = { workspace = true }
+yoke = { workspace = true }
 
 # serde_json reads the JSON fixtures under tests/fixtures in the parity tests.
 [dev-dependencies]

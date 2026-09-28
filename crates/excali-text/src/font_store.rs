@@ -39,6 +39,9 @@
 //! (HTML, `CanvasRenderingContext2D.font`).
 
 use std::fmt;
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+
+use yoke::{Yoke, Yokeable};
 
 use unicode_properties::{GeneralCategoryGroup, UnicodeGeneralCategory};
 
@@ -92,25 +95,67 @@ pub fn decode_font_file(data: &[u8]) -> Result<Vec<u8>, FontError> {
     }
 }
 
+/// A face parsed for shaping, borrowing the sfnt bytes it was parsed from.
+#[derive(Clone, Yokeable)]
+struct Parsed<'a>(rustybuzz::Face<'a>);
+
+/// The sfnt bytes of a face and the face parsed from them, parsed once when
+/// the face is loaded. [`Yoke`] keeps the borrowing face together with the
+/// shared bytes it borrows, so measuring a line only shapes.
+type ParsedFace = Yoke<Parsed<'static>, Arc<[u8]>>;
+
+/// The segment properties a shaping plan is built for: direction, script
+/// (`None` when the text has no script of its own, as `rustybuzz::shape`
+/// plans it) and language.
+type PlanKey = (
+    rustybuzz::Direction,
+    Option<rustybuzz::Script>,
+    Option<rustybuzz::Language>,
+);
+
+/// The shaping plans built for a face, one per set of segment properties
+/// met so far. A plan compiles the face's OpenType feature lookups, which
+/// for faces with large `GSUB`/`GPOS` tables (Cascadia) costs more than
+/// shaping a line, so it is built once per face and properties rather than
+/// on every call as `rustybuzz::shape` does.
+type Plans = Mutex<Vec<(PlanKey, Arc<rustybuzz::ShapePlan>)>>;
+
 /// One loaded face.
-#[derive(Clone)]
 struct Face {
     weight: u16,
     range: UnicodeRange,
-    /// sfnt bytes.
-    data: Vec<u8>,
+    parsed: ParsedFace,
+    plans: Plans,
     units_per_em: f64,
     /// The code points the `cmap` maps to a glyph other than `.notdef`,
     /// sorted.
     coverage: Vec<u32>,
 }
 
+impl Clone for Face {
+    fn clone(&self) -> Face {
+        Face {
+            weight: self.weight,
+            range: self.range.clone(),
+            parsed: self.parsed.clone(),
+            plans: Mutex::new(self.plans().clone()),
+            units_per_em: self.units_per_em,
+            coverage: self.coverage.clone(),
+        }
+    }
+}
+
 impl Face {
     fn load(data: &[u8], range: UnicodeRange, weight: u16) -> Result<Face, FontError> {
-        let data = decode_font_file(data)?;
-        let parsed = ttf_parser::Face::parse(&data, 0).map_err(|_| FontError::Parse)?;
+        let data: Arc<[u8]> = decode_font_file(data)?.into();
+        let parsed = ParsedFace::try_attach_to_cart(data, |sfnt| {
+            rustybuzz::Face::from_slice(sfnt, 0)
+                .map(Parsed)
+                .ok_or(FontError::Parse)
+        })?;
+        let face: &ttf_parser::Face<'_> = &parsed.get().0;
         let mut coverage = Vec::new();
-        if let Some(cmap) = parsed.tables().cmap {
+        if let Some(cmap) = face.tables().cmap {
             for subtable in cmap.subtables {
                 if subtable.is_unicode() {
                     subtable.codepoints(|cp| coverage.push(cp));
@@ -121,14 +166,15 @@ impl Face {
         coverage.dedup();
         coverage.retain(|&cp| {
             char::from_u32(cp)
-                .and_then(|c| parsed.glyph_index(c))
+                .and_then(|c| face.glyph_index(c))
                 .is_some_and(|g| g.0 != 0)
         });
-        let units_per_em = f64::from(parsed.units_per_em());
+        let units_per_em = f64::from(face.units_per_em());
         Ok(Face {
             weight,
             range,
-            data,
+            parsed,
+            plans: Mutex::new(Vec::new()),
             units_per_em,
             coverage,
         })
@@ -144,15 +190,42 @@ impl Face {
         self.range.contains(u32::from(ch)) && self.maps(ch)
     }
 
+    fn plans(&self) -> MutexGuard<'_, Vec<(PlanKey, Arc<rustybuzz::ShapePlan>)>> {
+        // A panic while the lock was held leaves at worst a list missing
+        // one plan, which is still valid.
+        self.plans.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// The plan for shaping `buffer` on this face with the default features
+    /// (the plan `rustybuzz::shape` would build), built the first time its
+    /// segment properties are met.
+    fn plan(&self, buffer: &rustybuzz::UnicodeBuffer) -> Arc<rustybuzz::ShapePlan> {
+        // `UnicodeBuffer::script` reports a buffer without a script as
+        // UNKNOWN, which guess_segment_properties never assigns.
+        let script = Some(buffer.script()).filter(|&s| s != rustybuzz::script::UNKNOWN);
+        let key: PlanKey = (buffer.direction(), script, buffer.language());
+        let mut plans = self.plans();
+        if let Some((_, plan)) = plans.iter().find(|(k, _)| *k == key) {
+            return Arc::clone(plan);
+        }
+        let plan = Arc::new(rustybuzz::ShapePlan::new(
+            &self.parsed.get().0,
+            key.0,
+            key.1,
+            key.2.as_ref(),
+            &[],
+        ));
+        plans.push((key, Arc::clone(&plan)));
+        plan
+    }
+
     /// The advance width of `text` shaped on this face at `size` px.
     fn shaped_width(&self, text: &str, size: f64) -> f64 {
-        let Some(face) = rustybuzz::Face::from_slice(&self.data, 0) else {
-            return 0.0;
-        };
         let mut buffer = rustybuzz::UnicodeBuffer::new();
         buffer.push_str(text);
         buffer.guess_segment_properties();
-        let glyphs = rustybuzz::shape(&face, &[], buffer);
+        let plan = self.plan(&buffer);
+        let glyphs = rustybuzz::shape_with_plan(&self.parsed.get().0, &plan, buffer);
         let units: i64 = glyphs
             .glyph_positions()
             .iter()
@@ -600,5 +673,106 @@ fn same_face(a: Drawn<'_>, b: Drawn<'_>) -> bool {
 impl TextMetricsProvider for FontStore {
     fn get_line_width(&self, text: &str, font: &str) -> f64 {
         self.line_width(text, font)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Included rather than read: excali-text does no file I/O (ADR-008).
+    const CASCADIA: &[u8] = include_bytes!("../../../fonts/Cascadia/CascadiaCode-Regular.woff2");
+    const LIBERATION: &[u8] =
+        include_bytes!("../../../fonts/Liberation/LiberationSans-Regular.ttf");
+    const VIRGIL: &[u8] = include_bytes!("../../../fonts/Virgil/Virgil-Regular.woff2");
+
+    fn face(data: &[u8]) -> Face {
+        Face::load(data, UnicodeRange::all(), 400).unwrap()
+    }
+
+    /// What `rustybuzz::shape` gives with the face parsed afresh and a plan
+    /// built for the one call: the measurement before faces were kept
+    /// parsed and plans cached.
+    fn uncached_width(face: &Face, text: &str, size: f64) -> f64 {
+        let parsed = rustybuzz::Face::from_slice(face.parsed.backing_cart(), 0).unwrap();
+        let mut buffer = rustybuzz::UnicodeBuffer::new();
+        buffer.push_str(text);
+        let glyphs = rustybuzz::shape(&parsed, &[], buffer);
+        let units: i64 = glyphs
+            .glyph_positions()
+            .iter()
+            .map(|p| i64::from(p.x_advance))
+            .sum();
+        units as f64 * size / face.units_per_em
+    }
+
+    #[test]
+    fn cached_plans_shape_as_a_fresh_plan_does() {
+        let texts = [
+            "Hello, World",
+            "AV Ta To",
+            "12 345",
+            " ",
+            "->=> != <=",
+            "\u{645}\u{631}\u{62D}\u{628}\u{627}",
+            "abc \u{5E9}\u{5DC}\u{5D5}\u{5DD} def",
+            "e\u{301}",
+            "",
+        ];
+        for (path, data) in [
+            ("Cascadia", CASCADIA),
+            ("Liberation Sans", LIBERATION),
+            ("Virgil", VIRGIL),
+        ] {
+            let face = face(data);
+            // Twice: the second pass shapes with the plans the first built.
+            for _ in 0..2 {
+                for text in texts {
+                    assert_eq!(
+                        face.shaped_width(text, 20.0),
+                        uncached_width(&face, text, 20.0),
+                        "{path}: {text:?}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn a_plan_is_built_once_per_segment_properties() {
+        let face = face(CASCADIA);
+        for text in ["one", "two", "three", "a != b"] {
+            face.shaped_width(text, 16.0);
+        }
+        // Latin, left to right, no language.
+        assert_eq!(face.plans().len(), 1);
+        // Digits and spaces only: no script of their own.
+        face.shaped_width("12 34", 16.0);
+        face.shaped_width("5", 16.0);
+        assert_eq!(face.plans().len(), 2);
+        // Hebrew, right to left.
+        face.shaped_width("\u{5E9}\u{5DC}\u{5D5}\u{5DD}", 16.0);
+        assert_eq!(face.plans().len(), 3);
+        face.shaped_width("one more", 16.0);
+        assert_eq!(face.plans().len(), 3);
+    }
+
+    #[test]
+    fn a_cloned_store_measures_the_same() {
+        let mut store = FontStore::new();
+        store.add_face("Cascadia", CASCADIA, None, None).unwrap();
+        let before = store.line_width("fn main() -> i32", "16px Cascadia");
+        let clone = store.clone();
+        drop(store);
+        assert_eq!(
+            clone.line_width("fn main() -> i32", "16px Cascadia"),
+            before
+        );
+    }
+
+    #[test]
+    fn stores_are_send_and_sync() {
+        fn send_sync<T: Send + Sync>() {}
+        send_sync::<FontStore>();
     }
 }
