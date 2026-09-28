@@ -30,13 +30,25 @@ pinned_sha256() {
 
 # Downloads are shared by every worktree of a clone: .tools/ sits next to the
 # common .git directory (the main clone), not inside each worktree.
+# `--git-common-dir` (git >= 2.5) may print a path relative to the directory
+# git runs in, which is $root here; `--path-format=absolute` needs git 2.31, so
+# it is not used. There is no fallback: a wrong guess would give a linked
+# worktree its own private download directory.
 tools_dir() {
   if [ -n "${ZOLA_TOOLS_DIR:-}" ]; then echo "$ZOLA_TOOLS_DIR"; return; fi
   local common
-  common="$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || common="$root/.git"
+  if ! common="$(git -C "$root" rev-parse --git-common-dir)" || [ -z "$common" ]; then
+    echo "cannot find the common git directory of $root; set ZOLA_TOOLS_DIR" >&2
+    return 1
+  fi
+  case "$common" in /*) ;; *) common="$root/$common" ;; esac
+  if ! common="$(cd "$common" && pwd -P)"; then
+    echo "common git directory $common does not exist; set ZOLA_TOOLS_DIR" >&2
+    return 1
+  fi
   echo "$(dirname "$common")/.tools"
 }
-tools="$(tools_dir)"
+tools="$(tools_dir)" || exit 1
 bin="$tools/zola-$ZOLA_VERSION"
 
 target() {
