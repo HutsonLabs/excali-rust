@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-303 · Wrapping port (textWrapping.ts) with upstream tests
+
+`excali_text::text_wrapping` ports `textWrapping.ts`: `parse_tokens` splits lines with upstream's break regex evaluated in order (CJK, emoji, whitespace, hyphens), and `wrap_text` wraps them to a width with `wrap_line`, `wrap_word` and `trim_line`, using UTF-16 offsets like the browser. `textWrapping.test.ts` is ported case for case under a 10 px per character test metric, and the output matches upstream's `parseTokens`/`getWrappedTextLines` goldens. PR: [#58](https://github.com/HutsonLabs/excali-rust/pull/58).
+
 ## 2026-09-28 · ex-g201 · Freedraw background fill: port getFreedrawFillCurvePoints and the loop fill curve of generateElementShape
 
 `excali_scene::generate_freedraw_shapes` follows upstream's freedraw case: when a stroke closes into a loop, it first draws a rough.js curve over the points simplified to 0.75 (`get_freedraw_fill_curve_points`) with the element's fill style and `stroke: "none"`, then the stroke path. All 48 freedraw goldens match upstream, including the 14 looped fills. PR: [#57](https://github.com/HutsonLabs/excali-rust/pull/57).

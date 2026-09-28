@@ -277,7 +277,10 @@ jobs:
   # getVerticalOffset, getLineHeight and family fallbacks, font-assets.mjs
   # --check for excali-text's font-assets.json, upstream's own font registry,
   # unicode-range test, containsCJK, scene font loads and
-  # generateFontFaceDeclarations, and library-fixtures.mjs --check for
+  # generateFontFaceDeclarations, text-wrapping.mjs --check for excali-text's
+  # text-wrapping.json (ex-303), upstream's own parseTokens and
+  # getWrappedTextLines under two line-width providers, and
+  # library-fixtures.mjs --check for
   # library.json, upstream's own parseLibraryJSON,
   # serializeLibraryAsJSON, mergeLibraryItems and getLibraryItemsHash, and
   # library-url-fixtures.mjs --check for library-url.json, upstream's own
@@ -326,6 +329,8 @@ jobs:
         run: node tools/goldens/font-metadata.mjs --check
       - name: excali-text font asset goldens match the generator
         run: node tools/goldens/font-assets.mjs --check
+      - name: excali-text text wrapping goldens match upstream's parseTokens and getWrappedTextLines
+        run: node tools/goldens/text-wrapping.mjs --check
       - name: excali-core library fixtures match the generator
         run: node tools/goldens/library-fixtures.mjs --check
       - name: excali-core library URL fixtures match the generator
