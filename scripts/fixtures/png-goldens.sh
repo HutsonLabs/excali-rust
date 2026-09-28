@@ -113,7 +113,7 @@ done
 
 if [ "$mode" = write ]; then
   mkdir -p "$(dirname "$out")"
-  "$node" "$here/png_goldens.mjs" "${args[@]}" > "$out.tmp"
+  "$node" --disable-warning=ExperimentalWarning "$here/png_goldens.mjs" "${args[@]}" > "$out.tmp"
   mv "$out.tmp" "$out"
   echo "wrote ${out#"$root"/}" >&2
   exit 0
@@ -121,7 +121,7 @@ fi
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
-"$node" "$here/png_goldens.mjs" "${args[@]}" > "$tmp/goldens.json"
+"$node" --disable-warning=ExperimentalWarning "$here/png_goldens.mjs" "${args[@]}" > "$tmp/goldens.json"
 if ! cmp -s "$tmp/goldens.json" "$out"; then
   diff -u "$out" "$tmp/goldens.json" | head -n 40 >&2 || true
   die "${out#"$root"/} is stale: run scripts/fixtures/png-goldens.sh"
@@ -129,4 +129,4 @@ fi
 echo "png goldens match upstream image.ts" >&2
 
 (cd "$root" && "$cargo" run --quiet --locked -p excali-core --example png_embed -- "$tmp/written")
-"$node" "$here/png_goldens.mjs" "${args[@]}" --decode-dir "$tmp/written"
+"$node" --disable-warning=ExperimentalWarning "$here/png_goldens.mjs" "${args[@]}" --decode-dir "$tmp/written"
