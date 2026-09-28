@@ -159,19 +159,13 @@ fn has_container_id(text: &TextFields) -> bool {
 }
 
 /// The container `getElementAbsoluteCoords` finds for a text
-/// (`getContainerElement(element, elementsMap)`): the element its
-/// `containerId` names, among `elements`, or `container` when it is that
-/// element.
-fn find_container<'a>(
-    text: &TextFields,
-    container: Option<&'a Element>,
-    elements: &'a [Element],
-) -> Option<&'a Element> {
+/// (`getContainerElement(element, elementsMap)`, `textElement.ts:357-371`):
+/// the element its `containerId` names among `elements` only, so a
+/// container missing from the scene is no container here, whatever
+/// `refreshTextDimensions` was handed.
+fn find_container<'a>(text: &TextFields, elements: &'a [Element]) -> Option<&'a Element> {
     let id = text.container_id.as_deref().filter(|id| !id.is_empty())?;
-    elements
-        .iter()
-        .find(|e| e.base.id == id)
-        .or_else(|| container.filter(|c| c.base.id == id))
+    elements.iter().find(|e| e.base.id == id)
 }
 
 /// `getAdjustedDimensions(element, elementsMap, nextText, nextFixedWidth)`
@@ -189,7 +183,6 @@ fn get_adjusted_dimensions(
     layout: &mut TextLayout<'_>,
     element: &Element,
     text: &TextFields,
-    container: Option<&Element>,
     elements: &[Element],
     next_text: &str,
     next_fixed_width: Option<f64>,
@@ -218,8 +211,8 @@ fn get_adjusted_dimensions(
         y = element.base.y - offset_y;
     } else {
         let (width, height) = (element.base.width, element.base.height);
-        let arrow = find_container(text, container, elements)
-            .filter(|c| c.kind.element_type() == ElementType::Arrow);
+        let arrow =
+            find_container(text, elements).filter(|c| c.kind.element_type() == ElementType::Arrow);
         let [x1, y1] = match arrow {
             Some(arrow) => layout
                 .geometry
@@ -304,7 +297,6 @@ pub fn refresh_text_dimensions(
                     layout,
                     text_element,
                     fields,
-                    container,
                     elements,
                     &wrapped,
                     Some(max_width),
@@ -333,15 +325,8 @@ pub fn refresh_text_dimensions(
             layout.char_widths,
         );
     }
-    let [width, height, x, y] = get_adjusted_dimensions(
-        layout,
-        text_element,
-        fields,
-        container,
-        elements,
-        &text,
-        None,
-    )?;
+    let [width, height, x, y] =
+        get_adjusted_dimensions(layout, text_element, fields, elements, &text, None)?;
     Some(RefreshedText {
         text,
         auto_resize: None,

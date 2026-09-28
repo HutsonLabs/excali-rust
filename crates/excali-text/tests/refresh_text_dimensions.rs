@@ -209,13 +209,25 @@ fn refresh(
     max_width: Option<f64>,
     geometry: &mut dyn ArrowLabelGeometry,
 ) -> Option<RefreshedText> {
+    refresh_in(text, container, &[], new_text, max_width, geometry)
+}
+
+/// [`refresh`] in a scene of `elements` (upstream's `elementsMap`).
+fn refresh_in(
+    text: &Element,
+    container: Option<&Element>,
+    elements: &[Element],
+    new_text: Option<&str>,
+    max_width: Option<f64>,
+    geometry: &mut dyn ArrowLabelGeometry,
+) -> Option<RefreshedText> {
     let mut char_widths = CharWidthCache::new();
     let mut layout = TextLayout {
         provider: &CharCountTextMetrics,
         char_widths: &mut char_widths,
         geometry,
     };
-    refresh_text_dimensions(&mut layout, text, container, &[], new_text, max_width)
+    refresh_text_dimensions(&mut layout, text, container, elements, new_text, max_width)
 }
 
 fn free_text(fields: Value) -> Element {
@@ -339,28 +351,23 @@ fn bound_text_wraps_to_container() {
 
 /// An arrow label's box is where the arrow puts it
 /// (`LinearElementEditor.getBoundTextElementPosition`), which the geometry
-/// answers; without it there is no answer.
+/// answers; without it there is no answer. The arrow is found in the scene
+/// (`getContainerElement(element, elementsMap)`), not from the `container`
+/// argument.
 #[test]
 fn arrow_label_uses_the_geometry() {
-    struct At([f64; 2]);
-    impl ArrowLabelGeometry for At {
-        fn bound_text_element_position(
-            &mut self,
-            _arrow: &Element,
-            _text: &Element,
-            _elements: &[Element],
-        ) -> Option<[f64; 2]> {
-            Some(self.0)
-        }
-    }
     let arrow = element("arrow", "a", json!({}));
-    let text = element(
-        "text",
-        "t",
-        json!({ "text": "hi", "originalText": "hi", "width": 50, "height": 25,
-                "textAlign": "center", "verticalAlign": "middle", "containerId": "a" }),
-    );
-    let got = refresh(&text, Some(&arrow), None, None, &mut At([100.0, 200.0])).unwrap();
+    let text = arrow_label();
+    let scene = [arrow.clone(), text.clone()];
+    let got = refresh_in(
+        &text,
+        Some(&arrow),
+        &scene,
+        None,
+        None,
+        &mut At([100.0, 200.0]),
+    )
+    .unwrap();
     // max width max(0.7 * 100, 220): no wrap; 20 x 25.
     // x: 0 + (100 - 0) / 2 + (150 - 20) / 2; y: 0 + (200 - 0) / 2 + (225 - 25) / 2
     assert_eq!(
@@ -368,9 +375,73 @@ fn arrow_label_uses_the_geometry() {
         ("hi", 20.0, 25.0, 115.0, 200.0)
     );
     assert_eq!(
-        refresh(&text, Some(&arrow), None, None, &mut NoArrowGeometry),
+        refresh_in(
+            &text,
+            Some(&arrow),
+            &scene,
+            None,
+            None,
+            &mut NoArrowGeometry
+        ),
         None
     );
+}
+
+/// An arrow container missing from the scene is no container to
+/// `getElementAbsoluteCoords` (`bounds.ts:259-277` through
+/// `getContainerElement`, `textElement.ts:357-371`): the box is the text's
+/// own x/y, whatever the geometry would say, and there is an answer without
+/// one.
+#[test]
+fn arrow_label_outside_the_scene_uses_its_own_box() {
+    let arrow = element("arrow", "a", json!({}));
+    let text = arrow_label();
+    // x1, y1 = 0, 0: x: 0 + (0 - 0) / 2 + (50 - 20) / 2; y: 0 + 0 + (25 - 25) / 2
+    let expected = ("hi", 20.0, 25.0, 15.0, 0.0);
+    for scene in [&[][..], std::slice::from_ref(&text)] {
+        let got = refresh_in(
+            &text,
+            Some(&arrow),
+            scene,
+            None,
+            None,
+            &mut At([100.0, 200.0]),
+        )
+        .unwrap();
+        assert_eq!(
+            (got.text.as_str(), got.width, got.height, got.x, got.y),
+            expected
+        );
+        let got = refresh_in(&text, Some(&arrow), scene, None, None, &mut NoArrowGeometry).unwrap();
+        assert_eq!(
+            (got.text.as_str(), got.width, got.height, got.x, got.y),
+            expected
+        );
+    }
+}
+
+/// A geometry that puts every arrow label at one point.
+struct At([f64; 2]);
+
+impl ArrowLabelGeometry for At {
+    fn bound_text_element_position(
+        &mut self,
+        _arrow: &Element,
+        _text: &Element,
+        _elements: &[Element],
+    ) -> Option<[f64; 2]> {
+        Some(self.0)
+    }
+}
+
+/// "hi" at 0, 0 in a 50 x 25 box, centred, labelling arrow `a`.
+fn arrow_label() -> Element {
+    element(
+        "text",
+        "t",
+        json!({ "text": "hi", "originalText": "hi", "width": 50, "height": 25,
+                "textAlign": "center", "verticalAlign": "middle", "containerId": "a" }),
+    )
 }
 
 /// Positions that come out non-finite fall back to the element's.
