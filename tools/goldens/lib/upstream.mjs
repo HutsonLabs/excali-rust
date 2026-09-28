@@ -201,6 +201,26 @@ const exposedModules = (upstream, exposed, patched = {}) => ({
   },
 });
 
+/**
+ * Makes each `.woff2` import under packages/excalidraw/fonts its path from
+ * that directory (e.g. `Excalifont/Excalifont-Regular-<hash>.woff2`) instead
+ * of an empty module, so a generator sees which file each of upstream's font
+ * faces names (font-assets.mjs). Only with `fontUris: true`.
+ */
+const fontUris = (upstream) => ({
+  name: "font-uris",
+  setup(build) {
+    const fontsDir = join(upstream, "packages", "excalidraw", "fonts");
+    build.onLoad({ filter: /\.woff2$/ }, (args) => {
+      if (!args.path.startsWith(`${fontsDir}/`)) return undefined;
+      return {
+        contents: `export default ${JSON.stringify(args.path.slice(fontsDir.length + 1))};`,
+        loader: "js",
+      };
+    });
+  },
+});
+
 let loads = 0;
 
 /**
@@ -210,11 +230,20 @@ let loads = 0;
  * by empty ones and `shims` maps modules to replacement CommonJS sources
  * (see stubbedModules); `expose` exports module-private functions and
  * `patch` rewrites checkout modules (see exposedModules); `define` adds
- * compile-time constants.
+ * compile-time constants; `fontUris` makes each font file import its path
+ * (see fontUris).
  */
 export const loadUpstream = async (
   { dir },
-  { entry = ENTRY, stubs = [], shims = {}, expose = {}, patch = {}, define = {} } = {},
+  {
+    entry = ENTRY,
+    stubs = [],
+    shims = {},
+    expose = {},
+    patch = {},
+    define = {},
+    fontUris: withFontUris = false,
+  } = {},
 ) => {
   const esbuild = await import("esbuild");
   const result = await esbuild.build({
@@ -234,6 +263,7 @@ export const loadUpstream = async (
       workspaceAliases(dir),
       stubbedModules(dir, stubs, shims),
       exposedModules(dir, expose, patch),
+      ...(withFontUris ? [fontUris(dir)] : []),
       pinnedPackages(),
     ],
     loader: { ".png": "empty", ".svg": "empty", ".scss": "empty", ".css": "empty", ".woff2": "empty" },

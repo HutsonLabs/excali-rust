@@ -48,6 +48,13 @@ jobs:
         run: python3 scripts/gates/test_fonts.py -v
       - name: font licence gate
         run: python3 scripts/gates/fonts.py check
+      # ex-307: crates/excali-text/assets/fonts/manifest.json and the
+      # compiled table (src/font_assets/generated.rs) are what
+      # scripts/fonts/assets.py writes from the upstream registry golden and
+      # the files on disk; every listed file is present with its size and
+      # sha256, no unlisted file is, and each licence is the recorded one.
+      - name: font asset manifest matches disk
+        run: python3 scripts/fonts/assets.py check
   # fixtures/ (ex-003): the manifest matches disk, the upstream copies equal
   # the pinned checkout, and every file still equals its origin URL at the
   # pinned commits (upstream and excalidraw-libraries).
@@ -71,6 +78,15 @@ jobs:
         run: python3 scripts/fixtures/corpus.py verify-upstream
       - name: ADR-004 licence-gap hashes equal the pinned upstream files
         run: python3 scripts/gates/fonts.py verify-upstream "${{ runner.temp }}/upstream"
+      # ex-307: the font asset pipeline's own suite (planted changes are
+      # caught), and every vendored font equals its upstream file byte for
+      # byte, except the Liberation Sans substitution ADR-004 records.
+      - name: font asset pipeline test suite
+        env:
+          UPSTREAM_DIR: ${{ runner.temp }}/upstream
+        run: python3 scripts/fonts/test_assets.py -v
+      - name: vendored fonts equal the pinned upstream files
+        run: python3 scripts/fonts/assets.py verify-upstream "${{ runner.temp }}/upstream"
       - name: every file equals its origin (live)
         run: python3 scripts/fixtures/corpus.py verify-remote
   # ex-110: the payload codec goldens are upstream output. Regenerate them
@@ -232,8 +248,10 @@ jobs:
   # upstream's own applyDarkModeFilter, removeDarkModeFilter and rgbToHex
   # over COLOR_PALETTE and every colour notation, font-metadata.mjs --check
   # for excali-text's font-metadata.json, upstream's own FONT_METADATA,
-  # getVerticalOffset, getLineHeight and family fallbacks, and
-  # library-fixtures.mjs --check for
+  # getVerticalOffset, getLineHeight and family fallbacks, font-assets.mjs
+  # --check for excali-text's font-assets.json, upstream's own font registry,
+  # unicode-range test, containsCJK, scene font loads and
+  # generateFontFaceDeclarations, and library-fixtures.mjs --check for
   # library.json, upstream's own parseLibraryJSON,
   # serializeLibraryAsJSON, mergeLibraryItems and getLibraryItemsHash, and
   # library-url-fixtures.mjs --check for library-url.json, upstream's own
@@ -280,6 +298,8 @@ jobs:
         run: node tools/goldens/dark-mode.mjs --check
       - name: excali-text font metadata goldens match the generator
         run: node tools/goldens/font-metadata.mjs --check
+      - name: excali-text font asset goldens match the generator
+        run: node tools/goldens/font-assets.mjs --check
       - name: excali-core library fixtures match the generator
         run: node tools/goldens/library-fixtures.mjs --check
       - name: excali-core library URL fixtures match the generator
