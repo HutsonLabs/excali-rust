@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 17:51 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 18:05 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**138 issues** · 54 closed (39%) · 0 in progress · 0 blocked · 83 open
+**138 issues** · 55 closed (40%) · 0 in progress · 0 blocked · 82 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -107,7 +107,7 @@ Font metadata, measurement from font files, wrapping port, bound-text sizing, la
 
 ## ex-e4 · Phase 4: Headless rendering and export
 
-<span class="status open">open</span> 1/11 children closed
+<span class="status open">open</span> 2/11 children closed
 
 tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
@@ -118,12 +118,12 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 | `ex-403` | Frames: clipping with radius 8/zoom, stroke #bbb, names as Helvetica text on export | task | P1 | <span class="status open">open</span> |  | `ex-402` |
 | `ex-404` | Image elements: decode data URLs (image crate), crop, scale flip, rounded clip, placeholder | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-405` | PNG export: padding 10, scale, background, embedded payload | task | P0 | <span class="status open">open</span> |  | `ex-402` |
-| `ex-406` | SVG writer: document structure (source comment, metadata, defs clipPaths, font style block, background rect) | task | P0 | <span class="status open">open</span> | yes |  |
-| `ex-407` | SVG elements: rough paths, freedraw, text per line, images as symbol/use, arrow-label masks | task | P0 | <span class="status open">open</span> |  | `ex-403`, `ex-406` |
+| `ex-406` | SVG writer: document structure (source comment, metadata, defs clipPaths, font style block, background rect) | task | P0 | <span class="status closed">closed</span> |  |  |
+| `ex-407` | SVG elements: rough paths, freedraw, text per line, images as symbol/use, arrow-label masks | task | P0 | <span class="status open">open</span> |  | `ex-403` |
 | `ex-408` | Spike: font subsetting for SVG export (allsorts, hb-subset, or ship full woff2) | spike | P2 | <span class="status open">open</span> | yes |  |
-| `ex-409` | excali-cli: validate, render (png), export (svg), lib (list/merge), with exit codes | task | P1 | <span class="status open">open</span> |  | `ex-405`, `ex-406` |
+| `ex-409` | excali-cli: validate, render (png), export (svg), lib (list/merge), with exit codes | task | P1 | <span class="status open">open</span> |  | `ex-405` |
 | `ex-410` | Corpus render: every catalogue library item renders to PNG without panic | task | P1 | <span class="status open">open</span> |  | `ex-409` |
-| `ex-m4` | M4: SVG/PNG export parity | milestone | P2 | <span class="status open">open</span> |  | `ex-402`, `ex-403`, `ex-404`, `ex-405`, `ex-406`, `ex-407` … |
+| `ex-m4` | M4: SVG/PNG export parity | milestone | P2 | <span class="status open">open</span> |  | `ex-402`, `ex-403`, `ex-404`, `ex-405`, `ex-407`, `ex-408` … |
 
 ## ex-e5 · Phase 5: Web runtime and editor
 

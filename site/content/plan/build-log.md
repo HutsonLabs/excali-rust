@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-406 · SVG writer: document structure (source comment, metadata, defs clipPaths, font style block, background rect)
+
+`excali_svg::export_to_svg` writes the SVG document that upstream's `exportToSvg` builds before the elements. That covers the source comment, the embedded scene payload, a clip path per frame, frame name labels, the `@font-face` style block and the dark-mode background. The output is serialized the way `outerHTML` does, and path data uses two decimals. It matches upstream's output under jsdom for 29 scenes. When a font file is not available, a face falls back to upstream's esm.sh asset url under `dist/prod/fonts/`. PR: [#62](https://github.com/HutsonLabs/excali-rust/pull/62).
+
 ## 2026-09-28 · ex-m2 · Milestone check: M2 reached
 
 The second M2 check ran on `main` at 0eb233c, after ex-g201 and ex-g202 merged. 1093 workspace tests pass with the goldens feature, the 105 golden generator tests pass and all sixteen goldens `--check` steps are current. The committed matrix `goldens/elements-matrix.json` covers 19 element variants at every fill style, roughness 0, 1 and 2 and seeds 1, 7 and 1041657908 (684 cases), the port matches all of them, looped freedraw fills included, and the `goldens` CI job fails on any missing cell. M2 is closed. PR: [#61](https://github.com/HutsonLabs/excali-rust/pull/61).
