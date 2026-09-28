@@ -1,7 +1,8 @@
 //! Shape construction for the box-like elements: rectangles, iframes and
 //! embeddables, diamonds and ellipses (`_generateElementShape`,
 //! `packages/element/src/shape.ts:761-889`), with the iframe-like colour
-//! handling of `modifyIframeLikeForRoughOptions` (`shape.ts:262-293`).
+//! handling of `modifyIframeLikeForRoughOptions` (`shape.ts:262-293`); and
+//! the body of lines and non-elbow arrows (`shape.ts:890-935`).
 //!
 //! See `site/content/research/rendering.md` section 2.
 //!
@@ -15,13 +16,18 @@
 //!   [`get_diamond_points`].
 //! - Ellipse: `generator.ellipse(w / 2, h / 2, w, h)`; its options carry
 //!   `curveFitting: 1` ([`generate_rough_options`]).
+//! - Line, arrow ([`generate_linear_shape`]): sharp ones are
+//!   `generator.polygon(points)` when the options carry a fill (a line whose
+//!   points close into a loop, [`is_path_a_loop`](crate::utils::is_path_a_loop))
+//!   and `generator.linearPath(points)` otherwise; round ones are
+//!   `generator.curve(points)`. Empty points draw the point `[0, 0]`.
 
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt;
 
 use excali_core::color::is_transparent;
-use excali_core::element::{Element, ElementKind, ElementType, FillStyle};
+use excali_core::element::{Element, ElementKind, ElementType, FillStyle, LocalPoint};
 use excali_core::json::number_to_string;
 use excali_math::js;
 use excali_rough::path_data::PathError;
@@ -69,13 +75,21 @@ impl Default for RenderConfig<'_> {
     }
 }
 
-/// Why [`generate_element_shape`] returned no drawable.
+/// Why [`generate_element_shape`] or [`generate_linear_shape`] returned no
+/// drawable.
 #[derive(Clone, Debug, PartialEq)]
 pub enum ShapeError {
     /// The element is not a rectangle, iframe, embeddable, diamond or
     /// ellipse; the other types have their own builders (lines, arrows,
     /// freedraw) or no rough shape at all (text, image, frames).
     NotABoxShape(ElementType),
+    /// [`generate_linear_shape`] was given an element that is not a line or
+    /// an arrow.
+    NotALinearShape(ElementType),
+    /// [`generate_linear_shape`] was given an elbow arrow, whose body is the
+    /// rounded path of `generateElbowArrowShape` (`shape.ts:900-920`), not a
+    /// rough.js polyline or curve.
+    ElbowArrow,
     /// rough.js rejected the path data (only reachable with non-finite
     /// sizes, which write `NaN` or `Infinity` into the path).
     Path(PathError),
@@ -87,6 +101,8 @@ impl fmt::Display for ShapeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ShapeError::NotABoxShape(ty) => write!(f, "{ty} is not a box shape"),
+            ShapeError::NotALinearShape(ty) => write!(f, "{ty} is not a line or an arrow"),
+            ShapeError::ElbowArrow => f.write_str("an elbow arrow is not a polyline or curve"),
             ShapeError::Path(e) => write!(f, "path data: {e}"),
             ShapeError::Options(e) => e.fmt(f),
         }
@@ -285,5 +301,57 @@ pub fn generate_element_shape(
             ))
         }
         _ => Err(ShapeError::NotABoxShape(element.element_type())),
+    }
+}
+
+/// The body `_generateElementShape` builds for a line or a non-elbow arrow
+/// (`shape.ts:890-935`): the first shape of the element, which upstream
+/// keeps first so the curve is easy to find ("curve is always the first
+/// element"). An arrow's heads are pushed after it by
+/// `getArrowheadShapes`.
+///
+/// - The options are `generateRoughOptions(element, false, isDarkMode)`:
+///   a line fills only when its points close into a loop
+///   ([`is_path_a_loop`](crate::utils::is_path_a_loop)), an arrow never.
+/// - No roundness: `generator.polygon(points)` when `options.fill` is
+///   truthy (so an empty background string draws no fill) and
+///   `generator.linearPath(points)` otherwise.
+/// - Roundness of any type: `generator.curve(points)`, which fills when the
+///   options do.
+/// - "points array can be empty in the beginning": empty points draw the
+///   single point `[0, 0]`.
+///
+/// Errors with [`ShapeError::ElbowArrow`] for an elbow arrow and
+/// [`ShapeError::NotALinearShape`] for any other type.
+pub fn generate_linear_shape(
+    element: &Element,
+    generator: &RoughGenerator,
+    config: &RenderConfig<'_>,
+) -> Result<Drawable, ShapeError> {
+    let linear = match &element.kind {
+        ElementKind::Line(line) => &line.linear,
+        ElementKind::Arrow(arrow) if arrow.elbowed => return Err(ShapeError::ElbowArrow),
+        ElementKind::Arrow(arrow) => &arrow.linear,
+        _ => return Err(ShapeError::NotALinearShape(element.element_type())),
+    };
+    let is_dark_mode = config.theme == Theme::Dark;
+    let options =
+        generate_rough_options(element, false, is_dark_mode)?.to_rough(generator.default_options());
+
+    // points array can be empty in the beginning, so it is important to add
+    // initial position to it
+    const ORIGIN: [LocalPoint; 1] = [[0.0, 0.0]];
+    let points: &[LocalPoint] = if linear.points.is_empty() {
+        &ORIGIN
+    } else {
+        &linear.points
+    };
+
+    if element.base.roundness.is_some() {
+        Ok(generator.curve(points, &options)?)
+    } else if options.fill.as_deref().is_some_and(|fill| !fill.is_empty()) {
+        Ok(generator.polygon(points, &options))
+    } else {
+        Ok(generator.linear_path(points, &options))
     }
 }
