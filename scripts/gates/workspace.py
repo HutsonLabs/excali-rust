@@ -170,16 +170,153 @@ def check(spec: Spec, metadata: dict, wasm_metadata: dict) -> list[str]:
     return problems
 
 
-COMMENT = re.compile(r"//.*?$|/\*.*?\*/", re.S | re.M)
+def rust_tokens(text: str) -> list[str]:
+    """Split Rust source into identifier and punctuation tokens.
+
+    Comments (line, block, nested block, doc), string literals (plain, byte,
+    C, raw with any number of #) and char/byte literals are dropped, so text
+    inside them can never look like code and never hides the code after them.
+    `::` is one token; raw identifiers (r#fs) yield their bare name.
+    """
+    tokens: list[str] = []
+    i, n = 0, len(text)
+
+    def skip_quoted(j: int, quote: str) -> int:
+        # j is just past the opening quote; return the index past the closing one.
+        while j < n:
+            if text[j] == "\\":
+                j += 2
+            elif text[j] == quote:
+                return j + 1
+            else:
+                j += 1
+        return n
+
+    def skip_raw(j: int) -> int | None:
+        # j at the first char after the r prefix; None if this is not a raw string.
+        k = j
+        while k < n and text[k] == "#":
+            k += 1
+        if k >= n or text[k] != '"':
+            return None
+        close = '"' + "#" * (k - j)
+        end = text.find(close, k + 1)
+        return n if end < 0 else end + len(close)
+
+    while i < n:
+        c = text[i]
+        if c.isspace():
+            i += 1
+        elif text.startswith("//", i):
+            nl = text.find("\n", i)
+            i = n if nl < 0 else nl + 1
+        elif text.startswith("/*", i):
+            depth, i = 1, i + 2
+            while i < n and depth:
+                if text.startswith("/*", i):
+                    depth, i = depth + 1, i + 2
+                elif text.startswith("*/", i):
+                    depth, i = depth - 1, i + 2
+                else:
+                    i += 1
+        elif c == '"':
+            i = skip_quoted(i + 1, '"')
+        elif c == "'":
+            # char literal ('x', '\n', '\u{..}') or lifetime/label ('a).
+            if i + 1 < n and text[i + 1] == "\\":
+                i = skip_quoted(i + 1, "'")
+            elif i + 2 < n and text[i + 2] == "'":
+                i += 3
+            else:
+                i += 1
+        elif c.isalpha() or c == "_":
+            j = i
+            while j < n and (text[j].isalnum() or text[j] == "_"):
+                j += 1
+            word = text[i:j]
+            if word in ("r", "br", "cr") and j < n and text[j] in "#\"":
+                end = skip_raw(j)
+                if end is not None:
+                    i = end
+                    continue
+                if word == "r" and j + 1 < n and (text[j + 1].isalpha() or text[j + 1] == "_"):
+                    i = j + 1  # raw identifier: tokenise the bare name next
+                    continue
+            if word in ("b", "c") and j < n and text[j] == '"':
+                i = skip_quoted(j + 1, '"')
+                continue
+            if word == "b" and j < n and text[j] == "'":
+                i = skip_quoted(j + 1, "'")
+                continue
+            tokens.append(word)
+            i = j
+        elif text.startswith("::", i):
+            tokens.append("::")
+            i += 2
+        else:
+            tokens.append(c)
+            i += 1
+    return tokens
+
+
+def _group_names_fs(tokens: list[str], i: int) -> tuple[bool, int]:
+    """tokens[i] is the "{" of a `std::{...}` use-group. Report whether any
+    item at the std level names `fs` (fs, fs::X, fs as y, nested {fs}), and
+    return the index past the matching "}"."""
+    found = False
+    item_start = True
+    i += 1
+    while i < len(tokens):
+        t = tokens[i]
+        if t == "}":
+            return found, i + 1
+        if t == ",":
+            item_start = True
+            i += 1
+            continue
+        if item_start and t == "fs":
+            found = True
+        if item_start and t == "{":
+            inner, i = _group_names_fs(tokens, i)
+            found = found or inner
+            item_start = False
+            continue
+        if t == "{":
+            # A deeper group (std::io::{...}): skip it, it is not std::fs.
+            depth = 0
+            while i < len(tokens):
+                if tokens[i] == "{":
+                    depth += 1
+                elif tokens[i] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                i += 1
+        item_start = False
+        i += 1
+    return found, i
+
+
+def uses_std_fs(text: str) -> bool:
+    """True if the source names std::fs as a path or inside a std::{...} group."""
+    tokens = rust_tokens(text)
+    for i, t in enumerate(tokens):
+        if t != "std" or i + 2 >= len(tokens) or tokens[i + 1] != "::":
+            continue
+        nxt = tokens[i + 2]
+        if nxt == "fs":
+            return True
+        if nxt == "{" and _group_names_fs(tokens, i + 2)[0]:
+            return True
+    return False
 
 
 def scan_sources(sources: dict[str, dict[str, str]]) -> list[str]:
-    """sources: crate -> {relative path -> text}. Flags std::fs outside comments."""
+    """sources: crate -> {relative path -> text}. Flags std::fs in code."""
     problems = []
     for crate, files in sources.items():
         for rel, text in sorted(files.items()):
-            code = COMMENT.sub("", text)
-            if re.search(r"\bstd\s*::\s*fs\b", code):
+            if uses_std_fs(text):
                 problems.append(f"{crate}: {rel} uses std::fs (ADR-008)")
     return problems
 
