@@ -38,8 +38,9 @@ narrower than their stored width (39 of them by an exact 1, 2, 3 or 5 px,
 consistent with widths edited by hand or kept from an older font build) and
 53 wider, all 53 in the Nunito texts of datavizfairy/dashboard-charts, a
 generated library. The whole-corpus gate and its per-family report are
-ex-308's; `check` fails if PAIRS and EXCLUDED stop covering every pair with
-eligible texts or an excluded pair's text count changes.
+ex-308's (crates/excali-text/tests/text_width_corpus.rs); `check` fails if
+PAIRS and EXCLUDED stop covering every pair with eligible texts or an
+excluded pair's text count changes.
 
   text_widths.py write   regenerate crates/excali-text/tests/fixtures/text-widths.json
   text_widths.py check   exit 1 if the committed fixture differs from the corpus

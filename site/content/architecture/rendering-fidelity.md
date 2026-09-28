@@ -86,7 +86,7 @@ PNG export: canvas = common bounds + 2 × 10 padding, times `exportScale`; no gr
 
 ## Text: trust the file, then measure the same way
 
-Text elements store `width`, `height` and the wrapped `text` computed by the browser that wrote them. On load the port trusts those values. When the user edits, or when a container resizes, the port measures with the same font files and the same rules (tab = 8 spaces, empty line = one space, advance width of the widest line). The [risks page](../../plan/risks/) tracks this as the main fidelity risk; task `ex-308` measures it across the corpus.
+Text elements store `width`, `height` and the wrapped `text` computed by the browser that wrote them. On load the port trusts those values. When the user edits, or when a container resizes, the port measures with the same font files and the same rules (tab = 8 spaces, empty line = one space, advance width of the widest line). The [risks page](../../plan/risks/) tracks this as the main fidelity risk; task `ex-308` measures it across the corpus and gates Excalifont, Nunito and Comic Shanns at 0.5 px ([ADR-007](../../decisions/adr-007-text-metrics/)).
 
 ## Golden tests
 

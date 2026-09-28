@@ -64,18 +64,21 @@ const GATED_FAMILIES: [u32; 3] = [5, 6, 8];
 /// width, measured width)`.
 ///
 /// Nothing the port can reproduce gives these widths. Each was measured
-/// again in every vendored family at its font size, with and without
-/// kerning, and with the Excalifont and Comic Shanns builds upstream
-/// shipped before `61623bbeba` (2024-10-20, the single-file
-/// `fonts/assets/*-Regular.woff2` at `a80cb5896a`), and none comes within
-/// 0.5 px; the pre-split Excalifont measures every corpus text exactly as
-/// the vendored one does. The stored widths are larger than the
-/// measurement in every case, the other texts of the same libraries (and
-/// of the same size) match to 0.001 px, and two are whole numbers (`K` is
-/// off by exactly 1.000 px, `A` is stored as 25), which fits a width kept
-/// from an earlier state of the element better than a measuring error.
-/// A text that starts to measure within 0.5 px must be removed from the
-/// list, and a new deviation fails the gate.
+/// again (2026-09-28) in every vendored family at its font size, in its
+/// own family without kerning, and with the Excalifont and Comic Shanns
+/// builds upstream shipped before `61623bbeba` (2024-10-20; the single-file
+/// `packages/excalidraw/fonts/assets/*-Regular.woff2` at `a80cb5896a`).
+/// No family and neither older build comes within 0.5 px of the texts of
+/// more than one character (for the single `K` and `7`, Liberation Sans
+/// happens to), and the older Excalifont measures every corpus text exactly
+/// as the vendored one does. Every stored width is wider than the
+/// measurement, most other texts of the same libraries match to 0.001 px
+/// (19 of 27 and 16 of 31 in the two Excalifont libraries with most of
+/// these), `K` is stored exactly 1.000 px wider and `A` as a whole 25 px.
+/// That fits a width kept from an earlier state of the element better than
+/// a measuring error. A text that starts to
+/// measure within 0.5 px must be removed from the list, and a new
+/// deviation fails the gate.
 const KNOWN_DEVIATIONS: &[(&str, &str, f64, f64)] = &[
     // Excalifont (5)
     (
@@ -189,8 +192,8 @@ const KNOWN_DEVIATIONS: &[(&str, &str, f64, f64)] = &[
     ),
 ];
 
-/// The libraries with `height_mismatch` texts and how many: the Nunito
-/// (and one Excalifont) texts of a generated library, whose heights are
+/// The libraries with `height_mismatch` texts and how many: Nunito texts
+/// of a generated library, whose heights are
 /// `fontSize * 1.4` under a stored `lineHeight` of 1.25 and whose widths
 /// are `0.6 * fontSize` per character.
 const HEIGHT_MISMATCH: &[(&str, u32, usize)] = &[(
@@ -458,7 +461,9 @@ impl Stats {
 fn stats<'a>(texts: impl Iterator<Item = &'a Text>) -> BTreeMap<(u32, Class), Stats> {
     let mut out: BTreeMap<(u32, Class), Stats> = BTreeMap::new();
     for t in texts {
-        out.entry((t.family, t.class)).or_default().add(t.deviation());
+        out.entry((t.family, t.class))
+            .or_default()
+            .add(t.deviation());
     }
     out
 }
@@ -537,22 +542,22 @@ fn report() -> Value {
     json!({
         "generator": "crates/excali-text/tests/text_width_corpus.rs",
         "description": "Stored against measured widths of every text element in a vendored \
-family across the ex-003 corpus (fixtures/manifest.json): the catalogue libraries and the \
-scene-bearing upstream test fixtures. deviation = |measured - stored| in px, measured with \
-excali_text's FontStore as measureText(text, getFontString(element), lineHeight). Classes \
-are decided without the width; see classes. Regenerate with EXCALI_BLESS=1 cargo test -p \
-excali-text --test text_width_corpus.",
+    family across the ex-003 corpus (fixtures/manifest.json): the catalogue libraries and the \
+    scene-bearing upstream test fixtures. deviation = |measured - stored| in px, measured with \
+    excali_text's FontStore as measureText(text, getFontString(element), lineHeight). Classes \
+    are decided without the width; see classes. Regenerate with EXCALI_BLESS=1 cargo test -p \
+    excali-text --test text_width_corpus.",
         "tolerance_px": TOLERANCE,
         "gated_families": GATED_FAMILIES,
         "classes": {
             "measured": "lineHeight set, autoResize not false, stored height = fontSize * \
-lineHeight * lines (getTextHeight): a width measureText wrote; gated for the gated families",
+    lineHeight * lines (getTextHeight): a width measureText wrote; gated for the gated families",
             "height_mismatch": "lineHeight set and autoResize not false, but a stored height \
-measureText cannot give: not written by upstream's measurement; reported",
+    measureText cannot give: not written by upstream's measurement; reported",
             "legacy": "no lineHeight: written before measureText used a unitless line \
-height; reported",
+    height; reported",
             "fixed_width": "autoResize false: width is the wrap width the user set, not a \
-measurement; counted",
+    measurement; counted",
         },
         "sources": {
             "library_files": corpus.library_files,
@@ -583,16 +588,18 @@ fn find(file: &str, id: &str) -> &'static Text {
 
 #[test]
 fn report_matches_the_committed_report() {
-    let text = ascii_json(&report());
+    let report = report();
+    // The per-family table, for CI logs (`--nocapture`).
+    for row in report["families"].as_array().expect("families") {
+        println!("{row}");
+    }
+    let text = ascii_json(&report);
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(REPORT);
     if std::env::var_os("EXCALI_BLESS").is_some() {
         std::fs::write(&path, &text).expect("write report");
     }
     let committed = std::fs::read_to_string(&path)
         .unwrap_or_else(|e| panic!("{REPORT}: {e} (run with EXCALI_BLESS=1 to write it)"));
-    for row in report()["families"].as_array().unwrap() {
-        eprintln!("{row}");
-    }
     assert!(
         committed == text,
         "{REPORT} is out of date: run with EXCALI_BLESS=1 and review the diff"
@@ -644,7 +651,10 @@ fn gated_families_measure_within_half_a_pixel() {
             .iter()
             .filter(|t| t.family == family && t.class == Class::Measured)
             .collect();
-        assert!(!measured.is_empty(), "fontFamily {family}: no measured texts");
+        assert!(
+            !measured.is_empty(),
+            "fontFamily {family}: no measured texts"
+        );
         let mean = measured.iter().map(|t| t.deviation()).sum::<f64>() / measured.len() as f64;
         if mean > TOLERANCE {
             failures.push(format!(
@@ -676,7 +686,10 @@ fn gated_families_measure_within_half_a_pixel() {
 fn known_deviations_still_deviate_as_recorded() {
     for (file, id, stored, measured) in KNOWN_DEVIATIONS {
         let t = find(file, id);
-        assert!(GATED_FAMILIES.contains(&t.family), "{id}: not a gated family");
+        assert!(
+            GATED_FAMILIES.contains(&t.family),
+            "{id}: not a gated family"
+        );
         assert_eq!(t.class, Class::Measured, "{id}: not a measured text");
         assert_eq!(t.stored, *stored, "{id}: stored width");
         assert!(

@@ -337,10 +337,12 @@ version = "26.9.1"
 dependencies = [
  "excali-core",
  "excali-text",
+ "flate2",
  "icu_normalizer",
  "icu_properties",
  "rustybuzz",
  "serde_json",
+ "sha2",
  "ttf-parser",
  "unicode-properties",
  "wuff",

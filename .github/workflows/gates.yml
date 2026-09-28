@@ -145,7 +145,8 @@ jobs:
   # from the library corpus and font-advances.json re-read from the vendored
   # fonts with fontTools (independent of the port's WOFF2 decoder); either
   # failing means a committed fixture is stale. The Rust side runs in
-  # rust.yml (cargo test: excali-text's text_widths, font_store, ...).
+  # rust.yml (cargo test: excali-text's text_widths, font_store, ...), as
+  # does ex-308's whole-corpus gate (text_width_corpus).
   text-metrics:
     runs-on: ubuntu-latest
     steps:
