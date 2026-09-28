@@ -182,7 +182,7 @@ fn freedraw(points: &[LocalPoint]) -> Element {
 
 const SQUARE: [LocalPoint; 5] = [
     [0.0, 0.0],
-    [10.0, 0.5],
+    [10.0, 0.7],
     [20.0, 0.0],
     [20.0, 20.0],
     [0.0, 0.0],
@@ -190,7 +190,7 @@ const SQUARE: [LocalPoint; 5] = [
 
 #[test]
 fn fill_curve_points_are_the_points_simplified_to_three_quarters() {
-    // [10, 0.5] is 0.5 from the segment [0, 0]-[20, 0], within 0.75
+    // [10, 0.7] is 0.7 from the segment [0, 0]-[20, 0], within 0.75
     assert_eq!(
         get_freedraw_fill_curve_points(&freedraw(&SQUARE)),
         Some(vec![[0.0, 0.0], [20.0, 0.0], [20.0, 20.0], [0.0, 0.0]])
@@ -258,7 +258,7 @@ fn a_loop_draws_its_fill_under_its_stroke() {
     assert_eq!(
         shapes,
         vec![
-            FreedrawShape::Rough(expected_fill(&el, false)),
+            FreedrawShape::Rough(Box::new(expected_fill(&el, false))),
             FreedrawShape::SvgPath(get_free_draw_svg_path(&el).unwrap()),
         ]
     );
@@ -280,7 +280,7 @@ fn the_dark_theme_filters_the_fill() {
         Some(apply_dark_mode_filter("#a5d8ff", true).as_str())
     );
     assert_ne!(fill.options.fill.as_deref(), Some("#a5d8ff"));
-    assert_eq!(*fill, expected_fill(&el, true));
+    assert_eq!(**fill, expected_fill(&el, true));
     // the stroke path does not depend on the theme
     assert_eq!(
         shapes[1],
