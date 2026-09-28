@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-004 · Golden generator: node script producing rough.js 4.6.4 path output for fixture elements
+
+`tools/goldens/generate.mjs` runs upstream's own `ShapeCache.generateElementShape` from the pinned checkout under plain Node, with roughjs 4.6.4 and perfect-freehand 1.2.0 pinned to upstream's `yarn.lock` hashes. It writes 16 byte-stable files to `goldens/` (465 element shapes, raw rough.js primitives and fills, `Random.next` sequences, freehand strokes) with a sha256 manifest, and the goldens reproduce upstream's export snapshot paths exactly. The new `goldens` CI job runs the 28 tests and `generate.mjs --check` on every PR. PR: [#10](https://github.com/HutsonLabs/excali-rust/pull/10).
+
 ## 2026-09-28 · ex-006 · Playwright smoke test for the site and mockups
 
 Every content page, every mockup and the 404 page now load in Chromium at 1440x900, 1024x768 and 390x844 from a local build served like GitHub Pages. Any console error, uncaught exception, failed request or HTTP error fails the run, and inventory checks keep the tested pages in step with the sitemap and the mockups index. The new `site-smoke` CI job runs the unit tests and the 137-test smoke suite on every PR (`cd tests/site && npm ci && npm run test:smoke` locally). PR: [#8](https://github.com/HutsonLabs/excali-rust/pull/8).

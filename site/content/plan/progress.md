@@ -4,15 +4,15 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 06:18 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 06:26 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**132 issues** · 6 closed (5%) · 0 in progress · 0 blocked · 125 open
+**132 issues** · 7 closed (5%) · 0 in progress · 0 blocked · 124 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
 ## ex-e0 · Phase 0: Foundations
 
-<span class="status open">open</span> 6/9 children closed
+<span class="status open">open</span> 7/9 children closed
 
 Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo workspace and CI. Everything later phases depend on to be reproducible.
 
@@ -21,12 +21,12 @@ Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo work
 | `ex-001` | Cargo workspace skeleton and CI (fmt, clippy -D warnings, test) | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-002` | Upstream pin script: check out excalidraw at the pinned commit into .tools/upstream | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-003` | Fixture corpus with manifest (upstream test fixtures + 232 public libraries) | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-004` | Golden generator: node script producing rough.js 4.6.4 path output for fixture elements | task | P0 | <span class="status open">open</span> | yes |  |
+| `ex-004` | Golden generator: node script producing rough.js 4.6.4 path output for fixture elements | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-005` | Enable GitHub Pages source = GitHub Actions and confirm first deploy | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-006` | Playwright smoke test for the site and mockups | task | P3 | <span class="status closed">closed</span> |  |  |
 | `ex-007` | scripts/site/zola.sh works on macOS (bash 3.2, shasum) with the aarch64-apple-darwin digest pinned | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-008` | Record the owner decisions of 2026-09-27 (calendar versioning, agent-closed milestones, fonts, strictly a port) | task | P0 | <span class="status open">open</span> | yes |  |
-| `ex-m0` | M0: site live, gates enforced, workspace green | milestone | P2 | <span class="status open">open</span> |  | `ex-004`, `ex-008` |
+| `ex-m0` | M0: site live, gates enforced, workspace green | milestone | P2 | <span class="status open">open</span> |  | `ex-008` |
 
 ## ex-e1 · Phase 1: Core model and file format (excali-core)
 
@@ -63,21 +63,21 @@ excali-math, excali-rough (rough.js 4.6.4 semantics), excali-freehand, the displ
 |---|---|---|---|---|---|---|
 | `ex-201` | excali-math: points, vectors, segments, angles, ranges, rectangles, polygons | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-202` | excali-math: cubic curves, Catmull-Rom approximation, length (Legendre-Gauss N=24), closest point | task | P1 | <span class="status open">open</span> |  | `ex-201` |
-| `ex-203` | excali-rough: Park-Miller RNG and core generator (line, rectangle, polygon, ellipse, curve, path) | task | P0 | <span class="status open">open</span> |  | `ex-004`, `ex-201` |
+| `ex-203` | excali-rough: Park-Miller RNG and core generator (line, rectangle, polygon, ellipse, curve, path) | task | P0 | <span class="status open">open</span> |  | `ex-201` |
 | `ex-204` | excali-rough: fill styles hachure, cross-hatch, zigzag, solid | task | P0 | <span class="status open">open</span> |  | `ex-203` |
 | `ex-205` | excali-rough: dashes, multi-stroke, curve fitting, preserveVertices | task | P1 | <span class="status open">open</span> |  | `ex-203` |
-| `ex-206` | Spike: evaluate the roughr crate (0.14.0) against the goldens | spike | P1 | <span class="status open">open</span> |  | `ex-004` |
+| `ex-206` | Spike: evaluate the roughr crate (0.14.0) against the goldens | spike | P1 | <span class="status open">open</span> | yes |  |
 | `ex-207` | Option mapping: generateRoughOptions and adjustRoughness with all constants | task | P0 | <span class="status open">open</span> |  | `ex-203` |
 | `ex-208` | Shape construction: rectangle (adaptive radius path), diamond (rounded C corners), ellipse (curveFitting 1), iframe defaults | task | P0 | <span class="status open">open</span> |  | `ex-207` |
 | `ex-209` | Shape construction: line and arrow (sharp, curved, polygon), loop fill | task | P1 | <span class="status open">open</span> |  | `ex-202`, `ex-207` |
 | `ex-210` | Elbow arrow path from fixed points (radius 16) and validation | task | P1 | <span class="status open">open</span> |  | `ex-209` |
 | `ex-211` | Elbow arrow routing: A* over the non-uniform grid | task | P2 | <span class="status open">open</span> |  | `ex-210` |
 | `ex-212` | Arrowheads: all fourteen kinds with sizes, angles and roughness rules | task | P1 | <span class="status open">open</span> |  | `ex-209` |
-| `ex-213` | excali-freehand: perfect-freehand 1.2.0 port (variable width) | task | P0 | <span class="status open">open</span> |  | `ex-004`, `ex-201` |
+| `ex-213` | excali-freehand: perfect-freehand 1.2.0 port (variable width) | task | P0 | <span class="status open">open</span> |  | `ex-201` |
 | `ex-214` | excali-freehand: laser-pointer constant-width variant | task | P2 | <span class="status open">open</span> |  | `ex-213` |
 | `ex-215` | Outline to path string with quadratic midpoints and 2-decimal trimming | task | P1 | <span class="status open">open</span> |  | `ex-213` |
 | `ex-216` | Display list type: renderer-independent paths, fills, dashes, images, text runs, clips, opacity | task | P0 | <span class="status open">open</span> |  | `ex-201` |
-| `ex-217` | Golden harness in CI (cargo test feature `goldens`) | task | P0 | <span class="status open">open</span> |  | `ex-004`, `ex-203` |
+| `ex-217` | Golden harness in CI (cargo test feature `goldens`) | task | P0 | <span class="status open">open</span> |  | `ex-203` |
 | `ex-218` | Dark-mode colour filter maths (invert 93% hue-rotate 180deg) and reverse | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-m2` | M2: golden parity with rough.js for all shapes | milestone | P2 | <span class="status open">open</span> |  | `ex-201`, `ex-202`, `ex-203`, `ex-204`, `ex-205`, `ex-206` … |
 
