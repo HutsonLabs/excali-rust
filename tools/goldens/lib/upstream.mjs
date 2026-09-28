@@ -50,7 +50,7 @@ export const verifyUpstream = () => {
 // Everything the generator needs from upstream, imported from upstream's own
 // modules. Nothing here re-implements upstream logic.
 const ENTRY = `
-export { ShapeCache, getFreedrawOutlinePoints }
+export { ShapeCache, generateRoughOptions, getFreedrawOutlinePoints }
   from "./packages/element/src/shape";
 export * as elementFixtures from "./packages/excalidraw/tests/fixtures/elementFixture";
 export * as math from "./packages/math/src/index";

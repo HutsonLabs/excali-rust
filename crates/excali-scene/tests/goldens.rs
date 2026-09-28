@@ -19,6 +19,7 @@ use std::path::Path;
 use excali_core::element::Element;
 use excali_rough::goldens::{ActualShape, Report, Tolerance, PLATFORM_TOLERANCE};
 use excali_rough::RoughGenerator;
+use excali_scene::rough_options::generate_rough_options;
 use excali_scene::shape::{generate_element_shape, RenderConfig, Theme};
 use serde_json::Value;
 
@@ -120,4 +121,57 @@ fn upstream_fixtures_match_upstream() {
     // elementFixture.ts and the export test's variants; the text fixture
     // has no rough shape
     assert_eq!(check_file("elements-upstream-fixtures.json"), 9);
+}
+
+/// ex-205 end to end: every `goldens/rough-strokes.json` case (solid,
+/// dashed and dotted strokes at sw 1, 2, 4, roughness 0, 1, 2) goes from its
+/// element through the port's `generate_rough_options` and excali-rough's
+/// generator, and must give upstream's options and drawable: the dash
+/// arrays, single stroke at `sw + 0.5`, `preserveVertices` and
+/// `curveFitting` as upstream derives them, then the same ops.
+#[test]
+fn stroke_styles_match_upstream_from_element_to_ops() {
+    let file = "rough-strokes.json";
+    let doc = load(file);
+    let generator = RoughGenerator::new();
+    let mut report = Report::new(file);
+    for c in doc["cases"].as_array().expect("cases") {
+        let id = c["id"].as_str().expect("id");
+        let el = Element::from_map(c["element"].as_object().expect("element").clone())
+            .unwrap_or_else(|e| panic!("{id}: {e}"));
+        let continuous = c["continuousPath"].as_bool().expect("continuousPath");
+        let o = generate_rough_options(&el, continuous, false)
+            .unwrap_or_else(|e| panic!("{id}: {e}"))
+            .to_rough(generator.default_options());
+        let a = c["args"].as_array().expect("args");
+        let n = |i: usize| a[i].as_f64().expect("number");
+        let points = |v: &Value| -> Vec<[f64; 2]> {
+            v.as_array()
+                .expect("points")
+                .iter()
+                .map(|p| [p[0].as_f64().unwrap(), p[1].as_f64().unwrap()])
+                .collect()
+        };
+        let method = c["method"].as_str().expect("method");
+        let drawable = match method {
+            "line" => generator.line(n(0), n(1), n(2), n(3), &o),
+            "rectangle" => generator.rectangle(n(0), n(1), n(2), n(3), &o),
+            "ellipse" => generator.ellipse(n(0), n(1), n(2), n(3), &o),
+            "circle" => generator.circle(n(0), n(1), n(2), &o),
+            "polygon" => generator.polygon(&points(&a[0]), &o),
+            "linearPath" => generator.linear_path(&points(&a[0]), &o),
+            "curve" => generator.curve(&points(&a[0]), &o).expect("curve"),
+            "path" => generator
+                .path(a[0].as_str().expect("path data"), &o)
+                .expect("path"),
+            other => panic!("{id}: method {other}"),
+        };
+        let tolerance = if matches!(method, "ellipse" | "circle") {
+            Tolerance::Relative(PLATFORM_TOLERANCE)
+        } else {
+            Tolerance::Exact
+        };
+        report.drawable(c, &c["drawable"], &drawable, tolerance);
+    }
+    assert_eq!(report.assert_ok(), 630);
 }

@@ -218,6 +218,78 @@ const continuousPath = (el) =>
   (["rectangle", "iframe", "embeddable", "diamond"].includes(el.type) && !!el.roundness) ||
   (el.type === "arrow" && el.elbowed === true);
 
+/** The corners a rectangle, polygon, linearPath or line call strokes. */
+const strokedSegments = (c) => {
+  const [a0, a1, a2, a3] = c.args;
+  switch (c.method) {
+    case "line":
+      return [[[a0, a1], [a2, a3]]];
+    case "rectangle": {
+      const p = [[a0, a1], [a0 + a2, a1], [a0 + a2, a1 + a3], [a0, a1 + a3]];
+      return p.map((q, i) => [q, p[(i + 1) % 4]]);
+    }
+    case "polygon":
+      return a0.map((q, i) => [q, a0[(i + 1) % a0.length]]);
+    case "linearPath":
+      return a0.slice(1).map((q, i) => [a0[i], q]);
+    default:
+      return null;
+  }
+};
+
+test("stroke-style goldens: dashed [8, 8+sw] and dotted [1.5, 6+sw] single-stroke at sw + 0.5 (ex-205)", () => {
+  const g = golden("rough-strokes.json");
+  const seen = new Set();
+  for (const c of g.cases) {
+    const el = c.element;
+    const o = c.options;
+    seen.add(`${el.strokeStyle}/${el.strokeWidth}/${el.roughness}/${el.seed}/${c.method}`);
+    assertDrawable(c.drawable, c.id);
+    assert.equal(c.continuousPath, continuousPath(el), `${c.id}: continuousPath`);
+    // the rule, restated from shape.ts:168-170, :202-225, :238-240
+    assert.deepEqual(o.strokeLineDash, strokeLineDash(el), `${c.id}: strokeLineDash`);
+    for (const [k, v] of Object.entries(expectedRoughOptions(el, c.continuousPath))) {
+      if (k === "curveFitting" && el.type !== "ellipse") {
+        assert.equal(o.curveFitting, undefined, `${c.id}: curveFitting only for ellipses`);
+        continue;
+      }
+      assert.deepEqual(o[k], v, `${c.id}: ${k}`);
+    }
+    // the drawable resolved exactly those options over rough.js's defaults
+    for (const [k, v] of Object.entries(o)) assert.deepEqual(c.drawable.options[k], v, `${c.id}: resolved ${k}`);
+    const stroke = c.drawable.sets.filter((s) => s.type === "path");
+    assert.equal(stroke.length, 1, `${c.id}: one outline`);
+    const segments = strokedSegments(c);
+    if (segments) {
+      // rough.js _doubleLine: each segment is move + bcurveTo, twice unless
+      // disableMultiStroke (renderer.js)
+      const passes = o.disableMultiStroke ? 1 : 2;
+      assert.equal(stroke[0].ops.length, segments.length * passes * 2, `${c.id}: stroke passes`);
+      if (o.preserveVertices) {
+        // _line with preserveVertices leaves both ends of every pass on the vertex
+        stroke[0].ops.forEach((op, i) => {
+          const [from, to] = segments[Math.floor(i / (2 * passes))];
+          const end = op.op === "move" ? op.data : op.data.slice(4);
+          assert.deepEqual(end, op.op === "move" ? from : to, `${c.id}: op ${i} on its vertex`);
+        });
+      }
+    }
+  }
+  for (const style of ["solid", "dashed", "dotted"]) {
+    for (const sw of [1, 2, 4]) {
+      for (const r of ROUGHNESSES) {
+        for (const m of ["rectangle", "polygon", "path", "ellipse", "linearPath", "curve", "line", "circle"]) {
+          assert.ok(seen.has(`${style}/${sw}/${r}/1041657908/${m}`), `${style} sw${sw} r${r} ${m}`);
+        }
+      }
+    }
+    for (const seed of [1, 7]) {
+      for (const r of ROUGHNESSES) assert.ok(seen.has(`${style}/2/${r}/${seed}/curve`), `${style} seed ${seed} r${r}`);
+    }
+  }
+  assert.equal(g.cases.length, 3 * (9 + 6) * 14);
+});
+
 test("element goldens follow generateRoughOptions (shape.ts:195-260)", () => {
   let checked = 0;
   for (const name of ELEMENT_FILES) {

@@ -510,3 +510,207 @@ mod points {
         );
     }
 }
+
+/// Excalidraw's stroke styles (ex-205) as properties of rough.js 4.6.4:
+/// `strokeLineDash` is renderer state the generator only carries
+/// (`bin/canvas.js` `setLineDash`, `bin/svg.js` `stroke-dasharray`), and
+/// `disableMultiStroke` drops the second pass of every stroke
+/// (`bin/renderer.js` `_doubleLine` and `curve`). The op-by-op numbers are
+/// in `goldens/rough-strokes.json`.
+mod stroke_style {
+    use super::*;
+    use excali_rough::Drawable;
+
+    const ZIGZAG: [[f64; 2]; 4] = [[0.0, 0.0], [30.0, 20.0], [60.0, -5.0], [100.0, 25.0]];
+
+    /// `generateRoughOptions`' stroke fields (shape.ts:168-170, 202-216).
+    fn excalidraw(style: &str, sw: f64) -> Options {
+        let (dash, solid) = match style {
+            "dashed" => (Some(vec![8.0, 8.0 + sw]), false),
+            "dotted" => (Some(vec![1.5, 6.0 + sw]), false),
+            _ => (None, true),
+        };
+        Options {
+            seed: 1_041_657_908,
+            stroke_line_dash: dash,
+            disable_multi_stroke: !solid,
+            stroke_width: if solid { sw } else { sw + 0.5 },
+            fill_weight: sw / 2.0,
+            hachure_gap: sw * 4.0,
+            preserve_vertices: true,
+            ..Options::default()
+        }
+    }
+
+    fn every_shape(g: &RoughGenerator, o: &Options) -> Vec<Drawable> {
+        vec![
+            g.line(0.0, 0.0, 100.0, 40.0, o),
+            g.rectangle(0.0, 0.0, 100.0, 60.0, o),
+            g.polygon(&ZIGZAG, o),
+            g.linear_path(&ZIGZAG, o),
+            g.ellipse(50.0, 30.0, 100.0, 60.0, o),
+            g.circle(50.0, 30.0, 40.0, o),
+            g.arc(50.0, 30.0, 100.0, 60.0, 0.0, 3.0, true, o),
+            g.curve(&ZIGZAG, o).unwrap(),
+            g.path("M 0 0 L 84 0 Q 100 0, 100 16 L 100 84", o).unwrap(),
+        ]
+    }
+
+    #[test]
+    fn line_dashes_are_carried_but_move_no_op() {
+        let g = RoughGenerator::new();
+        for style in ["dashed", "dotted"] {
+            let dashed = Options {
+                fill: Some("#a5d8ff".into()),
+                stroke_line_dash_offset: Some(3.0),
+                fill_line_dash: Some(vec![2.0, 2.0]),
+                fill_line_dash_offset: Some(1.0),
+                ..excalidraw(style, 2.0)
+            };
+            let plain = Options {
+                stroke_line_dash: None,
+                stroke_line_dash_offset: None,
+                fill_line_dash: None,
+                fill_line_dash_offset: None,
+                ..dashed.clone()
+            };
+            for (d, p) in every_shape(&g, &dashed)
+                .into_iter()
+                .zip(every_shape(&g, &plain))
+            {
+                assert_eq!(d.sets, p.sets, "{style} {}", d.shape.as_str());
+                assert_eq!(d.options, dashed, "{style} {}", d.shape.as_str());
+            }
+        }
+    }
+
+    #[test]
+    fn excalidraw_dash_arrays_track_the_element_width() {
+        for sw in [1.0, 2.0, 4.0] {
+            let dashed = excalidraw("dashed", sw);
+            assert_eq!(dashed.stroke_line_dash, Some(vec![8.0, 8.0 + sw]));
+            assert_eq!(dashed.stroke_width, sw + 0.5);
+            let dotted = excalidraw("dotted", sw);
+            assert_eq!(dotted.stroke_line_dash, Some(vec![1.5, 6.0 + sw]));
+            assert_eq!(dotted.stroke_width, sw + 0.5);
+            // fills keep the element's own width
+            assert_eq!(
+                (dotted.fill_weight, dotted.hachure_gap),
+                (sw / 2.0, sw * 4.0)
+            );
+            assert!(dashed.disable_multi_stroke && dotted.disable_multi_stroke);
+            assert!(!excalidraw("solid", sw).disable_multi_stroke);
+        }
+    }
+
+    #[test]
+    fn single_stroke_is_the_first_pass_of_the_double_stroke() {
+        // _doubleLine returns o1 alone or o1.concat(o2), o1 drawn first; a
+        // curve's second pass has its own randomizer (seed + 1), so both
+        // single-stroke outlines are prefixes of the double-stroke ones.
+        let g = RoughGenerator::new();
+        for roughness in [0.0, 1.0, 2.0] {
+            let single = Options {
+                roughness,
+                ..excalidraw("dashed", 2.0)
+            };
+            let double = Options {
+                disable_multi_stroke: false,
+                ..single.clone()
+            };
+            let pairs = [
+                (
+                    g.line(0.0, 0.0, 100.0, 40.0, &single),
+                    g.line(0.0, 0.0, 100.0, 40.0, &double),
+                ),
+                (
+                    g.curve(&ZIGZAG, &single).unwrap(),
+                    g.curve(&ZIGZAG, &double).unwrap(),
+                ),
+            ];
+            for (s, d) in pairs {
+                let (s, d) = (&s.sets[0].ops, &d.sets[0].ops);
+                assert_eq!(d.len(), 2 * s.len(), "r{roughness}");
+                assert_eq!(&d[..s.len()], &s[..], "r{roughness}");
+            }
+        }
+    }
+
+    #[test]
+    fn single_stroke_halves_every_polyline_outline() {
+        let g = RoughGenerator::new();
+        let single = excalidraw("dotted", 4.0);
+        let double = Options {
+            disable_multi_stroke: false,
+            ..single.clone()
+        };
+        let count = |d: Drawable| {
+            assert!(d.sets.iter().all(|s| s.kind == OpSetType::Path));
+            d.sets[0].ops.len()
+        };
+        // move + bcurveTo per segment and pass
+        assert_eq!(count(g.rectangle(0.0, 0.0, 100.0, 60.0, &single)), 4 * 2);
+        assert_eq!(count(g.rectangle(0.0, 0.0, 100.0, 60.0, &double)), 4 * 4);
+        assert_eq!(count(g.polygon(&ZIGZAG, &single)), 4 * 2);
+        assert_eq!(count(g.linear_path(&ZIGZAG, &single)), 3 * 2);
+        assert_eq!(count(g.linear_path(&ZIGZAG, &double)), 3 * 4);
+        assert_eq!(count(g.line(0.0, 0.0, 9.0, 9.0, &single)), 2);
+    }
+
+    #[test]
+    fn preserved_vertices_stay_put_below_cartoonist_roughness() {
+        // _line: with preserveVertices the move and the curve's end are the
+        // segment's own end points, however rough.
+        let g = RoughGenerator::new();
+        for roughness in [0.0, 1.0, 1.99] {
+            for disable_multi_stroke in [true, false] {
+                let o = Options {
+                    roughness,
+                    disable_multi_stroke,
+                    ..excalidraw("dashed", 2.0)
+                };
+                let d = g.linear_path(&ZIGZAG, &o);
+                let passes = if disable_multi_stroke { 1 } else { 2 };
+                for (i, op) in d.sets[0].ops.iter().enumerate() {
+                    let seg = i / (2 * passes);
+                    match op {
+                        Op::Move(p) => assert_eq!(*p, ZIGZAG[seg], "op {i}"),
+                        Op::BCurveTo(c) => assert_eq!([c[4], c[5]], ZIGZAG[seg + 1], "op {i}"),
+                        Op::LineTo(_) => panic!("op {i}: lineTo"),
+                    }
+                }
+            }
+        }
+        // cartoonist, where Excalidraw leaves preserveVertices off, moves them
+        let o = Options {
+            roughness: 2.0,
+            preserve_vertices: false,
+            ..excalidraw("dashed", 2.0)
+        };
+        let d = g.linear_path(&ZIGZAG, &o);
+        assert!(d.sets[0]
+            .ops
+            .iter()
+            .all(|op| !matches!(op, Op::Move(p) if ZIGZAG.contains(p))));
+    }
+
+    #[test]
+    fn curve_fitting_one_starts_the_ellipse_on_its_radii() {
+        // generateEllipseParams: rx += offsetOpt(rx * (1 - curveFitting)),
+        // nothing for curveFitting 1; at roughness 0 the first stroke then
+        // starts on the ellipse itself.
+        let g = RoughGenerator::new();
+        let o = Options {
+            curve_fitting: 1.0,
+            roughness: 0.0,
+            ..excalidraw("dotted", 2.0)
+        };
+        let d = g.ellipse(50.0, 30.0, 100.0, 60.0, &o);
+        let Op::Move([x, y]) = d.sets[0].ops[0] else {
+            panic!("ellipse starts with a move");
+        };
+        let on = ((x - 50.0) / 50.0).powi(2) + ((y - 30.0) / 30.0).powi(2);
+        assert!((on - 1.0).abs() < 1e-12, "{on}");
+        assert_eq!(d.shape, Shape::Ellipse);
+    }
+}
