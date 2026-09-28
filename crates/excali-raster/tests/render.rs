@@ -1116,3 +1116,137 @@ fn huge_hairline_curves_are_cut_in_device_space() {
     assert!(coverage(&whole) > 0);
     assert_eq!(whole.data(), scaled.data());
 }
+
+fn hairline(path: Path, cap: LineCap) -> DisplayItem {
+    DisplayItem::Stroke {
+        path,
+        stroke: Stroke::new(Color::new("red"), 1.0).with_cap(cap),
+    }
+}
+
+/// A closed contour whose first segment is a cubic with control points at
+/// +-`h`: from (10, 10) to (100, 10), then down to (100, 100) and closed
+/// back to (10, 10).
+fn closed_with_huge_cubic(h: f64) -> Path {
+    let mut p = Path::new();
+    p.move_to(10.0, 10.0)
+        .cubic_to(h, h, -h, h, 100.0, 10.0)
+        .line_to(100.0, 100.0)
+        .close();
+    p
+}
+
+#[test]
+fn a_skipped_hairline_curve_leaves_the_rest_of_its_contour() {
+    // Skia's hair_cubic draws a cubic only when every point it evaluates
+    // is finite; at +-8e37 the coefficients overflow and the cubic alone is
+    // skipped. The line after it and the closing line to the contour's
+    // first point still draw (Chrome 153: the hairline-skips fixture), and
+    // a closed contour takes no caps, so round is the same as butt.
+    let butt = draw(
+        &list(vec![hairline(closed_with_huge_cubic(8e37), LineCap::Butt)]),
+        120,
+        120,
+    );
+    for cap in [LineCap::Butt, LineCap::Round, LineCap::Square] {
+        let p = draw(
+            &list(vec![hairline(closed_with_huge_cubic(8e37), cap)]),
+            120,
+            120,
+        );
+        assert_ne!(px(&p, 100, 50), CLEAR, "the line after the cubic, {cap:?}");
+        assert_ne!(px(&p, 40, 40), CLEAR, "the closing line, {cap:?}");
+        assert_ne!(px(&p, 70, 70), CLEAR, "the closing line, {cap:?}");
+        assert_eq!(px(&p, 50, 30), CLEAR, "no cubic, {cap:?}");
+        assert_eq!(p.data(), butt.data(), "{cap:?}");
+    }
+}
+
+#[test]
+fn hairline_segments_beside_a_skipped_curve_take_no_cap() {
+    // Round caps extend a hairline only at a contour's start and end
+    // (extend_pts: the previous verb a move, the next a move, a close or
+    // none). Beside the skipped cubic the neighbouring verb is the cubic,
+    // so the lines end flush at x = 50 and x = 70, as Chrome draws them.
+    let mut p = Path::new();
+    p.move_to(10.0, 50.5)
+        .line_to(50.0, 50.5)
+        .cubic_to(8e37, 8e37, -8e37, 8e37, 70.0, 50.5)
+        .line_to(110.0, 50.5);
+    let round = draw(&list(vec![hairline(p, LineCap::Round)]), 120, 120);
+    assert_ne!(px(&round, 9, 50), CLEAR, "the start's cap");
+    assert_ne!(px(&round, 110, 50), CLEAR, "the end's cap");
+    assert_eq!(px(&round, 50, 50), CLEAR, "no cap before the cubic");
+    assert_eq!(px(&round, 69, 50), CLEAR, "no cap after the cubic");
+    assert_eq!(px(&round, 30, 50), RED);
+    assert_eq!(px(&round, 90, 50), RED);
+}
+
+#[test]
+fn paths_past_a_quarter_of_the_f32_range_draw_nothing() {
+    // SkDraw::drawDevPath returns before drawing when the device path's
+    // bounds pass SK_ScalarMax / 4 (SkPathPriv::TooBigForMath): Chrome 153
+    // draws a line to 8.5070587e37 (2^126) and nothing past it, for fills,
+    // strokes and hairlines alike, whatever else the path holds.
+    let line_and_quad = |h: f64| {
+        let mut p = Path::new();
+        p.move_to(10.0, 10.0)
+            .line_to(100.0, 100.0)
+            .move_to(0.0, 110.0)
+            .quad_to(h, h, 50.0, 110.0);
+        p
+    };
+    let triangle = |h: f64| {
+        let mut p = Path::new();
+        p.move_to(10.0, 10.0)
+            .line_to(h, 10.0)
+            .line_to(10.0, 100.0)
+            .close();
+        p
+    };
+    let wide = |h: f64| {
+        let mut p = Path::new();
+        p.move_to(10.0, 60.0).line_to(h, 60.0);
+        DisplayItem::Stroke {
+            path: p,
+            stroke: Stroke::new(Color::new("red"), 3.0),
+        }
+    };
+    let items = |h: f64| {
+        vec![
+            hairline(line_and_quad(h), LineCap::Butt),
+            hairline(closed_with_huge_cubic(h), LineCap::Butt),
+            hairline(triangle(h), LineCap::Round),
+            fill(triangle(h), "red", FillRule::NonZero),
+            wide(h),
+        ]
+    };
+    for (i, item) in items(8e37).into_iter().enumerate() {
+        assert!(
+            coverage(&draw(&list(vec![item]), 120, 120)) > 0,
+            "{i} at 8e37"
+        );
+    }
+    for h in [8.6e37, 1e38, 3e38] {
+        for (i, item) in items(h).into_iter().enumerate() {
+            assert_eq!(
+                coverage(&draw(&list(vec![item]), 120, 120)),
+                0,
+                "{i} at {h}"
+            );
+        }
+    }
+    // The bounds are the device path's: under a scale of 2, 5e37 is past.
+    for (i, item) in items(5e37).into_iter().enumerate() {
+        assert!(
+            coverage(&draw(&list(vec![item.clone()]), 120, 120)) > 0,
+            "{i}"
+        );
+        let scaled = group(Transform::scale(2.0, 2.0), 1.0, None, vec![item]);
+        assert_eq!(
+            coverage(&draw(&list(vec![scaled]), 120, 120)),
+            0,
+            "{i} scaled"
+        );
+    }
+}
