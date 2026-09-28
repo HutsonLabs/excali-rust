@@ -50,7 +50,7 @@ Build from primitives up. Each crate below is a pure layer over the one beneath 
 | `excali-svg` | `renderer/staticSvgScene.ts`, `exportToSvg` | `excali-scene` | native, wasm32 |
 | `excali-cli` | none (new) | `excali-raster`, `excali-svg`, `clap` | native |
 | `excali-editor` | `App.tsx` interaction code, `collision.ts`, `transformHandles.ts`, `binding.ts`, `snapping.ts`, `linearElementEditor.ts`, `store.ts`, `history.ts`, `actions/*` | `excali-scene` | native (tests), wasm32 |
-| `excali-canvas2d` | `renderElement.ts` canvas paths | `excali-scene`, `web-sys` | wasm32 |
+| `excali-canvas2d` | `renderElement.ts` canvas paths | `excali-scene`, `web-sys`, `js-sys` | wasm32 |
 | `excali-ui` | `packages/excalidraw/components/*` | `excali-editor`, `excali-canvas2d`, `web-sys` | wasm32 |
 | `excali-wasm` | the `Excalidraw` React component's public props | `excali-ui`, `wasm-bindgen` | wasm32 |
 | `tauri-plugin-excali` | none (new) | `excali-raster`, `excali-core`, `tauri`, `tauri-plugin-dialog` | native |
@@ -62,7 +62,7 @@ The dependency direction is enforced in CI: `excali-core`, `excali-math`, `excal
 1. **Load.** Host passes the file text to `load()`. `excali-core` parses JSON into `Document { elements, app_state, files, extra }`, runs the restore rules, and syncs fractional indices. Unknown keys are kept in `extra` maps at document and element level.
 2. **Scene.** `excali-editor` owns the `Scene` (elements, non-deleted map, frames, nonce) and the `Store` (snapshots and deltas for history). Every mutation goes through `mutate(element, patch)`, which bumps `version`, `versionNonce` and `updated` as upstream's `mutateElement` does.
 3. **Shapes.** `excali-scene` turns an element into a `Drawable`: rough op-sets for shapes, an outline path for freedraw, text runs for text. Results are cached per element by object identity and invalidated on the same conditions as upstream's `ShapeCache`.
-4. **Display list.** The static scene assembles `DisplayItem`s in upstream's order: background, grid, elements with bound text, iframes last.
+4. **Display list.** The static scene assembles `DisplayItem`s in upstream's order: background, grid, elements with bound text, iframes last. The [display list](../display-list/) page defines the items and their canvas semantics.
 5. **Backend.** `excali-canvas2d` (browser) or `excali-raster` (native) consumes the list. `excali-svg` writes it as SVG with upstream's document structure.
 6. **Interaction.** Pointer and keyboard events reach `excali-editor` as plain data; it returns a list of `Effect`s (repaint layers, open textarea, set cursor, emit event) that `excali-ui` applies. No DOM calls inside the editor crate, which keeps it testable natively.
 7. **Save.** `save()` serialises through `excali-core` with `JSON.stringify(data, null, 2)` semantics and returns the string; the host writes it.
