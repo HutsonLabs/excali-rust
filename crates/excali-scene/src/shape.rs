@@ -22,7 +22,7 @@
 //!   `curveFitting: 1` ([`generate_rough_options`]).
 //! - Line, arrow ([`generate_linear_shape`]): sharp ones are
 //!   `generator.polygon(points)` when the options carry a fill (a line whose
-//!   points close into a loop, [`is_path_a_loop`](crate::utils::is_path_a_loop))
+//!   points close into a loop, [`is_path_a_loop`])
 //!   and `generator.linearPath(points)` otherwise; round ones are
 //!   `generator.curve(points)`. Empty points draw the point `[0, 0]`.
 //! - Elbow arrow ([`generate_elbow_arrow_shape`]): `generator.path` of
@@ -352,7 +352,7 @@ pub fn generate_element_shape(
 ///
 /// - The options are `generateRoughOptions(element, false, isDarkMode)`:
 ///   a line fills only when its points close into a loop
-///   ([`is_path_a_loop`](crate::utils::is_path_a_loop)), an arrow never.
+///   ([`is_path_a_loop`]), an arrow never.
 /// - No roundness: `generator.polygon(points)` when `options.fill` is
 ///   truthy (so an empty background string draws no fill) and
 ///   `generator.linearPath(points)` otherwise.
