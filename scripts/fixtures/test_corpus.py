@@ -110,6 +110,9 @@ class CorpusOnDiskTests(unittest.TestCase):
             "packages/excalidraw/tests/data/restore.test.ts",
             "packages/excalidraw/tests/data/reconcile.test.ts",
             "packages/excalidraw/tests/data/__snapshots__/restore.test.ts.snap",
+            "packages/excalidraw/tests/export.test.tsx",
+            "packages/excalidraw/tests/__snapshots__/export.test.tsx.snap",
+            "packages/excalidraw/tests/scene/__snapshots__/export.test.ts.snap",
         }
         self.assertEqual(up, expected)
         for p in expected:
@@ -199,6 +202,12 @@ class SyncAndCheckTests(unittest.TestCase):
         (data / "restore.test.ts").write_text("// restore\n")
         (data / "reconcile.test.ts").write_text("// reconcile\n")
         (data / "__snapshots__" / "restore.test.ts.snap").write_text("// snap\n")
+        tests = self.up / "packages" / "excalidraw" / "tests"
+        (tests / "export.test.tsx").write_text("// export\n")
+        (tests / "__snapshots__").mkdir()
+        (tests / "__snapshots__" / "export.test.tsx.snap").write_text("// export snap\n")
+        (tests / "scene" / "__snapshots__").mkdir(parents=True)
+        (tests / "scene" / "__snapshots__" / "export.test.ts.snap").write_text("// scene snap\n")
         (self.up / "LICENSE").write_text("MIT upstream\n")
         # fake raw.githubusercontent tree: <base>/<commit>/<path>
         self.raw = self.tmp / "raw"
@@ -253,9 +262,12 @@ class SyncAndCheckTests(unittest.TestCase):
             "upstream/packages/excalidraw/tests/data/__snapshots__/restore.test.ts.snap",
             "upstream/packages/excalidraw/tests/data/reconcile.test.ts",
             "upstream/packages/excalidraw/tests/data/restore.test.ts",
+            "upstream/packages/excalidraw/tests/export.test.tsx",
             "upstream/packages/excalidraw/tests/fixtures/a.png",
             "upstream/packages/excalidraw/tests/fixtures/lib.excalidrawlib",
             "upstream/packages/excalidraw/tests/fixtures/sub/nested.ts",
+            "upstream/packages/excalidraw/tests/scene/__snapshots__/export.test.ts.snap",
+            "upstream/packages/excalidraw/tests/__snapshots__/export.test.tsx.snap",
         ]))
 
     def test_sync_records_sha256_and_origin(self):
@@ -438,7 +450,7 @@ class SyncAndCheckTests(unittest.TestCase):
         ]
         ok = subprocess.run([*cli, "check", *env_args], capture_output=True, text=True)
         self.assertEqual(ok.returncode, 0, ok.stderr)
-        self.assertIn("11 files", ok.stdout)
+        self.assertIn("14 files", ok.stdout)
         (self.fixtures / "stray").write_text("x")
         bad = subprocess.run([*cli, "check", *env_args], capture_output=True, text=True)
         self.assertEqual(bad.returncode, 1)

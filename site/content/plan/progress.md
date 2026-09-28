@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 07:49 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 07:57 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**133 issues** · 18 closed (14%) · 0 in progress · 0 blocked · 114 open
+**133 issues** · 19 closed (14%) · 0 in progress · 0 blocked · 113 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -31,7 +31,7 @@ Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo work
 
 ## ex-e1 · Phase 1: Core model and file format (excali-core)
 
-<span class="status open">open</span> 6/16 children closed
+<span class="status open">open</span> 7/16 children closed
 
 Element types, serde with unknown-field preservation, restore/migration rules, AppState, fractional indexing, library formats, payload codecs, conformance corpus.
 
@@ -48,11 +48,11 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 | `ex-109` | Library import model: URL allow-list and #addLibrary token parsing | task | P1 | <span class="status open">open</span> |  | `ex-108` |
 | `ex-110` | Payload codec: byte-string encoding and zlib compression (encode/decode) | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-111` | PNG tEXt scene payload read/write | task | P1 | <span class="status open">open</span> | yes |  |
-| `ex-112` | SVG metadata scene payload read/write | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-112` | SVG metadata scene payload read/write | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-113` | Clipboard JSON format (excalidraw/clipboard) parse and emit | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-114` | Corpus test: 232 catalogue libraries round-trip | task | P0 | <span class="status open">open</span> |  | `ex-108` |
 | `ex-115` | JSON Schema generation for .excalidraw and .excalidrawlib (schemars) | task | P3 | <span class="status open">open</span> |  | `ex-108` |
-| `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-104`, `ex-105`, `ex-108`, `ex-109`, `ex-111`, `ex-112` … |
+| `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-104`, `ex-105`, `ex-108`, `ex-109`, `ex-111`, `ex-113` … |
 
 ## ex-e2 · Phase 2: Geometry and sketch renderer
 
@@ -113,7 +113,7 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 | `ex-403` | Frames: clipping with radius 8/zoom, stroke #bbb, names as Helvetica text on export | task | P1 | <span class="status open">open</span> |  | `ex-402` |
 | `ex-404` | Image elements: decode data URLs (image crate), crop, scale flip, rounded clip, placeholder | task | P1 | <span class="status open">open</span> |  | `ex-401` |
 | `ex-405` | PNG export: padding 10, scale, background, embedded payload | task | P0 | <span class="status open">open</span> |  | `ex-111`, `ex-402` |
-| `ex-406` | SVG writer: document structure (source comment, metadata, defs clipPaths, font style block, background rect) | task | P0 | <span class="status open">open</span> |  | `ex-112`, `ex-216` |
+| `ex-406` | SVG writer: document structure (source comment, metadata, defs clipPaths, font style block, background rect) | task | P0 | <span class="status open">open</span> |  | `ex-216` |
 | `ex-407` | SVG elements: rough paths, freedraw, text per line, images as symbol/use, arrow-label masks | task | P0 | <span class="status open">open</span> |  | `ex-403`, `ex-406` |
 | `ex-408` | Spike: font subsetting for SVG export (allsorts, hb-subset, or ship full woff2) | spike | P2 | <span class="status open">open</span> |  | `ex-307` |
 | `ex-409` | excali-cli: validate, render (png), export (svg), lib (list/merge), with exit codes | task | P1 | <span class="status open">open</span> |  | `ex-405`, `ex-406` |

@@ -8,8 +8,10 @@ conformance tests read:
                                (site/config.toml extra.upstream_commit):
                                every file in packages/excalidraw/tests/fixtures,
                                the restore/reconcile tests and the restore
-                               snapshot (research/data-model.md section 9),
-                               and the MIT LICENSE.
+                               snapshot, the export test and the two export
+                               snapshots with an embedded SVG payload
+                               (research/data-model.md section 9), and the
+                               MIT LICENSE.
   fixtures/libraries/          the public library catalogue from
                                excalidraw-libraries at the pinned commit
                                (extra.libraries_commit): libraries.json, the
@@ -67,6 +69,9 @@ UPSTREAM_EXTRA = (
     "packages/excalidraw/tests/data/restore.test.ts",
     "packages/excalidraw/tests/data/reconcile.test.ts",
     "packages/excalidraw/tests/data/__snapshots__/restore.test.ts.snap",
+    "packages/excalidraw/tests/export.test.tsx",
+    "packages/excalidraw/tests/__snapshots__/export.test.tsx.snap",
+    "packages/excalidraw/tests/scene/__snapshots__/export.test.ts.snap",
 )
 # excalidraw-libraries: catalogue and licence; the catalogue names the rest.
 LIBRARIES_EXTRA = ("libraries.json", "LICENSE")
