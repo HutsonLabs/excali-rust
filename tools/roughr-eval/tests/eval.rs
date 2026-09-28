@@ -353,11 +353,50 @@ fn evaluation_covers_every_rough_js_golden() {
     }
     let report = evaluate(&root());
     assert_eq!(report.total().cases, expected);
-    assert_eq!(expected, 7 + 117 + 228 + 224 + 140);
+    // random, primitives, generator, fills, options, strokes (ex-205).
+    assert_eq!(expected, 7 + 117 + 228 + 224 + 140 + 630);
     // Every case either matches or names its first difference.
     for c in &report.cases {
         assert_eq!(c.svg, c.difference.is_none(), "{} {}", c.file, c.id);
     }
+}
+
+#[test]
+fn evaluation_replays_excalidraws_stroke_styles() {
+    // rough-strokes.json (ex-205): Excalidraw's solid, dashed and dotted
+    // strokes, with disableMultiStroke and preserveVertices as upstream's
+    // generateRoughOptions sets them (shape.ts:195-260).
+    let report = evaluate(&root());
+    let strokes: Vec<_> = report
+        .cases
+        .iter()
+        .filter(|c| c.file == "rough-strokes.json")
+        .collect();
+    assert_eq!(strokes.len(), 630);
+    for style in ["solid/", "dashed/", "dotted/"] {
+        assert_eq!(
+            strokes.iter().filter(|c| c.id.starts_with(style)).count(),
+            210,
+            "{style}"
+        );
+    }
+    // Every case ran: the resolved options map to roughr (strokeLineDash,
+    // disableMultiStroke, preserveVertices included), none is an error.
+    for c in &strokes {
+        assert!(
+            !c.difference.as_deref().unwrap_or("").starts_with("error:"),
+            "{} {:?}",
+            c.id,
+            c.difference
+        );
+    }
+    let o = roughr_options(&json!({
+        "strokeLineDash": [8, 9], "disableMultiStroke": true, "preserveVertices": true,
+    }))
+    .unwrap();
+    assert_eq!(o.stroke_line_dash, Some(vec![8.0, 9.0]));
+    assert_eq!(o.disable_multi_stroke, Some(true));
+    assert_eq!(o.preserve_vertices, Some(true));
 }
 
 #[test]
