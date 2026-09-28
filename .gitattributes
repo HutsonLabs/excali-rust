@@ -1,0 +1,3 @@
+# fixtures/ are byte-exact third-party copies pinned by sha256 in
+# fixtures/manifest.json: never convert line endings.
+fixtures/** -text

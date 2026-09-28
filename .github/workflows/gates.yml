@@ -30,6 +30,29 @@ jobs:
       - uses: actions/checkout@v7
       - name: unit tests for repo scripts
         run: python3 -m unittest discover -s scripts/site -p 'test_*.py' -v
+  # fixtures/ (ex-003): the manifest matches disk, the upstream copies equal
+  # the pinned checkout, and every file still equals its origin URL at the
+  # pinned commits (upstream and excalidraw-libraries).
+  fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: upstream checkout at the pin
+        env:
+          UPSTREAM_DIR: ${{ runner.temp }}/upstream
+        run: scripts/upstream/checkout.sh
+      - name: corpus test suite
+        env:
+          UPSTREAM_DIR: ${{ runner.temp }}/upstream
+        run: python3 scripts/fixtures/test_corpus.py
+      - name: manifest matches disk
+        run: python3 scripts/fixtures/corpus.py check
+      - name: upstream copies equal the pinned checkout
+        env:
+          UPSTREAM_DIR: ${{ runner.temp }}/upstream
+        run: python3 scripts/fixtures/corpus.py verify-upstream
+      - name: every file equals its origin (live)
+        run: python3 scripts/fixtures/corpus.py verify-remote
   # scripts/upstream/checkout.sh: the offline suite pins its behaviour
   # (fixture remotes over file://); the live step proves the real pin still
   # resolves on GitHub, lands clean, and a second run is a no-op.

@@ -17,6 +17,10 @@ smart_punctuation = false
 repo = "https://github.com/HutsonLabs/excali-rust"
 upstream = "https://github.com/excalidraw/excalidraw"
 upstream_commit = "438d89861f53d8a90ad566113ecac1b83761098f"
+# Public library catalogue pinned for the fixture corpus (fixtures/libraries,
+# scripts/fixtures/corpus.py). main on 2026-09-28: 232 entries.
+libraries = "https://github.com/excalidraw/excalidraw-libraries"
+libraries_commit = "297a349eaff859e678f78d4dbc8e68df5fce42e5"
 captured = "2026-09-28"
 nav = [
   { name = "Plan", path = "plan" },
