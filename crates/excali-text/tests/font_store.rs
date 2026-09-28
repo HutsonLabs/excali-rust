@@ -353,3 +353,46 @@ fn family_names_are_case_insensitive() {
     );
     assert_eq!(store.family_for('C', "20px LILITA ONE"), Some("Lilita One"));
 }
+
+/// Per-line cost. Wrapping (ex-303) measures each character through
+/// `CharWidthCache` and every line again on each edit, so a measurement may
+/// only shape: faces are parsed when loaded and shaping plans built once.
+/// Before that, a single character took about 1.7 ms in Cascadia (debug
+/// build, Apple M-series); now about 11 us. The bounds leave a wide margin
+/// for slower CI machines and still fail if a face is parsed or a plan
+/// built on every call.
+#[test]
+fn measuring_a_line_only_shapes() {
+    const CHAR_BOUND: std::time::Duration = std::time::Duration::from_micros(250);
+    const LINE_BOUND: std::time::Duration = std::time::Duration::from_millis(2);
+    const N: u32 = 500;
+    let store = store();
+    for family in [
+        FontFamily::VIRGIL,
+        FontFamily::EXCALIFONT,
+        FontFamily::NUNITO,
+        FontFamily::CASCADIA,
+        FontFamily::LILITA_ONE,
+        FontFamily::COMIC_SHANNS,
+        FontFamily::LIBERATION_SANS,
+        FontFamily::ASSISTANT,
+    ] {
+        let f = font(20.0, family);
+        // Warm: the first call per face and script builds its plan.
+        store.line_width("warm up 0", &f);
+        let start = std::time::Instant::now();
+        for i in 0..N {
+            let ch = char::from(b'a' + u8::try_from(i % 26).unwrap());
+            std::hint::black_box(store.line_width(ch.encode_utf8(&mut [0; 4]), &f));
+        }
+        let per_char = start.elapsed() / N;
+        let start = std::time::Instant::now();
+        for i in 0..N {
+            let line = format!("The quick brown fox jumps over {i}");
+            std::hint::black_box(store.line_width(&line, &f));
+        }
+        let per_line = start.elapsed() / N;
+        assert!(per_char < CHAR_BOUND, "{f}: {per_char:?} per character");
+        assert!(per_line < LINE_BOUND, "{f}: {per_line:?} per line");
+    }
+}
