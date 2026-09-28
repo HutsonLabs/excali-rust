@@ -72,6 +72,12 @@ class OwnerDecisionsInThePlan(unittest.TestCase):
         self.assertIn("2026-09-27", t["description"])
         self.assertIn("deferred", t["labels"])
 
+    def test_font_licences_do_not_wait_on_a_human(self):
+        t = item("ex-306")
+        self.assertNotIn("needs-human", t["labels"])
+        self.assertIn("fallback", t["acceptance"])
+        self.assertIn("Licence gaps", t["acceptance"])
+
     def test_m8_is_the_first_release_without_crates_io(self):
         m = item("ex-m8")
         self.assertIn("v26.9.1", m["title"] + m["acceptance"])
@@ -112,6 +118,106 @@ class SeedRows(unittest.TestCase):
         r = rows()["ex-008"]
         self.assertIn("phase-0", r["labels"])
         self.assertIn("ex-008", blockers(rows()["ex-m0"]))
+
+    def test_live_work_may_not_wait_on_deferred_work(self):
+        plan = {
+            "epics": [{"id": "ex-e9", "phase": 9, "title": "e"}],
+            "milestones": [],
+            "tasks": [
+                {"id": "ex-901", "epic": "ex-e9", "title": "held", "deferred": True},
+                {"id": "ex-902", "epic": "ex-e9", "title": "live", "blocked_by": ["ex-901"]},
+            ],
+        }
+        problems = seed.validate(plan)
+        self.assertTrue(any("ex-902" in p and "deferred" in p for p in problems), problems)
+        plan["tasks"][1]["blocked_by"] = []
+        self.assertEqual(seed.validate(plan), [])
+
+    def test_reconcile_removes_edges_the_plan_dropped(self):
+        # bd import is an upsert: it adds edges but never removes them, so
+        # dropping ex-801 from ex-804's blocked_by needs an explicit removal.
+        want = [
+            {"id": "ex-804", "labels": ["phase-8"], "dependencies": [
+                {"issue_id": "ex-804", "depends_on_id": "ex-e8", "type": "parent-child"},
+                {"issue_id": "ex-804", "depends_on_id": "ex-802", "type": "blocks"},
+            ]},
+        ]
+        have = [
+            {"id": "ex-804", "labels": ["phase-8"], "dependencies": [
+                {"issue_id": "ex-804", "depends_on_id": "ex-e8", "type": "parent-child"},
+                {"issue_id": "ex-804", "depends_on_id": "ex-801", "type": "blocks"},
+                {"issue_id": "ex-804", "depends_on_id": "ex-802", "type": "blocks"},
+                # An edge to an issue the plan does not own (a spike an agent
+                # filed) is left alone.
+                {"issue_id": "ex-804", "depends_on_id": "ex-a1b2", "type": "blocks"},
+            ]},
+        ]
+        plan_ids = {"ex-e8", "ex-801", "ex-802", "ex-804"}
+        self.assertEqual(
+            seed.reconcile(want, have, plan_ids, {}),
+            [["dep", "remove", "ex-804", "ex-801"]],
+        )
+
+    def test_reconcile_withdraws_listed_labels_only(self):
+        want = [{"id": "ex-803", "labels": ["phase-8"], "dependencies": []}]
+        have = [{"id": "ex-803", "labels": ["needs-human", "phase-8", "triage"], "dependencies": []}]
+        self.assertEqual(
+            seed.reconcile(want, have, {"ex-803"}, {"ex-803": ["needs-human"]}),
+            [["label", "remove", "ex-803", "needs-human"]],
+        )
+        # Nothing to do once the label is gone.
+        have[0]["labels"] = ["phase-8", "triage"]
+        self.assertEqual(seed.reconcile(want, have, {"ex-803"}, {"ex-803": ["needs-human"]}), [])
+
+    def test_merge_keeps_tracker_state_of_existing_issues(self):
+        # bd import resets fields a row omits, so re-seeding a closed or
+        # claimed issue must carry its tracker state through unchanged.
+        current = [{
+            "id": "ex-001", "title": "old title", "issue_type": "task", "priority": 0,
+            "status": "closed", "closed_at": "2026-09-28T04:00:00Z",
+            "close_reason": "merged in #6", "external_ref": "gh-6",
+            "assignee": "Dr. Hutson", "notes": "agent note",
+            "labels": ["phase-0", "triage"],
+            "dependencies": [
+                {"issue_id": "ex-001", "depends_on_id": "ex-e0", "type": "parent-child"},
+                {"issue_id": "ex-001", "depends_on_id": "ex-z9y8", "type": "blocks"},
+            ],
+            "dependency_count": 2,
+        }]
+        plan_rows = [{
+            "id": "ex-001", "title": "new title", "issue_type": "task", "priority": 1,
+            "labels": ["phase-0"], "created_by": "tester", "description": "d",
+            "acceptance_criteria": "a",
+            "dependencies": [{"issue_id": "ex-001", "depends_on_id": "ex-e0", "type": "parent-child"}],
+        }]
+        [m] = seed.merge_existing(plan_rows, current, {"ex-001", "ex-e0"})
+        for k, v in (("status", "closed"), ("closed_at", "2026-09-28T04:00:00Z"),
+                     ("close_reason", "merged in #6"), ("external_ref", "gh-6"),
+                     ("assignee", "Dr. Hutson"), ("notes", "agent note")):
+            self.assertEqual(m[k], v, k)
+        self.assertEqual((m["title"], m["priority"], m["description"], m["acceptance_criteria"]),
+                         ("new title", 1, "d", "a"))
+        self.assertEqual(m["labels"], ["phase-0", "triage"])
+        self.assertEqual(
+            sorted(d["depends_on_id"] for d in m["dependencies"]), ["ex-e0", "ex-z9y8"]
+        )
+        self.assertNotIn("dependency_count", m)
+
+    def test_merge_leaves_new_issues_open(self):
+        plan_rows = [{"id": "ex-999", "title": "t", "status": "open", "labels": [], "dependencies": []}]
+        self.assertEqual(seed.merge_existing(plan_rows, [], {"ex-999"}), plan_rows)
+
+    def test_withdrawn_labels_in_the_plan(self):
+        w = seed.withdrawn_labels(PLAN)
+        for m in PLAN["milestones"]:
+            self.assertIn("needs-human", w.get(m["id"], []), m["id"])
+        self.assertIn("needs-human", w["ex-803"])
+        self.assertIn("needs-human", w["ex-306"])
+        # A label the plan withdraws is never also applied by it.
+        r = rows()
+        for iid, labels in w.items():
+            for label in labels:
+                self.assertNotIn(label, r[iid]["labels"], iid)
 
     def test_plan_is_consistent(self):
         buf = io.StringIO()
