@@ -106,6 +106,48 @@ class SeedRows(unittest.TestCase):
         self.assertEqual(parents, ["ex-e8"])
         self.assertIn("deferred", r["labels"])
 
+    def test_deferred_task_is_created_deferred(self):
+        # bd ready skips issues whose status is deferred; a label named
+        # "deferred" is not enough to keep ex-801 out of the ready queue.
+        self.assertEqual(rows()["ex-801"]["status"], "deferred")
+        self.assertEqual(rows()["ex-802"]["status"], "open")
+        # Status is only set on creation; an existing issue keeps its own.
+        existing = {r["id"]: r for r in seed.build(PLAN, "tester", {"ex-801"})}
+        self.assertNotIn("status", existing["ex-801"])
+
+    def test_deferred_ids(self):
+        self.assertIn("ex-801", seed.deferred_ids(PLAN))
+        self.assertNotIn("ex-802", seed.deferred_ids(PLAN))
+
+    def test_reconcile_defers_an_open_deferred_task(self):
+        want = [{"id": "ex-801", "labels": ["phase-8"], "dependencies": []}]
+        for status, expected in (
+            ("open", [["defer", "ex-801"]]),
+            # Already deferred: nothing to do (re-seed keeps it).
+            ("deferred", []),
+            # Closed, or claimed by someone despite the hold: left alone,
+            # the same way re-seeding leaves closed status alone.
+            ("closed", []),
+            ("in_progress", []),
+        ):
+            with self.subTest(status=status):
+                have = [{"id": "ex-801", "status": status, "labels": ["phase-8"], "dependencies": []}]
+                self.assertEqual(seed.reconcile(want, have, {"ex-801"}, {}, {"ex-801"}), expected)
+        # A task the plan does not defer is never deferred by the seed.
+        have = [{"id": "ex-801", "status": "open", "labels": ["phase-8"], "dependencies": []}]
+        self.assertEqual(seed.reconcile(want, have, {"ex-801"}, {}, set()), [])
+
+    def test_merge_keeps_deferred_status(self):
+        current = [{"id": "ex-801", "title": "t", "status": "deferred", "labels": [], "dependencies": []}]
+        plan_rows = [{"id": "ex-801", "title": "t2", "labels": [], "dependencies": []}]
+        [m] = seed.merge_existing(plan_rows, current, {"ex-801"})
+        self.assertEqual(m["status"], "deferred")
+
+    def test_ex_801_acceptance_says_it_is_never_claimed_while_deferred(self):
+        t = item("ex-801")
+        self.assertIn("never claimed", t["acceptance"])
+        self.assertIn("bd undefer", t["acceptance"])
+
     def test_ex_804_rows(self):
         self.assertEqual(blockers(rows()["ex-804"]), ["ex-802", "ex-803"])
 
@@ -203,6 +245,33 @@ class SeedRows(unittest.TestCase):
         )
         self.assertNotIn("dependency_count", m)
 
+    def test_merge_bumps_updated_at_when_the_plan_changes_an_issue(self):
+        # bd import skips a row unless its updated_at is strictly newer than
+        # the database's (a tie keeps the local row), so a merged row that
+        # carried the tracker's own timestamp would never take plan edits.
+        cur = {"id": "ex-801", "title": "t", "acceptance_criteria": "old",
+               "status": "deferred", "updated_at": "2026-09-28T05:40:40Z",
+               "labels": ["phase-8"], "dependencies": []}
+        changed = [{"id": "ex-801", "title": "t", "acceptance_criteria": "new",
+                    "labels": ["phase-8"], "dependencies": []}]
+        [m] = seed.merge_existing(changed, [cur], {"ex-801"}, now="2026-09-28T06:00:00Z")
+        self.assertEqual(m["updated_at"], "2026-09-28T06:00:00Z")
+        self.assertEqual(m["acceptance_criteria"], "new")
+        # A clock at or behind the tracker still yields a strictly newer stamp.
+        [m] = seed.merge_existing(changed, [cur], {"ex-801"}, now="2026-09-28T05:40:40Z")
+        self.assertEqual(m["updated_at"], "2026-09-28T05:40:41Z")
+        # Labels and edges the plan adds count as changes too.
+        more = [dict(changed[0], acceptance_criteria="old", labels=["phase-8", "x"])]
+        [m] = seed.merge_existing(more, [cur], {"ex-801"}, now="2026-09-28T06:00:00Z")
+        self.assertEqual(m["updated_at"], "2026-09-28T06:00:00Z")
+        # Nothing changed: the tracker's timestamp is kept, so re-seeding is a no-op.
+        same = [dict(changed[0], acceptance_criteria="old")]
+        [m] = seed.merge_existing(same, [cur], {"ex-801"}, now="2026-09-28T06:00:00Z")
+        self.assertEqual(m["updated_at"], "2026-09-28T05:40:40Z")
+        # bd export omits an empty description; the plan's "" is the same.
+        [m] = seed.merge_existing([dict(same[0], description="")], [cur], {"ex-801"}, now="2026-09-28T06:00:00Z")
+        self.assertEqual(m["updated_at"], "2026-09-28T05:40:40Z")
+
     def test_merge_leaves_new_issues_open(self):
         plan_rows = [{"id": "ex-999", "title": "t", "status": "open", "labels": [], "dependencies": []}]
         self.assertEqual(seed.merge_existing(plan_rows, [], {"ex-999"}), plan_rows)
@@ -237,6 +306,12 @@ class OwnerDecisionsOnTheSite(unittest.TestCase):
         self.assertIn("term.hut", section)
         self.assertIn("HutsonLabs/term.hut", section)
 
+    def test_pick_step_skips_deferred_issues(self):
+        text = (CONTENT / "plan" / "agent-workflow.md").read_text()
+        pick = text.split("1. **Pick.**", 1)[1].split("\n2. ", 1)[0]
+        self.assertIn("deferred", pick)
+        self.assertIn("never claimed", pick)
+
     def test_phase_8_text(self):
         text = (CONTENT / "plan" / "phases.md").read_text()
         section = text.split("## Phase 8", 1)[1].split("\n## ", 1)[0]
@@ -255,6 +330,23 @@ class OwnerDecisionsOnTheSite(unittest.TestCase):
         self.assertIn("Apache", text)
         self.assertIn("## Licence gaps", text)
         self.assertIn("2026-09-27", text)
+
+    def test_adr_004_fallback_classes_match_upstream(self):
+        # getGenericFontFamilyFallback (packages/common/src/constants.ts:169-180)
+        # has two classes only: monospace (Cascadia, Comic Shanns) and
+        # sans-serif (everything else, Virgil included). There is no
+        # hand-drawn class; Virgil -> Excalifont is the port's own choice.
+        text = (CONTENT / "decisions" / "adr-004-fonts.md").read_text()
+        self.assertNotIn("hand-drawn (Virgil)", text)
+        self.assertNotIn("| hand-drawn |", text)
+        self.assertIn("constants.ts:169-180", text)
+        self.assertIn("constants.ts:268", text)
+        gaps = text.split("## Licence gaps", 1)[1]
+        virgil = next(line for line in gaps.splitlines() if line.startswith("| Virgil "))
+        self.assertIn("sans-serif (upstream)", virgil)
+        self.assertIn("Excalifont", virgil)
+        rule = text.split("3. **Fallback rule.**", 1)[1].split("\n4. ", 1)[0]
+        self.assertIn("choice of the port", rule)
 
     def test_adr_009_exists(self):
         self.assertTrue((CONTENT / "decisions" / "adr-009-calendar-versioning.md").exists())
