@@ -35,8 +35,8 @@ pub const FULL_UNICODE_RANGE: &str = "U+0-10FFFF";
 
 /// `ExcalidrawFontFace.ASSETS_FALLBACK_URL` (`ExcalidrawFontFace.ts:11-15`,
 /// the app build's value, with no package name): every bundled face's last
-/// url is its file under this directory, and `getContent` answers that url
-/// when it cannot fetch the file (`:58-86`).
+/// url is its file under this directory's `fonts/` (see [`FontFaceAsset::fallback_url`]),
+/// and `getContent` answers that url when it cannot fetch the file (`:58-86`).
 pub const ASSETS_FALLBACK_URL: &str = "https://esm.sh/@excalidraw/excalidraw/dist/prod/";
 
 /// `FONT_SIZES.sm` (`packages/common/src/constants.ts:122-127`): the size
@@ -110,11 +110,16 @@ impl FontFaceAsset {
         text.chars().any(|c| self.covers(u32::from(c)))
     }
 
-    /// The face's upstream file under [`ASSETS_FALLBACK_URL`]: upstream's
-    /// last url for it, which `getContent` answers when no url can be
-    /// fetched, so an SVG export that cannot read the file still names it.
+    /// The face's upstream file under [`ASSETS_FALLBACK_URL`]'s `fonts/`
+    /// directory: upstream's last url for it (`createUrls`,
+    /// `ExcalidrawFontFace.ts:150-170`, resolving the import uri the
+    /// package build gives the file, `./fonts/<upstream_file>`:
+    /// `scripts/buildPackage.js` bundles `.woff2` with esbuild's file loader
+    /// and `assetNames: "[dir]/[name]"` from `packages/excalidraw`), which
+    /// `getContent` answers when no url can be fetched, so an SVG export
+    /// that cannot read the file still names it.
     pub fn fallback_url(&self) -> String {
-        format!("{ASSETS_FALLBACK_URL}{}", self.upstream_file)
+        format!("{ASSETS_FALLBACK_URL}fonts/{}", self.upstream_file)
     }
 
     /// The CSS `src` for this face under `base_url` (the directory holding
