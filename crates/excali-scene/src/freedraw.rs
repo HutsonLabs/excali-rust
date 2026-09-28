@@ -21,6 +21,7 @@ use std::fmt;
 use excali_core::element::{Element, ElementKind, StrokeVariability};
 use excali_core::json::number_to_string;
 use excali_freehand::{constant_width_outline, variable_width_outline};
+use excali_rough::points_on_curve::simplify;
 
 /// Why [`get_freedraw_outline_points`] or [`get_free_draw_svg_path`] gave
 /// no outline.
@@ -105,6 +106,25 @@ pub fn get_constant_width_freedraw_outline(element: &Element) -> Option<Vec<[f64
         element.base.stroke_width,
         Some(fields.stroke_options.streamline),
     ))
+}
+
+/// The distance `getFreedrawFillCurvePoints` simplifies a freedraw's
+/// points to (`shape.ts:580-581`).
+pub const FREEDRAW_FILL_SIMPLIFY_DISTANCE: f64 = 0.75;
+
+/// `getFreedrawFillCurvePoints(element)` (`shape.ts:580-581`): the
+/// simplified centerline the freedraw fill is drawn along,
+/// points-on-curve's `simplify(element.points, 0.75)` (Ramer-Douglas-Peucker).
+/// `None` for any other element type.
+pub fn get_freedraw_fill_curve_points(element: &Element) -> Option<Vec<[f64; 2]>> {
+    let ElementKind::Freedraw(fields) = &element.kind else {
+        return None;
+    };
+    // simplify only fails for a negative distance
+    Some(
+        simplify(&fields.points, FREEDRAW_FILL_SIMPLIFY_DISTANCE)
+            .expect("a non-negative distance always simplifies"),
+    )
 }
 
 /// `med(A, B)` (`shape.ts:1314-1316`).

@@ -279,6 +279,13 @@ pub(crate) fn js_number(x: f64) -> String {
     format!("{sign}{body}")
 }
 
+/// `parseFloat(string)` (ECMA-262 §19.2.4): the longest decimal prefix
+/// after leading whitespace, `NaN` when there is none (`"20px Virgil"` is
+/// 20).
+pub fn parse_float(s: &str) -> f64 {
+    crate::js::parse_float(s)
+}
+
 /// `Number::toString(x)` (ECMA-262 §6.1.6.1.20), non-finite values
 /// included: what `String(x)` and a template literal's `${x}` write.
 pub fn number_to_string(x: f64) -> String {

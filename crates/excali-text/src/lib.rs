@@ -6,4 +6,9 @@
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-core`.
 
 pub mod font_assets;
+pub mod font_faces;
+mod font_faces_table;
 pub mod font_metadata;
+pub mod font_store;
+pub mod text_measurements;
+pub mod unicode_range;

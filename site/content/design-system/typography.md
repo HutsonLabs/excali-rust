@@ -32,7 +32,7 @@ Fallback chains: Excalifont → Xiaolai → generic → Segoe UI Emoji; others �
 
 - Line height in px = `fontSize × lineHeight`.
 - Baseline offset = `em × ascender + (lineHeightPx − em × ascender + em × descender) / 2`, `em = fontSize / unitsPerEm`.
-- Width = advance width of the widest line; tabs are 8 spaces; an empty line measures as one space.
+- Width = advance width of the widest line; tabs are 8 spaces; an empty line measures as one space. The port measures a line from the vendored font files, shaped with kerning, picking a face per character through the font string's fallback list as the browser does ([ADR-007](../../decisions/adr-007-text-metrics/)).
 - Bound text padding 5 px; ellipse inset `(w/2)(1 − √2/2)`; diamond inset `w/4`; arrow label max width `max(0.7w, 11 × fontSize)`; sticky note padding 16.
 - `autoResize: false` wraps at the stored width; `text` holds the wrapped result and `originalText` the source.
 

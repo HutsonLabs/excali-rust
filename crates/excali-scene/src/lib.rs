@@ -11,7 +11,8 @@
 //!   pointer for constant width).
 //! - [`rough_canvas`]: roughjs's `RoughCanvas.draw`, producing display items.
 //! - [`rough_options`]: `generateRoughOptions` and `adjustRoughness`.
-//! - [`shape`]: the rough.js shapes of boxes, lines and arrows;
+//! - [`shape`]: the rough.js shapes of boxes, lines and arrows, and a
+//!   freedraw's loop fill under its stroke path;
 //!   [`elbow_arrow`] and [`heading`]: the elbow arrow path and
 //!   `validateElbowPoints`.
 //!

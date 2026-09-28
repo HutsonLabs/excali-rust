@@ -44,7 +44,7 @@ Build from primitives up. Each crate below is a pure layer over the one beneath 
 | `excali-core` | `packages/element/src/types.ts`, `packages/excalidraw/data/*`, `packages/fractional-indexing` | `excali-math`, `serde`, `serde_json`, `flate2`, `png` (chunk read/write), `base64`, `nanoid` | native, wasm32 |
 | `excali-rough` | `roughjs` 4.6.4 as used by `packages/element/src/shape.ts` | `excali-math`; `serde_json` and `sha2` only behind the test-only `goldens` feature (the golden harness) | native, wasm32 |
 | `excali-freehand` | `perfect-freehand` 1.2.0 and `packages/laser-pointer` | `excali-math` | native, wasm32 |
-| `excali-text` | `packages/common/src/font-metadata.ts`, `packages/element/src/textWrapping.ts`, `textMeasurements.ts` | `excali-core`, `ttf-parser`, `rustybuzz` | native, wasm32 |
+| `excali-text` | `packages/common/src/font-metadata.ts`, `packages/element/src/textWrapping.ts`, `textMeasurements.ts` | `excali-core`, `ttf-parser`, `rustybuzz`, `wuff` (WOFF2 decoding), `unicode-properties`, `yoke` (a parsed face kept with its bytes) | native, wasm32 |
 | `excali-scene` | `packages/element/src/shape.ts`, `renderElement.ts`, `packages/excalidraw/renderer/staticScene.ts` | `excali-core`, `excali-rough`, `excali-freehand`, `excali-text` | native, wasm32 |
 | `excali-raster` | `exportToCanvas` path of `scene/export.ts` | `excali-scene`, `tiny-skia`, `image` | native |
 | `excali-svg` | `renderer/staticSvgScene.ts`, `exportToSvg` | `excali-scene` | native, wasm32 |

@@ -5,6 +5,9 @@
 //! the body of lines and arrows (`shape.ts:890-935`) and the arrowheads
 //! after it (`shape.ts:295-577, 936-975`).
 //!
+//! The freedraw shapes ([`generate_freedraw_shapes`], `shape.ts:976-994`)
+//! are the rough.js background fill of a loop, then the stroke path.
+//!
 //! See `site/content/research/rendering.md` section 2.
 //!
 //! - Rectangle, iframe, embeddable: rounded ones are an SVG path with
@@ -19,7 +22,7 @@
 //!   `curveFitting: 1` ([`generate_rough_options`]).
 //! - Line, arrow ([`generate_linear_shape`]): sharp ones are
 //!   `generator.polygon(points)` when the options carry a fill (a line whose
-//!   points close into a loop, [`is_path_a_loop`](crate::utils::is_path_a_loop))
+//!   points close into a loop, [`is_path_a_loop`])
 //!   and `generator.linearPath(points)` otherwise; round ones are
 //!   `generator.curve(points)`. Empty points draw the point `[0, 0]`.
 //! - Elbow arrow ([`generate_elbow_arrow_shape`]): `generator.path` of
@@ -52,8 +55,9 @@ use crate::bounds::{
     InvalidArrowheadOp,
 };
 use crate::elbow_arrow::{elbow_arrow_is_drawable, elbow_arrow_path, ELBOW_ARROW_CORNER_RADIUS};
+use crate::freedraw::{get_free_draw_svg_path, get_freedraw_fill_curve_points};
 use crate::rough_options::{dash_array_dotted, generate_rough_options, UnimplementedType};
-use crate::utils::get_corner_radius;
+use crate::utils::{get_corner_radius, is_path_a_loop};
 
 /// `EmbedsValidationStatus` (`packages/element/src/types.ts`): whether each
 /// embeddable's link, by element id, passed validation.
@@ -111,6 +115,9 @@ pub enum ShapeError {
     /// [`generate_elbow_arrow_shape`] was given an element that is not an
     /// elbow arrow (a plain arrow, a line, or another type).
     NotAnElbowArrow(ElementType),
+    /// [`generate_freedraw_shapes`] was given an element that is not a
+    /// freedraw.
+    NotAFreedraw(ElementType),
     /// rough.js rejected the path data (only reachable with non-finite
     /// sizes, which write `NaN` or `Infinity` into the path).
     Path(PathError),
@@ -128,6 +135,7 @@ impl fmt::Display for ShapeError {
             ShapeError::NotALinearShape(ty) => write!(f, "{ty} is not a line or an arrow"),
             ShapeError::ElbowArrow => f.write_str("an elbow arrow is not a polyline or curve"),
             ShapeError::NotAnElbowArrow(ty) => write!(f, "{ty} is not an elbow arrow"),
+            ShapeError::NotAFreedraw(ty) => write!(f, "{ty} is not a freedraw"),
             ShapeError::Path(e) => write!(f, "path data: {e}"),
             ShapeError::Options(e) => e.fmt(f),
             ShapeError::Arrowhead(e) => write!(f, "arrowhead: {e}"),
@@ -344,7 +352,7 @@ pub fn generate_element_shape(
 ///
 /// - The options are `generateRoughOptions(element, false, isDarkMode)`:
 ///   a line fills only when its points close into a loop
-///   ([`is_path_a_loop`](crate::utils::is_path_a_loop)), an arrow never.
+///   ([`is_path_a_loop`]), an arrow never.
 /// - No roundness: `generator.polygon(points)` when `options.fill` is
 ///   truthy (so an empty background string draws no fill) and
 ///   `generator.linearPath(points)` otherwise.
@@ -439,6 +447,68 @@ pub fn generate_linear_element_shapes(
         }
     }
     Ok(shape)
+}
+
+// ---------------------------------------------------------------------------
+// Freedraw (`shape.ts:976-994`)
+
+/// One of a freedraw element's shapes (`ElementShapes["freedraw"]`,
+/// `(Drawable | SVGPathString)[]`).
+#[derive(Clone, Debug, PartialEq)]
+pub enum FreedrawShape {
+    /// The rough.js background fill of a loop (boxed: a drawable is
+    /// several times the size of a path string).
+    Rough(Box<Drawable>),
+    /// The stroke: the outline as an SVG path the renderer fills with the
+    /// stroke colour ([`get_free_draw_svg_path`]).
+    SvgPath(String),
+}
+
+/// The shapes `_generateElementShape` builds for a freedraw
+/// (`shape.ts:976-994`), "oredered in terms of z-index [background,
+/// stroke]":
+///
+/// 1. the background fill, only when the points close into a loop
+///    ([`is_path_a_loop`] at zoom 1): `generator.curve` over
+///    [`get_freedraw_fill_curve_points`] (the points simplified to 0.75)
+///    with `generateRoughOptions(element, false, isDarkMode)` (which carry
+///    the fill style and fill for loops) and `stroke: "none"`, so the curve
+///    draws its fill and no outline;
+/// 2. the stroke, [`get_free_draw_svg_path`].
+///
+/// Errors with [`ShapeError::NotAFreedraw`] for any other element type,
+/// and with [`ShapeError::Path`] where rough.js throws.
+pub fn generate_freedraw_shapes(
+    element: &Element,
+    generator: &RoughGenerator,
+    config: &RenderConfig<'_>,
+) -> Result<Vec<FreedrawShape>, ShapeError> {
+    let (ElementKind::Freedraw(fields), Some(fill_points), Ok(stroke)) = (
+        &element.kind,
+        get_freedraw_fill_curve_points(element),
+        get_free_draw_svg_path(element),
+    ) else {
+        return Err(ShapeError::NotAFreedraw(element.element_type()));
+    };
+    let mut shapes = Vec::with_capacity(2);
+
+    // (1) background fill (rc shape), optional
+    if is_path_a_loop(&fields.points, 1.0) {
+        // generate rough polygon to fill freedraw shape
+        let is_dark_mode = config.theme == Theme::Dark;
+        let options = RoughJsOptions {
+            stroke: "none".to_owned(),
+            ..generate_rough_options(element, false, is_dark_mode)?
+                .to_rough(generator.default_options())
+        };
+        shapes.push(FreedrawShape::Rough(Box::new(
+            generator.curve(&fill_points, &options)?,
+        )));
+    }
+
+    // (2) stroke
+    shapes.push(FreedrawShape::SvgPath(stroke));
+    Ok(shapes)
 }
 
 // ---------------------------------------------------------------------------
