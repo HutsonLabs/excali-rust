@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 13:11 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 13:24 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**136 issues** · 41 closed (30%) · 0 in progress · 0 blocked · 94 open
+**136 issues** · 42 closed (31%) · 0 in progress · 0 blocked · 93 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -59,7 +59,7 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 
 ## ex-e2 · Phase 2: Geometry and sketch renderer
 
-<span class="status open">open</span> 15/19 children closed
+<span class="status open">open</span> 16/19 children closed
 
 excali-math, excali-rough (rough.js 4.6.4 semantics), excali-freehand, the display list, and golden tests against upstream output.
 
@@ -82,8 +82,8 @@ excali-math, excali-rough (rough.js 4.6.4 semantics), excali-freehand, the displ
 | `ex-215` | Outline to path string with quadratic midpoints and 2-decimal trimming | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-216` | Display list type: renderer-independent paths, fills, dashes, images, text runs, clips, opacity | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-217` | Golden harness in CI (cargo test feature `goldens`) | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-218` | Dark-mode colour filter maths (invert 93% hue-rotate 180deg) and reverse | task | P2 | <span class="status open">open</span> | yes |  |
-| `ex-m2` | M2: golden parity with rough.js for all shapes | milestone | P2 | <span class="status open">open</span> |  | `ex-211`, `ex-212`, `ex-218` |
+| `ex-218` | Dark-mode colour filter maths (invert 93% hue-rotate 180deg) and reverse | task | P2 | <span class="status closed">closed</span> |  |  |
+| `ex-m2` | M2: golden parity with rough.js for all shapes | milestone | P2 | <span class="status open">open</span> |  | `ex-211`, `ex-212` |
 
 ## ex-e3 · Phase 3: Text and fonts (excali-text)
 

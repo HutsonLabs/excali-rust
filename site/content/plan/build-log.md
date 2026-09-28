@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-218 · Dark-mode colour filter maths (invert 93% hue-rotate 180deg) and reverse
+
+`excali_core::color` now has `remove_dark_mode_filter`, a port of upstream's `removeDarkModeFilter`, next to the existing `apply_dark_mode_filter`. It also has a public `rgb_to_hex` that follows upstream's int32 arithmetic and optional alpha, and `COLOR_PALETTE` in upstream key order. `DARK_THEME_FILTER` is in `excali_core::constants`. For all 63 palette colours, apply, remove and the apply-remove-apply round trip all match upstream exactly. So do every CSS colour notation tested and all 256 greys. PR: [#47](https://github.com/HutsonLabs/excali-rust/pull/47).
+
 ## 2026-09-28 · ex-210 · Elbow arrow path from fixed points (radius 16) and validation
 
 `excali_scene::shape` now draws an elbow arrow the way upstream's `_generateElementShape` does. It calls `generator.path` on `generateElbowArrowShape(points, 16)` with continuous options, and corners shrink on short segments. Empty points become `[0, 0]`, and nothing is drawn past the 1e6 coordinate guard. The `heading` helpers and `validate_elbow_points` (DEDUP_TRESHOLD 1, strict) are ported too, and all 9 elbow golden bodies match upstream op by op. PR: [#46](https://github.com/HutsonLabs/excali-rust/pull/46).

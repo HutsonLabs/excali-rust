@@ -13,13 +13,20 @@
 //!
 //! `tests/color.rs` checks it against upstream's output for every notation
 //! (`tools/goldens/app-state.mjs`).
+//!
+//! It also holds the dark-mode colour filter (`applyDarkModeFilter` and
+//! `removeDarkModeFilter`, `colors.ts:86-160`), `rgbToHex` and
+//! `COLOR_PALETTE`; `excali-scene/tests/dark_mode.rs` checks them against
+//! upstream (`tools/goldens/dark-mode.mjs`).
 
 use excali_math::js;
 use serde_json::{Map, Value};
 
+use crate::constants::{COLOR_BLACK, COLOR_TRANSPARENT, COLOR_WHITE};
+
 use crate::js::{
     is_whitespace_char, number_to_string, parse_float, parse_float_value, parse_int_of_number,
-    string_to_number, to_string, truthy, TypeError,
+    string_to_number, to_int32, to_string, truthy, TypeError,
 };
 
 /// A parsed colour: tinycolor's `_r`, `_g`, `_b`, `_a` and `_ok`.
@@ -152,7 +159,7 @@ pub fn color_to_hex(color: &str) -> Option<String> {
         return None;
     }
     let (r, g, b, a) = tc.to_rgb();
-    Some(rgb_to_hex(r, g, b, a))
+    Some(rgb_to_hex(r, g, b, Some(a)))
 }
 
 /// `isTransparent(color)` (`colors.ts:389-391`): the alpha is 0.
@@ -180,7 +187,37 @@ pub fn apply_dark_mode_filter(color: &str, enable: bool) -> String {
     let alpha = tc.alpha();
     let (r, g, b, _) = tc.to_rgb();
     let (r, g, b) = dark_mode_filter_rgb(r, g, b);
-    rgb_to_hex(r, g, b, alpha)
+    rgb_to_hex(r, g, b, Some(alpha))
+}
+
+/// `removeDarkModeFilter(color)` (`colors.ts:141-160`): the colour that
+/// [`apply_dark_mode_filter`] turns into `color`, as near as whole
+/// components allow, as `#rrggbb` (or `#rrggbbaa` below alpha 1; the alpha
+/// is kept). The 180 degree hue rotation is undone first (it is its own
+/// inverse), then the 93% inversion, clamped to 0..=255. A string tinycolor
+/// does not recognise reads as opaque black.
+pub fn remove_dark_mode_filter(color: &str) -> String {
+    let tc = TinyColor::parse(color);
+    let alpha = tc.alpha();
+    let (r, g, b, _) = tc.to_rgb();
+    let (r, g, b) = css_hue_rotate((r, g, b), DARK_MODE_FILTER_HUE_ROTATE_DEGREES);
+    let (r, g, b) = reverse_dark_mode_invert(r, g, b);
+    rgb_to_hex(r, g, b, Some(alpha))
+}
+
+/// `_reverseDarkModeInvert(r, g, b)` (`colors.ts:124-139`): solves
+/// `c * (1 - p) + (255 - c) * p` for `c`, rounded and clamped to 0..=255.
+fn reverse_dark_mode_invert(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
+    let p = DARK_MODE_FILTER_INVERT_PERCENT / 100.0;
+    let denominator = 1.0 - 2.0 * p;
+    let restore = |c: f64| {
+        js::round(excali_math::clamp(
+            (c - 255.0 * p) / denominator,
+            0.0,
+            255.0,
+        ))
+    };
+    (restore(r), restore(g), restore(b))
 }
 
 /// The numeric `DARK_THEME_FILTER` of [`apply_dark_mode_filter`] on 0..=255
@@ -227,16 +264,123 @@ fn css_hue_rotate((red, green, blue): (f64, f64, f64), degrees: f64) -> (f64, f6
     (to_byte(new_r), to_byte(new_g), to_byte(new_b))
 }
 
-/// `rgbToHex(r, g, b, a)` (`colors.ts:335-352`).
-fn rgb_to_hex(r: f64, g: f64, b: f64, a: f64) -> String {
-    // `<<` converts with ToInt32; the components are integers in 0..=255.
-    let int = |x: f64| if x.is_finite() { x as i64 } else { 0 };
-    let hex6 = format!("#{:06x}", (int(r) << 16) + (int(g) << 8) + int(b));
-    if a < 1.0 {
-        format!("{hex6}{:02x}", int(js::round(a * 255.0)))
-    } else {
-        hex6
+/// `ColorTuple` (`colors.ts:179`): five shades of one hue, lightest first.
+pub type ColorTuple = [&'static str; 5];
+
+/// One entry of [`COLOR_PALETTE`]: a single colour or a hue's shades.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PaletteColor {
+    Single(&'static str),
+    Shades(ColorTuple),
+}
+
+/// The shape of `COLOR_PALETTE` (`colors.ts:193-212`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ColorPalette {
+    pub transparent: &'static str,
+    pub black: &'static str,
+    pub white: &'static str,
+    pub gray: ColorTuple,
+    pub red: ColorTuple,
+    pub pink: ColorTuple,
+    pub grape: ColorTuple,
+    pub violet: ColorTuple,
+    pub blue: ColorTuple,
+    pub cyan: ColorTuple,
+    pub teal: ColorTuple,
+    pub green: ColorTuple,
+    pub yellow: ColorTuple,
+    pub orange: ColorTuple,
+    pub bronze: ColorTuple,
+}
+
+impl ColorPalette {
+    /// The entries by name, in upstream's key order.
+    pub fn entries(&self) -> [(&'static str, PaletteColor); 15] {
+        use PaletteColor::{Shades, Single};
+        [
+            ("transparent", Single(self.transparent)),
+            ("black", Single(self.black)),
+            ("white", Single(self.white)),
+            ("gray", Shades(self.gray)),
+            ("red", Shades(self.red)),
+            ("pink", Shades(self.pink)),
+            ("grape", Shades(self.grape)),
+            ("violet", Shades(self.violet)),
+            ("blue", Shades(self.blue)),
+            ("cyan", Shades(self.cyan)),
+            ("teal", Shades(self.teal)),
+            ("green", Shades(self.green)),
+            ("yellow", Shades(self.yellow)),
+            ("orange", Shades(self.orange)),
+            ("bronze", Shades(self.bronze)),
+        ]
     }
+}
+
+/// `COLOR_PALETTE` (`colors.ts:193-212`): open-color shades at indexes
+/// 0, 2, 4, 6, 8 (weights 50, 200, 400, 600, 800) and radix bronze shades
+/// 3, 5, 7, 9, 11.
+pub const COLOR_PALETTE: ColorPalette = ColorPalette {
+    transparent: COLOR_TRANSPARENT,
+    black: COLOR_BLACK,
+    white: COLOR_WHITE,
+    gray: ["#f8f9fa", "#e9ecef", "#ced4da", "#868e96", "#343a40"],
+    red: ["#fff5f5", "#ffc9c9", "#ff8787", "#fa5252", "#e03131"],
+    pink: ["#fff0f6", "#fcc2d7", "#f783ac", "#e64980", "#c2255c"],
+    grape: ["#f8f0fc", "#eebefa", "#da77f2", "#be4bdb", "#9c36b5"],
+    violet: ["#f3f0ff", "#d0bfff", "#9775fa", "#7950f2", "#6741d9"],
+    blue: ["#e7f5ff", "#a5d8ff", "#4dabf7", "#228be6", "#1971c2"],
+    cyan: ["#e3fafc", "#99e9f2", "#3bc9db", "#15aabf", "#0c8599"],
+    teal: ["#e6fcf5", "#96f2d7", "#38d9a9", "#12b886", "#099268"],
+    green: ["#ebfbee", "#b2f2bb", "#69db7c", "#40c057", "#2f9e44"],
+    yellow: ["#fff9db", "#ffec99", "#ffd43b", "#fab005", "#f08c00"],
+    orange: ["#fff4e6", "#ffd8a8", "#ffa94d", "#fd7e14", "#e8590c"],
+    bronze: ["#f8f1ee", "#eaddd7", "#d2bab0", "#a18072", "#846358"],
+};
+
+/// `rgbToHex(r, g, b, a)` (`colors.ts:345-362`): `#rrggbb`, with a
+/// two-digit alpha `round(a * 255)` appended when `a` is given and below 1
+/// (`None` is `undefined`).
+///
+/// The components are whole numbers, as every caller passes them
+/// (tinycolor's rounded `toRgb()` and the filter's rounded channels).
+/// Outside 0..=255 they spill into the neighbouring digits as upstream's
+/// `(1 << 24) + (r << 16) + (g << 8) + b` does.
+pub fn rgb_to_hex(r: f64, g: f64, b: f64, a: Option<f64>) -> String {
+    debug_assert!(
+        [r, g, b].iter().all(|x| x.fract() == 0.0),
+        "rgbToHex takes whole components"
+    );
+    // `<<` converts its left operand with ToInt32 and wraps in 32 bits; the
+    // additions are on numbers.
+    let shl = |x: f64, n: u32| f64::from(to_int32(x).wrapping_shl(n));
+    let sum = f64::from(1 << 24) + shl(r, 16) + shl(g, 8) + b;
+    // `.toString(16).slice(1)` drops the leading "1" (or the minus sign).
+    let hex = js_radix16_integer(sum);
+    let hex6 = format!("#{}", hex.get(1..).unwrap_or(""));
+    match a {
+        Some(a) if a < 1.0 => {
+            let alpha = js_radix16_integer(js::round(a * 255.0));
+            format!("{hex6}{alpha:0>2}")
+        }
+        _ => hex6,
+    }
+}
+
+/// `Number.prototype.toString(16)` of a whole number or an infinity.
+fn js_radix16_integer(x: f64) -> String {
+    if x.is_nan() {
+        return "NaN".to_owned();
+    }
+    let sign = if x < 0.0 { "-" } else { "" };
+    if x.is_infinite() {
+        return format!("{sign}Infinity");
+    }
+    // Every whole double below 2^128 is exactly a u128; an alpha beyond
+    // that is not one a colour carries.
+    let magnitude = x.abs().min(u128::MAX as f64) as u128;
+    format!("{sign}{magnitude:x}")
 }
 
 /// `tinycolor(value).getAlpha()` for any JSON value (`None` is
@@ -656,6 +800,31 @@ mod tests {
         assert!(NAMES.windows(2).all(|w| w[0].0 < w[1].0));
         assert_eq!(named_color("rebeccapurple"), Some("663399"));
         assert_eq!(named_color("transparent"), None);
+    }
+
+    #[test]
+    fn rgb_to_hex_spills_like_upstreams_shifts() {
+        // (1 << 24) + (256 << 16) = 0x2000000; slice(1) drops the "2".
+        assert_eq!(rgb_to_hex(256.0, 0.0, 0.0, None), "#000000");
+        // 0x1000000 - 0x10000 = 0xff0000; slice(1) drops an "f".
+        assert_eq!(rgb_to_hex(-1.0, 0.0, 0.0, None), "#f0000");
+        // (2^31 + 1) << 16 wraps in 32 bits to 0x10000.
+        assert_eq!(rgb_to_hex(2_147_483_649.0, 0.0, 0.0, None), "#010000");
+        // round(-0.5 * 255) = -127, "-7f"; NaN is not below 1.
+        assert_eq!(rgb_to_hex(0.0, 0.0, 0.0, Some(-0.5)), "#000000-7f");
+        assert_eq!(rgb_to_hex(0.0, 0.0, 0.0, Some(f64::NAN)), "#000000");
+        assert_eq!(
+            rgb_to_hex(0.0, 0.0, 0.0, Some(f64::NEG_INFINITY)),
+            "#000000-Infinity"
+        );
+    }
+
+    #[test]
+    fn palette_singles_are_the_element_defaults() {
+        assert_eq!(COLOR_PALETTE.black, COLOR_BLACK);
+        assert_eq!(COLOR_PALETTE.white, COLOR_WHITE);
+        assert_eq!(COLOR_PALETTE.transparent, COLOR_TRANSPARENT);
+        assert_eq!(COLOR_PALETTE.entries()[0].0, "transparent");
     }
 
     #[test]
