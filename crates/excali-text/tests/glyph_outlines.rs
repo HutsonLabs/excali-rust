@@ -39,10 +39,16 @@ fn bbox(segments: &[OutlineSegment]) -> Option<[f64; 4]> {
 fn the_width_is_the_measured_width() {
     let s = store();
     for (text, font) in [
-        ("Hello, World", get_font_string(20.0, FontFamily::EXCALIFONT)),
+        (
+            "Hello, World",
+            get_font_string(20.0, FontFamily::EXCALIFONT),
+        ),
         ("AV Ta To", get_font_string(36.0, FontFamily::VIRGIL)),
         ("fi fl -> =>", get_font_string(16.0, FontFamily::CASCADIA)),
-        ("abc 中文 def", get_font_string(20.0, FontFamily::EXCALIFONT)),
+        (
+            "abc 中文 def",
+            get_font_string(20.0, FontFamily::EXCALIFONT),
+        ),
         (
             "\u{5E9}\u{5DC}\u{5D5}\u{5DD}",
             get_font_string(20.0, FontFamily::NUNITO),
@@ -103,7 +109,11 @@ fn glyphs_follow_each_other_along_the_line() {
     let [a0, _, a1, _] = bbox(&one.outline).unwrap();
     let [b0, _, b1, _] = bbox(&two.outline).unwrap();
     assert!((a0 - b0).abs() < 1e-9);
-    assert!((b1 - (a1 + one.width)).abs() < 1e-6, "{b1} {a1} {}", one.width);
+    assert!(
+        (b1 - (a1 + one.width)).abs() < 1e-6,
+        "{b1} {a1} {}",
+        one.width
+    );
 }
 
 #[test]

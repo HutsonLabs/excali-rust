@@ -59,6 +59,7 @@ Method: every claim on this site traces to one of the rows below. Upstream sourc
 | ttf-parser / rustybuzz / swash / fontdue / cosmic-text / parley | 0.25.1 / 0.20.1 / 0.2.10 / 0.9.4 / 0.19.0 / 0.11.1 | 2024–2026 |
 | serde_json / flate2 / base64 / png / image / nanoid / schemars | 1.0.151 / 1.1.10 / 0.23.1 / 0.18.1 / 0.25.10 / 0.5.0 / 1.2.2 | 2026 |
 | fractional_index | 2.0.2 | 2024-09-17 |
+| clap (excali-cli arguments, derive and env features) | 4.6.7 (crates.io, read 2026-09-28) | 2026 |
 | skera / skrifa / ttf2woff2 (SVG font subsetting, ADR-010) | 0.7.0 / 0.47.0 / 0.13.3 | 2026-09-08 / 2026-09-08 / 2026-09-10 |
 | hb-subset / allsorts / subsetter / woofwoof (evaluated for ADR-010, not used) | 0.3.0 (HarfBuzz 8.2.2) / 0.17.0 / 0.2.6 / 1.0.2 | 2023-11-12 / 2026-05-13 / 2026-06-04 / 2026-01-02 |
 | loro / automerge / yrs (for a future collaboration phase) | 1.16.2 / 0.12.0 / 0.28.0 | 2026-09 |

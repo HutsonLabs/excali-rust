@@ -52,10 +52,20 @@ fn every_catalogue_library_validates_lists_and_merges() {
         assert!(items > 0, "{}", path.display());
         total_items += items;
 
-        let listed = excali(&["lib".as_ref(), "list".as_ref(), "--json".as_ref(), path.as_os_str()]);
+        let listed = excali(&[
+            "lib".as_ref(),
+            "list".as_ref(),
+            "--json".as_ref(),
+            path.as_os_str(),
+        ]);
         assert_code(&listed, 0);
         let listed: Value = serde_json::from_str(&stdout(&listed)).unwrap();
-        assert_eq!(listed.as_array().unwrap().len() as u64, items, "{}", path.display());
+        assert_eq!(
+            listed.as_array().unwrap().len() as u64,
+            items,
+            "{}",
+            path.display()
+        );
     }
 
     let dir = scratch("corpus-merge");
@@ -93,7 +103,10 @@ fn upstream_fixtures_validate_as_upstream_loads_them() {
     for name in ["smiley.png", "deer.png"] {
         let out = excali(&["validate".as_ref(), upstream_fixture(name).as_os_str()]);
         assert_code(&out, 1);
-        assert!(stderr(&out).contains("Image doesn't contain scene"), "{name}");
+        assert!(
+            stderr(&out).contains("Image doesn't contain scene"),
+            "{name}"
+        );
     }
 }
 
@@ -122,7 +135,11 @@ fn upstream_scenes_render_and_export_and_read_back() {
             let out = excali(&["validate".as_ref(), "--json".as_ref(), output.as_os_str()]);
             assert_code(&out, 0);
             let report: Value = serde_json::from_str(&stdout(&out)).unwrap();
-            assert_eq!(report[0]["types"], serde_json::json!({"text": 1}), "{name} {command}");
+            assert_eq!(
+                report[0]["types"],
+                serde_json::json!({"text": 1}),
+                "{name} {command}"
+            );
         }
     }
 }

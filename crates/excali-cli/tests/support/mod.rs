@@ -59,7 +59,13 @@ pub fn assert_code(out: &Output, code: i32) {
 }
 
 /// Write a `.excalidraw` file.
-pub fn scene_file(dir: &Path, name: &str, elements: &Value, app_state: &Value, files: &Value) -> PathBuf {
+pub fn scene_file(
+    dir: &Path,
+    name: &str,
+    elements: &Value,
+    app_state: &Value,
+    files: &Value,
+) -> PathBuf {
     let path = dir.join(name);
     let doc = json!({
         "type": "excalidraw",
@@ -83,7 +89,12 @@ pub struct Png {
 impl Png {
     pub fn pixel(&self, x: u32, y: u32) -> [u8; 4] {
         let i = ((y * self.width + x) * 4) as usize;
-        [self.rgba[i], self.rgba[i + 1], self.rgba[i + 2], self.rgba[i + 3]]
+        [
+            self.rgba[i],
+            self.rgba[i + 1],
+            self.rgba[i + 2],
+            self.rgba[i + 3],
+        ]
     }
 }
 

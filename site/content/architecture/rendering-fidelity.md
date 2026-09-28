@@ -107,7 +107,7 @@ The PNG export (ex-405) is split the same way. `excali_scene::canvas_export::exp
 
 `tools/goldens/png-export.mjs` runs upstream's `exportToCanvas` and the utils `exportToCanvas` on the recording context of the static scene. It records 26 scenes: padding 0, 10, 25.5 and -100, export scales 1, 1.5, 2 and 3, background on, off, transparent, coloured and dark, frame labels (truncated, dark, off, frames off), an exported frame, loaded, broken, binary and missing images, embeddables, and `maxWidthOrHeight` and `getDimensions`. For each it keeps the canvas's width and height, every draw, and with `exportEmbedScene` the scene text upstream embeds. `crates/excali-scene/tests/canvas_export.rs` matches every size and every draw, and the embedded text byte for byte. `crates/excali-raster/tests/png_export.rs` checks the encoded PNGs: the IHDR size, the pixels against the rendered canvas, the background pixel, and the `tEXt` chunk before `IEND` decoding to upstream's text. In CI, the `png_export` example writes the port's PNG of every scene, and upstream's own `decodePngMetadata` and `loadFromBlob` read them back (`png-export.mjs --reimport`). Each PNG must have upstream's canvas size and give back the embedded text, and each embedded scene must restore to what upstream restores from its own export.
 
-Text pixels come from the caller's `TextRasterizer`, as for every raster draw.
+Text pixels come from the caller's `TextRasterizer`, as for every raster draw. The [command line](../cli/)'s `excali render` fills the glyph outlines of each run shaped from the vendored font files (`FontStore::shape_line`), with tiny-skia's coverage rather than Chrome's.
 
 ## Text: trust the file, then measure the same way
 
