@@ -4,3 +4,15 @@
 //!
 //! Targets: native (tests), wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-scene`.
+//!
+//! - [`elbow_arrow`]: elbow arrow routing, `updateElbowArrowPoints` and the
+//!   A* search over a non-uniform grid (`packages/element/src/elbowArrow.ts`).
+//! - [`geometry`]: what the router reads off a binding target (bounds,
+//!   centre, outline distance, side headings, fixed points).
+//! - [`restore_env`]: [`restore_env::RoutingEnv`], the restore environment
+//!   that answers `restoreElements`' elbow arrow re-route with the router.
+
+mod binary_heap;
+pub mod elbow_arrow;
+pub mod geometry;
+pub mod restore_env;

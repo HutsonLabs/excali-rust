@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-211 · Elbow arrow routing: A* over the non-uniform grid
+
+`excali-editor` now routes elbow arrows as upstream does. Its `updateElbowArrowPoints` runs A* over the non-uniform grid, with bend penalties, BASE_PADDING 40 and fixed segments. It matches upstream's routes on 574 fixture scenes generated from the pin, including the scenes where upstream throws. `RoutingEnv` answers restoreElements' re-route of an unbound elbow arrow. PR: [#53](https://github.com/HutsonLabs/excali-rust/pull/53).
+
 ## 2026-09-28 · ex-117 · Typed element model: keep field values of a type the model has no form for (string strokeWidth) as upstream's restore does
 
 The typed element model now keeps a restored field value of a JSON type it has no form for, such as `strokeWidth: "3"`, and writes it back unchanged until the field is edited. Upstream's restore does the same. The 24 `aarondiel/logic-gates` elements that were dropped now round-trip. The typed view of such a value is not what upstream draws. The [file format](@/architecture/file-format.md) page records this, so a renderer must read the raw value. PR: [#52](https://github.com/HutsonLabs/excali-rust/pull/52).

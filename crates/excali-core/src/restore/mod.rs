@@ -150,10 +150,11 @@ pub trait RestoreEnv {
     /// arrow re-routed between `[0, 0]` and its last point. Its `index` is
     /// kept whatever the answer holds.
     ///
-    /// The router (A* over a grid, task ex-211) belongs to `excali-editor`
-    /// (crate table of `site/content/architecture/overview.md`), so the
-    /// environment supplies it. The default answers `None`, which keeps the
-    /// arrow as restored.
+    /// The router (A* over a grid) belongs to `excali-editor` (crate table
+    /// of `site/content/architecture/overview.md`), so the environment
+    /// supplies it: `excali_editor::restore_env::RoutingEnv` wraps an
+    /// environment and answers with `excali_editor::elbow_arrow`. The
+    /// default answers `None`, which keeps the arrow as restored.
     fn update_elbow_arrow_points(
         &mut self,
         request: ElbowArrowRequest<'_>,
