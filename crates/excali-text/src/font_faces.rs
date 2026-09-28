@@ -7,8 +7,8 @@
 //! `fonts/fonts.css`. [`FONT_FACES`] is generated from those sources by
 //! `scripts/fonts/font_faces.py`, which CI runs against the pinned checkout.
 //!
-//! The vendored files live under `fonts/<Dir>/` at the repository root, next
-//! to their licences (ADR-004). They are upstream's files, except Liberation
+//! The vendored files live under `crates/excali-text/assets/fonts/<Dir>/`,
+//! next to their licences (ADR-004, ex-307). They are upstream's files, except Liberation
 //! Sans: upstream's 1.05 file is a licence gap and the port ships the OFL
 //! build 2.1.5 (ADR-004, Vendored builds).
 
@@ -24,8 +24,8 @@ pub struct FontFaceDescriptor {
     /// a `local:` face (Helvetica, Segoe UI Emoji), which upstream never
     /// bundles.
     pub upstream: Option<&'static str>,
-    /// The port's file, relative to the repository's `fonts/`; `None` for a
-    /// `local:` face.
+    /// The port's file, relative to `crates/excali-text/assets/fonts/`;
+    /// `None` for a `local:` face.
     pub vendored: Option<&'static str>,
     /// The CSS `unicode-range` descriptor; `None` covers every code point.
     pub unicode_range: Option<&'static str>,

@@ -7,14 +7,14 @@ use std::sync::OnceLock;
 
 use excali_text::font_store::FontStore;
 
-/// The repository's `fonts/` directory.
+/// The vendored fonts, `crates/excali-text/assets/fonts/` (ex-307).
 pub fn fonts_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fonts")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/fonts")
 }
 
-/// A font file under `fonts/`.
+/// A font file under `assets/fonts/`.
 pub fn font_file(path: &str) -> Vec<u8> {
-    std::fs::read(fonts_dir().join(path)).unwrap_or_else(|e| panic!("fonts/{path}: {e}"))
+    std::fs::read(fonts_dir().join(path)).unwrap_or_else(|e| panic!("assets/fonts/{path}: {e}"))
 }
 
 /// Every vendored face of `FONT_FACES`.

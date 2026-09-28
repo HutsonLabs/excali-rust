@@ -494,7 +494,7 @@ impl FontStore {
 
     /// Every vendored face of [`FONT_FACES`] (all but the `local:` ones),
     /// with `load` returning the bytes of a file given its path relative to
-    /// the repository's `fonts/` directory. A face whose file `load` does
+    /// `crates/excali-text/assets/fonts/`. A face whose file `load` does
     /// not return is left out, which is how a host loads faces lazily.
     pub fn with_vendored_faces(
         mut load: impl FnMut(&str) -> Option<Vec<u8>>,
@@ -681,10 +681,10 @@ mod tests {
     use super::*;
 
     // Included rather than read: excali-text does no file I/O (ADR-008).
-    const CASCADIA: &[u8] = include_bytes!("../../../fonts/Cascadia/CascadiaCode-Regular.woff2");
+    const CASCADIA: &[u8] = include_bytes!("../assets/fonts/Cascadia/CascadiaCode-Regular.woff2");
     const LIBERATION: &[u8] =
-        include_bytes!("../../../fonts/Liberation/LiberationSans-Regular.ttf");
-    const VIRGIL: &[u8] = include_bytes!("../../../fonts/Virgil/Virgil-Regular.woff2");
+        include_bytes!("../assets/fonts/Liberation/LiberationSans-Regular.ttf");
+    const VIRGIL: &[u8] = include_bytes!("../assets/fonts/Virgil/Virgil-Regular.woff2");
 
     fn face(data: &[u8]) -> Face {
         Face::load(data, UnicodeRange::all(), 400).unwrap()

@@ -9,14 +9,14 @@ optional CSS unicode-range and weight. This script reads those sources at the
 pinned commit and writes crates/excali-text/src/font_faces_table.rs, the
 `FONT_FACES` table the measurement code resolves characters through.
 
-Every file face maps to the file the port vendors under fonts/<Dir>/: the
+Every file face maps to the file the port vendors under crates/excali-text/assets/fonts/<Dir>/ (ex-307): the
 same file name, except upstream's Liberation Sans 1.05 file, which ADR-004
 lists as a licence gap and replaces with the OFL build 2.1.5.
 
 Subcommands:
   write   regenerate the table from the upstream checkout
   check   exit 1 if the committed table differs from a fresh generation, or
-          a vendored file the table names is missing from fonts/
+          a vendored file the table names is missing from crates/excali-text/assets/fonts/
 
 The upstream checkout is $UPSTREAM_DIR, else scripts/upstream/checkout.sh
 --print-dir.
@@ -31,7 +31,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 TABLE = ROOT / "crates" / "excali-text" / "src" / "font_faces_table.rs"
-FONTS = ROOT / "fonts"
+FONTS = ROOT / "crates" / "excali-text" / "assets" / "fonts"
 
 # Fonts.init() order (Fonts.ts:399-412): CSS family name, directory, the
 # export name of its descriptor array. Assistant (fonts.css) comes last.
@@ -167,7 +167,7 @@ def main(argv: list[str]) -> int:
         errs.append(f"{TABLE.relative_to(ROOT)} is stale; run scripts/fonts/font_faces.py write")
     for f in items:
         if f["vendored"] and not (FONTS / f["vendored"]).is_file():
-            errs.append(f"fonts/{f['vendored']}: named by the face table but not vendored")
+            errs.append(f"crates/excali-text/assets/fonts/{f['vendored']}: named by the face table but not vendored")
     for e in errs:
         print(e, file=sys.stderr)
     if not errs:

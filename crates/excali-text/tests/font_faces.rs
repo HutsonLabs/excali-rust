@@ -1,7 +1,7 @@
 //! The registered font faces (`Fonts.init()`,
 //! `packages/excalidraw/fonts/Fonts.ts:375-416`, the descriptor arrays in
 //! `fonts/*/index.ts` and `fonts/fonts.css`) and the files the port vendors
-//! for them under `fonts/` (ADR-004). The table itself is generated from
+//! for them under `assets/fonts/` (ADR-004). The table itself is generated from
 //! upstream by `scripts/fonts/font_faces.py`, which CI re-runs against the
 //! pinned checkout.
 
@@ -85,7 +85,7 @@ fn every_vendored_file_is_upstreams_except_liberation_sans() {
         }
         assert!(
             common::fonts_dir().join(vendored).is_file(),
-            "fonts/{vendored} is not vendored"
+            "assets/fonts/{vendored} is not vendored"
         );
     }
 }

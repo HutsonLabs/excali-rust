@@ -89,7 +89,7 @@ jobs:
         run: python3 scripts/fonts/assets.py verify-upstream "${{ runner.temp }}/upstream"
       # ex-302: excali-text's font face table is upstream's Fonts.init()
       # registry (fonts/*/index.ts, fonts.css) at the pin, and every file it
-      # names is vendored under fonts/.
+      # names is vendored under crates/excali-text/assets/fonts/.
       - name: font face table matches upstream's registry
         env:
           UPSTREAM_DIR: ${{ runner.temp }}/upstream

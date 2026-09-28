@@ -25,7 +25,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 TABLE = ROOT / "crates" / "excali-text" / "src" / "font_faces_table.rs"
-FONTS = ROOT / "fonts"
+FONTS = ROOT / "crates" / "excali-text" / "assets" / "fonts"
 OUT = ROOT / "crates" / "excali-text" / "tests" / "fixtures" / "font-advances.json"
 SAMPLES = 8
 
