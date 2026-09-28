@@ -9,9 +9,13 @@
 //! the element's own key order survive, and `JSON.stringify` writes keys in
 //! the object's property order.
 //!
-//! Fixtures (pinned commit 438d89861f53d8a90ad566113ecac1b83761098f, run
-//! under node v26.10.0 by bundling the checkout's TypeScript with esbuild,
-//! as `tools/goldens` does, with `Date.now` fixed at 1700000000000):
+//! Fixtures: written by `tools/goldens/scene-fixtures.mjs` (CI runs it
+//! with `--check`), which bundles upstream's own TypeScript from the pinned
+//! checkout (commit 438d89861f53d8a90ad566113ecac1b83761098f) with esbuild,
+//! as `tools/goldens` does, and runs it under node with `Date.now` fixed at
+//! 1700000000000, upstream's `reseed(1700000000000)`
+//! (`packages/common/src/random.ts`) before each fixture, and `Math.random`
+//! disabled. See the generator's header for the exact calls:
 //!
 //! - `every-type.excalidraw`: one element of every persisted type built by
 //!   upstream's own constructors (`newElement`, `newEmbeddableElement`,
@@ -22,8 +26,8 @@
 //!   seeds, saved by `serializeAsJSON(elements, getDefaultAppState(),
 //!   files, "local")` with `window.EXCALIDRAW_EXPORT_SOURCE =
 //!   "https://excalidraw.com"`. `newTextElement` measures its text with a
-//!   canvas; node has none, so a stub measured 10 px per character (the
-//!   text's width 50), which only affects `width`, not keys or order;
+//!   canvas; node has none, so a metrics provider measures 10 px per
+//!   character (the text's width 50), which only affects `width`;
 //! - `unknown-keys.excalidraw`: `JSON.stringify(data, null, 2)` of a scene
 //!   with unknown keys at the top level, first, in the middle and last in an
 //!   element, and inside `appState`, `files` and nested known objects;
@@ -35,8 +39,8 @@
 //!   `x` set to 99 and a `customData` added, the text's `text` changed;
 //!   `futureTopLevel` deleted and `appState.futureAppStateFlag` set to
 //!   false; then `JSON.stringify(data, null, 2)` again. `mutateElement`
-//!   also bumps `version` and draws a new `versionNonce` (`Math.random`
-//!   fixed at 0.5 for the run).
+//!   also bumps `version` and draws `versionNonce` from the reseeded
+//!   generator.
 
 use excali_core::constants::{EXPORT_DATA_TYPE_EXCALIDRAW, VERSION_EXCALIDRAW};
 use excali_core::document::Document;
@@ -98,12 +102,12 @@ fn every_type_elements() -> Vec<Element> {
 
     // newStickyNoteElement: normalizeStickyNoteStyle sets the default
     // sticky background (colors.ts:268) and keeps the stroke. It does so
-    // through newElementWith, which bumps `version` and draws a random
-    // `versionNonce` (the value this run drew).
+    // through newElementWith, which bumps `version` and draws
+    // `versionNonce` (randomInteger after reseed(1700000000000)).
     let mut sticky_base = sized(base("sticky", 6.0, 300.0, 0.0), 200.0, 200.0);
     sticky_base.background_color = "#ffdf6b".into();
     sticky_base.version = 2.0;
-    sticky_base.version_nonce = 1_166_039_635.0;
+    sticky_base.version_nonce = 428_152_832.0;
 
     let text_base = sized(base("text", 9.0, 5.0, 5.0), 50.0, 25.0);
 
@@ -279,7 +283,7 @@ fn edits_keep_unknown_keys_and_append_new_keys_like_js() {
     rect.base.x = 99.0;
     rect.base.custom_data = Some(object(json!({"added": true})));
     rect.base.version = 4.0;
-    rect.base.version_nonce = 1_061_670_933.0;
+    rect.base.version_nonce = 428_152_832.0;
 
     let text = &mut elements[1];
     let ElementKind::Text(fields) = &mut text.kind else {
@@ -287,7 +291,7 @@ fn edits_keep_unknown_keys_and_append_new_keys_like_js() {
     };
     fields.text = "edited".into();
     text.base.version = 4.0;
-    text.base.version_nonce = 367_830_971.0;
+    text.base.version_nonce = 2_130_208_768.0;
 
     doc.extra.shift_remove("futureTopLevel");
     doc.app_state
