@@ -119,6 +119,15 @@ impl Context2d for Recording {
     fn fill(&mut self, rule: &str) {
         self.log.push(format!("fill({rule})"));
     }
+    fn fill_rect(&mut self, r: &Rect) {
+        self.log.push(format!(
+            "fillRect({},{},{},{})",
+            n(r.x),
+            n(r.y),
+            n(r.width),
+            n(r.height)
+        ));
+    }
     fn stroke(&mut self) {
         self.log.push("stroke".into());
     }
@@ -198,6 +207,26 @@ fn fill_is_one_isolated_fill_call() {
             "closePath",
             "moveTo(0,0)",
             "fill(evenodd)",
+            "restore",
+        ]
+    );
+}
+
+#[test]
+fn fill_rect_is_one_isolated_fill_rect_call() {
+    // drawImagePlaceholder (renderElement.ts:361-385): fillStyle, fillRect.
+    let log = one(DisplayItem::FillRect {
+        rect: Rect::new(0.0, 0.0, 120.0, 80.5),
+        color: Color::new("#E7E7E7"),
+    });
+    assert_eq!(
+        log,
+        [
+            "save",
+            ID,
+            "globalAlpha=1",
+            "fillStyle=#E7E7E7",
+            "fillRect(0,0,120,80.5)",
             "restore",
         ]
     );
@@ -725,4 +754,24 @@ fn roots(code: &str, is_root: impl Fn(&str) -> bool) -> Vec<String> {
         });
     }
     out
+}
+
+#[test]
+fn every_built_in_image_has_a_sized_source() {
+    use excali_canvas2d::builtin_image_src;
+    use excali_scene::display::{builtin_image, BUILTIN_IMAGE_NAMES};
+    // the placeholders get their viewBox as width and height
+    let placeholder = builtin_image("image-placeholder").unwrap();
+    let src = builtin_image_src(&placeholder);
+    assert!(src.starts_with(
+        "data:image/svg+xml,%3Csvg%20width%3D%22512%22%20height%3D%22512%22%20aria-hidden"
+    ));
+    let error = builtin_image("image-error-placeholder").unwrap();
+    assert!(builtin_image_src(&error).contains("width%3D%22668%22%20height%3D%22668%22"));
+    // the link icons have a width already: upstream's own src
+    for name in ["external-link", "element-link"] {
+        let icon = builtin_image(name).unwrap();
+        assert_eq!(builtin_image_src(&icon), icon.data_url);
+    }
+    assert_eq!(BUILTIN_IMAGE_NAMES.len(), 4);
 }

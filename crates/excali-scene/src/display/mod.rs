@@ -20,6 +20,7 @@
 //! | item | canvas calls |
 //! |---|---|
 //! | [`DisplayItem::Fill`] | `fillStyle`, the [`Path`], `fill(rule)` |
+//! | [`DisplayItem::FillRect`] | `fillStyle`, `fillRect(x, y, w, h)` |
 //! | [`DisplayItem::Stroke`] | `strokeStyle`, `lineWidth`, `lineCap`, `lineJoin`, `miterLimit`, `setLineDash`, `lineDashOffset`, the path, `stroke()` |
 //! | [`DisplayItem::Image`] | `imageSmoothingEnabled`, `filter`, `drawImage` with a source and destination rectangle |
 //! | [`DisplayItem::Text`] | `font`, `fillStyle`, `textAlign`, `direction`, `fillText` |
@@ -71,6 +72,7 @@
 //! `excali_scene::export`. Numbers are printed as JavaScript prints them
 //! ([`number_to_string`], [`to_fixed`]).
 
+mod builtin;
 mod css_color;
 mod document;
 mod image;
@@ -82,6 +84,11 @@ mod replay;
 mod text;
 mod transform;
 
+pub use builtin::encode_uri_component;
+pub use builtin::{
+    builtin_image, builtin_image_by_id, BuiltinImage, BUILTIN_IMAGE_NAMES, ELEMENT_LINK_ID,
+    EXTERNAL_LINK_ID, IMAGE_ERROR_PLACEHOLDER_ID, IMAGE_PLACEHOLDER_ID,
+};
 pub use document::{FontFaceSource, FrameClip, SvgDocument, SvgPayload};
 pub use image::{ImageFilter, ImageItem, Rect};
 pub use number::{number_to_string, to_fixed};
@@ -100,6 +107,11 @@ pub enum DisplayItem {
         color: Color,
         rule: FillRule,
     },
+    /// `fillRect`: fill a rectangle with a colour. The canvas draws it as a
+    /// rectangle (Skia's `drawRect`), which anti-aliases its edges more
+    /// finely than the same rectangle filled as a path, so upstream's
+    /// `fillRect` calls (the image placeholder's box) stay rectangles.
+    FillRect { rect: Rect, color: Color },
     /// Stroke a path.
     Stroke { path: Path, stroke: Stroke },
     /// Draw a bitmap into a rectangle.

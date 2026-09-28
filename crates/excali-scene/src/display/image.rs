@@ -78,10 +78,12 @@ impl ImageFilter {
 /// `drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh)`
 /// (`renderElement.ts:517-624`).
 ///
-/// The bitmap is named by `id` (upstream's `fileId`); each backend resolves
-/// ids through its own image store and draws nothing for an id it does not
-/// have. The scene draws upstream's placeholder for an image that is not
-/// ready.
+/// The image is named by `id`: upstream's `fileId`, which each backend
+/// resolves through its own image store (drawing nothing for an id it does
+/// not have), or one of upstream's built-in SVG images
+/// ([`super::BuiltinImage`], ids `excalidraw:…`: the image
+/// placeholders and the link icons), which every backend has. The scene
+/// draws upstream's placeholder for an image that is not ready.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ImageItem {
     pub id: String,

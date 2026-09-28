@@ -17,12 +17,13 @@
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path as FsPath, PathBuf};
 
+use excali_raster::decode::{decode_data_url, DecodedImage};
 use excali_raster::diff::{compare, diff_image, Tolerance};
 use excali_raster::tiny_skia::{self, ColorU8, IntSize, Mask, Pixmap};
 use excali_raster::{render_scaled, TextRasterizer};
 use excali_scene::display::{
-    Clip, Color, Dash, DisplayItem, DisplayList, FillRule, Group, ImageFilter, ImageItem, LineCap,
-    LineJoin, Path, Rect, Stroke, TextRun, Transform,
+    builtin_image_by_id, Clip, Color, Dash, DisplayItem, DisplayList, FillRule, Group, ImageFilter,
+    ImageItem, LineCap, LineJoin, Path, Rect, Stroke, TextRun, Transform,
 };
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -60,7 +61,7 @@ struct Fixture {
     height: u32,
     scale: f64,
     tolerance: Tolerance,
-    images: HashMap<String, Pixmap>,
+    images: HashMap<String, DecodedImage>,
     list: DisplayList,
 }
 
@@ -153,6 +154,10 @@ fn item(v: &Value) -> DisplayItem {
             color: Color::new(v["color"].as_str().expect("a fill has a colour")),
             rule: rule(v.get("rule")),
         },
+        "fillRect" => DisplayItem::FillRect {
+            rect: rect(&v["rect"]),
+            color: Color::new(v["color"].as_str().expect("a fillRect has a colour")),
+        },
         "stroke" => {
             let mut stroke = Stroke::new(
                 Color::new(v["color"].as_str().expect("a stroke has a colour")),
@@ -223,8 +228,17 @@ fn items(v: &Value) -> Vec<DisplayItem> {
         .collect()
 }
 
+/// An image: a data URL, decoded as the browser decodes it
+/// (`excali_raster::decode`), or unpremultiplied RGBA rows.
+fn image(v: &Value) -> DecodedImage {
+    match v.get("dataUrl").and_then(Value::as_str) {
+        Some(url) => decode_data_url(url).unwrap_or_else(|e| panic!("{e}")),
+        None => DecodedImage::Bitmap(rgba_image(v)),
+    }
+}
+
 /// An image given as unpremultiplied RGBA rows, as `ImageData` holds it.
-fn image(v: &Value) -> Pixmap {
+fn rgba_image(v: &Value) -> Pixmap {
     let w = v["width"].as_u64().unwrap() as u32;
     let h = v["height"].as_u64().unwrap() as u32;
     let rgba: Vec<u8> = v["rgba"]
@@ -263,11 +277,28 @@ fn load(name: &str) -> Fixture {
         channel: u8::try_from(tolerance["channel"].as_u64().expect("tolerance.channel")).unwrap(),
         pixels: tolerance["pixels"].as_u64().expect("tolerance.pixels") as usize,
     };
-    let images = v
+    let images: HashMap<String, DecodedImage> = v
         .get("images")
         .and_then(Value::as_object)
         .map(|m| m.iter().map(|(id, img)| (id.clone(), image(img))).collect())
         .unwrap_or_default();
+    // Built-in images are for Chrome, which loads them from upstream's data
+    // URLs; the port's backend resolves the ids itself, so they are not in
+    // its image store.
+    for (id, url) in v
+        .get("builtinImages")
+        .and_then(Value::as_object)
+        .into_iter()
+        .flatten()
+    {
+        let builtin = builtin_image_by_id(id)
+            .unwrap_or_else(|| panic!("{name}: {id} is not a built-in image"));
+        assert_eq!(
+            url, &builtin.data_url,
+            "{name}: {id}'s data URL is upstream's"
+        );
+        assert!(!images.contains_key(id), "{name}: {id} is built in");
+    }
     Fixture {
         width: v["width"].as_u64().unwrap() as u32,
         height: v["height"].as_u64().unwrap() as u32,
@@ -463,7 +494,21 @@ fn the_fixture_vocabulary() {
     let g = item(&serde_json::json!({"type": "group", "items": []}));
     assert_eq!(g, DisplayItem::Group(Group::new(vec![])));
 
-    let img = image(&serde_json::json!({"width": 1, "height": 1, "rgba": [255, 0, 0, 128]}));
+    let r =
+        item(&serde_json::json!({"type": "fillRect", "color": "#E7E7E7", "rect": [0, 1.5, 2, 3]}));
+    assert_eq!(
+        r,
+        DisplayItem::FillRect {
+            rect: Rect::new(0.0, 1.5, 2.0, 3.0),
+            color: Color::new("#E7E7E7"),
+        }
+    );
+
+    let DecodedImage::Bitmap(img) =
+        image(&serde_json::json!({"width": 1, "height": 1, "rgba": [255, 0, 0, 128]}))
+    else {
+        panic!("a bitmap")
+    };
     let c = img.pixel(0, 0).unwrap();
     assert_eq!((c.red(), c.green(), c.blue(), c.alpha()), (128, 0, 0, 128));
 }

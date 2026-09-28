@@ -12,9 +12,17 @@
 //! - clips as anti-aliased coverage masks, intersected down the group
 //!   stack;
 //! - images from an [`ImageStore`] through a pattern shader, with the
-//!   source rectangle clipped to the bitmap as `drawImage` does, bilinear
-//!   or nearest sampling from the item's smoothing flag, and the
-//!   dark-theme filter applied to the unpremultiplied pixels;
+//!   source rectangle clipped to the bitmap as `drawImage` does, sampled
+//!   as Chrome's software canvas samples (`bilerp.rs`: Skia's bitmap
+//!   sampler, 4-bit bilinear weights) or nearest from the item's smoothing
+//!   flag, and the dark-theme filter applied to the unpremultiplied pixels;
+//!   SVG images drawn as vectors at the draw's resolution, as Chrome draws
+//!   them (`svg.rs`: usvg's tree as fills and strokes through the same
+//!   scan conversion, or resvg for what the display list cannot say);
+//! - `fillRect` as Skia's `drawRect`;
+//! - image files decoded from the scene's data URLs ([`decode`]): the
+//!   raster formats Chrome reads, sniffed from their bytes, with their Exif
+//!   orientation, and SVG;
 //! - text through the caller's [`TextRasterizer`], which gets the run with
 //!   its resolved colour, matrix and clip (glyph outlines come from the
 //!   font files, `excali-text`).
@@ -44,31 +52,48 @@
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-scene`.
 
 use std::collections::HashMap;
+use std::sync::OnceLock;
 
 mod aaa;
+mod bilerp;
 mod dash;
+pub mod decode;
 pub mod diff;
 mod edges;
 mod hairline;
 mod stroke;
+mod svg;
 
+use excali_scene::display::{builtin_image_by_id, BUILTIN_IMAGE_NAMES};
 use excali_scene::display::{
-    Clip, Color, DisplayList, FillRule, ImageItem, LineCap, LineJoin, PaintState, Painter, Path,
-    Rect, Rgba, Stroke, TextRun, Transform,
+    Clip, Color, DisplayList, FillRule, ImageFilter, ImageItem, LineCap, LineJoin, PaintState,
+    Painter, Path, Rect, Rgba, Stroke, TextRun, Transform,
 };
+pub use resvg;
+use resvg::usvg;
 pub use tiny_skia;
 use tiny_skia::{FilterQuality, Mask, Paint, Pixmap, PixmapRef, SpreadMode};
 
-/// Where the backend finds the bitmaps the display list names: premultiplied
-/// RGBA pixmaps by id (upstream's `imageCache`, keyed by `fileId`).
+/// An image the backend draws: a premultiplied RGBA bitmap, or an SVG
+/// document drawn as vectors.
+#[derive(Clone, Copy, Debug)]
+pub enum Image<'a> {
+    Bitmap(PixmapRef<'a>),
+    /// Its natural size is the tree's size, in CSS pixels.
+    Svg(&'a usvg::Tree),
+}
+
+/// Where the backend finds the images the display list names, by id
+/// (upstream's `imageCache`, keyed by `fileId`); [`decode::ImageFiles`]
+/// holds a scene's files.
 pub trait ImageStore {
     /// The image `id`, or `None` when there is none (nothing is drawn).
-    fn image(&self, id: &str) -> Option<PixmapRef<'_>>;
+    fn image(&self, id: &str) -> Option<Image<'_>>;
 }
 
 impl ImageStore for HashMap<String, Pixmap> {
-    fn image(&self, id: &str) -> Option<PixmapRef<'_>> {
-        self.get(id).map(Pixmap::as_ref)
+    fn image(&self, id: &str) -> Option<Image<'_>> {
+        self.get(id).map(|p| Image::Bitmap(p.as_ref()))
     }
 }
 
@@ -254,6 +279,163 @@ impl<'a, I: ImageStore, T: TextRasterizer> RasterPainter<'a, I, T> {
         if let Some(fill) = aaa::fill_path(segs, rule == FillRule::EvenOdd, bounds, force_rle) {
             self.paint_fill(&fill, paint);
         }
+    }
+
+    /// Paint `paint` over the image destination `dest` (user space, drawn
+    /// under `state`'s matrix), as `SkDraw::drawRect` with the image
+    /// shader: an axis-aligned destination is AntiFillRect'ed when Blink
+    /// anti-aliases the image (ShouldDrawImageAntialiased: under a device
+    /// pixel either way) and rounded to whole pixels otherwise; any other
+    /// is a path.
+    fn fill_image_rect(&mut self, dest: Rect, state: &PaintState, paint: &Paint<'_>) {
+        if let Some(fill) = self.image_fill(dest, state) {
+            self.paint_fill(&fill, paint);
+        }
+    }
+
+    /// The coverage [`RasterPainter::fill_image_rect`] paints through.
+    fn image_fill(&self, dest: Rect, state: &PaintState) -> Option<aaa::Fill> {
+        let (bounds, force_rle) = self.clip_bounds()?;
+        let t = &state.transform;
+        let scale_translate = t.b == 0.0 && t.c == 0.0;
+        if scale_translate || (t.a == 0.0 && t.d == 0.0) {
+            let (x0, y0) = t.apply(dest.x, dest.y);
+            let (x1, y1) = t.apply(dest.x + dest.width, dest.y + dest.height);
+            let r = [
+                x0.min(x1) as f32,
+                y0.min(y1) as f32,
+                x0.max(x1) as f32,
+                y0.max(y1) as f32,
+            ];
+            let (wx, hy) = if scale_translate {
+                (t.a, t.d)
+            } else {
+                (t.b, t.c)
+            };
+            if dest.width * wx.abs() < 1.0 || dest.height * hy.abs() < 1.0 {
+                aaa::anti_fill_rect(r, bounds)
+            } else {
+                aaa::fill_rect(r, bounds)
+            }
+        } else {
+            let rect = Path::rect(dest.x, dest.y, dest.width, dest.height);
+            aaa::fill_path(&edges::from_display(&rect, t), false, bounds, force_rle)
+        }
+    }
+
+    /// The device pixels `rect` (user space, under `t`) can touch inside
+    /// the clip, `(left, top, right, bottom)`; `None` when there are none.
+    fn device_bounds(&self, rect: &Rect, t: &Transform) -> Option<(i32, i32, i32, i32)> {
+        let (bounds, _) = self.clip_bounds()?;
+        let corners = [
+            (rect.x, rect.y),
+            (rect.x + rect.width, rect.y),
+            (rect.x + rect.width, rect.y + rect.height),
+            (rect.x, rect.y + rect.height),
+        ]
+        .map(|(x, y)| t.apply(x, y));
+        let min_x = corners.iter().map(|c| c.0).fold(f64::INFINITY, f64::min);
+        let min_y = corners.iter().map(|c| c.1).fold(f64::INFINITY, f64::min);
+        let max_x = corners
+            .iter()
+            .map(|c| c.0)
+            .fold(f64::NEG_INFINITY, f64::max);
+        let max_y = corners
+            .iter()
+            .map(|c| c.1)
+            .fold(f64::NEG_INFINITY, f64::max);
+        if ![min_x, min_y, max_x, max_y].iter().all(|v| v.is_finite()) {
+            return None;
+        }
+        let left = (min_x.floor() as i32).max(bounds.left);
+        let top = (min_y.floor() as i32).max(bounds.top);
+        let right = (max_x.ceil() as i32).min(bounds.right);
+        let bottom = (max_y.ceil() as i32).min(bounds.bottom);
+        (left < right && top < bottom).then_some((left, top, right, bottom))
+    }
+
+    /// `drawImage` of an SVG image as Chrome draws it
+    /// (`SVGImage::DrawForContainer`): the document as vector content under
+    /// the source-to-destination transform, clipped to the destination, at
+    /// full alpha in a layer when `globalAlpha` or a filter applies
+    /// (`DrawNeedsLayer`), the filter on the layer, then the layer
+    /// composited with the alpha inside the canvas's clip.
+    ///
+    /// The destination clip is the canvas's anti-aliased `clip()` of the
+    /// destination rectangle, which is what Chrome 153 paints under a
+    /// matrix that keeps rectangles axis-aligned (the placeholder of a
+    /// 12 x 30 image, `image-elements`). Under a rotation Chrome's edge
+    /// pixels differ from any anti-aliased or whole-pixel clip of the
+    /// rectangle by up to 17 levels where the drawing touches the
+    /// destination's edge (a rotated placeholder); inside it the vector
+    /// drawing agrees.
+    ///
+    /// The layer covers the device pixels the destination can touch
+    /// inside the clip.
+    fn draw_svg(
+        &mut self,
+        tree: &usvg::Tree,
+        dest: &Rect,
+        onto: &Transform,
+        filter: Option<ImageFilter>,
+        alpha: f64,
+        state: &PaintState,
+    ) {
+        let Some((left, top, right, bottom)) = self.device_bounds(dest, &state.transform) else {
+            return;
+        };
+        let Some(mut layer) = Pixmap::new((right - left) as u32, (bottom - top) as u32) else {
+            return;
+        };
+        // User space to the layer's pixels.
+        let t = Transform::translate(-f64::from(left), -f64::from(top)).concat(&state.transform);
+        let svg_to_device = t.concat(onto);
+        let mut text = NoText;
+        let mut painter = RasterPainter::new(&mut layer, &NoImages, &mut text);
+        painter.push_clip(
+            &Clip {
+                path: Path::rect(dest.x, dest.y, dest.width, dest.height),
+                rule: FillRule::NonZero,
+            },
+            &t,
+        );
+        if painter.clip_bounds().is_none() {
+            return;
+        }
+        match svg::display_items(tree) {
+            Some(items) => {
+                let list: DisplayList = items.into_iter().collect();
+                list.replay_from(&mut painter, PaintState::new(svg_to_device, 1.0));
+            }
+            None => {
+                let mask = painter.clips.pop().expect("the destination clip").mask;
+                drop(painter);
+                resvg::render(tree, transform(&svg_to_device), &mut layer.as_mut());
+                for (px, &m) in layer.pixels_mut().iter_mut().zip(mask.data()) {
+                    let c =
+                        [px.red(), px.green(), px.blue(), px.alpha()].map(|v| mul_coverage(v, m));
+                    *px = tiny_skia::PremultipliedColorU8::from_rgba(c[0], c[1], c[2], c[3])
+                        .expect("scaled premultiplied channels stay premultiplied");
+                }
+            }
+        }
+        if let Some(filter) = filter {
+            apply_filter(filter, &mut layer);
+        }
+        let paint = tiny_skia::PixmapPaint {
+            opacity: alpha as f32,
+            blend_mode: tiny_skia::BlendMode::SourceOver,
+            quality: FilterQuality::Nearest,
+        };
+        let clip = self.clips.last().map(|c| &c.mask);
+        self.pixmap.draw_pixmap(
+            left,
+            top,
+            layer.as_ref(),
+            &paint,
+            tiny_skia::Transform::identity(),
+            clip,
+        );
     }
 }
 
@@ -492,6 +674,90 @@ fn skia_stroke(stroke: &Stroke) -> tiny_skia::Stroke {
     }
 }
 
+/// The canvas matrix as Skia holds it (`f32`).
+fn matrix32(t: &Transform) -> bilerp::Matrix32 {
+    bilerp::Matrix32 {
+        sx: t.a as f32,
+        kx: t.c as f32,
+        tx: t.e as f32,
+        ky: t.b as f32,
+        sy: t.d as f32,
+        ty: t.f as f32,
+    }
+}
+
+/// `SkMatrix::RectToRect(src, dst)` of `SkRect`s built from `f32` origins
+/// and sizes (their widths are `right - left` in `f32`).
+fn rect_to_rect(src: &Rect, dst: &Rect) -> bilerp::Matrix32 {
+    let side = |origin: f64, length: f64| {
+        let o = origin as f32;
+        (o, (o + length as f32) - o)
+    };
+    let (sl, sw) = side(src.x, src.width);
+    let (st, sh) = side(src.y, src.height);
+    let (dl, dw) = side(dst.x, dst.width);
+    let (dt, dh) = side(dst.y, dst.height);
+    let sx = dw / sw;
+    let sy = dh / sh;
+    bilerp::Matrix32 {
+        sx,
+        kx: 0.0,
+        tx: dl - sl * sx,
+        ky: 0.0,
+        sy,
+        ty: dt - st * sy,
+    }
+}
+
+/// No images: what an SVG image's own drawing is given.
+struct NoImages;
+
+impl ImageStore for NoImages {
+    fn image(&self, _: &str) -> Option<Image<'_>> {
+        None
+    }
+}
+
+/// No text: an SVG image's text arrives as paths.
+struct NoText;
+
+impl TextRasterizer for NoText {
+    fn fill_text(
+        &mut self,
+        _: &mut Pixmap,
+        _: &TextRun,
+        _: tiny_skia::Color,
+        _: tiny_skia::Transform,
+        _: Option<&Mask>,
+    ) {
+    }
+}
+
+/// The document of the built-in image named by `id`
+/// (`excali_scene::display::BuiltinImage`: upstream's image
+/// placeholders and link icons), parsed once; `None` when `id` is not one.
+fn builtin_tree(id: &str) -> Option<&'static usvg::Tree> {
+    static TREES: [OnceLock<usvg::Tree>; BUILTIN_IMAGE_NAMES.len()] =
+        [const { OnceLock::new() }; BUILTIN_IMAGE_NAMES.len()];
+    let image = builtin_image_by_id(id)?;
+    let slot = BUILTIN_IMAGE_NAMES
+        .iter()
+        .position(|name| image.id.strip_prefix("excalidraw:") == Some(*name))?;
+    Some(TREES[slot].get_or_init(|| {
+        usvg::Tree::from_str(image.svg, &decode::svg_options())
+            .expect("the built-in SVG documents parse")
+    }))
+}
+
+/// `filter` on each unpremultiplied pixel of `pixmap`.
+fn apply_filter(filter: ImageFilter, pixmap: &mut Pixmap) {
+    for px in pixmap.pixels_mut() {
+        let c = px.demultiply();
+        let (r, g, b) = filter.apply_rgb(c.red(), c.green(), c.blue());
+        *px = tiny_skia::ColorU8::from_rgba(r, g, b, c.alpha()).premultiply();
+    }
+}
+
 /// `drawImage`'s rectangles after its clipping step: the source rectangle
 /// clipped to the bitmap, and the destination clipped in proportion. `None`
 /// when nothing is left.
@@ -528,6 +794,41 @@ impl<I: ImageStore, T: TextRasterizer> Painter for RasterPainter<'_, I, T> {
         let segs = edges::blink_arc_fill(path, &state.transform)
             .unwrap_or_else(|| edges::from_display(path, &state.transform));
         self.cover(&segs, rule, &solid_paint(c));
+    }
+
+    fn fill_rect(&mut self, rect: &Rect, css: &Color, c: Rgba, state: &PaintState) {
+        // SkDraw::drawRect: under a matrix that keeps rectangles
+        // rectangles, the device rectangle through SkScan::AntiFillRect
+        // (edges to 1/256 of a pixel); under any other, the path.
+        let t = &state.transform;
+        if !((t.b == 0.0 && t.c == 0.0) || (t.a == 0.0 && t.d == 0.0)) {
+            let path = Path::rect(rect.x, rect.y, rect.width, rect.height);
+            self.fill(&path, css, c, FillRule::NonZero, state);
+            return;
+        }
+        let Some(c) = color(c, state.alpha) else {
+            return;
+        };
+        if rect.is_empty() {
+            return;
+        }
+        let (x0, y0) = t.apply(rect.x, rect.y);
+        let (x1, y1) = t.apply(rect.x + rect.width, rect.y + rect.height);
+        let r = [
+            x0.min(x1) as f32,
+            y0.min(y1) as f32,
+            x0.max(x1) as f32,
+            y0.max(y1) as f32,
+        ];
+        if !r.iter().all(|v| v.is_finite()) {
+            return;
+        }
+        let Some((bounds, _)) = self.clip_bounds() else {
+            return;
+        };
+        if let Some(fill) = aaa::anti_fill_rect(r, bounds) {
+            self.paint_fill(&fill, &solid_paint(c));
+        }
     }
 
     fn stroke(&mut self, path: &Path, stroke: &Stroke, c: Rgba, state: &PaintState) {
@@ -637,10 +938,20 @@ impl<I: ImageStore, T: TextRasterizer> Painter for RasterPainter<'_, I, T> {
     }
 
     fn image(&mut self, image: &ImageItem, state: &PaintState) {
-        let Some(bitmap) = self.images.image(&image.id) else {
-            return;
+        let found = match self.images.image(&image.id) {
+            Some(found) => found,
+            None => match builtin_tree(&image.id) {
+                Some(tree) => Image::Svg(tree),
+                None => return,
+            },
         };
-        let (w, h) = (f64::from(bitmap.width()), f64::from(bitmap.height()));
+        let (w, h) = match found {
+            Image::Bitmap(bitmap) => (f64::from(bitmap.width()), f64::from(bitmap.height())),
+            Image::Svg(tree) => (
+                f64::from(tree.size().width()),
+                f64::from(tree.size().height()),
+            ),
+        };
         let source = image.source.unwrap_or(Rect::new(0.0, 0.0, w, h));
         let Some((source, dest)) = clip_image_rects(source, image.dest, w, h) else {
             return;
@@ -649,83 +960,93 @@ impl<I: ImageStore, T: TextRasterizer> Painter for RasterPainter<'_, I, T> {
         if alpha == 0.0 {
             return;
         }
-        let filtered;
-        let bitmap = match image.filter {
-            Some(filter) => {
-                let mut copy = bitmap.to_owned();
-                for px in copy.pixels_mut() {
-                    let c = px.demultiply();
-                    let (r, g, b) = filter.apply_rgb(c.red(), c.green(), c.blue());
-                    *px = tiny_skia::ColorU8::from_rgba(r, g, b, c.alpha()).premultiply();
-                }
-                filtered = copy;
-                filtered.as_ref()
-            }
-            None => bitmap,
-        };
-        // Image pixels to user space: the source rectangle onto the
-        // destination.
+        // Image pixels (or the SVG's CSS pixels) to user space: the source
+        // rectangle onto the destination.
         let sx = dest.width / source.width;
         let sy = dest.height / source.height;
-        let pattern_transform = tiny_skia::Transform::from_row(
-            sx as f32,
+        let onto = Transform::new(
+            sx,
             0.0,
             0.0,
-            sy as f32,
-            (dest.x - source.x * sx) as f32,
-            (dest.y - source.y * sy) as f32,
+            sy,
+            dest.x - source.x * sx,
+            dest.y - source.y * sy,
         );
-        let quality = if image.smoothing {
-            FilterQuality::Bilinear
-        } else {
-            FilterQuality::Nearest
-        };
-        let ts = transform(&state.transform);
-        let paint = Paint {
-            shader: tiny_skia::Pattern::new(
-                bitmap,
-                SpreadMode::Pad,
-                quality,
-                alpha as f32,
-                ts.pre_concat(pattern_transform),
-            ),
-            anti_alias: true,
-            ..Paint::default()
-        };
-        // SkDraw::drawRect with the image shader: an axis-aligned
-        // destination is AntiFillRect'ed when Blink anti-aliases the image
-        // (ShouldDrawImageAntialiased: under a device pixel either way) and
-        // rounded to whole pixels otherwise; any other is a path.
-        let Some((bounds, force_rle)) = self.clip_bounds() else {
-            return;
-        };
-        let t = &state.transform;
-        let scale_translate = t.b == 0.0 && t.c == 0.0;
-        let fill = if scale_translate || (t.a == 0.0 && t.d == 0.0) {
-            let (x0, y0) = t.apply(dest.x, dest.y);
-            let (x1, y1) = t.apply(dest.x + dest.width, dest.y + dest.height);
-            let r = [
-                x0.min(x1) as f32,
-                y0.min(y1) as f32,
-                x0.max(x1) as f32,
-                y0.max(y1) as f32,
-            ];
-            let (wx, hy) = if scale_translate {
-                (t.a, t.d)
-            } else {
-                (t.b, t.c)
-            };
-            if dest.width * wx.abs() < 1.0 || dest.height * hy.abs() < 1.0 {
-                aaa::anti_fill_rect(r, bounds)
-            } else {
-                aaa::fill_rect(r, bounds)
+        match found {
+            Image::Bitmap(bitmap) => {
+                let filtered;
+                let bitmap = match image.filter {
+                    Some(filter) => {
+                        let mut copy = bitmap.to_owned();
+                        apply_filter(filter, &mut copy);
+                        filtered = copy;
+                        filtered.as_ref()
+                    }
+                    None => bitmap,
+                };
+                // Skia's sampler: drawImageRect's local matrix (the source
+                // rectangle onto the destination, SkMatrix::RectToRect)
+                // after the canvas matrix, in f32. An integer translation
+                // samples without filtering.
+                let total = matrix32(&state.transform).concat(&rect_to_rect(&source, &dest));
+                let integer_translate = total.sx == 1.0
+                    && total.sy == 1.0
+                    && total.kx == 0.0
+                    && total.ky == 0.0
+                    && total.tx.fract() == 0.0
+                    && total.ty.fract() == 0.0;
+                if image.smoothing && !integer_translate {
+                    // Bilinear with Skia's 4-bit weights, sampled for the
+                    // pixels the destination covers and laid on them 1:1.
+                    // The blitter shades each run of equal coverage (after
+                    // the clip) as its own span.
+                    let Some(fill) = self.image_fill(dest, state) else {
+                        return;
+                    };
+                    let width = self.pixmap.width() as i32;
+                    let clip = self.clip().map(Mask::data);
+                    let r = fill.rect;
+                    let coverage = |x: i32, y: i32| {
+                        let c =
+                            fill.data[((y - r.top) * (r.right - r.left) + (x - r.left)) as usize];
+                        match clip {
+                            Some(m) => mul_coverage(c, m[(y * width + x) as usize]),
+                            None => c,
+                        }
+                    };
+                    let Some(sampled) = total.invert().and_then(|inverse| {
+                        bilerp::sample(bitmap, &inverse, r.left, r.top, r.right, r.bottom, coverage)
+                    }) else {
+                        return;
+                    };
+                    let paint = Paint {
+                        shader: tiny_skia::Pattern::new(
+                            sampled.as_ref(),
+                            SpreadMode::Pad,
+                            FilterQuality::Nearest,
+                            alpha as f32,
+                            tiny_skia::Transform::from_translate(r.left as f32, r.top as f32),
+                        ),
+                        anti_alias: true,
+                        ..Paint::default()
+                    };
+                    self.paint_fill(&fill, &paint);
+                } else {
+                    let paint = Paint {
+                        shader: tiny_skia::Pattern::new(
+                            bitmap,
+                            SpreadMode::Pad,
+                            FilterQuality::Nearest,
+                            alpha as f32,
+                            transform(&state.transform.concat(&onto)),
+                        ),
+                        anti_alias: true,
+                        ..Paint::default()
+                    };
+                    self.fill_image_rect(dest, state, &paint);
+                }
             }
-        } else {
-            let rect = Path::rect(dest.x, dest.y, dest.width, dest.height);
-            aaa::fill_path(&edges::from_display(&rect, t), false, bounds, force_rle)
-        };
-        if let Some(fill) = fill {
-            self.paint_fill(&fill, &paint);
+            Image::Svg(tree) => self.draw_svg(tree, &dest, &onto, image.filter, alpha, state),
         }
     }
 

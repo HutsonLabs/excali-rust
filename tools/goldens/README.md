@@ -740,3 +740,36 @@ node tools/goldens/elbow-routing-fixtures.mjs --check   # exit 1 if it is stale
 
 CI runs `--check` in the `goldens` job, and
 `test/elbow-routing-fixtures.test.mjs` checks that two runs are byte-identical.
+
+## Image element fixture
+
+`image-elements.mjs` writes `crates/excali-scene/tests/fixtures/image-elements.json`
+for excali-scene's image elements (ex-404): upstream's own `renderElement`
+(`packages/element/src/renderElement.ts:963-1009`) exporting image elements,
+as `exportToCanvas` renders them (`isExporting`: translate, rotate, `scale`,
+translate, `:1111-1190`; the image case of `drawElementOnCanvas`,
+`:517-624`; `drawImagePlaceholder`, `:361-385`), under jsdom 22.1.0 with a
+2D context that records every call. The cases are upstream's
+`newImageElement`s: placeholders for a load in progress, an errored file, a
+missing cache entry and an element without a file, in both themes, from a
+4.8 px icon to the 100 px cap, rotated, mirrored and rounded; a PNG and an SVG
+file at natural size, cropped, flipped on either axis, rotated, clipped by
+every roundness, at 45% opacity and scrolled; the SVG in the dark theme.
+
+The file holds the placeholders' SVG sources, the files the cases draw
+(`crates/excali-raster/tests/fixtures/images/quad.png` and `shape.svg`, with
+the natural size an `<img>` reports) and, per case, the element, theme, cache
+state, scroll and calls. `crates/excali-scene/tests/image_elements.rs` plays
+the calls on a model of the canvas state and compares the draws with the
+port's display list, and writes the raster fixtures `image-elements.json` and
+`image-elements-svg.json` in which Chrome replays the recorded calls.
+
+```sh
+node tools/goldens/image-elements.mjs           # write the fixture
+node tools/goldens/image-elements.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and `test/image-elements.test.mjs`
+checks that two runs are byte-identical and restates the placeholder colours,
+the icon size rule, the crop, the order of rotate and scale, the corner radii
+and the SVG-only dark filter from the recorded calls.

@@ -1,0 +1,30 @@
+{
+ "description": "fillRect (upstream's drawImagePlaceholder box, ex-404): whole-pixel and fractional rectangles, one thinner than a pixel, a negative width, scaled 1.5x, turned 90 degrees, rotated (drawn as the rectangle's path), at 50% opacity, inside a rounded clip, and the same fractional rectangle filled as a path beside it",
+ "width": 160,
+ "height": 120,
+ "tolerance": {"channel": 8, "pixels": 0},
+ "toleranceNote": "fillRect goes through the port of Skia's AntiFillRect (edges to 1/256 of a pixel), and under a rotation through the path fill as drawRect does: against Chrome 153 no pixel is more than 1 level off. 8 leaves room for another Chrome build.",
+ "items": [
+  {"type": "fillRect", "color": "#ffffff", "rect": [0, 0, 160, 120]},
+  {"type": "fillRect", "color": "#E7E7E7", "rect": [4, 4, 40, 30]},
+  {"type": "fillRect", "color": "#2E2E2E", "rect": [48.4, 4.3, 40.2, 30.35]},
+  {"type": "fill", "color": "#2E2E2E", "path": [["rect", 92.4, 4.3, 40.2, 30.35]]},
+  {"type": "fillRect", "color": "#1971c2", "rect": [136.25, 4, 0.5, 30]},
+  {"type": "fillRect", "color": "#e03131", "rect": [156.5, 4, -12.25, 10.6]},
+  {"type": "group", "transform": [1.5, 0, 0, 1.5, 4, 40], "items": [
+   {"type": "fillRect", "color": "#2f9e44", "rect": [0.3, 0.3, 20.1, 15.15]}
+  ]},
+  {"type": "group", "transform": [0, 1, -1, 0, 80, 40], "items": [
+   {"type": "fillRect", "color": "#f08c00", "rect": [0.25, 0.4, 30.3, 20.6]}
+  ]},
+  {"type": "group", "transform": [0.9210609940028851, 0.3894183423086505, -0.3894183423086505, 0.9210609940028851, 100, 42], "items": [
+   {"type": "fillRect", "color": "#7048e8", "rect": [0, 0, 36.5, 20.25]}
+  ]},
+  {"type": "group", "opacity": 0.5, "items": [
+   {"type": "fillRect", "color": "#1e1e1e", "rect": [4.5, 90.25, 50, 20]}
+  ]},
+  {"type": "group", "clip": {"path": [["roundRect", 60.5, 86.5, 60, 28, 8]]}, "items": [
+   {"type": "fillRect", "color": "#e03131", "rect": [58, 84, 64.4, 31.6]}
+  ]}
+ ]
+}

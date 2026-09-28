@@ -1473,3 +1473,52 @@ mod boundaries {
         out
     }
 }
+
+mod fill_rect {
+    use super::*;
+
+    /// `fillRect` replays to `Painter::fill_rect` with its colour resolved
+    /// like a fill's, and a painter that does not draw rectangles of its own
+    /// fills the rectangle's path.
+    #[test]
+    fn fill_rect_defaults_to_the_rectangles_path() {
+        let list: DisplayList = [
+            DisplayItem::FillRect {
+                rect: Rect::new(1.0, 2.0, 3.0, 4.0),
+                color: Color::new("#E7E7E7"),
+            },
+            DisplayItem::FillRect {
+                rect: Rect::new(0.0, 0.0, 1.0, 1.0),
+                color: Color::new("not a colour"),
+            },
+        ]
+        .into_iter()
+        .collect();
+        let root = state(Transform::IDENTITY, 1.0);
+        let grey = Rgba {
+            r: 0xE7,
+            g: 0xE7,
+            b: 0xE7,
+            a: 1.0,
+        };
+        assert_eq!(
+            replay(&list),
+            [
+                Call::Fill(
+                    Path::rect(1.0, 2.0, 3.0, 4.0).commands,
+                    grey,
+                    FillRule::NonZero,
+                    root
+                ),
+                Call::FillCss("#E7E7E7".into()),
+                Call::Fill(
+                    Path::rect(0.0, 0.0, 1.0, 1.0).commands,
+                    BLACK,
+                    FillRule::NonZero,
+                    root
+                ),
+                Call::FillCss("not a colour".into()),
+            ]
+        );
+    }
+}

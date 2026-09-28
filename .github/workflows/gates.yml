@@ -309,7 +309,11 @@ jobs:
   # upstream-subsets.json (ex-408), upstream's own
   # generateFontFaceDeclarations with its harfbuzzjs subsetting of every
   # face its SVG export inlines, whose export test scenes reproduce
-  # export.test.ts.snap's @font-face rules byte for byte.
+  # export.test.ts.snap's @font-face rules byte for byte, and
+  # image-elements.mjs --check for excali-scene's image-elements.json
+  # (ex-404), upstream's own renderElement exporting image elements under
+  # jsdom, recorded call by call (placeholders, crops, flips, rounded clips,
+  # the dark filter on SVG files).
   # Runs on arm64: V8's float results for some shapes differ in the last bits
   # between x64 and arm64, and the committed goldens are the arm64 output
   # (macOS and Linux arm64 agree byte for byte).
@@ -366,3 +370,5 @@ jobs:
         run: node tools/goldens/static-scene.mjs --check
       - name: font subsetting fixture matches upstream's generateFontFaceDeclarations and harfbuzzjs subsetting
         run: node tools/goldens/font-subset.mjs --check
+      - name: excali-scene image element fixture matches upstream's renderElement
+        run: node tools/goldens/image-elements.mjs --check

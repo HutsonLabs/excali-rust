@@ -20,8 +20,8 @@ use excali_core::color::apply_dark_mode_filter;
 use excali_core::element::Element;
 use excali_scene::bounds::ElementsMap;
 use excali_scene::display::{
-    Clip, Color, DisplayList, FillRule, ImageItem, PaintState, Painter, Path, PathCommand, Rgba,
-    Stroke, TextRun, Transform,
+    Clip, Color, DisplayList, FillRule, ImageItem, PaintState, Painter, Path, PathCommand, Rect,
+    Rgba, Stroke, TextRun, Transform,
 };
 use excali_scene::export::FrameRendering;
 use excali_scene::render_element::{builtin_image, is_rtl, ElementRenderOverride};
@@ -200,6 +200,13 @@ enum Draw {
         rule: FillRule,
         path: Path,
     },
+    FillRect {
+        m: Transform,
+        alpha: f64,
+        color: Color,
+        rgba: Rgba,
+        rect: Rect,
+    },
     Stroke {
         m: Transform,
         alpha: f64,
@@ -237,6 +244,15 @@ impl Painter for Recorder {
             rgba,
             rule,
             path: path.clone(),
+        });
+    }
+    fn fill_rect(&mut self, rect: &Rect, color: &Color, rgba: Rgba, s: &PaintState) {
+        self.0.push(Draw::FillRect {
+            m: s.transform,
+            alpha: s.alpha,
+            color: color.clone(),
+            rgba,
+            rect: *rect,
         });
     }
     fn stroke(&mut self, path: &Path, stroke: &Stroke, rgba: Rgba, s: &PaintState) {
@@ -459,6 +475,32 @@ fn check(e: &Value, draw: &Draw, images: &Value) -> Result<(), String> {
                 return Err(format!("rule {r:?}, expected {}", e["rule"]));
             }
             check_path(&e["path"], p)
+        }
+        // fillRect: the canvas draws a rectangle, not a path, so the port
+        // must emit FillRect where upstream calls fillRect
+        (
+            "fillRect",
+            Draw::FillRect {
+                m,
+                alpha,
+                color,
+                rgba,
+                rect,
+            },
+        ) => {
+            check_matrix(&e["m"], m)?;
+            check_alpha(&e["alpha"], *alpha)?;
+            check_color(&e["fillStyle"], color, *rgba)?;
+            let r: Vec<f64> = e["rect"].as_array().unwrap().iter().map(num).collect();
+            if [rect.x, rect.y, rect.width, rect.height]
+                .iter()
+                .zip(&r)
+                .all(|(a, b)| close(*a, *b))
+            {
+                Ok(())
+            } else {
+                Err(format!("rect {rect:?}, expected {r:?}"))
+            }
         }
         (
             "stroke",
@@ -928,7 +970,7 @@ fn sticky_notes_are_not_drawn_here() {
     let without = draws(&[element(RECTANGLE, "a", 0.0), element(RECTANGLE, "b", 50.0)]);
     assert_eq!(format!("{with:?}"), format!("{without:?}"));
     // the background and two rough rectangles, one stroke each
-    assert!(matches!(with[0], Draw::Fill { .. }));
+    assert!(matches!(with[0], Draw::FillRect { .. }));
     assert_eq!(with.len(), 3);
 }
 

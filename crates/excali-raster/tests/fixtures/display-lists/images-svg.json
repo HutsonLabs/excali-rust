@@ -1,0 +1,16 @@
+{
+ "description": "drawImage of an SVG file from a data URL (tests/fixtures/images/shape.svg: a rectangle, a circle at 80% fill opacity and a stroked polyline): at natural size, scaled 2.5x, cropped, with the dark filter, rotated at 70% opacity. Chrome renders the SVG itself; the port parses it with usvg and draws it as vector fills and strokes at the draw's resolution.",
+ "width": 220,
+ "height": 170,
+ "tolerance": {"channel": 8, "pixels": 0},
+ "toleranceNote": "Chrome renders the SVG itself, the port draws usvg's tree as vector fills and strokes through its scan conversion and stroker (quarter circles as arcs, rectangles as drawRect), a layer for the opacity and the filter: against Chrome 153 no pixel is more than 3 levels off. 8 leaves room for another Chrome build.",
+ "images": {"svg": {"dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSIzMCIgdmlld0JveD0iMCAwIDQwIDMwIj4KICA8cmVjdCB4PSIyIiB5PSIyIiB3aWR0aD0iMjAiIGhlaWdodD0iMTQiIGZpbGw9IiMxOTcxYzIiLz4KICA8Y2lyY2xlIGN4PSIyOCIgY3k9IjE4IiByPSI5IiBmaWxsPSIjZTAzMTMxIiBmaWxsLW9wYWNpdHk9IjAuOCIvPgogIDxwYXRoIGQ9Ik00IDI2IEwyMCAyMCBMMzYgMjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzJmOWU0NCIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KPC9zdmc+Cg=="}},
+ "items": [
+  {"type": "fill", "color": "#ffffff", "path": [["rect", 0, 0, 220, 170]]},
+  {"type": "image", "id": "svg", "dest": [4, 4, 40, 30]},
+  {"type": "image", "id": "svg", "dest": [48, 4, 100, 75]},
+  {"type": "image", "id": "svg", "source": [10, 5, 25, 20], "dest": [152, 4, 50, 40]},
+  {"type": "image", "id": "svg", "filter": "dark", "dest": [152, 50, 40, 30]},
+  {"type": "group", "transform": [0.8660254037844387, 0.5, -0.5, 0.8660254037844387, 40, 90], "opacity": 0.7, "items": [{"type": "image", "id": "svg", "dest": [0, 0, 60, 45]}]}
+ ]
+}

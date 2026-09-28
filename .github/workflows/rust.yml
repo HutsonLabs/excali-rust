@@ -146,20 +146,30 @@ jobs:
   # job draws every fixture display list again with the runner's Chrome
   # (scripts/fixtures/raster-references.sh --check) and holds the port to
   # those pixels within each fixture's tolerance, so a Chrome release that
-  # paints differently shows up here first.
+  # paints differently shows up here first. It runs on macOS arm64, where the
+  # references and the tolerances were measured: on ubuntu-latest (x64),
+  # Chrome 153.0.8010.52 samples the PNG of image-elements differently from
+  # macOS Chrome 153 along the edges of its two rotated, flipped draws (37
+  # pixels more than 8 levels from the port, which matches macOS Chrome
+  # exactly there), as the font-subset-browser job found for text.
   raster-chrome:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
       - name: toolchain (from rust-toolchain.toml)
         run: rustup toolchain install
       - uses: Swatinem/rust-cache@v2
       - name: Chrome version
-        run: google-chrome --version
+        run: '"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --version'
       - name: port within tolerance of this Chrome's canvas
-        env:
-          CHROME: google-chrome
         run: scripts/fixtures/raster-references.sh --check
+      - name: keep the rendered and diff images on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: raster-diff
+          path: target/raster-diff/
+          retention-days: 14
   # ex-206: the roughr evaluation behind ADR-003 (tools/roughr-eval, a
   # stand-alone package outside the workspace). Its tests fail if
   # report.json differs from a fresh run over goldens/ or ADR-003 does not

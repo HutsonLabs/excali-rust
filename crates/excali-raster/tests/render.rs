@@ -1259,3 +1259,124 @@ fn paths_past_a_quarter_of_the_f32_range_draw_nothing() {
         );
     }
 }
+
+#[test]
+fn fill_rect_is_drawrect_with_fine_edges() {
+    // fillRect is Skia's drawRect: AntiFillRect places edges to 1/256 of a
+    // pixel, where a large path fill's analytic edges snap to quarter
+    // pixels. A bottom edge at y = 26.4 covers 40% of row 26 as a
+    // rectangle and 50% as a path.
+    let rect = Rect::new(2.0, 2.0, 48.0, 24.4);
+    let as_rect = draw(
+        &list(vec![DisplayItem::FillRect {
+            rect,
+            color: Color::new("#000"),
+        }]),
+        60,
+        30,
+    );
+    let as_path = draw(
+        &list(vec![fill(
+            Path::rect(rect.x, rect.y, rect.width, rect.height),
+            "#000",
+            FillRule::NonZero,
+        )]),
+        60,
+        30,
+    );
+    assert_eq!(px(&as_rect, 10, 26).3, 102);
+    assert_eq!(px(&as_path, 10, 26).3, 128);
+    assert_eq!(px(&as_rect, 10, 10), (0, 0, 0, 255));
+    // Rotated, it is the rectangle's path, as SkDraw::drawRect falls back
+    // to drawPath when the matrix does not keep rectangles rectangles.
+    let turned = |item: DisplayItem| {
+        draw(
+            &list(vec![DisplayItem::Group(Group {
+                transform: Transform::rotate(0.3),
+                opacity: 1.0,
+                clip: None,
+                items: vec![item],
+            })]),
+            60,
+            40,
+        )
+    };
+    let a = turned(DisplayItem::FillRect {
+        rect,
+        color: Color::new("#000"),
+    });
+    let b = turned(fill(
+        Path::rect(rect.x, rect.y, rect.width, rect.height),
+        "#000",
+        FillRule::NonZero,
+    ));
+    assert_eq!(a.data(), b.data());
+    // Nothing for an empty or non-finite rectangle.
+    for r in [
+        Rect::new(0.0, 0.0, 0.0, 10.0),
+        Rect::new(0.0, 0.0, f64::NAN, 10.0),
+        Rect::new(0.0, 0.0, f64::INFINITY, 10.0),
+    ] {
+        let p = draw(
+            &list(vec![DisplayItem::FillRect {
+                rect: r,
+                color: Color::new("#000"),
+            }]),
+            10,
+            10,
+        );
+        assert!(p.pixels().iter().all(|c| c.alpha() == 0), "{r:?}");
+    }
+}
+
+#[test]
+fn built_in_images_resolve_by_their_excalidraw_ids() {
+    use excali_scene::display::{
+        builtin_image, ELEMENT_LINK_ID, EXTERNAL_LINK_ID, IMAGE_ERROR_PLACEHOLDER_ID,
+        IMAGE_PLACEHOLDER_ID,
+    };
+    // the ids the static scene names upstream's placeholders and link
+    // icons by draw without the caller giving the backend any image
+    let drawn = |id: &str| {
+        let p = draw(
+            &list(vec![DisplayItem::Image(ImageItem::new(
+                id,
+                Rect::new(0.0, 0.0, 32.0, 32.0),
+            ))]),
+            32,
+            32,
+        );
+        p.pixels().iter().filter(|c| c.alpha() > 0).count()
+    };
+    for id in [
+        IMAGE_PLACEHOLDER_ID,
+        IMAGE_ERROR_PLACEHOLDER_ID,
+        EXTERNAL_LINK_ID,
+        ELEMENT_LINK_ID,
+    ] {
+        assert!(drawn(id) > 50, "{id} draws");
+    }
+    // the placeholder's icon is #888
+    let p = draw(
+        &list(vec![DisplayItem::Image(ImageItem::new(
+            IMAGE_PLACEHOLDER_ID,
+            Rect::new(0.0, 0.0, 64.0, 64.0),
+        ))]),
+        64,
+        64,
+    );
+    assert!(near(px(&p, 4, 32), (0x88, 0x88, 0x88, 255)));
+    // an id that is no built-in image and no file draws nothing, among
+    // them the scheme the port no longer uses
+    for id in [
+        "builtin:image-placeholder",
+        "excalidraw:unknown",
+        "image-placeholder",
+    ] {
+        assert_eq!(drawn(id), 0, "{id}");
+    }
+    assert_eq!(
+        builtin_image("image-placeholder").map(|b| b.id),
+        Some(IMAGE_PLACEHOLDER_ID)
+    );
+}

@@ -81,7 +81,8 @@ libm = "0.2.16"
 skera = { version = "=0.7.0", default-features = false }
 skrifa = { version = "=0.47.0", default-features = false, features = ["std"] }
 ttf2woff2 = { version = "=0.13.3", default-features = false }
-# Test-only: golden digests and base64 payloads.
+# Golden digests (test-only) and base64 payloads (tests, and the data URLs
+# excali-raster decodes).
 sha2 = "0.11.0"
 base64 = "0.23.1"
 

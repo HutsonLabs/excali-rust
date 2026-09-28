@@ -17,6 +17,13 @@
 
   Fixture vocabulary (tests/fixtures/README.md in excali-raster):
   numbers may be "NaN", "Infinity" or "-Infinity".
+
+  Images given as a dataUrl are img elements the browser decodes with its
+  own codecs (as upstream's loadHTMLImageElement does); the page draws once
+  the window's load event says every one of them has loaded. A fixture with
+  canvasCalls (upstream's own recorded calls, see image-elements.json) is
+  drawn by replaying those calls instead of its items, with upstream's
+  placeholder SVGs as data:image/svg+xml,encodeURIComponent(svg) images.
 -->
 <html><body><pre id="out"></pre><script>
 const FIXTURES = /*FIXTURES*/null;
@@ -57,6 +64,14 @@ function draw(ctx, item, images) {
       ctx.fill(item.rule || "nonzero");
       ctx.restore();
       break;
+    case "fillRect": {
+      ctx.save();
+      ctx.fillStyle = item.color;
+      const r = item.rect.map(num);
+      ctx.fillRect(r[0], r[1], r[2], r[3]);
+      ctx.restore();
+      break;
+    }
     case "stroke":
       ctx.save();
       ctx.strokeStyle = item.color;
@@ -106,7 +121,37 @@ function draw(ctx, item, images) {
   }
 }
 
+// A recorded canvas call: ["set", property, value], or a method and its
+// arguments, with drawImage's image as {file: id} or {placeholder: kind}.
+function call(ctx, c, images, placeholders) {
+  const [name, ...args] = c;
+  if (name === "set") {
+    ctx[args[0]] = typeof args[1] === "string" ? args[1] : num(args[1]);
+    return;
+  }
+  if (name === "drawImage") {
+    const [ref, ...n] = args;
+    const img = "file" in ref ? images[ref.file] : placeholders[ref.placeholder];
+    if (!img) throw new Error(`no image ${JSON.stringify(ref)}`);
+    ctx.drawImage(img, ...n.map(num));
+    return;
+  }
+  if (typeof ctx[name] !== "function") throw new Error(`unknown canvas call ${name}`);
+  ctx[name](...args.map(num));
+}
+
+// Data URL images, created while the page loads so the load event waits
+// for them.
+function loadImage(url) {
+  const img = document.createElement("img");
+  img.style.display = "none";
+  img.src = url;
+  document.body.appendChild(img);
+  return img;
+}
+
 function bitmap(spec) {
+  if ("dataUrl" in spec) return loadImage(spec.dataUrl);
   const c = document.createElement("canvas");
   c.width = spec.width;
   c.height = spec.height;
@@ -116,22 +161,51 @@ function bitmap(spec) {
 }
 
 const out = { userAgent: navigator.userAgent, png: {}, errors: {} };
+const prepared = {};
 for (const [name, fixture] of Object.entries(FIXTURES)) {
   try {
-    const canvas = document.createElement("canvas");
-    canvas.width = fixture.width;
-    canvas.height = fixture.height;
-    const ctx = canvas.getContext("2d", { colorSpace: "srgb" });
     const images = {};
     for (const [id, spec] of Object.entries(fixture.images || {})) images[id] = bitmap(spec);
-    // bootstrapCanvas (renderer/helpers.ts:73-127): context.scale(scale, scale).
-    const scale = "scale" in fixture ? num(fixture.scale) : 1;
-    ctx.scale(scale, scale);
-    for (const item of fixture.items) draw(ctx, item, images);
-    out.png[name] = canvas.toDataURL("image/png");
+    // Built-in images (excalidraw:image-placeholder, ...) the items name by
+    // id: upstream's own data URLs.
+    for (const [id, url] of Object.entries(fixture.builtinImages || {})) images[id] = loadImage(url);
+    const placeholders = {};
+    for (const [kind, svg] of Object.entries(fixture.placeholders || {})) {
+      placeholders[kind] = loadImage(`data:image/svg+xml,${encodeURIComponent(svg)}`);
+    }
+    prepared[name] = { images, placeholders };
   } catch (e) {
     out.errors[name] = String(e && e.stack || e);
   }
 }
-document.getElementById("out").textContent = JSON.stringify(out);
+
+window.addEventListener("load", () => {
+  for (const [name, fixture] of Object.entries(FIXTURES)) {
+    if (!prepared[name]) continue;
+    try {
+      const { images, placeholders } = prepared[name];
+      for (const img of [...Object.values(images), ...Object.values(placeholders)]) {
+        if (img instanceof HTMLImageElement && !(img.complete && img.naturalWidth > 0)) {
+          throw new Error(`image did not load: ${img.src.slice(0, 60)}`);
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = fixture.width;
+      canvas.height = fixture.height;
+      const ctx = canvas.getContext("2d", { colorSpace: "srgb" });
+      // bootstrapCanvas (renderer/helpers.ts:73-127): context.scale(scale, scale).
+      const scale = "scale" in fixture ? num(fixture.scale) : 1;
+      ctx.scale(scale, scale);
+      if (fixture.canvasCalls) {
+        for (const c of fixture.canvasCalls) call(ctx, c, images, placeholders);
+      } else {
+        for (const item of fixture.items) draw(ctx, item, images);
+      }
+      out.png[name] = canvas.toDataURL("image/png");
+    } catch (e) {
+      out.errors[name] = String(e && e.stack || e);
+    }
+  }
+  document.getElementById("out").textContent = JSON.stringify(out);
+});
 </script></body></html>
