@@ -30,6 +30,12 @@ throws, so no output can come from rough.js's seed-0 fallback. Output is
 byte-identical across runs and across Node 22, 24 and 26. CI (the `goldens`
 job in `.github/workflows/gates.yml`) runs the suite and `--check` on every PR.
 
+The committed goldens are the arm64 output (Apple silicon, Linux arm64; the two
+agree byte for byte), and the CI job runs on `ubuntu-24.04-arm`. On x86_64,
+V8's floating-point results for some shapes differ in the last bits, so
+`--check` and the stability test report stale files there. Regenerate goldens
+on an arm64 machine only.
+
 ## Files
 
 | file | contents | used by |

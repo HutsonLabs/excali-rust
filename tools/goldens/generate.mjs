@@ -202,6 +202,11 @@ const main = async () => {
       for (const name of stale) process.stderr.write(`stale: ${join(where, name)}\n`);
       for (const name of extra) process.stderr.write(`unexpected: ${join(where, name)}\n`);
       process.stderr.write("goldens are out of date: run node tools/goldens/generate.mjs\n");
+      if (process.arch !== "arm64") {
+        process.stderr.write(
+          `note: goldens are generated on arm64; on ${process.arch} V8's float results differ in the last bits, so run the generator on arm64 (see tools/goldens/README.md)\n`,
+        );
+      }
       process.exit(1);
     }
     process.stdout.write(`goldens up to date: ${out.size} files in ${where}\n`);

@@ -46,7 +46,8 @@ test("two runs produce byte-identical goldens equal to the committed ones", () =
   for (const f of Object.keys(first)) {
     assert.ok(
       first[f].equals(committed[f]),
-      `goldens/${f} is stale: run node tools/goldens/generate.mjs`,
+      `goldens/${f} is stale: run node tools/goldens/generate.mjs` +
+        (process.arch === "arm64" ? "" : ` (goldens are generated on arm64; this is ${process.arch})`),
     );
   }
 });
