@@ -2577,6 +2577,14 @@
       "source": "upstream"
     },
     {
+      "bytes": 19906,
+      "origin": "https://raw.githubusercontent.com/excalidraw/excalidraw/438d89861f53d8a90ad566113ecac1b83761098f/packages/excalidraw/tests/__snapshots__/export.test.tsx.snap",
+      "origin_path": "packages/excalidraw/tests/__snapshots__/export.test.tsx.snap",
+      "path": "upstream/packages/excalidraw/tests/__snapshots__/export.test.tsx.snap",
+      "sha256": "ac1fad1114e72d75b3214d892b8037a73097d83a1045ef5b449fab114250750d",
+      "source": "upstream"
+    },
+    {
       "bytes": 8376,
       "origin": "https://raw.githubusercontent.com/excalidraw/excalidraw/438d89861f53d8a90ad566113ecac1b83761098f/packages/excalidraw/tests/data/__snapshots__/restore.test.ts.snap",
       "origin_path": "packages/excalidraw/tests/data/__snapshots__/restore.test.ts.snap",
@@ -2598,6 +2606,14 @@
       "origin_path": "packages/excalidraw/tests/data/restore.test.ts",
       "path": "upstream/packages/excalidraw/tests/data/restore.test.ts",
       "sha256": "53a6c264a14351916e403a99aec159d3ebffebd21487d00e149880349b5c9d26",
+      "source": "upstream"
+    },
+    {
+      "bytes": 5774,
+      "origin": "https://raw.githubusercontent.com/excalidraw/excalidraw/438d89861f53d8a90ad566113ecac1b83761098f/packages/excalidraw/tests/export.test.tsx",
+      "origin_path": "packages/excalidraw/tests/export.test.tsx",
+      "path": "upstream/packages/excalidraw/tests/export.test.tsx",
+      "sha256": "b39ccd3751963360db12cbdaeee018673853057b2665c901cb35384e8560304f",
       "source": "upstream"
     },
     {
@@ -2686,6 +2702,14 @@
       "origin_path": "packages/excalidraw/tests/fixtures/test_embedded_v1.svg",
       "path": "upstream/packages/excalidraw/tests/fixtures/test_embedded_v1.svg",
       "sha256": "3b943fe54b31f915d40e04e0746a2f4435bd6009f8c477de5a0e2ff00e942c3f",
+      "source": "upstream"
+    },
+    {
+      "bytes": 93397,
+      "origin": "https://raw.githubusercontent.com/excalidraw/excalidraw/438d89861f53d8a90ad566113ecac1b83761098f/packages/excalidraw/tests/scene/__snapshots__/export.test.ts.snap",
+      "origin_path": "packages/excalidraw/tests/scene/__snapshots__/export.test.ts.snap",
+      "path": "upstream/packages/excalidraw/tests/scene/__snapshots__/export.test.ts.snap",
+      "sha256": "75c87a9242cb6f6411ab2ad60b6d7c104af383b3e5b36707dcee6de049f3a499",
       "source": "upstream"
     }
   ],
