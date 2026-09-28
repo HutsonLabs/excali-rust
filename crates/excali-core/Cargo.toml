@@ -10,6 +10,7 @@ publish = false
 
 [dependencies]
 excali-math = { path = "../excali-math" }
+indexmap = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 

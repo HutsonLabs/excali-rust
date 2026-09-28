@@ -517,12 +517,37 @@ fn immutable_sync_leaves_the_input_alone() {
         input,
         elements(&[("A", Some("a1")), ("B", Some("a1")), ("C", None)])
     );
-    let got: Vec<Option<&str>> = synced
+    let got: Vec<(&str, Option<&str>)> = synced
         .iter()
-        .map(|e| e.base.index.as_ref().map(|i| i.0.as_str()))
+        .map(|(id, e)| (id.as_str(), e.base.index.as_ref().map(|i| i.0.as_str())))
         .collect();
-    assert_eq!(got, [Some("a1"), Some("a2"), Some("a3")]);
+    assert_eq!(
+        got,
+        [("A", Some("a1")), ("B", Some("a2")), ("C", Some("a3"))]
+    );
     assert_eq!(stamp.calls, 2);
+}
+
+#[test]
+fn immutable_sync_returns_upstreams_map_for_duplicate_ids() {
+    // arrayToMap keeps the last `x` (a1) at the first position; the update
+    // for the first `x` (a0, version 2) is then set over it
+    use excali_core::fractional_index::sync_invalid_indices_immutable;
+    let input = elements(&[("x", None), ("x", Some("a1"))]);
+    let synced = sync_invalid_indices_immutable(&input, &mut Stamp { calls: 0 }).unwrap();
+    assert_eq!(synced.len(), 1);
+    let x = &synced["x"];
+    assert_eq!(x.base.index, Some(FractionalIndex("a0".into())));
+    assert_eq!(x.base.version, 2.0);
+
+    // an id keeps its first position while holding a later element
+    let input = elements(&[("x", Some("a1")), ("y", None), ("x", Some("a0"))]);
+    let synced = sync_invalid_indices_immutable(&input, &mut Stamp { calls: 0 }).unwrap();
+    let got: Vec<(&str, Option<&str>)> = synced
+        .iter()
+        .map(|(id, e)| (id.as_str(), e.base.index.as_ref().map(|i| i.0.as_str())))
+        .collect();
+    assert_eq!(got, [("x", Some("a3")), ("y", Some("a2"))]);
 }
 
 #[test]

@@ -16,6 +16,7 @@
 //! `getUpdatedTimestamp()`, and do nothing when the index is unchanged. The
 //! caller supplies the nonce and timestamp through [`ChangeStamp`].
 
+use indexmap::IndexMap;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
@@ -427,19 +428,34 @@ pub fn sync_invalid_indices(
     Ok(())
 }
 
+/// Upstream's `SceneElementsMap`: elements by id in JS `Map` order (first
+/// insertion of each id).
+pub type SceneElementsMap = IndexMap<String, Element>;
+
 /// `syncInvalidIndicesImmutable` (`fractionalIndex.ts:242-254`): the same
-/// updates as [`sync_invalid_indices`], applied to copies. Upstream returns
-/// a map keyed by id in array order; the port returns the elements in array
-/// order.
+/// updates as [`sync_invalid_indices`], applied to copies and returned as
+/// upstream's map: `arrayToMap(elements)` (each id at its first position,
+/// holding its last element), then every updated copy set over its id in
+/// group order. With duplicate ids the map can hold an earlier element than
+/// `arrayToMap` alone would. `newElementWith` returns the element itself when
+/// the index is unchanged, and that element is still set.
+///
+/// An error is returned where upstream would throw.
 pub fn sync_invalid_indices_immutable(
     elements: &[Element],
     stamp: &mut impl ChangeStamp,
-) -> Result<Vec<Element>, OrderKeyError> {
+) -> Result<SceneElementsMap, OrderKeyError> {
     let groups = invalid_indices_groups(elements);
     let updates = generate_indices(elements, groups)?;
-    let mut synced = elements.to_vec();
+    let mut synced: SceneElementsMap = elements
+        .iter()
+        .map(|e| (e.base.id.clone(), e.clone()))
+        .collect();
     for (i, index) in updates {
-        set_index(&mut synced[i], index, stamp);
+        let mut copy = elements[i].clone();
+        set_index(&mut copy, index, stamp);
+        // Map.set: an existing key keeps its position
+        synced.insert(copy.base.id.clone(), copy);
     }
     Ok(synced)
 }

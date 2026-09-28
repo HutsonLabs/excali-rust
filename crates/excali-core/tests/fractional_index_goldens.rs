@@ -180,7 +180,7 @@ fn indices(list: &[Element]) -> Vec<Option<String>> {
 #[test]
 fn fractional_index_matches_upstream() {
     let cases = golden("fractional-index.json");
-    let mut counts = [0usize; 4];
+    let mut counts = [0usize; 5];
     for case in &cases {
         let id = case["id"].as_str().unwrap();
         let input: Vec<Element> = case["elements"]
@@ -241,12 +241,47 @@ fn fractional_index_matches_upstream() {
                         assert_eq!(after, before, "{id}: untouched element");
                     }
                 }
-                if f == "syncInvalidIndices" {
-                    // syncInvalidIndicesImmutable computes the same updates on copies
-                    let copies = sync_invalid_indices_immutable(&input, &mut Stamp).unwrap();
-                    assert_eq!(copies, synced, "{id}: immutable variant");
-                }
                 counts[0] += 1;
+            }
+            "syncInvalidIndicesImmutable" => {
+                counts[4] += 1;
+                let result = sync_invalid_indices_immutable(&input, &mut Stamp);
+                if let Some(error) = case.get("error") {
+                    assert_eq!(
+                        result.unwrap_err().to_string(),
+                        error.as_str().unwrap(),
+                        "{id}"
+                    );
+                    counts[3] += 1;
+                    continue;
+                }
+                let map = result.unwrap_or_else(|e| panic!("{id}: {e}"));
+                let want = case["entries"].as_array().unwrap();
+                assert_eq!(map.len(), want.len(), "{id}: size");
+                for ((key, got), entry) in map.iter().zip(want) {
+                    let entry = entry.as_array().unwrap();
+                    let from = entry[1].as_u64().unwrap() as usize;
+                    assert_eq!(key, entry[0].as_str().unwrap(), "{id}: key order");
+                    let source = &input[from];
+                    assert_eq!(got.base.id, source.base.id, "{id}: {key}");
+                    assert_eq!(
+                        got.base.index.as_ref().map(|i| i.0.as_str()),
+                        entry[2].as_str(),
+                        "{id}: {key} index"
+                    );
+                    assert_eq!(got.base.version, entry[3].as_f64().unwrap(), "{id}: {key}");
+                    if got.base.version == source.base.version {
+                        assert_eq!(got, source, "{id}: {key} is input element {from}");
+                    } else {
+                        // the copy of input element `from`, restamped
+                        let mut expected = source.clone();
+                        expected.base.index = got.base.index.clone();
+                        expected.base.version = got.base.version;
+                        expected.base.version_nonce = 7.0;
+                        expected.base.updated = 2.0;
+                        assert_eq!(got, &expected, "{id}: {key} copies input element {from}");
+                    }
+                }
             }
             "validateFractionalIndices" => {
                 let include = case["includeBoundTextValidation"].as_bool().unwrap();
@@ -283,4 +318,5 @@ fn fractional_index_matches_upstream() {
     assert!(counts[0] >= 800, "sync cases {}", counts[0]);
     assert!(counts[1] >= 40, "validate cases {}", counts[1]);
     assert!(counts[2] >= 120, "order cases {}", counts[2]);
+    assert!(counts[4] >= 200, "immutable sync cases {}", counts[4]);
 }
