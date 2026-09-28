@@ -8,7 +8,11 @@
 //! - every upstream test fixture that holds a scene or a library validates,
 //!   the three plain images (two PNGs, one SVG) are rejected as upstream rejects them
 //!   ("Image doesn't contain scene"), and every scene renders to a PNG and
-//!   an SVG that validate again (upstream's re-import of its own export).
+//!   an SVG that validate again (upstream's re-import of its own export);
+//! - every item of every catalogue library renders to PNG (ex-410):
+//!   `excali lib preview` draws each library's items onto the publish
+//!   dialog's preview image, and every item's canvas has pixels and fits
+//!   the 128 px box.
 
 mod support;
 
@@ -262,4 +266,63 @@ fn upstream_scenes_render_and_export_and_read_back() {
             );
         }
     }
+}
+
+#[test]
+fn every_catalogue_item_renders_to_png() {
+    let libraries = catalogue();
+    assert_eq!(libraries.len(), 232);
+    let dir = scratch("corpus-preview");
+    let mut total = 0;
+    for (i, path) in libraries.iter().enumerate() {
+        let listed = excali(&[
+            "lib".as_ref(),
+            "list".as_ref(),
+            "--json".as_ref(),
+            path.as_os_str(),
+        ]);
+        assert_code(&listed, 0);
+        let listed: Value = serde_json::from_str(&stdout(&listed)).unwrap();
+        let listed = listed.as_array().unwrap();
+
+        let sheet = dir.join(format!("{i}.png"));
+        let out = excali(&[
+            "lib".as_ref(),
+            "preview".as_ref(),
+            path.as_os_str(),
+            "-o".as_ref(),
+            sheet.as_os_str(),
+            "--json".as_ref(),
+        ]);
+        assert_code(&out, 0);
+        let report: Value = serde_json::from_str(&stdout(&out)).unwrap();
+        let items = report["items"].as_array().unwrap();
+        assert_eq!(items.len(), listed.len(), "{}", path.display());
+        for (item, entry) in items.iter().zip(listed) {
+            assert_eq!(item["id"], entry["id"], "{}", path.display());
+            let (w, h) = (
+                item["width"].as_u64().unwrap(),
+                item["height"].as_u64().unwrap(),
+            );
+            assert!(
+                (1..=128).contains(&w) && (1..=128).contains(&h),
+                "{} {}: {w} x {h}",
+                path.display(),
+                item["id"]
+            );
+        }
+        total += items.len();
+
+        // Each box is 128 px with 8 px of padding on both sides, less the
+        // padding outside the outer boxes: 144 px per column and row.
+        let png = read_png(&std::fs::read(&sheet).unwrap());
+        assert_eq!(
+            (png.width as usize, png.height as usize),
+            (items.len().min(6) * 144, items.len().div_ceil(6) * 144),
+            "{}",
+            path.display()
+        );
+        let _ = std::fs::remove_file(&sheet);
+    }
+    assert_eq!(total, 4187);
 }
