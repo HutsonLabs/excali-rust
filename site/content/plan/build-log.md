@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-107 · Fractional indexing port (base-62 keys, generateNKeysBetween, syncInvalidIndices)
+
+`excali-core` now generates and validates fractional index keys the way upstream's vendored fractional-indexing does, and ports `fractionalIndex.ts`: `syncInvalidIndices`, `syncMovedIndices`, `syncInvalidIndicesImmutable` (returning upstream's id map, duplicate ids included), `validateFractionalIndices` and `orderByFractionalIndex`, which sorts with the V8 TimSort port so unindexed elements and duplicate ids land in upstream's order. All of it is checked against goldens generated from the pinned upstream. PR: [#19](https://github.com/HutsonLabs/excali-rust/pull/19).
+
 ## 2026-09-28 · ex-110 · Payload codec: byte-string encoding and zlib compression (encode/decode)
 
 `excali-core` now encodes and decodes the `{ version, encoding, compressed, encoded }` payload wrapper the way upstream `data/encode.ts` does. pako 2.0.3's deflate and inflate are ported in full, so compressed output is byte-identical to pako and every corrupt stream fails with pako's own message (or succeeds with pako's output), checked against goldens generated from upstream and a 1,600-case corrupted-stream differential. PR: [#18](https://github.com/HutsonLabs/excali-rust/pull/18).
