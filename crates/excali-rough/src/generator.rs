@@ -136,6 +136,20 @@ impl RoughGenerator {
     /// `path(d, options)`: SVG path data drawn rough. With `simplification`
     /// below 1 the stroke is the path flattened and simplified to
     /// `4 - 4 * simplification` and drawn as polylines instead.
+    ///
+    /// Errors where rough.js throws: path data the parser rejects, and
+    /// [`PathError::CallStackExceeded`] where rough.js overflows the stack.
+    /// As in rough.js the path is flattened (`pointsOnPath(d, 1, distance)`)
+    /// whether or not it is simplified, to `(1 + roughness) / 2` when it is
+    /// not, so a curve that never flattens (a coordinate that is, or
+    /// overflows to, infinity or NaN) or a roughness below -1 (a negative
+    /// distance) is an error with or without `simplification`.
+    ///
+    /// Documented divergences: data with a number after `Z`, on which
+    /// rough.js never returns, is [`PathError::ParamAfterClose`]; a path
+    /// whose simplification recurses deeper than the JavaScript stack allows
+    /// is simplified rather than an error (see
+    /// [`crate::points_on_curve::simplify_points`]).
     pub fn path(&self, d: &str, o: &Options) -> Result<Drawable, PathError> {
         if d.is_empty() {
             return Ok(Self::drawable(Shape::Path, Vec::new(), o));
@@ -144,14 +158,16 @@ impl RoughGenerator {
         let has_stroke = o.stroke != NOS;
         let simplification = o.simplification.unwrap_or(0.0);
         let simplified = simplification != 0.0 && !simplification.is_nan() && simplification < 1.0;
-        let mut rng = Random::new(o.seed);
-        // pointsOnPath(d, 1, distance) comes first in rough.js; it draws no
-        // random numbers, and only the simplified stroke uses it here.
-        let sets = if simplified {
-            points_on_path(&d, 1.0, 4.0 - 4.0 * simplification)?
+        let distance = if simplified {
+            4.0 - 4.0 * simplification
         } else {
-            Vec::new()
+            (1.0 + o.roughness) / 2.0
         };
+        let mut rng = Random::new(o.seed);
+        // pointsOnPath comes first in rough.js and draws no random numbers;
+        // unsimplified strokes use only its errors here (fills use the sets,
+        // ex-204).
+        let sets = points_on_path(&d, 1.0, distance)?;
         let shape = renderer::svg_path(&d, o, &mut rng)?;
         let mut paths = Vec::new();
         if has_stroke {

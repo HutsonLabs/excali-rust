@@ -3,7 +3,9 @@
 //! rough.js throws or never returns, and the parser stages on their own.
 
 use excali_rough::path_data::{absolutize, normalize, parse_path, PathError, Segment};
-use excali_rough::points_on_curve::{curve_to_bezier, points_on_bezier_curves, simplify};
+use excali_rough::points_on_curve::{
+    curve_to_bezier, points_on_bezier_curves, simplify, simplify_points,
+};
 use excali_rough::points_on_path::points_on_path;
 use excali_rough::{random_seed, Op, OpSetType, Options, Random, RoughGenerator, Shape};
 
@@ -206,6 +208,57 @@ mod generator {
         assert!(!PathError::EndedShort.to_string().is_empty());
     }
 
+    // rough.js 4.6.4 throws `RangeError: Maximum call stack size exceeded`
+    // on all of these (checked against the pinned package bundled with
+    // esbuild): the Bezier flattening never reaches its tolerance once a
+    // coordinate is, or overflows to, a non-finite value, and pointsOnPath
+    // runs whether or not the path is simplified.
+    const NEVER_FLAT: [&str; 2] = ["M0 0 C 1e400 0 0 0 1 1", "M0 0 C 1e308 0 -1e308 0 1 1"];
+
+    #[test]
+    fn path_whose_curve_never_flattens_is_a_call_stack_error() {
+        let g = RoughGenerator::new();
+        for d in NEVER_FLAT {
+            for simplification in [None, Some(0.5)] {
+                let o = Options {
+                    seed: 1,
+                    simplification,
+                    ..Options::default()
+                };
+                assert_eq!(
+                    g.path(d, &o),
+                    Err(PathError::CallStackExceeded),
+                    "{d} simplification {simplification:?}"
+                );
+            }
+        }
+        assert_eq!(
+            PathError::CallStackExceeded.to_string(),
+            "Maximum call stack size exceeded"
+        );
+    }
+
+    #[test]
+    fn path_with_roughness_below_minus_one_is_a_call_stack_error() {
+        // Unsimplified, rough.js flattens the path to (1 + roughness) / 2;
+        // below -1 that is a negative epsilon and simplify never returns.
+        let g = RoughGenerator::new();
+        for d in ["M0 0 L 10 10", "M0 0"] {
+            let o = Options {
+                seed: 1,
+                roughness: -3.0,
+                ..Options::default()
+            };
+            assert_eq!(g.path(d, &o), Err(PathError::CallStackExceeded), "{d}");
+        }
+        let o = Options {
+            seed: 1,
+            roughness: -1.0,
+            ..Options::default()
+        };
+        assert!(g.path("M0 0 L 10 10", &o).is_ok());
+    }
+
     #[test]
     fn empty_path_draws_nothing() {
         let d = RoughGenerator::new().path("", &seeded(1)).unwrap();
@@ -336,8 +389,96 @@ mod points {
             &[[0.0, 0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 0.0]],
             0.15,
             None,
-        );
+        )
+        .unwrap();
         assert_eq!(pts, vec![[0.0, 0.0], [3.0, 0.0]]);
+    }
+
+    #[test]
+    fn bezier_that_never_flattens_is_a_call_stack_error() {
+        // rough.js throws RangeError on each: a non-finite point, a
+        // tolerance of 0 on a straight segment (0 < 0 never holds), a
+        // negative or NaN tolerance.
+        let curvy = [[0.0, 0.0], [1.0, 1.0], [2.0, 0.0], [3.0, 0.0]];
+        let flat = [[0.0, 0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 0.0]];
+        let cases: [(&[[f64; 2]], f64); 6] = [
+            (
+                &[[0.0, 0.0], [f64::INFINITY, 0.0], [0.0, 0.0], [1.0, 1.0]],
+                0.15,
+            ),
+            (&[[0.0, 0.0], [f64::NAN, 0.0], [0.0, 0.0], [1.0, 1.0]], 0.15),
+            (&[[0.0, 0.0], [1e308, 0.0], [-1e308, 0.0], [1.0, 1.0]], 0.15),
+            (&flat, 0.0),
+            (&curvy, -1.0),
+            (&curvy, f64::NAN),
+        ];
+        for (points, tolerance) in cases {
+            for distance in [None, Some(0.5)] {
+                assert_eq!(
+                    points_on_bezier_curves(points, tolerance, distance),
+                    Err(PathError::CallStackExceeded),
+                    "{points:?} tolerance {tolerance} distance {distance:?}"
+                );
+            }
+        }
+        // a small tolerance still converges
+        assert_eq!(
+            points_on_bezier_curves(&curvy, 1e-12, None).unwrap().len(),
+            2190
+        );
+    }
+
+    #[test]
+    fn points_on_path_on_a_curve_that_never_flattens_is_a_call_stack_error() {
+        for distance in [0.0, 0.5] {
+            assert_eq!(
+                points_on_path("M0 0 C 1e400 0 0 0 1 1", 1.0, distance),
+                Err(PathError::CallStackExceeded)
+            );
+        }
+        assert_eq!(
+            points_on_path("M0 0 L 1 1", 1.0, -1.0),
+            Err(PathError::CallStackExceeded)
+        );
+    }
+
+    #[test]
+    fn simplify_with_a_negative_epsilon_is_a_call_stack_error() {
+        // simplifyPoints recurses on every range when sqrt(0) > epsilon.
+        for pts in [
+            &[][..],
+            &[[0.0, 0.0]][..],
+            &[[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]][..],
+        ] {
+            assert_eq!(simplify(pts, -1.0), Err(PathError::CallStackExceeded));
+            let mut out = Vec::new();
+            assert_eq!(
+                simplify_points(pts, 0, pts.len(), -1.0, &mut out),
+                Err(PathError::CallStackExceeded)
+            );
+        }
+        assert_eq!(
+            simplify(&[[0.0, 0.0], [1.0, 1.0]], f64::NAN),
+            Ok(vec![[0.0, 0.0], [1.0, 1.0]])
+        );
+    }
+
+    #[test]
+    fn simplify_does_not_overflow_the_stack_on_deep_splits() {
+        // Each split peels one point off, so the recursion is as deep as the
+        // polyline is long. rough.js throws RangeError past the engine's
+        // stack (Node 26: at 5,000 of these points); the port has no depth
+        // limit and returns the simplified polyline (a documented
+        // divergence, see points_on_curve::simplify_points).
+        let n = 20_000;
+        let pts: Vec<[f64; 2]> = (0..n)
+            .map(|i| {
+                let sign = if i % 2 == 1 { -1.0 } else { 1.0 };
+                [i as f64, sign * (n - i) as f64]
+            })
+            .collect();
+        let out = simplify(&pts, 0.5).unwrap();
+        assert_eq!(out, pts);
     }
 
     #[test]
@@ -351,7 +492,7 @@ mod points {
             [5.0, 7.0],
         ];
         assert_eq!(
-            simplify(&pts, 0.5),
+            simplify(&pts, 0.5).unwrap(),
             vec![[0.0, 0.0], [2.0, -0.1], [3.0, 5.0], [5.0, 7.0]]
         );
     }

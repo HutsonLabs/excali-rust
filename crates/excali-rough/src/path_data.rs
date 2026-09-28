@@ -20,9 +20,9 @@ pub struct Segment {
     pub data: Vec<f64>,
 }
 
-/// Why path data could not be parsed. rough.js throws in the first three
-/// cases (the first is a `TypeError` from reading an empty token list) and
-/// never returns in the fourth.
+/// Why path data could not be parsed or flattened. rough.js throws in the
+/// first three cases (the first is a `TypeError` from reading an empty token
+/// list), never returns in the fourth and throws `RangeError` in the fifth.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PathError {
     /// A character that is not a command, a number or a separator.
@@ -35,6 +35,12 @@ pub enum PathError {
     /// A number after `Z`/`z`. `Z` takes no parameters, so the parser never
     /// consumes the number and path-data-parser 0.1.0 loops forever.
     ParamAfterClose,
+    /// `RangeError: Maximum call stack size exceeded`: points-on-curve's
+    /// recursion never bottoms out. Bezier flattening never reaches its
+    /// tolerance when a coordinate is, or overflows to, a non-finite value
+    /// or when the tolerance is not positive; Ramer–Douglas–Peucker
+    /// simplification never stops on a negative epsilon.
+    CallStackExceeded,
 }
 
 impl fmt::Display for PathError {
@@ -46,6 +52,7 @@ impl fmt::Display for PathError {
             }
             PathError::EndedShort => write!(f, "Path data ended short"),
             PathError::ParamAfterClose => write!(f, "Number after a closepath"),
+            PathError::CallStackExceeded => write!(f, "Maximum call stack size exceeded"),
         }
     }
 }
