@@ -207,6 +207,7 @@ export const ELEMENT_FILES = [
   "elements-elbow-arrow.json",
   "elements-freedraw.json",
   "elements-iframe-like.json",
+  "elements-matrix.json",
 ];
 
 export const ROUGH_FILES = [
