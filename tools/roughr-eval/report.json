@@ -4,11 +4,11 @@
   "reference": "roughjs 4.6.4 (goldens/manifest.json)",
   "match": "svg: every set type, op kind and number equal after +x.toFixed(2) (upstream SVG export precision); exact: numbers within relative 1e-10",
   "total": {
-    "cases": 716,
-    "exact": 40,
-    "svg": 56,
+    "cases": 1346,
+    "exact": 70,
+    "svg": 101,
     "svg_drawing_nothing": 27,
-    "percent_svg": "7.8 %"
+    "percent_svg": "7.5 %"
   },
   "recommendation": "port",
   "files": [
@@ -41,21 +41,27 @@
       "cases": 140,
       "exact": 0,
       "svg": 0
+    },
+    {
+      "name": "rough-strokes.json",
+      "cases": 630,
+      "exact": 30,
+      "svg": 45
     }
   ],
   "by_roughness": {
     "0": {
-      "cases": 147,
-      "exact": 20,
-      "svg": 36
+      "cases": 357,
+      "exact": 50,
+      "svg": 81
     },
     "1": {
-      "cases": 423,
+      "cases": 633,
       "exact": 10,
       "svg": 10
     },
     "2": {
-      "cases": 139,
+      "cases": 349,
       "exact": 10,
       "svg": 10
     }
@@ -64,12 +70,12 @@
     {
       "id": "rng",
       "summary": "roughr draws from rand's StdRng (ChaCha12, seed_from_u64; core.rs Options::random) and narrows every draw to f32; rough.js draws from its Park-Miller Random (bin/math.js). Every random offset, bowing and diverge point differs, at every roughness (the line diverge point 0.2 + random() * 0.2 is not scaled by roughness).",
-      "cases": 171
+      "cases": 400
     },
     {
       "id": "svg-path",
       "summary": "SVG path strokes: roughr's svg_path emits an extra move for every M command, draws a move for a path that is only a move (rough.js draws nothing), and parses with svgtypes and svg_path_ops instead of path-data-parser 0.1.0, so a path without a leading M draws nothing and \"- 20\" (which rough.js rewrites to \"-20\") ends the path.",
-      "cases": 123
+      "cases": 168
     },
     {
       "id": "path-simplification",
@@ -84,22 +90,22 @@
     {
       "id": "solid-fill-shape",
       "summary": "Solid fills of curves and single-subpath paths: rough.js 4.6 draws a single-stroke sketch of the outline at roughness + fillShapeRoughnessGain and merges it (_mergedShape); roughr fills the sampled polygon with solid_fill_polygon, and has no fillShapeRoughnessGain.",
-      "cases": 9
+      "cases": 54
     },
     {
       "id": "curve-reseed",
       "summary": "Second stroke of a curve: rough.js's cloneOptionsAlterSeed drops the randomizer and restarts at seed + 1; roughr's clone_options_alter_seed copies the live randomizer, so the second stroke continues the first's stream.",
-      "cases": 52
+      "cases": 72
     },
     {
       "id": "pattern-fill",
       "summary": "Hachure, cross-hatch, zigzag, dashed and zigzag-line fills: rough.js 4.6.4 computes the lines with hachure-fill 0.5.2 (and at roughness >= 1 draws once to pick a skip offset); roughr keeps the older scan-line hachure, so the lines start and end elsewhere and the dashed and zigzag-line fillers get other counts.",
-      "cases": 276
+      "cases": 501
     },
     {
       "id": "f32",
       "summary": "roughr's options are f32 and its constants go through f32 (_c: 0.2, -0.0016668, f32::PI() * 2 as the ellipse and arc loop bound), so ellipses and arcs gain or lose a point and some numbers land on the other side of a 0.005.",
-      "cases": 7
+      "cases": 28
     },
     {
       "id": "seed-range",
@@ -5391,6 +5397,4686 @@
       "difference": "op count: set 0 (path) expected 14 actual 15",
       "divergences": [
         "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r0/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected -0.2614568240614483 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r0/rectangle-solid",
+      "difference": "value: set 1 (path) op 1 (bcurveTo) data[0] expected 26.395790688693527 actual 27.68184524300463",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r0/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 212 actual 208",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r0/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 1.769216559158217 actual 2.037426146160846",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r0/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 4.696467403433171 actual 4.518402295725153",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r0/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 7.918737206608058 actual 8.30455357290139",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r0/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 17",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r0/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 2.362779291900581 actual 2.8893971511894523",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r0/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 20 actual 21",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r0/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 95.24875767603517 actual 95.01726785625917",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r0/arrowhead-circle",
+      "difference": "op count: set 0 (path) expected 38 actual 37",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r1/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected -0.2614568240614483 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r1/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected -0.42729804664850235 actual -0.9124510288238525",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r1/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 212 actual 208",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r1/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 1.769216559158217 actual 2.037426146160846",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r1/ellipse",
+      "difference": "op count: set 0 (fillSketch) expected 88 actual 84",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r1/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 28.659976635931883 actual 69.85531634106272",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r1/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 7.496566650271417 actual 7.060393898256921",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r1/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.06850763708353047 actual 0.6745422631320253",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r1/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r1/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 3.018838320891088 actual 2.8893971511894523",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r1/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.06850763708353047 actual 0.6745422631320253",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r1/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 20 actual 21",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r1/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 94.78658010017126 actual 93.49380195703012",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r1/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 99.0851998795669 actual 102.2759539142083",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r2/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.5938439064053942 actual -1.0621028505509391",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r2/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 2.3295851200819016 actual 1.0586304664611816",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r2/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 212 actual 208",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r2/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.4211345413653618 actual 2.8228412157821903",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r2/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 7.156935741200304 actual 4.126805671337622",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r2/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 11.900986600938907 actual 86.79937407077477",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r2/line-sharp",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -0.8928344696760178 actual -2.8268723487854004",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r2/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.1598511531949045 actual 1.5739318579617247",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r2/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r2/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 1.552690670820659 actual 3.7067566361217135",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r2/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.1598511531949045 actual 1.5739318579617247",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r2/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 20 actual 21",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r2/arrowhead-line",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 99.10716553032398 actual 97.1731276512146",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw1-r2/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 98.31488709469382 actual 104.45821907811273",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.13314538086761107 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0/rectangle-solid",
+      "difference": "value: set 1 (path) op 1 (bcurveTo) data[0] expected 26.395790688693527 actual 27.68184524300463",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9346947485942647 actual 4.074852292321685",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 4.696467403433171 actual 4.518402295725153",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 7.918737206608058 actual 8.30455357290139",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 17",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 4.069499554810655 actual 5.90823547208054",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 20 actual 21",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 95.24875767603517 actual 95.01726785625917",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0/arrowhead-circle",
+      "difference": "op count: set 0 (path) expected 38 actual 37",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.13314538086761107 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected -0.42729804664850235 actual -0.9124510288238525",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9346947485942647 actual 4.074852292321685",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 0.1447494062803436 actual 11.096054572727233",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 28.659976635931883 actual 69.85531634106272",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 7.496566650271417 actual 7.060393898256921",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.06850763708353047 actual 0.6745422631320253",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 6.037676641782176 actual 5.90823547208054",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.06850763708353047 actual 0.6745422631320253",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 20 actual 21",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 94.78658010017126 actual 93.49380195703012",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 99.0851998795669 actual 102.2759539142083",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 1.8437468418012966 actual -2.1242057011018782",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 2.3295851200819016 actual 1.0586304664611816",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 6.650431182457904 actual 5.395659272454742",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 7.156935741200304 actual 4.126805671337622",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 11.900986600938907 actual 86.79937407077477",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2/line-sharp",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -0.8928344696760178 actual -2.8268723487854004",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.1598511531949045 actual 1.5739318579617247",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 2.3143075424708246 actual 7.510977492376866",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.1598511531949045 actual 1.5739318579617247",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 20 actual 21",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2/arrowhead-line",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 99.10716553032398 actual 97.1731276512146",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 98.31488709469382 actual 104.45821907811273",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r0/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.26629076173522215 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r0/rectangle-solid",
+      "difference": "value: set 1 (path) op 1 (bcurveTo) data[0] expected 26.395790688693527 actual 27.68184524300463",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r0/rectangle-rounded",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9927021931905675 actual 2.109375",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r0/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 8.265651127466366 actual 8.14970458464337",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r0/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 4.696467403433171 actual 4.518402295725153",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r0/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 7.918737206608058 actual 8.30455357290139",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r0/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 17",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r0/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 6.826881051640294 actual 11.945912113862716",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r0/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 20 actual 21",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r0/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 95.24875767603517 actual 95.01726785625917",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r0/arrowhead-circle",
+      "difference": "op count: set 0 (path) expected 38 actual 37",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r1/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.26629076173522215 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r1/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected -0.42729804664850235 actual -0.9124510288238525",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r1/rectangle-rounded",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9927021931905675 actual 2.109375",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r1/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 8.265651127466366 actual 8.14970458464337",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r1/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 0.1447494062803436 actual 11.096054572727233",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r1/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 28.659976635931883 actual 69.85531634106272",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r1/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 7.496566650271417 actual 7.060393898256921",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r1/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.06850763708353047 actual 0.6745422631320253",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r1/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r1/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 12.075353283564352 actual 11.945912113862716",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r1/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.06850763708353047 actual 0.6745422631320253",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r1/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 20 actual 21",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r1/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 94.78658010017126 actual 93.49380195703012",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r1/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 99.0851998795669 actual 102.2759539142083",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r2/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 2.4045425879023288 actual -2.629416346549988",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r2/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 2.3295851200819016 actual 1.0586304664611816",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r2/rectangle-rounded",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9927021931905675 actual 5.859375",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r2/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 10.981387561330006 actual 9.470511564776427",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r2/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 7.156935741200304 actual 4.126805671337622",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r2/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 11.900986600938907 actual 86.79937407077477",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r2/line-sharp",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -0.8928344696760178 actual -2.8268723487854004",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r2/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.1598511531949045 actual 1.5739318579617247",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r2/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r2/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 4.126585648040555 actual 15.119419204887173",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r2/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.1598511531949045 actual 1.5739318579617247",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r2/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 20 actual 21",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r2/arrowhead-line",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 99.10716553032398 actual 97.1731276512146",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw4-r2/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 98.31488709469382 actual 104.45821907811273",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed1/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.13314538086761107 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed1/rectangle-solid",
+      "difference": "value: set 1 (path) op 1 (bcurveTo) data[0] expected 20.000449558719993 actual 39.48489486403606",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed1/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed1/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9346947485942647 actual 4.074852292321685",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed1/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 4.696467403433171 actual 4.518402295725153",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed1/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 6.000134867615998 actual 11.845468459210817",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed1/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 17",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed1/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 4.069499554810655 actual 5.90823547208054",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed1/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 20 actual 21",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed1/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 96.3999190794304 actual 92.89271892447351",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed1/arrowhead-circle",
+      "difference": "op count: set 0 (path) expected 38 actual 37",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed1/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.13314538086761107 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed1/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected -0.47415158338844776 actual 0.5705270767211914",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed1/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed1/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9346947485942647 actual 4.074852292321685",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed1/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 11.787237395637197 actual 0.08312981079018478",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed1/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 49.065330528034664 actual 57.06262647232825",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed1/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 6.691411294788122 actual 10.624306879125063",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed1/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.24318771846592435 actual -0.17286051006557557",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed1/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed1/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 4.069499554810655 actual 5.90823547208054",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed1/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.24318771846592435 actual -0.17286051006557557",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed1/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 20 actual 21",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed1/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 97.3650740905013 actual 91.54534184713243",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed1/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 101.08022279676169 actual 98.889927102109",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed1/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.6888534524570811 actual -0.3968062175040301",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed1/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected -3.2006205953657627 actual -3.093117892742157",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed1/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed1/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 4.442089833541612 actual 5.7762835667357475",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed1/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 2.049656080389303 actual 5.091569680840828",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed1/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 48.13219480200664 actual 64.01282800705462",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed1/line-sharp",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 1.7145268954336643 actual -2.5953116416931152",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed1/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.5674380097538232 actual -0.4033411672568121",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed1/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed1/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 1.976759770651889 actual 6.905063611122701",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed1/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.5674380097538232 actual -0.4033411672568121",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed1/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 20 actual 21",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed1/arrowhead-line",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 101.71452689543366 actual 97.40468835830688",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed1/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 101.94279516890353 actual 97.73725262413978",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed7/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.13314538086761107 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed7/rectangle-solid",
+      "difference": "value: set 1 (path) op 1 (bcurveTo) data[0] expected 20.00314691103995 actual 20.606347517763783",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed7/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed7/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9346947485942647 actual 4.074852292321685",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed7/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 4.696467403433171 actual 4.518402295725153",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed7/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 6.0009440733119845 actual 6.181904255329134",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed7/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 17",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed7/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 4.069499554810655 actual 5.90823547208054",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed7/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 20 actual 21",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed7/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 96.39943355601281 actual 96.29085744680252",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r0-seed7/arrowhead-circle",
+      "difference": "op count: set 0 (path) expected 38 actual 37",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed7/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.13314538086761107 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed7/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 0.6809389162808657 actual -1.0949383974075317",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed7/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed7/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9346947485942647 actual 4.074852292321685",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed7/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 11.297584493808296 actual 14.975944957271182",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed7/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 39.543014259186975 actual 36.59902592325227",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed7/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 4.039879063516855 actual 6.274807511745455",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed7/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -0.6976859707385301 actual -0.8576588613851399",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed7/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed7/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 4.069499554810655 actual 5.90823547208054",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed7/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -0.6976859707385301 actual -0.8576588613851399",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed7/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 20 actual 21",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed7/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 94.37551863350906 actual 96.5110837525257",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r1-seed7/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 98.28333291912983 actual 98.22382060130282",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed7/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected -2.3768981180060997 actual -2.207109376767496",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed7/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 1.595655832439661 actual 0.31836986541748047",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed7/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed7/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 7.486460343225698 actual 0.3843567416892082",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed7/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 2.997588142659904 actual 8.830027356528063",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed7/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 29.605944981595957 actual 24.15072113892617",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed7/line-sharp",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -3.9983117319643497 actual 0.3401374816894531",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed7/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -1.6279339317232369 actual -2.0012038962976604",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed7/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed7/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 6.769077804004204 actual 7.546423543199205",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed7/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -1.6279339317232369 actual -2.0012038962976604",
+      "divergences": [
+        "curve-reseed"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed7/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 20 actual 21",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed7/arrowhead-line",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 96.00168826803565 actual 100.34013748168945",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "solid/sw2-r2-seed7/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 96.91335556230338 actual 96.63795237693292",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r0/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected -0.2614568240614483 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r0/rectangle-solid",
+      "difference": "value: set 1 (path) op 1 (bcurveTo) data[0] expected 26.395790688693527 actual 27.68184524300463",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r0/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 212 actual 208",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r0/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 1.769216559158217 actual 2.037426146160846",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r0/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 4.696467403433171 actual 4.518402295725153",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r0/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 7.918737206608058 actual 8.30455357290139",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r0/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 17",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r0/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 2.362779291900581 actual 2.8893971511894523",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r0/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r0/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 95.24875767603517 actual 95.01726785625917",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r0/arrowhead-circle",
+      "difference": "op count: set 0 (path) expected 38 actual 37",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r1/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected -0.2614568240614483 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r1/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 1.3343315348029137 actual -0.6438177824020386",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r1/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 212 actual 208",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r1/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 1.769216559158217 actual 2.037426146160846",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r1/ellipse",
+      "difference": "op count: set 0 (fillSketch) expected 88 actual 84",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r1/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 41.31178124354003 actual 41.24645477727807",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r1/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 7.496566650271417 actual 7.060393898256921",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r1/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.06850763708353047 actual 0.6745422631320253",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r1/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r1/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 3.018838320891088 actual 2.8893971511894523",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r1/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.06850763708353047 actual 0.6745422631320253",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r1/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r1/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 94.78658010017126 actual 93.49380195703012",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r1/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 99.0851998795669 actual 102.2759539142083",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r2/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 1.2937893562344958 actual -0.17810112295769498",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r2/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected -0.7770881205797195 actual 3.9698410034179688",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r2/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 212 actual 208",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r2/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 1.6525618916948355 actual 2.626977494018418",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r2/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 7.156935741200304 actual 4.126805671337622",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r2/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 32.82573640843472 actual 32.727869982590114",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r2/line-sharp",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -0.8928344696760178 actual -2.8268723487854004",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r2/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.1598511531949045 actual 1.5739318579617247",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r2/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r2/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 2.935740315387672 actual 3.7220550163067863",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r2/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.1598511531949045 actual 1.5739318579617247",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r2/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r2/arrowhead-line",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 99.10716553032398 actual 97.1731276512146",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw1-r2/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 98.31488709469382 actual 104.45821907811273",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.13314538086761107 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0/rectangle-solid",
+      "difference": "value: set 1 (path) op 1 (bcurveTo) data[0] expected 26.395790688693527 actual 27.68184524300463",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9346947485942647 actual 4.074852292321685",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 4.696467403433171 actual 4.518402295725153",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 7.918737206608058 actual 8.30455357290139",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 17",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 4.069499554810655 actual 5.90823547208054",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 95.24875767603517 actual 95.01726785625917",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0/arrowhead-circle",
+      "difference": "op count: set 0 (path) expected 38 actual 37",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.13314538086761107 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 1.3343315348029137 actual -0.6438177824020386",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9346947485942647 actual 4.074852292321685",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 0.1447494062803436 actual 11.096054572727233",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 41.31178124354003 actual 41.24645477727807",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 7.496566650271417 actual 7.060393898256921",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.06850763708353047 actual 0.6745422631320253",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 6.037676641782176 actual 5.90823547208054",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.06850763708353047 actual 0.6745422631320253",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 94.78658010017126 actual 93.49380195703012",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 99.0851998795669 actual 102.2759539142083",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 3.2436377414594997 actual -0.35620224591538996",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected -0.7770881205797195 actual 3.9698410034179688",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.7429156566400335 actual 5.066281621240142",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 7.156935741200304 actual 4.126805671337622",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 32.82573640843472 actual 32.727869982590114",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2/line-sharp",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -0.8928344696760178 actual -2.8268723487854004",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.1598511531949045 actual 1.5739318579617247",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 5.871480630775344 actual 7.540975745553212",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.1598511531949045 actual 1.5739318579617247",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2/arrowhead-line",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 99.10716553032398 actual 97.1731276512146",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 98.31488709469382 actual 104.45821907811273",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r0/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.26629076173522215 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r0/rectangle-solid",
+      "difference": "value: set 1 (path) op 1 (bcurveTo) data[0] expected 26.395790688693527 actual 27.68184524300463",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r0/rectangle-rounded",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9927021931905675 actual 2.109375",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r0/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 8.265651127466366 actual 8.14970458464337",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r0/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 4.696467403433171 actual 4.518402295725153",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r0/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 7.918737206608058 actual 8.30455357290139",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r0/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 17",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r0/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 6.826881051640294 actual 11.945912113862716",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r0/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r0/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 95.24875767603517 actual 95.01726785625917",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r0/arrowhead-circle",
+      "difference": "op count: set 0 (path) expected 38 actual 37",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r1/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.26629076173522215 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r1/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 1.3343315348029137 actual -0.6438177824020386",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r1/rectangle-rounded",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9927021931905675 actual 2.109375",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r1/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 8.265651127466366 actual 8.14970458464337",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r1/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 0.1447494062803436 actual 11.096054572727233",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r1/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 41.31178124354003 actual 41.24645477727807",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r1/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 7.496566650271417 actual 7.060393898256921",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r1/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.06850763708353047 actual 0.6745422631320253",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r1/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r1/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 12.075353283564352 actual 11.945912113862716",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r1/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.06850763708353047 actual 0.6745422631320253",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r1/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r1/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 94.78658010017126 actual 93.49380195703012",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r1/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 99.0851998795669 actual 102.2759539142083",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r2/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 4.154406212475083 actual -0.4409196376800537",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r2/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected -0.7770881205797195 actual 3.9698410034179688",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r2/rectangle-rounded",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9927021931905675 actual 5.859375",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r2/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 8.073872035512135 actual 9.141133913561827",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r2/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 7.156935741200304 actual 4.126805671337622",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r2/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 32.82573640843472 actual 32.727869982590114",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r2/line-sharp",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -0.8928344696760178 actual -2.8268723487854004",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r2/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.1598511531949045 actual 1.5739318579617247",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r2/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r2/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 11.759580862651372 actual 15.178817204046062",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r2/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.1598511531949045 actual 1.5739318579617247",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r2/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r2/arrowhead-line",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 99.10716553032398 actual 97.1731276512146",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw4-r2/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 98.31488709469382 actual 104.45821907811273",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed1/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.13314538086761107 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed1/rectangle-solid",
+      "difference": "value: set 1 (path) op 1 (bcurveTo) data[0] expected 20.000449558719993 actual 39.48489486403606",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed1/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed1/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9346947485942647 actual 4.074852292321685",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed1/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 4.696467403433171 actual 4.518402295725153",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed1/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 6.000134867615998 actual 11.845468459210817",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed1/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 17",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed1/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 4.069499554810655 actual 5.90823547208054",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed1/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed1/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 96.3999190794304 actual 92.89271892447351",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed1/arrowhead-circle",
+      "difference": "op count: set 0 (path) expected 38 actual 37",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed1/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.13314538086761107 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed1/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 1.230258135125041 actual 0.4640083312988281",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed1/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed1/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9346947485942647 actual 4.074852292321685",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed1/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 11.787237395637197 actual 0.08312981079018478",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed1/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 29.811363869751375 actual 46.955599983094444",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed1/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 6.691411294788122 actual 10.624306879125063",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed1/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.24318771846592435 actual -0.17286051006557557",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed1/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed1/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 4.069499554810655 actual 5.90823547208054",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed1/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.24318771846592435 actual -0.17286051006557557",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed1/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed1/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 97.3650740905013 actual 91.54534184713243",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed1/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 101.08022279676169 actual 98.889927102109",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed1/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected -0.317203333126415 actual -2.1161915160449745",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed1/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected -3.3731009401381016 actual -3.0194482803344727",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed1/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed1/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.507814444823961 actual 4.861693208001617",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed1/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 2.049656080389303 actual 5.091569680840828",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed1/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 12.688620879814664 actual 43.91809781039132",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed1/line-sharp",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 1.7145268954336643 actual -2.5953116416931152",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed1/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.5674380097538232 actual -0.4033411672568121",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed1/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed1/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 8.03412271670009 actual 7.157391470497679",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed1/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.5674380097538232 actual -0.4033411672568121",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed1/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed1/arrowhead-line",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 101.71452689543366 actual 97.40468835830688",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed1/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 101.94279516890353 actual 97.73725262413978",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed7/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.13314538086761107 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed7/rectangle-solid",
+      "difference": "value: set 1 (path) op 1 (bcurveTo) data[0] expected 20.00314691103995 actual 20.606347517763783",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed7/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed7/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9346947485942647 actual 4.074852292321685",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed7/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 4.696467403433171 actual 4.518402295725153",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed7/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 6.0009440733119845 actual 6.181904255329134",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed7/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 17",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed7/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 4.069499554810655 actual 5.90823547208054",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed7/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed7/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 96.39943355601281 actual 96.29085744680252",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r0-seed7/arrowhead-circle",
+      "difference": "op count: set 0 (path) expected 38 actual 37",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed7/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.13314538086761107 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed7/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 0.6118069458752871 actual -1.8881707936525345",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed7/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed7/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9346947485942647 actual 4.074852292321685",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed7/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 11.297584493808296 actual 14.975944957271182",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed7/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 60.91688834150154 actual 53.82253600426194",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed7/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 4.039879063516855 actual 6.274807511745455",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed7/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -0.6976859707385301 actual -0.8576588613851399",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed7/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed7/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 4.069499554810655 actual 5.90823547208054",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed7/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -0.6976859707385301 actual -0.8576588613851399",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed7/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed7/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 94.37551863350906 actual 96.5110837525257",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r1-seed7/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 98.28333291912983 actual 98.22382060130282",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed7/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected -3.0192956170905725 actual -3.115284682024091",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed7/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 0.38829341903328896 actual -0.303713321685791",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed7/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed7/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 0.9465326222021386 actual 3.3111727879271537",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed7/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 2.997588142659904 actual 8.830027356528063",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed7/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 71.42258055357695 actual 57.61104906350575",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed7/line-sharp",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -3.9983117319643497 actual 0.3401374816894531",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed7/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -1.6279339317232369 actual -2.0012038962976604",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed7/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed7/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 6.637158836563658 actual 5.282048903693412",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed7/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -1.6279339317232369 actual -2.0012038962976604",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed7/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed7/arrowhead-line",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 96.00168826803565 actual 100.34013748168945",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dashed/sw2-r2-seed7/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 96.91335556230338 actual 96.63795237693292",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r0/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected -0.2614568240614483 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r0/rectangle-solid",
+      "difference": "value: set 1 (path) op 1 (bcurveTo) data[0] expected 26.395790688693527 actual 27.68184524300463",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r0/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 212 actual 208",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r0/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 1.769216559158217 actual 2.037426146160846",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r0/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 4.696467403433171 actual 4.518402295725153",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r0/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 7.918737206608058 actual 8.30455357290139",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r0/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 17",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r0/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 2.362779291900581 actual 2.8893971511894523",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r0/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r0/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 95.24875767603517 actual 95.01726785625917",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r0/arrowhead-circle",
+      "difference": "op count: set 0 (path) expected 38 actual 37",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r1/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected -0.2614568240614483 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r1/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 1.3343315348029137 actual -0.6438177824020386",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r1/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 212 actual 208",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r1/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 1.769216559158217 actual 2.037426146160846",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r1/ellipse",
+      "difference": "op count: set 0 (fillSketch) expected 88 actual 84",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r1/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 41.31178124354003 actual 41.24645477727807",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r1/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 7.496566650271417 actual 7.060393898256921",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r1/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.06850763708353047 actual 0.6745422631320253",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r1/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r1/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 3.018838320891088 actual 2.8893971511894523",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r1/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.06850763708353047 actual 0.6745422631320253",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r1/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r1/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 94.78658010017126 actual 93.49380195703012",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r1/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 99.0851998795669 actual 102.2759539142083",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r2/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 1.2937893562344958 actual -0.17810112295769498",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r2/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected -0.7770881205797195 actual 3.9698410034179688",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r2/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 212 actual 208",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r2/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 1.6525618916948355 actual 2.626977494018418",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r2/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 7.156935741200304 actual 4.126805671337622",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r2/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 32.82573640843472 actual 32.727869982590114",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r2/line-sharp",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -0.8928344696760178 actual -2.8268723487854004",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r2/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.1598511531949045 actual 1.5739318579617247",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r2/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r2/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 2.935740315387672 actual 3.7220550163067863",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r2/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.1598511531949045 actual 1.5739318579617247",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r2/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r2/arrowhead-line",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 99.10716553032398 actual 97.1731276512146",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw1-r2/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 98.31488709469382 actual 104.45821907811273",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.13314538086761107 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0/rectangle-solid",
+      "difference": "value: set 1 (path) op 1 (bcurveTo) data[0] expected 26.395790688693527 actual 27.68184524300463",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9346947485942647 actual 4.074852292321685",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 4.696467403433171 actual 4.518402295725153",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 7.918737206608058 actual 8.30455357290139",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 17",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 4.069499554810655 actual 5.90823547208054",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 95.24875767603517 actual 95.01726785625917",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0/arrowhead-circle",
+      "difference": "op count: set 0 (path) expected 38 actual 37",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.13314538086761107 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 1.3343315348029137 actual -0.6438177824020386",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9346947485942647 actual 4.074852292321685",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 0.1447494062803436 actual 11.096054572727233",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 41.31178124354003 actual 41.24645477727807",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 7.496566650271417 actual 7.060393898256921",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.06850763708353047 actual 0.6745422631320253",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 6.037676641782176 actual 5.90823547208054",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.06850763708353047 actual 0.6745422631320253",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 94.78658010017126 actual 93.49380195703012",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 99.0851998795669 actual 102.2759539142083",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 3.2436377414594997 actual -0.35620224591538996",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected -0.7770881205797195 actual 3.9698410034179688",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.7429156566400335 actual 5.066281621240142",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 7.156935741200304 actual 4.126805671337622",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 32.82573640843472 actual 32.727869982590114",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2/line-sharp",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -0.8928344696760178 actual -2.8268723487854004",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.1598511531949045 actual 1.5739318579617247",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 5.871480630775344 actual 7.540975745553212",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.1598511531949045 actual 1.5739318579617247",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2/arrowhead-line",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 99.10716553032398 actual 97.1731276512146",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 98.31488709469382 actual 104.45821907811273",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r0/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.26629076173522215 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r0/rectangle-solid",
+      "difference": "value: set 1 (path) op 1 (bcurveTo) data[0] expected 26.395790688693527 actual 27.68184524300463",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r0/rectangle-rounded",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9927021931905675 actual 2.109375",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r0/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 8.265651127466366 actual 8.14970458464337",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r0/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 4.696467403433171 actual 4.518402295725153",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r0/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 7.918737206608058 actual 8.30455357290139",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r0/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 17",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r0/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 6.826881051640294 actual 11.945912113862716",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r0/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r0/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 95.24875767603517 actual 95.01726785625917",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r0/arrowhead-circle",
+      "difference": "op count: set 0 (path) expected 38 actual 37",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r1/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.26629076173522215 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r1/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 1.3343315348029137 actual -0.6438177824020386",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r1/rectangle-rounded",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9927021931905675 actual 2.109375",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r1/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 8.265651127466366 actual 8.14970458464337",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r1/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 0.1447494062803436 actual 11.096054572727233",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r1/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 41.31178124354003 actual 41.24645477727807",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r1/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 7.496566650271417 actual 7.060393898256921",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r1/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.06850763708353047 actual 0.6745422631320253",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r1/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r1/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 12.075353283564352 actual 11.945912113862716",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r1/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.06850763708353047 actual 0.6745422631320253",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r1/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r1/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 94.78658010017126 actual 93.49380195703012",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r1/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 99.0851998795669 actual 102.2759539142083",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r2/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 4.154406212475083 actual -0.4409196376800537",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r2/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected -0.7770881205797195 actual 3.9698410034179688",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r2/rectangle-rounded",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9927021931905675 actual 5.859375",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r2/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 8.073872035512135 actual 9.141133913561827",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r2/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 7.156935741200304 actual 4.126805671337622",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r2/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 32.82573640843472 actual 32.727869982590114",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r2/line-sharp",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -0.8928344696760178 actual -2.8268723487854004",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r2/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.1598511531949045 actual 1.5739318579617247",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r2/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r2/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 11.759580862651372 actual 15.178817204046062",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r2/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.1598511531949045 actual 1.5739318579617247",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r2/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r2/arrowhead-line",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 99.10716553032398 actual 97.1731276512146",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw4-r2/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 98.31488709469382 actual 104.45821907811273",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed1/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.13314538086761107 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed1/rectangle-solid",
+      "difference": "value: set 1 (path) op 1 (bcurveTo) data[0] expected 20.000449558719993 actual 39.48489486403606",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed1/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed1/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9346947485942647 actual 4.074852292321685",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed1/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 4.696467403433171 actual 4.518402295725153",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed1/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 6.000134867615998 actual 11.845468459210817",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed1/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 17",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed1/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 4.069499554810655 actual 5.90823547208054",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed1/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed1/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 96.3999190794304 actual 92.89271892447351",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed1/arrowhead-circle",
+      "difference": "op count: set 0 (path) expected 38 actual 37",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed1/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.13314538086761107 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed1/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 1.230258135125041 actual 0.4640083312988281",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed1/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed1/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9346947485942647 actual 4.074852292321685",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed1/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 11.787237395637197 actual 0.08312981079018478",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed1/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 29.811363869751375 actual 46.955599983094444",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed1/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 6.691411294788122 actual 10.624306879125063",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed1/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.24318771846592435 actual -0.17286051006557557",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed1/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed1/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 4.069499554810655 actual 5.90823547208054",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed1/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.24318771846592435 actual -0.17286051006557557",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed1/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed1/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 97.3650740905013 actual 91.54534184713243",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed1/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 101.08022279676169 actual 98.889927102109",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed1/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected -0.317203333126415 actual -2.1161915160449745",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed1/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected -3.3731009401381016 actual -3.0194482803344727",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed1/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed1/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.507814444823961 actual 4.861693208001617",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed1/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 2.049656080389303 actual 5.091569680840828",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed1/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 12.688620879814664 actual 43.91809781039132",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed1/line-sharp",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 1.7145268954336643 actual -2.5953116416931152",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed1/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.5674380097538232 actual -0.4033411672568121",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed1/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed1/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 8.03412271670009 actual 7.157391470497679",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed1/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 0.5674380097538232 actual -0.4033411672568121",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed1/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed1/arrowhead-line",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 101.71452689543366 actual 97.40468835830688",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed1/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 101.94279516890353 actual 97.73725262413978",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed7/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.13314538086761107 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed7/rectangle-solid",
+      "difference": "value: set 1 (path) op 1 (bcurveTo) data[0] expected 20.00314691103995 actual 20.606347517763783",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed7/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed7/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9346947485942647 actual 4.074852292321685",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed7/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 4.696467403433171 actual 4.518402295725153",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed7/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 6.0009440733119845 actual 6.181904255329134",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed7/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 17",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed7/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 4.069499554810655 actual 5.90823547208054",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed7/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed7/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 96.39943355601281 actual 96.29085744680252",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r0-seed7/arrowhead-circle",
+      "difference": "op count: set 0 (path) expected 38 actual 37",
+      "divergences": [
+        "f32"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed7/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 0.13314538086761107 actual 0",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed7/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 0.6118069458752871 actual -1.8881707936525345",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed7/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed7/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 3.9346947485942647 actual 4.074852292321685",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed7/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 11.297584493808296 actual 14.975944957271182",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed7/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 60.91688834150154 actual 53.82253600426194",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed7/line-sharp",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 4.039879063516855 actual 6.274807511745455",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed7/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -0.6976859707385301 actual -0.8576588613851399",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed7/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed7/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 4.069499554810655 actual 5.90823547208054",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed7/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -0.6976859707385301 actual -0.8576588613851399",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed7/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed7/arrowhead-line",
+      "difference": "value: set 0 (path) op 1 (bcurveTo) data[0] expected 94.37551863350906 actual 96.5110837525257",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r1-seed7/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 98.28333291912983 actual 98.22382060130282",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed7/rectangle",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected -3.0192956170905725 actual -3.115284682024091",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed7/rectangle-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 0.38829341903328896 actual -0.303713321685791",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed7/rectangle-rounded",
+      "difference": "op count: set 0 (fillSketch) expected 108 actual 104",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed7/diamond",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 0.9465326222021386 actual 3.3111727879271537",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed7/ellipse",
+      "difference": "value: set 0 (fillSketch) op 0 (move) data[0] expected 2.997588142659904 actual 8.830027356528063",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed7/ellipse-solid",
+      "difference": "value: set 0 (fillPath) op 0 (move) data[0] expected 71.42258055357695 actual 57.61104906350575",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed7/line-sharp",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -3.9983117319643497 actual 0.3401374816894531",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed7/line-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -1.6279339317232369 actual -2.0012038962976604",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed7/line-loop-solid",
+      "difference": "op count: set 0 (fillPath) expected 5 actual 13",
+      "divergences": [
+        "solid-fill-shape"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed7/line-loop-hachure",
+      "difference": "value: set 0 (fillSketch) op 4 (move) data[0] expected 6.637158836563658 actual 5.282048903693412",
+      "divergences": [
+        "pattern-fill"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed7/arrow-round",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected -1.6279339317232369 actual -2.0012038962976604",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed7/arrow-elbow",
+      "difference": "op count: set 0 (path) expected 10 actual 11",
+      "divergences": [
+        "svg-path"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed7/arrowhead-line",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 96.00168826803565 actual 100.34013748168945",
+      "divergences": [
+        "rng"
+      ]
+    },
+    {
+      "file": "rough-strokes.json",
+      "id": "dotted/sw2-r2-seed7/arrowhead-circle",
+      "difference": "value: set 0 (path) op 0 (move) data[0] expected 96.91335556230338 actual 96.63795237693292",
+      "divergences": [
+        "rng"
       ]
     }
   ]

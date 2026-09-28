@@ -33,6 +33,7 @@ pub const FILES: &[&str] = &[
     "rough-generator.json",
     "rough-fills.json",
     "rough-options.json",
+    "rough-strokes.json",
 ];
 
 /// The relative tolerance of an "exact" match: the port's golden gate

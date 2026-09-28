@@ -32,7 +32,7 @@ Generate goldens first (`ex-004`), run `roughr` against them (`ex-206`), and cho
 `tools/roughr-eval` (a stand-alone package, not a workspace member) replays every rough.js golden through `roughr` 0.14.0 from crates.io, pinned `=0.14.0`:
 
 - `goldens/random.json`: `Random.next()` sequences;
-- `rough-primitives.json`, `rough-generator.json`, `rough-fills.json` and `rough-options.json`: `new RoughGenerator()[method](...args, options)` from roughjs 4.6.4. Each is replayed as the same `roughr::generator::Generator` call.
+- `rough-primitives.json`, `rough-generator.json`, `rough-fills.json`, `rough-options.json` and `rough-strokes.json`: `new RoughGenerator()[method](...args, options)` from roughjs 4.6.4. Each is replayed as the same `roughr::generator::Generator` call. `rough-strokes.json` (ex-205) is Excalidraw's solid, dashed and dotted strokes with the options upstream's `generateRoughOptions` sets for them (`strokeLineDash`, `disableMultiStroke`, `strokeWidth + 0.5`, `preserveVertices`).
 
 Each call gets the options rough.js resolved for that case (the golden drawable's `options`), which is what an adapter would pass. That includes rough.js's `bowing: 1`, since roughr's own default is 2. `stroke`/`fill` `"none"` and `"transparent"` map to no colour.
 
@@ -40,11 +40,11 @@ A case matches when every set type, op kind and number equals the golden after `
 
 The numbers are in `tools/roughr-eval/report.json`. `tools/roughr-eval/tests/eval.rs` fails if that file differs from a fresh run, or if this page does not quote it.
 
-**Match rate.** roughr 0.14.0 matches 56 of 716 goldens (7.8 %). 27 of them draw nothing: `stroke: "none"` without fill, empty paths, and point lists too short to draw. The rest are roughness-0 ellipses, circles, arcs and curves, and zero-length lines.
+**Match rate.** roughr 0.14.0 matches 101 of 1346 goldens (7.5 %). 27 of them draw nothing: `stroke: "none"` without fill, empty paths, and point lists too short to draw. The rest are roughness-0 ellipses, circles, arcs and curves, and zero-length lines.
 
 At roughness 0 a rectangle still differs, because rough.js's line diverge point `0.2 + random() * 0.2` is not scaled by roughness. So no Excalidraw rectangle, diamond, line or arrow matches at any roughness.
 
-**Counterfactual fork.** `tools/roughr-eval/park-miller.patch` swaps rough.js's `Random` in for roughr's `StdRng` and changes nothing else. `python3 tools/roughr-eval/fork.py` applies it to the resolved crate sources under `target/` and writes `report-fork.json`. With rough.js's generator patched in, roughr matches 227 of 716 goldens (31.7 %).
+**Counterfactual fork.** `tools/roughr-eval/park-miller.patch` swaps rough.js's `Random` in for roughr's `StdRng` and changes nothing else. `python3 tools/roughr-eval/fork.py` applies it to the resolved crate sources under `target/` and writes `report-fork.json`. With rough.js's generator patched in, roughr matches 501 of 1346 goldens (37.2 %).
 
 | golden file | cases | exact | two decimals | two decimals, generator patched |
 |---|---|---|---|---|
@@ -53,19 +53,20 @@ At roughness 0 a rectangle still differs, because rough.js's line diverge point 
 | `rough-generator.json` | 228 | 37 | 43 | 110 |
 | `rough-fills.json` | 224 | 0 | 1 | 28 |
 | `rough-options.json` | 140 | 0 | 0 | 7 |
-| total | 716 | 40 | 56 | 227 |
+| `rough-strokes.json` | 630 | 30 | 45 | 274 |
+| total | 1346 | 70 | 101 | 501 |
 
-**Divergences.** Every one of the 660 mismatches is attributed to one divergence, found by reading both sources. A mismatch that the patched build matches is `rng`. Any other mismatch is attributed to the divergence behind the first difference the patched build still has, so each count below is "cases whose first remaining cause is this". The same attribution is in `report.json`, case by case.
+**Divergences.** Every one of the 1245 mismatches is attributed to one divergence, found by reading both sources. A mismatch that the patched build matches is `rng`. Any other mismatch is attributed to the divergence behind the first difference the patched build still has, so each count below is "cases whose first remaining cause is this". The same attribution is in `report.json`, case by case.
 
 | divergence | cases |
 |---|---|
-| `rng` | 171 |
-| `pattern-fill` | 276 |
-| `svg-path` | 123 |
-| `curve-reseed` | 52 |
+| `pattern-fill` | 501 |
+| `rng` | 400 |
+| `svg-path` | 168 |
+| `curve-reseed` | 72 |
+| `solid-fill-shape` | 54 |
+| `f32` | 28 |
 | `path-simplification` | 12 |
-| `solid-fill-shape` | 9 |
-| `f32` | 7 |
 | `seed-range` | 7 |
 | `path-draw-order` | 2 |
 | `fill-sentinel` | 1 |
@@ -103,7 +104,7 @@ What each divergence is:
 
 Recommendation: **port**.
 
-- 7.8 % is far from 100 %, and even the counterfactual fork reaches only 31.7 %.
+- 7.5 % is far from 100 %, and even the counterfactual fork reaches only 37.2 %.
 - What remains after the generator swap is not a small, fixable divergence:
   - the fill algorithm, used by every filled Excalidraw shape;
   - the SVG path parser and renderer, used by every rounded or curved shape;
@@ -114,6 +115,6 @@ Recommendation: **port**.
 
 ## Consequences
 
-- `ex-203` to `ex-205` are a port of rough.js 4.6.4 into `excali-rough`, not adapter work. The port is in place: `crates/excali-rough/tests/goldens.rs` checks the same 716 cases, exactly or within 1e-10 for platform trig, and passes.
+- `ex-203` to `ex-205` are a port of rough.js 4.6.4 into `excali-rough`, not adapter work. The port is in place: `crates/excali-rough/tests/goldens.rs` checks the same 1346 cases, exactly or within 1e-10 for platform trig, and passes.
 - `roughr` is not a dependency of any product crate. `tools/roughr-eval` stays outside the workspace. It is kept so the question can be reopened with numbers if a later roughr release claims rough.js 4.6.4 parity: bump the pin, run `python3 tools/roughr-eval/fork.py --write` and `cargo run --manifest-path tools/roughr-eval/Cargo.toml -- --write`, and update the tables above. The `roughr-eval` CI job checks both reports on every PR.
 - The port is never judged by eye. The goldens become a permanent CI gate (`ex-217`).
