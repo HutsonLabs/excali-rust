@@ -20,4 +20,5 @@ pub mod library;
 pub mod order_key;
 pub mod png;
 pub mod restore;
+pub mod schema;
 pub mod svg_payload;

@@ -407,7 +407,7 @@ fn base_fields_follow_the_upstream_type() {
         ),
         ("link", json!("https://example.com")),
         ("groupIds", json!(["g1", "g2"])),
-        ("angle", json!(1.5707963267948966)),
+        ("angle", json!(std::f64::consts::FRAC_PI_2)),
         ("strokeWidth", json!(0.5)),
     ];
     for (key, value) in set {
@@ -585,14 +585,16 @@ fn enumerations_follow_upstream() {
 }
 
 /// The per-type fields (`types.ts:97-437`): required unless optional (`?`)
-/// upstream, or left out by restore for legacy elements (`polygon`,
-/// `elbowed`: `restore.ts:645-650, 697`).
+/// upstream, or left out by restore, so absent from what upstream writes
+/// (`polygon`, `elbowed`: `restore.ts:645-650, 697`; an image's `fileId`,
+/// copied as `element.fileId` whether or not it is there,
+/// `restore.ts:605-611`).
 #[test]
 fn per_type_fields_follow_the_upstream_types() {
     let v = def_validator(&excalidraw(), "Element");
     let cases: &[(&str, &[&str], &[&str])] = &[
         ("stickynote", &["baseHeight"], &[]),
-        ("image", &["fileId", "status", "scale", "crop"], &[]),
+        ("image", &["status", "scale", "crop"], &["fileId"]),
         ("frame", &["name"], &[]),
         ("magicframe", &["name"], &[]),
         (
@@ -981,43 +983,53 @@ fn files_follow_binary_file_data() {
     );
 }
 
-/// Every element upstream's `restoreElements` returned in
-/// `tests/fixtures/restore-elements.json` (117 scenes) that the typed
-/// codec reads is valid, and the schema accepts no element the codec
-/// rejects.
+/// Every element upstream's restore returned, in
+/// `tests/fixtures/restore-elements.json` (`restoreElements` on 117
+/// scenes) and `tests/fixtures/restore-element.json` (`restoreElement`, 377
+/// cases): the schema accepts it exactly when the typed codec reads it.
 #[test]
 fn upstream_restore_output_agrees_with_the_codec() {
     let v = def_validator(&excalidraw(), "Element");
-    let f = parse(&fixture("restore-elements.json"));
-    let (mut valid, mut rejected) = (0, 0);
-    for case in f["cases"].as_array().expect("cases") {
+    let mut outputs: Vec<(String, Value)> = Vec::new();
+    let scenes = parse(&fixture("restore-elements.json"));
+    for case in scenes["cases"].as_array().expect("cases") {
         let id = case["id"].as_str().expect("id");
-        let Some(result) = case["result"].as_array() else {
-            continue;
-        };
-        for (i, e) in result.iter().enumerate() {
-            let Some(map) = e.as_object() else { continue };
-            let codec = Element::from_map(map.clone());
-            let errs = errors(&v, e);
-            match codec {
-                Ok(_) => {
-                    assert!(errs.is_empty(), "{id} element {i}: {errs:#?}");
-                    valid += 1;
-                }
-                Err(err) => {
-                    assert!(
-                        !errs.is_empty(),
-                        "{id} element {i}: codec rejects ({err}), schema accepts"
-                    );
-                    rejected += 1;
-                }
+        for (i, e) in case["result"].as_array().into_iter().flatten().enumerate() {
+            outputs.push((format!("{id} element {i}"), e.clone()));
+        }
+    }
+    let single = parse(&fixture("restore-element.json"));
+    for case in single["cases"].as_array().expect("cases") {
+        if case["result"].is_object() {
+            let id = case["id"].as_str().expect("id");
+            outputs.push((id.to_owned(), case["result"].clone()));
+        }
+    }
+    let (mut valid, mut rejected) = (0, Vec::new());
+    let mut disagreements = Vec::new();
+    for (what, e) in &outputs {
+        let map = e.as_object().unwrap_or_else(|| panic!("{what}: an object"));
+        let errs = errors(&v, e);
+        match Element::from_map(map.clone()) {
+            Ok(_) if errs.is_empty() => valid += 1,
+            Ok(_) => disagreements.push(format!("{what}: schema rejects: {errs:?}")),
+            Err(_) if !errs.is_empty() => rejected.push(format!("{what}: {errs:?}")),
+            Err(err) => {
+                disagreements.push(format!("{what}: codec rejects ({err}), schema accepts"))
             }
         }
     }
-    assert!(valid > 300, "{valid} restored elements checked");
-    // Upstream's restore keeps a few values the typed model has no form
-    // for; the schema rejects exactly those.
-    assert!(rejected < valid / 10, "{rejected} rejected");
+    assert!(disagreements.is_empty(), "{disagreements:#?}");
+    assert_eq!(valid + rejected.len(), outputs.len());
+    // The other 59 are the fixtures' malformed inputs whose values
+    // upstream's restore keeps as read (`version: "31"`, `id: 7`,
+    // `textAlign: "justify"`, a binding with `mode: 1`, ...), which the
+    // typed model has no form for; both reject those.
+    assert_eq!(
+        (valid, rejected.len()),
+        (534, 59),
+        "valid {valid}, rejected: {rejected:#?}"
+    );
 }
 
 /// Whatever the schema accepts as an element, the typed codec reads: the
@@ -1270,5 +1282,107 @@ fn both_schemas_share_the_element_definitions() {
     assert!(shared.contains_key("Element"));
     for (name, def) in &shared {
         assert_eq!(&lib["$defs"][name], def, "{name}");
+    }
+}
+
+/// Library items hold no deleted elements (`NonDeleted<ExcalidrawElement>`,
+/// `types.ts:647-655`), in both versions.
+#[test]
+fn library_elements_are_not_deleted() {
+    let v = validator(&excalidrawlib());
+    let mut lib = library_v2();
+    lib["libraryItems"][0]["elements"][0]["isDeleted"] = json!(true);
+    assert_invalid_at(
+        &v,
+        &lib,
+        "/libraryItems/0/elements/0/isDeleted",
+        "deleted element in an item",
+    );
+    let v1 = json!({
+        "type": "excalidrawlib",
+        "version": 1,
+        "library": [[with(element_of("rectangle"), "isDeleted", json!(true))]],
+    });
+    assert_invalid_at(&v, &v1, "/library/0/0/isDeleted", "deleted v1 element");
+}
+
+/// The typed views behind the `appState` and `files` definitions read what
+/// the schema accepts and reject what it rejects.
+#[test]
+fn exported_app_state_and_files_are_typed_views() {
+    use excali_core::app_state::{ExportedAppState, EXPORTED_KEYS};
+    use excali_core::document::{BinaryFileData, FileMimeType};
+
+    let scene = excalidraw();
+    let keys: Vec<&str> = scene["$defs"]["ExportedAppState"]["properties"]
+        .as_object()
+        .expect("properties")
+        .keys()
+        .map(String::as_str)
+        .collect();
+    assert_eq!(keys, EXPORTED_KEYS);
+
+    let doc = parse(&fixture("every-type.excalidraw"));
+    let state = doc["appState"].as_object().expect("appState");
+    let typed = ExportedAppState::from_map(state).expect("reads");
+    assert_eq!(typed.grid_size, Some(20.0));
+    assert_eq!(typed.grid_step, Some(5.0));
+    assert_eq!(typed.grid_mode_enabled, Some(false));
+    assert_eq!(typed.view_background_color.as_deref(), Some("#ffffff"));
+    assert_eq!(typed.locked_multi_selections, Some(Map::new()));
+    // Keys other than the five are dropped, as cleanAppStateForExport does.
+    let mut with_theme = state.clone();
+    with_theme.insert("theme".into(), json!("dark"));
+    assert_eq!(
+        ExportedAppState::from_map(&with_theme).expect("reads"),
+        typed
+    );
+    let app_state = def_validator(&scene, "ExportedAppState");
+    for (key, value) in [
+        ("gridSize", json!("20")),
+        ("gridModeEnabled", json!(1)),
+        ("lockedMultiSelections", json!({"g1": false})),
+    ] {
+        let mut bad = state.clone();
+        bad.insert(key.into(), value.clone());
+        assert!(ExportedAppState::from_map(&bad).is_err(), "{key} {value}");
+        assert!(!app_state.is_valid(&Value::Object(bad)), "{key} {value}");
+    }
+    let mut locked = state.clone();
+    locked.insert("lockedMultiSelections".into(), json!({"g1": true}));
+    assert!(ExportedAppState::from_map(&locked).is_ok());
+
+    let files = def_validator(&scene, "BinaryFileData");
+    let file = &doc["files"]["file1"];
+    let typed = BinaryFileData::from_value(file).expect("reads");
+    assert_eq!(typed.mime_type, FileMimeType::Png);
+    assert_eq!(typed.id.0, "file1");
+    assert_eq!(typed.created, 1_700_000_000_000.0);
+    assert_eq!(typed.last_retrieved, Some(1_700_000_000_000.0));
+    assert_eq!(typed.version, None);
+    let written = serde_json::to_value(&typed).expect("writes");
+    assert_valid(&files, &written, "written file");
+    let keys: Vec<&String> = written.as_object().expect("object").keys().collect();
+    assert_eq!(
+        keys,
+        file.as_object().expect("object").keys().collect::<Vec<_>>()
+    );
+    assert_eq!(BinaryFileData::from_value(&written).expect("reads"), typed);
+    for bad in [
+        with(file.clone(), "mimeType", json!("text/plain")),
+        with(file.clone(), "dataURL", json!("https://example.com/a.png")),
+        without(file.clone(), "created"),
+    ] {
+        assert!(BinaryFileData::from_value(&bad).is_err(), "{bad}");
+        assert!(!files.is_valid(&bad), "{bad}");
+    }
+    // Every MIME type the schema allows is a FileMimeType.
+    let mimes = scene["$defs"]["FileMimeType"]["enum"]
+        .as_array()
+        .expect("enum");
+    assert_eq!(mimes.len(), 10);
+    for mime in mimes {
+        let f = with(file.clone(), "mimeType", mime.clone());
+        assert!(BinaryFileData::from_value(&f).is_ok(), "{mime}");
     }
 }

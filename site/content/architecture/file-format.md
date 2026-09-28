@@ -189,6 +189,29 @@ Libraries cannot contain `iframe`, `embeddable` or `image` elements.
 - **Paste:** `parse_clipboard` is `parseClipboard` (`clipboard.ts:523-555`) for `text/plain`, trimmed as `String.prototype.trim` does. Data counts as elements when it parses to an object with `type` `"excalidraw"`, `"excalidraw/clipboard"` or `"excalidraw-api/clipboard"` and an `elements` array (`clipboard.ts:74-88`). The last of these types also sets `programmatic_api`. A plain paste also returns `JSON.stringify(elements, null, 2)` as text. Everything else, including invalid JSON, `null` and `excalidrawlib`, comes back as text. A number literal beyond the f64 range (`1e400`) is `Infinity` to `JSON.parse` and `null` to `JSON.stringify`. `crate::json` reads it as `null`, so such a paste still gives elements and the plain-paste text matches. Only a reader that tells `Infinity` from `null` sees the difference, for example restore's `x ?? 0`. The elements stay untyped for restore. Turning `text/html` into text or mixed content needs a DOM and is left to the host. `parse_clipboard_text` takes the resulting value as it is.
 - **Goldens:** `crates/excali-core/tests/fixtures/clipboard.json` is produced by `tools/goldens/clipboard-fixtures.mjs` from upstream's own functions at the pin, and CI re-checks it. It has 26 copy cases and 78 paste cases. Copy cases are compared byte for byte. The nonces come from upstream's `reseed(seed)`, and `updated` is 1 in test mode.
 
+## JSON Schema
+
+Upstream has no JSON Schema: its TypeScript types are the only description of either format ([research](../../research/data-model/), section 9). The port publishes one per format, in JSON Schema draft 2020-12. This is new documentation, not an upstream artifact:
+
+- [`excalidraw.schema.json`](../../schema/excalidraw.schema.json): a `.excalidraw` scene (`ExportedDataState`, `data/types.ts:14-21`). It covers the elements, the five exported `appState` keys and the `files` map (`BinaryFileData`, `types.ts:118-146`).
+- [`excalidrawlib.schema.json`](../../schema/excalidrawlib.schema.json): a `.excalidrawlib` library. That is version 2 with `libraryItems` (`LibraryItem`, `types.ts:652-660`), or version 1 with `library`, as `isValidLibrary` accepts them (`data/json.ts:128-135`).
+
+Each schema's `$id` is its URL on this site, and each file is self-contained. `excali_core::schema` generates both with `schemars` from the model's own types (`ElementBase`, the per-type field structs, `ExportedAppState`, `BinaryFileData`, `LibraryItem`), so the schemas cannot drift from the codec. After a model change, `cargo run -p excali-core --example write-schemas` rewrites `site/static/schema/`. The test `published_files_match_the_model` in `crates/excali-core/tests/schema.rs` fails in CI while the published files are stale.
+
+What the schemas describe is a file as upstream and the port write it:
+
+- **Required keys.** A key upstream's type declares non-optional is required, including where its value may be `null` (`roundness`, `index`, `frameId`, `boundElements`, `created`, `link`, a text's `containerId`, a line's bindings and arrowheads). Optional keys (`customData?`, `labelPosition?`, the elbow-arrow keys) are optional. So are three keys that restore leaves out when the element it read had none, so upstream writes such elements without them: `polygon` (`restore.ts:645-650`), `elbowed` (`restore.ts:697`) and an image's `fileId` (`restore.ts:605-611`).
+- **Values.** Enumerations are upstream's current values. Legacy ones (`draw`, `dot`, `crowfoot_*`, `strokeSharpness`, bindings without `mode`) are restore's to migrate, and a file that still has them does not validate. Points are `[x, y]` pairs, and font families are non-negative integers. `appState.lockedMultiSelections` maps group ids to `true`. A file's `dataURL` is a `data:` URL, and its `mimeType` is an image type or `application/octet-stream`. Library items hold no deleted elements.
+- **Unknown keys** are allowed everywhere. The port keeps them.
+
+The tests check the schemas against upstream's own output:
+
+- the scene fixtures made by upstream's constructors;
+- 534 elements that upstream's `restoreElement` and `restoreElements` returned (`restore-element.json`, `restore-elements.json`). The schema accepts an element exactly when the typed codec (`Element::from_map`) reads it;
+- all 232 catalogue libraries after restore, written as upstream writes them.
+
+They also check that the schema is never looser than the codec. A file that validates is one the port reads without restore. A file from an older writer may not validate, and the port still reads it through restore.
+
 ## Fixtures
 
-The corpus for conformance tests is listed in the research page section 9 and assembled by task `ex-003`. Upstream has no JSON Schema; task `ex-115` generates one from the Rust types and publishes it here.
+The corpus for conformance tests is listed in the research page section 9 and assembled by task `ex-003`. Upstream has no JSON Schema; the port's own, generated from the Rust types, is described [above](#json-schema).

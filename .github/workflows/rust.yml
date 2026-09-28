@@ -1,5 +1,6 @@
 # Rust gates on every pull request and on main: formatting, clippy with
-# warnings as errors, the test suite, the crate-graph gate (the workspace must
+# warnings as errors, the test suite, the published JSON Schemas against the
+# model (ex-115), the crate-graph gate (the workspace must
 # match site/content/architecture/overview.md), the calendar-version gate
 # (ADR-009), the wasm32 build of every
 # crate that targets it (ADR-008), an MSRV check, and the golden harness on
@@ -34,6 +35,13 @@ jobs:
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: test
         run: cargo test --workspace --locked
+      # ex-115: the published JSON Schemas (site/static/schema/) are what the
+      # model generates. tests/schema.rs checks this as well; this step shows
+      # the diff when they are stale.
+      - name: JSON Schemas up to date
+        run: |
+          cargo run --locked -q -p excali-core --example write-schemas
+          git diff --exit-code -- site/static/schema
       - name: crate-graph gate tests
         run: python3 scripts/gates/test_workspace.py
       - name: crate-graph gate
