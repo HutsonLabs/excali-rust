@@ -95,7 +95,9 @@ if [ "$make_pr" = 1 ]; then
   if [ -n "$existing" ]; then
     echo "   already open: $existing"
   else
-    title="$(git log --format=%s -1 "$branch")"
+    # Title from the oldest commit on the branch: that is the change the branch
+    # exists for; later commits are follow-ups.
+    title="$(git log --format=%s --reverse "origin/$base..$branch" | head -1)"
     body="$(mktemp)"
     {
       git log --format='%b' "origin/$base..$branch" | sed '/^$/N;/^\n$/D'

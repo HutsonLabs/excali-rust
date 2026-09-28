@@ -23,15 +23,14 @@ jobs:
         run: python3 scripts/gates/attribution.py files --all
       - name: render task graph into the site
         run: python3 scripts/tasks/render-progress.py
-      - name: build with zola
+      # The action builds AND uploads the github-pages artifact itself (its
+      # third step); a second upload-pages-artifact here conflicts (409).
+      - name: build with zola and upload the pages artifact
         uses: getzola/github-pages@066755243e69f508fd1a74739fbf1a65f656c790
         with:
           zola_version: v0.22.0
           working_directory: site
           check_links: false
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site/public
   deploy:
     needs: build
     runs-on: ubuntu-latest

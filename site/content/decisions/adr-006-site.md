@@ -9,7 +9,7 @@ weight = 6
 ## Evidence
 
 - Zola 0.22.0 is the version the official `getzola/github-pages` action documents (`zola_version: v0.22.0`; "GitHub Pages must be configured to use GitHub Actions in the repository settings"). Its release tarball for x86_64 Linux was downloaded on 2026-09-28 with SHA-256 `f1d491f8956b94384c27d75cb6b2bf60d3916d1ade9564bcbfe7c03f0258aebf`, recorded in `scripts/site/zola.sh`.
-- `actions/deploy-pages@v4` with `pages: write` and `id-token: write` and the `github-pages` environment is the documented deployment (README of `actions/deploy-pages`); `actions/upload-pages-artifact@v3` is the documented companion; `actions/checkout@v7` is current and is what term.hut's workflows use.
+- `actions/deploy-pages@v4` with `pages: write` and `id-token: write` and the `github-pages` environment is the documented deployment (README of `actions/deploy-pages`); `actions/upload-pages-artifact@v3` is the documented companion, but the Zola action runs that upload itself, so the workflow must not repeat it (the first run on `main` failed with a 409 artifact conflict until it was removed); `actions/checkout@v7` is current and is what term.hut's workflows use.
 - HutsonLabs' existing site (termhut.hutsonlabs.com) is a hand-written static page on Cloudflare with a design-system directory whose tokens this site reuses for its chrome.
 
 ## Decision
