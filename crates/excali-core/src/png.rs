@@ -31,6 +31,7 @@ use serde_json::{Map, Value};
 use crate::constants::{EXPORT_DATA_TYPE_EXCALIDRAW, MIME_TYPE_EXCALIDRAW};
 use crate::encode::checksum::{crc32, crc32_zeros};
 use crate::encode::{decode, encode, to_byte_string, DecodeError, EncodedData, InflateError};
+use crate::js;
 use crate::json;
 
 /// The PNG signature png-chunks-encode writes and png-chunks-extract checks.
@@ -401,8 +402,10 @@ pub fn decode_png_metadata(png: &[u8]) -> Result<Option<String>, DecodePngMetada
 /// A string gives the low byte of each UTF-16 code unit. For anything else
 /// the buffer is `new ArrayBuffer(value.length)` and the loop calls
 /// `value.charCodeAt`, which no non-string has: it throws on `null`
-/// (`null.length`), whenever the loop runs (`0 < value.length`), and when
-/// `ArrayBuffer` rejects the length; otherwise the buffer is empty.
+/// (`null.length`), whenever the loop runs (`0 < value.length`), when
+/// ToIndex's ToPrimitive throws on the length (an object with an own
+/// `toString` key, or an array holding one) and when `ArrayBuffer` rejects
+/// the length; otherwise the buffer is empty.
 fn byte_string_of(encoded: &Value) -> Option<String> {
     let length = match encoded {
         Value::String(s) => {
@@ -416,165 +419,18 @@ fn byte_string_of(encoded: &Value) -> Option<String> {
         // `(5).length`, `true.length`: undefined.
         Value::Bool(_) | Value::Number(_) => f64::NAN,
         Value::Array(items) => items.len() as f64,
-        Value::Object(map) => map.get("length").map_or(f64::NAN, to_number),
+        // ToNumber of `value.length`, which throws (TypeError) where
+        // ToPrimitive does: an own `toString` key.
+        Value::Object(map) => js::to_number(map.get("length")).ok()?,
     };
     // ToIndex(length) throws below -1 (after truncation) and the loop runs
     // above 0; NaN and (-1, 0] leave an empty buffer and no loop.
     (length.is_nan() || (length > -1.0 && length <= 0.0)).then(String::new)
 }
 
-/// ECMAScript `ToNumber` of a JSON value (`JSON.parse` output).
-fn to_number(value: &Value) -> f64 {
-    match value {
-        Value::Null => 0.0,
-        Value::Bool(b) => f64::from(u8::from(*b)),
-        Value::Number(n) => n.as_f64().unwrap_or(f64::NAN),
-        Value::String(s) => string_to_number(&json::decode_str(s)),
-        // ToPrimitive: `Array.prototype.toString`, i.e. `join(",")`. Two or
-        // more items always leave a comma, which is not numeric.
-        Value::Array(items) => match items.as_slice() {
-            [] => 0.0,
-            [Value::Null] => 0.0,
-            [item @ (Value::Number(_) | Value::String(_) | Value::Array(_))] => to_number(item),
-            _ => f64::NAN,
-        },
-        // "[object Object]"
-        Value::Object(_) => f64::NAN,
-    }
-}
-
-/// `StrWhiteSpaceChar`: WhiteSpace and LineTerminator.
-fn is_js_space(c: char) -> bool {
-    matches!(
-        c,
-        '\u{9}' | '\u{a}' | '\u{b}' | '\u{c}' | '\u{d}' | ' ' | '\u{a0}' | '\u{1680}' | '\u{2000}'
-            ..='\u{200a}'
-                | '\u{2028}'
-                | '\u{2029}'
-                | '\u{202f}'
-                | '\u{205f}'
-                | '\u{3000}'
-                | '\u{feff}'
-    )
-}
-
-/// ECMAScript `StringToNumber`.
-fn string_to_number(s: &str) -> f64 {
-    let s = s.trim_matches(is_js_space);
-    if s.is_empty() {
-        return 0.0;
-    }
-    // NonDecimalIntegerLiteral, unsigned and without separators.
-    let radix = match s.get(..2) {
-        Some("0x" | "0X") => Some(16),
-        Some("0o" | "0O") => Some(8),
-        Some("0b" | "0B") => Some(2),
-        _ => None,
-    };
-    if let Some(radix) = radix {
-        let digits = &s[2..];
-        if digits.is_empty() || !digits.chars().all(|c| c.is_digit(radix)) {
-            return f64::NAN;
-        }
-        return digits.chars().fold(0.0, |acc, c| {
-            acc * f64::from(radix) + f64::from(c.to_digit(radix).unwrap_or(0))
-        });
-    }
-    // StrDecimalLiteral.
-    let (sign, unsigned) = match s.as_bytes()[0] {
-        b'+' => (1.0, &s[1..]),
-        b'-' => (-1.0, &s[1..]),
-        _ => (1.0, s),
-    };
-    if unsigned == "Infinity" {
-        return sign * f64::INFINITY;
-    }
-    if !is_unsigned_decimal(unsigned) {
-        return f64::NAN;
-    }
-    sign * unsigned.parse::<f64>().unwrap_or(f64::NAN)
-}
-
-/// `StrUnsignedDecimalLiteral`: `digits [. [digits]] [exponent]` or
-/// `. digits [exponent]`.
-fn is_unsigned_decimal(s: &str) -> bool {
-    let b = s.as_bytes();
-    let digits = |from: usize| b[from..].iter().take_while(|c| c.is_ascii_digit()).count();
-    let int = digits(0);
-    let mut i = int;
-    let mut frac = 0;
-    if b.get(i) == Some(&b'.') {
-        frac = digits(i + 1);
-        i += 1 + frac;
-    }
-    if int == 0 && frac == 0 {
-        return false;
-    }
-    if matches!(b.get(i), Some(b'e' | b'E')) {
-        i += 1;
-        if matches!(b.get(i), Some(b'+' | b'-')) {
-            i += 1;
-        }
-        let exp = digits(i);
-        if exp == 0 {
-            return false;
-        }
-        i += exp;
-    }
-    i == b.len()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn string_to_number_follows_ecmascript() {
-        let nan = f64::NAN;
-        for (s, want) in [
-            ("", 0.0),
-            ("  ", 0.0),
-            ("\u{a0} 0 \n", 0.0),
-            ("0", 0.0),
-            ("-0", -0.0),
-            ("+1.5", 1.5),
-            (".5", 0.5),
-            ("5.", 5.0),
-            (".", nan),
-            ("1e3", 1000.0),
-            ("1E+3", 1000.0),
-            ("1e-400", 0.0),
-            ("1e", nan),
-            ("0x1F", 31.0),
-            ("0X1f", 31.0),
-            ("-0x1", nan),
-            ("0x", nan),
-            ("0b101", 5.0),
-            ("0o17", 15.0),
-            ("0o8", nan),
-            ("Infinity", f64::INFINITY),
-            ("-Infinity", f64::NEG_INFINITY),
-            ("infinity", nan),
-            ("inf", nan),
-            ("NaN", nan),
-            ("1_0", nan),
-            ("00", 0.0),
-            ("abc", nan),
-            ("1 2", nan),
-        ] {
-            let got = string_to_number(s);
-            if want.is_nan() {
-                assert!(got.is_nan(), "{s:?}: {got}");
-            } else {
-                assert_eq!(got, want, "{s:?}");
-                assert_eq!(
-                    got.is_sign_negative(),
-                    want.is_sign_negative(),
-                    "{s:?}: sign"
-                );
-            }
-        }
-    }
 
     #[test]
     fn byte_string_of_non_strings() {
@@ -594,6 +450,9 @@ mod tests {
             ("{\"length\":[[]]}", Some("")),
             ("{\"length\":[1]}", None),
             ("{\"length\":{}}", Some("")),
+            ("{\"length\":{\"toString\":1}}", None),
+            ("{\"length\":[{\"toString\":1}]}", None),
+            ("{\"length\":{\"valueOf\":1}}", Some("")),
         ] {
             assert_eq!(byte_string_of(&v(encoded)).as_deref(), want, "{encoded}");
         }
