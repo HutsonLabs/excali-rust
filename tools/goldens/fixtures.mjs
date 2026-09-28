@@ -409,6 +409,124 @@ export const EASINGS = {
   linear: (t) => t,
 };
 
+// -- laser pointer (ex-214) ---------------------------------------------------
+
+/**
+ * Named `sizeMapping`s for the laser-pointer cases (a function cannot be
+ * written to JSON). `constantWidth` is getConstantWidthFreedrawOutline's
+ * (packages/element/src/shape.ts:1247-1253); `trail` is laserTrails.ts:28-40
+ * with the timestamp in milliseconds carried as the pressure, as the laser
+ * tool does with performance.now(), read against a fixed clock of 1000 ms.
+ */
+export const SIZE_MAPPINGS = {
+  one: () => 1,
+  constantWidth: (d) => Math.max(0.1, d.pressure),
+  pressure: (d) => d.pressure,
+  tiny: () => 0.1,
+  zero: () => 0,
+  zeroBefore3: (d) => (d.currentIndex < 3 ? 0 : 1),
+  firstIndexTiny: (d) => (d.currentIndex === 0 ? 0.01 : 1),
+  trail: (d) => {
+    const easeOut = (k) => 1 - Math.pow(1 - k, 4); // common/src/utils.ts:232-234
+    const t = Math.max(0, 1 - (1000 - d.pressure) / 1000);
+    const l = (50 - Math.min(50, d.totalLength - d.currentIndex)) / 50;
+    return Math.min(easeOut(l), easeOut(t));
+  },
+};
+
+/** A laser trail: the pressure of point i is its timestamp. */
+const timed = (points) => points.map(([x, y], i) => [x, y, 400 + i * 25]);
+const withR = (points, r) => points.map(([x, y]) => [x, y, r]);
+
+/**
+ * Direct cases for the vendored laser-pointer (packages/laser-pointer/src):
+ * `new LaserPointer(options)`, `addPoint` for each point, then `close()` if
+ * `close`, `options.keepHead = keepHeadAfter` if set (animatedTrail.ts:131-132),
+ * and `getStrokeOutline(sizeOverride)`. `sizeMapping` is named, see
+ * SIZE_MAPPINGS.
+ */
+export const laserPointerCases = () => {
+  const cases = [];
+  const add = (id, points, options, extra = {}) => cases.push({ id, points, options, ...extra });
+  const excalidraw = (sw, streamline) => ({ size: sw * 1.4, streamline, simplify: 0, sizeMapping: "constantWidth" });
+  // getConstantWidthFreedrawOutline's calls: [x, y, 1] with Excalidraw's options
+  for (const [name, points] of Object.entries(FREEHAND_POINTS)) {
+    for (const sw of STROKE_WIDTHS) add(`excalidraw/${name}-sw${sw}`, withR(points, 1), excalidraw(sw, 0.5));
+    add(`excalidraw/${name}-sw2-streamline0.2`, withR(points, 1), excalidraw(2, 0.2));
+  }
+  // Every other branch of the library: the defaults (size 2, streamline
+  // 0.45, simplify 0.1 on the output), the three simplify phases (tail
+  // throws once the tail is stabilised), corners turning either way and at
+  // speed, zero sizes before the visible start, keepHead, size overrides,
+  // one and two points, duplicates and no points.
+  const { wave: w, scribble: s, loop: l, dot, pair } = FREEHAND_POINTS;
+  // spikes of about 28 degrees, turning left and right (corners below 75)
+  const zigzag = [[0, 0], [10, 40], [20, 0], [30, 40], [40, 0], [50, 40], [60, 0]];
+  const hairpins = [[0, 0], [30, 0], [60, 0], [58, 4], [30, 6], [0, 8], [2, 12], [30, 14]];
+  // at a smoothed speed over 35 the corner angle halves to 37.5 degrees: the
+  // 45-degree turn at (400, 0) is not a corner, the spike at (440, 60) is
+  const fast = [[0, 0], [100, 0], [200, 0], [300, 0], [400, 0], [340, 60], [440, 60], [340, 70], [360, 150]];
+  const reversal = [[0, 0], [20, 0], [40, 0], [20, 0], [0, 0], [20, 0]];
+  const edge = (id, points, options, extra) => add(`edge/${id}`, points, options, extra);
+  edge("defaults-wave", withR(w, 1), {});
+  edge("defaults-scribble", withR(s, 1), {});
+  edge("defaults-loop", withR(l, 1), {});
+  edge("simplify-output-1.5", withR(w, 1), { size: 6, simplify: 1.5 });
+  edge("simplify-output-8", withR(l, 1), { size: 6, simplify: 8 });
+  edge("simplify-input-2", withR(w, 1), { size: 4, simplify: 2, simplifyPhase: "input" });
+  edge("simplify-input-pair", withR(pair, 1), { size: 4, simplify: 2, simplifyPhase: "input" });
+  edge("simplify-tail-short", withR(s.slice(0, 5), 1), { size: 4, simplify: 1, simplifyPhase: "tail" });
+  edge("simplify-tail-long", withR(w, 1), { size: 4, simplify: 1, simplifyPhase: "tail" });
+  edge("simplify-tail-close", withR(s.slice(0, 5), 1), { size: 4, simplify: 1, simplifyPhase: "tail" }, { close: true });
+  edge("simplify-tail-off", withR(w, 1), { size: 4, simplify: 0, simplifyPhase: "tail" }, { close: true });
+  edge("streamline-0", withR(s, 1), { size: 3, streamline: 0, simplify: 0 });
+  edge("streamline-0.9", withR(s, 1), { size: 3, streamline: 0.9, simplify: 0 });
+  edge("zigzag", withR(zigzag, 1), { size: 5, streamline: 0, simplify: 0 });
+  edge("zigzag-reversed", withR([...zigzag].reverse(), 1), { size: 5, streamline: 0, simplify: 0 });
+  edge("hairpins", withR(hairpins, 1), { size: 3, streamline: 0, simplify: 0 });
+  edge("fast-corners", withR(fast, 1), { size: 8, streamline: 0, simplify: 0 });
+  edge("reversal", withR(reversal, 1), { size: 4, streamline: 0, simplify: 0 });
+  edge(
+    "duplicates",
+    withR([[0, 0], [0, 0], [10, 0], [10, 0], [10, 0], [25, 5], [25, 5], [40, 20], [40, 20]], 1),
+    { size: 4, streamline: 0.3, simplify: 0 },
+  );
+  edge("same-xy-new-pressure", [[5, 5, 1], [5, 5, 0.2], [15, 5, 1], [15, 5, 0.5], [25, 9, 1]], {
+    size: 4,
+    simplify: 0,
+    sizeMapping: "pressure",
+  });
+  edge("pressure", s.map(([x, y], i) => [x, y, 0.2 + ((i * 7) % 10) / 10]), { size: 5, simplify: 0, sizeMapping: "pressure" });
+  edge("pressure-constant-width", s.map(([x, y], i) => [x, y, ((i * 3) % 5) / 10]), {
+    size: 5,
+    simplify: 0,
+    sizeMapping: "constantWidth",
+  });
+  edge("zero-before-3", withR(s, 1), { size: 4, simplify: 0, sizeMapping: "zeroBefore3" });
+  edge("zero-before-3-short", withR(s.slice(0, 5), 1), { size: 4, simplify: 0, sizeMapping: "zeroBefore3" });
+  edge("zero", withR(s, 1), { size: 4, simplify: 0, sizeMapping: "zero" });
+  edge("zero-keep-head", withR(s, 1), { size: 4, simplify: 0, sizeMapping: "zero", keepHead: true });
+  edge("keep-head", timed(w), { size: 4, simplify: 0, keepHead: true, sizeMapping: "trail" });
+  edge("keep-head-closed", timed(w), { size: 4, simplify: 0, keepHead: true, sizeMapping: "trail" }, {
+    close: true,
+    keepHeadAfter: false,
+  });
+  edge("first-index-tiny", withR(w, 1), { size: 4, simplify: 0, sizeMapping: "firstIndexTiny" });
+  edge("trail", timed(w), { size: 4, streamline: 0.4, simplify: 0, sizeMapping: "trail" });
+  edge("trail-size-override", timed(w), { size: 4, streamline: 0.4, simplify: 0, sizeMapping: "trail" }, { sizeOverride: 2.5 });
+  edge("size-override", withR(s, 1), { size: 4, simplify: 0 }, { sizeOverride: 1.5 });
+  edge("dot", withR(dot, 1), { size: 3 });
+  edge("dot-tiny", withR(dot, 1), { size: 3, sizeMapping: "tiny" });
+  edge("dot-size-override", withR(dot, 1), { size: 3 }, { sizeOverride: 7 });
+  edge("pair", withR(pair, 1), { size: 3 });
+  edge("pair-vertical", withR([[0, 0], [0, 12]], 1), { size: 3, streamline: 0 });
+  edge("pair-tiny", withR(pair, 1), { size: 3, sizeMapping: "tiny" });
+  edge("pair-one-tiny", [[0, 0, 1], [12, 5, 0.1]], { size: 3, streamline: 0, sizeMapping: "pressure" });
+  edge("all-duplicates", withR([[7, 3], [7, 3], [7, 3]], 1), { size: 3 });
+  edge("empty", [], {});
+  return cases;
+};
+
 const freedrawCases = () => {
   const cases = [];
   const add = (id, points, props, extra) =>

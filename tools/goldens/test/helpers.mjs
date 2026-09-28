@@ -222,6 +222,7 @@ export const ALL_FILES = [
   ...ROUGH_FILES,
   ...ELEMENT_FILES,
   "freehand.json",
+  "laser-pointer.json",
   "math.json",
   "js-sort.json",
   "fractional-indexing.json",

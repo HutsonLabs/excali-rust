@@ -517,6 +517,44 @@ test("freedraw element outlines equal the direct perfect-freehand goldens they s
   assert.ok(matched >= 3);
 });
 
+test("laser-pointer.json: constant-width freedraw options and the library's branches (ex-214)", () => {
+  const cs = cases("laser-pointer.json");
+  const byId = new Map(cs.map((c) => [c.id, c]));
+  const excalidraw = cs.filter((c) => c.id.startsWith("excalidraw/"));
+  assert.ok(excalidraw.length >= 15);
+  for (const c of excalidraw) {
+    // getConstantWidthFreedrawOutline (shape.ts:1247-1268): size sw * 1.4,
+    // simplify 0, sizeMapping max(0.1, pressure), every point at pressure 1
+    const sw = Number(c.id.match(/-sw(\d)/)[1]);
+    assert.equal(c.options.size, sw * 1.4, c.id);
+    assert.equal(c.options.simplify, 0, c.id);
+    assert.equal(c.options.sizeMapping, "constantWidth", c.id);
+    assert.ok(c.points.every((p) => p[2] === 1), `${c.id}: pressure 1`);
+    assert.ok(c.outline.length > 0, c.id);
+  }
+  // Each constant-width element outline is the direct laser pointer's outline
+  // for the same points, stroke width and streamline, without the third
+  // coordinate.
+  let matched = 0;
+  for (const c of cases("elements-freedraw.json")) {
+    if (c.element.strokeOptions?.variability !== "constant") continue;
+    const name = c.id.replace("freedraw/", "").replace(/-constant(-sw\d)?$/, "").replace("-fill", "");
+    const direct = byId.get(`excalidraw/${name}-sw${c.element.strokeWidth}`);
+    assert.ok(direct, c.id);
+    assert.equal(c.element.strokeOptions.streamline, direct.options.streamline, c.id);
+    assert.deepEqual(c.outline, direct.outline.map(([x, y]) => [x, y]), c.id);
+    matched++;
+  }
+  assert.equal(matched, 16);
+  for (const id of ["edge/simplify-tail-long", "edge/simplify-tail-close"]) {
+    assert.equal(byId.get(id).error.message, "Not implemented yet", id);
+  }
+  for (const id of ["edge/empty", "edge/zero", "edge/dot-tiny", "edge/pair-tiny", "edge/zero-before-3-short"]) {
+    assert.deepEqual(byId.get(id).outline, [], id);
+  }
+  assert.equal(byId.get("edge/duplicates").originalPoints.length, 4);
+});
+
 // The rocicorp fractional-indexing suite (src/test.js at v3.2.0, fetched
 // 2026-09-28), restated: the vendored copy must still produce these keys.
 test("fractional-indexing goldens reproduce the rocicorp suite", () => {
