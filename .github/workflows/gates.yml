@@ -199,9 +199,11 @@ jobs:
   # fixtures, built by upstream's constructors and serializeAsJSON, and
   # restore-fixtures.mjs --check for restore-base.json and
   # restore-element.json, upstream's own restoreElementWithProperties and
-  # restoreElement on tables of inputs, and clipboard-fixtures.mjs --check
+  # restoreElement on tables of inputs, clipboard-fixtures.mjs --check
   # for clipboard.json, upstream's own serializeAsClipboardJSON and
-  # parseClipboard.
+  # parseClipboard, and rough-options.mjs --check for excali-scene's
+  # rough-options.json, upstream's own generateRoughOptions and
+  # applyDarkModeFilter.
   # Runs on arm64: V8's float results for some shapes differ in the last bits
   # between x64 and arm64, and the committed goldens are the arm64 output
   # (macOS and Linux arm64 agree byte for byte).
@@ -228,3 +230,5 @@ jobs:
         run: node tools/goldens/app-state.mjs --check
       - name: excali-core clipboard fixtures match the generator
         run: node tools/goldens/clipboard-fixtures.mjs --check
+      - name: excali-scene rough option goldens match the generator
+        run: node tools/goldens/rough-options.mjs --check

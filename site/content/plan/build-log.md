@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-207 · Option mapping: generateRoughOptions and adjustRoughness with all constants
+
+`excali-scene` now maps an element to rough.js options as upstream's `generateRoughOptions` and `adjustRoughness` do. That covers seeds, stroke dash and dot patterns, fill styles, the roughness reduction for small shapes and the keep-roughness cases, `isPathALoop` fills for closed lines, and dark-mode colours through `applyDarkModeFilter` in `excali-core`. The port matches goldens generated from upstream's own functions, and CI checks those goldens. PR: [#27](https://github.com/HutsonLabs/excali-rust/pull/27).
+
 ## 2026-09-28 · ex-104 · Restore: per-type rules (text, freedraw, image, line/draw, arrow, stickynote, frame)
 
 `excali-core` now restores each element type as upstream's `restoreElement` does. That covers the legacy font string and line height detection, freedraw points and stroke options, image defaults, draw to line, arrowhead renames, point re-basing, the 75000 px cap, binding repair, the fixedSegments rule, sticky notes and frame names. The port matches a fixture table generated from upstream's own `restoreElement` and the `restore.test.ts` cases. The legacy binding migration is tracked separately as ex-116. PR: [#26](https://github.com/HutsonLabs/excali-rust/pull/26).

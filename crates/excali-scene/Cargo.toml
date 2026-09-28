@@ -8,5 +8,14 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
+[dependencies]
+excali-core = { path = "../excali-core" }
+excali-math = { path = "../excali-math" }
+
+# serde_json reads tests/fixtures/*.json in the parity tests and never
+# reaches the library.
+[dev-dependencies]
+serde_json = { workspace = true }
+
 [lints]
 workspace = true

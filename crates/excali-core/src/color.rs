@@ -160,6 +160,65 @@ pub fn is_transparent(color: &str) -> bool {
     TinyColor::parse(color).alpha() == 0.0
 }
 
+/// `DARK_MODE_FILTER_INVERT_PERCENT`, `colors.ts:16`.
+const DARK_MODE_FILTER_INVERT_PERCENT: f64 = 93.0;
+/// `DARK_MODE_FILTER_HUE_ROTATE_DEGREES`, `colors.ts:17`.
+const DARK_MODE_FILTER_HUE_ROTATE_DEGREES: f64 = 180.0;
+
+/// `applyDarkModeFilter(color, enable)` (`colors.ts:86-125`): the colour
+/// the canvas shows through `DARK_THEME_FILTER`, CSS
+/// `invert(93%) hue-rotate(180deg)`, computed numerically as `#rrggbb` (or
+/// `#rrggbbaa` below alpha 1; the alpha is kept). A string tinycolor does
+/// not recognise reads as opaque black. With `enable` false the colour is
+/// returned as given. Upstream's browser-only memo cache
+/// (`DARK_MODE_COLORS_CACHE`) does not change the result and is not ported.
+pub fn apply_dark_mode_filter(color: &str, enable: bool) -> String {
+    if !enable {
+        return color.to_owned();
+    }
+    let tc = TinyColor::parse(color);
+    let alpha = tc.alpha();
+    // Order matters: invert, then hue-rotate, as the CSS filter list.
+    let (r, g, b, _) = tc.to_rgb();
+    let inverted = css_invert(r, g, b, DARK_MODE_FILTER_INVERT_PERCENT);
+    let (r, g, b) = css_hue_rotate(inverted, DARK_MODE_FILTER_HUE_ROTATE_DEGREES);
+    rgb_to_hex(r, g, b, alpha)
+}
+
+/// `cssInvert(r, g, b, percent)` (`colors.ts:62-84`).
+fn css_invert(r: f64, g: f64, b: f64, percent: f64) -> (f64, f64, f64) {
+    let p = excali_math::clamp(percent, 0.0, 100.0) / 100.0;
+    let invert = |c: f64| {
+        let inverted = c * (1.0 - p) + (255.0 - c) * p;
+        js::round(excali_math::clamp(inverted, 0.0, 255.0))
+    };
+    (invert(r), invert(g), invert(b))
+}
+
+/// `cssHueRotate(red, green, blue, degrees)` (`colors.ts:19-60`): the
+/// `hue-rotate()` matrix of the Filter Effects spec.
+fn css_hue_rotate((red, green, blue): (f64, f64, f64), degrees: f64) -> (f64, f64, f64) {
+    let (r, g, b) = (red / 255.0, green / 255.0, blue / 255.0);
+    let a = excali_math::degrees_to_radians(excali_math::Degrees(degrees)).0;
+    let (c, s) = (a.cos(), a.sin());
+    let m = [
+        0.213 + c * 0.787 - s * 0.213,
+        0.715 - c * 0.715 - s * 0.715,
+        0.072 - c * 0.072 + s * 0.928,
+        0.213 - c * 0.213 + s * 0.143,
+        0.715 + c * 0.285 + s * 0.14,
+        0.072 - c * 0.072 - s * 0.283,
+        0.213 - c * 0.213 - s * 0.787,
+        0.715 - c * 0.715 + s * 0.715,
+        0.072 + c * 0.928 + s * 0.072,
+    ];
+    let new_r = r * m[0] + g * m[1] + b * m[2];
+    let new_g = r * m[3] + g * m[4] + b * m[5];
+    let new_b = r * m[6] + g * m[7] + b * m[8];
+    let to_byte = |x: f64| js::round(js::max(0.0, js::min(1.0, x)) * 255.0);
+    (to_byte(new_r), to_byte(new_g), to_byte(new_b))
+}
+
 /// `rgbToHex(r, g, b, a)` (`colors.ts:335-352`).
 fn rgb_to_hex(r: f64, g: f64, b: f64, a: f64) -> String {
     // `<<` converts with ToInt32; the components are integers in 0..=255.
