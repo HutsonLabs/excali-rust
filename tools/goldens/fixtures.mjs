@@ -608,6 +608,77 @@ const iframeLikeCases = () => {
   return cases;
 };
 
+// -- the M2 matrix (ex-g202) ---------------------------------------------------
+
+const freedrawElement = (points, variability) =>
+  base("", "freedraw", {
+    ...bounds(points),
+    points,
+    pressures: [],
+    simulatePressure: true,
+    strokeOptions: { variability, streamline: 0.5 },
+  });
+
+/**
+ * Every element type, each with a background colour, at every fill style x
+ * roughness x seed. Types with more than one rendering path appear once per
+ * path: sharp and rounded boxes (roundness 3 for rectangles, 2 for
+ * diamonds), line loops sharp and curved and a polygon line, arrows sharp
+ * and curved with a filled (triangle) end head, freedraw loops at variable
+ * and constant width. Text, image, frame, magicframe and stickynote have no
+ * rough shape (shape.ts:996-1006) and are recorded to prove it.
+ */
+const MATRIX_VARIANTS = {
+  rectangle: () => base("", "rectangle"),
+  "rectangle-round": () => base("", "rectangle", { roundness: { type: 3 } }),
+  diamond: () => base("", "diamond"),
+  "diamond-round": () => base("", "diamond", { roundness: { type: 2 } }),
+  ellipse: () => base("", "ellipse"),
+  iframe: () => base("", "iframe"),
+  embeddable: () => base("", "embeddable"),
+  "line-loop": () => linear("", "line", LOOP),
+  "line-loop-curve": () => linear("", "line", LOOP, { roundness: { type: 2 } }),
+  "line-polygon": () => linear("", "line", TRIANGLE, { polygon: true }),
+  arrow: () => linear("", "arrow", ZIGZAG, { endArrowhead: "triangle" }),
+  "arrow-curve": () => linear("", "arrow", ZIGZAG, { endArrowhead: "triangle", roundness: { type: 2 } }),
+  "freedraw-variable": () => freedrawElement(FREEHAND_POINTS.loop, "variable"),
+  "freedraw-constant": () => freedrawElement(FREEHAND_POINTS.loop, "constant"),
+  // packages/excalidraw/tests/fixtures/elementFixture.ts textFixture
+  // (fontFamily 5 is DEFAULT_FONT_FAMILY, Excalifont)
+  text: () =>
+    base("", "text", {
+      fontSize: 20,
+      baseFontSize: null,
+      fontFamily: 5,
+      text: "original text",
+      originalText: "original text",
+      textAlign: "left",
+      verticalAlign: "top",
+      containerId: null,
+      lineHeight: 1.25,
+      autoResize: false,
+    }),
+  image: () => base("", "image", { fileId: null, status: "pending", scale: [1, 1], crop: null }),
+  frame: () => base("", "frame", { name: null }),
+  magicframe: () => base("", "magicframe", { name: null }),
+  stickynote: () => base("", "stickynote", { baseHeight: 120 }),
+};
+
+const matrixCases = () => {
+  const cases = [];
+  for (const [variant, make] of Object.entries(MATRIX_VARIANTS)) {
+    for (const fillStyle of FILL_STYLES) {
+      for (const roughness of ROUGHNESSES) {
+        for (const seed of SEEDS) {
+          const element = { ...make(), backgroundColor: BACKGROUND, fillStyle, roughness, seed };
+          cases.push(elementCase(`matrix/${variant}/${fillStyle}-r${roughness}-seed${seed}`, element));
+        }
+      }
+    }
+  }
+  return cases;
+};
+
 /** Upstream's own fixtures (tests/fixtures/elementFixture.ts). */
 const upstreamFixtureCases = (fixtures) => {
   const cases = [];
@@ -677,6 +748,12 @@ export const elementGoldens = (upstream) => [
     name: "elements-iframe-like.json",
     description: "Iframes and embeddables: placeholder and default colours from modifyIframeLikeForRoughOptions.",
     cases: iframeLikeCases(),
+  },
+  {
+    name: "elements-matrix.json",
+    description:
+      "The M2 matrix: every element type with a background colour at every fillStyle (hachure, cross-hatch, zigzag, solid) x roughness 0, 1, 2 x seed 1, 7, 1041657908. Rectangles sharp and at roundness 3, diamonds sharp and at roundness 2, ellipses, iframes, embeddables, line loops (sharp, curved) and polygon lines, arrows (sharp, curved) with a filled triangle end head, freedraw loops at variable and constant width; text, image, frame, magicframe and stickynote have no shape.",
+    cases: matrixCases(),
   },
 ];
 
