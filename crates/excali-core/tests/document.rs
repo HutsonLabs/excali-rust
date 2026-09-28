@@ -454,16 +454,125 @@ fn absent_optional_element_keys_stay_absent() {
 }
 
 // ---------------------------------------------------------------------------
-// Validation (isValidExcalidrawData, json.ts:115-126)
+// Validation (isValidExcalidrawData, json.ts:115-126):
+//
+//   data?.type === "excalidraw" &&
+//   (!data.elements ||
+//     (Array.isArray(data.elements) &&
+//       (!data.appState || typeof data.appState === "object")))
+//
+// A value upstream accepts but the model cannot type is kept as read.
+
+/// `true` when `Document::from_json` accepts `text`; an accepted document
+/// must also write back exactly what `JSON.stringify(JSON.parse(text), null,
+/// 2)` writes.
+fn accepted(text: &str) -> bool {
+    match Document::from_json(text) {
+        Ok(doc) => {
+            assert_eq!(doc.to_json(), json::round_trip(text).unwrap(), "{text}");
+            true
+        }
+        Err(_) => false,
+    }
+}
 
 #[test]
 fn type_must_be_excalidraw() {
-    assert!(Document::from_json("{\"type\": \"excalidrawlib\"}").is_err());
-    assert!(Document::from_json("{\"elements\": []}").is_err());
-    assert!(Document::from_json("[]").is_err());
-    assert!(Document::from_json("{\"type\": \"excalidraw\", \"elements\": {}}").is_err());
-    assert!(Document::from_json("{\"type\": \"excalidraw\", \"appState\": []}").is_err());
+    assert!(!accepted("{\"type\": \"excalidrawlib\"}"));
+    assert!(!accepted("{\"elements\": []}"));
+    assert!(!accepted("{\"type\": null}"));
+    assert!(!accepted("[]"));
+    assert!(!accepted("\"excalidraw\""));
+    assert!(!accepted("null"));
     assert!(Document::from_json("{\"type\": ").is_err());
+    assert!(accepted("{\"type\": \"excalidraw\"}"));
+}
+
+#[test]
+fn falsy_elements_are_accepted_whatever_app_state_is() {
+    // !data.elements short-circuits: appState is not looked at.
+    for elements in ["null", "false", "0", "-0", "\"\""] {
+        for app_state in ["\"x\"", "1", "true", "[]", "{}", "null", "0"] {
+            let text = format!(
+                "{{\"type\": \"excalidraw\", \"elements\": {elements}, \"appState\": {app_state}}}"
+            );
+            assert!(accepted(&text), "{text}");
+            let doc = Document::from_json(&text).unwrap();
+            assert!(doc.elements.is_none());
+        }
+    }
+}
+
+#[test]
+fn truthy_elements_must_be_an_array() {
+    for elements in ["{}", "true", "1", "\"x\"", "{\"0\": {}}"] {
+        let text = format!("{{\"type\": \"excalidraw\", \"elements\": {elements}}}");
+        assert!(!accepted(&text), "{text}");
+    }
+}
+
+#[test]
+fn with_elements_app_state_must_be_falsy_or_typeof_object() {
+    // typeof [] === "object" and typeof null === "object".
+    for app_state in ["{}", "[]", "[1, 2]", "null", "false", "0", "\"\""] {
+        let text =
+            format!("{{\"type\": \"excalidraw\", \"elements\": [], \"appState\": {app_state}}}");
+        assert!(accepted(&text), "{text}");
+    }
+    for app_state in ["\"x\"", "1", "true", "-1.5"] {
+        let text =
+            format!("{{\"type\": \"excalidraw\", \"elements\": [], \"appState\": {app_state}}}");
+        assert!(!accepted(&text), "{text}");
+    }
+}
+
+#[test]
+fn app_state_the_model_cannot_type_is_kept_as_read() {
+    let text = "{\n  \"type\": \"excalidraw\",\n  \"elements\": [],\n  \"appState\": [\n    1,\n    \"a\"\n  ]\n}";
+    let doc = Document::from_json(text).unwrap();
+    assert!(doc.app_state.is_none());
+    assert_eq!(doc.to_json(), text);
+    // Once the field is set, the model's value is written.
+    let mut doc = doc;
+    doc.app_state = Some(Map::new());
+    assert_eq!(
+        doc.to_json(),
+        "{\n  \"type\": \"excalidraw\",\n  \"elements\": [],\n  \"appState\": {}\n}"
+    );
+}
+
+#[test]
+fn version_source_and_files_are_not_checked() {
+    // isValidExcalidrawData never looks at version, source or files.
+    let text = "{\n  \"type\": \"excalidraw\",\n  \"version\": \"2\",\n  \"source\": 123,\n  \"elements\": [],\n  \"files\": \"none\"\n}";
+    let doc = Document::from_json(text).unwrap();
+    assert_eq!(doc.version, None);
+    assert_eq!(doc.source, None);
+    assert!(doc.files.is_none());
+    assert_eq!(doc.to_json(), text);
+    for (key, value) in [
+        ("version", "null"),
+        ("version", "[2]"),
+        ("source", "false"),
+        ("source", "{}"),
+        ("files", "[]"),
+        ("files", "0"),
+    ] {
+        let text = format!("{{\"type\": \"excalidraw\", \"{key}\": {value}}}");
+        assert!(accepted(&text), "{text}");
+    }
+}
+
+#[test]
+fn falsy_elements_are_replaced_once_set() {
+    let text = "{\n  \"type\": \"excalidraw\",\n  \"elements\": 0\n}";
+    let mut doc = Document::from_json(text).unwrap();
+    assert_eq!(doc.to_json(), text);
+    doc.elements = Some(Vec::new());
+    assert_eq!(
+        doc.to_json(),
+        "{\n  \"type\": \"excalidraw\",\n  \"elements\": []\n}"
+    );
 }
 
 #[test]
@@ -493,6 +602,163 @@ fn lone_surrogates_in_element_text_survive() {
     let written = parsed.to_json();
     assert_eq!(written, json::round_trip(&text).unwrap());
     assert_eq!(written.matches("\"a\\ud83db\u{1F600}\"").count(), 3);
+}
+
+fn text_element(id: &str, text: &str) -> Element {
+    Element::new(
+        ElementBase::new(id, 0.0, 0.0, 1.0, TIMESTAMP),
+        ElementKind::Text(TextFields::new(text, FontFamily::EXCALIFONT, 1.25)),
+    )
+}
+
+fn text_of(element: &Element) -> &str {
+    match &element.kind {
+        ElementKind::Text(fields) => &fields.text,
+        _ => panic!("not a text element"),
+    }
+}
+
+/// Strings that hold U+FDD0 (a noncharacter, valid in Rust and JSON) next
+/// to what the codec uses internally for lone surrogates.
+const NONCHARACTER_TEXTS: &[&str] = &[
+    "\u{FDD0}\u{E000}",
+    "\u{FDD0}\u{E7FF}",
+    "a\u{FDD0}\u{E03D}b",
+    "\u{FDD0}\u{FDD0}",
+    "\u{FDD0}\u{FDD0}\u{FDD0}",
+    "\u{FDD0}",
+    "x\u{FDD0}",
+    "\u{FDD0}\u{E800}",
+];
+
+#[test]
+fn rust_built_strings_with_noncharacters_are_written_as_they_are() {
+    for text in NONCHARACTER_TEXTS {
+        // JSON.stringify writes U+FDD0 and U+E000..U+E7FF raw.
+        let quoted = format!("\"{text}\"");
+        let mut element = text_element("t", text);
+        element.extra.insert(format!("k{text}"), json!(text));
+        let mut app_state = Map::new();
+        app_state.insert("name".into(), json!(text));
+        let doc = Document::new(*text, vec![element.clone()], app_state, None);
+        let written = doc.to_json();
+        assert!(
+            !written.contains("\\ud"),
+            "{text:?} written as a surrogate: {written}"
+        );
+        // text, originalText, the extra value, the source, appState.name.
+        assert_eq!(written.matches(&quoted).count(), 5, "{text:?}: {written}");
+        assert!(written.contains(&format!("\"k{text}\": {quoted}")));
+        // Read back, every typed and extra value is the one built.
+        let back = Document::from_json(&written).unwrap();
+        assert_eq!(back, doc, "{text:?}");
+        assert_eq!(back.to_json(), written);
+        // serde agrees.
+        let value = serde_json::to_value(&doc).unwrap();
+        assert_eq!(value["elements"][0]["text"], json!(text));
+        assert_eq!(value["source"], json!(text));
+        let element_back: Element = serde_json::from_value(value["elements"][0].clone()).unwrap();
+        assert_eq!(element_back, element);
+    }
+}
+
+#[test]
+fn a_literal_noncharacter_in_a_file_is_one_character_in_the_model() {
+    for text in NONCHARACTER_TEXTS {
+        let file = Document::new("s", vec![text_element("t", text)], Map::new(), None).to_json();
+        let doc = Document::from_json(&file).unwrap();
+        let elements = doc.elements.as_ref().unwrap();
+        assert_eq!(text_of(&elements[0]), *text);
+        assert_eq!(elements[0], text_element("t", text));
+        // Also when escaped in the file.
+        let escaped = file.replace('\u{FDD0}', "\\ufdd0");
+        let doc = Document::from_json(&escaped).unwrap();
+        assert_eq!(text_of(&doc.elements.as_ref().unwrap()[0]), *text);
+        assert_eq!(doc.to_json(), file);
+    }
+}
+
+/// A scene whose text element's `text`, an unknown key, `appState.name`,
+/// `source` and an unknown top-level key all hold `value` (raw JSON string
+/// contents).
+fn scene_with_strings(value: &str) -> String {
+    let mut element = serde_json::to_value(text_element("t", "PLACEHOLDER")).unwrap();
+    element["futureNote"] = json!("PLACEHOLDER");
+    let doc = json!({
+        "type": "excalidraw",
+        "source": "PLACEHOLDER",
+        "elements": [element],
+        "appState": {"name": "PLACEHOLDER"},
+        "futureTop": "PLACEHOLDER",
+    });
+    json::to_string_pretty(&doc).replace("PLACEHOLDER", value)
+}
+
+#[test]
+fn a_lone_surrogate_reads_as_the_replacement_character() {
+    // JSON.parse keeps "\ud83d" as a lone UTF-16 unit; a Rust string cannot
+    // hold one, so the model sees U+FFFD, and the file keeps the escape
+    // while the value is unchanged.
+    let text = scene_with_strings("a\\ud83d");
+    let doc = Document::from_json(&text).unwrap();
+    let element = &doc.elements.as_ref().unwrap()[0];
+    assert_eq!(text_of(element), "a\u{FFFD}");
+    let ElementKind::Text(fields) = &element.kind else {
+        unreachable!()
+    };
+    assert_eq!(fields.original_text, "a\u{FFFD}");
+    assert_eq!(element.extra["futureNote"], json!("a\u{FFFD}"));
+    assert_eq!(doc.source.as_deref(), Some("a\u{FFFD}"));
+    assert_eq!(doc.app_state.as_ref().unwrap()["name"], json!("a\u{FFFD}"));
+    assert_eq!(doc.extra["futureTop"], json!("a\u{FFFD}"));
+    assert_eq!(doc.to_json(), text);
+
+    // serde sees the same public values; nothing internal leaks.
+    let serialized = serde_json::to_string(&doc).unwrap();
+    assert!(!serialized.contains('\u{FDD0}'), "{serialized}");
+    assert!(!serialized.contains('\u{E03D}'), "{serialized}");
+    assert_eq!(serialized.matches("a\u{FFFD}").count(), 6);
+    let element_json = serde_json::to_value(element).unwrap();
+    assert_eq!(element_json["text"], json!("a\u{FFFD}"));
+}
+
+#[test]
+fn a_changed_lone_surrogate_value_is_written_from_the_model() {
+    let text = scene_with_strings("a\\ud83d");
+    let mut doc = Document::from_json(&text).unwrap();
+    let element = &mut doc.elements.as_mut().unwrap()[0];
+    let ElementKind::Text(fields) = &mut element.kind else {
+        unreachable!()
+    };
+    fields.text = "b".into();
+    element.extra.insert("futureNote".into(), json!("c"));
+    doc.source = Some("d".into());
+    doc.extra.insert("futureTop".into(), json!("e"));
+    let written = doc.to_json();
+    assert!(written.contains("\"text\": \"b\","));
+    assert!(written.contains("\"futureNote\": \"c\""));
+    assert!(written.contains("\"source\": \"d\","));
+    assert!(written.contains("\"futureTop\": \"e\""));
+    // originalText and appState.name are unchanged: still the escape.
+    assert_eq!(written.matches("\"a\\ud83d\"").count(), 2, "{written}");
+}
+
+#[test]
+fn unknown_keys_named_with_lone_surrogates_keep_their_names_and_places() {
+    // Two keys that both read as "\u{FFFD}": the first is public, the
+    // second stays hidden in the layout; both are written back.
+    let text = "{\n  \"\\ud800\": 1,\n  \"type\": \"excalidraw\",\n  \"\\ud801\": 2,\n  \"x\\udfff\": 3\n}";
+    let doc = Document::from_json(text).unwrap();
+    let keys: Vec<&str> = doc.extra.keys().map(String::as_str).collect();
+    assert_eq!(keys, ["\u{FFFD}", "x\u{FFFD}"]);
+    assert_eq!(doc.extra["\u{FFFD}"], json!(1));
+    assert_eq!(doc.to_json(), text);
+    let mut doc = doc;
+    doc.extra.insert("x\u{FFFD}".into(), json!(4));
+    assert_eq!(
+        doc.to_json(),
+        "{\n  \"\\ud800\": 1,\n  \"type\": \"excalidraw\",\n  \"\\ud801\": 2,\n  \"x\\udfff\": 4\n}"
+    );
 }
 
 #[test]
