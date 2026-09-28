@@ -289,6 +289,10 @@ version = "26.9.1"
 [[package]]
 name = "excali-text"
 version = "26.9.1"
+dependencies = [
+ "excali-core",
+ "serde_json",
+]
 
 [[package]]
 name = "excali-ui"
