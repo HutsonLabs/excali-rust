@@ -2,7 +2,8 @@
 # warnings as errors, the test suite, the crate-graph gate (the workspace must
 # match site/content/architecture/overview.md), the calendar-version gate
 # (ADR-009), the wasm32 build of every
-# crate that targets it (ADR-008), and an MSRV check.
+# crate that targets it (ADR-008), an MSRV check, and the golden harness on
+# arm64 (ex-217).
 #
 # The toolchain comes from rust-toolchain.toml; rustup installs it (with
 # rustfmt, clippy and the wasm32 target) on the first cargo call.
@@ -45,6 +46,25 @@ jobs:
         run: python3 scripts/gates/version.py check
       - name: wasm32 build
         run: scripts/gates/wasm-build.sh
+  # ex-217: the golden harness (excali_rough::goldens, cargo feature
+  # `goldens`) and every parity target that compares with goldens/ through it,
+  # on arm64, the architecture the goldens were generated on (the check job
+  # runs them again on x86_64 as part of the workspace tests). A failing
+  # golden prints the case and element id, shape, set and op index, and the
+  # expected and actual numbers; goldens_manifest checks every golden file's
+  # sha256 and case count against goldens/manifest.json and its upstream
+  # commit against site/config.toml.
+  goldens:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: golden harness and parity tests
+        run: >-
+          cargo test --workspace --locked --features goldens
+          --test golden_harness --test goldens_manifest --test goldens
   msrv:
     runs-on: ubuntu-latest
     steps:
