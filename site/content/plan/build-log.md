@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-m2 · Milestone check: M2 reached
+
+The second M2 check ran on `main` at 0eb233c, after ex-g201 and ex-g202 merged. 1093 workspace tests pass with the goldens feature, the 105 golden generator tests pass and all sixteen goldens `--check` steps are current. The committed matrix `goldens/elements-matrix.json` covers 19 element variants at every fill style, roughness 0, 1 and 2 and seeds 1, 7 and 1041657908 (684 cases), the port matches all of them, looped freedraw fills included, and the `goldens` CI job fails on any missing cell. M2 is closed. PR: [#61](https://github.com/HutsonLabs/excali-rust/pull/61).
+
 ## 2026-09-28 · ex-401 · excali-raster: display list to tiny-skia (paths, fills, dashes, opacity, clips)
 
 `excali-raster` draws display lists with tiny-skia and matches Chrome's canvas. The 19 fixture display lists are compared with references drawn by headless Chrome 153, each within its own tolerance; they cover fills, curves, arcs, dashes, opacity, clips, transforms, images and the device pixel ratio. Where tiny-skia's pixels differ from Chrome's, the crate uses ports of Skia m153 instead: analytic anti-aliasing, the stroker and dasher, and the hairline walk. Huge or non-finite coordinates draw what Chrome draws, and a new CI job checks the port against the runner's Chrome. PR: [#60](https://github.com/HutsonLabs/excali-rust/pull/60).
