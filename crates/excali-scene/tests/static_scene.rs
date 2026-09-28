@@ -19,7 +19,7 @@ use std::collections::{HashMap, HashSet};
 use excali_core::color::apply_dark_mode_filter;
 use excali_core::element::Element;
 use excali_scene::bounds::ElementsMap;
-use excali_scene::display::DisplayList;
+use excali_scene::display::{DisplayList, Path, Transform};
 use excali_scene::export::FrameRendering;
 use excali_scene::render_element::{is_rtl, ElementRenderOverride};
 use excali_scene::shape::Theme;
@@ -34,7 +34,7 @@ use serde_json::{Map, Value};
 #[path = "support/draws.rs"]
 mod draws;
 
-use draws::{compare, Draw, Recorder};
+use draws::{compare, matrix, path, same_matrix, Draw, Recorder};
 
 fn fixture() -> Value {
     serde_json::from_str(include_str!("fixtures/static-scene.json")).unwrap()

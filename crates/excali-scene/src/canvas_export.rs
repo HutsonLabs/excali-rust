@@ -417,6 +417,18 @@ pub fn export_to_canvas(
             .and_then(|d| d.get("name"))
             .and_then(Value::as_str)
             .map(str::to_owned),
+        // the rest of `...appState`, which getTargetFrame reads
+        frame_to_highlight: app_state
+            .get("frameToHighlight")
+            .and_then(Value::as_object)
+            .and_then(|frame| Element::from_map(frame.clone()).ok()),
+        selected_elements_are_being_dragged: truthy(
+            app_state.get("selectedElementsAreBeingDragged"),
+        ),
+        editing_group_id: app_state
+            .get("editingGroupId")
+            .and_then(Value::as_str)
+            .map(str::to_owned),
     };
     let render_config = StaticCanvasRenderConfig {
         canvas_background_color: opts.view_background_color.clone(),
