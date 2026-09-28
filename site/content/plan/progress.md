@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 15:00 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 15:17 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**136 issues** · 47 closed (35%) · 0 in progress · 0 blocked · 88 open
+**138 issues** · 47 closed (34%) · 0 in progress · 0 blocked · 90 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -59,7 +59,7 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 
 ## ex-e2 · Phase 2: Geometry and sketch renderer
 
-<span class="status open">open</span> 18/19 children closed
+<span class="status open">open</span> 18/21 children closed
 
 excali-math, excali-rough (rough.js 4.6.4 semantics), excali-freehand, the display list, and golden tests against upstream output.
 
@@ -83,7 +83,9 @@ excali-math, excali-rough (rough.js 4.6.4 semantics), excali-freehand, the displ
 | `ex-216` | Display list type: renderer-independent paths, fills, dashes, images, text runs, clips, opacity | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-217` | Golden harness in CI (cargo test feature `goldens`) | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-218` | Dark-mode colour filter maths (invert 93% hue-rotate 180deg) and reverse | task | P2 | <span class="status closed">closed</span> |  |  |
-| `ex-m2` | M2: golden parity with rough.js for all shapes | milestone | P2 | <span class="status open">open</span> | yes |  |
+| `ex-g201` | Freedraw background fill: port getFreedrawFillCurvePoints and the loop fill curve of generateElementShape | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-g202` | M2 golden matrix: every element type x fill style x roughness 0/1/2 x seeds 1/7/1041657908 in the goldens and CI | task | P1 | <span class="status open">open</span> |  | `ex-g201` |
+| `ex-m2` | M2: golden parity with rough.js for all shapes | milestone | P2 | <span class="status open">open</span> |  | `ex-g201`, `ex-g202` |
 
 ## ex-e3 · Phase 3: Text and fonts (excali-text)
 
