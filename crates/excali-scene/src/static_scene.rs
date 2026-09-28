@@ -35,6 +35,18 @@
 //! cache of those decisions (`inFrameGroupsMap`) lasts the whole scene. An
 //! element whose clip cannot be decided (its outline cannot be built) is
 //! skipped like one that cannot be drawn.
+//!
+//! One difference, by design, where drawing fails: upstream's `try` holds
+//! the `context.save()`, the frame clip and the drawing, and the
+//! `context.restore()` after them (`:397-452`, `:455-505`), so an element
+//! or label that throws after its frame clip is applied leaves the save
+//! and the clip in place, and every later element of the scene is drawn
+//! inside that frame's clip (with whatever transform the throw left).
+//! The port does not reproduce that leak: the failing element's clip
+//! holds only what it drew, and the elements after it are drawn as they
+//! would be had it drawn (`crates/excali-scene/tests/static_scene.rs`,
+//! `a_clipped_element_whose_label_cannot_draw_does_not_clip_what_follows`;
+//! `site/content/architecture/rendering-fidelity.md`).
 //! Upstream also collects the groups of selected elements over the
 //! highlighted frame (`:328-346`) and uses them nowhere; the port leaves
 //! that out. Visibility culling happens before this function

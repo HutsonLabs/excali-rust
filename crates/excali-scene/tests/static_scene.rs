@@ -588,3 +588,70 @@ fn a_bound_text_that_cannot_draw_leaves_its_container_and_drops_its_icon() {
     assert!(matches!(icon[plain.len()], Draw::Clip { .. }));
     assert!(matches!(icon[plain.len() + 2], Draw::Image { .. }));
 }
+
+fn framed(json: &str, id: &str, x: f64, frame: Option<&str>, bound: Option<&str>) -> Element {
+    let mut raw: Map<String, Value> = serde_json::from_str(json).unwrap();
+    raw.insert("id".into(), id.into());
+    raw.insert("x".into(), x.into());
+    raw.insert("frameId".into(), frame.map_or(Value::Null, Value::from));
+    if let Some(id) = bound {
+        raw.insert(
+            "boundElements".into(),
+            serde_json::json!([{ "type": "text", "id": id }]),
+        );
+    }
+    Element::from_map(raw).unwrap()
+}
+
+#[test]
+fn a_clipped_element_whose_label_cannot_draw_does_not_clip_what_follows() {
+    // Upstream (staticScene.ts:397-452) calls context.save(), then
+    // clipElementToFrame, then renderElement for the element and its bound
+    // text inside one try; when the label throws, context.restore() is
+    // never reached and the frame clip stays on for every later element.
+    // The port keeps the clip to the failing element's own items and
+    // draws what follows unclipped (rendering-fidelity.md, "differences,
+    // by design").
+    let mut frame: Map<String, Value> = serde_json::from_str(RECTANGLE).unwrap();
+    frame.insert("id".into(), "f".into());
+    frame.insert("type".into(), "frame".into());
+    frame.insert("name".into(), Value::Null);
+    frame.insert("width".into(), 100.0.into());
+    frame.insert("height".into(), 100.0.into());
+    let frame = Element::from_map(frame).unwrap();
+    let scene = |bound: Option<&str>| {
+        let mut all = vec![
+            frame.clone(),
+            // a child crossing the frame's right edge: clipped
+            framed(RECTANGLE, "c", 95.0, Some("f"), bound),
+            // outside the frame, not in it: never clipped
+            framed(RECTANGLE, "b", 300.0, None, None),
+        ];
+        if bound.is_some() {
+            all.push(element(STICKY_NOTE, "sticky", 20.0));
+        }
+        draws(&all)
+    };
+    let failing = scene(Some("sticky"));
+    // the failing label changes nothing: same draws as with no label
+    assert_eq!(format!("{failing:?}"), format!("{:?}", scene(None)));
+    // one frame clip, closed before the element after it
+    let clip = failing
+        .iter()
+        .position(|d| matches!(d, Draw::Clip { .. }))
+        .unwrap();
+    let unclip = failing
+        .iter()
+        .position(|d| matches!(d, Draw::Unclip))
+        .unwrap();
+    assert!(clip < unclip);
+    assert_eq!(
+        failing
+            .iter()
+            .filter(|d| matches!(d, Draw::Clip { .. }))
+            .count(),
+        1
+    );
+    assert!(matches!(failing[unclip + 1], Draw::Stroke { .. }));
+    assert_eq!(failing.len(), unclip + 2, "b is drawn last, unclipped");
+}
