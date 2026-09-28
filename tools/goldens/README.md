@@ -42,6 +42,7 @@ on an arm64 machine only.
 |---|---|---|
 | `random.json` | `Random.next()` sequences for 7 seeds | ex-203 |
 | `rough-primitives.json` | `line`, `rectangle`, `polygon`, `ellipse`, `circle`, `arc`, `curve`, `linearPath`, `path` × seeds 1, 7, 1041657908 × roughness 0, 1, 2 | ex-203, ex-206 |
+| `rough-generator.json` | generator edge cases × roughness 0, 1, 2: SVG path syntax (implicit commands, missing `M`, compact numbers, `S`/`T`, arcs), `simplification`, `stroke: "none"`, single stroke, preserveVertices, short point lists, line length bands, ellipse/arc geometry, seed wrap-around | ex-203 |
 | `rough-fills.json` | hachure, cross-hatch, zigzag, solid, dashed, zigzag-line at `fillWeight = sw/2`, `hachureGap = sw*4` | ex-204 |
 | `rough-options.json` | multi-stroke, preserveVertices, curveFitting, bowing, dashes, hachure angle, and the dashed/dotted stroke rule | ex-205 |
 | `elements-upstream-fixtures.json` | upstream `tests/fixtures/elementFixture.ts` and the export test's 100×100 variants | all |

@@ -116,6 +116,32 @@ test("rough primitives cover every method x seed x roughness (ex-203)", () => {
   }
 });
 
+test("rough generator edge cases run at every roughness with resolved options (ex-203)", () => {
+  const g = golden("rough-generator.json");
+  const groups = new Map();
+  for (const c of g.cases) {
+    assert.ok(!("fill" in c.options), `${c.id}: stroke-only file`);
+    // path("") returns before drawing anything (generator.js path: `if (!d)`)
+    if (!c.id.startsWith("path/empty/")) assertDrawable(c.drawable, c.id);
+    const resolved = { ...ROUGH_DEFAULTS, ...c.options };
+    for (const [k, v] of Object.entries(resolved)) {
+      assert.deepEqual(c.drawable.options[k], v, `${c.id}: option ${k}`);
+    }
+    const base = c.id.replace(/\/r\d$/, "");
+    groups.set(base, [...(groups.get(base) ?? []), c.options.roughness]);
+  }
+  for (const [base, rs] of groups) assert.deepEqual(rs, ROUGHNESSES, base);
+  const ids = [...groups.keys()];
+  for (const prefix of ["path/", "none/", "single/", "vertices/", "short/", "line/", "ellipse/", "arc/", "seed/"]) {
+    assert.ok(ids.some((id) => id.startsWith(prefix)), prefix);
+  }
+  // stroke "none" drops the outline; path("") has no sets at all
+  for (const c of g.cases.filter((c) => c.id.startsWith("none/") && !c.id.startsWith("none/line"))) {
+    assert.equal(c.drawable.sets.length, 0, c.id);
+  }
+  assert.equal(g.cases.find((c) => c.id === "path/empty/r1").drawable.sets.length, 0);
+});
+
 test("rough fills cover every fill style at Excalidraw's weights (ex-204)", () => {
   const g = golden("rough-fills.json");
   // "dots" is excluded: roughjs 4.6.4 dot-filler.js:33-34 uses Math.random

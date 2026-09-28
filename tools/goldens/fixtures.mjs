@@ -542,6 +542,100 @@ const PRIMITIVES = [
   ["path", [PATHS.relative]],
 ];
 
+// Generator edge cases (ex-203): the parts of RoughGenerator, renderer.js and
+// path-data-parser the primitives above do not reach. Stroke only; fills are
+// in rough-fills.json.
+const GENERATOR = [
+  // path-data-parser: implicit repeats, missing leading M, compact numbers
+  ["path/implicit-lineto", "path", ["M 0 0 40 30 80 0 L 120 40 160 0"]],
+  ["path/implicit-relative", "path", ["m 10 10 20 20 20 -20 l 10 10 10 -10"]],
+  ["path/no-leading-move", "path", ["L 50 50 100 20"]],
+  ["path/compact-numbers", "path", ["M10-20l.5.5-3e1,4E+1L+60 1.e1"]],
+  ["path/minus-space", "path", ["M 10 10 L - 20 30 L 40 -\t50"]],
+  ["path/newlines", "path", ["M 0 0\nL 40 40\nL 80 0"]],
+  ["path/absolute-hv", "path", ["M 0 0 H 50 V 50 H 0 Z"]],
+  ["path/subpaths", "path", ["M 0 0 L 50 0 L 50 50 Z M 100 100 h 20 v 20 h -20 z L 10 90"]],
+  ["path/close-then-draw", "path", ["M 10 10 L 60 10 L 60 60 Z L 90 90"]],
+  // S and T with and without a preceding C / Q
+  ["path/smooth-cubic-alone", "path", ["M 0 0 S 40 40 80 0"]],
+  ["path/smooth-quad-alone", "path", ["M 0 0 T 50 50 T 100 0"]],
+  ["path/quad-chain", "path", ["M 0 0 Q 25 50 50 0 T 100 0 T 150 0"]],
+  ["path/relative-curves", "path", ["m 10 10 c 20 -20 40 20 60 0 s 40 -20 60 0 q 20 20 40 0 t 40 0"]],
+  ["path/smooth-after-quad", "path", ["M 0 0 Q 30 40 60 0 S 100 -40 120 0"]],
+  // arcs: zero radius, zero length, radii too small, > 120 degrees, rotation
+  ["path/arc-zero-radius", "path", ["M 0 0 A 0 10 0 0 1 50 50"]],
+  ["path/arc-same-point", "path", ["M 10 10 A 5 5 0 0 1 10 10 L 20 20"]],
+  ["path/arc-scaled-radii", "path", ["M 0 0 A 5 5 0 0 0 100 0"]],
+  ["path/arc-large", "path", ["M 0 50 A 50 50 0 1 1 100 50"]],
+  ["path/arc-large-ccw", "path", ["M 0 50 A 50 50 0 1 0 100 50"]],
+  ["path/arc-rotated", "path", ["M 0 0 a 40 20 45 0 1 80 40 a 40 20 -30 1 0 -60 30"]],
+  ["path/arc-negative-radii", "path", ["M 0 0 A -30 -20 0 0 1 50 0"]],
+  ["path/elbow", "path", ["M 0 0 L 84 0 Q 100 0, 100 16 L 100 84 Q 100 100, 116 100 L 200 100"]],
+  ["path/empty", "path", [""]],
+  ["path/move-only", "path", ["M 10 10"]],
+  // simplification: stroke from pointsOnPath instead of svgPath
+  ["path/simplification-0.5", "path", [PATHS.arcs], { simplification: 0.5 }],
+  ["path/simplification-0.9", "path", [PATHS.cubic], { simplification: 0.9 }],
+  ["path/simplification-subpaths", "path", ["M 0 0 L 50 0 L 50 50 Z M 100 100 Q 150 150 200 100"], { simplification: 0.2 }],
+  ["path/simplification-1", "path", [PATHS.quad], { simplification: 1 }],
+  ["path/simplification-0", "path", [PATHS.quad], { simplification: 0 }],
+  // stroke "none": the outline is computed (and draws random numbers) but dropped
+  ["none/line", "line", [0, 0, 100, 50], { stroke: "none" }],
+  ["none/rectangle", "rectangle", [10, 10, 100, 60], { stroke: "none" }],
+  ["none/ellipse", "ellipse", [60, 40, 100, 60], { stroke: "none" }],
+  ["none/polygon", "polygon", [[[0, 0], [80, 10], [90, 60]]], { stroke: "none" }],
+  ["none/curve", "curve", [[[0, 0], [30, 30], [60, 5]]], { stroke: "none" }],
+  ["none/arc", "arc", [100, 100, 160, 120, 0, Math.PI, true], { stroke: "none" }],
+  ["none/path", "path", [PATHS.cubic], { stroke: "none" }],
+  // single stroke
+  ["single/line", "line", [0, 0, 100, 50], { disableMultiStroke: true }],
+  ["single/polygon", "polygon", [[[0, 0], [80, 10], [90, 60]]], { disableMultiStroke: true }],
+  ["single/ellipse", "ellipse", [60, 40, 100, 60], { disableMultiStroke: true }],
+  ["single/arc", "arc", [100, 100, 160, 120, 0, Math.PI, true], { disableMultiStroke: true }],
+  ["single/curve", "curve", [[[0, 0], [30, 30], [60, 5], [100, 40]]], { disableMultiStroke: true }],
+  ["single/path", "path", [PATHS.arcs], { disableMultiStroke: true }],
+  // preserveVertices on lines and beziers
+  ["vertices/line", "line", [0, 0, 100, 50], { preserveVertices: true }],
+  ["vertices/linearPath", "linearPath", [[[0, 0], [60, 60], [120, 10]]], { preserveVertices: true }],
+  ["vertices/path", "path", [PATHS.cubic], { preserveVertices: true }],
+  // short point lists
+  ["short/curve-4", "curve", [[[0, 0], [30, 30], [60, 5], [100, 40]]]],
+  ["short/curve-3", "curve", [[[0, 0], [30, 30], [60, 5]]]],
+  ["short/curve-2", "curve", [[[0, 0], [30, 30]]]],
+  ["short/curve-1", "curve", [[[10, 10]]]],
+  ["short/linearPath-2", "linearPath", [[[0, 0], [30, 30]]]],
+  ["short/linearPath-1", "linearPath", [[[10, 10]]]],
+  ["short/linearPath-0", "linearPath", [[]]],
+  ["short/polygon-2", "polygon", [[[0, 0], [30, 30]]]],
+  ["short/polygon-3", "polygon", [[[0, 0], [30, 30], [60, 0]]]],
+  // _line's length bands: offset shrink below 20, gain 1 / interpolated / 0.4
+  ["line/short", "line", [0, 0, 6, 8]],
+  ["line/zero-length", "line", [5, 5, 5, 5]],
+  ["line/mid", "line", [0, 0, 300, 200]],
+  ["line/long", "line", [0, 0, 600, 300]],
+  ["line/max-offset-0", "line", [0, 0, 100, 50], { maxRandomnessOffset: 0 }],
+  ["path/max-offset-0", "path", [PATHS.cubic], { maxRandomnessOffset: 0 }],
+  ["line/bowing-3", "line", [0, 0, 150, 40], { bowing: 3 }],
+  // ellipse and arc geometry
+  ["ellipse/negative-size", "ellipse", [60, 40, -100, -60]],
+  ["ellipse/tiny", "ellipse", [10, 10, 4, 3]],
+  ["ellipse/large", "ellipse", [400, 300, 800, 500]],
+  ["ellipse/step-count-30", "ellipse", [60, 40, 100, 60], { curveStepCount: 30 }],
+  ["ellipse/curve-fitting-1", "ellipse", [60, 40, 100, 60], { curveFitting: 1 }],
+  ["circle/tiny", "circle", [10, 10, 2]],
+  ["arc/negative-start", "arc", [100, 100, 160, 120, -Math.PI / 2, Math.PI / 3, false]],
+  ["arc/over-full-turn", "arc", [100, 100, 160, 120, 0, Math.PI * 3, false]],
+  ["arc/closed", "arc", [100, 100, 160, 120, Math.PI / 6, Math.PI * 1.75, true]],
+  ["arc/tiny-span", "arc", [100, 100, 160, 120, 1, 1.05, false]],
+  ["rectangle/negative-size", "rectangle", [110, 70, -100, -60]],
+  // curve options
+  ["curve/tightness-1", "curve", [[[0, 0], [30, 30], [60, 5], [100, 40], [130, 10]]], { curveTightness: 1 }],
+  // seeds: the curve's second stroke uses seed + 1, which wraps past 2^31 - 1
+  ["seed/curve-2147483647", "curve", [[[0, 0], [30, 30], [60, 5], [100, 40]]], { seed: 2147483647 }],
+  ["seed/curve-negative", "curve", [[[0, 0], [30, 30], [60, 5], [100, 40]]], { seed: -5 }],
+  ["seed/rectangle-negative", "rectangle", [10, 10, 100, 60], { seed: -123456 }],
+];
+
 const primitiveId = (method, args, i) => `${method}${method === "path" || method === "arc" ? `#${i}` : ""}`;
 
 export const roughGoldens = () => {
@@ -558,6 +652,18 @@ export const roughGoldens = () => {
       }
     }
   });
+
+  const generator = [];
+  for (const [id, method, args, extra = {}] of GENERATOR) {
+    for (const roughness of ROUGHNESSES) {
+      generator.push({
+        id: `${id}/r${roughness}`,
+        method,
+        args,
+        options: { seed: FIXTURE_SEED, roughness, ...extra },
+      });
+    }
+  }
 
   const fills = [];
   const FILL_TARGETS = ["rectangle", "polygon", "ellipse", "path"].map((m) => [m, SMALL[m]]);
@@ -660,6 +766,12 @@ export const roughGoldens = () => {
       description:
         "rough.js 4.6.4 RoughGenerator primitives (line, rectangle, polygon, ellipse, circle, arc, curve, linearPath, path) at seeds 1, 7, 1041657908 and roughness 0, 1, 2.",
       cases: strip(primitives),
+    },
+    {
+      name: "rough-generator.json",
+      description:
+        "rough.js 4.6.4 RoughGenerator edge cases at roughness 0, 1, 2: SVG path syntax (path-data-parser 0.1.0), simplification (points-on-path 0.2.1), stroke none, single stroke, preserveVertices, short point lists, line length bands, ellipse and arc geometry, seed wrap-around.",
+      cases: strip(generator),
     },
     {
       name: "rough-fills.json",
