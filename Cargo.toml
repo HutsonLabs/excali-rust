@@ -58,6 +58,13 @@ wuff = "0.2.9"
 # IDNA (icu_collections); the derive checks the face is covariant.
 yoke = { version = "0.8.3", default-features = false, features = ["alloc", "derive"] }
 unicode-properties = { version = "0.1.4", default-features = false, features = ["general-category"] }
+# Line breaking (excali_text::text_wrapping, ex-303): the Unicode properties
+# upstream's break regexes name (\p{Script=Han}, \p{Emoji},
+# \p{Extended_Pictographic}, ...) and the NFC normalization parseTokens
+# applies, from ICU4X's compiled data (V8 answers both through ICU). Already
+# in the tree through url's IDNA (idna_adapter), at these versions.
+icu_properties = { version = "2.3.0", default-features = false, features = ["compiled_data"] }
+icu_normalizer = { version = "2.3.0", default-features = false, features = ["compiled_data"] }
 # Test-only: golden digests and base64 payloads.
 sha2 = "0.11.0"
 base64 = "0.23.1"

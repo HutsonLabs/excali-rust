@@ -9,8 +9,8 @@
 //! passes them explicitly. The default provider upstream is the browser's
 //! `canvas.measureText(line).width`; the port's is
 //! [`crate::font_store::FontStore`], which measures advance widths from the
-//! vendored font files. [`CharCountTextMetrics`] is the metric upstream's
-//! own tests run under.
+//! vendored font files. `CharCountTextMetrics` (cargo feature `test-util`,
+//! for tests only) is the metric upstream's own tests run under.
 
 use std::collections::{BTreeMap, HashMap};
 
@@ -37,9 +37,15 @@ impl<T: TextMetricsProvider + ?Sized> TextMetricsProvider for &T {
 /// under `isTestEnv()` (`textMeasurements.ts:142-146`) returns the mocked
 /// `measureText(text).width`, which is `text.length` (UTF-16 code units),
 /// times 10.
+///
+/// Test-only: compiled with the cargo feature `test-util`, which this
+/// crate's own tests turn on (and a dependent crate's tests can, through its
+/// dev-dependencies); no library build measures with it.
+#[cfg(feature = "test-util")]
 #[derive(Clone, Copy, Debug, Default)]
 pub struct CharCountTextMetrics;
 
+#[cfg(feature = "test-util")]
 impl TextMetricsProvider for CharCountTextMetrics {
     fn get_line_width(&self, text: &str, _font: &str) -> f64 {
         text.encode_utf16().count() as f64 * 10.0

@@ -327,6 +327,9 @@ name = "excali-text"
 version = "26.9.1"
 dependencies = [
  "excali-core",
+ "excali-text",
+ "icu_normalizer",
+ "icu_properties",
  "rustybuzz",
  "serde_json",
  "ttf-parser",
