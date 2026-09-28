@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ section.title }} · {{ config.title }}{% endblock title %}
+{% block mainclass %}wide{% endblock mainclass %}
+{% block content %}
+<h1>{{ section.title }}</h1>
+<p class="lead">{{ section.description }}</p>
+{{ section.content | safe }}
+<div class="mock-grid">
+{% for m in section.extra.mockups %}
+<a class="mock" href="{{ get_url(path='mockups/' ~ m.file) }}">
+  <div class="thumb"><iframe src="{{ get_url(path='mockups/' ~ m.file) }}" title="{{ m.title }} preview" loading="lazy" tabindex="-1"></iframe></div>
+  <div class="body"><h3>{{ m.title }}</h3><p>{{ m.summary }}</p></div>
+</a>
+{% endfor %}
+</div>
+{% endblock content %}

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ config.title }}{% endblock title %}</title>
+<meta name="description" content="{% block description %}{{ config.description }}{% endblock description %}">
+<link rel="stylesheet" href="{{ get_url(path='style.css', trailing_slash=false) }}">
+<link rel="icon" href="{{ get_url(path='favicon.svg', trailing_slash=false) }}" type="image/svg+xml">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-head">
+  <a class="brand" href="{{ get_url(path='/') }}"><span class="mark">&gt;_</span> excali-rust</a>
+  <nav class="site-nav" aria-label="Sections">
+    {% for item in config.extra.nav %}<a href="{{ get_url(path=item.path) }}"{% if current_path and current_path is starting_with('/' ~ item.path) %} aria-current="page"{% endif %}>{{ item.name }}</a>{% endfor %}
+    <a href="{{ config.extra.repo }}">Repository</a>
+  </nav>
+</header>
+<main id="main" class="{% block mainclass %}prose{% endblock mainclass %}">
+{% block content %}{% endblock content %}
+</main>
+<footer class="site-foot">
+  <p>Upstream evidence: <a href="{{ config.extra.upstream }}">excalidraw/excalidraw</a> at <code>{{ config.extra.upstream_commit | truncate(length=10, end='') }}</code>, captured {{ config.extra.captured }}. Every claim on this site cites a file, a URL, or a command output in <a href="{{ get_url(path='evidence') }}">Evidence</a>.</p>
+  <p>Built with Zola. Source: <a href="{{ config.extra.repo }}">HutsonLabs/excali-rust</a>. MIT.</p>
+</footer>
+</body>
+</html>

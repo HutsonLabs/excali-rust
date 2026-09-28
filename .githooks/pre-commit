@@ -8,7 +8,8 @@ set -e
 root="$(git rev-parse --show-toplevel)"
 if command -v bd >/dev/null 2>&1 && [ -d "$root/.beads" ] && [ -z "$EXCALI_SKIP_BD_EXPORT" ]; then
   if bd -C "$root" export -o .beads/issues.jsonl >/dev/null 2>&1; then
-    git -C "$root" add .beads/issues.jsonl
+    python3 "$root/scripts/tasks/render-progress.py" >/dev/null
+    git -C "$root" add .beads/issues.jsonl site/content/plan/progress.md
   fi
 fi
 exec python3 "$root/scripts/gates/attribution.py" files --staged

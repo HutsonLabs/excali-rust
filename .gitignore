@@ -14,3 +14,5 @@ target/
 .beads-credential-key
 .beads/proxieddb/
 *.gate.lock*
+# beads runtime hooks (not installed; the repo uses .githooks)
+.beads/hooks/
