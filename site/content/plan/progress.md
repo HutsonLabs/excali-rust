@@ -4,15 +4,15 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 04:27 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 04:30 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**130 issues** · 0 closed (0%) · 0 in progress · 0 blocked · 130 open
+**131 issues** · 1 closed (1%) · 0 in progress · 0 blocked · 130 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
 ## ex-e0 · Phase 0: Foundations
 
-<span class="status open">open</span> 0/7 children closed
+<span class="status open">open</span> 1/8 children closed
 
 Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo workspace and CI. Everything later phases depend on to be reproducible.
 
@@ -22,9 +22,10 @@ Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo work
 | `ex-002` | Upstream pin script: check out excalidraw at the pinned commit into .tools/upstream | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-003` | Fixture corpus with manifest (upstream test fixtures + 232 public libraries) | task | P0 | <span class="status open">open</span> |  | `ex-002` |
 | `ex-004` | Golden generator: node script producing rough.js 4.6.4 path output for fixture elements | task | P0 | <span class="status open">open</span> |  | `ex-002` |
-| `ex-005` | Enable GitHub Pages source = GitHub Actions and confirm first deploy | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-005` | Enable GitHub Pages source = GitHub Actions and confirm first deploy | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-006` | Playwright smoke test for the site and mockups | task | P3 | <span class="status open">open</span> | yes |  |
-| `ex-m0` | M0: site live, gates enforced, workspace green | milestone | P2 | <span class="status open">open</span> |  | `ex-001`, `ex-002`, `ex-003`, `ex-004`, `ex-005`, `ex-006` |
+| `ex-007` | scripts/site/zola.sh works on macOS (bash 3.2, shasum) with the aarch64-apple-darwin digest pinned | task | P0 | <span class="status open">open</span> | yes |  |
+| `ex-m0` | M0: site live, gates enforced, workspace green | milestone | P2 | <span class="status open">open</span> |  | `ex-001`, `ex-002`, `ex-003`, `ex-004`, `ex-006`, `ex-007` |
 
 ## ex-e1 · Phase 1: Core model and file format (excali-core)
 
