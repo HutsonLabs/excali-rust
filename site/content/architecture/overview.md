@@ -46,7 +46,7 @@ Build from primitives up. Each crate below is a pure layer over the one beneath 
 | `excali-freehand` | `perfect-freehand` 1.2.0 and `packages/laser-pointer` | `excali-math` | native, wasm32 |
 | `excali-text` | `packages/common/src/font-metadata.ts`, `packages/element/src/textWrapping.ts`, `textMeasurements.ts` | `excali-core`, `ttf-parser`, `rustybuzz`, `wuff` (WOFF2 decoding), `unicode-properties`, `yoke` (a parsed face kept with its bytes) | native, wasm32 |
 | `excali-scene` | `packages/element/src/shape.ts`, `renderElement.ts`, `packages/excalidraw/renderer/staticScene.ts` | `excali-core`, `excali-rough`, `excali-freehand`, `excali-text` | native, wasm32 |
-| `excali-raster` | `exportToCanvas` path of `scene/export.ts` | `excali-scene`, `tiny-skia`, `image` | native |
+| `excali-raster` | `exportToCanvas` path of `scene/export.ts` | `excali-scene`, `tiny-skia`, `image` (raster image files), `resvg` (SVG image files), `base64` (data URLs) | native |
 | `excali-svg` | `renderer/staticSvgScene.ts`, `exportToSvg` | `excali-scene`, `skera` and `skrifa` (font subsetting), `ttf2woff2` (WOFF2 encoding), `wuff` ([ADR-010](../../decisions/adr-010-svg-font-subsetting/)) | native, wasm32 |
 | `excali-cli` | none (new) | `excali-raster`, `excali-svg`, `clap` | native |
 | `excali-editor` | `App.tsx` interaction code, `collision.ts`, `transformHandles.ts`, `binding.ts`, `snapping.ts`, `linearElementEditor.ts`, `store.ts`, `history.ts`, `actions/*` | `excali-scene` | native (tests), wasm32 |

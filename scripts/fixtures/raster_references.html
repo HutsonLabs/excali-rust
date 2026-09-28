@@ -64,6 +64,14 @@ function draw(ctx, item, images) {
       ctx.fill(item.rule || "nonzero");
       ctx.restore();
       break;
+    case "fillRect": {
+      ctx.save();
+      ctx.fillStyle = item.color;
+      const r = item.rect.map(num);
+      ctx.fillRect(r[0], r[1], r[2], r[3]);
+      ctx.restore();
+      break;
+    }
     case "stroke":
       ctx.save();
       ctx.strokeStyle = item.color;
