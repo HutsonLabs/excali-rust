@@ -1,27 +1,407 @@
-//! Untyped JSON round trip with upstream's output shape.
+//! Untyped JSON round trip with upstream's output.
 //!
 //! Upstream writes `.excalidraw` files with `JSON.stringify(data, null, 2)`
-//! (`packages/excalidraw/data/json.ts`, `serializeAsJSON`): two-space indent,
-//! keys in insertion order, no trailing newline. This module reproduces that
-//! shape for an arbitrary JSON value. The typed `Document` codec builds on it.
+//! (`packages/excalidraw/data/json.ts`, `serializeAsJSON`) and reads them with
+//! `JSON.parse`. [`round_trip`] produces exactly what
+//! `JSON.stringify(JSON.parse(text), null, 2)` produces:
+//!
+//! - two-space indent, empty containers written as `[]` / `{}`, no trailing
+//!   newline;
+//! - object keys in JS property order: array-index keys (`"0"` to
+//!   `"4294967294"`) first in ascending order, then the rest in insertion
+//!   order; a duplicated key keeps its first position and its last value;
+//! - numbers as ECMAScript `Number::toString`: parsed to the nearest f64,
+//!   then plain decimal for `1e-6 <= |x| < 1e21`, exponent form (`1e+21`,
+//!   `1.5e-7`) otherwise, integral values without `.0`, `-0` as `0`;
+//! - strings as well-formed `JSON.stringify`: `\b \t \n \f \r \" \\` short
+//!   escapes, other control characters as lowercase `\u00xx`, everything
+//!   else raw, and a lone UTF-16 surrogate (from a `\udXXX` escape that is
+//!   not half of a valid pair, e.g. a split emoji in a text element) written
+//!   back as its lowercase `\udxxx` escape.
+//!
+//! Rust strings cannot hold lone surrogates, so [`round_trip`] carries them
+//! through the parsed value as a private sentinel pair (U+FDD0 followed by a
+//! character in U+E000..=U+E7FF; a literal U+FDD0 is doubled) and decodes
+//! them on output. The sentinel never escapes this module. [`to_string_pretty`]
+//! does not decode sentinels: its input is an ordinary [`serde_json::Value`].
+//!
+//! The typed `Document` codec builds on this module.
+
+use serde::Serialize;
+use serde_json::ser::{Formatter, PrettyFormatter};
+use serde_json::Value;
+use std::io::{self, Write};
 
 /// Error returned when the input is not valid JSON.
 pub type Error = serde_json::Error;
 
-/// Serialise a JSON value as `JSON.stringify(value, null, 2)` would.
-pub fn to_string_pretty(value: &serde_json::Value) -> String {
-    // Serialising a `Value` into a String cannot fail: every key is a string
-    // and there is no I/O.
-    serde_json::to_string_pretty(value).unwrap_or_default()
+/// Serialise a JSON value as `JSON.stringify(value, null, 2)` would, given a
+/// JS object with the same property order as the map.
+pub fn to_string_pretty(value: &Value) -> String {
+    write(value, false)
 }
 
-/// Parse `text` and write it back in upstream's shape.
+/// Parse `text` and write it back as `JSON.stringify(JSON.parse(text), null, 2)`
+/// would.
 ///
-/// A file that upstream wrote comes back byte-identical (minus any trailing
-/// newline an editor added), key order included.
+/// A file that upstream wrote therefore comes back byte-identical (minus any
+/// trailing newline an editor added), key order included.
 pub fn round_trip(text: &str) -> Result<String, Error> {
-    let value: serde_json::Value = serde_json::from_str(text)?;
-    Ok(to_string_pretty(&value))
+    let encoded = encode_lone_surrogates(text);
+    let mut value: Value = serde_json::from_str(&encoded)?;
+    order_keys_like_js(&mut value);
+    Ok(write(&value, true))
+}
+
+fn write(value: &Value, decode_sentinels: bool) -> String {
+    let mut out = Vec::new();
+    let formatter = JsFormatter {
+        pretty: PrettyFormatter::with_indent(b"  "),
+        decode_sentinels,
+    };
+    let mut ser = serde_json::Serializer::with_formatter(&mut out, formatter);
+    // Writing a `Value` into a Vec cannot fail: every key is a string, the
+    // formatter only fails on I/O errors and a Vec never returns one.
+    if value.serialize(&mut ser).is_err() {
+        return String::new();
+    }
+    // The serializer only writes the UTF-8 of `str` fragments and ASCII.
+    String::from_utf8(out).unwrap_or_default()
+}
+
+// ---------------------------------------------------------------------------
+// Numbers
+
+/// Largest integer every f64 below it represents exactly (2^53).
+const MAX_SAFE: u64 = 1 << 53;
+
+/// ECMAScript `Number::toString(x)` (ECMA-262 §6.1.6.1.20) for a finite `x`.
+/// `JSON.stringify` writes non-finite numbers as `null`.
+fn js_number(x: f64) -> String {
+    if !x.is_finite() {
+        return "null".to_owned();
+    }
+    if x == 0.0 {
+        return "0".to_owned();
+    }
+    let sign = if x < 0.0 { "-" } else { "" };
+    let (digits, e) = shortest_digits(x.abs());
+    let k = digits.len() as i64;
+    let n = e + 1;
+    let body = if k <= n && n <= 21 {
+        format!("{digits}{}", "0".repeat((n - k) as usize))
+    } else if 0 < n && n <= 21 {
+        let (int, frac) = digits.split_at(n as usize);
+        format!("{int}.{frac}")
+    } else if -6 < n && n <= 0 {
+        format!("0.{}{digits}", "0".repeat((-n) as usize))
+    } else {
+        let (first, rest) = digits.split_at(1);
+        let dot = if rest.is_empty() { "" } else { "." };
+        let e = n - 1;
+        let e_sign = if e < 0 { '-' } else { '+' };
+        format!("{first}{dot}{rest}e{e_sign}{}", e.abs())
+    };
+    format!("{sign}{body}")
+}
+
+/// Shortest decimal digits `d1..dk` and exponent `e` with
+/// `x == d1.d2..dk × 10^e` after rounding to f64, for finite `x > 0`.
+///
+/// ECMA-262 step 5: among the shortest digit strings that round to `x`, take
+/// the one closest to `x`; if two are equally close, the one whose last digit
+/// is even. Rust's `{:e}` gives a shortest, closest string but rounds such a
+/// tie up (571516643625357.25 is written ...357.3 where JS writes ...357.2),
+/// so ties are detected and resolved here.
+fn shortest_digits(x: f64) -> (String, i64) {
+    let sci = format!("{x:e}");
+    let (mantissa, exp) = sci.split_once('e').unwrap_or((&sci, "0"));
+    let mut digits: String = mantissa.chars().filter(|c| *c != '.').collect();
+    let e = exp.parse::<i64>().unwrap_or(0);
+    let Some(last) = digits.bytes().last().map(|b| b - b'0') else {
+        return (digits, e);
+    };
+    if last % 2 == 0 {
+        return (digits, e);
+    }
+    let parses_to_x = |d: &str| {
+        let (first, rest) = d.split_at(1);
+        format!("{first}.{rest}0e{e}").parse::<f64>() == Ok(x)
+    };
+    let head = &digits[..digits.len() - 1];
+    for neighbour in [last - 1, last + 1] {
+        if neighbour > 9 || (neighbour == 0 && head.is_empty()) {
+            continue;
+        }
+        let candidate = format!("{head}{neighbour}");
+        if !parses_to_x(&candidate) {
+            continue;
+        }
+        // Both strings round to x; it is a tie only if x lies exactly on
+        // their midpoint, which has one more digit, a 5. `{:.1100e}` is the
+        // exact expansion of x (an f64 has at most 767 significant digits).
+        let low = head.to_owned() + &(last.min(neighbour)).to_string();
+        let midpoint = low + "5";
+        let exact = format!("{x:.1100e}");
+        let (exact_mantissa, exact_exp) = exact.split_once('e').unwrap_or((&exact, "0"));
+        let exact_digits: String = exact_mantissa.chars().filter(|c| *c != '.').collect();
+        if exact_exp.parse::<i64>() == Ok(e) && exact_digits.trim_end_matches('0') == midpoint {
+            digits = candidate;
+        }
+        break;
+    }
+    (digits, e)
+}
+
+// ---------------------------------------------------------------------------
+// Formatter
+
+/// `PrettyFormatter` with a two-space indent, ECMAScript number output and,
+/// for [`round_trip`], lone-surrogate sentinel decoding.
+struct JsFormatter {
+    pretty: PrettyFormatter<'static>,
+    decode_sentinels: bool,
+}
+
+impl JsFormatter {
+    fn integer<W: ?Sized + Write>(
+        &mut self,
+        w: &mut W,
+        abs: u64,
+        negative: bool,
+    ) -> io::Result<()> {
+        if abs <= MAX_SAFE {
+            if negative {
+                w.write_all(b"-")?;
+            }
+            write!(w, "{abs}")
+        } else {
+            // JSON.parse rounds every number to the nearest f64; `as` rounds
+            // an integer to nearest, ties to even, which is the same.
+            let x = abs as f64;
+            w.write_all(js_number(if negative { -x } else { x }).as_bytes())
+        }
+    }
+}
+
+impl Formatter for JsFormatter {
+    fn write_i64<W: ?Sized + Write>(&mut self, w: &mut W, value: i64) -> io::Result<()> {
+        self.integer(w, value.unsigned_abs(), value < 0)
+    }
+
+    fn write_u64<W: ?Sized + Write>(&mut self, w: &mut W, value: u64) -> io::Result<()> {
+        self.integer(w, value, false)
+    }
+
+    fn write_f64<W: ?Sized + Write>(&mut self, w: &mut W, value: f64) -> io::Result<()> {
+        w.write_all(js_number(value).as_bytes())
+    }
+
+    fn write_f32<W: ?Sized + Write>(&mut self, w: &mut W, value: f32) -> io::Result<()> {
+        self.write_f64(w, f64::from(value))
+    }
+
+    fn write_string_fragment<W: ?Sized + Write>(
+        &mut self,
+        w: &mut W,
+        fragment: &str,
+    ) -> io::Result<()> {
+        if !self.decode_sentinels || !fragment.contains(SENTINEL) {
+            return w.write_all(fragment.as_bytes());
+        }
+        // A sentinel pair is two characters that need no escaping, so
+        // serde_json never splits one across fragments.
+        let mut chars = fragment.chars();
+        while let Some(c) = chars.next() {
+            if c != SENTINEL {
+                let mut buf = [0; 4];
+                w.write_all(c.encode_utf8(&mut buf).as_bytes())?;
+                continue;
+            }
+            match chars.next() {
+                Some(SENTINEL) | None => {
+                    let mut buf = [0; 4];
+                    w.write_all(SENTINEL.encode_utf8(&mut buf).as_bytes())?;
+                }
+                Some(tag) => {
+                    let unit = u32::from(tag) - SURROGATE_TAG_BASE + 0xD800;
+                    write!(w, "\\u{unit:04x}")?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn begin_array<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
+        self.pretty.begin_array(w)
+    }
+
+    fn end_array<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
+        self.pretty.end_array(w)
+    }
+
+    fn begin_array_value<W: ?Sized + Write>(&mut self, w: &mut W, first: bool) -> io::Result<()> {
+        self.pretty.begin_array_value(w, first)
+    }
+
+    fn end_array_value<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
+        self.pretty.end_array_value(w)
+    }
+
+    fn begin_object<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
+        self.pretty.begin_object(w)
+    }
+
+    fn end_object<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
+        self.pretty.end_object(w)
+    }
+
+    fn begin_object_key<W: ?Sized + Write>(&mut self, w: &mut W, first: bool) -> io::Result<()> {
+        self.pretty.begin_object_key(w, first)
+    }
+
+    fn begin_object_value<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
+        self.pretty.begin_object_value(w)
+    }
+
+    fn end_object_value<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
+        self.pretty.end_object_value(w)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Lone surrogates
+
+/// Noncharacter that introduces a sentinel pair.
+const SENTINEL: char = '\u{FDD0}';
+/// UTF-8 of [`SENTINEL`].
+const SENTINEL_UTF8: &[u8] = "\u{FDD0}".as_bytes();
+/// Second character of a sentinel pair is this plus (unit - 0xD800), so the
+/// 2048 surrogate code units map onto U+E000..=U+E7FF.
+const SURROGATE_TAG_BASE: u32 = 0xE000;
+
+fn hex4(bytes: &[u8]) -> Option<u32> {
+    let s = std::str::from_utf8(bytes.get(..4)?).ok()?;
+    if !s.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return None;
+    }
+    u32::from_str_radix(s, 16).ok()
+}
+
+fn push_sentinel(out: &mut String, second: char) {
+    out.push(SENTINEL);
+    out.push(second);
+}
+
+/// Rewrite, inside JSON strings only, every lone surrogate escape to a
+/// sentinel pair and every literal U+FDD0 (raw or escaped) to a doubled
+/// U+FDD0. Everything else is copied unchanged; malformed input is left for
+/// serde_json to reject.
+fn encode_lone_surrogates(text: &str) -> String {
+    if !text.contains("\\u") && !text.contains(SENTINEL) {
+        return text.to_owned();
+    }
+    let bytes = text.as_bytes();
+    let mut out = String::with_capacity(text.len());
+    let mut in_string = false;
+    let mut i = 0;
+    // Copy runs of text between the positions we act on.
+    let mut copied = 0;
+    while i < bytes.len() {
+        let b = bytes[i];
+        if !in_string {
+            if b == b'"' {
+                in_string = true;
+            }
+            i += 1;
+            continue;
+        }
+        match b {
+            b'"' => {
+                in_string = false;
+                i += 1;
+            }
+            b'\\' if bytes.get(i + 1) == Some(&b'u') => {
+                let Some(unit) = hex4(&bytes[i + 2..]) else {
+                    i += 2;
+                    continue;
+                };
+                let replacement = if (0xD800..0xDC00).contains(&unit) {
+                    let low = (bytes.get(i + 6) == Some(&b'\\') && bytes.get(i + 7) == Some(&b'u'))
+                        .then(|| hex4(&bytes[i + 8..]))
+                        .flatten();
+                    if low.is_some_and(|l| (0xDC00..0xE000).contains(&l)) {
+                        // A valid pair: leave both escapes to serde_json.
+                        i += 12;
+                        continue;
+                    }
+                    Some(unit)
+                } else if (0xDC00..0xE000).contains(&unit) {
+                    Some(unit)
+                } else if unit == u32::from(SENTINEL) {
+                    None
+                } else {
+                    i += 6;
+                    continue;
+                };
+                out.push_str(&text[copied..i]);
+                match replacement {
+                    Some(unit) => push_sentinel(
+                        &mut out,
+                        char::from_u32(unit - 0xD800 + SURROGATE_TAG_BASE).unwrap_or(SENTINEL),
+                    ),
+                    None => push_sentinel(&mut out, SENTINEL),
+                }
+                i += 6;
+                copied = i;
+            }
+            b'\\' => i += 2,
+            _ if bytes[i..].starts_with(SENTINEL_UTF8) => {
+                out.push_str(&text[copied..i]);
+                push_sentinel(&mut out, SENTINEL);
+                i += SENTINEL_UTF8.len();
+                copied = i;
+            }
+            _ => i += 1,
+        }
+    }
+    out.push_str(&text[copied.min(text.len())..]);
+    out
+}
+
+// ---------------------------------------------------------------------------
+// Key order
+
+/// True when `key` is a canonical array index: the decimal form of an
+/// integer in 0..=2^32-2, as ECMAScript orders such keys first.
+fn is_array_index(key: &str) -> bool {
+    if key.is_empty() || key.len() > 10 || !key.bytes().all(|b| b.is_ascii_digit()) {
+        return false;
+    }
+    if key.len() > 1 && key.starts_with('0') {
+        return false;
+    }
+    key.parse::<u64>().is_ok_and(|n| n < u64::from(u32::MAX))
+}
+
+/// Reorder every object's keys the way a JS object created by `JSON.parse`
+/// enumerates them: array indices ascending, then strings in insertion order.
+fn order_keys_like_js(value: &mut Value) {
+    match value {
+        Value::Array(items) => items.iter_mut().for_each(order_keys_like_js),
+        Value::Object(map) => {
+            if map.keys().any(|k| is_array_index(k)) {
+                let entries = std::mem::take(map);
+                let (mut indices, strings): (Vec<_>, Vec<_>) =
+                    entries.into_iter().partition(|(k, _)| is_array_index(k));
+                indices.sort_by_key(|(k, _)| k.parse::<u64>().unwrap_or(0));
+                map.extend(indices);
+                map.extend(strings);
+            }
+            map.values_mut().for_each(order_keys_like_js);
+        }
+        _ => {}
+    }
 }
 
 #[cfg(test)]
