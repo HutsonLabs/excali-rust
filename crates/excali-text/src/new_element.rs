@@ -1,10 +1,20 @@
-//! Refitting a text element to its text: `refreshTextDimensions` and the
-//! anchoring it uses.
+//! Sizing a text element to its text: where a new text's box goes
+//! (`newTextElement`), how an existing text's box changes when its text is
+//! edited or re-wrapped (`refreshTextDimensions`), and the autoResize
+//! action that unwraps it.
 //!
 //! Upstream: `packages/element/src/newElement.ts` at the pinned commit:
 //! `getTextAnchorRatios` (303-315), `getTextElementPositionOffsets`
-//! (317-333), `getAdjustedDimensions` (393-483), `adjustXYWithRotation`
-//! (485-531) and `refreshTextDimensions` (533-580). `restoreElements` with
+//! (317-333), `newTextElement` (335-391), `getAdjustedDimensions`
+//! (393-483), `adjustXYWithRotation` (485-531) and `refreshTextDimensions`
+//! (533-580); and the geometry of the autoResize action
+//! (`packages/excalidraw/actions/actionTextAutoResize.ts:51-69`).
+//!
+//! `autoResize: true` means the width follows the text; `false` means the
+//! text wraps at the stored width. `text` holds what is rendered (wrapped),
+//! `originalText` what was typed. When the box changes size it grows away
+//! from the edges its `textAlign` / `verticalAlign` pin, so the anchor stays
+//! put (`site/content/research/data-model.md` section 8). `restoreElements` with
 //! `refreshDimensions` calls the last for every text but a sticky label
 //! (`packages/excalidraw/data/restore.ts:1032-1045`), which
 //! [`crate::restore_env::TextEnv`] answers.
@@ -13,14 +23,15 @@
 //! from module globals; [`TextLayout`] passes them, with the arrow geometry
 //! an arrow label's box needs ([`ArrowLabelGeometry`]).
 
+use excali_core::constants::{DEFAULT_FONT_SIZE, DEFAULT_TEXT_ALIGN, DEFAULT_VERTICAL_ALIGN};
 use excali_core::element::{
-    Element, ElementKind, ElementType, TextAlign, TextFields, VerticalAlign,
+    Element, ElementKind, ElementType, FontFamily, TextAlign, TextFields, VerticalAlign,
 };
 use serde_json::{Map, Value};
 
-use crate::font_metadata::get_font_string;
+use crate::font_metadata::{get_font_string, get_line_height};
 use crate::text_element::{get_bound_text_max_width, ArrowLabelGeometry};
-use crate::text_measurements::{measure_text, CharWidthCache, TextMetricsProvider};
+use crate::text_measurements::{measure_text, normalize_text, CharWidthCache, TextMetricsProvider};
 use crate::text_wrapping::wrap_text;
 
 /// What measuring and placing text needs: the line-width provider, the
@@ -71,6 +82,22 @@ impl RefreshedText {
         m.insert("y".into(), number(self.y));
         m
     }
+
+    /// `Object.assign(element, refreshed)` / `newElementWith(element,
+    /// refreshed)`: the box, the text and (when given) `autoResize` written
+    /// to the element. A non-text element only takes the box.
+    pub fn apply(&self, element: &mut Element) {
+        element.base.x = self.x;
+        element.base.y = self.y;
+        element.base.width = self.width;
+        element.base.height = self.height;
+        if let ElementKind::Text(text) = &mut element.kind {
+            text.text.clone_from(&self.text);
+            if let Some(auto_resize) = self.auto_resize {
+                text.auto_resize = auto_resize;
+            }
+        }
+    }
 }
 
 /// `getTextAnchorRatios({ textAlign, verticalAlign })`
@@ -88,6 +115,111 @@ pub fn get_text_anchor_ratios(text_align: TextAlign, vertical_align: VerticalAli
         VerticalAlign::Top => 0.0,
     };
     [x, y]
+}
+
+/// `getTextElementPositionOffsets(opts, metrics)` (`newElement.ts:317-333`):
+/// how far left and up of its anchor a box `width` by `height` starts.
+fn get_text_element_position_offsets(
+    text_align: TextAlign,
+    vertical_align: VerticalAlign,
+    width: f64,
+    height: f64,
+) -> [f64; 2] {
+    let [ratio_x, ratio_y] = get_text_anchor_ratios(text_align, vertical_align);
+    [width * ratio_x, height * ratio_y]
+}
+
+/// What `newTextElement` is given (`newElement.ts:335-348`), besides the
+/// base element options. `None` (or, as upstream's `||` reads it, a zero or
+/// `NaN` font size or line height, font family 0, or an empty container id)
+/// takes the default.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct NewTextElementOptions {
+    pub text: String,
+    /// `None`: the normalized `text`.
+    pub original_text: Option<String>,
+    /// Where the anchor goes: the box is placed so that the point its
+    /// alignment pins is at (`x`, `y`).
+    pub x: f64,
+    pub y: f64,
+    pub font_size: Option<f64>,
+    pub font_family: Option<FontFamily>,
+    pub text_align: Option<TextAlign>,
+    pub vertical_align: Option<VerticalAlign>,
+    pub container_id: Option<String>,
+    pub line_height: Option<f64>,
+    pub auto_resize: Option<bool>,
+    pub label_position: Option<f64>,
+    pub base_font_size: Option<f64>,
+}
+
+/// A text element's box and fields as `newTextElement` builds them.
+#[derive(Clone, Debug, PartialEq)]
+pub struct NewTextElement {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+    pub fields: TextFields,
+}
+
+/// `value || fallback` for a number.
+fn or_number(value: Option<f64>, fallback: impl FnOnce() -> f64) -> f64 {
+    match value {
+        Some(v) if v != 0.0 && !v.is_nan() => v,
+        _ => fallback(),
+    }
+}
+
+/// `newTextElement(opts)` (`newElement.ts:335-391`), the text-specific
+/// part: the text normalized (line endings, tabs), measured in its font,
+/// and the box placed so its anchor ([`get_text_anchor_ratios`]) is at the
+/// given point. The width follows the text (`autoResize` defaults to
+/// true).
+pub fn new_text_element(
+    opts: &NewTextElementOptions,
+    provider: &dyn TextMetricsProvider,
+) -> NewTextElement {
+    let font_family = match opts.font_family {
+        Some(family) if family.0 != 0 => family,
+        _ => FontFamily::DEFAULT,
+    };
+    let font_size = or_number(opts.font_size, || DEFAULT_FONT_SIZE);
+    let line_height = or_number(opts.line_height, || get_line_height(font_family));
+    let text = normalize_text(&opts.text);
+    let metrics = measure_text(
+        &text,
+        &get_font_string(font_size, font_family),
+        line_height,
+        provider,
+    );
+    let text_align = opts.text_align.unwrap_or(DEFAULT_TEXT_ALIGN);
+    let vertical_align = opts.vertical_align.unwrap_or(DEFAULT_VERTICAL_ALIGN);
+    let [offset_x, offset_y] = get_text_element_position_offsets(
+        text_align,
+        vertical_align,
+        metrics.width,
+        metrics.height,
+    );
+    NewTextElement {
+        x: opts.x - offset_x,
+        y: opts.y - offset_y,
+        width: metrics.width,
+        height: metrics.height,
+        fields: TextFields {
+            font_size,
+            font_family,
+            base_font_size: opts.base_font_size,
+            original_text: opts.original_text.clone().unwrap_or_else(|| text.clone()),
+            text,
+            text_align,
+            vertical_align,
+            container_id: opts.container_id.clone().filter(|id| !id.is_empty()),
+            auto_resize: opts.auto_resize.unwrap_or(true),
+            line_height,
+            label_position: Some(opts.label_position),
+        },
+    }
 }
 
 /// The sides `adjustXYWithRotation` holds still.
@@ -334,5 +466,33 @@ pub fn refresh_text_dimensions(
         height,
         x,
         y,
+    })
+}
+
+/// The autoResize action (`actionTextAutoResize.ts:51-69`): a wrapped,
+/// fixed-width text made to grow with its content again. Its `text` goes
+/// back to `originalText`, the box is measured for it and placed so the
+/// point its alignment pins stays where it was. `None` for an element that
+/// is not a text.
+pub fn text_auto_resize(
+    element: &Element,
+    provider: &dyn TextMetricsProvider,
+) -> Option<RefreshedText> {
+    let text = text_fields(element)?;
+    let metrics = measure_text(
+        &text.original_text,
+        &get_font_string(text.font_size, text.font_family),
+        text.line_height,
+        provider,
+    );
+    let [ratio_x, ratio_y] = get_text_anchor_ratios(text.text_align, text.vertical_align);
+    let base = &element.base;
+    Some(RefreshedText {
+        text: text.original_text.clone(),
+        auto_resize: Some(true),
+        width: metrics.width,
+        height: metrics.height,
+        x: base.x + (base.width - metrics.width) * ratio_x,
+        y: base.y + (base.height - metrics.height) * ratio_y,
     })
 }
