@@ -13,7 +13,10 @@
 //! - orphaned children detached: an element whose `frameId` names one of the
 //!   copied elements that is not a frame or magic frame is written with
 //!   `frameId: null`, through `mutateElement` (`version` + 1, a fresh
-//!   `versionNonce`, `updated`), on a copy. `getContainingFrame` looks the
+//!   `versionNonce`, `updated`), on a `deepCopyElement` copy, which leaves
+//!   out the element's own `shape` and `canvas` keys (render caches
+//!   upstream, `packages/element/src/duplicate.ts:640-646`; any other
+//!   element keeps them as read). `getContainingFrame` looks the
 //!   frame up among the copied elements only (`clipboard.ts:150`,
 //!   `packages/element/src/frame.ts:436-445`), so a child whose frame is not
 //!   among them is not found and keeps its `frameId`; restore clears that
@@ -25,7 +28,10 @@
 //! **Paste.** [`parse_clipboard`] is `parseClipboard` (`clipboard.ts:
 //! 523-555`) for a paste whose text comes from `text/plain`: the text is
 //! trimmed (`parseClipboardEventTextData`, `clipboard.ts:357-360`), then
-//! [`parse_clipboard_text`] parses it with `JSON.parse`. Any of the three
+//! [`parse_clipboard_text`] parses it with `JSON.parse`
+//! ([`crate::json`]; a number literal beyond the f64 range, which
+//! `JSON.parse` reads as `Infinity` or `-Infinity`, is read as `null`, what
+//! `JSON.stringify` writes for it; see there). Any of the three
 //! `type`s `"excalidraw"`, `"excalidraw/clipboard"` and
 //! `"excalidraw-api/clipboard"` with an `elements` array gives
 //! [`ClipboardData::Elements`] (`clipboardContainsElements`,
@@ -87,7 +93,12 @@ pub fn serialize_as_clipboard_json(
                 return Value::Object(element.to_encoded());
             }
             // deepCopyElement, then mutateElement(copy, map, {frameId: null}).
+            // _deepCopyElement skips the element's own `shape` and `canvas`
+            // keys, render caches upstream (`duplicate.ts:640-646`); nested
+            // ones are copied.
             let mut copy = element.clone();
+            copy.extra.shift_remove("shape");
+            copy.extra.shift_remove("canvas");
             copy.base.frame_id = None;
             copy.base.version += 1.0;
             copy.base.version_nonce = stamp.version_nonce();
