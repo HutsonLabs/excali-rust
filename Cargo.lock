@@ -276,6 +276,7 @@ name = "excali-scene"
 version = "26.9.1"
 dependencies = [
  "excali-core",
+ "excali-freehand",
  "excali-math",
  "excali-rough",
  "serde_json",

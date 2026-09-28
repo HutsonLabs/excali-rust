@@ -15,7 +15,8 @@
 
 use std::path::Path;
 
-use excali_core::element::{Element, StrokeVariability};
+use excali_core::element::{Element, ElementKind, StrokeVariability};
+use excali_core::json::number_to_string;
 use excali_scene::freedraw::{
     get_svg_path_from_stroke, get_variable_width_freedraw_outline, trim_to_fixed_precision,
 };
@@ -75,9 +76,17 @@ fn variable_width_elements_give_upstream_paths() {
     let mut ran = 0;
     for c in load("elements-freedraw.json") {
         let id = c["id"].as_str().expect("id");
-        let el = Element::from_map(c["element"].as_object().expect("element").clone())
-            .unwrap_or_else(|e| panic!("{id}: {e}"));
-        let excali_core::element::ElementKind::Freedraw(fields) = &el.kind else {
+        let mut raw = c["element"].as_object().expect("element").clone();
+        // A legacy element without strokeOptions: upstream reads
+        // `strokeOptions?.variability` (variable) and
+        // `strokeOptions?.streamline ?? DEFAULT_STROKE_STREAMLINE`
+        // (`shape.ts:1217-1218, 1270-1277`), which is what restore writes
+        // (`restoreFreedrawStrokeOptions`, `data/restore.ts:273-287`) and
+        // the port's model requires.
+        raw.entry("strokeOptions")
+            .or_insert_with(|| serde_json::json!({"variability": "variable", "streamline": 0.5}));
+        let el = Element::from_map(raw).unwrap_or_else(|e| panic!("{id}: {e}"));
+        let ElementKind::Freedraw(fields) = &el.kind else {
             panic!("{id}: not freedraw");
         };
         if fields.stroke_options.variability == StrokeVariability::Constant {
@@ -93,15 +102,34 @@ fn variable_width_elements_give_upstream_paths() {
 
 /// Outline coordinates go through `Math.sin`/`Math.cos`, which may differ
 /// from libm in the last bit on some platforms (see
-/// `crates/excali-freehand/tests/goldens.rs`). Byte equality above holds on
-/// every platform only if no coordinate or midpoint of the fixtures sits so
-/// close to a 0.01 boundary that a 1e-12 relative change moves its
-/// truncation; this pins that.
+/// `crates/excali-freehand/tests/goldens.rs`). The end-to-end byte equality
+/// above holds on every platform only where a one-ulp change cannot move
+/// the trimmed text (a value at a 0.01 boundary, or a short decimal such as
+/// `0.5` that would grow digits). This finds every such coordinate and
+/// midpoint of the variable-width fixtures and pins the list.
+///
+/// There is one: the first point of the `[0, 0, 0.5]` dot,
+/// `1 + (8.5 * sin(pi / 4)) / sqrt(2)` = 5.249999999999999 (perfect-freehand's
+/// start cap at angle 0, where `cos` is exactly 1 and `sin` exactly 0). It
+/// depends on `Math.sin(Math.PI / 4)`, the easeOutSine of pressure 0.5,
+/// which V8, fdlibm, glibc and Apple's libm all round to
+/// 0.7071067811865475 (one ulp below `Math.SQRT1_2`); the assertion below
+/// pins that for the platform running the test.
 #[test]
-fn fixture_paths_do_not_depend_on_the_last_bit() {
-    let trim = |x: f64| trim_to_fixed_precision(&excali_core::json::number_to_string(x));
+fn variable_width_paths_depend_on_the_last_bit_only_where_pinned() {
+    assert_eq!(
+        (std::f64::consts::PI / 4.0).sin(),
+        0.7071067811865475,
+        "sin(pi / 4) on this platform"
+    );
+    let trim = |x: f64| trim_to_fixed_precision(&number_to_string(x));
+    let mut checked = 0;
+    let mut sensitive = Vec::new();
     for c in load("elements-freedraw.json") {
         let id = c["id"].as_str().expect("id");
+        if c["element"]["strokeOptions"]["variability"] == "constant" {
+            continue;
+        }
         let pts = outline(&c["outline"]);
         let mut values = Vec::new();
         for (i, p) in pts.iter().enumerate() {
@@ -109,11 +137,22 @@ fn fixture_paths_do_not_depend_on_the_last_bit() {
             values.extend([p[0], p[1], (p[0] + q[0]) / 2.0, (p[1] + q[1]) / 2.0]);
         }
         for v in values {
-            for nudged in [v * (1.0 + 1e-12), v * (1.0 - 1e-12)] {
-                assert_eq!(trim(nudged), trim(v), "{id}: {v}");
+            if [v.next_up(), v.next_down()]
+                .iter()
+                .any(|&nudged| trim(nudged) != trim(v))
+            {
+                sensitive.push(format!("{id} {}", number_to_string(v)));
             }
+            checked += 1;
         }
     }
+    assert!(checked > 0);
+    sensitive.sort();
+    sensitive.dedup();
+    assert_eq!(
+        sensitive,
+        ["freedraw/pressure-empty-points 5.249999999999999"]
+    );
 }
 
 #[test]
@@ -149,7 +188,7 @@ fn edge_cases_match_node() {
              7.33,500000000000000000000 L 1.5,2e-7 Z",
         ),
         (
-            &[[1.2345e21, -5e-324], [123456789.987654321, 0.1 + 0.2]],
+            &[[1.2345e21, -5e-324], [123_456_789.987_654_33, 0.1 + 0.2]],
             "M 1.23+21,-5e-324 Q 1.23+21,-5e-324 617250000000061700000,0.15 \
              123456789.98,0.30 617250000000061700000,0.15 L 1.23+21,-5e-324 Z",
         ),
