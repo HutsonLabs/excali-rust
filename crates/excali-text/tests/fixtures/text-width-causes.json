@@ -1,0 +1,1016 @@
+{
+  "generator": "scripts/fixtures/text_width_causes.mjs",
+  "description": "Every known deviation of text_width_corpus.rs in Chrome. restored: its width after upstream's restoreLibraryItems at the pin (restore keeps a stored width). refreshed: after upstream's restoreElements with refreshDimensions at the pin (refreshTextDimensions measures it on the canvas). ink_box_62228e0b: getLineWidth of 62228e0b to e3060dfb^ with the fonts served then (Comic Shanns: the single file of 62228e0b to b479f3bd65^).",
+  "upstream": "438d89861f53d8a90ad566113ecac1b83761098f",
+  "browser": "Chromium 153.0.8010.12 (@playwright/test, tests/web/package-lock.json), darwin arm64",
+  "texts": [
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "0JRcBSO_gKMJBazHfxAl5",
+      "cause": "ink_box_whole_pixels",
+      "stored": 103.8600082397461,
+      "restored": 103.8600082397461,
+      "refreshed": 102.85993957519531,
+      "ink_box_62228e0b": 103.53995299339294
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "KGpnaWujf-puo-oaNV0qu",
+      "cause": "ink_box_whole_pixels",
+      "stored": 143.5,
+      "restored": 143.5,
+      "refreshed": 142.4998779296875,
+      "ink_box_62228e0b": 142.51987671852112
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "rGURyQjUp70vj7So_WBL0",
+      "cause": "ink_box_whole_pixels",
+      "stored": 107.14000701904297,
+      "restored": 107.14000701904297,
+      "refreshed": 106.13990783691406,
+      "ink_box_62228e0b": 106.13990783691406
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "m0uvWqSaJRPECfyLSUvGH",
+      "cause": "ink_box_whole_pixels",
+      "stored": 136.25999450683594,
+      "restored": 136.25999450683594,
+      "refreshed": 135.25985717773438,
+      "ink_box_62228e0b": 135.95987182855606
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "PG9muBDxU8Hh77wIRcGtu",
+      "cause": "ink_box_whole_pixels",
+      "stored": 96.07999420166016,
+      "restored": 96.07999420166016,
+      "refreshed": 95.07994079589844,
+      "ink_box_62228e0b": 95.95994871854782
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "_LJgifPgEA3C-zj1VhkgA",
+      "cause": "ink_box_whole_pixels",
+      "stored": 58.78000259399414,
+      "restored": 58.78000259399414,
+      "refreshed": 55.77995300292969,
+      "ink_box_62228e0b": 57.23996639251709
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "dtHwYAIJu-13X35LNNi6Y",
+      "cause": "ink_box_whole_pixels",
+      "stored": 109.50000762939453,
+      "restored": 109.50000762939453,
+      "refreshed": 108.49990844726562,
+      "ink_box_62228e0b": 109.39991545677185
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "IjWOpBn7bNvJrkpCPuYNJ",
+      "cause": "ink_box_whole_pixels",
+      "stored": 131.86000061035156,
+      "restored": 131.86000061035156,
+      "refreshed": 130.8599090576172,
+      "ink_box_62228e0b": 131.75992250442505
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "7Pp35atG3G5vHW-3XRqpM",
+      "cause": "ink_box_whole_pixels",
+      "stored": 156.63999938964844,
+      "restored": 156.63999938964844,
+      "refreshed": 155.63987731933594,
+      "ink_box_62228e0b": 156.25989073514938
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "fWykqsSesmp54v7rW9O7p",
+      "cause": "ink_box_whole_pixels",
+      "stored": 70.34000396728516,
+      "restored": 70.34000396728516,
+      "refreshed": 68.33995056152344,
+      "ink_box_62228e0b": 69.45995759963989
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "S7kh-UnJCL1TuSUY2hReC",
+      "cause": "ink_box_whole_pixels",
+      "stored": 98.63999938964844,
+      "restored": 98.63999938964844,
+      "refreshed": 97.63992309570312,
+      "ink_box_62228e0b": 97.63992309570312
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "j7xALRrIexOFUYEiJoTd3",
+      "cause": "ink_box_whole_pixels",
+      "stored": 158.3199920654297,
+      "restored": 158.3199920654297,
+      "refreshed": 157.3198699951172,
+      "ink_box_62228e0b": 158.05986937880516
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "n_JDfl_g6uQDrqVKGbUcw",
+      "cause": "ink_box_whole_pixels",
+      "stored": 80.04000091552734,
+      "restored": 80.04000091552734,
+      "refreshed": 79.0399169921875,
+      "ink_box_62228e0b": 80.17992830276489
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "u_uhh3cfmkMM66sXwtBTU",
+      "cause": "ink_box_whole_pixels",
+      "stored": 58.86000061035156,
+      "restored": 58.86000061035156,
+      "refreshed": 57.859954833984375,
+      "ink_box_62228e0b": 58.69996824860573
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "xhQ10Dk-SS6b7H8WKRJTy",
+      "cause": "ink_box_whole_pixels",
+      "stored": 92.20000457763672,
+      "restored": 92.20000457763672,
+      "refreshed": 91.19992065429688,
+      "ink_box_62228e0b": 91.89992767572403
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "kV40coNBHgOxUNfFtSXZH",
+      "cause": "ink_box_whole_pixels",
+      "stored": 52.019996643066406,
+      "restored": 52.019996643066406,
+      "refreshed": 50.01995849609375,
+      "ink_box_62228e0b": 50.51996898651123
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "6l6iMXkjj9hfubtTZAtY1",
+      "cause": "ink_box_whole_pixels",
+      "stored": 68.52000427246094,
+      "restored": 68.52000427246094,
+      "refreshed": 67.51992797851562,
+      "ink_box_62228e0b": 68.1199413985014
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "UsC36xWMGRdXNDrxvt7CI",
+      "cause": "ink_box_whole_pixels",
+      "stored": 133.27999877929688,
+      "restored": 133.27999877929688,
+      "refreshed": 132.2799072265625,
+      "ink_box_62228e0b": 133.15992066264153
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "duplSvMz1eOw6FdTpM05f",
+      "cause": "ink_box_whole_pixels",
+      "stored": 42.119998931884766,
+      "restored": 42.119998931884766,
+      "refreshed": 41.119964599609375,
+      "ink_box_62228e0b": 42.019978046417236
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "jo3rSyijSdJ6n371iB9IP",
+      "cause": "ink_box_whole_pixels",
+      "stored": 91.56000518798828,
+      "restored": 91.56000518798828,
+      "refreshed": 90.55990600585938,
+      "ink_box_62228e0b": 91.37991301715374
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "itFmV-sk7NxvCvHyMAdsz",
+      "cause": "ink_box_whole_pixels",
+      "stored": 110.73999786376953,
+      "restored": 110.73999786376953,
+      "refreshed": 109.73989868164062,
+      "ink_box_62228e0b": 110.79990568757057
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "026Kun7u_LYI6n-CyHSm2",
+      "cause": "ink_box_whole_pixels",
+      "stored": 110.41999053955078,
+      "restored": 110.41999053955078,
+      "refreshed": 108.419921875,
+      "ink_box_62228e0b": 108.419921875
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "3SOkju7gYyVeG4PTWWgVp",
+      "cause": "ink_box_whole_pixels",
+      "stored": 92.33999633789062,
+      "restored": 92.33999633789062,
+      "refreshed": 91.33990478515625,
+      "ink_box_62228e0b": 92.25991606712341
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "UEwP82gJFZqYzzZato7Nk",
+      "cause": "ink_box_whole_pixels",
+      "stored": 160.3800048828125,
+      "restored": 160.3800048828125,
+      "refreshed": 159.3798828125,
+      "ink_box_62228e0b": 160.27989745140076
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "1uR8aa9lbwX2WUvcu4cpL",
+      "cause": "ink_box_whole_pixels",
+      "stored": 168.02001953125,
+      "restored": 168.02001953125,
+      "refreshed": 167.0198516845703,
+      "ink_box_62228e0b": 167.99986511468887
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "ScekL0QomoQCfwlJ-OEjF",
+      "cause": "ink_box_whole_pixels",
+      "stored": 169.52000427246094,
+      "restored": 169.52000427246094,
+      "refreshed": 168.51988220214844,
+      "ink_box_62228e0b": 169.57988157868385
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "VY2cvZbn-GYu1zKtdrx4E",
+      "cause": "ink_box_whole_pixels",
+      "stored": 161.52000427246094,
+      "restored": 161.52000427246094,
+      "refreshed": 160.51986694335938,
+      "ink_box_62228e0b": 161.33988158404827
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "4UrgpAQ0P4tskB24urtBJ",
+      "cause": "ink_box_whole_pixels",
+      "stored": 41.84000015258789,
+      "restored": 41.84000015258789,
+      "refreshed": 40.8399658203125,
+      "ink_box_62228e0b": 41.73997926712036
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "hI_kvnC-eTmApf1FEkcVx",
+      "cause": "ink_box_whole_pixels",
+      "stored": 129.25999450683594,
+      "restored": 129.25999450683594,
+      "refreshed": 128.25990295410156,
+      "ink_box_62228e0b": 129.33992186188698
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "XJfpCe3R8fKC6hsJTEyIK",
+      "cause": "ink_box_whole_pixels",
+      "stored": 191.05999755859375,
+      "restored": 191.05999755859375,
+      "refreshed": 190.059814453125,
+      "ink_box_62228e0b": 191.03982788324356
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "THWNHGv_rtwEZuKeO2933",
+      "cause": "ink_box_whole_pixels",
+      "stored": 82.70000457763672,
+      "restored": 82.70000457763672,
+      "refreshed": 81.69992065429688,
+      "ink_box_62228e0b": 82.81992769241333
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "vg_7jzFraD46NANjmsIAx",
+      "cause": "dom_offset_width",
+      "stored": 120,
+      "restored": 120,
+      "refreshed": 119.23989868164062,
+      "ink_box_62228e0b": 120.13991212844849
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "yKx_tNXOKttAdgFX2aiRs",
+      "cause": "dom_offset_width_plus_one",
+      "stored": 43,
+      "restored": 43,
+      "refreshed": 40.65135192871094,
+      "ink_box_62228e0b": 40.65135192871094
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "b0HjIfccJDbGzOD0oJTqW",
+      "cause": "dom_offset_width_plus_one",
+      "stored": 43,
+      "restored": 43,
+      "refreshed": 40.65135192871094,
+      "ink_box_62228e0b": 40.65135192871094
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "v3JV0jo1y8ri7u-ezyS3J",
+      "cause": "dom_offset_width_plus_one",
+      "stored": 43,
+      "restored": 43,
+      "refreshed": 40.65135192871094,
+      "ink_box_62228e0b": 40.65135192871094
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "crYgsUPUOuoGa3B3yWSmU",
+      "cause": "dom_offset_width",
+      "stored": 38,
+      "restored": 38,
+      "refreshed": 37.259979248046875,
+      "ink_box_62228e0b": 37.259979248046875
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "NGYrle_mTo26iQ1bDz4M6",
+      "cause": "ink_box_whole_pixels",
+      "stored": 43.29999923706055,
+      "restored": 43.29999923706055,
+      "refreshed": 42.29998779296875,
+      "ink_box_62228e0b": 42.35999345779419
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "mk0-Mdu4ulTVe7X9VAi1N",
+      "cause": "dom_offset_width",
+      "stored": 60,
+      "restored": 60,
+      "refreshed": 59.3199462890625,
+      "ink_box_62228e0b": 59.43994951248169
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "Hwjeq64YjpS2TC6hOJWkh",
+      "cause": "ink_box_whole_pixels",
+      "stored": 125.7400131225586,
+      "restored": 125.7400131225586,
+      "refreshed": 124.73991394042969,
+      "ink_box_62228e0b": 125.63992094993591
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "uZDG6Xf8faPMwtOC9NHGI",
+      "cause": "dom_offset_width",
+      "stored": 128,
+      "restored": 128,
+      "refreshed": 126.69992065429688,
+      "ink_box_62228e0b": 126.69992065429688
+    },
+    {
+      "file": "libraries/erlina/data-processing.excalidrawlib.gz",
+      "id": "NPzVqC8DV7s17WxsuEJk_",
+      "cause": "scaled_dom_offset_width",
+      "stored": 43.44949194141259,
+      "restored": 43.44949194141259,
+      "refreshed": 40.837371826171875,
+      "ink_box_62228e0b": 40.837371826171875
+    },
+    {
+      "file": "libraries/gabrielamacakova/halloween-elements.excalidrawlib.gz",
+      "id": "EzBbdxqivZ8QhmV67VrnF",
+      "cause": "scaled_dom_offset_width",
+      "stored": 26.082033226856986,
+      "restored": 26.082033226856986,
+      "refreshed": 25.380645751953125,
+      "ink_box_62228e0b": 25.380645751953125
+    },
+    {
+      "file": "libraries/gabrielamacakova/halloween-elements.excalidrawlib.gz",
+      "id": "rx9xT52592PqRrVqDy5kq",
+      "cause": "scaled_dom_offset_width",
+      "stored": 31.515790149118853,
+      "restored": 31.515790149118853,
+      "refreshed": 30.782760620117188,
+      "ink_box_62228e0b": 31.20190167427063
+    },
+    {
+      "file": "libraries/gabrielamacakova/halloween-elements.excalidrawlib.gz",
+      "id": "Yq_9tkFIFmnNSEQCtu_gl",
+      "cause": "scaled_dom_offset_width",
+      "stored": 19.682760747889198,
+      "restored": 19.682760747889198,
+      "refreshed": 19.151290893554688,
+      "ink_box_62228e0b": 19.151290893554688
+    },
+    {
+      "file": "libraries/gabrielamacakova/halloween-elements.excalidrawlib.gz",
+      "id": "v5hy6FLFxs3QvXlyPRpK0",
+      "cause": "scaled_dom_offset_width",
+      "stored": 23.78333590369944,
+      "restored": 23.78333590369944,
+      "refreshed": 23.2275390625,
+      "ink_box_62228e0b": 23.543801248073578
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "id": "Ai0jv2vBdOIZUkYOjDZdz",
+      "cause": "ink_box",
+      "stored": 313.759730219841,
+      "restored": 313.759730219841,
+      "refreshed": 313.23974609375,
+      "ink_box_62228e0b": 313.759730219841
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "id": "7ExgwdP8Ry41GVZAiXzen",
+      "cause": "ink_box",
+      "stored": 245.84391552209854,
+      "restored": 245.84391552209854,
+      "refreshed": 244.61990356445312,
+      "ink_box_62228e0b": 245.84391552209854
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "id": "dDlDHKYYP2k4hMDK05QC2",
+      "cause": "ink_box",
+      "stored": 155.17593908309937,
+      "restored": 155.17593908309937,
+      "refreshed": 153.0479278564453,
+      "ink_box_62228e0b": 155.17593908309937
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "id": "XBDtnVgCPkwD_lLW0pbG0",
+      "cause": "ink_box",
+      "stored": 98.63993012905121,
+      "restored": 98.63993012905121,
+      "refreshed": 97.95991516113281,
+      "ink_box_62228e0b": 98.63993012905121
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "id": "kDGfu_d9JBFZC-eMtRrQn",
+      "cause": "ink_box",
+      "stored": 158.35986077785492,
+      "restored": 158.35986077785492,
+      "refreshed": 157.599853515625,
+      "ink_box_62228e0b": 158.35986077785492
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "id": "cleW_j4SllhjLikgaQ7Y-",
+      "cause": "ink_box",
+      "stored": 107.9799053966999,
+      "restored": 107.9799053966999,
+      "refreshed": 107.27989196777344,
+      "ink_box_62228e0b": 107.9799053966999
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "id": "bZRkonncf_xINk1YXivYs",
+      "cause": "ink_box",
+      "stored": 74.91195410490036,
+      "restored": 74.91195410490036,
+      "refreshed": 73.99995422363281,
+      "ink_box_62228e0b": 74.91195410490036
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "id": "cNJNEAfu-mAf3iuWRs7Hl",
+      "cause": "ink_box",
+      "stored": 129.43988341093063,
+      "restored": 129.43988341093063,
+      "refreshed": 128.59986877441406,
+      "ink_box_62228e0b": 129.43988341093063
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "id": "zPt1vdWcfV0U6qTeFwvqQ",
+      "cause": "dom_offset_width_plus_one",
+      "stored": 73,
+      "restored": 73,
+      "refreshed": 71.43994140625,
+      "ink_box_62228e0b": 71.43994140625
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "id": "4F4iRcCo-63GtJr5xmT4d",
+      "cause": "dom_offset_width_plus_one",
+      "stored": 39,
+      "restored": 39,
+      "refreshed": 37.21821594238281,
+      "ink_box_62228e0b": 37.37886866927147
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "id": "KUvdjejdRDVTCqcI7bE4y",
+      "cause": "dom_offset_width_plus_one",
+      "stored": 160,
+      "restored": 160,
+      "refreshed": 158.43984985351562,
+      "ink_box_62228e0b": 159.2998571395874
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "id": "bKuB0x46YysJPYBtvVFDw",
+      "cause": "scaled_dom_offset_width",
+      "stored": 38.078209181986566,
+      "restored": 38.078209181986566,
+      "refreshed": 37.21821594238281,
+      "ink_box_62228e0b": 37.37886866927147
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "id": "sD-TUGTrTnjM5PCRcDr_m",
+      "cause": "dom_offset_width_plus_one",
+      "stored": 64,
+      "restored": 64,
+      "refreshed": 61.69993591308594,
+      "ink_box_62228e0b": 62.5199429243803
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "id": "_ZrRanQkZaMGg_98NfYcw",
+      "cause": "dom_offset_width_plus_one",
+      "stored": 39,
+      "restored": 39,
+      "refreshed": 37.21821594238281,
+      "ink_box_62228e0b": 37.37886866927147
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "id": "_S5sXU3j0JBXsptKfzJa3",
+      "cause": "dom_offset_width_plus_one",
+      "stored": 92,
+      "restored": 92,
+      "refreshed": 89.9317626953125,
+      "ink_box_62228e0b": 90.31992471218109
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "id": "Y8SrMyXIof1WKbEfwq0Me",
+      "cause": "dom_offset_width_plus_one",
+      "stored": 74,
+      "restored": 74,
+      "refreshed": 72.23992919921875,
+      "ink_box_62228e0b": 73.21994262933731
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "id": "yhsOGotiHG9vbMrS23eiC",
+      "cause": "dom_offset_width_plus_one",
+      "stored": 56,
+      "restored": 56,
+      "refreshed": 54.41993713378906,
+      "ink_box_62228e0b": 54.65994507074356
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "id": "w4K_7dkA_4tcZpqraCAWS",
+      "cause": "dom_offset_width_plus_one",
+      "stored": 38,
+      "restored": 38,
+      "refreshed": 35.77996826171875,
+      "ink_box_62228e0b": 35.77996826171875
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "id": "Lf9ubXISAq7xb7rW5qXjN",
+      "cause": "dom_offset_width_plus_one",
+      "stored": 46,
+      "restored": 46,
+      "refreshed": 43.739959716796875,
+      "ink_box_62228e0b": 44.35997313261032
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "id": "w3yVI0yBdVFOd4FFO6X7j",
+      "cause": "dom_offset_width_plus_one",
+      "stored": 87,
+      "restored": 87,
+      "refreshed": 84.72254943847656,
+      "ink_box_62228e0b": 84.72254943847656
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "id": "k0DHmaQpBmdgY-c6KH68e",
+      "cause": "dom_offset_width_plus_one",
+      "stored": 49,
+      "restored": 49,
+      "refreshed": 47.21595764160156,
+      "ink_box_62228e0b": 47.32796874642372
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "id": "gfMbCz4eVWHzzjSebdG9o",
+      "cause": "dom_offset_width_plus_one",
+      "stored": 28,
+      "restored": 28,
+      "refreshed": 26.0999755859375,
+      "ink_box_62228e0b": 26.0999755859375
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "id": "JA4CWhChhKQuYXuq8R3y-",
+      "cause": "container_width",
+      "stored": 203,
+      "restored": 203,
+      "refreshed": 86.25994873046875,
+      "ink_box_62228e0b": 87.39996004104614
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "id": "0txHLBnPaLdbC-6oBR5Nc",
+      "cause": "dom_offset_width",
+      "stored": 78,
+      "restored": 78,
+      "refreshed": 77.00794982910156,
+      "ink_box_62228e0b": 77.05596026778221
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "id": "GHgonuJ-4BpYWc45yBXyV",
+      "cause": "dom_offset_width",
+      "stored": 58,
+      "restored": 58,
+      "refreshed": 57.0799560546875,
+      "ink_box_62228e0b": 57.55996948480606
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "id": "Rux2x4t2eZD_IGJdiVVLi",
+      "cause": "dom_offset_width",
+      "stored": 58,
+      "restored": 58,
+      "refreshed": 57.0799560546875,
+      "ink_box_62228e0b": 57.55996948480606
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "id": "P7W_lCMx6UrdVeWVX6mPg",
+      "cause": "dom_offset_width",
+      "stored": 78,
+      "restored": 78,
+      "refreshed": 77.00794982910156,
+      "ink_box_62228e0b": 77.05596026778221
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "id": "j-7bmxUrNpmryK2lf0Tye",
+      "cause": "dom_offset_width",
+      "stored": 55,
+      "restored": 55,
+      "refreshed": 53.903961181640625,
+      "ink_box_62228e0b": 54.11196631193161
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "id": "uXu53U7-3eUe4fieMfYJj",
+      "cause": "dom_offset_width",
+      "stored": 55,
+      "restored": 55,
+      "refreshed": 53.903961181640625,
+      "ink_box_62228e0b": 54.11196631193161
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "id": "esmwWoflQ6lHYdt6r2lJ9",
+      "cause": "dom_offset_width",
+      "stored": 100,
+      "restored": 100,
+      "refreshed": 98.87992858886719,
+      "ink_box_62228e0b": 99.55994200706482
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "id": "M1CFTYVU0kZhawVm1DnJZ",
+      "cause": "dom_offset_width",
+      "stored": 107,
+      "restored": 107,
+      "refreshed": 105.85592651367188,
+      "ink_box_62228e0b": 106.1919364631176
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "id": "0XgLS_x0P0NFlolAyltTu",
+      "cause": "dom_offset_width",
+      "stored": 78,
+      "restored": 78,
+      "refreshed": 77.00794982910156,
+      "ink_box_62228e0b": 77.05596026778221
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "id": "CrTBdkdD6bD_uOC81RfJz",
+      "cause": "dom_offset_width",
+      "stored": 55,
+      "restored": 55,
+      "refreshed": 53.903961181640625,
+      "ink_box_62228e0b": 54.11196631193161
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "id": "R50TfCqfoj-BTvf2yrEi7",
+      "cause": "dom_offset_width",
+      "stored": 55,
+      "restored": 55,
+      "refreshed": 53.903961181640625,
+      "ink_box_62228e0b": 54.11196631193161
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "id": "mzKXC_i4q_CKOUKxaNHCf",
+      "cause": "dom_offset_width",
+      "stored": 100,
+      "restored": 100,
+      "refreshed": 98.87992858886719,
+      "ink_box_62228e0b": 99.55994200706482
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "id": "ZS_5Ir5d4kbWmXs-m8L1_",
+      "cause": "dom_offset_width",
+      "stored": 99,
+      "restored": 99,
+      "refreshed": 98.44793701171875,
+      "ink_box_62228e0b": 98.44793701171875
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "id": "NbIy6eIDsKO1igUZaMSB6",
+      "cause": "dom_offset_width",
+      "stored": 100,
+      "restored": 100,
+      "refreshed": 99.16792297363281,
+      "ink_box_62228e0b": 99.16792297363281
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "id": "gqJ1RHbaIkEhYxrR4Ozuz",
+      "cause": "dom_offset_width",
+      "stored": 108,
+      "restored": 108,
+      "refreshed": 106.7999267578125,
+      "ink_box_62228e0b": 107.48792663216591
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "id": "rVl-wrsBP-LVOCQEBgtmn",
+      "cause": "dom_offset_width",
+      "stored": 82,
+      "restored": 82,
+      "refreshed": 81.23196411132812,
+      "ink_box_62228e0b": 81.23196411132812
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "id": "oXtk3I7XPc6BTLgTSHjMy",
+      "cause": "dom_offset_width",
+      "stored": 93,
+      "restored": 93,
+      "refreshed": 92.30393981933594,
+      "ink_box_62228e0b": 93.00794598460197
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "id": "y3ysQIwsKjYzw9HfoyoHk",
+      "cause": "dom_offset_width",
+      "stored": 96,
+      "restored": 96,
+      "refreshed": 94.5439453125,
+      "ink_box_62228e0b": 94.5439453125
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "id": "0YXrCqAaxqzIeHee0kVTy",
+      "cause": "dom_offset_width",
+      "stored": 86,
+      "restored": 86,
+      "refreshed": 85.407958984375,
+      "ink_box_62228e0b": 85.407958984375
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "id": "ZrvzmoYKDdyp_9vcshcqg",
+      "cause": "dom_offset_width",
+      "stored": 84,
+      "restored": 84,
+      "refreshed": 83.0079345703125,
+      "ink_box_62228e0b": 83.0079345703125
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "id": "6YpWOhFlj6o9250kO4Zfz",
+      "cause": "dom_offset_width",
+      "stored": 96,
+      "restored": 96,
+      "refreshed": 95.02395629882812,
+      "ink_box_62228e0b": 95.02395629882812
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "id": "syd-pcs8a7hGFqOmxXH6Q",
+      "cause": "dom_offset_width",
+      "stored": 90,
+      "restored": 90,
+      "refreshed": 89.15193176269531,
+      "ink_box_62228e0b": 89.16794171184301
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "id": "kgxsBAsfAvP9OaUEfDKPG",
+      "cause": "dom_offset_width",
+      "stored": 116,
+      "restored": 116,
+      "refreshed": 114.75193786621094,
+      "ink_box_62228e0b": 114.7519559264183
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "id": "6Qn7igOMwRE2ekgcmcUWb",
+      "cause": "dom_offset_width",
+      "stored": 93,
+      "restored": 93,
+      "refreshed": 91.66390991210938,
+      "ink_box_62228e0b": 92.35190978646278
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "id": "jAnR8WvZYPDLMbUl3PBkT",
+      "cause": "dom_offset_width",
+      "stored": 116,
+      "restored": 116,
+      "refreshed": 115.19993591308594,
+      "ink_box_62228e0b": 115.21595397591591
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "id": "KVNCfIQjm95Hg6bcTSOxn",
+      "cause": "dom_offset_width",
+      "stored": 95,
+      "restored": 95,
+      "refreshed": 94.47994995117188,
+      "ink_box_62228e0b": 94.47994995117188
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "tSfxrqkItq3SZLhIbkX8I",
+      "cause": "ink_box_whole_pixels",
+      "stored": 10.807999610900879,
+      "restored": 10.807999610900879,
+      "refreshed": 9.807998657226562,
+      "ink_box_62228e0b": 10.607999742031097
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "id": "Vw9cbJ_YyXodALTOaKDJl",
+      "cause": "ink_box",
+      "stored": 167.9038791656494,
+      "restored": 167.9038791656494,
+      "refreshed": 166.95986938476562,
+      "ink_box_62228e0b": 167.9038791656494
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "id": "ZtJ-xO5KFQFAKmKZw52Sk",
+      "cause": "ink_box",
+      "stored": 101.34393501281738,
+      "restored": 101.34393501281738,
+      "refreshed": 100.31993103027344,
+      "ink_box_62228e0b": 101.34393501281738
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "id": "3hvYeGmB_6MXefzOj3ju5",
+      "cause": "ink_box",
+      "stored": 167.9038791656494,
+      "restored": 167.9038791656494,
+      "refreshed": 166.95986938476562,
+      "ink_box_62228e0b": 167.9038791656494
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "id": "g3eA4wT2HZVZ3tORzoFoa",
+      "cause": "ink_box",
+      "stored": 130.2078845500946,
+      "restored": 130.2078845500946,
+      "refreshed": 129.51988220214844,
+      "ink_box_62228e0b": 130.2078845500946
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "id": "b13s8Yg3H6MAv5DP57EQu",
+      "cause": "kept_width",
+      "stored": 112.87196350097656,
+      "restored": 112.87196350097656,
+      "refreshed": 111.41995239257812,
+      "ink_box_62228e0b": 111.41995239257812
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "id": "4hdzG83Rxx1fldGChWrTe",
+      "cause": "ink_box_glyph_pixels",
+      "stored": 123.52796936035156,
+      "restored": 123.52796936035156,
+      "refreshed": 122.07595825195312,
+      "ink_box_62228e0b": 123.33597266674042
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "id": "bcj9TbntkjxAbnJT_A8Kq",
+      "cause": "ink_box_glyph_pixels",
+      "stored": 153.6599578857422,
+      "restored": 153.6599578857422,
+      "refreshed": 151.7399444580078,
+      "ink_box_62228e0b": 151.9919569119811
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "id": "MGLV7_xBOL0gssIKcdHJa",
+      "cause": "ink_box_glyph_pixels",
+      "stored": 153.6599578857422,
+      "restored": 153.6599578857422,
+      "refreshed": 151.7399444580078,
+      "ink_box_62228e0b": 151.9919569119811
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "id": "dmlv3N_9yOdMLcbvn0XXr",
+      "cause": "ink_box_glyph_pixels",
+      "stored": 153.6599578857422,
+      "restored": 153.6599578857422,
+      "refreshed": 151.7399444580078,
+      "ink_box_62228e0b": 151.9919569119811
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "id": "iZXwggIULIN6zn5T-JunY",
+      "cause": "kept_width",
+      "stored": 329.6038818359375,
+      "restored": 329.6038818359375,
+      "refreshed": 329.0758972167969,
+      "ink_box_62228e0b": 329.0758972167969
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "id": "ycFqvLAQT_EpoP5IbUbMZ",
+      "cause": "ink_box_glyph_pixels",
+      "stored": 218.53192138671875,
+      "restored": 218.53192138671875,
+      "refreshed": 216.86392211914062,
+      "ink_box_62228e0b": 218.7359299659729
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "id": "oLC62R0OYAZYsSLIqv04a",
+      "cause": "ink_box_glyph_pixels",
+      "stored": 74.31198120117188,
+      "restored": 74.31198120117188,
+      "refreshed": 72.10797119140625,
+      "ink_box_62228e0b": 74.44797897338867
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "id": "nANmHqm_Fgj1adE7oRI0H",
+      "cause": "ink_box_glyph_pixels",
+      "stored": 212.419921875,
+      "restored": 212.419921875,
+      "refreshed": 211.75192260742188,
+      "ink_box_62228e0b": 212.43589997291565
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "id": "bMz65OYUyPcq4ZMyzw3nX",
+      "cause": "ink_box_glyph_pixels",
+      "stored": 209.21194458007812,
+      "restored": 209.21194458007812,
+      "refreshed": 208.04393005371094,
+      "ink_box_62228e0b": 209.15994477272034
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "id": "ZNbPoQfsdlJcHOS4dgTd9",
+      "cause": "kept_width",
+      "stored": 212.30393981933594,
+      "restored": 212.30393981933594,
+      "refreshed": 210.8519287109375,
+      "ink_box_62228e0b": 210.8519287109375
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "id": "HcRiKbkgPSdROBEureNmK",
+      "cause": "kept_width",
+      "stored": 25,
+      "restored": 25,
+      "refreshed": 24.33599853515625,
+      "ink_box_62228e0b": 24.33599853515625
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "id": "19KTHBlJtvmGlR4K0BJ3U",
+      "cause": "kept_width",
+      "stored": 11.519999623298645,
+      "restored": 11.519999623298645,
+      "refreshed": 11,
+      "ink_box_62228e0b": 11.519999623298645
+    }
+  ]
+}
