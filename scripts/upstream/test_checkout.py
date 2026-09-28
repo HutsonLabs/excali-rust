@@ -206,6 +206,7 @@ class CheckoutTests(unittest.TestCase):
         pin = self.commits[0]
         r = self.run_script(pin=pin, extra_env=PROTOCOL_V0)
         self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("fetching all refs", r.stdout, "fallback path was not exercised")
         self.assertEqual(self.head(), pin)
 
     # --- refusals --------------------------------------------------------

@@ -19,14 +19,14 @@ cd excali-rust
 bd ready                   # what can be started now
 ```
 
-`bootstrap.sh` is idempotent. It sets the repository-local git identity to the responsible human, points `core.hooksPath` at `.githooks`, installs `bd` if missing, turns its metrics off, rebuilds the local database from `issues.jsonl`, and pins Zola.
+`bootstrap.sh` is idempotent. It sets the repository-local git identity to the responsible human, points `core.hooksPath` at `.githooks`, installs `bd` if missing, turns its metrics off, rebuilds the local database from `issues.jsonl`, pins Zola, and checks out upstream at the pinned commit (`EXCALI_SKIP_UPSTREAM=1` skips it).
 
 ## The loop
 
 1. **Pick.** `bd ready` lists issues with no open blockers, priority first. Take the lowest-numbered ready issue in the earliest open phase unless a label says otherwise.
 2. **Claim.** `bd update <id> --claim`. The claim is atomic; a second agent gets a refusal, not a race.
 3. **Branch.** `git switch -c <id>/<slug>` from `main`. One issue per branch.
-4. **Read the evidence.** The issue's `design` and `acceptance_criteria` fields cite the research pages and upstream paths. Read those paths in the upstream checkout at the pinned commit before writing code. If the evidence is missing, stop and file a `spike` issue rather than guessing.
+4. **Read the evidence.** The issue's `design` and `acceptance_criteria` fields cite the research pages and upstream paths. Read those paths in the upstream checkout at the pinned commit before writing code. `scripts/upstream/checkout.sh` creates that checkout in the main clone's `.tools/upstream` (shared by every worktree), detaches it at `extra.upstream_commit` from `site/config.toml`, and refuses any other commit unless `PIN=<sha>` is set explicitly; `--verify` checks it is clean at the pin. If the evidence is missing, stop and file a `spike` issue rather than guessing.
 5. **Do the work with tests.** Every issue ships with tests: `cargo test` for Rust, the Playwright suite for the web runtime, the golden harness for rendering. An issue whose behaviour cannot be tested says so in its close note and why.
 6. **Record evidence in the PR.** The PR body has a section `## Evidence` listing the upstream files and lines, external sources (URL and date), and the commands run with their results. A reviewer must be able to check each claim without asking.
 7. **Gates.** Commit hooks run the authorship gate and refresh `issues.jsonl`. CI runs the same gate, `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test`, and the site build. A push that turns CI red is fixed on the same branch before anything else.
