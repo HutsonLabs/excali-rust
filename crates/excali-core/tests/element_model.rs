@@ -670,6 +670,16 @@ fn per_type_constructors_use_upstream_defaults() {
     assert_eq!(image.status, ImageStatus::Pending);
     assert_eq!(image.scale, [1.0, 1.0]);
     assert_eq!(image.crop, None);
+    // newImageElement forces the base strokeColor to "transparent"; the
+    // image constructor applies it over whatever the base carried.
+    let image = Element::new_image(base("img"), ImageFields::default());
+    assert_eq!(image.element_type(), ElementType::Image);
+    assert_eq!(image.base.stroke_color, "transparent");
+    assert_eq!(image.base.background_color, "transparent");
+    assert_eq!(image.kind, ElementKind::Image(ImageFields::default()));
+    assert!(image.extra.is_empty());
+    let value = serde_json::to_value(&image.base).unwrap();
+    assert_eq!(value["strokeColor"], json!("transparent"));
 
     // newFreeDrawElement, newElement.ts:583-602
     let free = FreedrawFields::new(vec![], false);
@@ -1336,6 +1346,13 @@ fn text_is_bindable_only_without_a_container() {
         fields.container_id = Some("rect".into());
     }
     assert!(!text.is_bindable());
+    // `!element.containerId`: an empty string is falsy, so upstream treats
+    // text with containerId "" as having no container, and restore keeps
+    // the value (restore.ts:569).
+    if let ElementKind::Text(fields) = &mut text.kind {
+        fields.container_id = Some(String::new());
+    }
+    assert!(text.is_bindable());
     for e in every_variant() {
         if e.element_type() != ElementType::Text {
             assert_eq!(e.is_bindable(), e.element_type().is_bindable());
