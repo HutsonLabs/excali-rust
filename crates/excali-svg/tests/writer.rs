@@ -11,7 +11,7 @@ use excali_scene::shape::{generate_element_shape, RenderConfig};
 use excali_svg::dom::{Node, Tag};
 use excali_svg::number::{fixed, js, MAX_DECIMALS_FOR_SVG_EXPORT};
 use excali_svg::path::rough_path_data;
-use excali_svg::{base64, FontContent, FontFiles, SVG_NS};
+use excali_svg::{base64, subset_woff2, FontContent, FontFiles, SVG_NS};
 use serde_json::Value;
 
 // -- dom ------------------------------------------------------------------------
@@ -227,30 +227,169 @@ fn decode_base64(s: &str) -> Vec<u8> {
     out
 }
 
-#[test]
-fn font_files_inline_the_vendored_file_as_a_data_url() {
-    let dir = std::path::Path::new(FONTS).join("Excalifont");
-    let name = std::fs::read_dir(&dir)
+fn vendored(dir: &str, ext: &str) -> String {
+    let name = std::fs::read_dir(std::path::Path::new(FONTS).join(dir))
         .unwrap()
         .map(|e| e.unwrap().file_name().into_string().unwrap())
-        .find(|n| n.ends_with(".woff2"))
+        .filter(|n| n.ends_with(ext))
+        .min()
         .unwrap();
-    let file = format!("Excalifont/{name}");
-    let content = FontFiles::new(FONTS).content(&face(&file, "woff2"));
-    let data = content.strip_prefix("data:font/woff2;base64,").unwrap();
-    assert_eq!(
-        decode_base64(data),
-        std::fs::read(std::path::Path::new(FONTS).join(&file)).unwrap()
-    );
+    format!("{dir}/{name}")
+}
 
-    let liberation = std::fs::read_dir(std::path::Path::new(FONTS).join("Liberation"))
-        .unwrap()
-        .map(|e| e.unwrap().file_name().into_string().unwrap())
-        .find(|n| n.ends_with(".ttf"))
-        .unwrap();
-    let content =
-        FontFiles::new(FONTS).content(&face(&format!("Liberation/{liberation}"), "truetype"));
-    assert!(content.starts_with("data:font/ttf;base64,"));
+/// The sfnt of a font file (WOFF2 decoded as excali-text decodes it).
+fn sfnt(bytes: &[u8]) -> Vec<u8> {
+    if bytes.starts_with(b"wOF2") {
+        wuff::decompress_woff2(bytes).unwrap()
+    } else {
+        bytes.to_vec()
+    }
+}
+
+/// Every character of `text` drawn by `subset` with the glyph (advance and
+/// outline) `original` draws it with.
+fn same_glyphs(original: &[u8], subset: &[u8], text: &str) {
+    #[derive(Default, PartialEq, Debug)]
+    struct Pen(Vec<(char, [f32; 6])>);
+    impl ttf_parser::OutlineBuilder for Pen {
+        fn move_to(&mut self, x: f32, y: f32) {
+            self.0.push(('M', [x, y, 0.0, 0.0, 0.0, 0.0]));
+        }
+        fn line_to(&mut self, x: f32, y: f32) {
+            self.0.push(('L', [x, y, 0.0, 0.0, 0.0, 0.0]));
+        }
+        fn quad_to(&mut self, a: f32, b: f32, x: f32, y: f32) {
+            self.0.push(('Q', [a, b, x, y, 0.0, 0.0]));
+        }
+        fn curve_to(&mut self, a: f32, b: f32, c: f32, d: f32, x: f32, y: f32) {
+            self.0.push(('C', [a, b, c, d, x, y]));
+        }
+        fn close(&mut self) {
+            self.0.push(('Z', [0.0; 6]));
+        }
+    }
+    let a = ttf_parser::Face::parse(original, 0).unwrap();
+    let b = ttf_parser::Face::parse(subset, 0).unwrap();
+    assert_eq!(a.units_per_em(), b.units_per_em());
+    assert_eq!(
+        (a.ascender(), a.descender(), a.line_gap()),
+        (b.ascender(), b.descender(), b.line_gap())
+    );
+    for c in text.chars() {
+        let Some(ga) = a.glyph_index(c) else { continue };
+        let gb = b.glyph_index(c).unwrap_or_else(|| panic!("{c:?} not kept"));
+        assert_eq!(a.glyph_hor_advance(ga), b.glyph_hor_advance(gb), "{c:?}");
+        let (mut pa, mut pb) = (Pen::default(), Pen::default());
+        a.outline_glyph(ga, &mut pa);
+        b.outline_glyph(gb, &mut pb);
+        assert_eq!(pa, pb, "{c:?}");
+    }
+}
+
+#[test]
+fn font_files_inline_the_face_subset_to_the_scenes_characters() {
+    // Upstream subsets every face it inlines to the family's characters and
+    // writes WOFF2 (subset-shared.chunk.ts:44-57); ADR-010 decides the port
+    // does the same with skera and ttf2woff2.
+    for (file, format, characters) in [
+        (vendored("Excalifont", ".woff2"), "woff2", "Hello, world!"),
+        (vendored("Nunito", ".woff2"), "woff2", "AVATAR To Wa"),
+        (vendored("Liberation", ".ttf"), "truetype", "Liberation Sans"),
+    ] {
+        let mut f = face(&file, format);
+        f.characters = characters.into();
+        let content = FontFiles::new(FONTS).content(&f);
+        let data = content
+            .strip_prefix("data:font/woff2;base64,")
+            .unwrap_or_else(|| panic!("{file}: {}", &content[..40]));
+        let woff2 = decode_base64(data);
+        assert_eq!(&woff2[..4], b"wOF2", "{file}");
+        let whole = std::fs::read(std::path::Path::new(FONTS).join(&file)).unwrap();
+        assert!(woff2.len() * 2 < whole.len(), "{file}: {} of {}", woff2.len(), whole.len());
+        let subset = sfnt(&woff2);
+        same_glyphs(&sfnt(&whole), &subset, characters);
+        let parsed = ttf_parser::Face::parse(&subset, 0).unwrap();
+        assert!(parsed.glyph_index('z').is_none(), "{file}: kept z");
+    }
+}
+
+#[test]
+fn subset_woff2_keeps_the_layout_upstream_keeps() {
+    // Every layout feature is kept ("the equivalent of --font-features=*",
+    // harfbuzz-bindings.ts:74-81), so kerned pairs stay kerned.
+    let file = vendored("Nunito", ".woff2");
+    let whole = std::fs::read(std::path::Path::new(FONTS).join(&file)).unwrap();
+    let woff2 = subset_woff2(&whole, "AVATAR").unwrap();
+    let subset = sfnt(&woff2);
+    let face = ttf_parser::Face::parse(&subset, 0).unwrap();
+    for tag in [b"GSUB", b"GPOS", b"GDEF"] {
+        assert!(face.raw_face().table(ttf_parser::Tag::from_bytes(tag)).is_some());
+    }
+    // A face asked for nothing it maps still subsets (to .notdef).
+    assert!(subset_woff2(&whole, "你").is_ok());
+    assert!(subset_woff2(b"not a font", "abc").is_err());
+}
+
+#[test]
+fn a_face_that_cannot_be_subset_is_inlined_whole() {
+    // subsetToBase64: "Fallback to encoding whole font in case of errors"
+    // (subset-shared.chunk.ts:25-39), with the file's own type.
+    let dir = std::env::temp_dir().join(format!("excali-svg-fonts-{}", std::process::id()));
+    std::fs::create_dir_all(dir.join("X")).unwrap();
+    std::fs::write(dir.join("X/broken.woff2"), b"wOF2 but not a font").unwrap();
+    std::fs::write(dir.join("X/broken.ttf"), b"\0\x01\0\0 not a font").unwrap();
+    let files = FontFiles::new(&dir);
+    assert_eq!(
+        files.content(&face("X/broken.woff2", "woff2")),
+        format!("data:font/woff2;base64,{}", base64(b"wOF2 but not a font"))
+    );
+    assert_eq!(
+        files.content(&face("X/broken.ttf", "truetype")),
+        format!("data:font/ttf;base64,{}", base64(b"\0\x01\0\0 not a font"))
+    );
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn every_inlined_face_draws_what_upstreams_subset_draws() {
+    // tools/font-subset-eval/upstream-subsets.json: upstream's own subsets
+    // (harfbuzzjs 0.3.6 in its worker) of each face its SVG export inlines,
+    // from tools/goldens/font-subset.mjs. For every face vendored as
+    // upstream's own file (all but Liberation Sans, ADR-004), the port's
+    // subset draws every code point with upstream's glyph.
+    let fixture: Value = serde_json::from_str(
+        &std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../tools/font-subset-eval/upstream-subsets.json"
+        ))
+        .unwrap(),
+    )
+    .unwrap();
+    let mut checked = 0;
+    for scene in fixture["scenes"].as_array().unwrap() {
+        if !["fixture-default", "labels-excalifont", "labels-nunito", "assets-comic-shanns", "assets-cascadia", "assets-lilita", "assets-virgil"]
+            .contains(&scene["name"].as_str().unwrap())
+        {
+            continue;
+        }
+        for d in scene["declarations"].as_array().unwrap() {
+            let file = d["file"].as_str().unwrap();
+            let characters: String = d["codePoints"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|c| char::from_u32(c.as_u64().unwrap() as u32).unwrap())
+                .collect();
+            let mut f = face(file, "woff2");
+            f.characters = characters.clone();
+            let content = FontFiles::new(FONTS).content(&f);
+            let ours = sfnt(&decode_base64(content.strip_prefix("data:font/woff2;base64,").unwrap()));
+            let theirs = sfnt(&decode_base64(d["woff2"].as_str().unwrap()));
+            same_glyphs(&theirs, &ours, &characters);
+            checked += 1;
+        }
+    }
+    assert!(checked >= 8, "{checked}");
 }
 
 #[test]

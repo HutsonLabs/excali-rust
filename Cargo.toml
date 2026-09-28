@@ -69,6 +69,15 @@ icu_normalizer = { version = "2.3.0", default-features = false, features = ["com
 # (src/base/ieee754.cc), so rotations give upstream's doubles on every
 # platform (excali_math::js).
 libm = "0.2.16"
+# SVG export font subsetting (excali_svg::fonts, ex-408, ADR-010): skera,
+# fontations' port of HarfBuzz's hb-subset to Rust, subsets each inlined face
+# to the scene's characters with upstream's input (every layout feature),
+# taking the face as skrifa's FontRef at skera's own version; ttf2woff2
+# encodes the subset as WOFF2 in Rust. Both build for wasm32-unknown-unknown,
+# where HarfBuzz's C++ does not (tools/font-subset-eval/wasm.json).
+skera = { version = "0.7.0", default-features = false }
+skrifa = { version = "0.47.0", default-features = false, features = ["std"] }
+ttf2woff2 = { version = "0.13.3", default-features = false }
 # Test-only: golden digests and base64 payloads.
 sha2 = "0.11.0"
 base64 = "0.23.1"

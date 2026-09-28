@@ -1,0 +1,67 @@
+# ex-408 spike: subsets the font faces of upstream's SVG export
+# (upstream-subsets.json, written by tools/goldens/font-subset.mjs from
+# upstream's own harfbuzzjs subsetting) with each Rust candidate, and writes
+# report.json: the sizes and fidelity numbers quoted on ADR-010
+# (site/content/decisions/adr-010-svg-font-subsetting.md).
+#
+# Not a workspace member: the candidates are evaluated here, not depended on.
+# The product crates stay free of them (ADR-008 and the crate-graph gate),
+# and the empty [workspace] table keeps this package out of the root
+# workspace.
+[package]
+name = "font-subset-eval"
+description = "Spike: font subsetting for SVG export (ex-408)."
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[workspace]
+
+# cdylib: wasm.sh builds the package for wasm32-unknown-unknown with one
+# candidate at a time and reports whether it builds and how large it is.
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+# Each candidate is a feature so wasm.sh can build it alone; the report needs
+# them all (the default).
+[features]
+default = ["hb-subset", "skera", "allsorts", "subsetter", "woofwoof", "ttf2woff2"]
+hb-subset = ["dep:hb-subset"]
+skera = ["dep:skera", "dep:skrifa"]
+allsorts = ["dep:allsorts"]
+subsetter = ["dep:subsetter"]
+woofwoof = ["dep:woofwoof"]
+ttf2woff2 = ["dep:ttf2woff2"]
+
+# Candidates, each pinned exactly: the ADR-010 numbers are for these releases.
+[dependencies]
+# HarfBuzz 8.2.2's hb-subset (C++, bundled and built with cc; bindgen).
+hb-subset = { version = "=0.3.0", optional = true, features = ["bundled"] }
+# fontations' subsetter (formerly klippa), HarfBuzz's hb-subset ported to Rust.
+skera = { version = "=0.7.0", optional = true, default-features = false }
+# The font reader skera's API takes (FontRef, IntSet, Tag), at skera's version.
+skrifa = { version = "=0.47.0", optional = true, default-features = false, features = ["std"] }
+allsorts = { version = "=0.17.0", optional = true, default-features = false, features = ["flate2_rust"] }
+# typst's subsetter, for PDF embedding.
+subsetter = { version = "=0.2.6", optional = true }
+# WOFF2 encoders: Google's woff2 (C++) over Rust brotli, and a pure Rust one.
+woofwoof = { version = "=1.0.2", optional = true }
+ttf2woff2 = { version = "=0.13.3", optional = true, default-features = false }
+# Measuring, with the workspace's own readers at the workspace's versions:
+# wuff decodes WOFF2 as excali-text does, ttf-parser reads cmap, outlines and
+# metrics, rustybuzz shapes as excali-text measures.
+wuff = "=0.2.9"
+ttf-parser = "=0.25.1"
+rustybuzz = "=0.20.1"
+serde_json = { version = "1.0.151", features = ["preserve_order"] }
+sha2 = "0.11.0"
+base64 = "0.23.1"
+
+# The tests run the whole evaluation (subsetting and brotli at quality 11)
+# several times; unoptimised it takes minutes.
+[profile.dev]
+opt-level = 3
+
+[profile.test]
+opt-level = 3
