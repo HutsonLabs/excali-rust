@@ -64,9 +64,13 @@ page.write_text(html.replace(marker, json.dumps(fixtures).replace("</", "<\\/"))
 PY
 
 # Software rasterisation (no GPU canvas) in sRGB, as the export path draws.
-"$chrome" --headless=new --disable-gpu --force-color-profile=srgb \
-  --no-first-run --no-default-browser-check --disable-extensions \
-  --dump-dom "file://$tmp/page.html" 2> /dev/null > "$tmp/dom.html"
+# On Linux CI runners (Ubuntu 24.04 restricts the unprivileged user
+# namespaces Chrome's sandbox needs) the page, which is ours and local, runs
+# unsandboxed.
+flags=(--headless=new --disable-gpu --force-color-profile=srgb
+  --no-first-run --no-default-browser-check --disable-extensions)
+if [ "$(uname -s)" = Linux ]; then flags+=(--no-sandbox); fi
+"$chrome" "${flags[@]}" --dump-dom "file://$tmp/page.html" 2> /dev/null > "$tmp/dom.html"
 
 out="$tmp/references"
 mkdir -p "$out"
@@ -110,5 +114,5 @@ if [ "$mode" = write ]; then
 fi
 
 export PATH="$HOME/.cargo/bin:$PATH"
-EXCALI_RASTER_REFERENCES="$out" cargo test --manifest-path "$root/Cargo.toml" \
+EXCALI_RASTER_REFERENCES="$out" cargo test --locked --manifest-path "$root/Cargo.toml" \
   -p excali-raster --test fixtures -- --nocapture
