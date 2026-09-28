@@ -318,31 +318,33 @@ pub fn validate_fractional_indices(
 }
 
 /// `orderByFractionalIndex` (`fractionalIndex.ts:150-169`): sort by index,
-/// breaking ties by `id`, both compared as JS strings; the sort is stable.
+/// breaking ties by `id`, both compared as JS strings.
 ///
-/// Upstream sorts with `Array.prototype.sort` and a comparator that returns
-/// 1 whenever either element has no index ("defensively keep the array
-/// order"). That comparator is not a consistent order, so upstream's result
-/// then depends on the JS engine's sort. The port keeps elements without an
-/// index (`null` or `""`) at their array positions and sorts the others into
-/// the remaining positions. When every element has an index the result is
-/// exactly upstream's (`goldens/fractional-index.json`).
+/// Upstream's comparator answers 1 whenever either element has no index
+/// (`null` or `""`: "defensively keep the array order"), and also for an
+/// equal index and id, so it is not a consistent order. The result is then
+/// whatever `Array.prototype.sort` leaves, so the port sorts with
+/// [`excali_math::js::sort`], a port of V8's TimSort, and matches upstream
+/// for every input (`goldens/fractional-index.json`).
 pub fn order_by_fractional_index(elements: &mut Vec<Element>) {
-    let slots: Vec<usize> = (0..elements.len())
-        .filter(|&i| truthy(raw_index(elements, i as isize)).is_some())
-        .collect();
-    let mut sorted = slots.clone();
-    sorted.sort_by(|&x, &y| {
+    let mut order: Vec<usize> = (0..elements.len()).collect();
+    excali_math::js::sort(&mut order, |&x, &y| {
         let (a, b) = (&elements[x], &elements[y]);
-        compare_js_strings(index_of(a).unwrap_or(""), index_of(b).unwrap_or(""))
-            .then_with(|| compare_js_strings(&a.base.id, &b.base.id))
+        // in case the indices are not defined at runtime
+        match (truthy(index_of(a)), truthy(index_of(b))) {
+            (Some(ia), Some(ib)) => match compare_js_strings(ia, ib) {
+                Ordering::Less => -1.0,
+                Ordering::Greater => 1.0,
+                // break ties based on the element id
+                Ordering::Equal if js_lt(&a.base.id, &b.base.id) => -1.0,
+                Ordering::Equal => 1.0,
+            },
+            // defensively keep the array order
+            _ => 1.0,
+        }
     });
-    let mut source: Vec<usize> = (0..elements.len()).collect();
-    for (slot, from) in slots.into_iter().zip(sorted) {
-        source[slot] = from;
-    }
     let mut old: Vec<Option<Element>> = std::mem::take(elements).into_iter().map(Some).collect();
-    *elements = source
+    *elements = order
         .into_iter()
         .filter_map(|from| old[from].take())
         .collect();
