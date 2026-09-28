@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 18:21 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 18:34 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**138 issues** · 56 closed (41%) · 0 in progress · 0 blocked · 81 open
+**138 issues** · 57 closed (41%) · 0 in progress · 0 blocked · 80 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -89,7 +89,7 @@ excali-math, excali-rough (rough.js 4.6.4 semantics), excali-freehand, the displ
 
 ## ex-e3 · Phase 3: Text and fonts (excali-text)
 
-<span class="status open">open</span> 6/9 children closed
+<span class="status open">open</span> 7/9 children closed
 
 Font metadata, measurement from font files, wrapping port, bound-text sizing, lazy font assets with verified licences.
 
@@ -99,11 +99,11 @@ Font metadata, measurement from font files, wrapping port, bound-text sizing, la
 | `ex-302` | Advance-width measurement from font files (ttf-parser, rustybuzz where shaping matters) | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-303` | Wrapping port (textWrapping.ts) with upstream tests | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-304` | Bound-text sizing: padding 5, ellipse and diamond insets, arrow label width | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-305` | Text element sizing on edit: autoResize, originalText/text, anchor growth by align | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-305` | Text element sizing on edit: autoResize, originalText/text, anchor growth by align | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-306` | Verify and record the licence of every font family before vendoring | decision | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-307` | Font asset pipeline: range-split woff2 manifest and lazy loading | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-308` | Corpus test: stored vs measured text widths across fixtures and libraries | task | P1 | <span class="status open">open</span> | yes |  |
-| `ex-m3` | M3: text measurement and wrapping parity | milestone | P2 | <span class="status open">open</span> |  | `ex-305`, `ex-308` |
+| `ex-m3` | M3: text measurement and wrapping parity | milestone | P2 | <span class="status open">open</span> |  | `ex-308` |
 
 ## ex-e4 · Phase 4: Headless rendering and export
 
@@ -144,7 +144,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-509` | Snapping: point and gap snaps at 8/zoom, snap lines rendering | task | P1 | <span class="status open">open</span> |  | `ex-508` |
 | `ex-510` | Arrow binding: gap 5+sw/2, max distance 15..30 by zoom, fixed points, modes inside/orbit/skip, highlight | task | P0 | <span class="status open">open</span> |  | `ex-508` |
 | `ex-511` | Linear element editor: point handles (size 10), midpoints, segment length rule, label position | task | P1 | <span class="status open">open</span> |  | `ex-509` |
-| `ex-512` | Text editing overlay: textarea with dir=auto wrap=off, transform formula, 5% height buffer | task | P0 | <span class="status open">open</span> |  | `ex-305`, `ex-503` |
+| `ex-512` | Text editing overlay: textarea with dir=auto wrap=off, transform formula, 5% height buffer | task | P0 | <span class="status open">open</span> |  | `ex-503` |
 | `ex-513` | History: store snapshots, element and appState deltas, undo/redo stacks, version bumps | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-514` | Actions registry as data: the 99 action names with predicates and key tests | task | P0 | <span class="status open">open</span> |  | `ex-506` |
 | `ex-515` | Keyboard handling: App.onKeyDown table, arrow nudges, tool letters, modifiers | task | P0 | <span class="status open">open</span> |  | `ex-514` |
