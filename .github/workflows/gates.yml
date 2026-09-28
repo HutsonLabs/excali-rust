@@ -41,6 +41,13 @@ jobs:
       # (ex-008) as recorded in the plan and on the process pages.
       - name: task graph and seed tests
         run: python3 scripts/tasks/test_plan.py -v
+      # ex-306 / ADR-004: every family's licence recorded with source URL and
+      # date; a font file is vendored only for a confirmed family, with its
+      # licence text beside it, and never a file listed under Licence gaps.
+      - name: font licence gate self-test
+        run: python3 scripts/gates/test_fonts.py -v
+      - name: font licence gate
+        run: python3 scripts/gates/fonts.py check
   # fixtures/ (ex-003): the manifest matches disk, the upstream copies equal
   # the pinned checkout, and every file still equals its origin URL at the
   # pinned commits (upstream and excalidraw-libraries).
@@ -62,6 +69,8 @@ jobs:
         env:
           UPSTREAM_DIR: ${{ runner.temp }}/upstream
         run: python3 scripts/fixtures/corpus.py verify-upstream
+      - name: ADR-004 licence-gap hashes equal the pinned upstream files
+        run: python3 scripts/gates/fonts.py verify-upstream "${{ runner.temp }}/upstream"
       - name: every file equals its origin (live)
         run: python3 scripts/fixtures/corpus.py verify-remote
   # ex-110: the payload codec goldens are upstream output. Regenerate them

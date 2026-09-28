@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-306 · Verify and record the licence of every font family before vendoring
+
+ADR-004 records the licence of every upstream font family, checked at its source. Nine bundled families are under OFL 1.1 or MIT. Cascadia Code's name ID 13 is quoted in full. Upstream's Liberation Sans 1.05 file is recorded as a licence gap and mapped to the OFL 2.1.5 build, whose sha256 is pinned in a new Vendored builds table. `scripts/gates/fonts.py` enforces this in CI. Every vendored font must be in one of upstream's family directories and have a licence file next to it. Liberation files must match a recorded build. PR: [#51](https://github.com/HutsonLabs/excali-rust/pull/51).
+
 ## 2026-09-28 · ex-301 · Font metadata table and vertical offset formula
 
 `excali_text::font_metadata` now has upstream's `FONT_METADATA` table, `get_vertical_offset`, `get_line_height`, `get_line_height_in_px`, `GOOGLE_FONTS_RANGES`, the fallback font names and the family fallback and font string helpers. Every font's metrics, line height and vertical offset match upstream bit for bit, checked against a golden fixture generated from the pinned upstream checkout. PR: [#50](https://github.com/HutsonLabs/excali-rust/pull/50).
