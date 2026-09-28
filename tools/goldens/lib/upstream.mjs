@@ -157,12 +157,38 @@ const stubbedModules = (upstream, names) => ({
 });
 
 /**
+ * Exports module-private functions of checkout modules so a generator can
+ * call them directly: `exposed` maps a checkout module path from the root
+ * without extension (e.g. `packages/excalidraw/data/restore`) to the names
+ * to export. The module's source is loaded unchanged with one line
+ * appended, `export { name, ... };`, so the functions are upstream's own.
+ */
+const exposedModules = (upstream, exposed) => ({
+  name: "exposed-modules",
+  setup(build) {
+    const entries = Object.entries(exposed);
+    if (!entries.length) return;
+    const files = new Map(entries.map(([module, names]) => [join(upstream, `${module}.ts`), names]));
+    build.onLoad({ filter: /\.ts$/ }, (args) => {
+      const names = files.get(args.path);
+      if (!names) return undefined;
+      const source = readFileSync(args.path, "utf8");
+      return { contents: `${source}\nexport { ${names.join(", ")} };\n`, loader: "ts" };
+    });
+  },
+});
+
+/**
  * Bundles upstream's code and returns the imported module. `entry` is the
  * TypeScript entry's source, resolved from the checkout root (the default
  * exports the shape code the goldens use); `stubs` lists modules replaced
- * by empty ones (see stubbedModules); `define` adds compile-time constants.
+ * by empty ones (see stubbedModules); `expose` exports module-private
+ * functions (see exposedModules); `define` adds compile-time constants.
  */
-export const loadUpstream = async ({ dir }, { entry = ENTRY, stubs = [], define = {} } = {}) => {
+export const loadUpstream = async (
+  { dir },
+  { entry = ENTRY, stubs = [], expose = {}, define = {} } = {},
+) => {
   const esbuild = await import("esbuild");
   const result = await esbuild.build({
     stdin: {
@@ -177,7 +203,12 @@ export const loadUpstream = async ({ dir }, { entry = ENTRY, stubs = [], define 
     platform: "node",
     target: "esnext",
     logLevel: "silent",
-    plugins: [workspaceAliases(dir), stubbedModules(dir, stubs), pinnedPackages()],
+    plugins: [
+      workspaceAliases(dir),
+      stubbedModules(dir, stubs),
+      exposedModules(dir, expose),
+      pinnedPackages(),
+    ],
     loader: { ".png": "empty", ".svg": "empty", ".scss": "empty", ".css": "empty" },
     define: { "import.meta.env.DEV": "false", "import.meta.env.PROD": "true", ...define },
   });
