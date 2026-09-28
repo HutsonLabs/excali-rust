@@ -116,6 +116,9 @@
    "epic": "ex-e5",
    "title": "M5: editor usable in a browser",
    "acceptance": "Criterion D3 for desktop; Playwright parity suite green; WASM budget met.",
+   "blocked_by": [
+    "ex-511"
+   ],
    "withdraw_labels": [
     "needs-human"
    ]
@@ -1605,7 +1608,7 @@
    "crates": [
     "excali-editor"
    ],
-   "acceptance": "Editing points, adding midpoints and moving labels match upstream.",
+   "acceptance": "Editing points, adding midpoints and moving labels match upstream. excali-editor implements excali_text::text_element::ArrowLabelGeometry (LinearElementEditor.getBoundTextElementPosition) so that excali_text::restore_env::TextEnv refits arrow labels (the ADR-008 tracked exception moved here from ex-304), and an upstream refreshTextDimensions arrow-label hook is reproduced from its arguments: an arrow-container case is added to tools/goldens/lib/restore-elements-cases.mjs and its recorded hook passes.",
    "evidence": [
     "site/content/research/rendering.md section 5 (linear element editor)"
    ],

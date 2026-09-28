@@ -87,8 +87,11 @@ def build(plan: dict, who: str, known: set[str]) -> list[dict]:
         deps = [{"issue_id": m["id"], "depends_on_id": m["epic"], "type": "parent-child"}]
         for tid in tasks_by_epic.get(m["epic"], []):
             deps.append({"issue_id": m["id"], "depends_on_id": tid, "type": "blocks"})
+        # A milestone may also name a task of its own epic (a tracked
+        # exception it must wait for, ADR-008); that is one edge, not two.
         for b in m.get("blocked_by", []):
-            deps.append({"issue_id": m["id"], "depends_on_id": b, "type": "blocks"})
+            if b not in tasks_by_epic.get(m["epic"], []):
+                deps.append({"issue_id": m["id"], "depends_on_id": b, "type": "blocks"})
         row["dependencies"] = deps
         rows.append(row)
     return rows

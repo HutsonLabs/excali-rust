@@ -113,10 +113,12 @@ pub trait RestoreEnv {
     ///
     /// Text wrapping and measurement belong to `excali-text` (crate table of
     /// `site/content/architecture/overview.md`; `excali-core` may only use
-    /// `excali-math`), so the environment supplies them. The default has no
-    /// text measurement and answers `None`. Upstream's own callers never
-    /// pass `refreshDimensions` (file loading and the initial scene pass
-    /// only repair bindings).
+    /// `excali-math`), so the environment supplies them:
+    /// `excali_text::restore_env::TextEnv` wraps an environment and answers
+    /// with `excali_text::new_element::refresh_text_dimensions`. The default
+    /// has no text measurement and answers `None`. Upstream's own callers
+    /// never pass `refreshDimensions` (file loading and the initial scene
+    /// pass only repair bindings).
     fn refresh_text_dimensions(
         &mut self,
         request: TextDimensionsRequest<'_>,

@@ -244,7 +244,9 @@ the scene-level inputs of `tests/data/restore.test.ts` ("restoreElements" and
 "repairing bindings"), built as that test builds them; the others are tables over
 each pass: duplicate ids, index repair, invisibly small elements, frames, bound
 text in both directions, linear bindings, sticky notes, bound text order, elbow
-arrow fix-ups and the inputs upstream throws on. Each case records the elements
+arrow fix-ups, the inputs upstream throws on, and `refreshDimensions` over
+rectangle, ellipse, diamond and line containers and free text of every alignment
+(`refresh-*`). Each case records the elements
 in order, or the message thrown. The environment is the one of
 `restore-fixtures.mjs` (test mode, `reseed(1)` before each case, text at 10 px per
 character).
@@ -255,7 +257,10 @@ Three steps need geometry or text measurement that excali-core takes from its
 one call of each in `restore.ts` through a probe that calls upstream's function
 and records its arguments and result in the case's `hooks`, in call order;
 nothing else in the module changes. excali-core's fixture test checks that the
-port asks for the same calls and answers them with the recorded results.
+port asks for the same calls and answers them with the recorded results;
+excali-editor (`tests/elbow_routing.rs`) and excali-text
+(`tests/refresh_text_dimensions.rs`) reproduce the recorded elbow routes and text
+refits from their arguments.
 
 ```sh
 node tools/goldens/restore-elements-fixtures.mjs           # write the fixture

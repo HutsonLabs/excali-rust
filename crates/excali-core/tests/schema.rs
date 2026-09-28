@@ -1027,7 +1027,7 @@ fn upstream_restore_output_agrees_with_the_codec() {
     // typed model has no form for; both reject those.
     assert_eq!(
         (valid, rejected.len()),
-        (534, 59),
+        (550, 59),
         "valid {valid}, rejected: {rejected:#?}"
     );
 }

@@ -60,6 +60,21 @@ pub const STICKY_NOTE_MIN_SIZE: f64 = 75.0;
 /// container's edge and its bound text, and the padding
 /// `getApproxMinLineWidth` adds on each side.
 pub const BOUND_TEXT_PADDING: f64 = 5.0;
+/// `ARROW_LABEL_WIDTH_FRACTION`, `constants.ts:422`: an arrow label may be
+/// this fraction of the arrow's width wide.
+pub const ARROW_LABEL_WIDTH_FRACTION: f64 = 0.7;
+/// `ARROW_LABEL_FONT_SIZE_TO_MIN_WIDTH_RATIO`, `constants.ts:423`: an arrow
+/// label may always be this many times its font size wide.
+pub const ARROW_LABEL_FONT_SIZE_TO_MIN_WIDTH_RATIO: f64 = 11.0;
+/// `STICKY_NOTE_PADDING`, `constants.ts:228`: the gap between a sticky
+/// note's edge and its label.
+pub const STICKY_NOTE_PADDING: f64 = 16.0;
+/// `STICKY_NOTE_FOOTER.height`, `constants.ts:245-252`: the creation-date
+/// row under a sticky note's label body.
+pub const STICKY_NOTE_FOOTER_HEIGHT: f64 = 20.0;
+/// `STICKY_NOTE_BODY_INSET_Y`, `constants.ts:258-259`: a sticky note's
+/// height minus its label body's (both paddings and the footer).
+pub const STICKY_NOTE_BODY_INSET_Y: f64 = STICKY_NOTE_PADDING * 2.0 + STICKY_NOTE_FOOTER_HEIGHT;
 /// `DEFAULT_TEXT_ALIGN`, `constants.ts:274`.
 pub const DEFAULT_TEXT_ALIGN: TextAlign = TextAlign::Left;
 /// `DEFAULT_VERTICAL_ALIGN`, `constants.ts:275`.
