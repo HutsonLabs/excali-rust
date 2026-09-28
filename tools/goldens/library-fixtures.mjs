@@ -374,6 +374,71 @@ const parseCases = () => [
     ]),
   },
   {
+    // Values of another JSON type than upstream's types give the field:
+    // restore copies them as they are (restore.ts:451-491 keeps any truthy
+    // or non-nullish value, so strokeWidth "3" survives restore.ts:459) and
+    // upstream loads the element with the value read (ex-117). The second
+    // item holds only such an element.
+    id: "elements-odd-field-values-kept",
+    input: v2([
+      item("i", [
+        el("sw", { strokeWidth: "3" }),
+        el("fs", { index: "a1", fillStyle: "sparkles" }),
+        el("mixed", {
+          index: "a2",
+          strokeStyle: 5,
+          roughness: "1",
+          opacity: "50",
+          angle: true,
+          strokeColor: 7,
+          backgroundColor: ["#fff"],
+          locked: "no",
+          seed: "9",
+          frameId: 3,
+          groupIds: "g",
+          roundness: { type: 9 },
+          boundElements: [{ id: 1, type: "arrow" }],
+          customData: 4,
+          created: "yesterday",
+          updated: "now",
+        }),
+        el("ln", {
+          type: "line",
+          index: "a3",
+          strokeWidth: "3",
+          points: [
+            [0, 0],
+            [100, 50],
+          ],
+        }),
+        el("t", {
+          type: "text",
+          index: "a4",
+          text: "hi",
+          originalText: "hi",
+          fontSize: 20,
+          fontFamily: "1",
+          textAlign: "justify",
+          verticalAlign: 3,
+          containerId: 5,
+          lineHeight: "1.25",
+          autoResize: "yes",
+        }),
+        el("f", {
+          type: "freedraw",
+          index: "a5",
+          points: [
+            [0, 0],
+            [3, 4],
+          ],
+          pressures: [],
+          simulatePressure: "yes",
+        }),
+      ]),
+      item("j", [el("only", { fillStyle: "sparkles" })]),
+    ]),
+  },
+  {
     id: "elements-unknown-keys-and-surrogates",
     input: `{"type":"excalidrawlib","version":2,"libraryItems":[{"id":"i","status":"published","created":1,"elements":[${JSON.stringify(
       el("a", { customData: { k: [1, { n: null }] }, zUnknown: "é" }),

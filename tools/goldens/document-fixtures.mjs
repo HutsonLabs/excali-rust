@@ -287,6 +287,29 @@ const edgeScenes = () => [
       ],
     },
   ],
+  // Values of another JSON type than upstream's types give the field,
+  // which restore copies as they are (restore.ts:451-491; ex-117).
+  [
+    "odd-field-values-kept",
+    {
+      type: "excalidraw",
+      elements: [
+        element("sw", "rectangle", { strokeWidth: "3" }),
+        element("fs", "ellipse", { fillStyle: "sparkles", roundness: { type: 9 }, opacity: "50", locked: "no" }),
+        element("t", "text", {
+          text: "hi",
+          originalText: "hi",
+          fontSize: 20,
+          fontFamily: "1",
+          textAlign: "justify",
+          verticalAlign: 3,
+          containerId: null,
+          lineHeight: "1.25",
+          autoResize: true,
+        }),
+      ],
+    },
+  ],
   // files[element.fileId] on a truthy `files` that is not an object:
   // an array or a string answers canonical index keys and `length`, a
   // number nothing but prototype functions (which JSON.stringify leaves

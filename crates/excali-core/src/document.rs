@@ -56,7 +56,10 @@
 //! (`loadFromBlob`: parse, check, restore) and
 //! [`LoadedScene::to_document`] (`serializeAsJSON(..., "local")`). The
 //! loader reads any scene upstream reads, since restore migrates legacy
-//! elements before they are typed.
+//! elements before they are typed, and the restored elements are read with
+//! [`Element::from_restored`], which keeps a field value of another JSON
+//! type (`strokeWidth: "3"`, as `restore.ts:459` keeps it) and writes it
+//! back as read.
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -529,7 +532,7 @@ fn load_encoded(
     let elements = restore_elements_sentinel(items, opts, env)
         .map_err(LoadSceneError::Restore)?
         .iter()
-        .map(Element::from_encoded)
+        .map(Element::from_restored_encoded)
         .collect::<Result<Vec<_>, _>>()
         .map_err(LoadSceneError::Untyped)?;
 

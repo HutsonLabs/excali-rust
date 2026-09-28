@@ -27,10 +27,8 @@
 //! for a library with legacy bindings that need geometry against the
 //! `*_without_geometry` digests, since the port drops those bindings
 //! (ex-116; upstream's migrated bindings also change key order on reload,
-//! `restore.ts:412-416` against `restore.ts:338-342`). The exception is
-//! `aarondiel/logic-gates`, whose 24 dropped lines (ex-117) leave
-//! `library.rs`'s `catalogue_matches_upstream` to check what it keeps.
-//! The corpus walked is exactly the catalogue that golden covers.
+//! `restore.ts:412-416` against `restore.ts:338-342`). The corpus walked
+//! is exactly the catalogue that golden covers.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
@@ -49,8 +47,8 @@ use sha2::{Digest, Sha256};
 const REPORT: &str = "tests/fixtures/library-corpus-report.json";
 /// `getExportSource()` for the written files; any value does.
 const SOURCE: &str = "https://excalidraw.com";
-/// The library whose 24 lines with `strokeWidth: "3"` the typed model drops
-/// (ex-117).
+/// The library whose 24 lines hold `strokeWidth: "3"`, which restore keeps
+/// and the typed model writes back as read (ex-117).
 const LOGIC_GATES: &str = "libraries/aarondiel/logic-gates.excalidrawlib.gz";
 
 fn repo() -> PathBuf {
@@ -116,12 +114,6 @@ const REASONS: &[(&str, &str)] = &[
     (
         "element_keys_dropped.rawText",
         "legacy obsidian-excalidraw attribute of text elements, deleted (restore.ts:532-534)",
-    ),
-    (
-        "elements_dropped.typed model cannot read it (ex-117)",
-        "restore keeps a value of another JSON type (restore.ts:459 keeps strokeWidth \"3\") \
-         and upstream loads the element; the typed model reads numbers only and drops it \
-         (port gap, ex-117)",
     ),
     (
         "elements_dropped.deleted",
@@ -320,8 +312,12 @@ fn dropped_because(element: &Value, targets: &ElementsMap) -> Option<&'static st
         Ok(None) => return Some("unknown type"),
         Ok(Some(restored)) => restored,
     };
-    match Element::from_map(restored) {
-        Err(_) => Some("typed model cannot read it (ex-117)"),
+    // Upstream loads every element restore gives, whatever its values
+    // (restore.ts:451-491 keeps a value of another JSON type, such as
+    // strokeWidth "3"), so this loss has no entry in REASONS and fails the
+    // test (ex-117).
+    match Element::from_restored(restored) {
+        Err(_) => Some("typed model cannot read it"),
         Ok(e) if e.base.is_deleted => Some("deleted"),
         Ok(_) => None,
     }
@@ -535,8 +531,7 @@ fn every_catalogue_library_round_trips() {
             );
         }
 
-        // Both writes are upstream's bytes. aarondiel/logic-gates loses 24
-        // lines (ex-117), so its are not; `library.rs` checks what it keeps.
+        // Both writes are upstream's bytes.
         let case = cases[&format!("fixtures/{path}")];
         let digest = |key: &str| {
             case.get(format!("{key}_without_geometry"))
@@ -545,18 +540,16 @@ fn every_catalogue_library_round_trips() {
                 .expect("sha")
                 .to_owned()
         };
-        if path != LOGIC_GATES {
-            assert_eq!(
-                sha256(written.as_bytes()),
-                digest("output_sha256"),
-                "{path}"
-            );
-            assert_eq!(
-                sha256(rewritten.as_bytes()),
-                digest("reload_sha256"),
-                "{path}: reload"
-            );
-        }
+        assert_eq!(
+            sha256(written.as_bytes()),
+            digest("output_sha256"),
+            "{path}"
+        );
+        assert_eq!(
+            sha256(rewritten.as_bytes()),
+            digest("reload_sha256"),
+            "{path}: reload"
+        );
 
         let raw: Value = serde_json::from_str(text).expect("json");
         let version = raw["version"].as_u64().expect("version");
@@ -610,8 +603,10 @@ fn every_catalogue_library_round_trips() {
     );
 }
 
-/// The report keeps the known losses in view: the ex-116 and ex-117 gaps
-/// and the legacy keys upstream's restore migrates away.
+/// The report keeps the known losses in view: the ex-116 gap and the legacy
+/// keys upstream's restore migrates away. No element is lost to the typed
+/// model: `aarondiel/logic-gates` keeps its 24 lines with `strokeWidth:
+/// "3"` (ex-117).
 #[test]
 fn report_records_the_known_losses() {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(REPORT);
@@ -623,21 +618,18 @@ fn report_records_the_known_losses() {
     // Those, 7 bindings to elements the item does not hold and 2 on lines.
     assert_eq!(totals["bindings_cleared"], 1254);
     assert_eq!(totals["elements_in"], 55113);
-    assert_eq!(totals["elements_out"], 55089);
-    assert_eq!(
-        totals["elements_dropped"]["typed model cannot read it (ex-117)"],
-        24
-    );
+    assert_eq!(totals["elements_out"], 55113);
+    assert!(totals["elements_dropped"]
+        .get("typed model cannot read it")
+        .is_none());
     let logic_gates = report["files"]
         .as_array()
         .expect("files")
         .iter()
         .find(|f| f["path"] == LOGIC_GATES)
         .expect("logic-gates");
-    assert_eq!(
-        logic_gates["elements_dropped"]["typed model cannot read it (ex-117)"],
-        24
-    );
+    assert_eq!(logic_gates["elements_in"], logic_gates["elements_out"]);
+    assert!(logic_gates.get("elements_dropped").is_none());
     // Legacy keys restore replaces: `strokeSharpness` by `roundness`
     // (restore.ts), `boundElementIds` by `boundElements`.
     let dropped: &Map<String, Value> = totals["element_keys_dropped"]

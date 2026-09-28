@@ -1099,7 +1099,10 @@ fn catalogue() -> Vec<(String, String)> {
 
 /// All 232 catalogue libraries (70 of version 1, 162 of version 2), as
 /// upstream writes them after `parseLibraryJSON` (the port's output is
-/// upstream's byte for byte, `tests/library.rs`), are valid.
+/// upstream's byte for byte, `tests/library.rs`), are valid, but for the
+/// value upstream's restore keeps against its own types: the 24 lines of
+/// `aarondiel/logic-gates` keep `strokeWidth: "3"` (`restore.ts:459`,
+/// ex-117), which the schema, as upstream's `strokeWidth: number`, rejects.
 #[test]
 fn catalogue_libraries_written_after_restore_are_valid() {
     let v = validator(&excalidrawlib());
@@ -1112,8 +1115,22 @@ fn catalogue_libraries_written_after_restore_are_valid() {
             parse_library_json(&text, LibraryItemStatus::Published, &mut TestEnv::default())
                 .unwrap_or_else(|e| panic!("{id}: {e}"));
         items += restored.len();
-        let written = serialize_library_as_json(&restored, "https://excalidraw.com");
-        assert_valid(&v, &parse(&written), &id);
+        let written = parse(&serialize_library_as_json(
+            &restored,
+            "https://excalidraw.com",
+        ));
+        if id != "aarondiel/logic-gates" {
+            assert_valid(&v, &written, &id);
+            continue;
+        }
+        let errs = errors(&v, &written);
+        assert_eq!(errs.len(), 24, "{errs:#?}");
+        for err in errs {
+            assert!(
+                err.ends_with("/strokeWidth: \"3\" is not of type \"number\""),
+                "{err}"
+            );
+        }
     }
     assert!(items > 3000, "{items} items");
 }
