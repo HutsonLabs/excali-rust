@@ -207,7 +207,10 @@ jobs:
   # rough-options.json, upstream's own generateRoughOptions and
   # applyDarkModeFilter, and library-fixtures.mjs --check for
   # library.json, upstream's own parseLibraryJSON,
-  # serializeLibraryAsJSON, mergeLibraryItems and getLibraryItemsHash.
+  # serializeLibraryAsJSON, mergeLibraryItems and getLibraryItemsHash, and
+  # library-url-fixtures.mjs --check for library-url.json, upstream's own
+  # validateLibraryUrl, parseLibraryTokensFromUrl, normalizeLink and
+  # toValidURL.
   # Runs on arm64: V8's float results for some shapes differ in the last bits
   # between x64 and arm64, and the committed goldens are the arm64 output
   # (macOS and Linux arm64 agree byte for byte).
@@ -240,3 +243,5 @@ jobs:
         run: node tools/goldens/rough-options.mjs --check
       - name: excali-core library fixtures match the generator
         run: node tools/goldens/library-fixtures.mjs --check
+      - name: excali-core library URL fixtures match the generator
+        run: node tools/goldens/library-url-fixtures.mjs --check
