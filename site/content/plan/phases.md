@@ -1,0 +1,107 @@
++++
+title = "Phases and milestones"
+description = "Eight phases, each ending in a milestone with an automated acceptance check. Phase 0 is this site."
+weight = 2
++++
+
+Each phase is an epic in the tracker (`ex-e0` … `ex-e8`). A milestone is reached when its acceptance check runs green in CI, not when the code is merged. Later phases may start before earlier ones close where the [task graph](../progress/) shows no blocking edge.
+
+## Phase 0 — Foundations (`ex-e0`)
+
+**Deliverables.** This site; the authorship gate and hooks; the beads tracker seeded with the task graph; GitHub Pages deployment; a Cargo workspace skeleton with CI running `cargo fmt --check`, `cargo clippy -D warnings` and `cargo test` on stable.
+
+**Milestone M0.** The site builds and deploys from `main`; `scripts/bootstrap.sh` works on a fresh clone; the gate rejects a planted attribution line in CI.
+
+## Phase 1 — Core model and file format (`ex-e1`)
+
+**Crate.** `excali-core` (no `std::fs`, no DOM, `wasm32`-clean).
+
+**Deliverables.**
+- Element types as Rust enums and structs mirroring `packages/element/src/types.ts` ([spec](../../architecture/file-format/)), with `serde` and an `extra: Map` on every element so unknown fields round-trip exactly as upstream's `restoreElementWithProperties` spreads them back.
+- The restore rules: defaults, legacy `strokeSharpness` → `roundness`, `boundElementIds` → `boundElements`, legacy `font` string, `draw` → `line`, arrowhead renames, point re-basing, negative-size normalisation, invisible-element deletion, duplicate-id repair, binding repair.
+- `AppState` with the five exported keys and defaults.
+- Fractional indexing (port of the vendored base-62 implementation) with `syncInvalidIndices`.
+- Library formats: v1 `library` and v2 `libraryItems`; merge by `id:versionNonce` set; URL allow-list identical to upstream.
+- The clipboard, PNG `tEXt` and SVG `<metadata>` payload codecs (zlib via `flate2`, byte-string encoding, v1 and v2 variants).
+- Conformance fixtures copied from upstream tests plus every file in `excalidraw-libraries` as a corpus test.
+
+**Milestone M1.** D1 passes: all fixtures and all 232 catalogue libraries round-trip; the restore snapshot tests ported from `tests/data/restore.test.ts` pass.
+
+## Phase 2 — Geometry and sketch renderer (`ex-e2`)
+
+**Crates.** `excali-math` (points, vectors, curves, segments, polygons, ellipses, ranges: the `packages/math` surface), `excali-rough` (Rough.js 4.6.4 semantics), `excali-freehand` (perfect-freehand 1.2.0 semantics and the laser-pointer constant-width variant), `excali-scene` (display list: a renderer-independent list of paths, fills, dashes, images and text runs).
+
+**Deliverables.**
+- The Park–Miller generator exactly as rough.js (`seed = imul(48271, seed) & (2^31 − 1)`), so a stored `seed` produces the same wobble.
+- Fill styles hachure, cross-hatch, solid, zigzag; dashes; multi-stroke; curve fitting; `preserveVertices`.
+- The option mapping in `generateRoughOptions` and `adjustRoughness` with every constant from the [rendering research](../../research/rendering/#shapecache-and-roughjs-packageselementsrcshapets).
+- Shape construction per element type: adaptive/proportional corner radius, diamond points, ellipse with `curveFitting = 1`, linear paths and curves, elbow-arrow path with radius 16, all fourteen arrowheads with their sizes and angles, freedraw outline to path with 2-decimal trimming.
+- A golden-test harness that runs upstream's `rough.js` under Node on the fixture set and stores its path output; the Rust output must match number-for-number at two decimals.
+
+**Milestone M2.** Golden tests pass for every element type and fill style at roughness 0, 1 and 2, for seeds 1, 7 and 1041657908 (the fixture seed).
+
+## Phase 3 — Text and fonts (`ex-e3`)
+
+**Crate.** `excali-text`.
+
+**Deliverables.**
+- Font metadata table (unitsPerEm, ascender, descender, lineHeight) for the ten families and the fallbacks; the vertical-offset formula.
+- Advance-width measurement from the actual font files via `ttf-parser` (and `rustybuzz` where shaping matters), replacing `canvas.measureText`.
+- Wrapping ported from `packages/element/src/textWrapping.ts`, with upstream's `textWrapping.test.ts` cases as fixtures (the test-environment metric of 10 px per character reproduced for those tests).
+- Bound-text sizing rules (padding 5, ellipse and diamond insets, arrow label width).
+- Lazy font loading by unicode range, mirroring upstream's split woff2 files; licences recorded per family before any file is vendored ([ADR-004](../../decisions/adr-004-fonts/)).
+
+**Milestone M3.** Wrapping and measurement tests pass; a text element measured in Rust matches upstream's stored `width`/`height` for the fixture corpus within 0.5 px.
+
+## Phase 4 — Headless rendering and export (`ex-e4`)
+
+**Crates.** `excali-raster` (tiny-skia backend), `excali-svg` (SVG writer), `excali-cli`.
+
+**Deliverables.**
+- Static-scene renderer over the display list: background, grid, element order, bound text, frames with clipping, opacity, dark-mode filter maths.
+- PNG export with padding 10 and scale, embedding the scene in a `tEXt` chunk; SVG export with the upstream document structure (`svg-source` comment, `<metadata>` payload, `<defs>` clip paths, font-face style block, per-element `<g>` transforms, two-decimal numbers).
+- `excali-cli validate | render | export | lib` for scripting and CI.
+
+**Milestone M4.** D2 passes for the fixture set; the CLI renders all 232 catalogue libraries' preview items without panics.
+
+## Phase 5 — Web runtime and editor (`ex-e5`)
+
+**Crates.** `excali-canvas2d` (display list → `CanvasRenderingContext2D` via `web-sys`), `excali-editor` (interaction state machine and history), `excali-ui` (DOM chrome built with `web-sys`, no framework), `excali-wasm` (the `<excali-editor>` custom element, built with `wasm-bindgen --target web` so it loads as a plain ES module).
+
+**Deliverables.**
+- Static and interactive canvas layers at device-pixel scale; per-element bitmap cache with the same padding rules and snapping.
+- Tools: hand, selection, rectangle, diamond, ellipse, arrow, line, freedraw, text, image, eraser, frame, laser; tool lock; lasso, bucket fill, sticky note and autoshape follow in Phase 7.
+- Selection, transform handles (8/16/28 px by pointer type), rotation, resize from centre, aspect lock, snapping (8/zoom), arrow binding with gap 5 + width/2, elbow routing, text editing via a positioned `<textarea>` overlay, linear-point editing.
+- History as store deltas with undo/redo; element `version`/`versionNonce`/`updated` bumps.
+- Chrome: main menu, styles panel (full, compact and mobile modes), shapes toolbar, extra-tools dropdown, footer (zoom, undo/redo, help), help dialog, library sidebar, context menu, colour and font pickers, hints, stats, command palette, welcome screen.
+- Keyboard: every shortcut in the [table](../../design-system/shortcuts/).
+- Public JS API of the custom element: `load(json)`, `save() → json`, `export(kind, opts)`, `importLibrary(json | url)`, `getState()`, events `change`, `save-request`, `open-link`; host adapter hooks for file dialogs and fetch.
+
+**Milestone M5.** D3 for desktop; a Playwright suite drives the element in Chromium against a parity checklist; WASM size within budget.
+
+## Phase 6 — Host integration (`ex-e6`)
+
+**Deliverables.**
+- term.hut: replace the read-only view in `ui/src/preview.js` with the editor for `.excalidraw`; wire save to `fs_write_text` with the existing conflict handling; add "New drawing" to the tree's create menu; add "Import library" (URL or file) using the allow-list; keep the JSON source toggle.
+- `tauri-plugin-excali`: commands for open/save dialogs (via `tauri-plugin-dialog`), headless export through `excali-raster`, and an allow-listed library fetch; a capability file; an example app.
+
+**Milestone M6.** D4 and D5 pass end to end.
+
+## Phase 7 — Parity and polish (`ex-e7`)
+
+Tablet and phone layouts; compact styles panel; sticky notes, bucket fill, lasso, autoshape, image crop, frames with names, search; accessibility (focus order, ARIA on controls, reduced motion); performance budgets (60 fps pan at 1,000 elements on a 2020 laptop; first paint under 300 ms after module load); locale loader with the upstream JSON files.
+
+**Milestone M7.** Parity checklist at 100% for the v1 scope; budgets met in CI on a pinned runner.
+
+## Phase 8 — Release (`ex-e8`)
+
+Publish crates to crates.io under `excali-*`; publish the ES-module tarball as a GitHub release asset; write the integration guide; tag 1.0.
+
+## Budgets
+
+| Budget | Value | Basis |
+|---|---|---|
+| WASM module, no fonts, gzip | ≤ 1.5 MB | term.hut ships a 5.4 MB dmg and treats weight as a feature (`PRODUCT.md:165`); upstream's bundle is ~3.9 MB (`excalidrawScene.js:9`). Half of that is the ceiling; the number is a target to measure against, not a fact. |
+| ES-module shim | ≤ 20 KB | It only mounts the element and forwards host callbacks. |
+| First paint after module load | ≤ 300 ms | Upstream shows its canvas immediately; a slower start would read as a regression in term.hut. |
+| Fonts | lazy, per unicode range | Upstream ships Excalifont in 7 range-split files and Xiaolai in ~209; the port keeps that split. |

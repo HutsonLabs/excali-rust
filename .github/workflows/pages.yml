@@ -1,0 +1,43 @@
+# Build site/ with Zola and publish to GitHub Pages through the Actions
+# deployment path (no gh-pages branch). Pages must be set to
+# "Source: GitHub Actions" in Settings > Pages.
+# zola_version here and ZOLA_VERSION in scripts/site/zola.sh are the same pin.
+name: pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: authorship gate
+        run: python3 scripts/gates/attribution.py files --all
+      - name: render task graph into the site
+        run: python3 scripts/tasks/render-progress.py
+      - name: build with zola
+        uses: getzola/github-pages@066755243e69f508fd1a74739fbf1a65f656c790
+        with:
+          zola_version: v0.22.0
+          working_directory: site
+          check_links: false
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/public
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

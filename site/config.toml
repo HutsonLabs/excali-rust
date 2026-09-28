@@ -1,0 +1,29 @@
+# Zola site for the excali-rust plan, design system and mockups.
+# Published by .github/workflows/pages.yml to GitHub Pages (project site).
+base_url = "https://hutsonlabs.github.io/excali-rust"
+title = "excali-rust"
+description = "A Rust port of the Excalidraw editor: no React, Tauri-ready, .excalidraw compatible."
+compile_sass = true
+build_search_index = false
+generate_feeds = false
+minify_html = false
+
+[markdown]
+render_emoji = false
+external_links_target_blank = true
+smart_punctuation = false
+
+[extra]
+repo = "https://github.com/HutsonLabs/excali-rust"
+upstream = "https://github.com/excalidraw/excalidraw"
+upstream_commit = "438d89861f53d8a90ad566113ecac1b83761098f"
+captured = "2026-09-28"
+nav = [
+  { name = "Plan", path = "plan" },
+  { name = "Architecture", path = "architecture" },
+  { name = "Design system", path = "design-system" },
+  { name = "Mockups", path = "mockups" },
+  { name = "Decisions", path = "decisions" },
+  { name = "Research", path = "research" },
+  { name = "Evidence", path = "evidence" },
+]

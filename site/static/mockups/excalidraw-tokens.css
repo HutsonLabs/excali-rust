@@ -1,0 +1,47 @@
+/* Excalidraw design tokens, copied from packages/excalidraw/css/theme.scss at
+   commit 438d8986 (light: lines 6-165; dark: lines 184-278) and styles.scss.
+   Only values needed by the mockups are listed; the full table is on the
+   site's Tokens page. Approving a mockup approves values upstream already has. */
+.excalidraw{
+  --color-primary:#6965db;--color-primary-darker:#5b57d1;--color-primary-darkest:#4a47b1;
+  --color-primary-light:#e3e2fe;--color-primary-light-darker:#d7d5ff;--color-primary-hover:#5753d0;
+  --color-brand-hover:#5753d0;--color-brand-active:#4440bf;
+  --color-on-primary-container:#030064;--color-surface-primary-container:#e0dfff;
+  --color-surface-high:#f1f0ff;--color-surface-mid:#f6f6f9;--color-surface-low:#ececf4;--color-surface-lowest:#ffffff;
+  --color-on-surface:#1b1b1f;--color-border-outline:#767680;--color-border-outline-variant:#c5c5d0;
+  --color-selection:#6965db;
+  --island-bg-color:#ffffff;--island-bg-color-alt:#fff;--default-bg-color:#fff;--input-bg-color:#fff;
+  --input-border-color:#ced4da;--input-hover-bg-color:#f1f3f5;--input-label-color:#495057;
+  --popup-bg-color:var(--island-bg-color);--popup-secondary-bg-color:#f1f3f5;--popup-text-color:#000;
+  --overlay-bg-color:rgba(12,12,14,.35);--select-highlight-color:#339af0;--focus-highlight-color:#a5d8ff;
+  --link-color:#1c7ed6;--keybinding-color:#b8b8b8;--icon-fill-color:var(--color-on-surface);
+  --button-gray-1:#e9ecef;--button-gray-2:#ced4da;--button-gray-3:#adb5bd;
+  --button-hover-bg:var(--color-surface-high);--button-active-bg:var(--color-surface-high);--button-active-border:var(--color-brand-active);
+  --default-border-color:var(--color-surface-high);
+  --color-gray-10:#f5f5f5;--color-gray-20:#ebebeb;--color-gray-30:#d6d6d6;--color-gray-40:#b8b8b8;--color-gray-50:#999;--color-gray-60:#7a7a7a;--color-gray-70:#5c5c5c;--color-gray-80:#3d3d3d;--color-gray-85:#242424;--color-gray-90:#1e1e1e;--color-gray-100:#121212;
+  --color-danger:#db6965;--color-warning:#fceeca;--color-disabled:var(--color-gray-40);
+  --shadow-island:0 0 0 1px rgba(0,0,0,.01),1px 1px 5px rgba(0,0,0,.15);
+  --space-factor:0.25rem;--border-radius-md:0.375rem;--border-radius-lg:0.5rem;
+  --default-button-size:2rem;--default-icon-size:1rem;--lg-button-size:2.25rem;--lg-icon-size:1rem;
+  --editor-container-padding:1rem;--right-sidebar-width:302px;
+  --ui-font:Assistant,system-ui,BlinkMacSystemFont,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --theme-filter:none;
+  --text-primary-color:var(--color-on-surface);
+}
+.excalidraw.theme--dark{
+  --theme-filter:invert(93%) hue-rotate(180deg);
+  --color-primary:#a8a5ff;--color-primary-darker:#b2aeff;--color-primary-darkest:#beb9ff;
+  --color-primary-light:#4f4d6f;--color-primary-light-darker:#43415e;--color-primary-hover:#bbb8ff;
+  --color-brand-hover:#bbb8ff;--color-brand-active:#d0ccff;
+  --color-on-primary-container:#e0dfff;--color-surface-primary-container:#403e6a;
+  --color-surface-high:#2e2d39;--color-surface-mid:hsl(240 6% 10%);--color-surface-low:hsl(240 8% 15%);--color-surface-lowest:hsl(0 0% 7%);
+  --color-on-surface:#e3e3e8;--color-border-outline:#8e8d9c;--color-border-outline-variant:#46464f;
+  --color-selection:#b4b0ff;
+  --island-bg-color:#232329;--island-bg-color-alt:hsl(240,12%,12%);--default-bg-color:#121212;--input-bg-color:#121212;
+  --input-border-color:#2e2e2e;--input-hover-bg-color:#181818;--input-label-color:#e9ecef;
+  --popup-secondary-bg-color:#222;--popup-text-color:#ced4da;
+  --overlay-bg-color:rgba(12,12,14,.65);--select-highlight-color:#4dabf7;--focus-highlight-color:#228be6;
+  --link-color:#4dabf7;--keybinding-color:#7a7a7a;
+  --button-gray-1:#363636;--button-gray-2:#272727;--button-gray-3:#222;
+  --color-disabled:var(--color-gray-70);
+}

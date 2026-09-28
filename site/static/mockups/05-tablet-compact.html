@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>excali-rust mockup 05 · tablet, compact styles panel</title><link rel="stylesheet" href="shell.css"><style>body{background:#3d3d3d;display:flex;align-items:center;justify-content:center;height:100vh}.device{width:1024px;height:768px;max-width:100vw;max-height:100vh;border-radius:14px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.5)}.compact .col-left .Stack{flex-direction:column}</style></head><body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+<!-- simplified 24x24 stand-ins, stroke 2, round caps: NOT upstream's glyphs -->
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+<symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 5.5V4a1.5 1.5 0 0 1 3 0v8M14 5.5a1.5 1.5 0 0 1 3 0V12"/><path d="M17 11.5a1.5 1.5 0 0 1 3 0V16a6 6 0 0 1-6 6h-2a6 6 0 0 1-5-2.7L4 14a1.6 1.6 0 0 1 2.7-1.7L8 14"/></symbol>
+<symbol id="i-select" viewBox="0 0 24 24"><path d="M6 3l14 9-6 1.5L11 20z"/></symbol>
+<symbol id="i-rect" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></symbol>
+<symbol id="i-diamond" viewBox="0 0 24 24"><path d="M12 3l9 9-9 9-9-9z"/></symbol>
+<symbol id="i-ellipse" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="7"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 19L19 5M11 5h8v8"/></symbol>
+<symbol id="i-line" viewBox="0 0 24 24"><path d="M4 20L20 4"/></symbol>
+<symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l4-1 10-10-3-3L5 16zM13 7l3 3"/></symbol>
+<symbol id="i-text" viewBox="0 0 24 24"><path d="M6 5h12M12 5v14M9 19h6"/></symbol>
+<symbol id="i-note" viewBox="0 0 24 24"><path d="M4 4h16v10l-6 6H4z"/><path d="M14 20v-6h6"/></symbol>
+<symbol id="i-eraser" viewBox="0 0 24 24"><path d="M19 20H8l-4-4 9-9 7 7-5 6M9 11l7 7"/></symbol>
+<symbol id="i-image" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="M4 17l5-5 4 4 3-3 4 4"/></symbol>
+<symbol id="i-frame" viewBox="0 0 24 24"><path d="M4 8h16M4 16h16M8 4v16M16 4v16"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="18" cy="12" r="1"/></symbol>
+<symbol id="i-library" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M14 4v16"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></symbol>
+<symbol id="i-redo" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></symbol>
+<symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-laser" viewBox="0 0 24 24"><path d="M4 20L14 10M14 4v3M20 10h-3M18 6l-2 2"/></symbol>
+<symbol id="i-bucket" viewBox="0 0 24 24"><path d="M5 12l7-7 7 7-7 7z"/><path d="M19 16c0 1.5-1 3-1 3s-1-1.5-1-3 1-2 1-2 1 .5 1 2"/></symbol>
+<symbol id="i-lasso" viewBox="0 0 24 24"><ellipse cx="12" cy="9" rx="8" ry="5" stroke-dasharray="3 3"/><path d="M8 14v6"/></symbol>
+<symbol id="i-hachure" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M6 14l8-8M6 18l12-12M10 18l8-8"/></symbol>
+<symbol id="i-cross" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M6 14l8-8M6 18l12-12M10 18l8-8M18 14l-8-8M18 18L6 6M14 18l-8-8"/></symbol>
+<symbol id="i-solid" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" fill="currentColor"/></symbol>
+<symbol id="i-w1" viewBox="0 0 24 24"><path d="M5 12h14" stroke-width="1"/></symbol>
+<symbol id="i-w2" viewBox="0 0 24 24"><path d="M5 12h14" stroke-width="2.5"/></symbol>
+<symbol id="i-w3" viewBox="0 0 24 24"><path d="M5 12h14" stroke-width="4"/></symbol>
+<symbol id="i-dash" viewBox="0 0 24 24"><path d="M5 12h14" stroke-dasharray="4 3"/></symbol>
+<symbol id="i-dot" viewBox="0 0 24 24"><path d="M5 12h14" stroke-dasharray="1.5 3"/></symbol>
+<symbol id="i-s0" viewBox="0 0 24 24"><path d="M4 16c4-8 12-8 16 0"/></symbol>
+<symbol id="i-s1" viewBox="0 0 24 24"><path d="M4 16c3-7 5-9 8-3s5 3 8-1"/></symbol>
+<symbol id="i-s2" viewBox="0 0 24 24"><path d="M3 15c3-9 4-2 7-6s3 6 6 1 3 2 5 3"/></symbol>
+<symbol id="i-sharp" viewBox="0 0 24 24"><path d="M4 20V4h16"/></symbol>
+<symbol id="i-round" viewBox="0 0 24 24"><path d="M4 20V10a6 6 0 0 1 6-6h10"/></symbol>
+<symbol id="i-al" viewBox="0 0 24 24"><path d="M5 5h14M5 12h9M5 19h14"/></symbol>
+<symbol id="i-ac" viewBox="0 0 24 24"><path d="M5 5h14M8 12h8M5 19h14"/></symbol>
+<symbol id="i-ar" viewBox="0 0 24 24"><path d="M5 5h14M10 12h9M5 19h14"/></symbol>
+<symbol id="i-dup" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol>
+<symbol id="i-group" viewBox="0 0 24 24"><rect x="3" y="3" width="10" height="10" rx="1"/><rect x="11" y="11" width="10" height="10" rx="1"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a3.5 3.5 0 0 0 5 0l4-4a3.5 3.5 0 0 0-5-5l-.5.5M14 10a3.5 3.5 0 0 0-5 0l-4 4a3.5 3.5 0 0 0 5 5l.5-.5"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="1"/><path d="M4 16V6a2 2 0 0 1 2-2h10"/></symbol>
+<symbol id="i-front" viewBox="0 0 24 24"><rect x="4" y="4" width="12" height="12" rx="1" fill="currentColor" fill-opacity=".2"/><path d="M20 8v10a2 2 0 0 1-2 2H8"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M20 20l-5-5"/></symbol>
+<symbol id="i-adjust" viewBox="0 0 24 24"><path d="M4 8h10M18 8h2M4 16h4M12 16h8"/><circle cx="16" cy="8" r="2"/><circle cx="10" cy="16" r="2"/></symbol>
+<symbol id="i-fit" viewBox="0 0 24 24"><path d="M4 9V5h4M20 9V5h-4M4 15v4h4M20 15v4h-4"/></symbol>
+<symbol id="i-code" viewBox="0 0 24 24"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/></symbol>
+</svg>
+
+<div class="device"><div class="excalidraw">
+  <div class="canvas"><svg viewBox="0 0 1280 760" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" font-family="'Excalifont','Virgil','Chalkboard SE','Comic Sans MS',cursive">
+  <defs>
+    <pattern id="hachure-blue" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(-41)"><path d="M0 4h8" stroke="#a5d8ff" stroke-width="1"/></pattern>
+    <pattern id="hachure-green" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(-41)"><path d="M0 4h8" stroke="#b2f2bb" stroke-width="1"/></pattern>
+    <pattern id="cross-yellow" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(-41)"><path d="M0 4h8M4 0v8" stroke="#ffec99" stroke-width="1"/></pattern>
+  </defs>
+  <!-- rectangle: strokeColor #1e1e1e, background blue[1] #a5d8ff, fill hachure (angle -41, gap sw*4=8, weight sw/2=1), roughness 1, adaptive radius 32 -->
+  <g stroke="#1e1e1e" stroke-width="2" fill="none" stroke-linecap="round">
+    <path d="M362 158 Q332 160 331 190 L333 270 Q334 300 364 300 L578 302 Q606 303 607 273 L605 189 Q604 160 574 159 Z" fill="url(#hachure-blue)"/>
+    <path d="M364 160 Q334 161 333 191 L334 272 Q336 302 366 301 L580 300 Q608 301 608 272 L606 191 Q606 161 576 160 Z" opacity=".9"/>
+  </g>
+  <text x="470" y="238" font-size="20" text-anchor="middle" fill="#1e1e1e">term.hut (host)</text>
+  <!-- arrow: round, endArrowhead arrow, size 25, angle 20 -->
+  <g stroke="#1e1e1e" stroke-width="2" fill="none" stroke-linecap="round">
+    <path d="M610 232 Q700 226 782 236" /><path d="M611 233 Q702 228 783 237" opacity=".7"/>
+    <path d="M782 236 L760 226 M782 236 L760 246"/>
+  </g>
+  <text x="696" y="212" font-size="16" text-anchor="middle" fill="#1e1e1e">load / save</text>
+  <!-- ellipse: green[1] hachure -->
+  <g stroke="#1e1e1e" stroke-width="2" fill="none" stroke-linecap="round">
+    <path d="M790 232 C790 190 850 168 930 170 C1010 172 1064 198 1062 236 C1060 274 1000 300 924 298 C848 296 790 272 790 232 Z" fill="url(#hachure-green)"/>
+    <path d="M792 234 C794 192 852 170 932 172 C1010 174 1062 200 1060 238 C1058 276 998 302 922 300 C846 298 792 274 792 234 Z" opacity=".9"/>
+  </g>
+  <text x="926" y="240" font-size="20" text-anchor="middle" fill="#1e1e1e">&lt;excali-editor&gt;</text>
+  <!-- arrow down (dashed [8,10]) to diamond -->
+  <g stroke="#1e1e1e" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray="8 10">
+    <path d="M926 302 Q930 360 928 418"/>
+  </g>
+  <g stroke="#1e1e1e" stroke-width="2" fill="none" stroke-linecap="round"><path d="M928 420 L918 400 M928 420 L938 400"/></g>
+  <!-- diamond: yellow[1] cross-hatch, proportional radius -->
+  <g stroke="#1e1e1e" stroke-width="2" fill="none" stroke-linecap="round">
+    <path d="M926 422 L1046 500 L928 578 L808 500 Z" fill="url(#cross-yellow)"/>
+    <path d="M928 424 L1048 501 L926 580 L806 499 Z" opacity=".9"/>
+  </g>
+  <text x="927" y="506" font-size="16" text-anchor="middle" fill="#1e1e1e">dirty?</text>
+  <!-- line to fs_write_text text -->
+  <g stroke="#e03131" stroke-width="2" fill="none" stroke-linecap="round">
+    <path d="M806 500 Q700 496 610 520"/><path d="M806 501 Q702 498 612 522" opacity=".7"/>
+  </g>
+  <text x="520" y="530" font-size="20" text-anchor="end" fill="#e03131">fs_write_text()</text>
+  <!-- freedraw scribble: pressure-shaped outline filled with stroke colour -->
+  <path d="M340 430 C352 418 366 432 380 424 C398 414 404 442 420 436 C434 431 440 452 456 446 C470 441 476 462 492 458 C500 456 506 466 500 470 C486 478 474 462 460 468 C444 474 438 454 422 460 C406 466 400 446 384 452 C370 457 362 442 350 450 C342 456 332 440 340 430 Z" fill="#2f9e44" stroke="none"/>
+  <text x="418" y="500" font-size="16" fill="#2f9e44">perfect-freehand</text>
+  <!-- frame -->
+  <g stroke="#bbb" stroke-width="2" fill="none"><rect x="300" y="120" width="800" height="490" rx="8"/></g>
+  <text x="304" y="112" font-family="Helvetica, Arial, sans-serif" font-size="14" fill="#999999">Frame 1 · integration flow</text>
+</svg>
+</div>
+  <div class="layer-ui">
+    <div class="App-menu_top" style="grid-template-columns:auto 1fr auto">
+      <div class="col-left"><div class="Stack" style="--gap:2"><div class="Island" style="--padding:1"><button class="ToolIcon" title="Menu"><svg><use href="#i-menu"/></svg></button></div><div class="Island" style="--padding:1"><div class="Stack" style="--gap:1;align-items:center">
+  <span class="swatch picker active" style="background:#1e1e1e;margin:0"></span>
+  <span class="swatch picker active" style="background:#a5d8ff;margin:0"></span>
+  <span class="divider"></span>
+  <button class="ToolIcon" title="Stroke properties"><svg><use href="#i-adjust"/></svg></button>
+  <button class="ToolIcon" title="Text properties"><svg><use href="#i-text"/></svg></button>
+  <button class="ToolIcon" title="Duplicate — Cmd+D"><svg><use href="#i-dup"/></svg></button>
+  <button class="ToolIcon" title="Delete"><svg><use href="#i-trash"/></svg></button>
+  <button class="ToolIcon" title="More"><svg><use href="#i-more"/></svg></button>
+</div></div>
+<div class="Island" style="--padding:2;width:13rem;margin-top:.25rem;font-size:.75rem">
+  <div style="color:var(--input-label-color);margin-bottom:.25rem">Fill</div><div class="btnrow"><span class="opt active"><svg><use href="#i-hachure"/></svg></span><span class="opt"><svg><use href="#i-cross"/></svg></span><span class="opt"><svg><use href="#i-solid"/></svg></span></div>
+  <div style="color:var(--input-label-color);margin:.5rem 0 .25rem">Stroke width</div><div class="btnrow"><span class="opt"><svg><use href="#i-w1"/></svg></span><span class="opt active"><svg><use href="#i-w2"/></svg></span><span class="opt"><svg><use href="#i-w3"/></svg></span></div>
+  <div style="color:var(--input-label-color);margin:.5rem 0 .25rem">Stroke style</div><div class="btnrow"><span class="opt active"><svg><use href="#i-w1"/></svg></span><span class="opt"><svg><use href="#i-dash"/></svg></span><span class="opt"><svg><use href="#i-dot"/></svg></span></div>
+  <div style="color:var(--input-label-color);margin:.5rem 0 .25rem">Sloppiness</div><div class="btnrow"><span class="opt"><svg><use href="#i-s0"/></svg></span><span class="opt active"><svg><use href="#i-s1"/></svg></span><span class="opt"><svg><use href="#i-s2"/></svg></span></div>
+  <div style="color:var(--input-label-color);margin:.5rem 0 .25rem">Edges</div><div class="btnrow"><span class="opt"><svg><use href="#i-sharp"/></svg></span><span class="opt active"><svg><use href="#i-round"/></svg></span></div>
+  <div style="color:var(--input-label-color);margin:.5rem 0 .25rem">Opacity</div><div class="range"></div>
+</div></div></div>
+      <div class="col-center"><div class="Island" style="--padding:1"><div class="Stack" style="--gap:1;align-items:center">
+  <button class="ToolIcon" title="Lock — Q"><svg><use href="#i-lock"/></svg></button><span class="divider"></span>
+  <button class="ToolIcon" title="Hand — H"><svg><use href="#i-hand"/></svg></button>
+  <button class="ToolIcon active" title="Selection / Lasso"><svg><use href="#i-select"/></svg><span class="key">▾</span></button>
+  <button class="ToolIcon" title="Rectangle — R"><svg><use href="#i-rect"/></svg></button>
+  <button class="ToolIcon" title="Diamond — D"><svg><use href="#i-diamond"/></svg></button>
+  <button class="ToolIcon" title="Ellipse — O"><svg><use href="#i-ellipse"/></svg></button>
+  <button class="ToolIcon" title="Arrow — A"><svg><use href="#i-arrow"/></svg></button>
+  <button class="ToolIcon" title="Line — L"><svg><use href="#i-line"/></svg></button>
+  <button class="ToolIcon" title="Draw / Autoshape"><svg><use href="#i-pen"/></svg><span class="key">▾</span></button>
+  <button class="ToolIcon" title="Text — T"><svg><use href="#i-text"/></svg></button>
+  <button class="ToolIcon" title="Sticky note — N"><svg><use href="#i-note"/></svg></button>
+  <button class="ToolIcon" title="Eraser — E"><svg><use href="#i-eraser"/></svg></button>
+  <span class="divider"></span><button class="ToolIcon" title="More tools"><svg><use href="#i-more"/></svg></button>
+</div></div></div>
+      <div class="col-right"><div class="Island" style="--padding:1"><button class="ToolIcon" title="Library"><svg><use href="#i-library"/></svg></button></div></div>
+    </div>
+    <div class="footer">
+  <div class="Stack" style="--gap:2;align-items:flex-end">
+    <div class="Island zoom" style="--padding:1"><div class="Stack" style="--gap:1"><button class="ToolIcon" title="Zoom out — Ctrl+-"><svg><use href="#i-minus"/></svg></button><span class="pct" title="Reset zoom — Ctrl+0">100%</span><button class="ToolIcon" title="Zoom in — Ctrl++"><svg><use href="#i-plus"/></svg></button></div></div>
+    <div class="Island" style="--padding:1"><div class="Stack" style="--gap:1"><button class="ToolIcon" title="Undo — Ctrl+Z"><svg><use href="#i-undo"/></svg></button><button class="ToolIcon" title="Redo — Ctrl+Shift+Z"><svg><use href="#i-redo"/></svg></button></div></div>
+  </div>
+  <div class="help" title="Help — ?">?</div>
+</div>
+
+  </div>
+</div></div><div class="mk">05 · tablet 1024×768 (min(w,h) ≥ 600, max ≤ 1180) · compact styles row + stroke popover</div></body></html>

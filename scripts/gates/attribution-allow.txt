@@ -1,0 +1,7 @@
+# Paths (repo-relative) exempt from rule R4 (bare vendor/tool mention) only.
+# R1, R2, R3 and R5 apply everywhere without exception. Keep this list short
+# and justify each entry in a comment above it.
+#
+# The evidence log quotes upstream sources verbatim; some of those sources
+# name agent runtimes. Quoting is not attribution.
+site/content/evidence/_index.md

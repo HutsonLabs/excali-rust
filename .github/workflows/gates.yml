@@ -1,0 +1,26 @@
+# Authorship gate in CI: the same script the local hooks run, so a commit that
+# bypassed the hooks (--no-verify, a clone without core.hooksPath) still
+# cannot merge with tool attribution or invisible watermarks in it.
+name: gates
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  attribution:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: tracked files
+        run: python3 scripts/gates/attribution.py files --all
+      - name: commit authors and messages
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            python3 scripts/gates/attribution.py history "origin/${{ github.base_ref }}..HEAD"
+          else
+            python3 scripts/gates/attribution.py history "HEAD~1..HEAD"
+          fi
