@@ -132,25 +132,36 @@ const pinnedPackages = () => ({
  * image codecs) that a module the generator imports pulls in but the
  * functions it calls never reach; every export of a stub is undefined, so a
  * call into one fails loudly.
+ *
+ * `shims` maps more such names to the CommonJS source that replaces them,
+ * for a module whose exports the importing module calls while it loads
+ * (e.g. jotai's `atom(...)` at module level); what the shim does not define
+ * is undefined, as in a stub.
  */
-const stubbedModules = (upstream, names) => ({
+const stubbedModules = (upstream, stubs, shims = {}) => ({
   name: "stubbed-modules",
   setup(build) {
+    const names = [...stubs, ...Object.keys(shims)];
     if (!names.length) return;
     const files = new Set(names.filter((n) => n.includes("/") && !n.startsWith("@")).map((n) => join(upstream, n)));
     const packages = names.filter((n) => !files.has(join(upstream, n)));
     const stub = (args) => ({ path: args.path, namespace: "stub" });
+    const stubFile = (args) => ({ path: join(args.resolveDir, args.path), namespace: "stub" });
     if (packages.length) {
       const escaped = packages.map((n) => n.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&"));
       build.onResolve({ filter: new RegExp(`^(${escaped.join("|")})(/.*)?$`) }, stub);
     }
     if (files.size) {
       build.onResolve({ filter: /^\.\.?\// }, (args) =>
-        files.has(join(args.resolveDir, args.path)) ? stub(args) : undefined,
+        files.has(join(args.resolveDir, args.path)) ? stubFile(args) : undefined,
       );
     }
-    build.onLoad({ filter: /.*/, namespace: "stub" }, () => ({
-      contents: "module.exports = {};",
+    const shimFor = (path) => {
+      const name = names.find((n) => path === n || path.startsWith(`${n}/`) || join(upstream, n) === path);
+      return name !== undefined && Object.hasOwn(shims, name) ? shims[name] : undefined;
+    };
+    build.onLoad({ filter: /.*/, namespace: "stub" }, (args) => ({
+      contents: shimFor(args.path) ?? "module.exports = {};",
       loader: "js",
     }));
   },
@@ -195,13 +206,14 @@ let loads = 0;
  * Bundles upstream's code and returns the imported module. `entry` is the
  * TypeScript entry's source, resolved from the checkout root (the default
  * exports the shape code the goldens use); `stubs` lists modules replaced
- * by empty ones (see stubbedModules); `expose` exports module-private
- * functions and `patch` rewrites checkout modules (see exposedModules);
- * `define` adds compile-time constants.
+ * by empty ones and `shims` maps modules to replacement CommonJS sources
+ * (see stubbedModules); `expose` exports module-private functions and
+ * `patch` rewrites checkout modules (see exposedModules); `define` adds
+ * compile-time constants.
  */
 export const loadUpstream = async (
   { dir },
-  { entry = ENTRY, stubs = [], expose = {}, patch = {}, define = {} } = {},
+  { entry = ENTRY, stubs = [], shims = {}, expose = {}, patch = {}, define = {} } = {},
 ) => {
   const esbuild = await import("esbuild");
   const result = await esbuild.build({
@@ -219,11 +231,11 @@ export const loadUpstream = async (
     logLevel: "silent",
     plugins: [
       workspaceAliases(dir),
-      stubbedModules(dir, stubs),
+      stubbedModules(dir, stubs, shims),
       exposedModules(dir, expose, patch),
       pinnedPackages(),
     ],
-    loader: { ".png": "empty", ".svg": "empty", ".scss": "empty", ".css": "empty" },
+    loader: { ".png": "empty", ".svg": "empty", ".scss": "empty", ".css": "empty", ".woff2": "empty" },
     define: { "import.meta.env.DEV": "false", "import.meta.env.PROD": "true", ...define },
   });
   // One file per process and load: concurrent runs (the test suite) never

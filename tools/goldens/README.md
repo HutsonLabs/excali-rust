@@ -313,3 +313,46 @@ node tools/goldens/rough-options.mjs --check   # exit 1 if it is stale
 
 CI runs `--check` in the `goldens` job, and `test/rough-options.test.mjs`
 checks that two runs are byte-identical.
+
+## Library fixtures
+
+`library-fixtures.mjs` writes `crates/excali-core/tests/fixtures/library.json`
+for excali-core's `.excalidrawlib` port (ex-108). It bundles upstream's
+`parseLibraryJSON` (`packages/excalidraw/data/blob.ts:218-228`, which checks
+`isValidLibrary` and calls `restoreLibraryItems`, `data/restore.ts:1374-1415`),
+`serializeLibraryAsJSON` (`data/json.ts:137-145`), `mergeLibraryItems` and
+`getLibraryItemsHash` (`data/library.ts:122-157, 594-605`), and records:
+
+- `parse`: the exact string `serializeLibraryAsJSON(parseLibraryJSON(input,
+  defaultStatus))` returns, or the message of what the parse threw, for
+  upstream's `fixture_library.excalidrawlib`, the inputs of `restore.test.ts`
+  "restoreLibraryItems creation timestamps", and tables over the envelope
+  (`libraryItems || library`, versions, non-iterable values), the items (v1
+  arrays, missing, falsy and odd `id`/`status`/`created`, unknown keys, key
+  order, lone surrogates) and the per-item `restoreElements(elements, null)`
+  (deleted and unknown elements, duplicate ids, index sync, legacy fields);
+- `catalogue`: for every library of `fixtures/libraries` (ex-003's manifest,
+  232 files), the item count and the sha256 of the serialized parse, with
+  `defaultStatus` `"published"` as an import from libraries.excalidraw.com;
+- `merge`: `mergeLibraryItems(local, other)` of two parsed libraries;
+- `hash`: `getLibraryItemsHash` of parsed items.
+
+`blob.ts` and `library.ts` pull in browser and React code (file dialogs,
+image codecs, library item previews, jotai atoms) that these functions never
+call. The loader replaces those modules with empty ones, and
+`editor-jotai` with a shim whose `atom` returns a plain object, since
+`library.ts` creates an atom while it loads (`shims` in `lib/upstream.mjs`).
+
+Upstream runs in its test mode (`randomId()` gives `id0`, `id1`, ...,
+restarted by `reseed(1)` before each parse; `getUpdatedTimestamp()` gives 1)
+and `Date.now`, which `restoreLibraryItems` reads for `created`, returns 1,
+so excali-core's `restore::TestEnv` answers both. `window.EXCALIDRAW_EXPORT_SOURCE`
+is `https://excalidraw.com`. `Math.random` throws while generating.
+
+```sh
+node tools/goldens/library-fixtures.mjs           # write the fixture
+node tools/goldens/library-fixtures.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and `test/library-fixtures.test.mjs`
+checks that two runs are byte-identical.
