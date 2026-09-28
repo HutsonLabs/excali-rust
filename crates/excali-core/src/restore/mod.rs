@@ -54,13 +54,13 @@ pub use element::{
     restore_element, BindingEnd, ElementsMap, LegacyBinding, LegacyBindingRequest, RestoreOptions,
     MAX_LINEAR_PX,
 };
+pub(crate) use element::{restore_element_encoded, MapKey};
 pub use scene::{
     bump_element_versions, restore_elements, ElbowArrowRequest, RestoreElementsError,
     RestoreElementsOptions, StickyNoteLayout, StickyNoteLayoutRequest, TextDimensionsRequest,
 };
 #[cfg(test)]
 use scene::{restore_elements_encoded, SceneCall};
-pub(crate) use element::{restore_element_encoded, MapKey};
 
 /// Where restore gets what upstream draws from global state, and the
 /// element geometry it needs for one migration.
