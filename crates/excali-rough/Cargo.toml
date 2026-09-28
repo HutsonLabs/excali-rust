@@ -1,0 +1,12 @@
+[package]
+name = "excali-rough"
+description = "Hand-drawn ('sketchy') path generation, a port of roughjs."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true

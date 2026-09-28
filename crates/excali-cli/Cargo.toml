@@ -1,0 +1,16 @@
+[package]
+name = "excali-cli"
+description = "Command-line export of .excalidraw files."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[[bin]]
+name = "excali"
+path = "src/main.rs"
+
+[lints]
+workspace = true

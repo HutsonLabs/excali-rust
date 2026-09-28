@@ -1,0 +1,35 @@
+# Workspace root. House style follows term.hut's src-tauri/Cargo.toml
+# (resolver 2, path crates under crates/). The crate list and the direction of
+# dependencies between them are fixed by site/content/architecture/overview.md
+# and ADR-008; scripts/gates/workspace.py checks this workspace against that
+# page in CI.
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+# MSRV. CI checks the workspace with exactly this toolchain (rust.yml, job
+# msrv); rust-toolchain.toml pins the newer stable used for development.
+rust-version = "1.94"
+license = "MIT"
+repository = "https://github.com/HutsonLabs/excali-rust"
+
+[workspace.dependencies]
+# preserve_order: upstream writes object keys in insertion order
+# (JSON.stringify), so a read-then-write must not sort them.
+# float_roundtrip: parse every number to the nearest f64, as JSON.parse does;
+# the default fast path can be off by one ulp (123456789012345678901234).
+serde_json = { version = "1.0.151", features = ["preserve_order", "float_roundtrip"] }
+# Only for the Serialize trait when writing a Value with a custom formatter.
+serde = "1.0.229"
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+rust_2018_idioms = { level = "deny", priority = -1 }
+
+[workspace.lints.clippy]
+dbg_macro = "deny"
+todo = "deny"
+unimplemented = "deny"

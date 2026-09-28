@@ -1,0 +1,53 @@
+# Rust gates on every pull request and on main: formatting, clippy with
+# warnings as errors, the test suite, the crate-graph gate (the workspace must
+# match site/content/architecture/overview.md), the wasm32 build of every
+# crate that targets it (ADR-008), and an MSRV check.
+#
+# The toolchain comes from rust-toolchain.toml; rustup installs it (with
+# rustfmt, clippy and the wasm32 target) on the first cargo call.
+name: rust
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: rust-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: fmt
+        run: cargo fmt --all --check
+      - name: clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: test
+        run: cargo test --workspace --locked
+      - name: crate-graph gate tests
+        run: python3 scripts/gates/test_workspace.py
+      - name: crate-graph gate
+        run: python3 scripts/gates/workspace.py check
+      - name: wasm32 build
+        run: scripts/gates/wasm-build.sh
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: install the MSRV toolchain named in Cargo.toml
+        id: msrv
+        run: |
+          msrv="$(sed -n 's/^rust-version = "\(.*\)"/\1/p' Cargo.toml)"
+          test -n "$msrv"
+          rustup toolchain install "$msrv" --profile minimal
+          echo "version=$msrv" >> "$GITHUB_OUTPUT"
+      - name: check with the MSRV
+        run: cargo +${{ steps.msrv.outputs.version }} check --workspace --all-targets --locked

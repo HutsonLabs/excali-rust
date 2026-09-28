@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-001 · Cargo workspace skeleton and CI (fmt, clippy -D warnings, test)
+
+The Cargo workspace now holds the 14 crates named in the architecture overview, with a pinned stable toolchain and a recorded MSRV. `excali-core` writes JSON exactly as `JSON.stringify` does (numbers, lone surrogates, key order), and a round-trip test covers an empty scene. The new `rust` CI workflow runs fmt, clippy with `-D warnings`, the tests, the MSRV check, a wasm32 build, and a crate-graph gate. The gate checks the workspace against the overview page and rejects `std::fs` in the wasm-pure crates. PR: [#6](https://github.com/HutsonLabs/excali-rust/pull/6).
+
 ## 2026-09-28 · ex-007 · scripts/site/zola.sh works on macOS (bash 3.2, shasum) with the aarch64-apple-darwin digest pinned
 
 `scripts/site/zola.sh` now runs under the `/bin/bash` 3.2 that ships with macOS and checks downloads with `sha256sum` or `shasum -a 256`. The v0.22.0 digests for all four unix targets are pinned. A download with no pinned digest, or with a digest that does not match, is refused and nothing is installed. The new `bootstrap-and-site` CI job runs the offline tests, a real SHA-verified download, `bootstrap.sh` and the site build under `/bin/bash` on both ubuntu and macos. PR: [#5](https://github.com/HutsonLabs/excali-rust/pull/5).
