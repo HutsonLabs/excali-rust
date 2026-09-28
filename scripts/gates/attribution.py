@@ -10,6 +10,8 @@ single implementation behind every enforcement point:
   .githooks/commit-msg      -> attribution.py message <file>   (strips, then verifies)
   .githooks/pre-push        -> attribution.py history <range>
   .github/workflows/gates.yml -> files --all  and  history <base>..HEAD
+  scripts/gates/test_attribution.py -> self-test: planted violations in a
+                                 scratch repo must fail (run in gates.yml)
 
 Exit status 0 = clean, 1 = violation(s) found, 2 = usage error.
 

@@ -15,6 +15,13 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      # ex-g001 / M0: prove the gate rejects planted violations in CI. Each
+      # case plants one (tool-attribution line, Co-Authored-By trailer via
+      # commit-tree, zero-width character, non-human author/committer) in a
+      # scratch repo under the runner's temp dir, never in this checkout, and
+      # asserts exit 1 with the rule id; a clean control must exit 0.
+      - name: gate self-test (planted violations are rejected)
+        run: python3 scripts/gates/test_attribution.py -v
       - name: tracked files
         run: python3 scripts/gates/attribution.py files --all
       - name: commit authors and messages
