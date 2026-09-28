@@ -50,6 +50,9 @@ Key order and unknown keys follow upstream's object semantics (`excali_core::doc
 - A key added by an edit goes at the end of its object, the way a JS property assignment in `mutateElement` (`mutateElement.ts:80-100`) adds it.
 - A known value the typed model reads in a normalised form (`customData: null`, an unknown key inside `boundElements`) is written back as it was read until the field changes.
 - An element built by the port has its keys in the order of upstream's constructors: `id`, `type`, the base fields, `customData`, then the per-type fields (`newElement.ts:87-692`). A document built by the port uses `serializeAsJSON`'s order.
+- A lone UTF-16 surrogate in a string (`"\ud83d"`, half of a split emoji), which `JSON.parse` keeps and `JSON.stringify` writes back as its escape, reads as U+FFFD in the typed model and is written back as the escape until that value changes.
+- A file is accepted exactly when `isValidExcalidrawData` (`packages/excalidraw/data/json.ts:115-126`) accepts it: `type` is `"excalidraw"`, and `elements` is falsy, or an array with `appState` falsy or `typeof "object"` (so `appState: []` passes). `version`, `source` and `files` are not checked. A value the model has no type for (falsy `elements`, `appState: []`, `version: "2"`) is written back as read. The typed codec is stricter in one way: every element must be an object of a known type with its required fields; anything else is restore's job.
+- The fixtures of these rules are generated from upstream's own constructors, `mutateElement` and `serializeAsJSON` by `tools/goldens/scene-fixtures.mjs`; CI runs it with `--check`.
 
 ### Restore rules (must-implement)
 

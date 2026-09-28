@@ -29,6 +29,7 @@ use std::fmt;
 use crate::constants::{
     COLOR_TRANSPARENT, DEFAULT_ELEMENT_PROPS, DEFAULT_FONT_SIZE, DEFAULT_STROKE_STREAMLINE,
 };
+use crate::json;
 use crate::layout::{Canonical, Layout};
 
 // ---------------------------------------------------------------------------
@@ -1028,6 +1029,10 @@ pub enum ArrowSubtype {
 /// - a known value the typed model reads in a normalised form (for example
 ///   `customData: null`, or an unknown key inside `boundElements`) is
 ///   written back as read until the field is changed.
+/// - a string holding a lone UTF-16 surrogate (`"\ud83d"`) reads as U+FFFD
+///   in the typed fields and in `extra`, and is written back as the escape
+///   by [`crate::document::Document::to_json`] until the value changes;
+///   U+FDD0 and every other character built in Rust is written as it is.
 ///
 /// An `extra` key the element's type models (say `"x"`) is not written:
 /// the typed field wins. Equality compares content, not key order.
@@ -1062,12 +1067,18 @@ impl Element {
     /// type requires is missing or has the wrong type; restoring untyped
     /// input (defaults, legacy fields) is the restore module's job.
     pub fn from_map(raw: Map<String, Value>) -> Result<Element, serde_json::Error> {
-        let raw = Value::Object(raw);
-        let base = ElementBase::deserialize(&raw)?;
-        let kind = ElementKind::deserialize(&raw)?;
-        let typed = typed_map(&base, &kind);
-        let empty = Map::new();
-        let raw = raw.as_object().unwrap_or(&empty);
+        Element::from_encoded(&json::escape_map(&raw))
+    }
+
+    /// [`Element::from_map`] for an object in the sentinel form of
+    /// [`crate::json`] (from [`json::parse`]). The typed fields and `extra`
+    /// get the decoded values (a lone surrogate reads as U+FFFD); the
+    /// layout keeps the raw ones.
+    pub(crate) fn from_encoded(raw: &Map<String, Value>) -> Result<Element, serde_json::Error> {
+        let decoded = Value::Object(json::decode_map(raw));
+        let base = ElementBase::deserialize(&decoded)?;
+        let kind = ElementKind::deserialize(&decoded)?;
+        let typed = json::escape_map(&typed_map(&base, &kind));
         let (layout, extra) = Layout::read(raw, &typed, canonical_keys(kind.element_type()));
         Ok(Element {
             base,
@@ -1077,9 +1088,16 @@ impl Element {
         })
     }
 
-    /// The JSON object serde writes for this element.
+    /// The JSON object serde writes for this element. A lone surrogate read
+    /// from a file is U+FFFD here; only [`crate::document::Document::to_json`]
+    /// writes it back as its escape.
     pub fn to_map(&self) -> Map<String, Value> {
-        let typed = typed_map(&self.base, &self.kind);
+        json::decode_map(&self.to_encoded())
+    }
+
+    /// The object to write, in the sentinel form of [`crate::json`].
+    pub(crate) fn to_encoded(&self) -> Map<String, Value> {
+        let typed = json::escape_map(&typed_map(&self.base, &self.kind));
         self.layout
             .write(&typed, &self.extra, canonical_keys(self.element_type()))
     }

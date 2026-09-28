@@ -5,23 +5,41 @@
 //! `{type, version, source, elements, appState, files}` passed to
 //! `JSON.stringify(data, null, 2)`, where `files` is `undefined` (so
 //! omitted) for a database save. It reads one with `JSON.parse` into
-//! `ImportedDataState` (`data/types.ts:35-50`), where every key is optional
-//! and `elements` and `appState` may be `null`, and accepts it when
-//! `isValidExcalidrawData` (`json.ts:115-126`) holds: `type` is
-//! `"excalidraw"`, `elements` is falsy or an array, `appState` falsy or an
-//! object.
+//! `ImportedDataState` (`data/types.ts:35-50`), where every key is optional,
+//! and accepts it when `isValidExcalidrawData` (`json.ts:115-126`) holds:
+//!
+//! ```js
+//! data?.type === "excalidraw" &&
+//!   (!data.elements ||
+//!     (Array.isArray(data.elements) &&
+//!       (!data.appState || typeof data.appState === "object")))
+//! ```
+//!
+//! [`Document::from_json`] accepts exactly that. So `elements` may be any
+//! falsy value (`null`, `false`, `0`, `""`), and then `appState` may be
+//! anything; with an `elements` array, `appState` may be falsy, an object,
+//! an array or `null`. `version`, `source` and `files` are never checked.
+//! Where the file holds a value the typed model has no form for (a falsy
+//! `elements`, `appState: []`, `version: "2"`, `source: 123`, `files: 0`)
+//! the field is `None` and the value is written back as read until the
+//! field is set.
+//!
+//! Stricter than upstream's check, as a typed codec must be: every item of
+//! `elements` must be an object that [`Element::from_map`] can model (a
+//! known `type` and the fields that type requires). Upstream would pass
+//! other items on to `restoreElements`, which drops or repairs them; that
+//! is the restore module's job.
 //!
 //! [`Document::from_json`] then [`Document::to_json`] gives what
 //! `JSON.stringify(JSON.parse(text), null, 2)` gives: keys unknown to the
 //! model (top level, in elements, in `appState` and `files`) are kept where
 //! they were, known keys keep their order, and a value the typed model
 //! would normalise is written back as read until it changes (see
-//! [`Element`]). A [`Document`] built in Rust is written in
-//! `serializeAsJSON`'s key order.
+//! [`Element`]). A lone UTF-16 surrogate in a string (`"\ud83d"`, half of a
+//! split emoji) reads as U+FFFD in the model and is written back as its
+//! escape while the value is unchanged (see [`crate::json`]). A
+//! [`Document`] built in Rust is written in `serializeAsJSON`'s key order.
 //!
-//! This is the codec for files in upstream's written form. Restoring
-//! legacy or partial elements (defaults, renamed fields, unknown types) is
-//! the restore module's job; the codec rejects elements it cannot model.
 //! `appState` and `files` are kept as JSON objects here.
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -68,30 +86,40 @@ impl PartialEq for Document {
 const KEYS: &[&str] = &["type", "version", "source", "elements", "appState", "files"];
 const CANONICAL: Canonical<'static> = &[KEYS];
 
-/// Keys whose values are containers read by their own codec; the layout
-/// only tracks whether they are present, `null` or a container.
-const CONTAINERS: [&str; 3] = ["elements", "appState", "files"];
-
 fn invalid(message: &str) -> Error {
     serde::de::Error::custom(format!("not a valid Excalidraw scene: {message}"))
 }
 
-/// A container value reduced to its shape, for [`Layout::read`].
-fn shape(value: &Value) -> Value {
+/// `!value` in JS for a JSON value (`undefined` when absent). JSON has no
+/// `NaN`, so the falsy values are `null`, `false`, `0`, `-0` and `""`.
+fn is_falsy(value: Option<&Value>) -> bool {
     match value {
-        Value::Array(_) => Value::Array(Vec::new()),
-        Value::Object(_) => Value::Object(Map::new()),
-        other => other.clone(),
+        None | Some(Value::Null) => true,
+        Some(Value::Bool(b)) => !b,
+        Some(Value::Number(n)) => n.as_f64() == Some(0.0),
+        Some(Value::String(s)) => s.is_empty(),
+        Some(Value::Array(_) | Value::Object(_)) => false,
     }
 }
 
-/// An optional JSON object: absent or `null` is `None`.
-fn optional_object(value: Option<Value>, key: &str) -> Result<Option<Map<String, Value>>, Error> {
-    match value {
-        None | Some(Value::Null) => Ok(None),
-        Some(Value::Object(map)) => Ok(Some(map)),
-        Some(_) => Err(invalid(&format!("{key} must be an object"))),
+/// `isValidExcalidrawData` (`json.ts:115-126`).
+fn validate(raw: &Map<String, Value>) -> Result<(), Error> {
+    if raw.get("type").and_then(Value::as_str) != Some(EXPORT_DATA_TYPE_EXCALIDRAW) {
+        return Err(invalid("type must be \"excalidraw\""));
     }
+    let elements = raw.get("elements");
+    if is_falsy(elements) {
+        return Ok(());
+    }
+    if !matches!(elements, Some(Value::Array(_))) {
+        return Err(invalid("elements must be an array"));
+    }
+    // typeof x === "object" for objects, arrays and null.
+    let app_state = raw.get("appState");
+    if is_falsy(app_state) || matches!(app_state, Some(Value::Object(_) | Value::Array(_))) {
+        return Ok(());
+    }
+    Err(invalid("appState must be an object"))
 }
 
 impl Document {
@@ -117,10 +145,10 @@ impl Document {
 
     /// Parse a `.excalidraw` file as `JSON.parse` would, including lone
     /// UTF-16 surrogates in strings, and check it as
-    /// `isValidExcalidrawData` does.
+    /// `isValidExcalidrawData` does (see the module docs).
     pub fn from_json(text: &str) -> Result<Document, Error> {
         match json::parse(text)? {
-            Value::Object(map) => Document::from_map(map),
+            Value::Object(map) => Document::from_encoded(map),
             _ => Err(invalid("not an object")),
         }
     }
@@ -128,54 +156,55 @@ impl Document {
     /// Write the file as `JSON.stringify(data, null, 2)` would: two-space
     /// indent, no trailing newline.
     pub fn to_json(&self) -> String {
-        json::write_parsed(&Value::Object(self.to_map()))
+        json::write_parsed(&Value::Object(self.to_encoded()))
     }
 
     /// Read a document from a parsed JSON object.
-    pub fn from_map(mut raw: Map<String, Value>) -> Result<Document, Error> {
-        if raw.get("type").and_then(Value::as_str) != Some(EXPORT_DATA_TYPE_EXCALIDRAW) {
-            return Err(invalid("type must be \"excalidraw\""));
-        }
-        let version = raw
-            .get("version")
-            .map(Option::<f64>::deserialize)
-            .transpose()?
-            .flatten();
+    pub fn from_map(raw: Map<String, Value>) -> Result<Document, Error> {
+        Document::from_encoded(json::escape_map(&raw))
+    }
+
+    /// [`Document::from_map`] for an object in the sentinel form of
+    /// [`crate::json`].
+    fn from_encoded(mut raw: Map<String, Value>) -> Result<Document, Error> {
+        validate(&raw)?;
+        let version = raw.get("version").and_then(Value::as_f64);
         let source = raw
             .get("source")
-            .map(Option::<String>::deserialize)
-            .transpose()?
-            .flatten();
-
-        // The layout sees containers by shape only; their contents are
-        // read (and laid out) by their own codecs.
-        let shaped: Map<String, Value> = raw
-            .iter()
-            .map(|(k, v)| {
-                let v = if CONTAINERS.contains(&k.as_str()) {
-                    shape(v)
-                } else {
-                    v.clone()
-                };
-                (k.clone(), v)
-            })
-            .collect();
-
-        let elements = match raw.get_mut("elements").map(Value::take) {
-            None | Some(Value::Null) => None,
+            .and_then(Value::as_str)
+            .map(|s| json::decode_str(s).into_owned());
+        // The items are read (and laid out) by the element codec; the
+        // document's layout sees the array's shape, `[]`.
+        let elements = match raw.get_mut("elements") {
             Some(Value::Array(items)) => Some(
-                items
+                std::mem::take(items)
                     .into_iter()
                     .map(|item| match item {
-                        Value::Object(map) => Element::from_map(map),
+                        Value::Object(map) => Element::from_encoded(&map),
                         _ => Err(invalid("an element must be an object")),
                     })
                     .collect::<Result<Vec<_>, _>>()?,
             ),
-            Some(_) => return Err(invalid("elements must be an array")),
+            _ => None,
         };
-        let app_state = optional_object(raw.get_mut("appState").map(Value::take), "appState")?;
-        let files = optional_object(raw.get_mut("files").map(Value::take), "files")?;
+        let object = |key: &str| match raw.get(key) {
+            Some(Value::Object(map)) => Some(json::decode_map(map)),
+            _ => None,
+        };
+        let app_state = object("appState");
+        let files = object("files");
+
+        // An object without lone surrogates is written back exactly as its
+        // typed form, so the layout only needs its shape.
+        let mut shaped = vec!["elements"];
+        for (key, typed) in [("appState", &app_state), ("files", &files)] {
+            if let (Some(_), Some(value)) = (typed, raw.get_mut(key)) {
+                if !json::has_lone_surrogate(value) {
+                    *value = Value::Object(Map::new());
+                    shaped.push(key);
+                }
+            }
+        }
 
         let mut doc = Document {
             version,
@@ -186,42 +215,55 @@ impl Document {
             extra: Map::new(),
             layout: Layout::default(),
         };
-        let typed = doc.typed(true);
-        let (layout, extra) = Layout::read(&shaped, &typed, CANONICAL);
+        let typed = doc.typed(&shaped);
+        let (layout, extra) = Layout::read(&raw, &typed, CANONICAL);
         doc.layout = layout;
         doc.extra = extra;
         Ok(doc)
     }
 
-    /// The JSON object serde writes for this document.
+    /// The JSON object serde writes for this document. A lone surrogate
+    /// read from a file is U+FFFD here; only [`Document::to_json`] writes it
+    /// back as its escape.
     pub fn to_map(&self) -> Map<String, Value> {
-        self.layout
-            .write(&self.typed(false), &self.extra, CANONICAL)
+        json::decode_map(&self.to_encoded())
     }
 
-    /// The keys and values the typed model writes; with `shapes`, the
-    /// containers reduced to their shape as [`Document::from_map`] gives
-    /// them to the layout.
-    fn typed(&self, shapes: bool) -> Map<String, Value> {
+    /// The object to write, in the sentinel form of [`crate::json`].
+    fn to_encoded(&self) -> Map<String, Value> {
+        self.layout.write(&self.typed(&[]), &self.extra, CANONICAL)
+    }
+
+    /// The keys and values the typed model writes, in the sentinel form;
+    /// the containers named in `shaped` reduced to their shape (`[]` or
+    /// `{}`), as [`Document::from_encoded`] gives them to the layout.
+    fn typed(&self, shaped: &[&str]) -> Map<String, Value> {
         let mut map = Map::new();
         map.insert("type".into(), Value::from(EXPORT_DATA_TYPE_EXCALIDRAW));
         if let Some(version) = self.version {
             map.insert("version".into(), Value::from(version));
         }
         if let Some(source) = &self.source {
-            map.insert("source".into(), Value::from(source.as_str()));
+            map.insert("source".into(), Value::from(json::escape_str(source)));
         }
         if let Some(elements) = &self.elements {
-            let value = if shapes {
-                Value::Array(Vec::new())
+            let items = if shaped.contains(&"elements") {
+                Vec::new()
             } else {
-                Value::Array(elements.iter().map(|e| Value::Object(e.to_map())).collect())
+                elements
+                    .iter()
+                    .map(|e| Value::Object(e.to_encoded()))
+                    .collect()
             };
-            map.insert("elements".into(), value);
+            map.insert("elements".into(), Value::Array(items));
         }
         for (key, object) in [("appState", &self.app_state), ("files", &self.files)] {
             if let Some(object) = object {
-                let value = if shapes { Map::new() } else { object.clone() };
+                let value = if shaped.contains(&key) {
+                    Map::new()
+                } else {
+                    json::escape_map(object)
+                };
                 map.insert(key.into(), Value::Object(value));
             }
         }

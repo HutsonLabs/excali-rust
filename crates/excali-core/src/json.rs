@@ -20,16 +20,27 @@
 //!   back as its lowercase `\udxxx` escape.
 //!
 //! Rust strings cannot hold lone surrogates, so [`round_trip`] carries them
-//! through the parsed value as a private sentinel pair (U+FDD0 followed by a
-//! character in U+E000..=U+E7FF; a literal U+FDD0 is doubled) and decodes
-//! them on output. The sentinel never escapes this module. [`to_string_pretty`]
-//! does not decode sentinels: its input is an ordinary [`serde_json::Value`].
+//! through the parsed value in a private *sentinel form*: a lone surrogate
+//! is U+FDD0 followed by a character in U+E000..=U+E7FF, and a literal
+//! U+FDD0 is doubled. [`write_parsed`] turns the form back into what
+//! `JSON.stringify` writes. [`to_string_pretty`] takes an ordinary
+//! [`serde_json::Value`] and writes every string as it is.
+//!
+//! The sentinel form is internal to the crate: [`parse`] produces it and
+//! [`write_parsed`] consumes it. The typed codec converts at its boundary:
+//! [`decode`] gives the public value (a lone surrogate becomes U+FFFD, a
+//! doubled U+FDD0 one U+FDD0), [`escape`] turns a public value back into the
+//! sentinel form (U+FDD0 doubled), and [`crate::layout::Layout`] keeps the
+//! raw sentinel-form value of anything [`decode`] changed until the typed
+//! value changes. So no public field, `extra` map or serde output ever holds
+//! a sentinel, and a string built in Rust is written as it is.
 //!
 //! The typed codec ([`crate::document::Document`]) builds on this module.
 
 use serde::Serialize;
 use serde_json::ser::{Formatter, PrettyFormatter};
-use serde_json::Value;
+use serde_json::{Map, Value};
+use std::borrow::Cow;
 use std::io::{self, Write};
 
 /// Error returned when the input is not valid JSON.
@@ -60,9 +71,9 @@ pub(crate) fn parse(text: &str) -> Result<Value, Error> {
     Ok(value)
 }
 
-/// [`to_string_pretty`] for a value that holds strings from [`parse`]:
-/// sentinel pairs are written back as the lone surrogate escapes they stand
-/// for.
+/// [`to_string_pretty`] for a value in the sentinel form (from [`parse`] or
+/// [`escape`]): sentinel pairs are written back as the lone surrogate
+/// escapes they stand for, a doubled U+FDD0 as one.
 pub(crate) fn write_parsed(value: &Value) -> String {
     write(value, true)
 }
@@ -259,8 +270,8 @@ impl Formatter for JsFormatter {
                     let unit = u32::from(tag) - SURROGATE_TAG_BASE + 0xD800;
                     write!(w, "\\u{unit:04x}")?;
                 }
-                // Not a pair `parse` made: a string built in Rust that holds
-                // U+FDD0. Written as is.
+                // Not a sentinel pair; the sentinel form never has one (every
+                // U+FDD0 from `parse` or `escape` is paired). Written as is.
                 Some(other) => {
                     w.write_all(SENTINEL.encode_utf8(&mut buf).as_bytes())?;
                     w.write_all(other.encode_utf8(&mut buf).as_bytes())?;
@@ -407,6 +418,114 @@ fn encode_lone_surrogates(text: &str) -> String {
     }
     out.push_str(&text[copied.min(text.len())..]);
     out
+}
+
+/// A public string in the sentinel form: every U+FDD0 doubled. Borrowed
+/// when there is none.
+pub(crate) fn escape_str(s: &str) -> Cow<'_, str> {
+    if !s.contains(SENTINEL) {
+        return Cow::Borrowed(s);
+    }
+    let mut out = String::with_capacity(s.len() + SENTINEL_UTF8.len());
+    for c in s.chars() {
+        out.push(c);
+        if c == SENTINEL {
+            out.push(SENTINEL);
+        }
+    }
+    Cow::Owned(out)
+}
+
+/// The public string for a sentinel-form one: a sentinel pair for a lone
+/// surrogate becomes U+FFFD (what a lossy UTF-16 decode gives), a doubled
+/// U+FDD0 one U+FDD0. Borrowed when there is no sentinel.
+pub(crate) fn decode_str(s: &str) -> Cow<'_, str> {
+    if !s.contains(SENTINEL) {
+        return Cow::Borrowed(s);
+    }
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars();
+    while let Some(c) = chars.next() {
+        if c != SENTINEL {
+            out.push(c);
+            continue;
+        }
+        match chars.next() {
+            Some(tag) if SURROGATE_TAGS.contains(&u32::from(tag)) => {
+                out.push(char::REPLACEMENT_CHARACTER);
+            }
+            Some(SENTINEL) | None => out.push(SENTINEL),
+            Some(other) => {
+                out.push(SENTINEL);
+                out.push(other);
+            }
+        }
+    }
+    Cow::Owned(out)
+}
+
+/// `value` with every string and key mapped by `f`.
+fn map_strings(value: &Value, f: fn(&str) -> Cow<'_, str>) -> Value {
+    match value {
+        Value::String(s) => Value::String(f(s).into_owned()),
+        Value::Array(items) => Value::Array(items.iter().map(|v| map_strings(v, f)).collect()),
+        Value::Object(map) => Value::Object(map_object(map, f)),
+        other => other.clone(),
+    }
+}
+
+fn map_object(map: &Map<String, Value>, f: fn(&str) -> Cow<'_, str>) -> Map<String, Value> {
+    map.iter()
+        .map(|(k, v)| (f(k).into_owned(), map_strings(v, f)))
+        .collect()
+}
+
+/// A public value in the sentinel form ([`escape_str`] on every string and
+/// key).
+pub(crate) fn escape(value: &Value) -> Value {
+    map_strings(value, escape_str)
+}
+
+/// [`escape`] for an object.
+pub(crate) fn escape_map(map: &Map<String, Value>) -> Map<String, Value> {
+    map_object(map, escape_str)
+}
+
+/// The public value for a sentinel-form one ([`decode_str`] on every string
+/// and key). Two keys that decode alike (two different lone surrogates)
+/// keep the first position and the last value, as a duplicated key does.
+pub(crate) fn decode(value: &Value) -> Value {
+    map_strings(value, decode_str)
+}
+
+/// [`decode`] for an object.
+pub(crate) fn decode_map(map: &Map<String, Value>) -> Map<String, Value> {
+    map_object(map, decode_str)
+}
+
+/// True when a string or key in `value` holds a lone surrogate sentinel
+/// pair, i.e. when [`escape`] of [`decode`] would not give `value` back.
+pub(crate) fn has_lone_surrogate(value: &Value) -> bool {
+    fn in_str(s: &str) -> bool {
+        let mut chars = s.chars();
+        while let Some(c) = chars.next() {
+            if c == SENTINEL {
+                match chars.next() {
+                    Some(tag) if SURROGATE_TAGS.contains(&u32::from(tag)) => return true,
+                    _ => {}
+                }
+            }
+        }
+        false
+    }
+    match value {
+        Value::String(s) => s.contains(SENTINEL) && in_str(s),
+        Value::Array(items) => items.iter().any(has_lone_surrogate),
+        Value::Object(map) => map
+            .iter()
+            .any(|(k, v)| (k.contains(SENTINEL) && in_str(k)) || has_lone_surrogate(v)),
+        _ => false,
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -608,5 +727,40 @@ mod tests {
             round_trip(r#"{"a":1,"a":2,"b":3}"#).unwrap(),
             "{\n  \"a\": 2,\n  \"b\": 3\n}"
         );
+    }
+
+    #[test]
+    fn escape_and_decode_are_inverse_on_public_strings() {
+        for s in [
+            "",
+            "plain",
+            "\u{FDD0}",
+            "\u{FDD0}\u{E000}",
+            "\u{FDD0}\u{FDD0}",
+            "a\u{FDD0}\u{E7FF}\u{FDD0}",
+            "\u{FFFD}",
+        ] {
+            assert_eq!(decode_str(&escape_str(s)), s, "{s:?}");
+            assert!(!has_lone_surrogate(&Value::from(escape_str(s).as_ref())));
+        }
+    }
+
+    #[test]
+    fn parsed_sentinels_decode_to_public_strings() {
+        let parsed = parse(r#"{"\ud800k":["a\ud83d","﷐\ud800","﷐"]}"#).unwrap();
+        assert!(has_lone_surrogate(&parsed));
+        assert_eq!(
+            decode(&parsed),
+            serde_json::json!({"\u{FFFD}k": ["a\u{FFFD}", "\u{FDD0}\u{FFFD}", "\u{FDD0}\u{E000}"]})
+        );
+        let literal = parse("[\"\u{FDD0}\u{E000}\"]").unwrap();
+        assert!(!has_lone_surrogate(&literal));
+        assert_eq!(escape(&decode(&literal)), literal);
+    }
+
+    #[test]
+    fn escaped_public_strings_are_written_as_they_are() {
+        let value = serde_json::json!(["\u{FDD0}\u{E000}", "\u{FDD0}\u{FDD0}", "\u{FDD0}"]);
+        assert_eq!(write_parsed(&escape(&value)), to_string_pretty(&value));
     }
 }
