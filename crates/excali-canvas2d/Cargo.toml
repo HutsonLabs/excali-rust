@@ -19,5 +19,9 @@ web-sys = { version = "0.3.106", features = [
   "HtmlImageElement",
 ] }
 
+# serde_json reads `cargo metadata` in the no_element_knowledge test.
+[dev-dependencies]
+serde_json = { workspace = true }
+
 [lints]
 workspace = true

@@ -198,6 +198,7 @@ version = "26.9.1"
 dependencies = [
  "excali-scene",
  "js-sys",
+ "serde_json",
  "web-sys",
 ]
 
@@ -244,6 +245,7 @@ name = "excali-raster"
 version = "26.9.1"
 dependencies = [
  "excali-scene",
+ "serde_json",
  "tiny-skia",
 ]
 

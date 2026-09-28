@@ -15,5 +15,9 @@ excali-scene = { path = "../excali-scene" }
 # are what the pixmaps use.
 tiny-skia = { version = "0.12.0", default-features = false, features = ["std", "simd"] }
 
+# serde_json reads `cargo metadata` in the no_element_knowledge test.
+[dev-dependencies]
+serde_json = { workspace = true }
+
 [lints]
 workspace = true

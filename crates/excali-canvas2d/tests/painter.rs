@@ -479,18 +479,19 @@ fn paint_from_sets_the_base_styles_an_ignored_colour_keeps() {
 }
 
 /// ADR-008: backends know nothing about elements. This crate's only
-/// workspace dependency is `excali-scene`, it reaches into that crate only
+/// workspace dependency is `excali-scene` (by package name, as `cargo
+/// metadata` resolves it, so a renamed dependency is seen), it reaches into that crate only
 /// through `excali_scene::display`, and no identifier in its code names an
 /// element (`HtmlImageElement`, the browser's image type, aside).
 #[test]
 fn no_element_knowledge() {
-    let manifest = include_str!("../Cargo.toml");
-    let internal: Vec<&str> = manifest
-        .lines()
-        .filter_map(|l| l.trim().strip_prefix("excali-"))
-        .filter_map(|l| l.split_whitespace().next())
-        .collect();
-    assert_eq!(internal, ["scene"], "internal dependencies: {internal:?}");
+    let manifest = concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml");
+    let internal = workspace_dependencies(std::path::Path::new(manifest));
+    assert_eq!(
+        internal,
+        ["excali-scene"],
+        "workspace dependencies: {internal:?}"
+    );
     const ALLOWED: [&str; 1] = ["HtmlImageElement"];
     let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
     let mut sources = 0;
@@ -513,6 +514,117 @@ fn no_element_knowledge() {
         }
     }
     assert!(sources > 0);
+}
+
+/// The workspace packages the package at `manifest` depends on (normal, dev,
+/// build and target-specific dependencies alike), by package name, from
+/// `cargo metadata --format-version 1 --no-deps`: a renamed dependency
+/// (`ec = { package = "excali-core", .. }`) is listed as the package it
+/// names, and a path dependency counts as a workspace one.
+fn workspace_dependencies(manifest: &std::path::Path) -> Vec<String> {
+    let out = std::process::Command::new(env!("CARGO"))
+        .args([
+            "metadata",
+            "--format-version",
+            "1",
+            "--no-deps",
+            "--manifest-path",
+        ])
+        .arg(manifest)
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "cargo metadata: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let metadata: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let packages = metadata["packages"].as_array().unwrap();
+    let members: Vec<&str> = packages
+        .iter()
+        .map(|p| p["name"].as_str().unwrap())
+        .collect();
+    let manifest = manifest.canonicalize().unwrap();
+    let this = packages
+        .iter()
+        .find(|p| {
+            std::path::Path::new(p["manifest_path"].as_str().unwrap())
+                .canonicalize()
+                .is_ok_and(|m| m == manifest)
+        })
+        .unwrap();
+    let mut internal: Vec<String> = this["dependencies"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|d| members.contains(&d["name"].as_str().unwrap()) || d.get("path").is_some())
+        .map(|d| d["name"].as_str().unwrap().to_string())
+        .collect();
+    internal.sort();
+    internal.dedup();
+    internal
+}
+
+/// A throwaway workspace with `excali-scene`, `excali-core` and a backend
+/// whose `[dependencies]`/`[dev-dependencies]` section is `deps`; returns the
+/// backend's manifest.
+fn fake_backend(name: &str, deps: &str) -> std::path::PathBuf {
+    let root = std::path::Path::new(env!("CARGO_TARGET_TMPDIR"))
+        .join("no-element-knowledge")
+        .join(name);
+    let _ = std::fs::remove_dir_all(&root);
+    let krate = |dir: &str, package: &str, extra: &str| {
+        std::fs::create_dir_all(root.join(dir).join("src")).unwrap();
+        std::fs::write(root.join(dir).join("src/lib.rs"), "").unwrap();
+        std::fs::write(
+            root.join(dir).join("Cargo.toml"),
+            format!(
+                "[package]\nname = \"{package}\"\nversion = \"0.0.0\"\nedition = \"2021\"\n{extra}"
+            ),
+        )
+        .unwrap();
+    };
+    krate("scene", "excali-scene", "");
+    krate("core", "excali-core", "");
+    krate("backend", "backend", deps);
+    std::fs::write(
+        root.join("Cargo.toml"),
+        "[workspace]\nmembers = [\"scene\", \"core\", \"backend\"]\nresolver = \"2\"\n",
+    )
+    .unwrap();
+    root.join("backend/Cargo.toml")
+}
+
+#[test]
+fn the_dependency_check_sees_renamed_packages() {
+    let scene = "excali-scene = { path = \"../scene\" }\n";
+    let ok = fake_backend("ok", &format!("[dependencies]\n{scene}"));
+    assert_eq!(workspace_dependencies(&ok), ["excali-scene"]);
+    for (name, deps) in [
+        (
+            "renamed",
+            format!("[dependencies]\n{scene}ec = {{ package = \"excali-core\", path = \"../core\" }}\n"),
+        ),
+        (
+            "renamed-table",
+            format!("[dependencies]\n{scene}[dependencies.ec]\npackage = \"excali-core\"\npath = \"../core\"\n"),
+        ),
+        (
+            "dev",
+            format!("[dependencies]\n{scene}[dev-dependencies]\nec = {{ package = \"excali-core\", path = \"../core\" }}\n"),
+        ),
+        (
+            "target",
+            format!("[dependencies]\n{scene}[target.'cfg(unix)'.dependencies]\nec = {{ package = \"excali-core\", path = \"../core\" }}\n"),
+        ),
+    ] {
+        let manifest = fake_backend(name, &deps);
+        assert_eq!(
+            workspace_dependencies(&manifest),
+            ["excali-core", "excali-scene"],
+            "{name}"
+        );
+    }
 }
 
 #[test]
