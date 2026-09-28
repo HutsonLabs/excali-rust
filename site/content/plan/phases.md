@@ -48,6 +48,8 @@ Each phase is an epic in the tracker (`ex-e0` … `ex-e8`). A milestone is reach
 
 ## Phase 3 — Text and fonts (`ex-e3`)
 
+**Status (2026-09-28): M3 not yet reached.** On `main` at c720406 every agent-doable phase 3 task (ex-301 to ex-308) is merged. What works: `cargo test -p excali-text --locked` passes 205 tests (0 failed, 0 ignored), including `textWrapping.test.ts` ported case for case, `textElement.test.ts` for bound text, and the wrapping, font metadata, font asset and text-element-sizing goldens, which are up to date against upstream at the pin. The whole-corpus width gate (`text_width_corpus`) holds Excalifont, Nunito and Comic Shanns to 0.5 px, and the curated fixture of 991 texts measures within 0.5 px. What is missing: M3 asks for the fixture corpus within 0.5 px, and it is not. Of the corpus texts whose stored width is a browser measurement, 94 of 1243 Virgil texts miss by more than 0.5 px (max 116.7 px), and so do 1 of 35 Cascadia texts (0.58 px) and 1 of 3 Lilita One texts (0.89 px). None of these families is gated. The three gated families pass only with 18 pinned exceptions whose cause has not been shown. Gaps: ex-g301 (gate Virgil), ex-g302 (gate Cascadia and Lilita One) and ex-g303 (show the cause of the 18 pinned deviations). To verify, run `cargo test -p excali-text --locked --test text_width_corpus`, read the `measured` class per family in `crates/excali-text/tests/fixtures/text-width-corpus-report.json`, then `bd show ex-m3`.
+
 **Crate.** `excali-text`.
 
 **Deliverables.**

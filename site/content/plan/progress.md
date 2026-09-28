@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 18:49 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 18:59 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**138 issues** · 58 closed (42%) · 0 in progress · 0 blocked · 79 open
+**141 issues** · 58 closed (41%) · 0 in progress · 0 blocked · 82 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -89,7 +89,7 @@ excali-math, excali-rough (rough.js 4.6.4 semantics), excali-freehand, the displ
 
 ## ex-e3 · Phase 3: Text and fonts (excali-text)
 
-<span class="status open">open</span> 8/9 children closed
+<span class="status open">open</span> 8/12 children closed
 
 Font metadata, measurement from font files, wrapping port, bound-text sizing, lazy font assets with verified licences.
 
@@ -103,7 +103,10 @@ Font metadata, measurement from font files, wrapping port, bound-text sizing, la
 | `ex-306` | Verify and record the licence of every font family before vendoring | decision | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-307` | Font asset pipeline: range-split woff2 manifest and lazy loading | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-308` | Corpus test: stored vs measured text widths across fixtures and libraries | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-m3` | M3: text measurement and wrapping parity | milestone | P2 | <span class="status open">open</span> | yes |  |
+| `ex-g301` | Gate Virgil in the whole-corpus width test: explain or fix the 94 measured Virgil texts outside 0.5 px | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-g302` | Gate Cascadia and Lilita One in the whole-corpus width test | task | P2 | <span class="status open">open</span> | yes |  |
+| `ex-g303` | Show the cause of the 18 pinned Excalifont and Comic Shanns width deviations against upstream at the pin | task | P2 | <span class="status open">open</span> | yes |  |
+| `ex-m3` | M3: text measurement and wrapping parity | milestone | P2 | <span class="status open">open</span> |  | `ex-g301`, `ex-g302`, `ex-g303` |
 
 ## ex-e4 · Phase 4: Headless rendering and export
 

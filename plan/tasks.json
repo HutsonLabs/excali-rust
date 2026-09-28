@@ -1213,6 +1213,67 @@
    "labels": []
   },
   {
+   "id": "ex-g301",
+   "epic": "ex-e3",
+   "title": "Gate Virgil in the whole-corpus width test: explain or fix the 94 measured Virgil texts outside 0.5 px",
+   "priority": 1,
+   "blocked_by": [
+    "ex-308"
+   ],
+   "crates": [
+    "excali-text"
+   ],
+   "acceptance": "crates/excali-text/tests/text_width_corpus.rs adds fontFamily 1 (Virgil) to GATED_FAMILIES: every Virgil text of the `measured` class is within 0.5 px of its stored width and the family mean is within 0.5 px, except texts pinned in KNOWN_DEVIATIONS (file, id, stored, measured), each with a recorded cause shown by measurement (for example the single-file Virgil build upstream shipped before 61623bbeba, fonts/assets at a80cb5896a, or a stored width upstream demonstrably keeps). ADR-007 and the report JSON updated; cargo test -p excali-text green.",
+   "evidence": [
+    "M3 check 2026-09-28: crates/excali-text/tests/fixtures/text-width-corpus-report.json, Virgil `measured`: 1149 of 1243 within 0.5 px, max 116.74 px, mean 0.193 px; Virgil is not in GATED_FAMILIES = [5, 6, 8], so nothing fails on it",
+    "scripts/fixtures/text_widths.py EXCLUDED: the Virgil misses sit in 7 libraries: childishgirl/aws-architecture-icons 222/262 (3.00 px), erlina/data-processing 8/9, gabrielamacakova/halloween-elements 2/6, hartmut-co-uk/kafka-streams-topology-design 57/65, infamousjoeg/cyberark 11/25, pratheeshpm/basic-system-design 34/47 (116.74 px), stojanovic/aws-serverless-icons-v2 10/24",
+    "site/content/plan/phases.md M3: 'a text element measured in Rust matches upstream's stored width/height for the fixture corpus within 0.5 px'"
+   ],
+   "description": "M3 check of 2026-09-28: the corpus gate holds only Excalifont, Nunito and Comic Shanns to 0.5 px. Virgil, the family of most corpus texts, is reported but not gated, and 94 of its measured texts deviate by more than 0.5 px.",
+   "type": "task",
+   "labels": []
+  },
+  {
+   "id": "ex-g302",
+   "epic": "ex-e3",
+   "title": "Gate Cascadia and Lilita One in the whole-corpus width test",
+   "priority": 2,
+   "blocked_by": [
+    "ex-308"
+   ],
+   "crates": [
+    "excali-text"
+   ],
+   "acceptance": "GATED_FAMILIES in crates/excali-text/tests/text_width_corpus.rs includes 3 (Cascadia) and 7 (Lilita One); the one Cascadia text (childishgirl/aws-architecture-icons, 0.58 px) and the one Lilita One text (devdaejungyoon/github-actions, 0.89 px) outside 0.5 px are either brought within 0.5 px or pinned in KNOWN_DEVIATIONS with a cause shown by measurement; ADR-007 records it; cargo test -p excali-text green.",
+   "evidence": [
+    "M3 check 2026-09-28: text-width-corpus-report.json `measured`: Cascadia 34/35 within 0.5 px (max 0.58), Lilita One 2/3 (max 0.89); neither family is gated",
+    "scripts/fixtures/text_widths.py EXCLUDED entries for (childishgirl/aws-architecture-icons, 3) and (devdaejungyoon/github-actions, 7)"
+   ],
+   "description": "M3 check of 2026-09-28: two further vendored families with measured corpus texts are reported but not held to 0.5 px.",
+   "type": "task",
+   "labels": []
+  },
+  {
+   "id": "ex-g303",
+   "epic": "ex-e3",
+   "title": "Show the cause of the 18 pinned Excalifont and Comic Shanns width deviations against upstream at the pin",
+   "priority": 2,
+   "blocked_by": [
+    "ex-308"
+   ],
+   "crates": [
+    "excali-text"
+   ],
+   "acceptance": "For the 18 KNOWN_DEVIATIONS texts, a reproduction in upstream at 438d898 (a Playwright or vitest script under tools/ or scripts/fixtures/) shows the code path that stores a width other than measureText's (for example a width kept after a font or text change without refreshTextDimensions), and the port follows the same path in a test; or each text is measured within 0.5 px. ADR-007 replaces 'it has not been shown' with the demonstrated cause; any text that stays pinned cites it.",
+   "evidence": [
+    "crates/excali-text/tests/text_width_corpus.rs KNOWN_DEVIATIONS: 17 Excalifont texts (childishgirl/aws-architecture-icons 1, hartmut-co-uk/kafka-streams-topology-design 4, martinberger-ch/oracle-cloud-infrastructure-icons 12) and one Comic Shanns '7', stored 1.0 to 2.2 px wider than measured",
+    "site/content/decisions/adr-007-text-metrics.md: 'That points to widths kept from an earlier state of the element, but it has not been shown.'"
+   ],
+   "description": "M3 check of 2026-09-28: the gate for the three ADR-007 families passes only with 18 texts pinned as exceptions whose cause is a hypothesis.",
+   "type": "task",
+   "labels": []
+  },
+  {
    "id": "ex-401",
    "epic": "ex-e4",
    "title": "excali-raster: display list to tiny-skia (paths, fills, dashes, opacity, clips)",

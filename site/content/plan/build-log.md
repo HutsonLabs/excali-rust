@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-m3 · Milestone check: M3 not yet reached
+
+The M3 check ran on `main` at c720406, with ex-301 to ex-308 merged. `cargo test -p excali-text --locked` passes 205 tests. That covers `textWrapping.test.ts` ported case for case, the bound-text cases of `textElement.test.ts`, and the text goldens, which are up to date with upstream. The corpus gate passes, but it holds only Excalifont, Nunito and Comic Shanns to 0.5 px, and it needs 18 pinned exceptions to do so. Among the corpus texts whose stored width is a browser measurement, 94 of 1243 Virgil texts, 1 of 35 Cascadia texts and 1 of 3 Lilita One texts miss by more than 0.5 px, so M3's corpus criterion is not met. Three gap tasks are open: ex-g301 gates Virgil, ex-g302 gates Cascadia and Lilita One, and ex-g303 shows the cause of the pinned deviations. PR: see the ex-m3 entry on the [progress page](@/plan/progress.md).
+
 ## 2026-09-28 · ex-308 · Corpus test: stored vs measured text widths across fixtures and libraries
 
 `excali-text` now measures every text of a vendored family across the whole corpus (232 libraries and the scene-bearing upstream fixtures, 6854 texts) and compares it with the width the browser stored. A per-family report of counts, max and mean deviation is committed and kept current by `cargo test`, and Excalifont, Nunito and Comic Shanns are gated at 0.5 px per text and per family mean, with 18 recorded deviations that may only shrink. PR: [#65](https://github.com/HutsonLabs/excali-rust/pull/65).
