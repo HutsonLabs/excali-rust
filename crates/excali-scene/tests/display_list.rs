@@ -157,7 +157,7 @@ mod path {
 
     #[test]
     fn round_rect_is_the_canvas_round_rect() {
-        // renderElement.ts:537-546 clips rounded images with
+        // renderElement.ts:528-538 clips rounded images with
         // roundRect(0, 0, w, h, r); staticScene.ts:165-189 clips frames the
         // same way. HTML canvas roundRect: start after the top-left corner,
         // clockwise, a quarter ellipse per corner, close, new subpath at (x, y).
@@ -885,6 +885,56 @@ mod replay {
     }
 
     #[test]
+    fn a_transform_canvas_ignores_keeps_the_parent_matrix() {
+        // transform(a, b, c, d, e, f) returns without effect when any
+        // argument is infinite or NaN (an element with a NaN angle draws
+        // unrotated upstream).
+        for bad in [
+            Transform::translate(f64::NAN, 0.0),
+            Transform::rotate(f64::INFINITY),
+            Transform::scale(1.0, f64::NEG_INFINITY),
+        ] {
+            let mut list = DisplayList::new();
+            list.push(DisplayItem::Group(Group {
+                transform: Transform::translate(3.0, 4.0),
+                opacity: 1.0,
+                clip: None,
+                items: vec![DisplayItem::Group(Group {
+                    transform: bad,
+                    opacity: 1.0,
+                    clip: Some(Clip {
+                        path: Path::rect(0.0, 0.0, 1.0, 1.0),
+                        rule: FillRule::NonZero,
+                    }),
+                    items: vec![DisplayItem::Fill {
+                        path: Path::rect(0.0, 0.0, 1.0, 1.0),
+                        color: Color::new("#000"),
+                        rule: FillRule::NonZero,
+                    }],
+                })],
+            }));
+            let calls = replay(&list);
+            let Call::PushClip(_, _, t) = &calls[0] else {
+                panic!()
+            };
+            assert_eq!(*t, Transform::translate(3.0, 4.0), "{bad:?}");
+            let Call::Fill(_, _, _, s) = &calls[1] else {
+                panic!()
+            };
+            assert_eq!(s.transform, Transform::translate(3.0, 4.0), "{bad:?}");
+        }
+    }
+
+    #[test]
+    fn group_new_is_a_neutral_group() {
+        let g = Group::new(vec![]);
+        assert_eq!(g.transform, Transform::IDENTITY);
+        assert_eq!(g.opacity, 1.0);
+        assert_eq!(g.clip, None);
+        assert!(g.items.is_empty());
+    }
+
+    #[test]
     fn replay_from_a_base_state() {
         // bootstrapCanvas (renderer/helpers.ts:73-127) scales by the device
         // pixel ratio before anything is drawn; a backend passes that in.
@@ -944,7 +994,11 @@ mod boundaries {
                 "excali_core::document",
                 "excali_rough",
                 "excali_freehand",
-                "Element",
+                "crate::rough",
+                "crate::utils",
+                "ElementKind",
+                "ElementType",
+                "ExcalidrawElement",
             ] {
                 assert!(
                     !text.contains(forbidden),

@@ -1,0 +1,200 @@
+//! [`Context2d`] over the browser's `CanvasRenderingContext2D` (`web-sys`).
+
+use std::collections::HashMap;
+
+use excali_scene::display::{Rect, Transform};
+use web_sys::{CanvasRenderingContext2d, CanvasWindingRule, HtmlImageElement};
+
+use crate::Context2d;
+
+/// A browser 2D context and the images the display list names, keyed by
+/// id (upstream's `imageCache`, keyed by `fileId`).
+///
+/// Canvas methods that throw do so only for arguments the canvas rejects
+/// without drawing (`arc` with a negative radius, `drawImage` of a broken
+/// image, `setTransform` with a non-finite value); upstream's own call
+/// would throw out of the render at that point, and here the draw is
+/// skipped instead, leaving the canvas as the rejected call leaves it.
+pub struct WebCanvas {
+    pub context: CanvasRenderingContext2d,
+    pub images: HashMap<String, HtmlImageElement>,
+}
+
+impl WebCanvas {
+    pub fn new(context: CanvasRenderingContext2d) -> Self {
+        Self {
+            context,
+            images: HashMap::new(),
+        }
+    }
+}
+
+fn winding(rule: &str) -> CanvasWindingRule {
+    if rule == "evenodd" {
+        CanvasWindingRule::Evenodd
+    } else {
+        CanvasWindingRule::Nonzero
+    }
+}
+
+impl Context2d for WebCanvas {
+    fn save(&mut self) {
+        self.context.save();
+    }
+
+    fn restore(&mut self) {
+        self.context.restore();
+    }
+
+    fn set_transform(&mut self, t: &Transform) {
+        // Throws only for non-finite values, which the canvas ignores.
+        let _ = self.context.set_transform(t.a, t.b, t.c, t.d, t.e, t.f);
+    }
+
+    fn set_global_alpha(&mut self, alpha: f64) {
+        self.context.set_global_alpha(alpha);
+    }
+
+    fn set_fill_style(&mut self, css: &str) {
+        self.context.set_fill_style_str(css);
+    }
+
+    fn set_stroke_style(&mut self, css: &str) {
+        self.context.set_stroke_style_str(css);
+    }
+
+    fn set_line_width(&mut self, width: f64) {
+        self.context.set_line_width(width);
+    }
+
+    fn set_line_cap(&mut self, cap: &str) {
+        self.context.set_line_cap(cap);
+    }
+
+    fn set_line_join(&mut self, join: &str) {
+        self.context.set_line_join(join);
+    }
+
+    fn set_miter_limit(&mut self, limit: f64) {
+        self.context.set_miter_limit(limit);
+    }
+
+    fn set_line_dash(&mut self, segments: &[f64]) {
+        let list: js_sys::Array = segments.iter().map(|&s| js_sys::Number::from(s)).collect();
+        // Throws only for a value that is not a sequence of numbers.
+        let _ = self.context.set_line_dash(&list);
+    }
+
+    fn set_line_dash_offset(&mut self, offset: f64) {
+        self.context.set_line_dash_offset(offset);
+    }
+
+    fn begin_path(&mut self) {
+        self.context.begin_path();
+    }
+
+    fn move_to(&mut self, x: f64, y: f64) {
+        self.context.move_to(x, y);
+    }
+
+    fn line_to(&mut self, x: f64, y: f64) {
+        self.context.line_to(x, y);
+    }
+
+    fn quadratic_curve_to(&mut self, cx: f64, cy: f64, x: f64, y: f64) {
+        self.context.quadratic_curve_to(cx, cy, x, y);
+    }
+
+    fn bezier_curve_to(&mut self, c1x: f64, c1y: f64, c2x: f64, c2y: f64, x: f64, y: f64) {
+        self.context.bezier_curve_to(c1x, c1y, c2x, c2y, x, y);
+    }
+
+    fn arc(&mut self, cx: f64, cy: f64, radius: f64, start: f64, end: f64, anticlockwise: bool) {
+        // IndexSizeError for a negative radius: nothing is added.
+        let _ = self
+            .context
+            .arc_with_anticlockwise(cx, cy, radius, start, end, anticlockwise);
+    }
+
+    fn close_path(&mut self) {
+        self.context.close_path();
+    }
+
+    fn fill(&mut self, rule: &str) {
+        self.context.fill_with_canvas_winding_rule(winding(rule));
+    }
+
+    fn stroke(&mut self) {
+        self.context.stroke();
+    }
+
+    fn clip(&mut self, rule: &str) {
+        self.context.clip_with_canvas_winding_rule(winding(rule));
+    }
+
+    fn set_font(&mut self, css: &str) {
+        self.context.set_font(css);
+    }
+
+    fn set_text_align(&mut self, align: &str) {
+        self.context.set_text_align(align);
+    }
+
+    fn set_direction(&mut self, direction: &str) {
+        // Upstream sets the canvas element's `dir` attribute and attaches
+        // the canvas to the document for it to apply
+        // (`renderElement.ts:627-634`). The context's own `direction`
+        // property (part of the drawing state, so `restore()` resets it)
+        // gives the same base direction without touching the DOM; web-sys
+        // has no binding for it, so it is set by name.
+        let _ = js_sys::Reflect::set(
+            &self.context,
+            &js_sys::JsString::from("direction"),
+            &js_sys::JsString::from(direction),
+        );
+    }
+
+    fn fill_text(&mut self, text: &str, x: f64, y: f64) {
+        // Throws only for a non-finite maxWidth, which is not passed.
+        let _ = self.context.fill_text(text, x, y);
+    }
+
+    fn set_image_smoothing_enabled(&mut self, enabled: bool) {
+        self.context.set_image_smoothing_enabled(enabled);
+    }
+
+    fn set_filter(&mut self, css: &str) {
+        self.context.set_filter(css);
+    }
+
+    fn image_size(&self, id: &str) -> Option<(f64, f64)> {
+        let image = self.images.get(id)?;
+        if !image.complete() || image.natural_width() == 0 {
+            return None;
+        }
+        Some((
+            f64::from(image.natural_width()),
+            f64::from(image.natural_height()),
+        ))
+    }
+
+    fn draw_image(&mut self, id: &str, source: &Rect, dest: &Rect) {
+        let Some(image) = self.images.get(id) else {
+            return;
+        };
+        // InvalidStateError for a broken image: nothing is drawn.
+        let _ = self
+            .context
+            .draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+                image,
+                source.x,
+                source.y,
+                source.width,
+                source.height,
+                dest.x,
+                dest.y,
+                dest.width,
+                dest.height,
+            );
+    }
+}

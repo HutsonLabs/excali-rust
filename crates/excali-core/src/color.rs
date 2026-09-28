@@ -178,11 +178,19 @@ pub fn apply_dark_mode_filter(color: &str, enable: bool) -> String {
     }
     let tc = TinyColor::parse(color);
     let alpha = tc.alpha();
-    // Order matters: invert, then hue-rotate, as the CSS filter list.
     let (r, g, b, _) = tc.to_rgb();
-    let inverted = css_invert(r, g, b, DARK_MODE_FILTER_INVERT_PERCENT);
-    let (r, g, b) = css_hue_rotate(inverted, DARK_MODE_FILTER_HUE_ROTATE_DEGREES);
+    let (r, g, b) = dark_mode_filter_rgb(r, g, b);
     rgb_to_hex(r, g, b, alpha)
+}
+
+/// The numeric `DARK_THEME_FILTER` of [`apply_dark_mode_filter`] on 0..=255
+/// components (`colors.ts:98-112`): `cssInvert` by 93%, then `cssHueRotate`
+/// by 180 degrees, each rounding to whole components. The display list
+/// applies it to image pixels (`excali_scene::display::ImageFilter`).
+pub fn dark_mode_filter_rgb(r: f64, g: f64, b: f64) -> (f64, f64, f64) {
+    // Order matters: invert, then hue-rotate, as the CSS filter list.
+    let inverted = css_invert(r, g, b, DARK_MODE_FILTER_INVERT_PERCENT);
+    css_hue_rotate(inverted, DARK_MODE_FILTER_HUE_ROTATE_DEGREES)
 }
 
 /// `cssInvert(r, g, b, percent)` (`colors.ts:62-84`).

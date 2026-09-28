@@ -8,5 +8,16 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
+[dependencies]
+excali-scene = { path = "../excali-scene" }
+# The browser context behind excali_canvas2d::WebCanvas. Versions from the
+# evidence log (site/content/evidence/_index.md: web-sys / js-sys 0.3.106).
+js-sys = "0.3.106"
+web-sys = { version = "0.3.106", features = [
+  "CanvasRenderingContext2d",
+  "CanvasWindingRule",
+  "HtmlImageElement",
+] }
+
 [lints]
 workspace = true

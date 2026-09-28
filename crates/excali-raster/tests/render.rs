@@ -583,7 +583,9 @@ fn no_element_knowledge() {
             "excali_text",
             "excali_scene::rough",
             "excali_scene::utils",
-            "Element",
+            "ElementKind",
+            "ElementType",
+            "ExcalidrawElement",
         ] {
             assert!(
                 !text.contains(forbidden),

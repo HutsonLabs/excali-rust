@@ -254,7 +254,7 @@ fn stroke_uses_the_effective_width_and_no_dash_when_solid() {
 
 #[test]
 fn image_draws_the_source_rect_into_the_destination() {
-    // renderElement.ts:552-620: drawImage(img, crop or natural size, 0, 0, w, h);
+    // renderElement.ts:517-624: drawImage(img, crop or natural size, 0, 0, w, h);
     // DARK_THEME_FILTER for SVG images in dark mode.
     let mut img = ImageItem::new("img", Rect::new(0.0, 0.0, 100.0, 75.0));
     img.source = Some(Rect::new(10.0, 20.0, 300.0, 200.0));
@@ -418,6 +418,9 @@ fn no_element_knowledge() {
             "excali_text",
             "excali_scene::rough",
             "excali_scene::utils",
+            "ElementKind",
+            "ElementType",
+            "ExcalidrawElement",
         ] {
             assert!(
                 !text.contains(forbidden),
