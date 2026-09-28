@@ -19,6 +19,13 @@
 //!   every case must run (the ex-204 acceptance set);
 //! - `rough-options.json`: option variations with and without fills; every
 //!   case must run.
+//! - `rough-strokes.json`: Excalidraw's solid, dashed and dotted strokes
+//!   (the ex-205 acceptance set): the options are upstream's own
+//!   `generateRoughOptions` output for an element, so dashed strokes carry
+//!   `[8, 8 + sw]`, dotted `[1.5, 6 + sw]`, and both are single-stroke at
+//!   `sw + 0.5`, with `preserveVertices` and `curveFitting` as upstream sets
+//!   them; each is drawn with the generator method that element type uses,
+//!   at stroke widths 1, 2, 4, roughness 0, 1, 2 and three seeds.
 //!
 //! Numbers are compared as doubles with `==`, op by op, except where rough.js
 //! goes through `Math.sin`/`Math.cos`/`Math.tan`/`Math.asin`/`Math.atan` on
@@ -225,4 +232,52 @@ fn option_cases_match() {
     // Option variations on filled rectangles, ellipses and paths and on
     // unfilled curves, and Excalidraw's dashed/dotted stroke rule.
     assert_eq!(check_file("rough-options.json"), 140);
+}
+
+#[test]
+fn stroke_style_cases_match() {
+    // ex-205: solid, dashed and dotted x (sw 1, 2, 4 x roughness 0, 1, 2 at
+    // the fixture seed + seeds 1 and 7 at sw 2) x 14 element-shaped calls.
+    assert_eq!(check_file("rough-strokes.json"), 3 * (9 + 6) * 14);
+}
+
+/// The options of every `rough-strokes.json` case are upstream's
+/// `generateRoughOptions`; this restates the rule they must follow
+/// (`packages/element/src/shape.ts:168-170, 202-225, 238-240`), so the
+/// goldens the port matches are the ones the acceptance names.
+#[test]
+fn stroke_style_goldens_follow_the_dash_and_width_rule() {
+    let doc = load("rough-strokes.json");
+    let mut styles = [0usize; 3];
+    for c in doc["cases"].as_array().expect("cases") {
+        let id = c["id"].as_str().expect("id");
+        let el = &c["element"];
+        let sw = f(&el["strokeWidth"]);
+        let roughness = f(&el["roughness"]);
+        let continuous = c["continuousPath"].as_bool().expect("continuousPath");
+        let o = options(&c["options"]);
+        let (dash, index) = match el["strokeStyle"].as_str().expect("strokeStyle") {
+            "solid" => (None, 0),
+            "dashed" => (Some(vec![8.0, 8.0 + sw]), 1),
+            "dotted" => (Some(vec![1.5, 6.0 + sw]), 2),
+            other => panic!("{id}: stroke style {other}"),
+        };
+        styles[index] += 1;
+        let solid = dash.is_none();
+        assert_eq!(o.stroke_line_dash, dash, "{id}: strokeLineDash");
+        assert_eq!(o.disable_multi_stroke, !solid, "{id}: disableMultiStroke");
+        let width = if solid { sw } else { sw + 0.5 };
+        assert_eq!(o.stroke_width, width, "{id}: strokeWidth");
+        assert_eq!(o.fill_weight, sw / 2.0, "{id}: fillWeight");
+        assert_eq!(o.hachure_gap, sw * 4.0, "{id}: hachureGap");
+        assert_eq!(o.roughness, roughness, "{id}: roughness (sizes keep it)");
+        assert_eq!(
+            o.preserve_vertices,
+            continuous || roughness < 2.0,
+            "{id}: preserveVertices"
+        );
+        let fitting = if el["type"] == "ellipse" { 1.0 } else { 0.95 };
+        assert_eq!(o.curve_fitting, fitting, "{id}: curveFitting");
+    }
+    assert_eq!(styles, [210, 210, 210]);
 }

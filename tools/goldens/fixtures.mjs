@@ -922,4 +922,82 @@ export const roughGoldens = () => {
   ];
 };
 
+// -- stroke styles (ex-205) -----------------------------------------------------
+//
+// Excalidraw's stroke-style rule (shape.ts:168-170, :202-216): dashed strokes
+// carry strokeLineDash [8, 8 + sw], dotted [1.5, 6 + sw], and every non-solid
+// stroke is drawn single-stroke (disableMultiStroke) at sw + 0.5, while
+// fillWeight (sw / 2) and hachureGap (sw * 4) stay on the element's own
+// width. preserveVertices is on below cartoonist roughness or for a
+// continuous path (:224-225); curveFitting is 1 for ellipses (:238-240).
+//
+// Each case is one rough.js generator call made the way upstream's shape
+// builders make it: the options are upstream's own
+// generateRoughOptions(element, continuousPath) (generate.mjs), and the
+// method is the one that element type is drawn with (shape.ts:787-975):
+// rectangle; polygon (diamond, filled sharp loop); path with continuousPath
+// (rounded rectangle, elbow arrow); ellipse; linearPath and curve (lines and
+// arrows); line and circle (arrowheads). The grid is solid, dashed and
+// dotted x sw 1, 2, 4 x roughness 0, 1, 2 at the fixture seed, plus seeds 1
+// and 7 at sw 2 for every roughness.
+
+const STROKE_STYLES = ["solid", "dashed", "dotted"];
+const STROKE_SIZE = { width: 100, height: 60 };
+const STROKE_ZIGZAG = [[0, 0], [30, 20], [60, -5], [100, 25]];
+const STROKE_LOOP = [[0, 0], [60, -10], [90, 40], [20, 55], [2, 2]]; // closes within 8px
+const ROUNDED_RECT =
+  "M 15 0 L 85 0 Q 100 0, 100 15 L 100 45 Q 100 60, 85 60 L 15 60 Q 0 60, 0 45 L 0 15 Q 0 0, 15 0";
+const ELBOW = "M 0 0 L 84 0 Q 100 0, 100 16 L 100 84 Q 100 100, 116 100 L 200 100";
+const FILLED = (fillStyle) => ({ fillStyle, backgroundColor: BACKGROUND });
+
+/** [target, element type, element props, continuousPath, method, args] */
+const STROKE_TARGETS = [
+  ["rectangle", "rectangle", FILLED("hachure"), false, "rectangle", [0, 0, 100, 60]],
+  ["rectangle-solid", "rectangle", FILLED("solid"), false, "rectangle", [0, 0, 100, 60]],
+  ["rectangle-rounded", "rectangle", { ...FILLED("cross-hatch"), roundness: { type: 3 } }, true, "path", [ROUNDED_RECT]],
+  ["diamond", "diamond", FILLED("zigzag"), false, "polygon", [[[51, 0], [100, 31], [51, 60], [0, 31]]]],
+  ["ellipse", "ellipse", FILLED("hachure"), false, "ellipse", [50, 30, 100, 60]],
+  ["ellipse-solid", "ellipse", FILLED("solid"), false, "ellipse", [50, 30, 100, 60]],
+  ["line-sharp", "line", { points: STROKE_ZIGZAG }, false, "linearPath", [STROKE_ZIGZAG]],
+  ["line-round", "line", { points: STROKE_ZIGZAG, roundness: { type: 2 } }, false, "curve", [STROKE_ZIGZAG]],
+  ["line-loop-solid", "line", { points: STROKE_LOOP, roundness: { type: 2 }, ...FILLED("solid") }, false, "curve", [STROKE_LOOP]],
+  ["line-loop-hachure", "line", { points: STROKE_LOOP, ...FILLED("hachure") }, false, "polygon", [STROKE_LOOP]],
+  ["arrow-round", "arrow", { points: STROKE_ZIGZAG, roundness: { type: 2 } }, false, "curve", [STROKE_ZIGZAG]],
+  ["arrow-elbow", "arrow", { points: [[0, 0], [200, 100]], elbowed: true }, true, "path", [ELBOW]],
+  ["arrowhead-line", "arrow", { points: STROKE_ZIGZAG }, false, "line", [100, 25, 82, 12]],
+  ["arrowhead-circle", "arrow", { points: STROKE_ZIGZAG }, false, "circle", [100, 25, 12]],
+];
+
+const strokeElement = (type, props) =>
+  props.points ? linear("", type, props.points, props) : base("", type, { ...STROKE_SIZE, ...props });
+
+/** { id, element, continuousPath, method, args }; generate.mjs adds options and the drawable. */
+export const strokeCases = () => {
+  const cases = [];
+  const add = (style, sw, roughness, seed) => {
+    const variant = `sw${sw}-r${roughness}${seed === FIXTURE_SEED ? "" : `-seed${seed}`}`;
+    for (const [target, type, props, continuousPath, method, args] of STROKE_TARGETS) {
+      const id = `${style}/${variant}/${target}`;
+      const element = {
+        ...strokeElement(type, props),
+        id: id.replace(/[^A-Za-z0-9_-]/g, "_"),
+        strokeStyle: style,
+        strokeWidth: sw,
+        roughness,
+        seed,
+      };
+      cases.push({ id, element, continuousPath, method, args });
+    }
+  };
+  for (const style of STROKE_STYLES) {
+    for (const sw of STROKE_WIDTHS) {
+      for (const roughness of ROUGHNESSES) add(style, sw, roughness, FIXTURE_SEED);
+    }
+    for (const seed of [1, 7]) {
+      for (const roughness of ROUGHNESSES) add(style, 2, roughness, seed);
+    }
+  }
+  return cases;
+};
+
 export const RANDOM_SEEDS = [1, 7, 42, 48271, 1041657908, 2147483646, 2147483647];

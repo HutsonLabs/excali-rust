@@ -26,6 +26,7 @@ import {
   freehandCases,
   RANDOM_SEEDS,
   roughGoldens,
+  strokeCases,
 } from "./fixtures.mjs";
 import { fractionalIndexCases, orderKeyCases } from "./fixtures-fractional.mjs";
 import { format } from "./lib/format.mjs";
@@ -94,6 +95,17 @@ const roughCase = (up) => (c) => {
   // args would be the drifted values rather than the input.
   const result = generator[c.method](...structuredClone(c.args), { ...c.options });
   return { ...c, drawable: drawable(result) };
+};
+
+/**
+ * A stroke-style case (ex-205): the options are upstream's
+ * generateRoughOptions(element, continuousPath) (light theme), recorded as
+ * JSON (undefined dropped), and the drawable is the generator call with
+ * them.
+ */
+const strokeCase = (up) => (c) => {
+  const options = plain(up.generateRoughOptions(structuredClone(c.element), c.continuousPath, false), c.id);
+  return roughCase(up)({ ...c, options });
 };
 
 const toRenderConfig = (rc) => ({
@@ -271,6 +283,12 @@ const fractionalIndexCase = (up) => (c) => {
 const buildGoldens = (up) => {
   const files = [randomGolden(up)];
   for (const g of roughGoldens()) files.push({ ...g, cases: g.cases.map(roughCase(up)) });
+  files.push({
+    name: "rough-strokes.json",
+    description:
+      "Excalidraw's stroke styles through rough.js 4.6.4: options from upstream generateRoughOptions(element, continuousPath) (shape.ts:195-260; dashed [8, 8 + sw], dotted [1.5, 6 + sw], disableMultiStroke and strokeWidth + 0.5 for non-solid strokes, preserveVertices, curveFitting 1 for ellipses), drawn with the generator method each element type uses, for solid, dashed and dotted x sw 1, 2, 4 x roughness 0, 1, 2 and seeds 1, 7, 1041657908.",
+    cases: strokeCases().map(strokeCase(up)),
+  });
   for (const g of elementGoldens(up)) files.push({ ...g, cases: g.cases.map(elementCase(up)) });
   files.push({
     name: "freehand.json",

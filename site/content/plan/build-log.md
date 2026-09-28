@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-205 · excali-rough: dashes, multi-stroke, curve fitting, preserveVertices
+
+Excalidraw's stroke styles go through the rough.js port as upstream does: dashed [8, 8+sw] and dotted [1.5, 6+sw] dashes are carried for the renderer, disableMultiStroke keeps a single pass, and preserveVertices and curveFitting follow rough.js. `goldens/rough-strokes.json` checks 630 cases (solid, dashed and dotted strokes x width x roughness x seed x generator call) against upstream output, and each element type yields the same ops as upstream. PR: [#38](https://github.com/HutsonLabs/excali-rust/pull/38).
+
 ## 2026-09-28 · ex-216 · Display list type: renderer-independent paths, fills, dashes, images, text runs, clips, opacity
 
 `excali_scene::display` describes a scene as a list of canvas draws (fills, strokes, images, text runs and groups with transform, opacity and clip), with canvas path, dash, colour and font rules and one `Painter` replay for every backend. RoughCanvas.draw now emits display items. `excali-raster` renders the list with tiny-skia, and `excali-canvas2d` paints it through web-sys. Tests check that neither backend knows about elements, and colour parsing matches Chrome 153 case by case. PR: [#37](https://github.com/HutsonLabs/excali-rust/pull/37).
