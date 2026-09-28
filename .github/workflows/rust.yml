@@ -160,6 +160,13 @@ jobs:
         env:
           CHROME: google-chrome
         run: scripts/fixtures/raster-references.sh --check
+      - name: keep the rendered and diff images on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: raster-diff
+          path: target/raster-diff/
+          retention-days: 14
   # ex-206: the roughr evaluation behind ADR-003 (tools/roughr-eval, a
   # stand-alone package outside the workspace). Its tests fail if
   # report.json differs from a fresh run over goldens/ or ADR-003 does not
