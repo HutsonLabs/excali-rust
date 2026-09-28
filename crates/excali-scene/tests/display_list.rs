@@ -1251,8 +1251,25 @@ mod boundaries {
 
     /// Whether a display source may take the path `root` (see [`roots`])
     /// leads to. `super` from `mod.rs` is the crate root, and from a
-    /// submodule `super::super` is.
+    /// submodule `super::super` is. A `super`, `self` or `crate` after `::`
+    /// is relative to what precedes it, a `super` inside a use group to the
+    /// group's prefix, and a renamed root is a second name for it: none of
+    /// these can be judged from the file alone, so each is rejected.
     fn allowed(root: &str, is_mod: bool) -> bool {
+        fn first(r: &str) -> &str {
+            r.split(|c: char| !(c.is_alphanumeric() || c == '_'))
+                .next()
+                .unwrap_or("")
+        }
+        if root.ends_with(" as") {
+            return false;
+        }
+        if let Some(r) = root.strip_prefix("::") {
+            return !matches!(first(r), "super" | "self" | "crate") && allowed(r, is_mod);
+        }
+        if let Some(r) = root.strip_prefix('{') {
+            return first(r) != "super" && allowed(r, is_mod);
+        }
         match root.split_once("::") {
             Some(("excali_core", m)) => matches!(m, "color" | "json"),
             Some(("crate", m)) => m == "display",
@@ -1301,24 +1318,53 @@ mod boundaries {
 
     /// Where every path that starts at a root `is_root` accepts leads: `root::next`
     /// with the segment after the first `::` (`{` for a group, `*` for a glob),
-    /// `root)` for a visibility such as `pub(crate)`, or `root` alone (a bare or
-    /// renamed import). Every occurrence counts, so a root inside a group
-    /// (`use a::{super::x}`) or after a leading `::` is seen, and `super::super`
-    /// shows as such.
+    /// `root)` for a visibility such as `pub(crate)`, `root as` for a rename,
+    /// or `root` alone. Every occurrence counts, so `super::super` shows as
+    /// such and a root inside a group is seen. A root right after `::` is
+    /// marked `::root` (`p::super::x`, the second `super` of
+    /// `super::super`), and one inside the braces of a `use` tree `{root`
+    /// (`use super::{super::x}`), since both are relative to their prefix.
     fn roots(code: &str, is_root: impl Fn(&str) -> bool) -> Vec<String> {
         let ident = |c: char| c.is_alphanumeric() || c == '_';
         let mut out = Vec::new();
         let mut rest = code;
+        let mut in_use = false;
+        let mut depth = 0usize;
         while let Some(start) = rest.find(ident) {
+            let gap = &rest[..start];
+            if in_use {
+                for c in gap.chars() {
+                    match c {
+                        '{' => depth += 1,
+                        '}' => depth = depth.saturating_sub(1),
+                        ';' if depth == 0 => in_use = false,
+                        _ => {}
+                    }
+                }
+            }
             let len = rest[start..]
                 .find(|c: char| !ident(c))
                 .unwrap_or(rest.len() - start);
             let word = &rest[start..start + len];
             rest = &rest[start + len..];
+            if word == "use" {
+                in_use = true;
+                depth = 0;
+            }
             if !is_root(word) {
                 continue;
             }
+            let mark = if gap.trim_end().ends_with("::") {
+                "::"
+            } else if in_use && depth > 0 {
+                "{"
+            } else {
+                ""
+            };
             let after = rest.trim_start();
+            let renamed = after
+                .strip_prefix("as")
+                .is_some_and(|a| !a.starts_with(ident));
             out.push(match after.strip_prefix("::").map(str::trim_start) {
                 Some(next) => {
                     let n = next.find(|c: char| !ident(c)).unwrap_or(next.len());
@@ -1326,10 +1372,11 @@ mod boundaries {
                         0 => next.chars().next().map_or(String::new(), String::from),
                         _ => next[..n].to_owned(),
                     };
-                    format!("{word}::{segment}")
+                    format!("{mark}{word}::{segment}")
                 }
-                None if after.starts_with(')') => format!("{word})"),
-                None => word.to_owned(),
+                None if renamed => format!("{mark}{word} as"),
+                None if after.starts_with(')') => format!("{mark}{word})"),
+                None => format!("{mark}{word}"),
             });
         }
         out
