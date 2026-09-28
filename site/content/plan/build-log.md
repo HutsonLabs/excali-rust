@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-003 · Fixture corpus with manifest (upstream test fixtures + 232 public libraries)
+
+`fixtures/` now holds 249 pinned files. The 15 upstream files are byte-exact copies at 438d898: the test fixtures, the restore and reconcile tests, the restore snapshot, and the upstream LICENSE. The other 234 come from excalidraw-libraries at 297a349: `libraries.json`, its LICENSE, and all 232 catalogue libraries, stored gzipped. `fixtures/manifest.json` records each file's sha256, size and origin URL. `scripts/fixtures/corpus.py check` confirms the manifest matches disk, and the new `fixtures` CI job also checks the copies against the pinned upstream checkout and the live origin URLs. PR: [#7](https://github.com/HutsonLabs/excali-rust/pull/7).
+
 ## 2026-09-28 · ex-001 · Cargo workspace skeleton and CI (fmt, clippy -D warnings, test)
 
 The Cargo workspace now holds the 14 crates named in the architecture overview, with a pinned stable toolchain and a recorded MSRV. `excali-core` writes JSON exactly as `JSON.stringify` does (numbers, lone surrogates, key order), and a round-trip test covers an empty scene. The new `rust` CI workflow runs fmt, clippy with `-D warnings`, the tests, the MSRV check, a wasm32 build, and a crate-graph gate. The gate checks the workspace against the overview page and rejects `std::fs` in the wasm-pure crates. PR: [#6](https://github.com/HutsonLabs/excali-rust/pull/6).

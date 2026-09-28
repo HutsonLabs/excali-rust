@@ -4,15 +4,15 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 05:29 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 05:41 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**131 issues** · 4 closed (3%) · 0 in progress · 0 blocked · 127 open
+**132 issues** · 5 closed (4%) · 0 in progress · 0 blocked · 127 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
 ## ex-e0 · Phase 0: Foundations
 
-<span class="status open">open</span> 4/8 children closed
+<span class="status open">open</span> 5/9 children closed
 
 Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo workspace and CI. Everything later phases depend on to be reproducible.
 
@@ -20,12 +20,13 @@ Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo work
 |---|---|---|---|---|---|---|
 | `ex-001` | Cargo workspace skeleton and CI (fmt, clippy -D warnings, test) | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-002` | Upstream pin script: check out excalidraw at the pinned commit into .tools/upstream | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-003` | Fixture corpus with manifest (upstream test fixtures + 232 public libraries) | task | P0 | <span class="status open">open</span> | yes |  |
+| `ex-003` | Fixture corpus with manifest (upstream test fixtures + 232 public libraries) | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-004` | Golden generator: node script producing rough.js 4.6.4 path output for fixture elements | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-005` | Enable GitHub Pages source = GitHub Actions and confirm first deploy | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-006` | Playwright smoke test for the site and mockups | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-007` | scripts/site/zola.sh works on macOS (bash 3.2, shasum) with the aarch64-apple-darwin digest pinned | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-m0` | M0: site live, gates enforced, workspace green | milestone | P2 | <span class="status open">open</span> |  | `ex-003`, `ex-004`, `ex-006` |
+| `ex-008` | Record the owner decisions of 2026-09-27 (calendar versioning, agent-closed milestones, fonts, strictly a port) | task | P0 | <span class="status open">open</span> | yes |  |
+| `ex-m0` | M0: site live, gates enforced, workspace green | milestone | P2 | <span class="status open">open</span> |  | `ex-004`, `ex-006`, `ex-008` |
 
 ## ex-e1 · Phase 1: Core model and file format (excali-core)
 
@@ -48,7 +49,7 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 | `ex-111` | PNG tEXt scene payload read/write | task | P1 | <span class="status open">open</span> |  | `ex-110` |
 | `ex-112` | SVG metadata scene payload read/write | task | P1 | <span class="status open">open</span> |  | `ex-110` |
 | `ex-113` | Clipboard JSON format (excalidraw/clipboard) parse and emit | task | P2 | <span class="status open">open</span> |  | `ex-102` |
-| `ex-114` | Corpus test: 232 catalogue libraries round-trip | task | P0 | <span class="status open">open</span> |  | `ex-003`, `ex-108` |
+| `ex-114` | Corpus test: 232 catalogue libraries round-trip | task | P0 | <span class="status open">open</span> |  | `ex-108` |
 | `ex-115` | JSON Schema generation for .excalidraw and .excalidrawlib (schemars) | task | P3 | <span class="status open">open</span> |  | `ex-102`, `ex-108` |
 | `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-101`, `ex-102`, `ex-103`, `ex-104`, `ex-105`, `ex-106` … |
 
@@ -95,7 +96,7 @@ Font metadata, measurement from font files, wrapping port, bound-text sizing, la
 | `ex-305` | Text element sizing on edit: autoResize, originalText/text, anchor growth by align | task | P1 | <span class="status open">open</span> |  | `ex-303` |
 | `ex-306` | Verify and record the licence of every font family before vendoring | decision | P0 | <span class="status open">open</span> | yes |  |
 | `ex-307` | Font asset pipeline: range-split woff2 manifest and lazy loading | task | P1 | <span class="status open">open</span> |  | `ex-306` |
-| `ex-308` | Corpus test: stored vs measured text widths across fixtures and libraries | task | P1 | <span class="status open">open</span> |  | `ex-003`, `ex-302` |
+| `ex-308` | Corpus test: stored vs measured text widths across fixtures and libraries | task | P1 | <span class="status open">open</span> |  | `ex-302` |
 | `ex-m3` | M3: text measurement and wrapping parity | milestone | P2 | <span class="status open">open</span> |  | `ex-301`, `ex-302`, `ex-303`, `ex-304`, `ex-305`, `ex-306` … |
 
 ## ex-e4 · Phase 4: Headless rendering and export
@@ -203,12 +204,12 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 
 <span class="status open">open</span> 0/5 children closed
 
-crates.io, release tarball, integration guide, 1.0 tag.
+First calendar release v26.9.1 (ADR-009): ES module + WASM tarball as a GitHub release asset, integration guide walked by an agent in a fresh clone, tag and gh release. crates.io publishing (ex-801) is deferred by the owner.
 
 | id | title | type | P | status | ready | blocked by |
 |---|---|---|---|---|---|---|
 | `ex-801` | Publish crates to crates.io under excali-* | task | P1 | <span class="status open">open</span> |  | `ex-712` |
 | `ex-802` | Release tarball of the ES module and WASM as a GitHub release asset | task | P1 | <span class="status open">open</span> |  | `ex-712` |
-| `ex-803` | Integration guide reviewed by a human | task | P2 | <span class="status open">open</span> |  | `ex-607` |
-| `ex-804` | Tag 1.0 | task | P2 | <span class="status open">open</span> |  | `ex-801`, `ex-802`, `ex-803` |
-| `ex-m8` | M8: 1.0 released | milestone | P2 | <span class="status open">open</span> |  | `ex-801`, `ex-802`, `ex-803`, `ex-804` |
+| `ex-803` | Integration guide walked by an agent in a fresh clone | task | P2 | <span class="status open">open</span> |  | `ex-607` |
+| `ex-804` | Tag v26.9.1 and publish the GitHub release | task | P2 | <span class="status open">open</span> |  | `ex-802`, `ex-803` |
+| `ex-m8` | M8: v26.9.1 released on GitHub | milestone | P2 | <span class="status open">open</span> |  | `ex-802`, `ex-803`, `ex-804` |
