@@ -16,3 +16,6 @@ target/
 *.gate.lock*
 # beads runtime hooks (not installed; the repo uses .githooks)
 .beads/hooks/
+# golden generator (tools/goldens): npm ci output and the bundled upstream module
+tools/goldens/node_modules/
+tools/goldens/.build/

@@ -1,0 +1,22 @@
+{
+  "generator": "tools/goldens/generate.mjs",
+  "upstream": {"repo":"https://github.com/excalidraw/excalidraw","commit":"438d89861f53d8a90ad566113ecac1b83761098f"},
+  "packages": {"perfect-freehand":"1.2.0","points-on-curve":"1.0.1","roughjs":"4.6.4","tinycolor2":"1.6.0"},
+  "files": [
+    {"name":"random.json","cases":7,"sha256":"1f2b8a7344a9cb53c95491551b314b606c06fdef21d34087aea605fe578bda45"},
+    {"name":"rough-primitives.json","cases":117,"sha256":"47ac0740942e72e9ddb78a1c03c8deed1ce1dec4f3b9fa14c0fcbe8f15e3f6c1"},
+    {"name":"rough-fills.json","cases":126,"sha256":"a05da5150107627af04b3d74674f6cde139b80db9db5f23772564da3e2475383"},
+    {"name":"rough-options.json","cases":140,"sha256":"cc67321d1379e7f0d08f72f445e4e119d814da89a297c682987d3025e644c25e"},
+    {"name":"elements-upstream-fixtures.json","cases":10,"sha256":"3dcf4c9d6b085426f4f350b3db0734c85d81f7211479bc210aeebd38337626eb"},
+    {"name":"elements-rectangle.json","cases":54,"sha256":"8f0bddd58eb8f3e65a2472a6923ad79a7a77ddd029763855cb966ef873a0c95a"},
+    {"name":"elements-diamond.json","cases":54,"sha256":"cbbf8cf63a4bb10f900ff366d57d70ccbe04c6e7d659b25ca7972bfc4ddd2b60"},
+    {"name":"elements-ellipse.json","cases":41,"sha256":"eb3670e24180c7de7874184192d0ee0754d6f2b73c60966d1ca37aa6a554aed5"},
+    {"name":"elements-line.json","cases":42,"sha256":"232ecda0fe43b582a888666a004a5783a62347d0d32009668f895afe77d01b92"},
+    {"name":"elements-arrow.json","cases":34,"sha256":"34ff170a65a2e7bcad64665eccc71e6cb44315bc9a55d46e2b2d4572e8ad593f"},
+    {"name":"elements-arrowheads.json","cases":160,"sha256":"54ae01bc94afd346773fbdcc1a87dca5170089cf2bc9456daaad6de6c35ee04e"},
+    {"name":"elements-elbow-arrow.json","cases":9,"sha256":"ce64faabec68d00351622e924ef67ff51156186a5585fbf9bb12fedb08a0d248"},
+    {"name":"elements-freedraw.json","cases":48,"sha256":"b7cbd0ad0ec703629680f3037e2ff5ac0324e2e0deb2afd5deff215132b757c6"},
+    {"name":"elements-iframe-like.json","cases":13,"sha256":"08ab9fadb41160189ff84f09e26371a128a152f716ee012f0afedfd36a7494d4"},
+    {"name":"freehand.json","cases":29,"sha256":"1e81e22f3ac4b345a9905289cad17b1ddac6c634b38e3a3bc046326630b04938"}
+  ]
+}
