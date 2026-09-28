@@ -27,6 +27,7 @@ import {
   RANDOM_SEEDS,
   roughGoldens,
 } from "./fixtures.mjs";
+import { fractionalIndexCases, orderKeyCases } from "./fixtures-fractional.mjs";
 import { format } from "./lib/format.mjs";
 import { jsSortCases, jsSortResult } from "./jssort.mjs";
 import { mathCases } from "./math.mjs";
@@ -131,6 +132,133 @@ const mathCase = (up) => (c) => {
   return { ...c, result: result === undefined ? null : result };
 };
 
+// -- fractional indexing (ex-107) -----------------------------------------------
+
+/** { result } or { error } for a call that may throw. */
+const outcome = (fn) => {
+  try {
+    return { result: fn() };
+  } catch (error) {
+    return { error: error.message };
+  }
+};
+
+const orderKeyCase = (up) => (c) => {
+  const fi = up.fractionalIndexing;
+  const digits = c.digits; // undefined selects upstream's default, BASE_62_DIGITS
+  switch (c.fn) {
+    case "validateOrderKey": {
+      const { error } = outcome(() => fi.validateOrderKey(c.key));
+      return error === undefined ? { ...c, valid: true } : { ...c, valid: false, error };
+    }
+    case "generateKeyBetween":
+      return { ...c, ...outcome(() => fi.generateKeyBetween(c.a, c.b, digits)) };
+    case "generateNKeysBetween":
+      return { ...c, ...outcome(() => fi.generateNKeysBetween(c.a, c.b, c.n, digits)) };
+    case "walk": {
+      // insert at each picked slot of a growing sorted list; keys in insertion order
+      const sorted = [];
+      const keys = c.picks.map((p) => {
+        const key = fi.generateKeyBetween(sorted[p - 1] ?? null, sorted[p] ?? null);
+        sorted.splice(p, 0, key);
+        return key;
+      });
+      return { ...c, keys };
+    }
+    default:
+      throw new Error(`unknown fractional-indexing case ${c.fn}`);
+  }
+};
+
+/** The fields fractionalIndex.ts and mutateElement read, as API.createElement sets them. */
+const toElement = (e) => ({
+  type: "rectangle",
+  version: 1,
+  versionNonce: 0,
+  isDeleted: false,
+  boundElements: null,
+  locked: false,
+  updated: 1,
+  ...e,
+});
+
+/** Resolves the chained indices of the upstream test's large arrays. */
+const resolveChain = (up, c) => {
+  if (!c.chain) return c.elements;
+  const { generateKeyBetween } = up.fractionalIndexing;
+  let last = null;
+  return c.elements.map((e, i) => {
+    last = c.chain === "up" ? generateKeyBetween(last, null) : generateKeyBetween(null, last);
+    const keep = c.chain === "down" || i === c.elements.length - 1;
+    return { ...e, index: keep ? last : e.index };
+  });
+};
+
+const isValidScene = (up, elements) =>
+  outcome(() =>
+    up.validateFractionalIndices(elements, {
+      shouldThrow: true,
+      includeBoundTextValidation: true,
+      ignoreLogs: true,
+    }),
+  ).error === undefined;
+
+const fractionalIndexCase = (up) => (c) => {
+  const { chain, ...rest } = c;
+  const input = resolveChain(up, c);
+  const elements = () => input.map(toElement);
+  const synced = (list) => ({ indices: list.map((e) => e.index), versions: list.map((e) => e.version) });
+  switch (c.fn) {
+    case "syncInvalidIndices":
+    case "syncMovedIndices": {
+      const out = { ...rest, elements: input, validInput: isValidScene(up, elements()) };
+      const list = elements();
+      const moved = new Map(list.filter((e) => c.moved?.includes(e.id)).map((e) => [e.id, e]));
+      const r = outcome(() =>
+        c.fn === "syncInvalidIndices" ? up.syncInvalidIndices(list) : up.syncMovedIndices(list, moved),
+      );
+      if (r.error !== undefined) return { ...out, error: r.error };
+      return { ...out, ...synced(r.result), validOutput: isValidScene(up, r.result) };
+    }
+    case "syncInvalidIndicesImmutable": {
+      // each element carries its input position (fractionalIndex.ts never
+      // reads it; newElementWith copies it), so equal ids stay distinguishable
+      const list = elements().map((e, i) => ({ ...e, from: i }));
+      const r = outcome(() => up.syncInvalidIndicesImmutable(list));
+      if (r.error !== undefined) return { ...rest, elements: input, error: r.error };
+      const entries = [...r.result].map(([id, e]) => [id, e.from, e.index, e.version]);
+      return { ...rest, elements: input, entries };
+    }
+    case "validateFractionalIndices": {
+      const logged = [];
+      const error = console.error;
+      console.error = (first) => logged.push(first);
+      let threw;
+      try {
+        up.validateFractionalIndices(elements(), {
+          shouldThrow: true,
+          includeBoundTextValidation: c.includeBoundTextValidation,
+        });
+      } catch (e) {
+        threw = e;
+      } finally {
+        console.error = error;
+      }
+      if (threw && threw.code !== "ELEMENT_HAS_INVALID_INDEX") throw threw;
+      if (!!threw !== logged.length > 0) throw new Error(`${c.id}: log and throw disagree`);
+      return { ...rest, messages: logged.length ? logged[0].split("\n\n") : [] };
+    }
+    case "orderByFractionalIndex": {
+      // the order as positions in the input, so equal ids stay distinguishable
+      const list = elements();
+      const position = new Map(list.map((e, i) => [e, i]));
+      return { ...rest, order: up.orderByFractionalIndex(list).map((e) => position.get(e)) };
+    }
+    default:
+      throw new Error(`unknown fractional-index case ${c.fn}`);
+  }
+};
+
 const buildGoldens = (up) => {
   const files = [randomGolden(up)];
   for (const g of roughGoldens()) files.push({ ...g, cases: g.cases.map(roughCase(up)) });
@@ -152,6 +280,18 @@ const buildGoldens = (up) => {
     description:
       "Array.prototype.sort (V8 TimSort) with a comparator that can answer NaN: kind sort is [0..n).sort((i, j) => values[i] - values[j]); kind convexHull is packages/math/src/polygon.ts convexHull(points) as indices into points. Non-finite inputs are the strings NaN, Infinity, -Infinity.",
     cases: jsSortCases().map((c) => ({ ...c, result: jsSortResult(up, c) })),
+  });
+  files.push({
+    name: "fractional-indexing.json",
+    description:
+      "Vendored fractional-indexing (packages/fractional-indexing/src/index.ts): validateOrderKey, generateKeyBetween and generateNKeysBetween (base 62 unless digits is given; result or thrown message), and random insertion walks.",
+    cases: orderKeyCases().map(orderKeyCase(up)),
+  });
+  files.push({
+    name: "fractional-index.json",
+    description:
+      "packages/element/src/fractionalIndex.ts: syncInvalidIndices and syncMovedIndices (indices and versions after the sync, or the thrown message), syncInvalidIndicesImmutable (the returned map as [id, input position, index, version] entries in map order), validateFractionalIndices log messages, orderByFractionalIndex id order.",
+    cases: fractionalIndexCases().map(fractionalIndexCase(up)),
   });
   return files;
 };
@@ -205,7 +345,9 @@ const main = async () => {
     process.stderr.write(`generate: ${error.message}\n`);
     process.exit(1);
   }
-  const up = await loadUpstream(upstream);
+  // A production build: mutateElement's getUpdatedTimestamp reads MODE
+  // through isTestEnv (common/src/utils.ts:552, 641).
+  const up = await loadUpstream(upstream, { define: { "import.meta.env.MODE": '"production"' } });
   const files = deterministic(() => buildGoldens(up));
   const out = render(files, upstream);
   const where = relative(process.cwd(), args.out) || ".";

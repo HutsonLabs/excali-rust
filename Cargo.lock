@@ -92,7 +92,9 @@ name = "excali-core"
 version = "26.9.1"
 dependencies = [
  "base64",
+ "excali-math",
  "flate2",
+ "indexmap",
  "serde",
  "serde_json",
  "sha2",

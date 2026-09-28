@@ -218,4 +218,6 @@ export const ALL_FILES = [
   "freehand.json",
   "math.json",
   "js-sort.json",
+  "fractional-indexing.json",
+  "fractional-index.json",
 ];

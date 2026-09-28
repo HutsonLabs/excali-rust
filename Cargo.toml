@@ -25,6 +25,9 @@ serde_json = { version = "1.0.151", features = ["preserve_order", "float_roundtr
 # The Serialize trait for writing a Value with a custom formatter; derive for
 # the payload wrapper (excali_core::encode::EncodedData).
 serde = { version = "1.0.229", features = ["derive"] }
+# Insertion-ordered maps where upstream returns a JS Map (already in the
+# graph through serde_json's preserve_order).
+indexmap = "2.14.2"
 # Test-only: reads the gzipped library corpus in the payload codec tests.
 # excali-core's own zlib code is a port of pako (excali_core::encode), so its
 # bytes and error messages are upstream's.

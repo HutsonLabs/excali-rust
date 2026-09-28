@@ -132,7 +132,7 @@ const MAX_SAFE: u64 = 1 << 53;
 
 /// ECMAScript `Number::toString(x)` (ECMA-262 §6.1.6.1.20) for a finite `x`.
 /// `JSON.stringify` writes non-finite numbers as `null`.
-fn js_number(x: f64) -> String {
+pub(crate) fn js_number(x: f64) -> String {
     if !x.is_finite() {
         return "null".to_owned();
     }

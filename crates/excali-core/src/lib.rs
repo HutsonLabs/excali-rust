@@ -9,5 +9,7 @@ pub mod constants;
 pub mod document;
 pub mod element;
 pub mod encode;
+pub mod fractional_index;
 pub mod json;
 mod layout;
+pub mod order_key;

@@ -57,6 +57,14 @@ export * as math from "./packages/math/src/index";
 export { RoughGenerator } from "roughjs/bin/generator";
 export { Random } from "roughjs/bin/math";
 export { getStroke, getStrokePoints } from "perfect-freehand";
+export * as fractionalIndexing from "./packages/fractional-indexing/src/index";
+export {
+  orderByFractionalIndex,
+  syncInvalidIndices,
+  syncInvalidIndicesImmutable,
+  syncMovedIndices,
+  validateFractionalIndices,
+} from "./packages/element/src/fractionalIndex";
 `;
 
 const PACKAGES = [

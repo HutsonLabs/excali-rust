@@ -392,3 +392,97 @@ test("freedraw element outlines equal the direct perfect-freehand goldens they s
   }
   assert.ok(matched >= 3);
 });
+
+// The rocicorp fractional-indexing suite (src/test.js at v3.2.0, fetched
+// 2026-09-28), restated: the vendored copy must still produce these keys.
+test("fractional-indexing goldens reproduce the rocicorp suite", () => {
+  const between = new Map();
+  const nKeys = new Map();
+  for (const c of cases("fractional-indexing.json")) {
+    const key = `${c.a}|${c.b}|${c.digits ?? ""}`;
+    if (c.fn === "generateKeyBetween") between.set(key, c.result ?? c.error);
+    if (c.fn === "generateNKeysBetween") nKeys.set(`${key}|${c.n}`, c.result?.join(" ") ?? c.error);
+  }
+  const expect = [
+    [null, null, "a0"], [null, "a0", "Zz"], [null, "Zz", "Zy"], ["a0", null, "a1"], ["a1", null, "a2"],
+    ["a0", "a1", "a0V"], ["a1", "a2", "a1V"], ["a0V", "a1", "a0l"], ["Zz", "a0", "ZzV"], ["Zz", "a1", "a0"],
+    [null, "Y00", "Xzzz"], ["bzz", null, "c000"], ["a0", "a0V", "a0G"], ["a0", "a0G", "a08"],
+    ["b125", "b129", "b127"], ["a0", "a1V", "a1"], ["Zz", "a01", "a0"], [null, "a0V", "a0"],
+    [null, "b999", "b99"], ["a00", null, "invalid order key: a00"], ["a00", "a1", "invalid order key: a00"],
+    ["0", "1", "invalid order key head: 0"], ["a1", "a0", "a1 >= a0"],
+    [null, "A00000000000000000000000000", "invalid order key: A00000000000000000000000000"],
+    [null, "A000000000000000000000000001", "A000000000000000000000000000V"],
+    ["zzzzzzzzzzzzzzzzzzzzzzzzzzy", null, "zzzzzzzzzzzzzzzzzzzzzzzzzzz"],
+    ["zzzzzzzzzzzzzzzzzzzzzzzzzzz", null, "zzzzzzzzzzzzzzzzzzzzzzzzzzzV"],
+  ];
+  for (const [a, b, exp] of expect) assert.equal(between.get(`${a}|${b}|`), exp, `${a}, ${b}`);
+  // The suite's base-10 generateNKeysBetween cases do not hold for the
+  // vendored copy: its validateOrderKey also rejects characters outside the
+  // alphabet (index.ts:113-114), and the head letters a-z/A-Z are never
+  // base-10 digits, so every non-null bound is rejected. The rocicorp
+  // expectation for (null, null, 5) was "a0 a1 a2 a3 a4".
+  const b10 = "0123456789";
+  assert.equal(nKeys.get(`null|null|${b10}|5`), "invalid order key: a0");
+  assert.equal(nKeys.get(`a4|null|${b10}|10`), "invalid order key: a4");
+  assert.equal(nKeys.get(`null|a0|${b10}|5`), "invalid order key: a0");
+  assert.equal(nKeys.get(`a0|a2|${b10}|20`), "invalid order key: a0");
+  const b95 = cases("fractional-indexing.json").find((c) => c.digits?.length === 95).digits;
+  const base95 = [
+    ["a00", "a01", "a00P"], ["a0/", "a00", "a0/P"], [null, null, "a "], ["a ", null, "a!"],
+    [null, "a ", "Z~"], ["a0 ", "a0!", "invalid order key: a0 "], ["a~", null, "b  "], ["Z~", null, "a "],
+    ["b   ", null, "invalid order key: b   "], ["a0", "a0V", "a0;"], ["a  1", "a  2", "a  1P"],
+    [null, `A${" ".repeat(26)}0`, `A${" ".repeat(26)}(`],
+    [null, `A${" ".repeat(26)}`, `invalid order key: A${" ".repeat(26)}`],
+  ];
+  for (const [a, b, exp] of base95) {
+    const got = between.get(`${a}|${b}|${b95}`);
+    if (got !== undefined) assert.equal(got, exp, `base95 ${a}, ${b}`);
+  }
+});
+
+test("fractional-index goldens cover the upstream test's scenarios and every outcome", () => {
+  const cs = cases("fractional-index.json");
+  const upstream = cs.filter((c) => c.id.startsWith("upstream-"));
+  assert.equal(upstream.filter((c) => c.fn === "syncInvalidIndices").length, 33);
+  const syncs = cs.filter((c) => c.fn === "syncInvalidIndices" || c.fn === "syncMovedIndices");
+  for (const c of syncs) {
+    assert.equal(c.error, undefined, c.id);
+    assert.equal(c.validOutput, true, c.id);
+    assert.equal(c.indices.length, c.elements.length, c.id);
+  }
+  assert.ok(syncs.some((c) => c.validInput));
+  assert.ok(syncs.some((c) => !c.validInput));
+  const growing = cs.find((c) => c.id === "growing-600-invalid");
+  assert.equal(growing.elements.at(-1).index, growing.indices.at(-1));
+  const messages = cs.filter((c) => c.fn === "validateFractionalIndices").flatMap((c) => c.messages);
+  assert.ok(messages.some((m) => m.startsWith("Fractional indices invariant has been compromised")));
+  assert.ok(messages.some((m) => m.startsWith("Fractional indices invariant for bound elements")));
+  const orders = cs.filter((c) => c.fn === "orderByFractionalIndex");
+  assert.ok(orders.length >= 120);
+  assert.ok(orders.some((c) => c.elements.length > 64 && c.elements.some((e) => !e.index)));
+  for (const c of orders) assert.deepEqual([...c.order].sort((a, b) => a - b), c.elements.map((_, i) => i), c.id);
+});
+
+test("syncInvalidIndicesImmutable goldens are arrayToMap with the updates set over it", () => {
+  const cs = cases("fractional-index.json").filter((c) => c.fn === "syncInvalidIndicesImmutable");
+  assert.ok(cs.length >= 200);
+  // the reviewer's case: the update for the first x replaces the last x
+  const first = cs.find((c) => c.id === "immutable-0");
+  assert.deepEqual(first.elements, [{ id: "x", index: null }, { id: "x", index: "a1" }]);
+  assert.deepEqual(first.entries, [["x", 0, "a0", 2]]);
+  let overwritten = 0;
+  for (const c of cs) {
+    assert.equal(c.error, undefined, c.id);
+    const ids = [...new Set(c.elements.map((e) => e.id))];
+    assert.deepEqual(c.entries.map(([id]) => id), ids, c.id);
+    for (const [id, from, , version] of c.entries) {
+      assert.equal(c.elements[from].id, id, c.id);
+      const last = c.elements.findLastIndex((e) => e.id === id);
+      if (from !== last) {
+        assert.equal(version, 2, c.id);
+        overwritten++;
+      }
+    }
+  }
+  assert.ok(overwritten > 0);
+});
