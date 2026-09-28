@@ -106,4 +106,4 @@ The port subsets like upstream. `excali_svg::subset_woff2` decodes the face (wuf
 ## What would reverse it
 
 - A wasm32 C++ toolchain (a WASI sysroot) in the build, which would let upstream's own HarfBuzz in and bring the sfnt bytes closer to upstream's.
-- A skera release that changes what is drawn. The evaluation pins skera `=0.7.0`. Upgrading means running `tools/font-subset-eval` again, and its tests fail until this page quotes the new numbers.
+- A skera release that changes what is drawn. The evaluation pins skera `=0.7.0`, skrifa `=0.47.0` and ttf2woff2 `=0.13.3`, and the workspace `Cargo.toml` that `excali-svg` builds with pins the same releases. `crates/excali-svg/tests/evaluated_versions.rs` fails if the workspace's pins differ from the evaluation's, or if the workspace `Cargo.lock` resolves these crates, or anything they pull in, to releases other than `tools/font-subset-eval/Cargo.lock`. Upgrading means changing both, running `tools/font-subset-eval` again, and its tests fail until this page quotes the new numbers.
