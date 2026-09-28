@@ -171,7 +171,9 @@ jobs:
   # snapshot from the goldens and proves two runs are byte-identical; the
   # --check step fails the PR when goldens/ no longer matches the generator.
   # scene-fixtures.mjs --check does the same for excali-core's .excalidraw
-  # fixtures, built by upstream's constructors and serializeAsJSON.
+  # fixtures, built by upstream's constructors and serializeAsJSON, and
+  # restore-fixtures.mjs --check for restore-base.json, upstream's own
+  # restoreElementWithProperties on a table of inputs.
   # Runs on arm64: V8's float results for some shapes differ in the last bits
   # between x64 and arm64, and the committed goldens are the arm64 output
   # (macOS and Linux arm64 agree byte for byte).
@@ -192,3 +194,5 @@ jobs:
         run: node tools/goldens/generate.mjs --check
       - name: excali-core scene fixtures match the generator
         run: node tools/goldens/scene-fixtures.mjs --check
+      - name: excali-core restore fixtures match the generator
+        run: node tools/goldens/restore-fixtures.mjs --check

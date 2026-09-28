@@ -476,6 +476,52 @@ pub(crate) fn decode_str(s: &str) -> Cow<'_, str> {
     Cow::Owned(out)
 }
 
+/// The UTF-16 code units of the JS string a sentinel-form string stands
+/// for: a sentinel pair gives its lone surrogate, a doubled U+FDD0 one
+/// U+FDD0. String functions ported from JS (`trim`, regex replaces,
+/// `String.fromCharCode`) work on these units.
+pub(crate) fn to_utf16(s: &str) -> Vec<u16> {
+    let mut out = Vec::with_capacity(s.len());
+    let mut chars = s.chars();
+    while let Some(c) = chars.next() {
+        let c = if c == SENTINEL {
+            match chars.next() {
+                Some(tag) if SURROGATE_TAGS.contains(&u32::from(tag)) => {
+                    out.push((u32::from(tag) - SURROGATE_TAG_BASE + 0xD800) as u16);
+                    continue;
+                }
+                Some(SENTINEL) | None => SENTINEL,
+                Some(other) => {
+                    out.push(SENTINEL as u16);
+                    other
+                }
+            }
+        } else {
+            c
+        };
+        let mut buf = [0u16; 2];
+        out.extend_from_slice(c.encode_utf16(&mut buf));
+    }
+    out
+}
+
+/// The sentinel-form string for JS string code units: a lone surrogate
+/// becomes a sentinel pair, U+FDD0 is doubled. Inverse of [`to_utf16`].
+pub(crate) fn from_utf16(units: &[u16]) -> String {
+    let mut out = String::with_capacity(units.len());
+    for unit in char::decode_utf16(units.iter().copied()) {
+        match unit {
+            Ok(SENTINEL) => push_sentinel(&mut out, SENTINEL),
+            Ok(c) => out.push(c),
+            Err(e) => {
+                let tag = u32::from(e.unpaired_surrogate()) - 0xD800 + SURROGATE_TAG_BASE;
+                push_sentinel(&mut out, char::from_u32(tag).unwrap_or(SENTINEL));
+            }
+        }
+    }
+    out
+}
+
 /// `value` with every string and key mapped by `f`.
 fn map_strings(value: &Value, f: fn(&str) -> Cow<'_, str>) -> Value {
     match value {
@@ -778,6 +824,21 @@ mod tests {
         );
         let literal = parse("[\"\u{FDD0}\u{E000}\"]").unwrap();
         assert_eq!(escape(&decode(&literal)), literal);
+    }
+
+    #[test]
+    fn utf16_units_of_sentinel_strings() {
+        // JSON.parse('"a\\ud83d\\ud83d\\ude00\\udc00\\ufdd0"') has code units
+        // 61 d83d d83d de00 dc00 fdd0.
+        let parsed = parse(r#""a\ud83d\ud83d\ude00\udc00\ufdd0""#).unwrap();
+        let s = parsed.as_str().unwrap();
+        let units = to_utf16(s);
+        assert_eq!(units, [0x61, 0xD83D, 0xD83D, 0xDE00, 0xDC00, 0xFDD0]);
+        assert_eq!(from_utf16(&units), s);
+        assert_eq!(to_utf16(&escape_str("\u{FDD0}x")), [0xFDD0, 0x78]);
+        assert_eq!(from_utf16(&[0xD83D, 0xDE00]), "\u{1F600}");
+        // A stray sentinel (not from parse) is kept as itself.
+        assert_eq!(to_utf16("\u{FDD0}x"), [0xFDD0, 0x78]);
     }
 
     #[test]

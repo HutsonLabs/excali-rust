@@ -140,3 +140,29 @@ node tools/goldens/scene-fixtures.mjs --check   # exit 1 if they are stale
 
 CI runs `--check` in the `goldens` job, and `test/scene-fixtures.test.mjs`
 checks that two runs are byte-identical.
+
+## Restore fixtures
+
+`restore-fixtures.mjs` writes `crates/excali-core/tests/fixtures/restore-base.json`,
+the table excali-core's base normalisation (ex-103) is checked against: upstream's
+own `restoreElementWithProperties` and, for the generic types, `restoreElement`
+(`packages/excalidraw/data/restore.ts:430-515, 726-731`), called on about 300
+inputs (every base field absent, `null`, `0`, `""`, `false` and set; legacy
+`strokeSharpness` per type; `boundElementIds`; links through `normalizeLink` and
+`@braintree/sanitize-url` 6.0.2; negative sizes; key order; `extra`).
+
+`restoreElementWithProperties` is private to `restore.ts`. The loader's `expose`
+option (`lib/upstream.mjs`) loads that file unchanged with one line appended,
+`export { restoreElementWithProperties };`, so the function called is upstream's.
+Upstream runs in its test mode (`import.meta.env.MODE` is `"test"`): `randomId()`
+gives `id0`, `id1`, ... (restarted by `reseed` before each case) and
+`getUpdatedTimestamp()` gives 1 (`packages/common/src/random.ts:16`,
+`utils.ts:552`). excali-core's `restore::TestEnv` is the same environment.
+
+```sh
+node tools/goldens/restore-fixtures.mjs           # write the fixture
+node tools/goldens/restore-fixtures.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and `test/restore-fixtures.test.mjs`
+checks that two runs are byte-identical.

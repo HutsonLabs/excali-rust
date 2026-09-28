@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-103 · Restore: base normalisation rules
+
+`excali-core` now restores the base fields of any element the way upstream's `restoreElementWithProperties` does: JS `||` and `??` defaults, legacy `strokeSharpness` to `roundness` by type, `boundElementIds` to `boundElements`, links sanitised through a port of `@braintree/sanitize-url` 6.0.2, negative sizes flipped, and upstream's object-spread key order. All 311 cases generated from the pinned upstream match byte for byte (`tools/goldens/restore-fixtures.mjs --check`). PR: [#20](https://github.com/HutsonLabs/excali-rust/pull/20).
+
 ## 2026-09-28 · ex-107 · Fractional indexing port (base-62 keys, generateNKeysBetween, syncInvalidIndices)
 
 `excali-core` now generates and validates fractional index keys the way upstream's vendored fractional-indexing does, and ports `fractionalIndex.ts`: `syncInvalidIndices`, `syncMovedIndices`, `syncInvalidIndicesImmutable` (returning upstream's id map, duplicate ids included), `validateFractionalIndices` and `orderByFractionalIndex`, which sorts with the V8 TimSort port so unindexed elements and duplicate ids land in upstream's order. All of it is checked against goldens generated from the pinned upstream. PR: [#19](https://github.com/HutsonLabs/excali-rust/pull/19).
