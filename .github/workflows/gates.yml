@@ -304,7 +304,12 @@ jobs:
   # labels and canvas size) on scenes of every element kind, and
   # static-scene.mjs --check for excali-scene's static-scene.json (ex-402),
   # upstream's own renderStaticScene on a recording 2D context (every draw
-  # of the background, grid, elements, link icons and pending nodes).
+  # of the background, grid, elements, link icons and pending nodes), and
+  # font-subset.mjs --check for tools/font-subset-eval's
+  # upstream-subsets.json (ex-408), upstream's own
+  # generateFontFaceDeclarations with its harfbuzzjs subsetting of every
+  # face its SVG export inlines, whose export test scenes reproduce
+  # export.test.ts.snap's @font-face rules byte for byte.
   # Runs on arm64: V8's float results for some shapes differ in the last bits
   # between x64 and arm64, and the committed goldens are the arm64 output
   # (macOS and Linux arm64 agree byte for byte).
@@ -359,3 +364,5 @@ jobs:
         run: node tools/goldens/svg-export.mjs --check
       - name: excali-scene static scene fixture matches upstream's renderStaticScene
         run: node tools/goldens/static-scene.mjs --check
+      - name: font subsetting fixture matches upstream's generateFontFaceDeclarations and harfbuzzjs subsetting
+        run: node tools/goldens/font-subset.mjs --check

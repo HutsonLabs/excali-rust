@@ -4,8 +4,9 @@
 # match site/content/architecture/overview.md), the calendar-version gate
 # (ADR-009), the wasm32 build of every
 # crate that targets it (ADR-008), an MSRV check, the golden harness on
-# arm64 (ex-217), the roughr evaluation behind ADR-003 (ex-206), and the web
-# runtime's scene font loading in Chromium (ex-307).
+# arm64 (ex-217), the roughr evaluation behind ADR-003 (ex-206), the font
+# subsetting evaluation behind ADR-010 (ex-408), and the web runtime's scene
+# font loading in Chromium (ex-307).
 #
 # The toolchain comes from rust-toolchain.toml; rustup installs it (with
 # rustfmt, clippy and the wasm32 target) on the first cargo call.
@@ -184,6 +185,66 @@ jobs:
         run: cargo run --release --locked --manifest-path tools/roughr-eval/Cargo.toml -- --check
       - name: report-fork.json current (roughr with rough.js's generator)
         run: python3 tools/roughr-eval/fork.py --check
+  # ex-408: the font subsetting evaluation behind ADR-010
+  # (tools/font-subset-eval, a stand-alone package outside the workspace).
+  # Its tests fail if report.json differs from a fresh run over
+  # upstream-subsets.json (upstream's own subsets, checked by the goldens
+  # job) or ADR-010 does not quote it and the decision its rule gives;
+  # wasm.sh --check rebuilds every candidate for wasm32-unknown-unknown.
+  # The upstream checkout supplies the one face the port does not vendor
+  # (Liberation Sans 1.05, ADR-004) for upstream's side.
+  font-subset-eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tools/font-subset-eval
+      - name: upstream checkout at the pin
+        run: scripts/upstream/checkout.sh
+      - name: fmt
+        run: cargo fmt --manifest-path tools/font-subset-eval/Cargo.toml --check
+      - name: clippy
+        run: cargo clippy --manifest-path tools/font-subset-eval/Cargo.toml --all-targets --locked -- -D warnings
+      - name: tests (report.json current, ADR-010 quotes it and its decision)
+        run: cargo test --manifest-path tools/font-subset-eval/Cargo.toml --locked
+      - name: report.json current
+        run: cargo run --release --locked --manifest-path tools/font-subset-eval/Cargo.toml -- --check
+      - name: wasm.json current (each candidate built for wasm32-unknown-unknown)
+        run: tools/font-subset-eval/wasm.sh --check
+  # ex-408: render.mjs --check draws every subset in Chromium next to its
+  # original face. It runs on macOS, where browser.json and ADR-010's
+  # Chromium column were measured: pixel equality depends on the platform's
+  # rasterizer, and on Linux upstream's own subsets draw 67 of the 279 runs
+  # differently from the original face, as hb-subset's and skera's do.
+  font-subset-browser:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tools/font-subset-eval
+      - name: upstream checkout at the pin
+        run: scripts/upstream/checkout.sh
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tools/font-subset-eval/browser/package-lock.json
+      - name: install the browser check
+        working-directory: tools/font-subset-eval/browser
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install chromium
+      - name: browser.json current (every subset drawn in Chromium next to its original)
+        run: |
+          cargo run --release --locked --manifest-path tools/font-subset-eval/Cargo.toml -- \
+            --browser tools/font-subset-eval/target/browser/cases.json
+          node tools/font-subset-eval/browser/render.mjs --check
   msrv:
     runs-on: ubuntu-latest
     steps:

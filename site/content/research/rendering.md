@@ -361,8 +361,8 @@ Checkout: commit `438d898`. Paths are relative to `<checkout>`. Each claim cites
 | pako | port pako 2.0.3's deflate and inflate (byte-identical output, pako's error messages) |
 | tinycolor | `csscolorparser` |
 | png chunks | port of png-chunks-extract, png-chunks-encode and png-chunk-text 1.0.0 (`excali_core::png`) for their bytes, quirks and messages |
-| harfbuzz subset | `hb-subset` / `allsorts` |
-| woff2 | `wuff` (pure-Rust WOFF/WOFF2 decoding, `excali_text::font_store`) |
+| harfbuzz subset | `skera` 0.7.0, hb-subset ported to Rust (`excali_svg::subset_woff2`); `hb-subset`'s C++ does not build for wasm32 and `allsorts` drops GSUB and GPOS ([ADR-010](../../decisions/adr-010-svg-font-subsetting/)) |
+| woff2 | `wuff` (pure-Rust WOFF/WOFF2 decoding, `excali_text::font_store`); `ttf2woff2` (pure-Rust WOFF2 encoding of SVG font subsets, ADR-010) |
 | nanoid | `nanoid` |
 
 ## 9. Test infrastructure

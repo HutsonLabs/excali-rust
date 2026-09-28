@@ -1,0 +1,9 @@
+{
+  "name": "font-subset-eval-browser",
+  "private": true,
+  "description": "ex-408: the font subsets of tools/font-subset-eval drawn in Chromium next to their original faces (ADR-010).",
+  "type": "module",
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}

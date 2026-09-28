@@ -12,15 +12,22 @@ publish = false
 # dependency is excali-scene, reached through excali_scene::display.
 [dependencies]
 excali-scene = { path = "../excali-scene" }
+# Font subsetting (fonts::subset_woff2, ADR-010): wuff decodes the vendored
+# WOFF2 as excali-text does, skera subsets it, ttf2woff2 encodes the subset.
+skera = { workspace = true }
+skrifa = { workspace = true }
+ttf2woff2 = { workspace = true }
+wuff = { workspace = true }
 
 # The tests build their scenes from elements, as the writer's callers do
 # (excali-core, excali_scene::export), draw rough.js shapes (excali-rough),
-# read the fixtures (serde_json), and run `cargo metadata` in the boundary
-# test.
+# read the fixtures (serde_json), run `cargo metadata` in the boundary
+# test, and read the subset fonts' glyphs (ttf-parser).
 [dev-dependencies]
 excali-core = { path = "../excali-core" }
 excali-rough = { path = "../excali-rough" }
 serde_json = { workspace = true }
+ttf-parser = { workspace = true }
 
 [lints]
 workspace = true

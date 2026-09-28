@@ -1,0 +1,707 @@
+{
+  "description": "ex-408: each subset of the browser scenes of upstream-subsets.json (upstream's own, and each subsetter's with ttf2woff2) registered with the CSS Font Loading API in Chromium (the font sanitizer runs: loaded counts the subsets it accepted, rejected lists the others) and each run of the scene's text in the face drawn at 64 px next to the original face (runsEqual: identical pixels and measureText width). Written by tools/font-subset-eval/browser/render.mjs.",
+  "candidates": {
+    "upstream": {
+      "declarations": 121,
+      "failed": 0,
+      "loaded": 118,
+      "runs": 279,
+      "runsEqual": 279
+    },
+    "hb-subset+ttf2woff2": {
+      "declarations": 121,
+      "failed": 0,
+      "loaded": 118,
+      "runs": 279,
+      "runsEqual": 279
+    },
+    "skera+ttf2woff2": {
+      "declarations": 121,
+      "failed": 0,
+      "loaded": 118,
+      "runs": 279,
+      "runsEqual": 279
+    },
+    "allsorts+ttf2woff2": {
+      "declarations": 121,
+      "failed": 0,
+      "loaded": 118,
+      "runs": 279,
+      "runsEqual": 251
+    },
+    "subsetter+ttf2woff2": {
+      "declarations": 121,
+      "failed": 0,
+      "loaded": 0,
+      "runs": 0,
+      "runsEqual": 0
+    }
+  },
+  "rejected": [
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-default",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-default",
+      "file": "Nunito/Nunito-Regular-XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTQ3j6zbXWjgeg.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-6ae5b42180ad70b971c91e7eefb8eba2.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-e3fcf5180fd466c8915c4e8069491054.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-544fc28abe2c5c30e62383fd4dac255f.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-ba3de316d63c7e339987b16f41a0b879.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-12b52b58eb3df36804b9a654ec9ee194.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-b1220a3c61f85cc0408deedb4c5f57a2.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-7e929f262f30c8ee78bf398150b1a7cd.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-9eb5a99df4e76ac3363453ac9ca288b1.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-670ba603758d94268e8606f240a42e12.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-e656f091b9dc4709722c9f4b84d3c797.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-642b26e2e5f5fb780b51b593dbc8c851.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-5572b3513ba8df57a3d5d7303ee6b11b.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-cfb211578629b7e8153b37240de6a9d5.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-59e9ff77b0efaf684bc09274fb6908c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-79d494361ae093b69e74ee9dbe65bfd4.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-74e2263a91439c25b91d5132ce9f4d62.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-145aa02cdd91946e67dc934e1acffe75.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "fixture-cjk",
+      "file": "Nunito/Nunito-Regular-XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTQ3j6zbXWjgeg.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-latin",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-6ae5b42180ad70b971c91e7eefb8eba2.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-12b52b58eb3df36804b9a654ec9ee194.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-b1220a3c61f85cc0408deedb4c5f57a2.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-9eb5a99df4e76ac3363453ac9ca288b1.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-e656f091b9dc4709722c9f4b84d3c797.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-cfb211578629b7e8153b37240de6a9d5.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-74e2263a91439c25b91d5132ce9f4d62.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cjk",
+      "file": "Xiaolai/Xiaolai-Regular-145aa02cdd91946e67dc934e1acffe75.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cjk",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cjk-only",
+      "file": "Xiaolai/Xiaolai-Regular-6ae5b42180ad70b971c91e7eefb8eba2.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cjk-only",
+      "file": "Xiaolai/Xiaolai-Regular-642b26e2e5f5fb780b51b593dbc8c851.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cjk-only",
+      "file": "Xiaolai/Xiaolai-Regular-e5f453bb04da18eed01675eeebd88bf8.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cjk-only",
+      "file": "Xiaolai/Xiaolai-Regular-cfb211578629b7e8153b37240de6a9d5.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cjk-only",
+      "file": "Xiaolai/Xiaolai-Regular-59e9ff77b0efaf684bc09274fb6908c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cjk-only",
+      "file": "Xiaolai/Xiaolai-Regular-74e2263a91439c25b91d5132ce9f4d62.woff2"
+    },
+    {
+      "candidate": "upstream",
+      "scene": "assets-excalifont-cyrillic-greek",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "hb-subset+ttf2woff2",
+      "scene": "assets-excalifont-cyrillic-greek",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "skera+ttf2woff2",
+      "scene": "assets-excalifont-cyrillic-greek",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "allsorts+ttf2woff2",
+      "scene": "assets-excalifont-cyrillic-greek",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cyrillic-greek",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cyrillic-greek",
+      "file": "Excalifont/Excalifont-Regular-b9dcf9d2e50a1eaf42fc664b50a3fd0d.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cyrillic-greek",
+      "file": "Excalifont/Excalifont-Regular-41b173a47b57366892116a575a43e2b6.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-latin-ext",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-latin-ext",
+      "file": "Excalifont/Excalifont-Regular-be310b9bcd4f1a43f571c46df7809174.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-marks",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-marks",
+      "file": "Excalifont/Excalifont-Regular-be310b9bcd4f1a43f571c46df7809174.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-marks",
+      "file": "Excalifont/Excalifont-Regular-3f2c5db56cc93c5a6873b1361d730c16.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-marks",
+      "file": "Excalifont/Excalifont-Regular-623ccf21b21ef6b3a0d87738f77eb071.woff2"
+    },
+    {
+      "candidate": "upstream",
+      "scene": "assets-excalifont-cyrillic-ext",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "hb-subset+ttf2woff2",
+      "scene": "assets-excalifont-cyrillic-ext",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "skera+ttf2woff2",
+      "scene": "assets-excalifont-cyrillic-ext",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "allsorts+ttf2woff2",
+      "scene": "assets-excalifont-cyrillic-ext",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cyrillic-ext",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-cyrillic-ext",
+      "file": "Excalifont/Excalifont-Regular-349fac6ca4700ffec595a7150a0d1e1d.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-punctuation",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-fullwidth",
+      "file": "Xiaolai/Xiaolai-Regular-09850c4077f3fffe707905872e0e2460.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-fullwidth",
+      "file": "Xiaolai/Xiaolai-Regular-f8ee5d36068a42b51d0e4a1116cfcec1.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-fullwidth",
+      "file": "Xiaolai/Xiaolai-Regular-145aa02cdd91946e67dc934e1acffe75.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-emoji",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-excalifont-hangul-jamo",
+      "file": "Xiaolai/Xiaolai-Regular-3c9de2ae0ea4bc91a510942dfa4be8d2.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-virgil",
+      "file": "Virgil/Virgil-Regular.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-cascadia",
+      "file": "Cascadia/CascadiaCode-Regular.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-nunito-vietnamese-cyrillic",
+      "file": "Nunito/Nunito-Regular-XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTk3j6zbXWjgevT5.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-nunito-vietnamese-cyrillic",
+      "file": "Nunito/Nunito-Regular-XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTA3j6zbXWjgevT5.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-nunito-vietnamese-cyrillic",
+      "file": "Nunito/Nunito-Regular-XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTs3j6zbXWjgevT5.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-nunito-vietnamese-cyrillic",
+      "file": "Nunito/Nunito-Regular-XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTQ3j6zbXWjgeg.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-nunito-latin",
+      "file": "Nunito/Nunito-Regular-XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTQ3j6zbXWjgeg.woff2"
+    },
+    {
+      "candidate": "upstream",
+      "scene": "assets-lilita",
+      "file": "Lilita/Lilita-Regular-i7dPIFZ9Zz-WBtRtedDbYE98RXi4EwSsbg.woff2"
+    },
+    {
+      "candidate": "hb-subset+ttf2woff2",
+      "scene": "assets-lilita",
+      "file": "Lilita/Lilita-Regular-i7dPIFZ9Zz-WBtRtedDbYE98RXi4EwSsbg.woff2"
+    },
+    {
+      "candidate": "skera+ttf2woff2",
+      "scene": "assets-lilita",
+      "file": "Lilita/Lilita-Regular-i7dPIFZ9Zz-WBtRtedDbYE98RXi4EwSsbg.woff2"
+    },
+    {
+      "candidate": "allsorts+ttf2woff2",
+      "scene": "assets-lilita",
+      "file": "Lilita/Lilita-Regular-i7dPIFZ9Zz-WBtRtedDbYE98RXi4EwSsbg.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-lilita",
+      "file": "Lilita/Lilita-Regular-i7dPIFZ9Zz-WBtRtedDbYE98RXi4EwSsbg.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-lilita",
+      "file": "Lilita/Lilita-Regular-i7dPIFZ9Zz-WBtRtedDbYEF8RXi4EwQ.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-comic-shanns",
+      "file": "ComicShanns/ComicShanns-Regular-279a7b317d12eb88de06167bd672b4b4.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-comic-shanns",
+      "file": "ComicShanns/ComicShanns-Regular-fcb0fc02dcbee4c9846b3e2508668039.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-liberation",
+      "file": "Liberation/LiberationSans-Regular.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-xiaolai-element",
+      "file": "Xiaolai/Xiaolai-Regular-f8ee5d36068a42b51d0e4a1116cfcec1.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-xiaolai-element",
+      "file": "Xiaolai/Xiaolai-Regular-74e2263a91439c25b91d5132ce9f4d62.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-multi-family",
+      "file": "Xiaolai/Xiaolai-Regular-f8ee5d36068a42b51d0e4a1116cfcec1.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-multi-family",
+      "file": "ComicShanns/ComicShanns-Regular-279a7b317d12eb88de06167bd672b4b4.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-multi-family",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-multi-family",
+      "file": "Nunito/Nunito-Regular-XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTo3j6zbXWjgevT5.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-multi-family",
+      "file": "Nunito/Nunito-Regular-XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTQ3j6zbXWjgeg.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-deleted",
+      "file": "Xiaolai/Xiaolai-Regular-a0ca5df4258213d7fc9fce80f65ce760.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-deleted",
+      "file": "Xiaolai/Xiaolai-Regular-79d494361ae093b69e74ee9dbe65bfd4.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-deleted",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-deleted",
+      "file": "Nunito/Nunito-Regular-XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTQ3j6zbXWjgeg.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "assets-duplicates",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "labels-excalifont",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "labels-virgil",
+      "file": "Virgil/Virgil-Regular.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "labels-nunito",
+      "file": "Nunito/Nunito-Regular-XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTQ3j6zbXWjgeg.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "ascii-excalifont",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "ascii-virgil",
+      "file": "Virgil/Virgil-Regular.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "ascii-cascadia",
+      "file": "Cascadia/CascadiaCode-Regular.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "ascii-nunito",
+      "file": "Nunito/Nunito-Regular-XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTQ3j6zbXWjgeg.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "ascii-lilita",
+      "file": "Lilita/Lilita-Regular-i7dPIFZ9Zz-WBtRtedDbYEF8RXi4EwQ.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "ascii-comic-shanns",
+      "file": "ComicShanns/ComicShanns-Regular-279a7b317d12eb88de06167bd672b4b4.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "ascii-liberation",
+      "file": "Liberation/LiberationSans-Regular.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "latin1-excalifont",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-09850c4077f3fffe707905872e0e2460.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-b96d9226ce77ec94ceca043d712182e6.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-6ae5b42180ad70b971c91e7eefb8eba2.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-a4c34be6d42152e64b0df90bc4607f64.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-ba3de316d63c7e339987b16f41a0b879.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-b1220a3c61f85cc0408deedb4c5f57a2.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-4535823663ad81405188a528d8f2b1a2.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-9eb5a99df4e76ac3363453ac9ca288b1.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-2cf96d082d35ea3d8106851223ad0d16.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-2d43040e86ff03ba677f6f9c04cd0805.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-2a26d20a23b00898ce82f09d2ee47c3f.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-7ab2bed91166a9dca83a5ebfbe2a7f38.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-670ba603758d94268e8606f240a42e12.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-642b26e2e5f5fb780b51b593dbc8c851.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-5572b3513ba8df57a3d5d7303ee6b11b.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-5935a5775af3d5c6307ac667bd9ae74e.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-4ddc14ed3eb0c3e46364317dfc0144a3.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-5330a2119a716e4e7224ed108b085dac.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-3717077e38f98d89eae729b6c14e56dc.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-cfb211578629b7e8153b37240de6a9d5.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-59e9ff77b0efaf684bc09274fb6908c9.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-093b9ef39a46ceae95a1df18a0a3a326.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-a0ca5df4258213d7fc9fce80f65ce760.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-87599f94b6cc129d505b375798d0d751.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-06c77b8c66e51ed6c63ccb502dd8b8af.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-13ae07ed2e272d26d59bc0691cd7117a.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-0facdf1ea213ba40261022f5d5ed4493.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-f8ee5d36068a42b51d0e4a1116cfcec1.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-79d494361ae093b69e74ee9dbe65bfd4.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-74e2263a91439c25b91d5132ce9f4d62.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Xiaolai/Xiaolai-Regular-145aa02cdd91946e67dc934e1acffe75.woff2"
+    },
+    {
+      "candidate": "subsetter+ttf2woff2",
+      "scene": "cjk-paragraph",
+      "file": "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    }
+  ]
+}

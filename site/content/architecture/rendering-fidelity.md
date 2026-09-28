@@ -91,7 +91,7 @@ The document around the elements (ex-406) is split along the display-list bounda
 
 Two differences remain:
 
-- **Font content.** Upstream subsets each face with HarfBuzz in a worker. `excali_svg::FontFiles` inlines the vendored file whole. That draws the same glyphs in a larger document; ex-408 decides whether to subset.
+- **Font content.** Upstream subsets each face with HarfBuzz (harfbuzzjs 0.3.6) in a worker. `excali_svg::FontFiles` subsets it with skera, fontations' port of hb-subset, given upstream's input, and encodes WOFF2 with ttf2woff2 ([ADR-010](../../decisions/adr-010-svg-font-subsetting/)). Measured on upstream's own subsets of 153 faces in 46 scenes (`tools/font-subset-eval`), every character draws with upstream's glyph, advance and shaping, and every run is pixel-identical in Chromium. The font bytes come to 97.6 % of upstream's. They are not upstream's bytes: the subsetter and the brotli encoder differ.
 - **Math.** Rotations use `excali_math::js::{sin, cos}` (fdlibm through `libm`), because V8's `Math.sin`/`Math.cos` and macOS libm differ in the last bit, for example at `sin(4)`.
 
 PNG export: canvas = common bounds + 2 × 10 padding, times `exportScale`; no grid; background optional; scene payload in a `tEXt` chunk.
