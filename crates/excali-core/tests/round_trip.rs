@@ -14,10 +14,19 @@
 //! - header keys `type`, `version`, `source`, `elements`, `appState`, `files`
 //!   in that order: the object literal in `serializeAsJSON`,
 //!   `packages/excalidraw/data/json.ts:58-72`;
-//! - the `appState` keys are exactly the five marked `export: true` in
-//!   `APP_STATE_STORAGE_CONF`, `packages/excalidraw/appState.ts:221-286`
-//!   (gridSize 221, gridStep 222, gridModeEnabled 223, viewBackgroundColor
-//!   273, lockedMultiSelections 286), in that order;
+//! - which `appState` keys are written: exactly the five marked
+//!   `export: true` in `APP_STATE_STORAGE_CONF`,
+//!   `packages/excalidraw/appState.ts:221-286` (gridSize 221, gridStep 222,
+//!   gridModeEnabled 223, viewBackgroundColor 273, lockedMultiSelections
+//!   286). The table decides membership only;
+//! - the order of those keys: `_clearAppStateForStorage` iterates
+//!   `Object.keys(appState)` (`packages/excalidraw/appState.ts:305`), so the
+//!   written order is the insertion order of the appState object passed in.
+//!   For the default state that is `getDefaultAppState`
+//!   (`packages/excalidraw/appState.ts:74-76` gridSize, gridStep,
+//!   gridModeEnabled; 117 viewBackgroundColor; 134 lockedMultiSelections).
+//!   Fixtures built from any other appState must follow that object's key
+//!   order, not the storage-conf table;
 //! - `gridSize` 20 and `gridStep` 5 are `DEFAULT_GRID_SIZE` and
 //!   `DEFAULT_GRID_STEP`, `packages/common/src/constants.ts:293-294`;
 //! - `#ffffff` is `COLOR_PALETTE.white`, `packages/common/src/colors.ts:196`.
