@@ -596,40 +596,217 @@ mod tests {
         );
     }
 
-    /// The known difference (see the module documentation): a host with a
-    /// code point from Unicode 14 to 17 that ada's validity checks let
-    /// through and the crate's UTS 46 rejects. Each `None` here is a URL
-    /// Node 26.10 accepts, with the hostname in the comment.
+    /// Hosts outside ASCII go through ada's IDNA, not the crate's UTS 46:
+    /// ada's validity tables are Unicode 13 (its mapping and normalization
+    /// Unicode 17) and it applies the Bidi rule to each label that is
+    /// right-to-left on its own. So it accepts a label starting with a mark
+    /// from Unicode 14 or later, or mixing `a` with a right-to-left letter
+    /// from then, and rejects a Hebrew letter followed by U+1AD3 (an NSM in
+    /// Unicode 17, unknown to ada's table). Each expectation is Node 26.10.
     #[test]
-    fn non_ascii_hosts_the_crate_rejects_are_not_urls() {
-        // A combining mark starting a label, written directly.
-        assert_eq!(parts("https://\u{1AD3}/"), None); // xn--trf
-        assert_eq!(parts("file://\u{1AD3}/"), None); // xn--trf
-        assert_eq!(parts("https://\u{0C3C}/"), None); // xn--3pc
-        assert_eq!(parts("https://\u{1E6E3}/"), None); // xn--uw5h
-        assert_eq!(parts("https://\u{1AD3}.excalidraw.com/"), None); // xn--trf.excalidraw.com
-        // A right-to-left letter after a left-to-right one.
-        assert_eq!(parts("https://a\u{10D50}/"), None); // xn--a-ho6i
-        assert_eq!(parts("https://a\u{0870}/"), None); // xn--a-fld
+    fn non_ascii_hosts_as_ada_parses_them() {
+        // A combining mark ada does not know starting a label.
+        assert_eq!(parts("https://\u{1AD3}/"), some("xn--trf", "/"));
+        assert_eq!(parts("file://\u{1AD3}/"), some("xn--trf", "/"));
+        assert_eq!(parts("https://\u{0C3C}/"), some("xn--3pc", "/"));
+        assert_eq!(parts("https://\u{1E6E3}/"), some("xn--uw5h", "/"));
+        assert_eq!(
+            parts("https://\u{1AD3}.excalidraw.com/"),
+            some("xn--trf.excalidraw.com", "/")
+        );
+        // A right-to-left letter ada does not know after a left-to-right one.
+        assert_eq!(parts("https://a\u{10D50}/"), some("xn--a-ho6i", "/"));
+        assert_eq!(parts("https://a\u{0870}/"), some("xn--a-fld", "/"));
         // The same through an `xn--` label: the soft hyphen is dropped by
         // the mapping, and the Punycode decodes to U+1AD3 followed by ASCII.
-        assert_eq!(parts("ws:\u{ad}XN--A_xn--LOCALHOSTxn--ls8h"), None); // xn--a_xn--localhostxn--ls8h
-
-        // Controls both accept: the ASCII form of each host, a Unicode 16
-        // letter that is left-to-right, a combining mark after a letter,
-        // and an older mark ada rejects too.
-        assert_eq!(parts("https://xn--trf/"), some("xn--trf", "/"));
-        assert_eq!(parts("https://xn--a-ho6i/"), some("xn--a-ho6i", "/"));
         assert_eq!(
-            parts("https://xn--a_xn--localhostxn--ls8h/"),
+            parts("ws:\u{ad}XN--A_xn--LOCALHOSTxn--ls8h"),
             some("xn--a_xn--localhostxn--ls8h", "/")
         );
+        // A mark ada does not know is not an NSM to it: a right-to-left
+        // label with one is rejected.
+        assert_eq!(parts("https://\u{05D0}\u{1AD3}/"), None);
+        assert_eq!(parts("https://\u{05D0}\u{1AD3}.excalidraw.com/x"), None);
+        assert_eq!(parts("https://\u{05D0}\u{0301}/"), some("xn--lsa15l", "/"));
+        // The Bidi rule for each right-to-left label, not the whole domain.
+        assert_eq!(parts("https://1.\u{05D0}/"), some("1.xn--4db", "/"));
+        assert_eq!(parts("https://1\u{05D0}/"), None);
+        // Marks and letters ada knows.
         assert_eq!(parts("https://a\u{1C8A}/"), some("xn--a-hzl", "/"));
         assert_eq!(parts("https://a\u{1AD3}/"), some("xn--a-e9k", "/"));
         assert_eq!(parts("https://\u{0301}/"), None);
         assert_eq!(parts("https://a\u{05D0}/"), None);
+        // ASCII as written.
+        assert_eq!(parts("https://xn--trf/"), some("xn--trf", "/"));
+        assert_eq!(
+            parts("https://xn--a_xn--localhostxn--ls8h/"),
+            some("xn--a_xn--localhostxn--ls8h", "/")
+        );
         assert_eq!(parts("https://xn--ls8h\u{ad}/"), some("xn--ls8h", "/"));
         assert_eq!(parts("https://xn--zz\u{ad}/"), None);
+        // ada leaves a Hangul LV syllable and a trailing jamo apart.
+        assert_eq!(
+            parts("https://\u{AC00}\u{11A8}/"),
+            some("xn--rud7310f", "/")
+        );
+        assert_eq!(
+            parts("https://\u{1100}\u{1161}\u{11A8}/"),
+            some("xn--p39a", "/")
+        );
+    }
+
+    /// `tests/fixtures/url-hosts.json` (tools/goldens/url-host-fixtures.mjs):
+    /// `new URL` in Node for hosts outside ASCII, case by case, over every
+    /// code point on its own and after `a`, and over seeded random URLs.
+    mod node {
+        use super::parse;
+        use crate::encode::checksum::crc32;
+        use serde_json::Value;
+
+        fn fixture() -> Value {
+            serde_json::from_str(include_str!("../tests/fixtures/url-hosts.json")).unwrap()
+        }
+
+        fn crc_of_lines(lines: &[String]) -> u32 {
+            let mut text = String::new();
+            for line in lines {
+                text.push_str(line);
+                text.push('\n');
+            }
+            crc32(0, text.as_bytes())
+        }
+
+        #[test]
+        fn cases() {
+            let fixture = fixture();
+            let mut wrong = Vec::new();
+            for case in fixture["cases"].as_array().unwrap() {
+                let input = case["input"].as_str().unwrap();
+                let want = if case["error"] == true {
+                    None
+                } else {
+                    Some((
+                        case["hostname"].as_str().unwrap().to_owned(),
+                        case["pathname"].as_str().unwrap().to_owned(),
+                    ))
+                };
+                let got = parse(input).map(|u| (u.hostname().to_owned(), u.pathname().to_owned()));
+                if got != want {
+                    wrong.push(format!("{input:?}: port {got:?}, node {want:?}"));
+                }
+            }
+            assert!(
+                wrong.is_empty(),
+                "{} cases differ:\n{}",
+                wrong.len(),
+                wrong.join("\n")
+            );
+        }
+
+        #[test]
+        fn every_code_point() {
+            let fixture = fixture();
+            let sweep = &fixture["sweep"];
+            let size = sweep["blockSize"].as_u64().unwrap() as u32;
+            let forms: Vec<&str> = sweep["forms"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|f| f.as_str().unwrap())
+                .collect();
+            let mut wrong = Vec::new();
+            for block in sweep["blocks"].as_array().unwrap() {
+                let start = block["start"].as_u64().unwrap() as u32;
+                let mut lines = Vec::new();
+                let mut first = None;
+                for cp in start.max(0x80)..start + size {
+                    let Some(c) = char::from_u32(cp) else {
+                        continue;
+                    };
+                    for form in &forms {
+                        let input = form.replace("{}", &c.to_string());
+                        let line =
+                            parse(&input).map_or("!".to_owned(), |u| u.hostname().to_owned());
+                        first.get_or_insert(cp);
+                        lines.push(line);
+                    }
+                }
+                let crc = crc_of_lines(&lines);
+                if lines.len() as u64 != block["inputs"].as_u64().unwrap()
+                    || u64::from(crc) != block["crc32"].as_u64().unwrap()
+                {
+                    wrong.push(format!("U+{start:04X}.."));
+                }
+            }
+            assert!(
+                wrong.is_empty(),
+                "blocks that differ from Node: {}",
+                wrong.join(" ")
+            );
+        }
+
+        /// `randomInputs` in the generator.
+        fn random_inputs(random: &Value) -> Vec<String> {
+            let strings = |key: &str| -> Vec<String> {
+                random[key]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|t| t.as_str().unwrap().to_owned())
+                    .collect()
+            };
+            let (schemes, tokens) = (strings("schemes"), strings("tokens"));
+            let mut state = random["seed"].as_u64().unwrap();
+            let mut pick = |n: usize| {
+                state = state * 48271 % 2_147_483_647;
+                ((state as f64 / 2_147_483_647.0) * n as f64).floor() as usize
+            };
+            let max = random["maxTokens"].as_u64().unwrap() as usize;
+            (0..random["count"].as_u64().unwrap())
+                .map(|_| {
+                    let n = 1 + pick(max);
+                    let mut s = schemes[pick(schemes.len())].clone();
+                    for _ in 0..n {
+                        s.push_str(&tokens[pick(tokens.len())]);
+                    }
+                    s.push_str("/p");
+                    s
+                })
+                .collect()
+        }
+
+        #[test]
+        fn seeded_random_urls() {
+            let fixture = fixture();
+            let random = &fixture["random"];
+            let inputs = random_inputs(random);
+            let size = random["chunkSize"].as_u64().unwrap() as usize;
+            let chunks = random["chunks"].as_array().unwrap();
+            assert_eq!(chunks.len(), inputs.len().div_ceil(size));
+            let mut accepted = 0;
+            let mut wrong = Vec::new();
+            for (i, (chunk, want)) in inputs.chunks(size).zip(chunks).enumerate() {
+                let lines: Vec<String> = chunk
+                    .iter()
+                    .map(|input| match parse(input) {
+                        Some(u) => {
+                            accepted += 1;
+                            format!("{}\t{}", u.hostname(), u.pathname())
+                        }
+                        None => "!".to_owned(),
+                    })
+                    .collect();
+                if u64::from(crc_of_lines(&lines)) != want.as_u64().unwrap() {
+                    wrong.push(format!("{}..{}", i * size, (i + 1) * size));
+                }
+            }
+            assert!(
+                wrong.is_empty(),
+                "chunks that differ from Node: {}",
+                wrong.join(" ")
+            );
+            assert_eq!(accepted, random["accepted"].as_u64().unwrap());
+        }
     }
 
     #[test]

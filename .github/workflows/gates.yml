@@ -210,7 +210,9 @@ jobs:
   # serializeLibraryAsJSON, mergeLibraryItems and getLibraryItemsHash, and
   # library-url-fixtures.mjs --check for library-url.json, upstream's own
   # validateLibraryUrl, parseLibraryTokensFromUrl, normalizeLink and
-  # toValidURL.
+  # toValidURL, and url-host-fixtures.mjs --check for url-hosts.json, Node's
+  # own new URL (ada's IDNA) on hosts outside ASCII: cases, every code point
+  # and seeded random URLs.
   # Runs on arm64: V8's float results for some shapes differ in the last bits
   # between x64 and arm64, and the committed goldens are the arm64 output
   # (macOS and Linux arm64 agree byte for byte).
@@ -245,3 +247,5 @@ jobs:
         run: node tools/goldens/library-fixtures.mjs --check
       - name: excali-core library URL fixtures match the generator
         run: node tools/goldens/library-url-fixtures.mjs --check
+      - name: excali-core URL host fixtures match Node's new URL (ada IDNA)
+        run: node tools/goldens/url-host-fixtures.mjs --check
