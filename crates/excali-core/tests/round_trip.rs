@@ -6,6 +6,21 @@
 //! on: a file read and written back without edits is byte-identical, key
 //! order included. The typed `Document` round trip replaces the untyped value
 //! here once it exists.
+//!
+//! The fixture was checked against upstream at the pinned commit
+//! 438d89861f53d8a90ad566113ecac1b83761098f (`.tools/upstream`, created by
+//! ex-002):
+//!
+//! - header keys `type`, `version`, `source`, `elements`, `appState`, `files`
+//!   in that order: the object literal in `serializeAsJSON`,
+//!   `packages/excalidraw/data/json.ts:58-72`;
+//! - the `appState` keys are exactly the five marked `export: true` in
+//!   `APP_STATE_STORAGE_CONF`, `packages/excalidraw/appState.ts:221-286`
+//!   (gridSize 221, gridStep 222, gridModeEnabled 223, viewBackgroundColor
+//!   273, lockedMultiSelections 286), in that order;
+//! - `gridSize` 20 and `gridStep` 5 are `DEFAULT_GRID_SIZE` and
+//!   `DEFAULT_GRID_STEP`, `packages/common/src/constants.ts:293-294`;
+//! - `#ffffff` is `COLOR_PALETTE.white`, `packages/common/src/colors.ts:196`.
 
 const EMPTY_SCENE: &str = include_str!("fixtures/empty-scene.excalidraw");
 
