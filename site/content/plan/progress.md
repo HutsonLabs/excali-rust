@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 08:39 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 08:46 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**134 issues** · 24 closed (18%) · 0 in progress · 0 blocked · 109 open
+**134 issues** · 25 closed (19%) · 0 in progress · 0 blocked · 108 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -57,7 +57,7 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 
 ## ex-e2 · Phase 2: Geometry and sketch renderer
 
-<span class="status open">open</span> 4/19 children closed
+<span class="status open">open</span> 5/19 children closed
 
 excali-math, excali-rough (rough.js 4.6.4 semantics), excali-freehand, the display list, and golden tests against upstream output.
 
@@ -75,9 +75,9 @@ excali-math, excali-rough (rough.js 4.6.4 semantics), excali-freehand, the displ
 | `ex-210` | Elbow arrow path from fixed points (radius 16) and validation | task | P1 | <span class="status open">open</span> |  | `ex-209` |
 | `ex-211` | Elbow arrow routing: A* over the non-uniform grid | task | P2 | <span class="status open">open</span> |  | `ex-210` |
 | `ex-212` | Arrowheads: all fourteen kinds with sizes, angles and roughness rules | task | P1 | <span class="status open">open</span> |  | `ex-209` |
-| `ex-213` | excali-freehand: perfect-freehand 1.2.0 port (variable width) | task | P0 | <span class="status open">open</span> | yes |  |
-| `ex-214` | excali-freehand: laser-pointer constant-width variant | task | P2 | <span class="status open">open</span> |  | `ex-213` |
-| `ex-215` | Outline to path string with quadratic midpoints and 2-decimal trimming | task | P1 | <span class="status open">open</span> |  | `ex-213` |
+| `ex-213` | excali-freehand: perfect-freehand 1.2.0 port (variable width) | task | P0 | <span class="status closed">closed</span> |  |  |
+| `ex-214` | excali-freehand: laser-pointer constant-width variant | task | P2 | <span class="status open">open</span> | yes |  |
+| `ex-215` | Outline to path string with quadratic midpoints and 2-decimal trimming | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-216` | Display list type: renderer-independent paths, fills, dashes, images, text runs, clips, opacity | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-217` | Golden harness in CI (cargo test feature `goldens`) | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-218` | Dark-mode colour filter maths (invert 93% hue-rotate 180deg) and reverse | task | P2 | <span class="status open">open</span> | yes |  |
@@ -193,7 +193,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 | `ex-703` | Sticky notes: element, rendering (shadow, edge, footer), label fitting | task | P2 | <span class="status open">open</span> |  | `ex-304`, `ex-402` |
 | `ex-704` | Bucket fill tool | task | P2 | <span class="status open">open</span> |  | `ex-507` |
 | `ex-705` | Lasso selection | task | P2 | <span class="status open">open</span> |  | `ex-507` |
-| `ex-706` | Autoshape (draw-shape) recognition | task | P3 | <span class="status open">open</span> |  | `ex-213` |
+| `ex-706` | Autoshape (draw-shape) recognition | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-707` | Image crop editor | task | P2 | <span class="status open">open</span> |  | `ex-404`, `ex-508` |
 | `ex-708` | Search sidebar (frames and texts) | task | P3 | <span class="status open">open</span> |  | `ex-526` |
 | `ex-709` | Accessibility: focus order, ARIA on controls, reduced motion, RTL mirroring of icons | task | P2 | <span class="status open">open</span> |  | `ex-518` |
