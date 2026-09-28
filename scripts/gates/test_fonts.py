@@ -200,8 +200,9 @@ class CheckTreeTest(unittest.TestCase):
         self.assertEqual(fonts.check_tree(self.root, GOOD_ADR), [])
 
     def test_all_font_extensions_are_scanned(self):
-        for ext in (".woff2", ".woff", ".ttf", ".otf", ".TTF"):
-            write(self.root / f"f/Unknown/a{ext}", b"\x00")
+        # distinct stems: macOS file systems are case-insensitive
+        for i, ext in enumerate((".woff2", ".woff", ".ttf", ".otf", ".TTF")):
+            write(self.root / f"f/Unknown/a{i}{ext}", b"\x00")
         errs = fonts.check_tree(self.root, GOOD_ADR)
         self.assertEqual(len(errs), 5, errs)
 
