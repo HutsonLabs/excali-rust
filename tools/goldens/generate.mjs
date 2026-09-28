@@ -239,8 +239,12 @@ const fractionalIndexCase = (up) => (c) => {
       if (!!threw !== logged.length > 0) throw new Error(`${c.id}: log and throw disagree`);
       return { ...rest, messages: logged.length ? logged[0].split("\n\n") : [] };
     }
-    case "orderByFractionalIndex":
-      return { ...rest, order: up.orderByFractionalIndex(elements()).map((e) => e.id) };
+    case "orderByFractionalIndex": {
+      // the order as positions in the input, so equal ids stay distinguishable
+      const list = elements();
+      const position = new Map(list.map((e, i) => [e, i]));
+      return { ...rest, order: up.orderByFractionalIndex(list).map((e) => position.get(e)) };
+    }
     default:
       throw new Error(`unknown fractional-index case ${c.fn}`);
   }

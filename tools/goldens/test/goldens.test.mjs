@@ -456,5 +456,8 @@ test("fractional-index goldens cover the upstream test's scenarios and every out
   const messages = cs.filter((c) => c.fn === "validateFractionalIndices").flatMap((c) => c.messages);
   assert.ok(messages.some((m) => m.startsWith("Fractional indices invariant has been compromised")));
   assert.ok(messages.some((m) => m.startsWith("Fractional indices invariant for bound elements")));
-  assert.ok(cs.filter((c) => c.fn === "orderByFractionalIndex").length >= 50);
+  const orders = cs.filter((c) => c.fn === "orderByFractionalIndex");
+  assert.ok(orders.length >= 120);
+  assert.ok(orders.some((c) => c.elements.length > 64 && c.elements.some((e) => !e.index)));
+  for (const c of orders) assert.deepEqual([...c.order].sort((a, b) => a - b), c.elements.map((_, i) => i), c.id);
 });

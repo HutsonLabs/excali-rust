@@ -467,7 +467,7 @@ fn should_fallback_when_trying_to_generate_an_index_in_between_duplicate_indices
 // Beyond the upstream test file
 
 #[test]
-fn order_by_fractional_index_sorts_by_index_then_id_and_keeps_unindexed_in_place() {
+fn order_by_fractional_index_sorts_by_index_then_id_as_v8_does() {
     use excali_core::fractional_index::order_by_fractional_index;
     let ids =
         |list: &[Element]| -> Vec<String> { list.iter().map(|e| e.base.id.clone()).collect() };
@@ -482,7 +482,8 @@ fn order_by_fractional_index_sorts_by_index_then_id_and_keeps_unindexed_in_place
     order_by_fractional_index(&mut list);
     assert_eq!(ids(&list), ["c", "B", "a", "b"]);
 
-    // elements without an index (null or "") keep their positions
+    // with an element without an index (null or "") the comparator answers
+    // 1 both ways; the order is what V8's TimSort leaves (checked in node)
     let mut list = elements(&[
         ("x", Some("a3")),
         ("n", None),
@@ -491,7 +492,7 @@ fn order_by_fractional_index_sorts_by_index_then_id_and_keeps_unindexed_in_place
         ("z", Some("a2")),
     ]);
     order_by_fractional_index(&mut list);
-    assert_eq!(ids(&list), ["y", "n", "z", "e", "x"]);
+    assert_eq!(ids(&list), ["x", "n", "y", "e", "z"]);
 }
 
 #[test]

@@ -258,10 +258,21 @@ fn fractional_index_matches_upstream() {
                 counts[1] += 1;
             }
             "orderByFractionalIndex" => {
+                // tag each element with its input position (the sort never
+                // reads `seed`), so equal ids stay distinguishable
                 let mut ordered = input.clone();
+                for (i, e) in ordered.iter_mut().enumerate() {
+                    e.base.seed = i as f64;
+                }
                 order_by_fractional_index(&mut ordered);
-                let ids: Vec<String> = ordered.iter().map(|e| e.base.id.clone()).collect();
-                assert_eq!(ids, str_list(&case["order"]), "{id}");
+                let got: Vec<u64> = ordered.iter().map(|e| e.base.seed as u64).collect();
+                let want: Vec<u64> = case["order"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|v| v.as_u64().unwrap())
+                    .collect();
+                assert_eq!(got, want, "{id}");
                 counts[2] += 1;
             }
             other => panic!("unknown case kind {other}"),
@@ -271,5 +282,5 @@ fn fractional_index_matches_upstream() {
     assert_eq!(counts[3], cases.len());
     assert!(counts[0] >= 800, "sync cases {}", counts[0]);
     assert!(counts[1] >= 40, "validate cases {}", counts[1]);
-    assert!(counts[2] >= 50, "order cases {}", counts[2]);
+    assert!(counts[2] >= 120, "order cases {}", counts[2]);
 }

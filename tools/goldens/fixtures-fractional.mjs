@@ -252,16 +252,27 @@ export const fractionalIndexCases = () => {
     }
   });
 
-  // orderByFractionalIndex over fully indexed lists with unique ids (its
-  // comparator is a consistent order only when every element has an index)
+  // orderByFractionalIndex. Fully indexed lists with unique ids first (the
+  // comparator is then a consistent order), then lists with elements
+  // without an index (null or ""), where the comparator answers 1 both ways
+  // and the result is V8's TimSort's own. Sizes above 64 reach TimSort's
+  // run merging and galloping.
   const orderPool = ["a0", "a1", "a1", "a2", "a0V", "Zz", "a01", "b00", "a1V", "a1"];
-  for (let c = 0; c < 60; c++) {
-    const size = 1 + Math.floor(rand() * (c < 50 ? 12 : 120));
+  const mixedPool = [...orderPool, null, null, ""];
+  for (let c = 0; c < 120; c++) {
+    const pool = c < 60 ? orderPool : mixedPool;
+    const size = 1 + Math.floor(rand() * (c % 60 < 45 ? 12 : 300));
     const elements = Array.from({ length: size }, (_, i) => ({
       id: `${pick(["x", "y", "a", "B"])}${i}`,
-      index: pick(orderPool),
+      index: pick(pool),
     }));
     cases.push({ id: `order-${c}`, fn: "orderByFractionalIndex", elements });
   }
+  // duplicate ids: equal index and id compare as 1 both ways as well
+  cases.push({
+    id: "order-duplicate-ids",
+    fn: "orderByFractionalIndex",
+    elements: Array.from({ length: 80 }, (_, i) => ({ id: `d${i % 3}`, index: pick(orderPool) })),
+  });
   return cases;
 };
