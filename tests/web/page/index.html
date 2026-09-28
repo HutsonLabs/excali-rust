@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>excali-wasm web runtime</title>
+</head>
+<body>
+<script type="module">
+  import init, * as excali from "/excali_editor.js";
+  await init();
+  window.excali = excali;
+  window.excaliReady = true;
+</script>
+</body>
+</html>
