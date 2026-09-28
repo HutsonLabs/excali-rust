@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 11:28 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 11:55 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**135 issues** · 36 closed (27%) · 0 in progress · 0 blocked · 98 open
+**136 issues** · 36 closed (26%) · 0 in progress · 0 blocked · 99 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -31,7 +31,7 @@ Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo work
 
 ## ex-e1 · Phase 1: Core model and file format (excali-core)
 
-<span class="status open">open</span> 15/18 children closed
+<span class="status open">open</span> 15/19 children closed
 
 Element types, serde with unknown-field preservation, restore/migration rules, AppState, fractional indexing, library formats, payload codecs, conformance corpus.
 
@@ -54,7 +54,8 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 | `ex-115` | JSON Schema generation for .excalidraw and .excalidrawlib (schemars) | task | P3 | <span class="status closed">closed</span> |  |  |
 | `ex-116` | Restore: legacy arrow binding migration (bindings without mode) through RestoreEnv::migrate_legacy_binding | task | P0 | <span class="status open">open</span> |  | `ex-507`, `ex-510` |
 | `ex-117` | Typed element model: keep field values of a type the model has no form for (string strokeWidth) as upstream's restore does | task | P0 | <span class="status open">open</span> | yes |  |
-| `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-116`, `ex-117` |
+| `ex-g101` | D1 conformance: upstream diagramFixture document round-trips through Document and restore against an upstream golden | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-116`, `ex-117`, `ex-g101` |
 
 ## ex-e2 · Phase 2: Geometry and sketch renderer
 

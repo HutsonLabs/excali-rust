@@ -637,6 +637,29 @@
    "labels": []
   },
   {
+   "id": "ex-g101",
+   "epic": "ex-e1",
+   "title": "D1 conformance: upstream diagramFixture document round-trips through Document and restore against an upstream golden",
+   "priority": 1,
+   "blocked_by": [
+    "ex-102",
+    "ex-105",
+    "ex-106"
+   ],
+   "crates": [
+    "excali-core"
+   ],
+   "acceptance": "tools/goldens writes upstream's JSON for diagramFixture (tests/fixtures/diagramFixture.ts) as serializeAsJSON(restore(diagramFixture)) and the result of reloading that output, checked by a --check step in the goldens CI job; a new excali-core test reads the document with Document::from_json, restores it with restore_elements and restore_app_state, writes it and re-parses it, and asserts both writes equal upstream's bytes and the re-parsed element set equals the first, with an unknown element key and an unknown top-level key added to the input surviving both writes. The same test lists every file under fixtures/upstream/packages/excalidraw/tests/fixtures and fails if a scene-bearing file (.excalidrawlib, *_embedded_*.png/.svg, diagramFixture.ts, elementFixture.ts) has no round-trip case, so D1's 'every fixture' is checked by one test.",
+   "evidence": [
+    "packages/excalidraw/tests/fixtures/diagramFixture.ts (diagramFixture: a full .excalidraw document of diamondFixture, ellipseFixture, rectangleFixture with appState and files) at the pinned commit",
+    "M1 check 2026-09-28: grep for diagramFixture over crates/*/tests and tools/goldens finds no test; elementFixture elements round-trip one by one in crates/excali-core/tests/element_model.rs (generic_fixtures_round_trip), fixture_library in crates/excali-core/tests/library.rs (serialized_library_parses_back_to_the_same_items), embedded PNG/SVG scenes in png_payload.rs and svg_payload.rs, but no document-level round trip of the upstream diagram fixture exists",
+    "site/content/plan/overview.md D1: every fixture in upstream's test suite parses, re-serialises and re-parses to an identical element set; unknown fields survive"
+   ],
+   "description": "M1 check of 2026-09-28: every scene-bearing upstream fixture except diagramFixture has a round-trip test, and none of them is checked as a set. Add the document-level case and a single test that proves D1's fixture half.",
+   "type": "task",
+   "labels": []
+  },
+  {
    "id": "ex-201",
    "epic": "ex-e2",
    "title": "excali-math: points, vectors, segments, angles, ranges, rectangles, polygons",
