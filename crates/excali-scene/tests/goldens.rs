@@ -8,6 +8,11 @@
 //! shape, set and op index, and the expected and actual numbers
 //! (`excali_rough::goldens`).
 //!
+//! Lines and arrows (ex-209): every case of `goldens/elements-line.json`
+//! whole (linearPath, filled polygon loops and curves), and the body
+//! (`shapes[0]`) of every arrow in `elements-{arrow,arrowheads}.json`; the
+//! arrowheads after it are ex-212's.
+//!
 //! Ellipse points go through `Math.cos` and `Math.sin`, which differ in the
 //! last bit between platforms (see `crates/excali-rough/tests/goldens.rs`),
 //! so ellipses are compared within `PLATFORM_TOLERANCE`; everything else,
@@ -18,9 +23,9 @@ use std::path::Path;
 
 use excali_core::element::Element;
 use excali_rough::goldens::{ActualShape, Report, Tolerance, PLATFORM_TOLERANCE};
-use excali_rough::RoughGenerator;
+use excali_rough::{Drawable, RoughGenerator};
 use excali_scene::rough_options::generate_rough_options;
-use excali_scene::shape::{generate_element_shape, RenderConfig, Theme};
+use excali_scene::shape::{generate_element_shape, generate_linear_shape, RenderConfig, Theme};
 use serde_json::Value;
 
 fn load(name: &str) -> Value {
@@ -174,4 +179,82 @@ fn stroke_styles_match_upstream_from_element_to_ops() {
         report.drawable(c, &c["drawable"], &drawable, tolerance);
     }
     assert_eq!(report.assert_ok(), 630);
+}
+
+// ---------------------------------------------------------------------------
+// Lines and arrows (ex-209)
+
+/// The line or arrow body of a golden case from the port's
+/// `generate_linear_shape`, under the case's render config.
+fn linear_body(c: &Value) -> Drawable {
+    let id = c["id"].as_str().expect("id");
+    let raw = c["element"].as_object().expect("element").clone();
+    let el = Element::from_map(raw).unwrap_or_else(|e| panic!("{id}: {e}"));
+    let (is_exporting, background, embeds, theme) = render_config(&c["renderConfig"]);
+    let config = RenderConfig {
+        is_exporting,
+        canvas_background_color: &background,
+        embeds_validation_status: Some(&embeds),
+        theme,
+    };
+    generate_linear_shape(&el, &RoughGenerator::new(), &config)
+        .unwrap_or_else(|e| panic!("{id}: {e}"))
+}
+
+#[test]
+fn lines_match_upstream() {
+    // linearPath, filled polygon loops, curves (open and filled), polygon
+    // lines, seeds x roughness, stroke styles, one point: a line's shapes
+    // are its body alone, so every shape of every case is compared
+    let file = "elements-line.json";
+    let doc = load(file);
+    let mut report = Report::new(file);
+    let mut seen = HashMap::<&str, usize>::new();
+    for c in doc["cases"].as_array().expect("cases") {
+        assert_eq!(c["element"]["type"], "line");
+        let body = linear_body(c);
+        *seen.entry(body.shape.as_str()).or_default() += 1;
+        report.element(c, &[ActualShape::Rough(&body)], Tolerance::Exact);
+    }
+    assert_eq!(report.assert_ok(), 42);
+    assert_eq!(seen["linearPath"], 21);
+    assert_eq!(seen["polygon"], 6);
+    assert_eq!(seen["curve"], 15);
+}
+
+/// Compares the body (`shapes[0]`: "curve is always the first element") of
+/// every arrow in `file`; the arrowheads after it are ex-212's. Returns how
+/// many ran and how many bodies of each rough.js shape there were.
+fn check_arrow_bodies(file: &str) -> (usize, HashMap<&'static str, usize>) {
+    let doc = load(file);
+    let mut report = Report::new(file);
+    let mut seen = HashMap::new();
+    for c in doc["cases"].as_array().expect("cases") {
+        assert_eq!(c["element"]["type"], "arrow");
+        assert_ne!(c["element"]["elbowed"], true);
+        let body = linear_body(c);
+        *seen.entry(body.shape.as_str()).or_default() += 1;
+        let expected = &c["shapes"][0];
+        assert_eq!(expected["type"], "rough");
+        report.drawable(c, &expected["drawable"], &body, Tolerance::Exact);
+    }
+    (report.assert_ok(), seen)
+}
+
+#[test]
+fn arrow_bodies_match_upstream() {
+    let (ran, seen) = check_arrow_bodies("elements-arrow.json");
+    assert_eq!(ran, 34);
+    assert_eq!(seen["linearPath"], 24);
+    assert_eq!(seen["curve"], 10);
+}
+
+#[test]
+fn arrowhead_case_bodies_match_upstream() {
+    // every head kind at both ends, widths 1/2/4, curved, dashed, dotted,
+    // short: the bodies under the heads
+    let (ran, seen) = check_arrow_bodies("elements-arrowheads.json");
+    assert_eq!(ran, 160);
+    assert_eq!(seen.values().sum::<usize>(), 160);
+    assert!(seen["curve"] > 0 && seen["linearPath"] > 0);
 }
