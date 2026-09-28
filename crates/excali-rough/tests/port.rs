@@ -29,7 +29,10 @@ mod random {
         // bin/math.js: ((2 ** 31 - 1) & (seed = Math.imul(48271, seed))) / 2 ** 31
         let mut r = Random::new(1);
         assert_eq!(r.next(), 48271.0 / 2_147_483_648.0);
-        assert_eq!(r.next(), f64::from(48271i32.wrapping_mul(48271) & 0x7fff_ffff) / 2_147_483_648.0);
+        assert_eq!(
+            r.next(),
+            f64::from(48271i32.wrapping_mul(48271) & 0x7fff_ffff) / 2_147_483_648.0
+        );
     }
 
     #[test]
@@ -136,14 +139,19 @@ mod generator {
         let g = RoughGenerator::new();
         let o = seeded(1);
         let pts = [[0.0, 0.0], [10.0, 10.0], [20.0, 0.0]];
-        assert_eq!(g.rectangle(0.0, 0.0, 1.0, 1.0, &o).shape.as_str(), "rectangle");
+        assert_eq!(
+            g.rectangle(0.0, 0.0, 1.0, 1.0, &o).shape.as_str(),
+            "rectangle"
+        );
         assert_eq!(g.ellipse(0.0, 0.0, 1.0, 1.0, &o).shape.as_str(), "ellipse");
         assert_eq!(g.circle(0.0, 0.0, 1.0, &o).shape.as_str(), "circle");
         assert_eq!(g.linear_path(&pts, &o).shape.as_str(), "linearPath");
         assert_eq!(g.polygon(&pts, &o).shape.as_str(), "polygon");
         assert_eq!(g.curve(&pts, &o).shape.as_str(), "curve");
         assert_eq!(
-            g.arc(0.0, 0.0, 1.0, 1.0, 0.0, 1.0, false, &o).shape.as_str(),
+            g.arc(0.0, 0.0, 1.0, 1.0, 0.0, 1.0, false, &o)
+                .shape
+                .as_str(),
             "arc"
         );
         assert_eq!(g.path("M0 0L1 1", &o).unwrap().shape.as_str(), "path");
@@ -191,7 +199,10 @@ mod generator {
         assert_eq!(g.path("M 0 0 x 5", &o), Err(PathError::InvalidData));
         // rough.js loops forever here (Z takes no parameters, so the number
         // is never consumed); the port reports it.
-        assert_eq!(g.path("M 0 0 L 5 5 Z 5", &o), Err(PathError::ParamAfterClose));
+        assert_eq!(
+            g.path("M 0 0 L 5 5 Z 5", &o),
+            Err(PathError::ParamAfterClose)
+        );
         assert!(!PathError::EndedShort.to_string().is_empty());
     }
 
@@ -250,7 +261,10 @@ mod path_data {
 
     #[test]
     fn absolutize_resolves_relative_commands() {
-        let abs = absolutize(&parse_path("M 10 10 l 5 5 h 5 v -5 c 1 1 2 2 3 3 z m 1 1 a 1 1 0 0 1 2 2 t 1 1").unwrap());
+        let abs = absolutize(
+            &parse_path("M 10 10 l 5 5 h 5 v -5 c 1 1 2 2 3 3 z m 1 1 a 1 1 0 0 1 2 2 t 1 1")
+                .unwrap(),
+        );
         assert_eq!(
             abs,
             vec![
@@ -276,7 +290,20 @@ mod path_data {
         assert_eq!(n[1], seg('L', &[3.0, 0.0]));
         assert_eq!(n[2], seg('L', &[3.0, 3.0]));
         // Q -> C: control points at 2/3 towards the quadratic control point
-        assert_eq!(n[3], seg('C', &[3.0 + 2.0 * 3.0 / 3.0, 3.0 + 2.0 * 3.0 / 3.0, 9.0 + 2.0 * (6.0 - 9.0) / 3.0, 3.0 + 2.0 * 3.0 / 3.0, 9.0, 3.0]));
+        assert_eq!(
+            n[3],
+            seg(
+                'C',
+                &[
+                    3.0 + 2.0 * 3.0 / 3.0,
+                    3.0 + 2.0 * 3.0 / 3.0,
+                    9.0 + 2.0 * (6.0 - 9.0) / 3.0,
+                    3.0 + 2.0 * 3.0 / 3.0,
+                    9.0,
+                    3.0
+                ]
+            )
+        );
         // zero radius arc -> a straight cubic
         assert_eq!(n[6], seg('C', &[18.0, 3.0, 20.0, 20.0, 20.0, 20.0]));
         assert_eq!(n[7], seg('Z', &[]));
@@ -315,8 +342,18 @@ mod points {
 
     #[test]
     fn simplify_is_ramer_douglas_peucker() {
-        let pts = [[0.0, 0.0], [1.0, 0.1], [2.0, -0.1], [3.0, 5.0], [4.0, 6.0], [5.0, 7.0]];
-        assert_eq!(simplify(&pts, 0.5), vec![[0.0, 0.0], [2.0, -0.1], [3.0, 5.0], [5.0, 7.0]]);
+        let pts = [
+            [0.0, 0.0],
+            [1.0, 0.1],
+            [2.0, -0.1],
+            [3.0, 5.0],
+            [4.0, 6.0],
+            [5.0, 7.0],
+        ];
+        assert_eq!(
+            simplify(&pts, 0.5),
+            vec![[0.0, 0.0], [2.0, -0.1], [3.0, 5.0], [5.0, 7.0]]
+        );
     }
 
     #[test]

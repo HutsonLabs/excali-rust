@@ -86,9 +86,7 @@ fn options(v: &Value) -> Option<Options> {
             "dashOffset" => o.dash_offset = f(v),
             "dashGap" => o.dash_gap = f(v),
             "zigzagOffset" => o.zigzag_offset = f(v),
-            "seed" => {
-                o.seed = i32::try_from(v.as_i64().expect("integer seed")).expect("i32 seed")
-            }
+            "seed" => o.seed = i32::try_from(v.as_i64().expect("integer seed")).expect("i32 seed"),
             "strokeLineDash" => o.stroke_line_dash = Some(numbers(v)),
             "strokeLineDashOffset" => o.stroke_line_dash_offset = Some(f(v)),
             "fillLineDash" => o.fill_line_dash = Some(numbers(v)),
