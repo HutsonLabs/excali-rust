@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-204 · excali-rough: fill styles hachure, cross-hatch, zigzag, solid
+
+`excali-rough` now draws the rough.js fill styles: solid, hachure, cross-hatch, zigzag, dashed, zigzag-line and dots. Every generator shape uses the hachure-fill 0.5.2 scan lines. Upstream rotates each polygon in place, so a repeated vertex turns once for each time it appears, and the port does the same. Solid, hachure, cross-hatch and zigzag fills match the upstream goldens bit for bit, with fillWeight = strokeWidth/2 and hachureGap = strokeWidth*4. PR: [#28](https://github.com/HutsonLabs/excali-rust/pull/28).
+
 ## 2026-09-28 · ex-207 · Option mapping: generateRoughOptions and adjustRoughness with all constants
 
 `excali-scene` now maps an element to rough.js options as upstream's `generateRoughOptions` and `adjustRoughness` do. That covers seeds, stroke dash and dot patterns, fill styles, the roughness reduction for small shapes and the keep-roughness cases, `isPathALoop` fills for closed lines, and dark-mode colours through `applyDarkModeFilter` in `excali-core`. The port matches goldens generated from upstream's own functions, and CI checks those goldens. PR: [#27](https://github.com/HutsonLabs/excali-rust/pull/27).
