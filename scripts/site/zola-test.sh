@@ -39,11 +39,12 @@ sha256_of() {
 
 # A PATH holding only the tools zola.sh needs, so the tests control which
 # sha256 implementation is visible and no system zola short-circuits ensure.
+# GNU tar (Linux) runs gzip as a separate program, so it must be listed.
 # $1 = dir, $2 = which sha tools to expose: "sha256sum", "shasum", "both", "none"
 make_path() {
   local dir="$1" which="$2" t p
   mkdir -p "$dir"
-  for t in git uname curl tar mkdir mv rm grep cat dirname env chmod mktemp cut tr head sed awk printf; do
+  for t in git uname curl tar gzip mkdir mv rm grep cat dirname env chmod mktemp cut tr head sed awk printf; do
     p="$(command -v "$t" 2>/dev/null)" || continue
     case "$p" in /*) ln -sf "$p" "$dir/$t" ;; esac
   done
