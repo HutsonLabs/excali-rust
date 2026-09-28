@@ -358,6 +358,38 @@ class OwnerDecisionsOnTheSite(unittest.TestCase):
         self.assertIn("ex-306", text.split("**Status.**", 1)[1].split("\n", 1)[0])
         self.assertIn("scripts/gates/fonts.py", text)
 
+    def test_adr_008_exceptions_hold_their_milestones(self):
+        # Every tracked exception names a task and the milestone it holds;
+        # the seeded milestone must be blocked by that task, and the task
+        # may not be deferred (validate() would then refuse the plan).
+        text = (CONTENT / "decisions" / "adr-008-crate-boundaries.md").read_text()
+        table = text.split("## Tracked exceptions", 1)[1]
+        r = rows()
+        found = 0
+        for line in table.splitlines():
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if len(cells) != 4 or not cells[2].startswith("ex-"):
+                continue
+            found += 1
+            task, holds = cells[2], cells[3]
+            milestone = holds.split("(", 1)[1].rstrip(")")
+            self.assertIn(task, blockers(r[milestone]), line)
+            self.assertNotIn(task, seed.deferred_ids(PLAN), line)
+        self.assertGreater(found, 0)
+
+    def test_ex_511_carries_the_arrow_label_refit(self):
+        # ADR-008 moves the arrow-label refit of ex-304 (TextEnv without an
+        # ArrowLabelGeometry) to ex-511; its acceptance must require it and
+        # M5 must wait on it explicitly.
+        acceptance = item("ex-511")["acceptance"]
+        self.assertIn("ArrowLabelGeometry", acceptance)
+        self.assertIn("refreshTextDimensions", acceptance)
+        self.assertIn("tools/goldens/lib/restore-elements-cases.mjs", acceptance)
+        self.assertIn("ex-511", item("ex-m5").get("blocked_by", []))
+        # One edge, however many ways the plan asks for it.
+        deps = [d["depends_on_id"] for d in rows()["ex-m5"]["dependencies"]]
+        self.assertEqual(deps.count("ex-511"), 1)
+
     def test_adr_009_exists(self):
         self.assertTrue((CONTENT / "decisions" / "adr-009-calendar-versioning.md").exists())
 
