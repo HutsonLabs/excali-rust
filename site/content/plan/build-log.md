@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-201 · excali-math: points, vectors, segments, angles, ranges, rectangles, polygons
+
+The `excali-math` crate now covers `packages/math/src` function for function, except `curve.ts` and `pca.ts` (ex-202): points, vectors, segments, lines, angles, ranges, rectangles, triangles, ellipses and polygons, with the upstream math tests ported and parity against `goldens/math.json`. JS number semantics are kept, including a line-by-line port of V8's TimSort, so `convexHull` on points with NaN or infinite coordinates matches upstream bit for bit (checked against `goldens/js-sort.json`, generated from real V8). PR: [#16](https://github.com/HutsonLabs/excali-rust/pull/16).
+
 ## 2026-09-28 · ex-m0 · Milestone check: M0 reached
 
 The M0 acceptance check was rerun end to end on deddc2d and all four criteria pass. **Pages:** the pages workflow for deddc2d built, deployed and passed its post-deploy smoke ([run](https://github.com/HutsonLabs/excali-rust/actions/runs/36388405351)), and the site returns HTTP 200. **Bootstrap:** `scripts/bootstrap.sh` under `/bin/bash` 3.2 in a fresh clone on macOS arm64 completed, and the `bootstrap-and-site` job passed on ubuntu and macOS. **Attribution:** the `attribution` job of the gates run for deddc2d ran the 11 planted-violation cases of `scripts/gates/test_attribution.py`, and every one was rejected with exit 1 while the clean control passed ([run](https://github.com/HutsonLabs/excali-rust/actions/runs/36388405346)). **Workspace:** fmt, clippy `-D warnings` and `cargo test --workspace --locked` pass (50 tests, 0 failed, 0 ignored), and so do the workspace, version and wasm32 gates ([run](https://github.com/HutsonLabs/excali-rust/actions/runs/36388405357)). The Playwright smoke suite (140), the corpus checks and the goldens `--check` are green. No gap tasks. PR: see the ex-m0 milestone PR.
