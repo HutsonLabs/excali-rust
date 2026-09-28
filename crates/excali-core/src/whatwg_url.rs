@@ -70,6 +70,23 @@ impl JsUrl {
     pub(crate) fn fragment(&self) -> Option<&str> {
         self.url.fragment()
     }
+
+    /// `url.host`: the hostname, and `:port` when the URL has a port other
+    /// than its scheme's default.
+    pub(crate) fn host(&self) -> String {
+        match self.url.port() {
+            Some(port) => format!("{}:{port}", self.hostname),
+            None => self.hostname.clone(),
+        }
+    }
+
+    /// `url.searchParams.has(name)`: whether a name of the query, read as
+    /// `application/x-www-form-urlencoded`, is `name`.
+    pub(crate) fn search_params_has(&self, name: &str) -> bool {
+        self.url
+            .query()
+            .is_some_and(|q| url::form_urlencoded::parse(q.as_bytes()).any(|(key, _)| key == name))
+    }
 }
 
 /// `new URL(input)`: `None` where it throws `TypeError: Invalid URL`.

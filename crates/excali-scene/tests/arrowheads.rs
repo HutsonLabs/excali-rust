@@ -31,7 +31,8 @@ use excali_scene::bounds::{
     ArrowheadPosition, InvalidArrowheadOp,
 };
 use excali_scene::shape::{
-    generate_linear_element_shapes, generate_linear_shape, RenderConfig, ShapeError, Theme,
+    generate_elbow_arrow_shape, generate_linear_element_shapes, generate_linear_shape,
+    RenderConfig, ShapeError, Theme,
 };
 
 // ---------------------------------------------------------------------------
@@ -392,13 +393,28 @@ fn lines_never_get_heads() {
 }
 
 #[test]
-fn elbow_arrows_and_other_types_are_rejected() {
+fn elbow_arrows_get_their_path_and_heads() {
+    // an elbow arrow's body is its rounded path (generate_elbow_arrow_shape)
+    // and its heads follow as for any arrow (shape.ts:900-975); the goldens
+    // of elements-elbow-arrow.json hold every shape (tests/goldens.rs)
     let mut el = arrow_with(&STRAIGHT, None, Some(Arrowhead::Arrow));
     if let ElementKind::Arrow(a) = &mut el.kind {
         a.elbowed = true;
     }
+    let generator = RoughGenerator::new();
+    let config = RenderConfig::default();
+    let shapes = generate_linear_element_shapes(&el, &generator, &config).unwrap();
+    assert_eq!(shapes.len(), 3);
     assert_eq!(
-        generate_linear_element_shapes(&el, &RoughGenerator::new(), &RenderConfig::default()),
+        Some(&shapes[0]),
+        generate_elbow_arrow_shape(&el, &generator, &config)
+            .unwrap()
+            .as_ref()
+    );
+    assert!(shapes[1..].iter().all(|s| s.shape == Shape::Line));
+    // generate_linear_shape still builds only polylines and curves
+    assert_eq!(
+        generate_linear_shape(&el, &generator, &config),
         Err(ShapeError::ElbowArrow)
     );
 }

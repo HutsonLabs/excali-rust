@@ -16,6 +16,9 @@
 //!   the element entry points `getFreedrawOutlinePoints` /
 //!   `getFreeDrawSvgPath` (perfect-freehand for variable width, the laser
 //!   pointer for constant width).
+//! - [`static_scene`]: `renderStaticScene`, the canvas's background, grid
+//!   and elements in upstream's order as a display list, drawing each
+//!   element with [`render_element`] (`renderElement`).
 //! - [`rough_canvas`]: roughjs's `RoughCanvas.draw`, producing display items.
 //! - [`rough_options`]: `generateRoughOptions` and `adjustRoughness`.
 //! - [`shape`]: the rough.js shapes of boxes, lines and arrows, and a
@@ -35,7 +38,9 @@ pub mod export;
 pub mod freedraw;
 pub mod heading;
 pub mod linear_element;
+pub mod render_element;
 pub mod rough_canvas;
 pub mod rough_options;
 pub mod shape;
+pub mod static_scene;
 pub mod utils;
