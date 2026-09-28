@@ -26,11 +26,11 @@ use std::sync::OnceLock;
 use base64::Engine as _;
 use excali_core::constants::MIME_TYPE_EXCALIDRAW;
 use excali_core::document::Document;
-use excali_core::element::ElementKind;
+use excali_core::element::{Element, ElementBase, ElementKind, FontFamily, TextFields};
 use excali_core::encode::encode;
 use excali_core::png::{
-    decode_png_metadata, decode_text_chunk, encode_chunks, encode_png_metadata,
-    encode_text_chunk, extract_chunks, get_text_chunk, Chunk, DecodePngMetadataError, PngError,
+    decode_png_metadata, decode_text_chunk, encode_chunks, encode_png_metadata, encode_text_chunk,
+    extract_chunks, get_text_chunk, Chunk, DecodePngMetadataError, PngError,
 };
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -131,8 +131,16 @@ fn check_string(label: &str, got: &str, golden: &Value) {
     }
     let units: Vec<u16> = got.encode_utf16().collect();
     let le: Vec<u8> = units.iter().flat_map(|u| u.to_le_bytes()).collect();
-    assert_eq!(units.len() as u64, golden["len"].as_u64().unwrap(), "{label}: UTF-16 length");
-    assert_eq!(sha256_hex(&le), golden["sha256"].as_str().unwrap(), "{label}: sha256");
+    assert_eq!(
+        units.len() as u64,
+        golden["len"].as_u64().unwrap(),
+        "{label}: UTF-16 length"
+    );
+    assert_eq!(
+        sha256_hex(&le),
+        golden["sha256"].as_str().unwrap(),
+        "{label}: sha256"
+    );
 }
 
 fn check_bytes(label: &str, got: &[u8], golden: &Value) {
@@ -142,8 +150,16 @@ fn check_bytes(label: &str, got: &[u8], golden: &Value) {
             .unwrap();
         assert_eq!(got, &want[..], "{label}");
     }
-    assert_eq!(got.len() as u64, golden["len"].as_u64().unwrap(), "{label}: length");
-    assert_eq!(sha256_hex(got), golden["sha256"].as_str().unwrap(), "{label}: sha256");
+    assert_eq!(
+        got.len() as u64,
+        golden["len"].as_u64().unwrap(),
+        "{label}: length"
+    );
+    assert_eq!(
+        sha256_hex(got),
+        golden["sha256"].as_str().unwrap(),
+        "{label}: sha256"
+    );
 }
 
 /// `decodePngMetadata`'s outcome against `{ok}`, `{undefined}` or `{error}`.
@@ -162,7 +178,27 @@ fn check_decoded(
     }
 }
 
+/// `(type, text)` of each element of a decoded scene, read as upstream's
+/// `expect.objectContaining({ type, text })` does. The fixtures predate
+/// fields the typed model requires (`updated`, `index`), which upstream's
+/// restore fills in on load; restore (ex-103, ex-104) is not part of this
+/// task, so the scene is read as JSON.
 fn scene_elements(text: &str) -> Vec<(String, String)> {
+    let scene: Value = serde_json::from_str(text).expect("the payload is JSON");
+    assert_eq!(scene["type"], "excalidraw");
+    scene["elements"]
+        .as_array()
+        .expect("elements")
+        .iter()
+        .map(|e| {
+            let field = |k: &str| e[k].as_str().unwrap_or_default().to_owned();
+            (field("type"), field("text"))
+        })
+        .collect()
+}
+
+/// `(type, text)` of each element of a scene read by the typed model.
+fn document_elements(text: &str) -> Vec<(String, String)> {
     let doc = Document::from_json(text).expect("the payload is a scene");
     doc.elements
         .expect("elements")
@@ -182,7 +218,10 @@ fn test_embedded_v1_png_decodes_to_its_text_element() {
     let text = decode_png_metadata(&fixture("test_embedded_v1.png"))
         .expect("decodes")
         .expect("has a scene");
-    assert_eq!(scene_elements(&text), [("text".to_owned(), "test".to_owned())]);
+    assert_eq!(
+        scene_elements(&text),
+        [("text".to_owned(), "test".to_owned())]
+    );
 }
 
 /// `export.test.tsx` "import embedded png (v2)": one text element "\u{1F600}" (a grinning face).
@@ -191,21 +230,48 @@ fn smiley_embedded_v2_png_decodes_to_its_text_element() {
     let text = decode_png_metadata(&fixture("smiley_embedded_v2.png"))
         .expect("decodes")
         .expect("has a scene");
-    assert_eq!(scene_elements(&text), [("text".to_owned(), "\u{1F600}".to_owned())]);
+    assert_eq!(
+        scene_elements(&text),
+        [("text".to_owned(), "\u{1F600}".to_owned())]
+    );
 }
 
-/// `export.test.tsx` "export embedded png and reimport": embed a scene in
-/// smiley.png, read it back.
+/// `export.test.tsx` "export embedded png and reimport": a 16x16 text
+/// element "\u{1F600}" serialized as a scene, embedded in smiley.png, read
+/// back by the typed model.
 #[test]
 fn export_embedded_png_and_reimport() {
-    let scene = decode_png_metadata(&fixture("smiley_embedded_v2.png"))
-        .unwrap()
-        .unwrap();
-    let doc = Document::from_json(&scene).unwrap();
+    let mut base = ElementBase::new("A", 0.0, 0.0, 1.0, 1.0);
+    base.width = 16.0;
+    base.height = 16.0;
+    let text = TextFields::new("\u{1F600}", FontFamily::default(), 1.25);
+    let doc = Document::new(
+        "https://excalidraw.com",
+        vec![Element::new(base, ElementKind::Text(text))],
+        serde_json::Map::new(),
+        Some(serde_json::Map::new()),
+    );
     let written = encode_png_metadata(&fixture("smiley.png"), &doc.to_json()).unwrap();
     let back = decode_png_metadata(&written).unwrap().unwrap();
     assert_eq!(back, doc.to_json());
-    assert_eq!(scene_elements(&back), [("text".to_owned(), "\u{1F600}".to_owned())]);
+    assert_eq!(Document::from_json(&back).unwrap(), doc);
+    assert_eq!(
+        document_elements(&back),
+        [("text".to_owned(), "\u{1F600}".to_owned())]
+    );
+}
+
+/// The embedded fixtures decode to upstream's text exactly.
+#[test]
+fn embedded_fixture_scenes_decode_to_upstream_text() {
+    for name in ["test_embedded_v1.png", "smiley_embedded_v2.png"] {
+        let golden = format!("fixture_{name}");
+        let case = cases("decode")
+            .iter()
+            .find(|c| c["name"] == golden.as_str())
+            .expect("fixture case");
+        check_decoded(name, &decode_png_metadata(&fixture(name)), &case["decoded"]);
+    }
 }
 
 #[test]
@@ -321,7 +387,12 @@ fn text_chunk_text_is_upstreams_json() {
 
 #[test]
 fn chunks_round_trip_through_encode() {
-    for name in ["smiley.png", "deer.png", "test_embedded_v1.png", "smiley_embedded_v2.png"] {
+    for name in [
+        "smiley.png",
+        "deer.png",
+        "test_embedded_v1.png",
+        "smiley_embedded_v2.png",
+    ] {
         let bytes = fixture(name);
         let chunks = extract_chunks(&bytes).unwrap();
         assert_eq!(chunks.first().unwrap().name, *b"IHDR", "{name}");
@@ -416,7 +487,11 @@ fn embedded_scene_round_trips_for_every_fixture_scene() {
         let text = String::from_utf8(read_repo(rel)).unwrap();
         for png in ["smiley.png", "deer.png"] {
             let written = encode_png_metadata(&fixture(png), &text).unwrap();
-            assert_eq!(decode_png_metadata(&written).unwrap().as_deref(), Some(&text[..]), "{rel} in {png}");
+            assert_eq!(
+                decode_png_metadata(&written).unwrap().as_deref(),
+                Some(&text[..]),
+                "{rel} in {png}"
+            );
         }
     }
 }

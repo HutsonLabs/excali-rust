@@ -448,6 +448,33 @@ pub(crate) fn escape_str(s: &str) -> Cow<'_, str> {
     Cow::Owned(out)
 }
 
+/// The UTF-16 code units of the JavaScript string a sentinel-form string
+/// stands for: a sentinel pair is its lone surrogate, a doubled U+FDD0 one
+/// U+FDD0. What `charCodeAt` sees in the string `JSON.parse` produced.
+pub(crate) fn utf16_units(s: &str) -> Vec<u16> {
+    let mut out = Vec::with_capacity(s.len());
+    let mut buf = [0u16; 2];
+    let mut chars = s.chars();
+    while let Some(c) = chars.next() {
+        if c == SENTINEL {
+            match chars.next() {
+                Some(tag) if SURROGATE_TAGS.contains(&u32::from(tag)) => {
+                    // A surrogate code unit, always below 0x10000.
+                    out.push((u32::from(tag) - SURROGATE_TAG_BASE + 0xD800) as u16);
+                }
+                Some(SENTINEL) | None => out.push(SENTINEL as u16),
+                Some(other) => {
+                    out.push(SENTINEL as u16);
+                    out.extend_from_slice(other.encode_utf16(&mut buf));
+                }
+            }
+            continue;
+        }
+        out.extend_from_slice(c.encode_utf16(&mut buf));
+    }
+    out
+}
+
 /// The public string for a sentinel-form one: a sentinel pair for a lone
 /// surrogate becomes U+FFFD (what a lossy UTF-16 decode gives), a doubled
 /// U+FDD0 one U+FDD0. Borrowed when there is no sentinel.

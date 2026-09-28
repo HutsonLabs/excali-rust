@@ -18,7 +18,7 @@
 
 mod base64;
 mod bstring;
-mod checksum;
+pub(crate) mod checksum;
 mod deflate;
 mod inflate;
 mod inftrees;
