@@ -10,13 +10,21 @@
 //! - `rough-generator.json`: the generator's edge cases (path syntax, short
 //!   point lists, `stroke: "none"`, `simplification`, single stroke, seed
 //!   wrap-around); every case must run;
-//! - `rough-options.json`: the cases without a `fill` (the curve targets and
-//!   Excalidraw's dashed/dotted stroke rule) run here too, since their strokes
-//!   come from the same generator; fills are ex-204.
+//! - `rough-fills.json`: every fill style (hachure, cross-hatch, zigzag,
+//!   solid, dashed, zigzag-line) on rectangle, polygon, ellipse and path at
+//!   Excalidraw's `fillWeight = strokeWidth / 2` and `hachureGap =
+//!   strokeWidth * 4` for stroke widths 1, 2, 4, the seeds x roughness grid,
+//!   and the fill edge cases (curve and arc fills, subpaths, concave
+//!   polygons, gaps and angles, single fill stroke, fills that are skipped);
+//!   every case must run (the ex-204 acceptance set);
+//! - `rough-options.json`: option variations with and without fills; every
+//!   case must run.
 //!
 //! Numbers are compared as doubles with `==`, op by op, except where rough.js
-//! goes through `Math.sin`/`Math.cos`/`Math.tan`/`Math.asin` (ellipses,
-//! circles, arcs, SVG `A` commands). Those are not the same function on every
+//! goes through `Math.sin`/`Math.cos`/`Math.tan`/`Math.asin`/`Math.atan`
+//! (ellipses, circles, arcs, SVG `A` commands, and every fill: hachure-fill
+//! rotates the polygon by the hachure angle, the dashed and zigzag-line
+//! fillers walk each line along its `atan` slope). Those are not the same function on every
 //! platform (upstream's own V8 on arm64 differs from x86_64 V8 and from libm
 //! in the last bit; see `tools/goldens/README.md` and
 //! `crates/excali-math/tests/goldens.rs`), so they are compared to within
@@ -64,9 +72,8 @@ fn points(v: &Value) -> Vec<[f64; 2]> {
 }
 
 /// rough.js `Object.assign({}, defaultOptions, options)` for the keys the
-/// goldens use. `None` when the case sets an option this crate does not
-/// generate from yet (`fill`, ex-204).
-fn options(v: &Value) -> Option<Options> {
+/// goldens use.
+fn options(v: &Value) -> Options {
     let mut o = Options::default();
     for (k, v) in v.as_object().expect("options object") {
         match k.as_str() {
@@ -96,11 +103,11 @@ fn options(v: &Value) -> Option<Options> {
             "preserveVertices" => o.preserve_vertices = v.as_bool().expect("bool"),
             "fixedDecimalPlaceDigits" => o.fixed_decimal_place_digits = Some(f(v)),
             "fillShapeRoughnessGain" => o.fill_shape_roughness_gain = f(v),
-            "fill" => return None,
+            "fill" => o.fill = Some(v.as_str().expect("fill").to_owned()),
             other => panic!("option {other} is not a rough.js 4.6.4 option"),
         }
     }
-    Some(o)
+    o
 }
 
 /// The resolved options as rough.js holds them (`ResolvedOptions` without the
@@ -130,6 +137,9 @@ fn options_json(o: &Options) -> Value {
     put("disableMultiStrokeFill", json!(o.disable_multi_stroke_fill));
     put("preserveVertices", json!(o.preserve_vertices));
     put("fillShapeRoughnessGain", json!(o.fill_shape_roughness_gain));
+    if let Some(v) = &o.fill {
+        put("fill", json!(v));
+    }
     if let Some(v) = o.simplification {
         put("simplification", json!(v));
     }
@@ -186,7 +196,9 @@ fn call(method: &str, a: &[Value], o: &Options) -> Drawable {
         ),
         "linearPath" => g.linear_path(&points(&a[0]), o),
         "polygon" => g.polygon(&points(&a[0]), o),
-        "curve" => g.curve(&points(&a[0]), o),
+        "curve" => g
+            .curve(&points(&a[0]), o)
+            .unwrap_or_else(|e| panic!("curve {}: {e}", a[0])),
         "path" => g
             .path(a[0].as_str().expect("path data"), o)
             .unwrap_or_else(|e| panic!("path {}: {e}", a[0])),
@@ -195,7 +207,10 @@ fn call(method: &str, a: &[Value], o: &Options) -> Drawable {
 }
 
 /// Whether rough.js computed this case through trigonometric functions.
-fn uses_trig(method: &str, args: &[Value]) -> bool {
+fn uses_trig(method: &str, args: &[Value], o: &Options) -> bool {
+    if o.fill.is_some() {
+        return true;
+    }
     match method {
         "ellipse" | "circle" | "arc" => true,
         "path" => args[0]
@@ -244,22 +259,19 @@ fn first_difference(actual: &Value, expected: &Value, tolerance: f64, at: &str) 
     }
 }
 
-/// Runs every case of `file` that this crate generates; returns how many ran.
-fn check_file(file: &str, all_must_run: bool) -> usize {
+/// Runs every case of `file`; returns how many ran.
+fn check_file(file: &str) -> usize {
     let doc = load(file);
     let cases = doc["cases"].as_array().expect("cases");
     let mut ran = 0;
     let mut failures = Vec::new();
     for c in cases {
         let id = c["id"].as_str().expect("id");
-        let Some(o) = options(&c["options"]) else {
-            assert!(!all_must_run, "{file} {id}: every case must run");
-            continue;
-        };
+        let o = options(&c["options"]);
         let method = c["method"].as_str().expect("method");
         let args = c["args"].as_array().expect("args");
         let actual = drawable_json(&call(method, args, &o));
-        let tolerance = if uses_trig(method, args) {
+        let tolerance = if uses_trig(method, args, &o) {
             PLATFORM_TOLERANCE
         } else {
             0.0
@@ -298,18 +310,25 @@ fn random_matches_park_miller_sequences() {
 #[test]
 fn primitives_match_at_every_seed_and_roughness() {
     // 13 primitives x seeds 1, 7, 1041657908 x roughness 0, 1, 2.
-    assert_eq!(check_file("rough-primitives.json", true), 117);
+    assert_eq!(check_file("rough-primitives.json"), 117);
 }
 
 #[test]
 fn generator_edge_cases_match() {
     // 76 GENERATOR fixtures (tools/goldens/fixtures.mjs) x roughness 0, 1, 2.
-    assert_eq!(check_file("rough-generator.json", true), 228);
+    assert_eq!(check_file("rough-generator.json"), 228);
 }
 
 #[test]
-fn unfilled_option_cases_match() {
-    // The curve targets and Excalidraw's dashed/dotted stroke rule.
-    let ran = check_file("rough-options.json", false);
-    assert!(ran >= 40, "only {ran} unfilled cases in rough-options.json");
+fn fills_match_for_every_style_at_excalidraw_weights() {
+    // 6 styles x (3 stroke widths x 4 shapes + 3 seeds x 3 roughnesses),
+    // plus 98 edge cases (tools/goldens/fixtures.mjs `edge`).
+    assert_eq!(check_file("rough-fills.json"), 126 + 98);
+}
+
+#[test]
+fn option_cases_match() {
+    // Option variations on filled rectangles, ellipses and paths and on
+    // unfilled curves, and Excalidraw's dashed/dotted stroke rule.
+    assert_eq!(check_file("rough-options.json"), 140);
 }
