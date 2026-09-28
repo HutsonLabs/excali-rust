@@ -869,3 +869,69 @@ fn roots(code: &str, is_root: impl Fn(&str) -> bool) -> Vec<String> {
     }
     out
 }
+
+fn coverage(p: &Pixmap) -> usize {
+    p.pixels().iter().filter(|c| c.alpha() > 0).count()
+}
+
+fn huge_triangle() -> Path {
+    let mut p = Path::new();
+    p.move_to(-1e30, -1e30)
+        .line_to(1e30, 5.0)
+        .line_to(5.0, 1e30)
+        .close();
+    p
+}
+
+#[test]
+fn huge_finite_coordinates_draw_without_overflow() {
+    // Bounds past the i32 range: Skia's safeRoundOut pins them to
+    // +-(2^31 - 1) >> 2 before any width or height is taken. Chrome 153
+    // covers the whole 200x200 canvas with the triangle.
+    let p = draw(
+        &list(vec![fill(huge_triangle(), "red", FillRule::NonZero)]),
+        200,
+        200,
+    );
+    assert_eq!(coverage(&p), 200 * 200);
+
+    let stroke = |path: Path, width: f64| DisplayItem::Stroke {
+        path,
+        stroke: Stroke::new(Color::new("red"), width),
+    };
+    draw(&list(vec![stroke(huge_triangle(), 3.0)]), 200, 200);
+
+    let mut curve = Path::new();
+    curve
+        .move_to(0.0, 0.0)
+        .cubic_to(1e20, 0.0, -1e20, 200.0, 200.0, 200.0);
+    draw(&list(vec![fill(curve, "red", FillRule::NonZero)]), 200, 200);
+
+    let mut quad = Path::new();
+    quad.move_to(0.5, 0.5).quad_to(1e15, 1e15, 199.0, 0.5);
+    let p = draw(&list(vec![stroke(quad, 5.0)]), 200, 200);
+    // The curve leaves (0.5, 0.5) along the diagonal.
+    assert_ne!(px(&p, 20, 20), CLEAR);
+}
+
+#[test]
+fn too_many_dashes_stroke_undashed() {
+    // SkDashPath gives up past 1,000,000 dashes and the stroke is drawn
+    // without its dash. Chrome 153 paints 200 pixels for this hairline.
+    let mut line = Path::new();
+    line.move_to(0.0, 0.0).line_to(1e6, 1e6);
+    let dashed = |width: f64, cap: LineCap| {
+        list(vec![DisplayItem::Stroke {
+            path: line.clone(),
+            stroke: Stroke::new(Color::new("red"), width)
+                .with_cap(cap)
+                .with_dash(Dash::new(&[0.0001, 0.0001], 0.0)),
+        }])
+    };
+    assert_eq!(coverage(&draw(&dashed(1.0, LineCap::Butt), 200, 200)), 200);
+    let round = draw(&dashed(3.0, LineCap::Round), 200, 200);
+    assert_eq!(px(&round, 100, 100), RED);
+    // A butt-capped line has become a fill of the line (SpecialLineRec)
+    // before the dasher gives up, which covers nothing.
+    assert_eq!(coverage(&draw(&dashed(3.0, LineCap::Butt), 200, 200)), 0);
+}

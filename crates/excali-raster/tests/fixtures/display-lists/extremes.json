@@ -1,0 +1,35 @@
+{
+ "description": "Paths the renderer must survive and draw as Chrome does: fills and strokes with finite coordinates as large as 1e30 (bounds past the i32 range, which Skia's safeRoundOut pins to +-(2^31-1)>>2), and dash lists that would cut more than 1,000,000 dashes (SkDashPath gives up and the stroke is drawn undashed: a hairline, a round-capped line, a butt-capped polyline; a butt-capped line has already become a fill of the line, which covers nothing). Each case is clipped to its own 32x64 cell (a translated group clips in its own space)",
+ "width": 128,
+ "height": 128,
+ "tolerance": {"channel": 8, "pixels": 0},
+ "toleranceNote": "Every draw goes through ports of Chrome's own pipeline (Skia's analytic anti-aliasing, edge builder and clipper, stroker and dasher), so what remains is rounding in blending and coverage. 8 leaves room for another Chrome build that rounds differently.",
+ "items": [
+  {"type": "group", "clip": {"path": [["rect", 0, 0, 32, 64]]}, "items": [
+   {"type": "fill", "color": "#1971c2", "path": [["M", -1e30, -1e30], ["L", 1e30, 5], ["L", 5, 1e30], ["Z"]]}
+  ]},
+  {"type": "group", "clip": {"path": [["rect", 32, 0, 32, 64]]}, "items": [
+   {"type": "fill", "color": "#a5d8ff", "path": [["rect", 32, 0, 32, 64]]},
+   {"type": "stroke", "color": "#1e1e1e", "width": 3, "path": [["M", -1e30, -1e30], ["L", 1e30, 5], ["L", 5, 1e30], ["Z"]]}
+  ]},
+  {"type": "group", "clip": {"path": [["rect", 0, 0, 32, 64]]}, "transform": [1, 0, 0, 1, 64, 0], "items": [
+   {"type": "fill", "color": "#2f9e44", "path": [["M", 0, 0], ["C", 1e20, 0, -1e20, 200, 200, 200]]}
+  ]},
+  {"type": "group", "clip": {"path": [["rect", 0, 0, 32, 64]]}, "transform": [1, 0, 0, 1, 96, 0], "items": [
+   {"type": "stroke", "color": "#e03131", "width": 5, "path": [["M", 0.5, 0.5], ["Q", 1e15, 1e15, 199, 0.5]]}
+  ]},
+  {"type": "group", "clip": {"path": [["rect", 0, 64, 32, 64]]}, "items": [
+   {"type": "stroke", "color": "#1e1e1e", "width": 1, "dash": [0.00001, 0.00001], "path": [["M", 0, 64], ["L", 1000000, 1000064]]}
+  ]},
+  {"type": "group", "clip": {"path": [["rect", 32, 64, 32, 64]]}, "items": [
+   {"type": "stroke", "color": "#1971c2", "width": 3, "cap": "round", "dash": [0.00001, 0.00001], "path": [["M", 32, 64], ["L", 1000032, 1000064]]}
+  ]},
+  {"type": "group", "clip": {"path": [["rect", 64, 64, 32, 64]]}, "items": [
+   {"type": "fill", "color": "#ffec99", "path": [["rect", 64, 64, 32, 64]]},
+   {"type": "stroke", "color": "#e03131", "width": 3, "dash": [0.00001, 0.00001], "path": [["M", 64, 64], ["L", 1000064, 1000064]]}
+  ]},
+  {"type": "group", "clip": {"path": [["rect", 96, 64, 32, 64]]}, "items": [
+   {"type": "stroke", "color": "#2f9e44", "width": 2, "dash": [0.00001, 0.00001], "path": [["M", 100, 1000000], ["L", 100, 70], ["L", 1000000, 120]]}
+  ]}
+ ]
+}
