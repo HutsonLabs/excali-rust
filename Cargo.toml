@@ -22,8 +22,17 @@ repository = "https://github.com/HutsonLabs/excali-rust"
 # float_roundtrip: parse every number to the nearest f64, as JSON.parse does;
 # the default fast path can be off by one ulp (123456789012345678901234).
 serde_json = { version = "1.0.151", features = ["preserve_order", "float_roundtrip"] }
-# Only for the Serialize trait when writing a Value with a custom formatter.
-serde = "1.0.229"
+# The Serialize trait for writing a Value with a custom formatter; derive for
+# the payload wrapper (excali_core::encode::EncodedData).
+serde = { version = "1.0.229", features = ["derive"] }
+# zlib/gzip body decoding for the payload codec (ex-110). Only the pure-Rust
+# miniz_oxide backend (default features), which builds for wasm32. Encoding
+# does not use it: excali-core ports pako's deflate so the output is
+# byte-identical to upstream's (see excali_core::encode).
+flate2 = "1.1.10"
+# Test-only: golden digests and base64 payloads.
+sha2 = "0.11.0"
+base64 = "0.23.1"
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
