@@ -55,7 +55,12 @@ fn body(el: &Element) -> Vec<Drawable> {
     vec![generate_linear_shape(el, &RoughGenerator::new(), &RenderConfig::default()).unwrap()]
 }
 
-fn points_of(el: &Element, pos: ArrowheadPosition, head: Arrowhead, offset: f64) -> ArrowheadPoints {
+fn points_of(
+    el: &Element,
+    pos: ArrowheadPosition,
+    head: Arrowhead,
+    offset: f64,
+) -> ArrowheadPoints {
     get_arrowhead_points(el, &body(el), pos, head, offset)
         .unwrap()
         .expect("a head")
@@ -133,7 +138,17 @@ fn arrow_wings_rotate_the_base_by_twenty_degrees_about_the_tip() {
     else {
         panic!("wings")
     };
-    close(&p, &[100.0, 0.0, 100.0 - 25.0 * c, 25.0 * s, 100.0 - 25.0 * c, -25.0 * s]);
+    close(
+        &p,
+        &[
+            100.0,
+            0.0,
+            100.0 - 25.0 * c,
+            25.0 * s,
+            100.0 - 25.0 * c,
+            -25.0 * s,
+        ],
+    );
 }
 
 #[test]
@@ -156,7 +171,17 @@ fn heads_shrink_to_half_the_last_segment() {
         panic!("wings")
     };
     let (c, s) = (20f64.to_radians().cos(), 20f64.to_radians().sin());
-    close(&p, &[100.0, 0.0, 100.0 - 10.0 * c, 10.0 * s, 100.0 - 10.0 * c, -10.0 * s]);
+    close(
+        &p,
+        &[
+            100.0,
+            0.0,
+            100.0 - 10.0 * c,
+            10.0 * s,
+            100.0 - 10.0 * c,
+            -10.0 * s,
+        ],
+    );
     // diamonds to a quarter: min(12, 20 * 0.25) = 5, so the far vertex is
     // 2 * 5 behind the tip
     let ArrowheadPoints::Diamond(d) =
@@ -193,7 +218,16 @@ fn diamonds_add_the_vertex_opposite_the_tip() {
     let (c, s) = (25f64.to_radians().cos(), 25f64.to_radians().sin());
     close(
         &d,
-        &[100.0, 0.0, 100.0 - 12.0 * c, 12.0 * s, 76.0, 0.0, 100.0 - 12.0 * c, -12.0 * s],
+        &[
+            100.0,
+            0.0,
+            100.0 - 12.0 * c,
+            12.0 * s,
+            76.0,
+            0.0,
+            100.0 - 12.0 * c,
+            -12.0 * s,
+        ],
     );
     let el = arrow_with(&STRAIGHT, Some(Arrowhead::Diamond), None);
     let ArrowheadPoints::Diamond(d) =
@@ -218,7 +252,17 @@ fn crowfeet_swap_the_tip_and_the_base() {
         panic!("wings")
     };
     let (c, s) = (25f64.to_radians().cos(), 25f64.to_radians().sin());
-    close(&p, &[85.0, 0.0, 85.0 + 15.0 * c, 15.0 * s, 85.0 + 15.0 * c, -15.0 * s]);
+    close(
+        &p,
+        &[
+            85.0,
+            0.0,
+            85.0 + 15.0 * c,
+            -15.0 * s,
+            85.0 + 15.0 * c,
+            15.0 * s,
+        ],
+    );
 }
 
 #[test]
@@ -238,7 +282,7 @@ fn the_offset_moves_the_tip_back_along_the_line() {
     else {
         panic!("circle")
     };
-    close(&c, &[77.5, 0.0, 14.0]);
+    close(&c, &[77.5, 0.0, 15.0 + el.base.stroke_width - 2.0]);
 }
 
 #[test]
@@ -267,8 +311,8 @@ fn a_non_bezier_op_breaks_the_invariant() {
     let ops = &mut shape[0].sets[0].ops;
     let last = ops.len() - 1;
     ops[last] = excali_rough::Op::LineTo([100.0, 0.0]);
-    let err =
-        get_arrowhead_points(&el, &shape, ArrowheadPosition::End, Arrowhead::Arrow, 0.0).unwrap_err();
+    let err = get_arrowhead_points(&el, &shape, ArrowheadPosition::End, Arrowhead::Arrow, 0.0)
+        .unwrap_err();
     assert_eq!(err, InvalidArrowheadOp::DataLength(2));
     assert_eq!(err.to_string(), "Op data length is not 6");
 }
@@ -313,6 +357,23 @@ fn shapes_per_kind() {
 fn no_heads_no_extra_shapes() {
     let el = arrow_with(&STRAIGHT, None, None);
     assert_eq!(kinds(&shapes(&el)), [Shape::LinearPath]);
+}
+
+#[test]
+fn an_arrow_without_an_end_arrowhead_key_gets_an_arrow() {
+    // `const { startArrowhead = null, endArrowhead = "arrow" } = element`
+    // (shape.ts:937): only a missing key defaults, null stays no head
+    let el = arrow_with(&STRAIGHT, None, None);
+    let mut legacy = el.to_map();
+    legacy.shift_remove("startArrowhead");
+    legacy.shift_remove("endArrowhead");
+    let legacy = Element::from_map(legacy).unwrap();
+    assert_eq!(
+        kinds(&shapes(&legacy)),
+        [Shape::LinearPath, Shape::Line, Shape::Line]
+    );
+    let with_arrow = arrow_with(&STRAIGHT, None, Some(Arrowhead::Arrow));
+    assert_eq!(shapes(&legacy), shapes(&with_arrow));
 }
 
 #[test]
@@ -385,7 +446,11 @@ fn dark_mode_filters_the_stroke_and_the_canvas_background() {
         theme: Theme::Dark,
         ..RenderConfig::default()
     };
-    let el = arrow_with(&STRAIGHT, Some(Arrowhead::Circle), Some(Arrowhead::TriangleOutline));
+    let el = arrow_with(
+        &STRAIGHT,
+        Some(Arrowhead::Circle),
+        Some(Arrowhead::TriangleOutline),
+    );
     let all = generate_linear_element_shapes(&el, &RoughGenerator::new(), &config).unwrap();
     let dark_stroke = excali_core::color::apply_dark_mode_filter("#1e1e1e", true);
     let dark_canvas = excali_core::color::apply_dark_mode_filter("#ffffff", true);
@@ -398,7 +463,12 @@ fn dark_mode_filters_the_stroke_and_the_canvas_background() {
 
 #[test]
 fn roughness_is_capped_at_one_and_circles_at_a_half() {
-    for (roughness, line, circle) in [(0.0, 0.0, 0.0), (0.4, 0.4, 0.4), (1.0, 1.0, 0.5), (2.0, 1.0, 0.5)] {
+    for (roughness, line, circle) in [
+        (0.0, 0.0, 0.0),
+        (0.4, 0.4, 0.4),
+        (1.0, 1.0, 0.5),
+        (2.0, 1.0, 0.5),
+    ] {
         let mut el = arrow_with(
             &STRAIGHT,
             Some(Arrowhead::CardinalityZeroOrOne),
@@ -444,7 +514,11 @@ fn heads_are_solid_except_dotted_line_heads() {
             assert_eq!(triangle.options.stroke_line_dash, None);
             // the rest of the arrow's options carry over: the half pixel
             // and single stroke of non-solid strokes
-            let widen = if style == StrokeStyle::Solid { 0.0 } else { 0.5 };
+            let widen = if style == StrokeStyle::Solid {
+                0.0
+            } else {
+                0.5
+            };
             for d in &all {
                 assert_eq!(d.options.stroke_width, sw + widen);
                 assert_eq!(d.options.disable_multi_stroke, style != StrokeStyle::Solid);

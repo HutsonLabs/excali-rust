@@ -1452,3 +1452,49 @@ fn absent_elbowed_and_polygon_read_as_false_and_stay_absent() {
         assert_eq!(changed.to_map()[key], json!(true));
     }
 }
+
+// ---------------------------------------------------------------------------
+// Keys an element was read without (ex-212)
+
+/// `Element::has_key` is `element[key] !== undefined`: an arrow read
+/// without `endArrowhead` (saved before arrowheads existed) has no such
+/// key, which `_generateElementShape` defaults to `"arrow"`
+/// (`packages/element/src/shape.ts:937`); one read with `null`, or built in
+/// Rust, has it.
+#[test]
+fn has_key_tells_an_absent_key_from_null() {
+    let Value::Object(explicit) = with(
+        base_json("a", "arrow"),
+        json!({
+            "points": [[0, 0], [10, 10]],
+            "startBinding": null,
+            "endBinding": null,
+            "startArrowhead": null,
+            "endArrowhead": null,
+            "elbowed": false
+        }),
+    ) else {
+        unreachable!()
+    };
+    let el = Element::from_map(explicit.clone()).unwrap();
+    assert!(el.has_key("endArrowhead"));
+    assert!(el.has_key("startArrowhead"));
+    assert!(!el.has_key("customData"));
+
+    let mut legacy = explicit;
+    legacy.shift_remove("startArrowhead");
+    legacy.shift_remove("endArrowhead");
+    let mut el = Element::from_map(legacy).unwrap();
+    assert!(!el.has_key("endArrowhead"));
+    assert!(!el.has_key("startArrowhead"));
+    assert!(el.has_key("points"));
+    // once a value is assigned the key is there
+    el.kind.linear_mut().unwrap().end_arrowhead = Some(Arrowhead::Bar);
+    assert!(el.has_key("endArrowhead"));
+
+    let built = Element::new(
+        base("b"),
+        ElementKind::Arrow(ArrowFields::new(LinearFields::new(vec![[0.0, 0.0]]), false)),
+    );
+    assert!(built.has_key("endArrowhead"));
+}
