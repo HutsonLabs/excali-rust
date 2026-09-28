@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-m1 · Milestone check: M1 not yet reached
+
+The M1 check ran on `main` at 1a79b96. All phase 1 tasks ex-101 to ex-115 are merged. 754 workspace tests pass, the fixture corpus verifies and every goldens check is current. All 232 catalogue libraries round-trip byte for byte against upstream, and the `restore.test.ts` cases are ported. D1 is not met because the round trip loses data that upstream keeps: 24 elements with a string `strokeWidth` (ex-117) and 1245 legacy arrow bindings (ex-116, blocked by ex-507 and ex-510). The check added ex-g101, a document-level round trip of upstream's `diagramFixture` plus one test that covers every upstream fixture. PR: see the ex-m1 note in the tracker.
+
 ## 2026-09-28 · ex-206 · Spike: evaluate the roughr crate (0.14.0) against the goldens
 
 `tools/roughr-eval` runs roughr 0.14.0 against all 1346 rough.js goldens. It matches 101 of them at two decimals (7.5 %), or 501 (37.2 %) with rough.js's Park-Miller generator patched in. Each mismatch is attributed to one of ten named divergences, so ADR-003 is accepted as a port. A CI job keeps both reports and the ADR tables current. PR: [#40](https://github.com/HutsonLabs/excali-rust/pull/40).

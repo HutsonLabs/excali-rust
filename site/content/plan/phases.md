@@ -16,6 +16,8 @@ Each phase is an epic in the tracker (`ex-e0` … `ex-e8`). A milestone is reach
 
 ## Phase 1 — Core model and file format (`ex-e1`)
 
+**Status (2026-09-28): M1 not yet reached.** On `main` at 1a79b96 all fifteen phase 1 tasks (ex-101 to ex-115) are merged and green in CI (rust <https://github.com/HutsonLabs/excali-rust/actions/runs/36417581257>, gates <https://github.com/HutsonLabs/excali-rust/actions/runs/36417581453>). `cargo test --workspace --locked` passes 754 tests (0 failed, 0 ignored). The fixture corpus (252 files) and the upstream copies verify, and every goldens `--check` is up to date, including restore, restore-elements, AppState, clipboard and library. The restore tests of `tests/data/restore.test.ts` are ported. All 232 catalogue libraries parse, write and parse again byte for byte against upstream's output. D1 still fails because the round trip loses data that upstream keeps. The 24 lines of aarondiel/logic-gates, whose `strokeWidth` is the string "3", are dropped (ex-117). 1245 legacy arrow bindings saved without `mode` are cleared instead of migrated, because the migration needs hit testing from phase 5 (ex-116, blocked by ex-507 and ex-510). Upstream's `diagramFixture` document also has no round-trip test (ex-g101). `crates/excali-core/tests/fixtures/library-corpus-report.json` lists every loss. To verify, run `cargo test -p excali-core --locked --test library_corpus` and read the report's `totals`, then run `bd show ex-m1`.
+
 **Crate.** `excali-core` (no `std::fs`, no DOM, `wasm32`-clean).
 
 **Deliverables.**
