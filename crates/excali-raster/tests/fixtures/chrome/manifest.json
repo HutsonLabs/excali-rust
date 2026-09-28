@@ -1,0 +1,24 @@
+{
+ "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+ "fixtures": {
+  "arcs": "5f4fe2ffc1ab9e5cbaff402e7894cc71cf2fa948bdb29533365d42073f899702",
+  "clips": "78da2c8ccfd9588962c5bd86cf545a2c6d489a57038e629536965e752fe15a85",
+  "clips-empty": "e76b1a8cebce841bb68f4e5f6bcf0a9b0f93b3b4a6ec27421dfa95e0fc63f775",
+  "colors": "1265158bd1443d2e6006867e55af173b54efec7f2ee1e783f7d5b888f967c6cf",
+  "dashes": "be4c5d8ac1a81a2a627e2077649d5bf43823bbc300c6519ad739635fd9c5b110",
+  "dashes-curves": "dd578fdf34da94f3c7d59aa81ae8597ba8bbaca0dc57aeac9e73543fadf91e34",
+  "fill-basic": "5bc1718bc02be34fb9faaa9c4358c0f52cd09dad3f97dacb21e5c960ba0f57d6",
+  "fill-curves": "517cb2a217c4ae503d285cced79b9181fb671026897dae2a427b6b9a4986336f",
+  "fill-rules": "e1c24d70f8787ceae089dfd66cc82724201353dd93129a2d7a6a5ca30a551424",
+  "images": "5dad4ca7218245171d562c714a633c15abb48ab4fbec0b6dec91aeb97d28744a",
+  "images-alpha": "48ecd3787b16af175e880216f0b33ecb84cef5ba65cc33241c70169dc0335fa1",
+  "images-dark": "8d839df29926e4c9e79a91af8a254d3792234953507f82933ba4b713d7f9ca9e",
+  "opacity": "e1a847fecb8d0cb4caa16c2149cc51bc88fca0d09c01c1d561aaebe1bd89ed6e",
+  "path-rules": "44f22eee54db18513e4692a5b2a396b9f9c4a29df913049477665b77fb97fee7",
+  "round-rect": "cd68206d742ce9f0229be5395f0de81423ec024d693bf6aafae6bfb84d1542e4",
+  "scaled": "e4c2f742d6f8af0608e8062dc8cee866240e8451dd1ae7868c3c5807a85cd199",
+  "stroke-caps-joins": "d0d75e965241e39bfb65c05dabf321f79452801e3c577c64c427e12bfd5057d0",
+  "stroke-widths": "eec458e61ae1e7363456449120a5eae05b89f926973f59933d7fa2934d807869",
+  "transforms": "b53e29c26be217e75959287ae8abe283fb48f12bee175de18155d83f2e2b533a"
+ }
+}

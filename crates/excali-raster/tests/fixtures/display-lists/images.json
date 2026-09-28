@@ -1,0 +1,27 @@
+{
+ "description": "drawImage: a 4x4 bitmap at natural size, scaled up with smoothing off (as upstream's pixel-snapped blits) and on, a source crop, a source rectangle running off the bitmap (clipped with the destination in proportion), a negative destination width, under group opacity and in a rotated group",
+ "width": 96,
+ "height": 96,
+ "tolerance": {"channel": 0, "pixels": 0},
+ "images": {
+  "quad": {"width": 4, "height": 4, "rgba": [224, 49, 49, 255, 47, 158, 68, 255, 25, 113, 194, 255, 240, 140, 0, 255, 30, 30, 30, 255, 255, 255, 255, 255, 165, 216, 255, 255, 156, 54, 181, 255, 255, 236, 153, 255, 0, 0, 0, 255, 178, 242, 187, 255, 255, 201, 201, 255, 12, 166, 120, 255, 92, 124, 250, 255, 250, 82, 82, 255, 134, 142, 150, 255]}
+ },
+ "items": [
+  {"type": "image", "id": "quad", "smoothing": false, "dest": [4, 4, 32, 32]},
+  {"type": "image", "id": "quad", "smoothing": true, "dest": [40, 4, 32, 32]},
+  {"type": "image", "id": "quad", "smoothing": false, "source": [1, 1, 2, 2], "dest": [76, 4, 16, 16]},
+  {"type": "image", "id": "quad", "smoothing": false, "source": [2, 2, 4, 4], "dest": [76, 24, 16, 16]},
+  {"type": "image", "id": "quad", "smoothing": false, "dest": [40, 44, 4, 4]},
+  {"type": "image", "id": "quad", "smoothing": false, "dest": [92, 44, -16, 16]},
+  {"type": "image", "id": "missing", "dest": [0, 0, 96, 96]},
+  {"type": "group", "opacity": 0.5, "items": [
+   {"type": "image", "id": "quad", "smoothing": false, "dest": [4, 44, 24, 24]},
+   {"type": "image", "id": "quad", "smoothing": false, "dest": [16, 56, 24, 24]}
+  ]},
+  {"type": "group", "transform": [1, 0, 0, 1, 66, 76], "items": [
+   {"type": "group", "transform": [0.8660254037844387, 0.49999999999999994, -0.49999999999999994, 0.8660254037844387, 0, 0], "items": [
+    {"type": "image", "id": "quad", "smoothing": false, "dest": [-8, -8, 16, 16]}
+   ]}
+  ]}
+ ]
+}

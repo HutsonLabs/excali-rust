@@ -1,0 +1,29 @@
+{
+ "description": "clip(): a rectangle, a circle with anti-aliased edges, nested clips intersecting, an evenodd clip with a hole, a rounded-rectangle clip as upstream clips frames and rounded images, a clip in a rotated group's space, and a sibling after the group drawn unclipped",
+ "width": 96,
+ "height": 96,
+ "tolerance": {"channel": 0, "pixels": 0},
+ "items": [
+  {"type": "group", "clip": {"path": [["rect", 6.5, 6.5, 30, 20]]}, "items": [
+   {"type": "fill", "color": "#e03131", "path": [["A", 20, 20, 20, 0, 6.283185307179586]]}
+  ]},
+  {"type": "group", "clip": {"path": [["A", 70, 20, 16.3, 0, 6.283185307179586]]}, "items": [
+   {"type": "fill", "color": "#1971c2", "path": [["rect", 48, 0, 48, 40]]},
+   {"type": "stroke", "color": "#ffffff", "width": 3, "path": [["M", 50, 40], ["L", 94, 0]]}
+  ]},
+  {"type": "group", "clip": {"path": [["rect", 4, 44, 40, 40]]}, "items": [
+   {"type": "group", "clip": {"path": [["A", 44, 84, 30, 0, 6.283185307179586]]}, "items": [
+    {"type": "fill", "color": "#2f9e44", "path": [["rect", 0, 40, 60, 56]]}
+   ]}
+  ]},
+  {"type": "group", "clip": {"rule": "evenodd", "path": [["rect", 52, 44, 40, 40], ["A", 72, 64, 12, 0, 6.283185307179586]]}, "items": [
+   {"type": "fill", "color": "#f08c00", "path": [["rect", 48, 40, 48, 48]]}
+  ]},
+  {"type": "group", "transform": [1, 0, 0, 1, 72, 64], "items": [
+   {"type": "group", "transform": [0.9238795325112867, 0.3826834323650898, -0.3826834323650898, 0.9238795325112867, 0, 0], "clip": {"path": [["roundRect", -8, -8, 16, 16, 4]]}, "items": [
+    {"type": "fill", "color": "#9c36b5", "path": [["rect", -20, -20, 40, 40]]}
+   ]}
+  ]},
+  {"type": "stroke", "color": "#1e1e1e", "width": 1, "path": [["M", 0, 90.5], ["L", 96, 90.5]]}
+ ]
+}

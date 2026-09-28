@@ -1,0 +1,17 @@
+{
+ "description": "The device pixel ratio as bootstrapCanvas applies it (ctx.scale(2, 2) before drawing): a filled and stroked rectangle, a dashed line, a clipped circle and a group translation, all at twice the size",
+ "width": 96,
+ "height": 96,
+ "scale": 2,
+ "tolerance": {"channel": 0, "pixels": 0},
+ "items": [
+  {"type": "fill", "color": "#ffffff", "path": [["rect", 0, 0, 48, 48]]},
+  {"type": "fill", "color": "#a5d8ff", "path": [["rect", 3, 3, 20, 14]]},
+  {"type": "stroke", "color": "#1971c2", "width": 1, "join": "round", "path": [["rect", 3, 3, 20, 14]]},
+  {"type": "stroke", "color": "#1e1e1e", "width": 1, "cap": "round", "dash": [8, 9], "path": [["M", 26, 10], ["L", 45, 10]]},
+  {"type": "group", "transform": [1, 0, 0, 1, 12, 32], "clip": {"path": [["rect", -8, -8, 16, 10]]}, "items": [
+   {"type": "fill", "color": "#e03131", "path": [["A", 0, 0, 8, 0, 6.283185307179586]]}
+  ]},
+  {"type": "stroke", "color": "#2f9e44", "width": 0.5, "path": [["M", 26, 24], ["L", 45, 44]]}
+ ]
+}

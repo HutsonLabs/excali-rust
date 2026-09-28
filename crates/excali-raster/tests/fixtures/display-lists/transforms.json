@@ -1,0 +1,37 @@
+{
+ "description": "Group transforms composed as ctx.transform: translate then rotate about an element's centre as renderElement does, scale, skew, a mirrored group, nesting, and a matrix with a NaN or infinite entry ignored as a whole (the translation in its own group survives a NaN angle)",
+ "width": 96,
+ "height": 96,
+ "tolerance": {"channel": 0, "pixels": 0},
+ "items": [
+  {"type": "group", "transform": [1, 0, 0, 1, 24, 24], "items": [
+   {"type": "group", "transform": [0.8660254037844387, 0.49999999999999994, -0.49999999999999994, 0.8660254037844387, 0, 0], "items": [
+    {"type": "fill", "color": "#a5d8ff", "path": [["rect", -14, -8, 28, 16]]},
+    {"type": "stroke", "color": "#1971c2", "width": 2, "join": "round", "path": [["rect", -14, -8, 28, 16]]}
+   ]}
+  ]},
+  {"type": "group", "transform": [2, 0, 0, 0.5, 52, 8], "items": [
+   {"type": "fill", "color": "#e03131", "path": [["A", 10, 16, 8, 0, 6.283185307179586]]},
+   {"type": "stroke", "color": "#1e1e1e", "width": 1, "path": [["M", 2, 16], ["L", 18, 16]]}
+  ]},
+  {"type": "group", "transform": [1, 0, 0.5, 1, 4, 52], "items": [
+   {"type": "fill", "color": "#2f9e44", "path": [["rect", 0, 0, 24, 20]]}
+  ]},
+  {"type": "group", "transform": [-1, 0, 0, 1, 92, 52], "items": [
+   {"type": "fill", "color": "#f08c00", "path": [["M", 0, 0], ["L", 24, 10], ["L", 0, 20], ["Z"]]},
+   {"type": "group", "transform": [1, 0, 0, 1, 4, 24], "items": [
+    {"type": "group", "transform": [0.7071067811865476, 0.7071067811865476, -0.7071067811865476, 0.7071067811865476, 0, 0], "items": [
+     {"type": "fill", "color": "#9c36b5", "path": [["rect", 0, 0, 10, 10]]}
+    ]}
+   ]}
+  ]},
+  {"type": "group", "transform": [1, 0, 0, 1, 40, 80], "items": [
+   {"type": "group", "transform": ["NaN", "NaN", "NaN", "NaN", 0, 0], "items": [
+    {"type": "fill", "color": "#1e1e1e", "path": [["rect", 0, 0, 12, 12]]}
+   ]}
+  ]},
+  {"type": "group", "transform": [1, 0, 0, 1, "Infinity", 0], "items": [
+   {"type": "fill", "color": "#e03131", "path": [["rect", 36, 60, 8, 8]]}
+  ]}
+ ]
+}

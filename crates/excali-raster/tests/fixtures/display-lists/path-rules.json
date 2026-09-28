@@ -1,0 +1,16 @@
+{
+ "description": "Canvas path rules: drawing with no current subpath (lineTo moves, curves start at their first control point), drawing after closePath from the subpath's first point, calls with NaN or infinite arguments dropped, rect() with an infinite size, and a negative arc radius ignored",
+ "width": 96,
+ "height": 96,
+ "tolerance": {"channel": 0, "pixels": 0},
+ "items": [
+  {"type": "stroke", "color": "#1e1e1e", "width": 2, "path": [["L", 6, 6], ["L", 40, 6], ["L", 40, 30]]},
+  {"type": "fill", "color": "#1971c2", "path": [["Q", 50, 4, 90, 4], ["L", 90, 30], ["Z"]]},
+  {"type": "stroke", "color": "#e03131", "width": 2, "path": [["C", 6, 40, 20, 60, 40, 40], ["L", 40, 60]]},
+  {"type": "stroke", "color": "#2f9e44", "width": 2, "join": "round", "path": [["M", 50, 40], ["L", 70, 40], ["L", 70, 56], ["Z"], ["L", 90, 60], ["L", 60, 62]]},
+  {"type": "stroke", "color": "#f08c00", "width": 2, "path": [["M", 6, 70], ["L", "NaN", 90], ["L", 20, 90], ["L", "Infinity", 70], ["Q", 30, "-Infinity", 40, 70], ["C", 30, 80, "NaN", 90, 50, 70], ["L", 40, 90]]},
+  {"type": "stroke", "color": "#9c36b5", "width": 2, "path": [["rect", 60, 70, "Infinity", 10], ["rect", 60, 70, 10, "NaN"], ["rect", "NaN", 70, 10, 10]]},
+  {"type": "stroke", "color": "#1971c2", "width": 2, "path": [["M", 66, 76], ["A", 80, 80, -4, 0, 3], ["L", 90, 90]]},
+  {"type": "fill", "color": "#e03131", "path": [["M", "NaN", 0], ["M", 84, 66], ["L", 92, 66], ["L", 88, 72], ["Z"]]}
+ ]
+}

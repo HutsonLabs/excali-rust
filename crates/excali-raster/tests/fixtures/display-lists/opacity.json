@@ -1,0 +1,36 @@
+{
+ "description": "globalAlpha: a group's opacity applied to each draw on its own (overlaps compound, as upstream's multi-stroke rough lines darken where they cross), nested groups multiplying, translucent colours under opacity, a product above 1 and a NaN opacity ignored (the parent's alpha stays), and opacity 0 drawing nothing",
+ "width": 96,
+ "height": 96,
+ "tolerance": {"channel": 0, "pixels": 0},
+ "items": [
+  {"type": "group", "opacity": 0.5, "items": [
+   {"type": "fill", "color": "#e03131", "path": [["rect", 4, 4, 28, 28]]},
+   {"type": "fill", "color": "#1971c2", "path": [["rect", 18, 18, 28, 28]]},
+   {"type": "stroke", "color": "#1e1e1e", "width": 3, "cap": "round", "path": [["M", 4, 40], ["L", 44, 8]]},
+   {"type": "stroke", "color": "#1e1e1e", "width": 3, "cap": "round", "path": [["M", 5, 42], ["L", 43, 6]]}
+  ]},
+  {"type": "group", "opacity": 0.6, "items": [
+   {"type": "fill", "color": "#2f9e44", "path": [["rect", 52, 4, 40, 18]]},
+   {"type": "group", "opacity": 0.5, "items": [
+    {"type": "fill", "color": "#2f9e44", "path": [["rect", 52, 26, 40, 18]]},
+    {"type": "group", "opacity": 2, "items": [
+     {"type": "fill", "color": "#9c36b5", "path": [["rect", 58, 30, 10, 10]]}
+    ]},
+    {"type": "group", "opacity": "NaN", "items": [
+     {"type": "fill", "color": "#9c36b5", "path": [["rect", 76, 30, 10, 10]]}
+    ]}
+   ]}
+  ]},
+  {"type": "group", "opacity": 0.7, "items": [
+   {"type": "fill", "color": "rgba(240, 140, 0, 0.5)", "path": [["A", 24, 72, 18, 0, 6.283185307179586]]},
+   {"type": "stroke", "color": "rgba(25, 113, 194, 0.8)", "width": 6, "path": [["M", 4, 72], ["L", 44, 72]]}
+  ]},
+  {"type": "group", "opacity": 0.25, "items": [
+   {"type": "fill", "color": "#1e1e1e", "path": [["rect", 52, 52, 40, 40]]},
+   {"type": "group", "opacity": 0, "items": [
+    {"type": "fill", "color": "#e03131", "path": [["rect", 60, 60, 24, 24]]}
+   ]}
+  ]}
+ ]
+}

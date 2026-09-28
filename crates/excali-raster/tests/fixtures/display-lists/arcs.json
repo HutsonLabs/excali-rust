@@ -1,0 +1,17 @@
+{
+ "description": "arc(): a full circle, a pie wedge, anticlockwise and wrapped sweeps, a sweep past 2pi, end before start, a zero radius, the line an arc adds from the current point, and stroked arcs",
+ "width": 96,
+ "height": 96,
+ "tolerance": {"channel": 0, "pixels": 0},
+ "items": [
+  {"type": "fill", "color": "#1971c2", "path": [["A", 16, 16, 12, 0, 6.283185307179586]]},
+  {"type": "fill", "color": "#e03131", "path": [["M", 48, 16], ["A", 48, 16, 13, 0.3, 2.2], ["Z"]]},
+  {"type": "fill", "color": "#2f9e44", "path": [["M", 80, 16], ["A", 80, 16, 13, 0.3, 2.2, true], ["Z"]]},
+  {"type": "fill", "color": "#f08c00", "path": [["A", 16, 48, 12, 1, 20]]},
+  {"type": "fill", "color": "#9c36b5", "path": [["M", 48, 48], ["A", 48, 48, 13, 5.5, 1.0], ["Z"]]},
+  {"type": "fill", "color": "#1e1e1e", "path": [["M", 66, 36], ["L", 70, 60], ["A", 82, 48, 0, 0, 3], ["A", 82, 48, 10, 3.9, 5.5, true], ["Z"]]},
+  {"type": "stroke", "color": "#1971c2", "width": 2, "path": [["M", 4, 70], ["A", 20, 80, 12, 3.14159, 0]]},
+  {"type": "stroke", "color": "#e03131", "width": 3, "cap": "round", "path": [["A", 60, 80, 12, -1, 4, true]]},
+  {"type": "stroke", "color": "#2f9e44", "width": 1, "path": [["A", 84, 80, 8, 0, 6.283185307179586], ["Z"]]}
+ ]
+}

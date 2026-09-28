@@ -15,9 +15,14 @@ excali-scene = { path = "../excali-scene" }
 # are what the pixmaps use.
 tiny-skia = { version = "0.12.0", default-features = false, features = ["std", "simd"] }
 
-# serde_json reads `cargo metadata` in the no_element_knowledge test.
+# serde_json reads `cargo metadata` in the no_element_knowledge test and the
+# fixture display lists (tests/fixtures.rs); png-format reads Chrome's
+# reference PNGs and writes the rendered and diff images of a failing
+# fixture; sha2 ties each reference to the fixture it was drawn from.
 [dev-dependencies]
 serde_json = { workspace = true }
+sha2 = { workspace = true }
+tiny-skia = { version = "0.12.0", default-features = false, features = ["std", "simd", "png-format"] }
 
 [lints]
 workspace = true
