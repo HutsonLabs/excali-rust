@@ -116,12 +116,49 @@ const pinnedPackages = () => ({
   },
 });
 
-/** Bundles upstream's shape code and returns the imported module. */
-export const loadUpstream = async ({ dir }) => {
+/**
+ * Replaces each listed module with an empty CommonJS module: a package name
+ * (and its subpaths), or a checkout module given by its path from the
+ * checkout root without extension (e.g. `packages/excalidraw/data/blob`),
+ * matched on relative imports. Meant for browser-only code (file dialogs,
+ * image codecs) that a module the generator imports pulls in but the
+ * functions it calls never reach; every export of a stub is undefined, so a
+ * call into one fails loudly.
+ */
+const stubbedModules = (upstream, names) => ({
+  name: "stubbed-modules",
+  setup(build) {
+    if (!names.length) return;
+    const files = new Set(names.filter((n) => n.includes("/") && !n.startsWith("@")).map((n) => join(upstream, n)));
+    const packages = names.filter((n) => !files.has(join(upstream, n)));
+    const stub = (args) => ({ path: args.path, namespace: "stub" });
+    if (packages.length) {
+      const escaped = packages.map((n) => n.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&"));
+      build.onResolve({ filter: new RegExp(`^(${escaped.join("|")})(/.*)?$`) }, stub);
+    }
+    if (files.size) {
+      build.onResolve({ filter: /^\.\.?\// }, (args) =>
+        files.has(join(args.resolveDir, args.path)) ? stub(args) : undefined,
+      );
+    }
+    build.onLoad({ filter: /.*/, namespace: "stub" }, () => ({
+      contents: "module.exports = {};",
+      loader: "js",
+    }));
+  },
+});
+
+/**
+ * Bundles upstream's code and returns the imported module. `entry` is the
+ * TypeScript entry's source, resolved from the checkout root (the default
+ * exports the shape code the goldens use); `stubs` lists modules replaced
+ * by empty ones (see stubbedModules); `define` adds compile-time constants.
+ */
+export const loadUpstream = async ({ dir }, { entry = ENTRY, stubs = [], define = {} } = {}) => {
   const esbuild = await import("esbuild");
   const result = await esbuild.build({
     stdin: {
-      contents: ENTRY,
+      contents: entry,
       resolveDir: dir,
       sourcefile: "goldens-entry.ts",
       loader: "ts",
@@ -132,9 +169,9 @@ export const loadUpstream = async ({ dir }) => {
     platform: "node",
     target: "esnext",
     logLevel: "silent",
-    plugins: [workspaceAliases(dir), pinnedPackages()],
+    plugins: [workspaceAliases(dir), stubbedModules(dir, stubs), pinnedPackages()],
     loader: { ".png": "empty", ".svg": "empty", ".scss": "empty", ".css": "empty" },
-    define: { "import.meta.env.DEV": "false", "import.meta.env.PROD": "true" },
+    define: { "import.meta.env.DEV": "false", "import.meta.env.PROD": "true", ...define },
   });
   // One file per process: concurrent runs (the test suite) never share it.
   const buildDir = join(TOOL_DIR, ".build");

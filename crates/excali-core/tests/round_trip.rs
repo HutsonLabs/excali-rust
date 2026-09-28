@@ -1,11 +1,11 @@
-//! Round-trip placeholder for the `.excalidraw` format.
+//! Round trip of the `.excalidraw` format, untyped and typed.
 //!
 //! Upstream serialises a scene with `JSON.stringify(data, null, 2)`
-//! (`packages/excalidraw/data/json.ts`, `serializeAsJSON`). Until the element
-//! model lands (ex-101 onwards), this pins the property the whole port rests
-//! on: a file read and written back without edits is byte-identical, key
-//! order included. The typed `Document` round trip replaces the untyped value
-//! here once it exists.
+//! (`packages/excalidraw/data/json.ts`, `serializeAsJSON`). This pins the
+//! property the whole port rests on: a file read and written back without
+//! edits is byte-identical, key order included, both through the untyped
+//! value (`json::round_trip`) and through the typed `Document` (more cases
+//! in `document.rs`).
 //!
 //! The fixture was checked against upstream at the pinned commit
 //! 438d89861f53d8a90ad566113ecac1b83761098f (`.tools/upstream`, created by
@@ -49,4 +49,17 @@ fn key_order_is_preserved_not_sorted() {
 #[test]
 fn invalid_json_is_an_error_not_a_panic() {
     assert!(excali_core::json::round_trip("{\"type\": ").is_err());
+}
+
+#[test]
+fn empty_scene_round_trips_through_the_typed_document() {
+    let doc = excali_core::document::Document::from_json(EMPTY_SCENE).expect("fixture parses");
+    assert_eq!(doc.to_json(), EMPTY_SCENE.trim_end());
+}
+
+#[test]
+fn key_order_is_preserved_through_the_typed_document() {
+    let input = "{\n  \"elements\": [],\n  \"appState\": {},\n  \"type\": \"excalidraw\"\n}";
+    let doc = excali_core::document::Document::from_json(input).expect("parses");
+    assert_eq!(doc.to_json(), input);
 }

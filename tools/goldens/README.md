@@ -100,3 +100,29 @@ round-trip form. Parse them exactly; in Rust, use serde_json's
 Add inputs to `fixtures.mjs`, run `node tools/goldens/generate.mjs`, and
 commit `goldens/` together with the change. Coverage the downstream tasks rely
 on is asserted in `test/goldens.test.mjs`.
+
+## Scene fixtures
+
+`scene-fixtures.mjs` writes the `.excalidraw` fixtures of excali-core's typed
+codec tests (`crates/excali-core/tests/fixtures/every-type.excalidraw`,
+`unknown-keys.excalidraw`, `unknown-keys-edited.excalidraw`) with upstream's
+own element constructors (`packages/element/src/newElement.ts`),
+`mutateElement` and `serializeAsJSON` (`packages/excalidraw/data/json.ts`),
+bundled from the pinned checkout the same way. `data/json.ts` also imports the
+browser-only `./blob` and `./filesystem` modules, which `serializeAsJSON`
+never calls; the loader replaces those two with empty modules.
+
+The output is fixed: `Date.now` returns 1700000000000 before upstream's
+modules load, upstream's `reseed(1700000000000)` runs before each fixture (so
+every `versionNonce` drawn by `newElementWith` or `mutateElement` is
+reproducible), and `Math.random` throws while generating. Node has no canvas,
+so text is measured at 10 px per character through upstream's
+`setCustomTextMetricsProvider`.
+
+```sh
+node tools/goldens/scene-fixtures.mjs           # write the fixtures
+node tools/goldens/scene-fixtures.mjs --check   # exit 1 if they are stale
+```
+
+CI runs `--check` in the `goldens` job, and `test/scene-fixtures.test.mjs`
+checks that two runs are byte-identical.

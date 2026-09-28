@@ -136,3 +136,14 @@ pub const DEFAULT_ELEMENT_PROPS: ElementProps = ElementProps {
 
 /// `DEFAULT_STROKE_STREAMLINE`, `constants.ts:622`.
 pub const DEFAULT_STROKE_STREAMLINE: f64 = 0.5;
+
+/// `EXPORT_DATA_TYPES.excalidraw`, `constants.ts:345`: the `type` of a
+/// `.excalidraw` file.
+pub const EXPORT_DATA_TYPE_EXCALIDRAW: &str = "excalidraw";
+/// `EXPORT_DATA_TYPES.excalidrawLibrary`, `constants.ts:347`.
+pub const EXPORT_DATA_TYPE_EXCALIDRAW_LIBRARY: &str = "excalidrawlib";
+/// `VERSIONS.excalidraw`, `constants.ts:417`: the `version` of a
+/// `.excalidraw` file.
+pub const VERSION_EXCALIDRAW: f64 = 2.0;
+/// `VERSIONS.excalidrawLibrary`, `constants.ts:418`.
+pub const VERSION_EXCALIDRAW_LIBRARY: f64 = 2.0;
