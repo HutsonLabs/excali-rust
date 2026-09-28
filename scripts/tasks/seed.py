@@ -11,7 +11,11 @@ Because the import never removes anything, the seed then reconciles: a
 dependency edge between two plan items that the plan no longer lists is
 removed, and so is any label an item lists under "withdraw_labels". A task
 marked "deferred": true stays in its epic but does not block the milestone,
-and no live task may be blocked by it.
+no live task may be blocked by it, and it is put in beads' native deferred
+status (`bd defer`), which `bd ready` excludes. A label alone would not keep
+it out of the ready queue. Like closed status, deferred status is kept on
+re-seed; lifting the hold is `bd undefer` plus dropping "deferred" from the
+plan.
 
 Usage: scripts/tasks/seed.py [--dry-run]
 """
@@ -19,6 +23,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+from datetime import datetime, timedelta, timezone
 import sys
 from pathlib import Path
 
@@ -52,7 +57,7 @@ def build(plan: dict, who: str, known: set[str]) -> list[dict]:
             "description": item.get("description", "") + evidence_block(item.get("evidence", [])),
         }
         if item["id"] not in known:
-            row["status"] = "open"
+            row["status"] = "deferred" if item.get("deferred") else "open"
         if item.get("acceptance"):
             row["acceptance_criteria"] = item["acceptance"]
         if item.get("design"):
@@ -92,7 +97,28 @@ def build(plan: dict, who: str, known: set[str]) -> list[dict]:
 PLAN_FIELDS = ("title", "issue_type", "priority", "description", "acceptance_criteria", "design")
 
 
-def merge_existing(plan_rows: list[dict], current_rows: list[dict], plan_ids: set[str]) -> list[dict]:
+STAMP = "%Y-%m-%dT%H:%M:%SZ"
+
+
+def _stamp_after(current: str | None, now: str) -> str:
+    """`now`, or one second past `current` if the clock is not ahead of it.
+
+    bd import takes a row only when its updated_at is strictly newer than the
+    database's; updated_at has second granularity and a tie keeps the local
+    row.
+    """
+    if not current:
+        return now
+    cur = datetime.strptime(current[:19] + "Z", STAMP).replace(tzinfo=timezone.utc)
+    new = datetime.strptime(now, STAMP).replace(tzinfo=timezone.utc)
+    return max(new, cur + timedelta(seconds=1)).strftime(STAMP)
+
+
+def _edges(deps: list[dict] | None) -> set[tuple[str, str]]:
+    return {(d["depends_on_id"], d["type"]) for d in deps or []}
+
+
+def merge_existing(plan_rows: list[dict], current_rows: list[dict], plan_ids: set[str], now: str | None = None) -> list[dict]:
     """Rows to import: plan fields laid over the tracker's current rows.
 
     `bd import` resets fields a row omits (a closed issue comes back open), so
@@ -101,7 +127,12 @@ def merge_existing(plan_rows: list[dict], current_rows: list[dict], plan_ids: se
     assignee, notes, external ref) is carried through, labels are the union,
     and dependency edges to issues outside the plan are kept. New issues are
     imported exactly as the plan builds them.
+
+    `bd import` also skips a row whose updated_at is not strictly newer than
+    the database's, so a merged row the plan changed gets a fresh updated_at;
+    an unchanged row keeps the tracker's, and re-seeding it is a no-op.
     """
+    now = now or datetime.now(timezone.utc).strftime(STAMP)
     current = {r["id"]: r for r in current_rows}
     out: list[dict] = []
     for row in plan_rows:
@@ -120,6 +151,13 @@ def merge_existing(plan_rows: list[dict], current_rows: list[dict], plan_ids: se
             if d["depends_on_id"] not in plan_ids
         ]
         merged["dependencies"] = list(row.get("dependencies", [])) + foreign
+        changed = (
+            any((merged.get(k) or "") != (cur.get(k) or "") for k in PLAN_FIELDS)
+            or set(merged["labels"]) != set(cur.get("labels") or [])
+            or not _edges(merged["dependencies"]) <= _edges(cur.get("dependencies"))
+        )
+        if changed:
+            merged["updated_at"] = _stamp_after(cur.get("updated_at"), now)
         out.append(merged)
     return out
 
@@ -133,8 +171,19 @@ def withdrawn_labels(plan: dict) -> dict[str, list[str]]:
     return out
 
 
-def reconcile(want: list[dict], have: list[dict], plan_ids: set[str], withdrawn: dict[str, list[str]]) -> list[list[str]]:
-    """bd subcommands that remove what the plan dropped.
+def deferred_ids(plan: dict) -> set[str]:
+    """Tasks the owner has deferred ("deferred": true)."""
+    return {t["id"] for t in plan["tasks"] if t.get("deferred")}
+
+
+def reconcile(
+    want: list[dict],
+    have: list[dict],
+    plan_ids: set[str],
+    withdrawn: dict[str, list[str]],
+    deferred: set[str] = frozenset(),
+) -> list[list[str]]:
+    """bd subcommands that remove what the plan dropped, and defer what it holds.
 
     `bd import` is an upsert: it adds labels and dependency edges but never
     removes them. Two removals are the plan's to make:
@@ -142,6 +191,9 @@ def reconcile(want: list[dict], have: list[dict], plan_ids: set[str], withdrawn:
         lists (edges to issues agents filed themselves are left alone);
       - a label listed in the item's "withdraw_labels" (other labels an
         agent may have added at runtime are left alone).
+    A task the plan defers whose tracker status is still open is put in
+    deferred status; closed, claimed or already deferred issues are left
+    as they are.
     """
     wanted = {r["id"]: r for r in want}
     cmds: list[list[str]] = []
@@ -158,6 +210,8 @@ def reconcile(want: list[dict], have: list[dict], plan_ids: set[str], withdrawn:
         for label in withdrawn.get(iid, []):
             if label in labels:
                 cmds.append(["label", "remove", iid, label])
+        if iid in deferred and cur.get("status", "open") == "open":
+            cmds.append(["defer", iid])
     return cmds
 
 
@@ -181,7 +235,7 @@ def validate(plan: dict) -> list[str]:
         return [f"duplicate ids in tasks.json: {sorted(dupes)}"]
     problems: list[str] = []
     idset = set(ids)
-    deferred = {t["id"] for t in plan["tasks"] if t.get("deferred")}
+    deferred = deferred_ids(plan)
     for t in plan["tasks"] + plan["milestones"]:
         for b in t.get("blocked_by", []):
             if b not in idset:
@@ -226,7 +280,7 @@ def main(argv: list[str]) -> int:
         subprocess.run(["bd", "import", str(tmp)], cwd=ROOT, check=True)
         # Read back what the database holds and remove what the plan dropped.
         subprocess.run(["bd", "export", "-o", str(tmp)], cwd=ROOT, check=True)
-        cmds = reconcile(rows, _read_jsonl(tmp), plan_ids, withdrawn_labels(plan))
+        cmds = reconcile(rows, _read_jsonl(tmp), plan_ids, withdrawn_labels(plan), deferred_ids(plan))
     finally:
         tmp.unlink(missing_ok=True)
     for cmd in cmds:

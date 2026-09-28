@@ -22,10 +22,10 @@ Excalidraw's look depends on Excalifont, Virgil, Nunito, Comic Shanns, Lilita On
 
 1. Ship Excalifont, Xiaolai and Comic Shanns from the start under their recorded licences, range-split as upstream ships them.
 2. A family is vendored only when its licence is confirmed as SIL OFL 1.1, MIT or Apache 2.0 from its source, with licence, source URL and date recorded in the verification table below before the file is added (`ex-306`).
-3. **Fallback rule.** A family whose licence is not confirmed is not vendored. It maps to a licensed fallback in the same class upstream's `getGenericFontFamilyFallback` uses, and the gap is recorded in [Licence gaps](#licence-gaps):
-   - hand-drawn (Virgil) → Excalifont (SIL OFL 1.1), upstream's default family;
+3. **Fallback rule.** A family whose licence is not confirmed is not vendored. It maps to a licensed fallback, and the gap is recorded in [Licence gaps](#licence-gaps). Upstream's `getGenericFontFamilyFallback` (`packages/common/src/constants.ts:169-180`) has exactly two classes: monospace for Cascadia and Comic Shanns, and sans-serif as the default for every other family, Virgil (id 1) included. The fallback follows that class, with one deliberate exception:
    - monospace (Cascadia Code) → Comic Shanns (MIT), the other family upstream classes as monospace;
-   - sans-serif (Nunito, Lilita One, Liberation Sans, Assistant) → the first sans-serif family whose licence is confirmed in the table; until one is, the host's local `sans-serif` stack, which ships nothing (the same local stacks term.hut uses).
+   - sans-serif (Nunito, Lilita One, Liberation Sans, Assistant) → the first sans-serif family whose licence is confirmed in the table; until one is, the host's local `sans-serif` stack, which ships nothing (the same local stacks term.hut uses);
+   - Virgil → Excalifont (SIL OFL 1.1). This is a choice of the port, not upstream's class: upstream classes Virgil as sans-serif, but Virgil is its original hand-drawn face and Excalifont is the hand-drawn face upstream now uses by default (`DEFAULT_FONT_FAMILY = FONT_FAMILY.Excalifont`, `constants.ts:268`), so a hand-drawn drawing stays hand-drawn rather than turning into the host's sans-serif.
    The element keeps its original `fontFamily` value, so the file round-trips unchanged and the real face is used as soon as the family is confirmed. Work continues; an unconfirmed licence is not a reason to stop or to wait on a human.
 4. Licence texts ship in the release tarball next to the font files.
 
@@ -53,7 +53,7 @@ Families not vendored because their licence is not yet confirmed, and the fallba
 
 | Family | Upstream id | Class | Fallback | Fallback licence |
 |---|---|---|---|---|
-| Virgil | 1 | hand-drawn | Excalifont | SIL OFL 1.1 |
+| Virgil | 1 | sans-serif (upstream); Excalifont by the port's choice, rule 3 | Excalifont | SIL OFL 1.1 |
 | Cascadia Code | 3 | monospace | Comic Shanns | MIT |
 | Nunito | 6 | sans-serif | host `sans-serif` (nothing shipped) | n/a |
 | Lilita One | 7 | sans-serif | host `sans-serif` (nothing shipped) | n/a |

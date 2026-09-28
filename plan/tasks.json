@@ -2241,7 +2241,7 @@
     "ex-712"
    ],
    "crates": [],
-   "acceptance": "cargo publish succeeds for each crate in dependency order; versions aligned.",
+   "acceptance": "Held: while this issue is deferred (bd status deferred, set by scripts/tasks/seed.py) it is never claimed and nothing is published. Only after the owner lifts the hold and it is returned with bd undefer: cargo publish succeeds for each crate in dependency order; versions aligned.",
    "evidence": [
     "site/content/decisions/adr-009-calendar-versioning.md (registries held)"
    ],

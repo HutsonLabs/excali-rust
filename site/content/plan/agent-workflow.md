@@ -23,7 +23,7 @@ bd ready                   # what can be started now
 
 ## The loop
 
-1. **Pick.** `bd ready` lists issues with no open blockers, priority first. Take the lowest-numbered ready issue in the earliest open phase unless a label says otherwise.
+1. **Pick.** `bd ready` lists issues with no open blockers, priority first. Take the lowest-numbered ready issue in the earliest open phase unless a label says otherwise. Deferred issues are never claimed: an issue the owner holds (such as `ex-801`, crates.io publishing) is `"deferred": true` in `plan/tasks.json`, and `scripts/tasks/seed.py` puts it in beads' deferred status, which `bd ready` excludes. Do not `bd undefer` or claim it; only the owner lifts a hold.
 2. **Claim.** `bd update <id> --claim`. The claim is atomic; a second agent gets a refusal, not a race.
 3. **Branch.** `git switch -c <id>/<slug>` from `main`. One issue per branch.
 4. **Read the evidence.** The issue's `design` and `acceptance_criteria` fields cite the research pages and upstream paths. Read those paths in the upstream checkout at the pinned commit before writing code. `scripts/upstream/checkout.sh` creates that checkout in the main clone's `.tools/upstream` (shared by every worktree), detaches it at `extra.upstream_commit` from `site/config.toml`, and refuses any other commit unless `PIN=<sha>` is set explicitly; `--verify` checks it is clean at the pin with pushes disabled. If the evidence is missing, stop and file a `spike` issue rather than guessing.
