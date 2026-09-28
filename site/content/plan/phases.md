@@ -24,7 +24,7 @@ Each phase is an epic in the tracker (`ex-e0` … `ex-e8`). A milestone is reach
 - `AppState` with the five exported keys and defaults.
 - Fractional indexing (port of the vendored base-62 implementation) with `syncInvalidIndices`.
 - Library formats: v1 `library` and v2 `libraryItems`; merge by `id:versionNonce` set; URL allow-list identical to upstream.
-- The clipboard, PNG `tEXt` and SVG `<metadata>` payload codecs (zlib: pako's deflate ported for byte-identical output, `flate2` to inflate; byte-string encoding; v1 and v2 variants).
+- The clipboard, PNG `tEXt` and SVG `<metadata>` payload codecs (zlib: pako's deflate and inflate ported for byte-identical output and pako's errors; byte-string encoding; v1 and v2 variants).
 - Conformance fixtures copied from upstream tests plus every file in `excalidraw-libraries` as a corpus test.
 
 **Milestone M1.** D1 passes: all fixtures and all 232 catalogue libraries round-trip; the restore snapshot tests ported from `tests/data/restore.test.ts` pass.

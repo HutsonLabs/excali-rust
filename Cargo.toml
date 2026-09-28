@@ -25,10 +25,9 @@ serde_json = { version = "1.0.151", features = ["preserve_order", "float_roundtr
 # The Serialize trait for writing a Value with a custom formatter; derive for
 # the payload wrapper (excali_core::encode::EncodedData).
 serde = { version = "1.0.229", features = ["derive"] }
-# zlib/gzip body decoding for the payload codec (ex-110). Only the pure-Rust
-# miniz_oxide backend (default features), which builds for wasm32. Encoding
-# does not use it: excali-core ports pako's deflate so the output is
-# byte-identical to upstream's (see excali_core::encode).
+# Test-only: reads the gzipped library corpus in the payload codec tests.
+# excali-core's own zlib code is a port of pako (excali_core::encode), so its
+# bytes and error messages are upstream's.
 flate2 = "1.1.10"
 # Test-only: golden digests and base64 payloads.
 sha2 = "0.11.0"

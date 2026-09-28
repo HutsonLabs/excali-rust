@@ -358,7 +358,7 @@ Checkout: commit `438d898`. Paths are relative to `<checkout>`. Each claim cites
 | roughjs | `roughr` (a port) or hand-port roughjs 4.6.4 |
 | perfect-freehand | port it (small) |
 | points-on-curve | port it |
-| pako | port of pako's deflate for byte-identical output; `flate2` / `miniz_oxide` to inflate |
+| pako | port pako 2.0.3's deflate and inflate (byte-identical output, pako's error messages) |
 | tinycolor | `csscolorparser` |
 | png chunks | `png` crate |
 | harfbuzz subset | `hb-subset` / `allsorts` |
