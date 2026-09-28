@@ -27,6 +27,19 @@ test("viewports are exactly the three sizes in the acceptance criteria", () => {
   );
 });
 
+test("the phone viewport emulates a phone, the others a desktop browser", () => {
+  // 390x844 is an iPhone 12-15 class screen: mobile layout viewport, touch,
+  // 3x pixels. Desktop and tablet-landscape runs keep a mouse and 1x pixels.
+  assert.deepEqual(
+    VIEWPORTS.map((v) => [v.name, v.isMobile, v.hasTouch, v.deviceScaleFactor]),
+    [
+      ["desktop", false, false, 1],
+      ["tablet", false, false, 1],
+      ["phone", true, true, 3],
+    ],
+  );
+});
+
 test("content paths map to Zola URLs", () => {
   assert.equal(contentUrlPath("_index.md"), "/");
   assert.equal(contentUrlPath("plan/_index.md"), "/plan/");

@@ -36,7 +36,12 @@ test.describe("inventory", () => {
 
 for (const vp of VIEWPORTS) {
   test.describe(`${vp.name} ${vp.width}x${vp.height}`, () => {
-    test.use({ viewport: { width: vp.width, height: vp.height } });
+    test.use({
+      viewport: { width: vp.width, height: vp.height },
+      isMobile: vp.isMobile,
+      hasTouch: vp.hasTouch,
+      deviceScaleFactor: vp.deviceScaleFactor,
+    });
 
     for (const t of targets) {
       test(`${t.kind} ${t.path}`, async ({ page, baseURL }) => {
@@ -68,6 +73,18 @@ for (const vp of VIEWPORTS) {
         // Lazy iframes (the mockups index) and late subresources settle here.
         await page.waitForLoadState("networkidle");
         expect((await page.title()).trim(), "document title").not.toBe("");
+        // The emulation reached the page: phone runs see a coarse touch
+        // pointer and 3x pixels, so touch-only CSS and JS paths are exercised.
+        const env = await page.evaluate(() => ({
+          coarse: matchMedia("(pointer: coarse)").matches,
+          touch: navigator.maxTouchPoints > 0,
+          dpr: devicePixelRatio,
+        }));
+        expect(env, "device emulation").toEqual({
+          coarse: vp.hasTouch,
+          touch: vp.hasTouch,
+          dpr: vp.deviceScaleFactor,
+        });
         const box = await page.locator("body").boundingBox();
         expect(box && box.height > 0, "body renders with height").toBe(true);
         expect(problems).toEqual([]);
