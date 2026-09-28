@@ -13,6 +13,7 @@ excali-core = { path = "../excali-core" }
 icu_normalizer = { workspace = true }
 icu_properties = { workspace = true }
 rustybuzz = { workspace = true }
+serde_json = { workspace = true }
 ttf-parser = { workspace = true }
 unicode-properties = { workspace = true }
 wuff = { workspace = true }

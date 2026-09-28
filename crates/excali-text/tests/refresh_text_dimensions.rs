@@ -105,7 +105,10 @@ fn restore_hooks_are_reproduced() {
             );
         }
     }
-    assert!(hooks >= 14, "the restore fixture records {hooks} refresh hooks");
+    assert!(
+        hooks >= 14,
+        "the restore fixture records {hooks} refresh hooks"
+    );
     for ty in ["rectangle", "ellipse", "diamond", "line"] {
         assert!(containers.contains(ty), "no recorded {ty} container");
     }
@@ -279,8 +282,11 @@ fn max_width_starts_wrapping() {
         map.keys().collect::<Vec<_>>(),
         ["text", "autoResize", "width", "height", "x", "y"]
     );
-    assert_eq!(Value::Object(map), json!({ "text": "hello\nworld", "autoResize": false,
-        "width": 60, "height": 50, "x": 10, "y": 20 }));
+    assert_eq!(
+        Value::Object(map),
+        json!({ "text": "hello\nworld", "autoResize": false,
+        "width": 60, "height": 50, "x": 10, "y": 20 })
+    );
 }
 
 /// Centred in both directions, the growth is split around the centre,
@@ -301,7 +307,10 @@ fn max_width_centered_anchor() {
 fn max_width_not_crossed() {
     let text = free_text(json!({ "text": "hello", "originalText": "hello" }));
     let got = refresh(&text, None, None, Some(60.0), &mut NoArrowGeometry).unwrap();
-    assert_eq!((got.text.as_str(), got.width, got.auto_resize), ("hello", 50.0, None));
+    assert_eq!(
+        (got.text.as_str(), got.width, got.auto_resize),
+        ("hello", 50.0, None)
+    );
 
     let wide = free_text(json!({ "text": "hello world", "width": 80 }));
     let got = refresh(&wide, None, None, Some(60.0), &mut NoArrowGeometry).unwrap();
@@ -313,7 +322,10 @@ fn max_width_not_crossed() {
 fn fixed_width_wraps_to_its_width() {
     let text = free_text(json!({ "text": "hello world", "autoResize": false, "width": 60 }));
     let got = refresh(&text, None, None, None, &mut NoArrowGeometry).unwrap();
-    assert_eq!((got.text.as_str(), got.width, got.height), ("hello\nworld", 60.0, 50.0));
+    assert_eq!(
+        (got.text.as_str(), got.width, got.height),
+        ("hello\nworld", 60.0, 50.0)
+    );
 }
 
 /// A text in a rectangle wraps to the container's inner width.

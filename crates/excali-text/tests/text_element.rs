@@ -84,10 +84,7 @@ mod get_container_coords {
     /// A sticky note pads its label by `STICKY_NOTE_PADDING` (16), not 5.
     #[test]
     fn sticky_note() {
-        assert_eq!(
-            get_container_coords(&container("stickynote")),
-            [26.0, 36.0]
-        );
+        assert_eq!(get_container_coords(&container("stickynote")), [26.0, 36.0]);
     }
 
     /// Arrows get the plain padding (their label is positioned along the
