@@ -530,6 +530,22 @@
       "errorType": "Error"
     },
     {
+      "id": "caret-in-library-path-encoded",
+      "url": "https://example.com/^/a",
+      "allowList": [
+        "example.com/%5E"
+      ],
+      "ok": true
+    },
+    {
+      "id": "caret-in-entry-path-encoded",
+      "url": "https://example.com/%5E/a",
+      "allowList": [
+        "example.com/^"
+      ],
+      "ok": true
+    },
+    {
       "id": "regexp-caret-in-path",
       "url": "https://example.com/x",
       "allowList": [

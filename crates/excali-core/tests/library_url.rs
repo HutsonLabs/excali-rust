@@ -12,8 +12,7 @@ use excali_core::library_url::{
     decode_uri_component, library_url_after_import, parse_library_tokens,
     parse_library_tokens_from_url, resolve_library_url, resolve_library_url_with,
     validate_library_url, validate_library_url_with, LibraryUrlError, LibraryUrlTokens,
-    LibraryUrlValidator, ALLOWED_LIBRARY_URLS, URL_HASH_KEY_ADD_LIBRARY,
-    URL_QUERY_KEY_ADD_LIBRARY,
+    LibraryUrlValidator, ALLOWED_LIBRARY_URLS, URL_HASH_KEY_ADD_LIBRARY, URL_QUERY_KEY_ADD_LIBRARY,
 };
 use excali_core::link::{escape_double_quotes, normalize_link, sanitize_url, to_valid_url};
 use serde_json::Value;
@@ -177,10 +176,7 @@ fn validate_library_url_with_a_predicate() {
         ["https://example.com/a", "https://excalidraw.com/a"]
     );
     assert_eq!(
-        validate_library_url_with(
-            "https://excalidraw.com/a",
-            &LibraryUrlValidator::default()
-        ),
+        validate_library_url_with("https://excalidraw.com/a", &LibraryUrlValidator::default()),
         Ok(())
     );
 }
@@ -316,7 +312,9 @@ fn sanitize_url_basics() {
     assert_eq!(sanitize_url("  "), "about:blank");
     assert_eq!(sanitize_url(" https://a.b/ "), "https://a.b/");
     assert_eq!(sanitize_url("javascript:x"), "about:blank");
-    assert_eq!(sanitize_url("&#x;"), "&#x;");
+    // `&#x;` decodes to U+0000 (Number("x") is NaN), which is then removed.
+    assert_eq!(sanitize_url("&#x;"), "about:blank");
+    assert_eq!(sanitize_url("&#;"), "&#;");
     assert_eq!(escape_double_quotes(r#"a"b""#), "a&quot;b&quot;");
 }
 
@@ -369,14 +367,25 @@ fn import_steps_match_upstream() {
 
 #[test]
 fn decode_uri_component_is_javascripts() {
-    assert_eq!(decode_uri_component("a%20b%2Fc+d").as_deref(), Ok("a b/c+d"));
+    assert_eq!(
+        decode_uri_component("a%20b%2Fc+d").as_deref(),
+        Ok("a b/c+d")
+    );
     assert_eq!(decode_uri_component("%e2%82%ac").as_deref(), Ok("\u{20ac}"));
     assert_eq!(
         decode_uri_component("%F0%9F%98%80").as_deref(),
         Ok("\u{1f600}")
     );
     for malformed in [
-        "%", "%4", "%g0", "%80", "%C3", "%C3%28", "%E0%80%80", "%ED%BF%BF", "%F5%80%80%80",
+        "%",
+        "%4",
+        "%g0",
+        "%80",
+        "%C3",
+        "%C3%28",
+        "%E0%80%80",
+        "%ED%BF%BF",
+        "%F5%80%80%80",
         "%FF",
     ] {
         assert_eq!(

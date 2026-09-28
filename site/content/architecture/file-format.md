@@ -166,6 +166,15 @@ Merge rule: two items are equal when their element `id`/`versionNonce` pairs mat
 
 Import from a URL is allowed only for `excalidraw.com` and `raw.githubusercontent.com/excalidraw/excalidraw-libraries` (suffix match on the host at a subdomain boundary, prefix match on the path). The `#addLibrary=<url>&token=<id>` hash form and the legacy `?addLibrary=` query form are both parsed.
 
+`excali_core::library_url` ports this (`packages/excalidraw/data/library.ts:54-58, 497-543, 726-776`):
+
+- **Tokens.** `parse_library_tokens(search, hash)` is `parseLibraryTokensFromUrl`. It reads the first `addLibrary` of the hash, or, when that is missing or empty, of the query. The `token` always comes from the hash. Both are parsed as `URLSearchParams` parses them (`+` is a space, percent escapes are UTF-8). `should_prompt(editor_id)` is `idToken !== excalidrawAPI.id`.
+- **Resolve.** `resolve_library_url(value, origin)` does what `importLibraryFromURL` does before fetching: `decodeURIComponent` (a malformed escape throws `URI malformed`), then `toValidURL`, then the allow-list. `toValidURL` and `normalizeLink` (`packages/common/src/url.ts`) are ported in `excali_core::link`, together with `@braintree/sanitize-url` 6.0.2. So `javascript:`, `data:` and `vbscript:` links become `about:blank`, and a path starting with `/` is joined to the editor's origin.
+- **Allow-list.** `validate_library_url` parses each entry as `https://<entry>` and tests the library URL's hostname against `(^|\.)<hostname>$` and its pathname against `^<pathname>(/+|$)`, in that order. As upstream builds these with `new RegExp` from unescaped text, the dots are regular expression dots, so `excalidraw-com` passes. In a caller's own entries, `+`, `*`, `|`, `[...]`, groups and `{n,m}` take effect, and an invalid pattern throws V8's `SyntaxError` message. A private matcher (`js_regexp`) gives the same answers. A predicate can replace the list, as upstream's `validateLibraryUrl` option does.
+- **After the import.** `library_url_after_import(search, hash)` is the address upstream moves to with `history.replaceState`: `addLibrary` is removed from the hash, or else from the query.
+- **URL parsing.** URLs are parsed with the `url` crate (the WHATWG URL Standard). It leaves `^` in a path where the Standard and Node's parser write `%5E`, so the port encodes it.
+- **Goldens.** `crates/excali-core/tests/fixtures/library-url.json` is written by `tools/goldens/library-url-fixtures.mjs` from upstream's own functions and re-checked in CI. It has 112 allow-list cases (the default list, caller lists, regular expression syntax and errors), 33 address cases, 63 `normalizeLink` cases, 29 `toValidURL` cases and 27 cases for the steps before the fetch.
+
 Libraries cannot contain `iframe`, `embeddable` or `image` elements.
 
 ## Embedded scenes

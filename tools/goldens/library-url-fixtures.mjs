@@ -183,7 +183,10 @@ const validateCases = () => [
   { id: "regexp-star-in-path", url: "https://example.com/anything", allowList: ["example.com/*"] },
   { id: "regexp-alternation-in-path", url: "https://example.com/zzz/b", allowList: ["example.com/a|b"] },
   { id: "regexp-alternation-in-path-other", url: "https://example.com/zzz", allowList: ["example.com/a|b"] },
-  { id: "regexp-caret-in-path", url: "https://example.com/x", allowList: ["example.com/^x"] },
+  // `^` is in the URL Standard's path percent-encode set: `%5E` in both
+  { id: "caret-in-library-path-encoded", url: "https://example.com/^/a", allowList: ["example.com/%5E"] },
+  { id: "caret-in-entry-path-encoded", url: "https://example.com/%5E/a", allowList: ["example.com/^"] },
+  { id: "regexp-caret-in-path",url: "https://example.com/x", allowList: ["example.com/^x"] },
   { id: "regexp-dollar-in-path", url: "https://example.com/", allowList: ["example.com/$"] },
   { id: "regexp-dollar-in-path-longer", url: "https://example.com/a", allowList: ["example.com/$"] },
   { id: "regexp-class-in-path", url: "https://example.com/b/x", allowList: ["example.com/[a-c]"] },

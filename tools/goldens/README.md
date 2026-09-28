@@ -419,3 +419,38 @@ node tools/goldens/library-fixtures.mjs --check   # exit 1 if it is stale
 
 CI runs `--check` in the `goldens` job, and `test/library-fixtures.test.mjs`
 checks that two runs are byte-identical.
+
+## Library URL fixtures
+
+`library-url-fixtures.mjs` writes
+`crates/excali-core/tests/fixtures/library-url.json` for excali-core's
+import-from-URL port (ex-109, `excali_core::library_url` and
+`excali_core::link`). It bundles upstream's `validateLibraryUrl` and
+`parseLibraryTokensFromUrl` (`packages/excalidraw/data/library.ts:497-543`),
+the module-private allow-list `ALLOWED_LIBRARY_URLS` (`library.ts:54-58`,
+exported for the generator), and `toValidURL` and `normalizeLink`
+(`packages/common/src/url.ts:5-37`, with `@braintree/sanitize-url` 6.0.2
+from `package-lock.json`). It records:
+
+- `validate`: `validateLibraryUrl(url)` with the default allow-list, or with a
+  case's own `allowList`: `ok`, or the thrown message and constructor
+  (`Error`, `TypeError` for `new URL`, `SyntaxError` for an entry that is not
+  a valid regular expression);
+- `tokens`: `parseLibraryTokensFromUrl()` with `window.location` at `href`
+  (its `search` and `hash` are recorded too);
+- `normalizeLink` and `toValidURL` (with `location.origin` set) on tables of
+  links: `javascript:`/`data:`/`vbscript:` in every disguise the sanitizer
+  handles, character references, control characters, relative links;
+- `import`: `decodeURIComponent`, `toValidURL` and `validateLibraryUrl` in the
+  order `importLibraryFromURL` calls them (`library.ts:726-731`).
+
+`library.ts` is loaded with the same stubs and jotai shim as the library
+fixtures. The functions are pure apart from `location`.
+
+```sh
+node tools/goldens/library-url-fixtures.mjs           # write the fixture
+node tools/goldens/library-url-fixtures.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and
+`test/library-url-fixtures.test.mjs` checks that two runs are byte-identical.
