@@ -486,3 +486,48 @@ CI runs `--check` in the `goldens` job, and `test/url-host-fixtures.test.mjs`
 checks that two runs are byte-identical. ada's table blob itself is taken
 from the ada 4.0.0 release by `scripts/fixtures/ada-idna-tables.py`
 (`--check` runs in the `ada-idna-tables` job of `gates.yml`).
+
+## Fixture round-trip golden (D1)
+
+`document-fixtures.mjs` writes
+`crates/excali-core/tests/fixtures/document-round-trip.json` for excali-core's
+D1 conformance test (`tests/fixture_round_trip.rs`, ex-g101). For every
+scene-bearing file of upstream's `packages/excalidraw/tests/fixtures`
+(`diagramFixture.ts`, `elementFixture.ts`, the PNG and SVG files with an
+embedded scene, `fixture_library.excalidrawlib`) it records:
+
+- `input`: the scene text upstream's loader parses. For `diagramFixture.ts`
+  it is `JSON.stringify(diagramFixture, null, 2)` of the object the module
+  exports, also with an unknown element key and an unknown top-level key
+  added (`diagramFixture-unknown-keys`); for `elementFixture.ts` a scene of
+  every exported element in source order; for an embedded PNG or SVG what
+  upstream's `parseFileContents` (`data/blob.ts:32-80`, through
+  `decodePngMetadata` and `decodeSvgBase64Payload`) returns for the file;
+- `output`: `serializeAsJSON(elements, appState, files, "local")`
+  (`data/json.ts:52-75`) of what `loadFromBlob(file, null, null)`
+  (`data/blob.ts:137-216`) gives: `restoreElements` with `repairBindings` and
+  `deleteInvisibleElements`, `restoreAppState` of the exported `appState`;
+- `reload`: the same for `output` loaded as a `.excalidraw` file.
+
+The library is `loadLibraryFromBlob` then `serializeLibraryAsJSON`, twice.
+`edges` holds scenes that are not upstream fixtures, one per step of loading
+and saving (files of live images only, falsy and malformed top-level values,
+legacy `appState`, dropped and deleted elements, files the loader rejects).
+
+The whole loader is upstream's: `blob.ts`, `image.ts`, `encode.ts` and
+`scene/export.ts` from the checkout, with pako 2.0.3 and the png-chunk
+packages at the tarballs upstream's `yarn.lock` locks (`test/pins.test.mjs`).
+The file dialogs, image resizing, fonts and renderers are stubbed; loading a
+scene without local state never reaches them. Node has no `FileReader`, which
+`parseFileContents` uses to read a Blob as text, so the generator installs one
+that reads it with `Blob#text()`. Upstream runs in its test mode with
+`reseed(1)` before each load, `Date.now` returns 1 and `Math.random` throws.
+
+```sh
+node tools/goldens/document-fixtures.mjs           # write the fixture
+node tools/goldens/document-fixtures.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and `test/document-fixtures.test.mjs`
+checks that two runs are byte-identical and that every scene-bearing fixture
+has a case.
