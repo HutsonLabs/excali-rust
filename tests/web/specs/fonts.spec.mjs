@@ -96,6 +96,31 @@ const open = async (page) => {
   return fetched;
 };
 
+// Upstream's fontFacesLoader skips document.fonts.load when
+// document.fonts.check(font, text) is already true, and Chromium answers
+// true for a family installed on the system. A system copy of a manifest
+// family (Linux images ship fonts-liberation) would stop that family's file
+// being fetched, so the per-scene tests need none installed; CI removes them.
+test("no manifest family is installed as a system font", async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => window.excali.registerFonts("/fonts/"));
+  // With every face registered and unloaded, check() is false unless the
+  // family is also a platform font. Probe each family's first face with a
+  // character inside its unicode range, at its weight.
+  const probes = manifest.families
+    .filter((f) => !f.local)
+    .map((f) => {
+      const face = f.faces[0];
+      const first = face.unicodeRange ? /U\+([0-9a-f]+)/i.exec(face.unicodeRange)[1] : "61";
+      return { family: f.family, font: `${face.weight} 16px "${f.family}"`, text: String.fromCodePoint(parseInt(first, 16)) };
+    });
+  const installed = await page.evaluate(
+    (ps) => ps.filter((p) => document.fonts.check(p.font, p.text)).map((p) => p.family),
+    probes,
+  );
+  expect(installed, "uninstall these system fonts to run the suite").toEqual([]);
+});
+
 test("registering the manifest fetches no font file", async ({ page }) => {
   const fetched = await open(page);
   const registered = await page.evaluate(() => window.excali.registerFonts("/fonts/"));

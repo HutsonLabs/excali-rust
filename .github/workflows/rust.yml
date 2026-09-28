@@ -87,6 +87,15 @@ jobs:
       - name: install chromium
         working-directory: tests/web
         run: npx playwright install --with-deps chromium
+      # Chromium's document.fonts.check is true for an installed family, so a
+      # system Liberation Sans (pulled in by --with-deps) would stop upstream's
+      # check-then-load from fetching the vendored file; the suite asserts
+      # no manifest family is installed.
+      - name: remove system copies of manifest fonts
+        run: |
+          sudo apt-get remove -y 'fonts-liberation*'
+          fc-cache -f
+          if fc-list | grep -qi liberation; then fc-list | grep -i liberation; exit 1; fi
       - name: scene fonts load by unicode range
         working-directory: tests/web
         run: npx playwright test
