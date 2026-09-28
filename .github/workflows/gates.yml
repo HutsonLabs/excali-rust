@@ -199,7 +199,9 @@ jobs:
   # fixtures, built by upstream's constructors and serializeAsJSON, and
   # restore-fixtures.mjs --check for restore-base.json and
   # restore-element.json, upstream's own restoreElementWithProperties and
-  # restoreElement on tables of inputs, clipboard-fixtures.mjs --check
+  # restoreElement on tables of inputs, restore-elements-fixtures.mjs
+  # --check for restore-elements.json, upstream's own restoreElements and
+  # bumpElementVersions on tables of scenes, clipboard-fixtures.mjs --check
   # for clipboard.json, upstream's own serializeAsClipboardJSON and
   # parseClipboard, and rough-options.mjs --check for excali-scene's
   # rough-options.json, upstream's own generateRoughOptions and
@@ -226,6 +228,8 @@ jobs:
         run: node tools/goldens/scene-fixtures.mjs --check
       - name: excali-core restore fixtures match the generator
         run: node tools/goldens/restore-fixtures.mjs --check
+      - name: excali-core scene-level restore fixture matches the generator
+        run: node tools/goldens/restore-elements-fixtures.mjs --check
       - name: excali-core AppState goldens match the generator
         run: node tools/goldens/app-state.mjs --check
       - name: excali-core clipboard fixtures match the generator

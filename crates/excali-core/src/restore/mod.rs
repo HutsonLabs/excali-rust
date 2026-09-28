@@ -23,10 +23,13 @@
 //! `packages/common/src/colors.ts:389-391`).
 
 mod element;
+mod scene;
 mod url;
 
 #[cfg(test)]
 mod element_tests;
+#[cfg(test)]
+mod scene_tests;
 #[cfg(test)]
 mod tests;
 

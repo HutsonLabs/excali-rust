@@ -162,18 +162,29 @@ const stubbedModules = (upstream, names) => ({
  * without extension (e.g. `packages/excalidraw/data/restore`) to the names
  * to export. The module's source is loaded unchanged with one line
  * appended, `export { name, ... };`, so the functions are upstream's own.
+ *
+ * `patched` maps a checkout module path the same way to a function of its
+ * source returning the source to compile, for probes that record what a
+ * module passes to the functions it calls (see restore-elements-fixtures.mjs);
+ * the patch runs before the export line is appended.
  */
-const exposedModules = (upstream, exposed) => ({
+const exposedModules = (upstream, exposed, patched = {}) => ({
   name: "exposed-modules",
   setup(build) {
-    const entries = Object.entries(exposed);
-    if (!entries.length) return;
-    const files = new Map(entries.map(([module, names]) => [join(upstream, `${module}.ts`), names]));
+    const modules = new Set([...Object.keys(exposed), ...Object.keys(patched)]);
+    if (!modules.size) return;
+    const files = new Map(
+      [...modules].map((module) => [
+        join(upstream, `${module}.ts`),
+        { names: exposed[module] ?? [], patch: patched[module] ?? ((source) => source) },
+      ]),
+    );
     build.onLoad({ filter: /\.ts$/ }, (args) => {
-      const names = files.get(args.path);
-      if (!names) return undefined;
-      const source = readFileSync(args.path, "utf8");
-      return { contents: `${source}\nexport { ${names.join(", ")} };\n`, loader: "ts" };
+      const file = files.get(args.path);
+      if (!file) return undefined;
+      const source = file.patch(readFileSync(args.path, "utf8"));
+      const exports = file.names.length ? `\nexport { ${file.names.join(", ")} };\n` : "";
+      return { contents: `${source}${exports}`, loader: "ts" };
     });
   },
 });
@@ -185,11 +196,12 @@ let loads = 0;
  * TypeScript entry's source, resolved from the checkout root (the default
  * exports the shape code the goldens use); `stubs` lists modules replaced
  * by empty ones (see stubbedModules); `expose` exports module-private
- * functions (see exposedModules); `define` adds compile-time constants.
+ * functions and `patch` rewrites checkout modules (see exposedModules);
+ * `define` adds compile-time constants.
  */
 export const loadUpstream = async (
   { dir },
-  { entry = ENTRY, stubs = [], expose = {}, define = {} } = {},
+  { entry = ENTRY, stubs = [], expose = {}, patch = {}, define = {} } = {},
 ) => {
   const esbuild = await import("esbuild");
   const result = await esbuild.build({
@@ -208,7 +220,7 @@ export const loadUpstream = async (
     plugins: [
       workspaceAliases(dir),
       stubbedModules(dir, stubs),
-      exposedModules(dir, expose),
+      exposedModules(dir, expose, patch),
       pinnedPackages(),
     ],
     loader: { ".png": "empty", ".svg": "empty", ".scss": "empty", ".css": "empty" },
