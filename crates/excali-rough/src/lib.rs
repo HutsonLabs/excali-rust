@@ -24,6 +24,17 @@
 //! `goldens/rough-fills.json` and `goldens/rough-options.json`, generated
 //! from the pinned package, pin the output op by op.
 //!
+//! Excalidraw's stroke styles are options, not a separate code path
+//! (`packages/element/src/shape.ts:168-225`): dashed `strokeLineDash
+//! [8, 8 + sw]` and dotted `[1.5, 6 + sw]` are carried on the drawable's
+//! options for the renderer to apply (rough.js `canvas.js` `setLineDash`,
+//! `svg.js` `stroke-dasharray`) and move no op; `disableMultiStroke` (set
+//! for every non-solid stroke, drawn at `sw + 0.5`) keeps the first of the
+//! two passes; `preserveVertices` pins each segment's end points; and
+//! `curveFitting` (1 for ellipses) scales the ellipse radius jitter.
+//! `goldens/rough-strokes.json` runs upstream's own `generateRoughOptions`
+//! output through every method for solid, dashed and dotted strokes.
+//!
 //! Targets: native, wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-math`.
 
