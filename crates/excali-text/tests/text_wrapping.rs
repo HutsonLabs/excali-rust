@@ -147,7 +147,10 @@ fn should_wrap_the_text_correctly_when_text_contains_hyphen() {
 #[test]
 fn should_support_wrapping_nested_lists() {
     let text = "\tA) one tab\t\t- two tabs        - 8 spaces";
-    assert_eq!(wrap(text, 100.0), "\tA) one\ntab\t\t- two\ntabs\n- 8 spaces");
+    assert_eq!(
+        wrap(text, 100.0),
+        "\tA) one\ntab\t\t- two\ntabs\n- 8 spaces"
+    );
     assert_eq!(
         wrap(text, 50.0),
         "\tA)\none\ntab\n- two\ntabs\n- 8\nspace\ns"
@@ -591,7 +594,12 @@ mod test_parse_tokens {
     fn should_tokenize_decomposed_chars_into_their_composed_variants() {
         // each input character is in a decomposed form
         let text = "c\u{30C}\u{3066}\u{3099}a\u{308}\u{3072}\u{309A}\u{3B5}\u{301}\u{1103}\u{1161}\u{438}\u{306}\u{1112}\u{1161}\u{11AB}";
-        assert_eq!(text.chars().count(), 16);
+        let nfc = icu_normalizer::ComposingNormalizerBorrowed::new_nfc().normalize(text);
+        assert_eq!(nfc.encode_utf16().count(), 8);
+        assert_eq!(
+            icu_normalizer::DecomposingNormalizerBorrowed::new_nfd().normalize(text),
+            text
+        );
 
         let tokens = tokens(text);
         assert_eq!(tokens.len(), 8);
@@ -610,23 +618,83 @@ mod test_parse_tokens {
         assert_eq!(
             tokens,
             [
-                "《道", "德", "經》", "醫-", "醫", "こ", "ん", "に", "ち", "は", "世",
-                "界！", "안", "녕", "하", "세", "요", "세", "계；", "요』,", "다.", "다...",
-                "원/", "달", "(((다)))", "[[1]]", "〚({((한))>)〛", "(「た」)", "た…",
-                "[Hello]", " ", "\t", "　", "World？", "ニ", "ュ", "ー", "ヨ", "ー", "ク・",
-                "￥3700.55", "す。", "090-", "1234-", "5678", "￥1,000〜", "＄5,000", "「素",
-                "晴", "ら", "し", "い！」", "〔重", "要〕", "＃", "１：", "Taro", "君",
-                "30％", "は、", "（た", "な", "ば", "た）", "〰", "￥110±", "￥570", "で",
-                "20℃〜", "9:30〜", "10:00", "【一", "番】",
+                "《道",
+                "德",
+                "經》",
+                "醫-",
+                "醫",
+                "こ",
+                "ん",
+                "に",
+                "ち",
+                "は",
+                "世",
+                "界！",
+                "안",
+                "녕",
+                "하",
+                "세",
+                "요",
+                "세",
+                "계；",
+                "요』,",
+                "다.",
+                "다...",
+                "원/",
+                "달",
+                "(((다)))",
+                "[[1]]",
+                "〚({((한))>)〛",
+                "(「た」)",
+                "た…",
+                "[Hello]",
+                " ",
+                "\t",
+                "　",
+                "World？",
+                "ニ",
+                "ュ",
+                "ー",
+                "ヨ",
+                "ー",
+                "ク・",
+                "￥3700.55",
+                "す。",
+                "090-",
+                "1234-",
+                "5678",
+                "￥1,000〜",
+                "＄5,000",
+                "「素",
+                "晴",
+                "ら",
+                "し",
+                "い！」",
+                "〔重",
+                "要〕",
+                "＃",
+                "１：",
+                "Taro",
+                "君",
+                "30％",
+                "は、",
+                "（た",
+                "な",
+                "ば",
+                "た）",
+                "〰",
+                "￥110±",
+                "￥570",
+                "で",
+                "20℃〜",
+                "9:30〜",
+                "10:00",
+                "【一",
+                "番】",
             ]
         );
 
-        let contains = |t: &str| {
-            assert!(
-                tokens.iter().any(|x| x == t),
-                "{t:?} not in {tokens:?}"
-            )
-        };
+        let contains = |t: &str| assert!(tokens.iter().any(|x| x == t), "{t:?} not in {tokens:?}");
 
         // Latin
         for t in ["[[1]]", "[Hello]", "World？", "Taro"] {
@@ -640,8 +708,31 @@ mod test_parse_tokens {
 
         // Japanese
         for t in [
-            "こ", "ん", "に", "ち", "は", "世", "ク・", "界！", "た…", "す。", "ュ", "「素", "晴", "ら",
-            "し", "い！」", "君", "は、", "（た", "な", "ば", "た）", "で", "【一", "番】",
+            "こ",
+            "ん",
+            "に",
+            "ち",
+            "は",
+            "世",
+            "ク・",
+            "界！",
+            "た…",
+            "す。",
+            "ュ",
+            "「素",
+            "晴",
+            "ら",
+            "し",
+            "い！」",
+            "君",
+            "は、",
+            "（た",
+            "な",
+            "ば",
+            "た）",
+            "で",
+            "【一",
+            "番】",
         ] {
             contains(t);
         }
@@ -741,7 +832,10 @@ fn invalid_width_keeps_hard_lines_with_offsets() {
 fn js_whitespace_is_used_for_breaks() {
     assert_eq!(tokens("a\u{FEFF}b"), ["a", "\u{FEFF}", "b"]);
     assert_eq!(tokens("a\u{85}b"), ["a\u{85}b"]);
-    assert_eq!(tokens("a\u{A0}b\u{3000}c"), ["a", "\u{A0}", "b", "\u{3000}", "c"]);
+    assert_eq!(
+        tokens("a\u{A0}b\u{3000}c"),
+        ["a", "\u{A0}", "b", "\u{3000}", "c"]
+    );
 }
 
 /// `trimLine`'s `/^(.+?)(\s+)$/` needs one character before the trailing
