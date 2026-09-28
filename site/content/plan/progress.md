@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 07:09 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 07:12 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**133 issues** · 13 closed (10%) · 0 in progress · 0 blocked · 119 open
+**133 issues** · 14 closed (11%) · 0 in progress · 0 blocked · 118 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -31,7 +31,7 @@ Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo work
 
 ## ex-e1 · Phase 1: Core model and file format (excali-core)
 
-<span class="status open">open</span> 2/16 children closed
+<span class="status open">open</span> 3/16 children closed
 
 Element types, serde with unknown-field preservation, restore/migration rules, AppState, fractional indexing, library formats, payload codecs, conformance corpus.
 
@@ -46,9 +46,9 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 | `ex-107` | Fractional indexing port (base-62 keys, generateNKeysBetween, syncInvalidIndices) | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-108` | Library formats: v1 `library` and v2 `libraryItems`, restoreLibraryItems, merge | task | P0 | <span class="status open">open</span> |  | `ex-104` |
 | `ex-109` | Library import model: URL allow-list and #addLibrary token parsing | task | P1 | <span class="status open">open</span> |  | `ex-108` |
-| `ex-110` | Payload codec: byte-string encoding and zlib compression (encode/decode) | task | P1 | <span class="status open">open</span> | yes |  |
-| `ex-111` | PNG tEXt scene payload read/write | task | P1 | <span class="status open">open</span> |  | `ex-110` |
-| `ex-112` | SVG metadata scene payload read/write | task | P1 | <span class="status open">open</span> |  | `ex-110` |
+| `ex-110` | Payload codec: byte-string encoding and zlib compression (encode/decode) | task | P1 | <span class="status closed">closed</span> |  |  |
+| `ex-111` | PNG tEXt scene payload read/write | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-112` | SVG metadata scene payload read/write | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-113` | Clipboard JSON format (excalidraw/clipboard) parse and emit | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-114` | Corpus test: 232 catalogue libraries round-trip | task | P0 | <span class="status open">open</span> |  | `ex-108` |
 | `ex-115` | JSON Schema generation for .excalidraw and .excalidrawlib (schemars) | task | P3 | <span class="status open">open</span> |  | `ex-108` |

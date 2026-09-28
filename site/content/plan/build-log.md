@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-110 · Payload codec: byte-string encoding and zlib compression (encode/decode)
+
+`excali-core` now encodes and decodes the `{ version, encoding, compressed, encoded }` payload wrapper the way upstream `data/encode.ts` does. pako 2.0.3's deflate and inflate are ported in full, so compressed output is byte-identical to pako and every corrupt stream fails with pako's own message (or succeeds with pako's output), checked against goldens generated from upstream and a 1,600-case corrupted-stream differential. PR: [#18](https://github.com/HutsonLabs/excali-rust/pull/18).
+
 ## 2026-09-28 · ex-102 · Serde with unknown-field preservation and 2-space JSON output
 
 `excali-core` now reads and writes `.excalidraw` scenes the way upstream does. Unknown keys at every level (the top level, elements, appState, files and customData) survive a round trip in the order they were read, and unchanged raw values are kept byte for byte, including lone-surrogate escapes. Output matches `JSON.stringify(data, null, 2)`: 2-space indentation, JS property order with array-index keys first, and upstream's constructor key order for elements built in Rust. This is checked against node-generated fixtures (`tools/goldens/scene-fixtures.mjs --check`). PR: [#17](https://github.com/HutsonLabs/excali-rust/pull/17).
