@@ -137,6 +137,11 @@ pub const DEFAULT_ELEMENT_PROPS: ElementProps = ElementProps {
 /// `DEFAULT_STROKE_STREAMLINE`, `constants.ts:622`.
 pub const DEFAULT_STROKE_STREAMLINE: f64 = 0.5;
 
+/// `MIME_TYPES.excalidraw` (`STRING_MIME_TYPES.excalidraw`,
+/// `constants.ts:313`): the MIME type of a `.excalidraw` file, and the
+/// keyword of the PNG `tEXt` chunk that embeds a scene (`image.ts:36`).
+pub const MIME_TYPE_EXCALIDRAW: &str = "application/vnd.excalidraw+json";
+
 /// `EXPORT_DATA_TYPES.excalidraw`, `constants.ts:345`: the `type` of a
 /// `.excalidraw` file.
 pub const EXPORT_DATA_TYPE_EXCALIDRAW: &str = "excalidraw";

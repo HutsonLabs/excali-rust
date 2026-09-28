@@ -52,6 +52,63 @@ pub(crate) fn crc32(crc: u32, data: &[u8]) -> u32 {
     !c
 }
 
+/// `x^(2^k) mod p` for k = 0..32, in CRC-32's reflected representation
+/// (zlib's `x2n_table`).
+const fn x2n_table() -> [u32; 32] {
+    let mut table = [0u32; 32];
+    let mut p = 1u32 << 30; // x^1
+    table[0] = p;
+    let mut n = 1;
+    while n < 32 {
+        p = multmodp(p, p);
+        table[n] = p;
+        n += 1;
+    }
+    table
+}
+
+static X2N_TABLE: [u32; 32] = x2n_table();
+
+/// `a * b mod p` over GF(2), reflected (zlib's `multmodp`).
+const fn multmodp(a: u32, mut b: u32) -> u32 {
+    let mut m = 1u32 << 31;
+    let mut p = 0u32;
+    loop {
+        if a & m != 0 {
+            p ^= b;
+            if a & (m - 1) == 0 {
+                break;
+            }
+        }
+        m >>= 1;
+        b = if b & 1 != 0 {
+            (b >> 1) ^ 0xedb8_8320
+        } else {
+            b >> 1
+        };
+    }
+    p
+}
+
+/// `x^(n * 2^k) mod p` (zlib's `x2nmodp`).
+fn x2nmodp(mut n: u64, mut k: usize) -> u32 {
+    let mut p = 1u32 << 31; // x^0
+    while n != 0 {
+        if n & 1 != 0 {
+            p = multmodp(X2N_TABLE[k & 31], p);
+        }
+        n >>= 1;
+        k += 1;
+    }
+    p
+}
+
+/// [`crc32`] continued over `n` zero bytes, in O(log n): each zero byte
+/// multiplies the (un-inverted) register by x^8.
+pub(crate) fn crc32_zeros(crc: u32, n: u64) -> u32 {
+    !multmodp(x2nmodp(n, 3), !crc)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -65,6 +122,16 @@ mod tests {
         // Continuation equals one pass.
         assert_eq!(crc32(crc32(0, b"1234"), b"56789"), 0xcbf4_3926);
         assert_eq!(adler32(adler32(1, b"Wiki"), b"pedia"), 0x11e6_0398);
+    }
+
+    #[test]
+    fn crc32_zeros_equals_feeding_zeros() {
+        for start in [0u32, 0xcbf4_3926, 0xffff_ffff, 0x1234_5678] {
+            for n in [0u64, 1, 2, 3, 7, 8, 100, 1000, 65536, 100_003] {
+                let direct = crc32(start, &vec![0u8; n as usize]);
+                assert_eq!(crc32_zeros(start, n), direct, "start {start:#x}, {n} zeros");
+            }
+        }
     }
 
     #[test]

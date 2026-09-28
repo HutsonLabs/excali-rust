@@ -16,5 +16,6 @@ mod js;
 pub mod json;
 mod layout;
 pub mod order_key;
+pub mod png;
 pub mod restore;
 pub mod svg_payload;

@@ -360,7 +360,7 @@ Checkout: commit `438d898`. Paths are relative to `<checkout>`. Each claim cites
 | points-on-curve | port it |
 | pako | port pako 2.0.3's deflate and inflate (byte-identical output, pako's error messages) |
 | tinycolor | `csscolorparser` |
-| png chunks | `png` crate |
+| png chunks | port of png-chunks-extract, png-chunks-encode and png-chunk-text 1.0.0 (`excali_core::png`) for their bytes, quirks and messages |
 | harfbuzz subset | `hb-subset` / `allsorts` |
 | woff2 | `woff2` crates |
 | nanoid | `nanoid` |

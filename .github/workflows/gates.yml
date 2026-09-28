@@ -84,6 +84,31 @@ jobs:
           UPSTREAM_DIR: ${{ runner.temp }}/upstream
           TOOLS_DIR: ${{ runner.temp }}/tools
         run: scripts/fixtures/payload-goldens.sh --check
+  # ex-111: the PNG payload goldens are upstream output. Regenerate them from
+  # image.ts at the pin on the exact png-chunk-*, crc-32, sliced and pako
+  # releases upstream locks (each checked against its yarn.lock SHA-512) and
+  # fail if the committed file differs; then have upstream's
+  # decodePngMetadata read every PNG the port writes (the png_embed example)
+  # and require the embedded text back exactly.
+  png-goldens:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: upstream checkout at the pin
+        env:
+          UPSTREAM_DIR: ${{ runner.temp }}/upstream
+        run: scripts/upstream/checkout.sh
+      - name: goldens match upstream image.ts; upstream decodes the port's PNGs
+        env:
+          UPSTREAM_DIR: ${{ runner.temp }}/upstream
+          TOOLS_DIR: ${{ runner.temp }}/tools
+        run: scripts/fixtures/png-goldens.sh --check
   # scripts/upstream/checkout.sh: the offline suite pins its behaviour
   # (fixture remotes over file://); the live step proves the real pin still
   # resolves on GitHub, lands clean, and a second run is a no-op.
