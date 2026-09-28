@@ -4,8 +4,8 @@
   "description": "Playwright smoke test for the review site and mockups (ex-006).",
   "type": "module",
   "scripts": {
-    "test": "node --test unit/ && playwright test",
-    "test:unit": "node --test unit/",
+    "test": "npm run test:unit && npm run test:smoke",
+    "test:unit": "node --test unit/*.test.mjs",
     "test:smoke": "playwright test"
   },
   "devDependencies": {
