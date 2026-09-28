@@ -8,7 +8,7 @@ Each entry records a task that merged to main: the date, the task id and title, 
 
 ## 2026-09-28 · ex-m1 · Milestone check (second run): M1 not yet reached
 
-The M1 check ran again on `main` at 46d9d4e, after ex-g101 merged. 851 workspace tests pass, the fixture corpus verifies, and all twelve goldens checks are current, including the D1 document round trip. Every scene-bearing upstream fixture and all 232 catalogue libraries round-trip byte for byte against upstream. D1 is still not met because two known losses remain. The 24 logic-gates lines with a string `strokeWidth` are dropped (ex-117). 1245 legacy arrow bindings are cleared instead of migrated (ex-116, blocked by ex-507 and ex-510). The check found no other gap, so it added no new tasks.
+The M1 check ran again on `main` at 46d9d4e, after ex-g101 merged. 851 workspace tests pass, the fixture corpus verifies, and all twelve goldens checks are current, including the D1 document round trip. Every scene-bearing upstream fixture and all 232 catalogue libraries round-trip byte for byte against upstream. D1 is still not met because two known losses remain. The 24 logic-gates lines with a string `strokeWidth` are dropped (ex-117). 1245 legacy arrow bindings are cleared instead of migrated (ex-116, blocked by ex-507 and ex-510). The check found no other gap, so it added no new tasks. PR: [#49](https://github.com/HutsonLabs/excali-rust/pull/49).
 
 ## 2026-09-28 · ex-212 · Arrowheads: all fourteen kinds with sizes, angles and roughness rules
 
