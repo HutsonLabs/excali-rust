@@ -272,20 +272,20 @@ mod tests {
     fn a_point_named_twice_turns_twice() {
         // points-on-curve's simplify([p]) is [p, p], one object twice:
         // rotatePoints turns it by the angle twice, and back twice.
-        let p = [5.0, 7.0];
         let mut list = PolygonList::default();
-        list.push_doubled(p);
+        list.push_doubled([5.0, 7.0]);
         list.push(&[[0.0, 0.0], [10.0, 0.0], [10.0, 10.0]]);
         hachure_lines_in(&mut list, 2.0, 30.0, 1.0);
-
-        let mut expected = p;
-        let (cos, sin) = cos_sin(30.0);
-        rotate_point(&mut expected, cos, sin);
-        rotate_point(&mut expected, cos, sin);
-        let (cos, sin) = cos_sin(-30.0);
-        rotate_point(&mut expected, cos, sin);
-        rotate_point(&mut expected, cos, sin);
-        assert_eq!(list.polygon(0), vec![expected, expected]);
+        // Node, hachure-fill 0.5.2: const p = [5, 7];
+        // hachureLines([[p, p], [[0,0],[10,0],[10,10]]], 2, 30, 1) leaves
+        // [[[5.000000000000001,7.000000000000001], (the same p)],
+        //  [[0,0],[10,0],[10,9.999999999999998]]]
+        let p = [5.000000000000001, 7.000000000000001];
+        assert_eq!(list.polygon(0), vec![p, p]);
+        assert_eq!(
+            list.polygon(1),
+            vec![[0.0, 0.0], [10.0, 0.0], [10.0, 9.999999999999998]]
+        );
         assert_eq!(list.points.len(), 4);
     }
 

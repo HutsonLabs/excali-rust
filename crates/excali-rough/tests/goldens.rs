@@ -21,15 +21,29 @@
 //!   case must run.
 //!
 //! Numbers are compared as doubles with `==`, op by op, except where rough.js
-//! goes through `Math.sin`/`Math.cos`/`Math.tan`/`Math.asin`/`Math.atan`
-//! (ellipses, circles, arcs, SVG `A` commands, and every fill: hachure-fill
-//! rotates the polygon by the hachure angle, the dashed and zigzag-line
-//! fillers walk each line along its `atan` slope). Those are not the same function on every
+//! goes through `Math.sin`/`Math.cos`/`Math.tan`/`Math.asin`/`Math.atan` on
+//! arguments that land near a rounding boundary: ellipses, circles, arcs, SVG
+//! `A` commands, and the `dashed` and `zigzag-line` fillers, which walk each
+//! line along its `atan` slope. Those are not the same function on every
 //! platform (upstream's own V8 on arm64 differs from x86_64 V8 and from libm
 //! in the last bit; see `tools/goldens/README.md` and
 //! `crates/excali-math/tests/goldens.rs`), so they are compared to within
 //! [`PLATFORM_TOLERANCE`]. The number of ops, their kinds and every option
 //! must still match exactly, so a draw taken out of order fails either way.
+//!
+//! Every other fill (solid, hachure, cross-hatch, zigzag) is compared exactly.
+//! hachure-fill rotates the polygon by the hachure angle in place and back
+//! (`rotatePoints`), which moves shared vertices in the last bits; the
+//! goldens record that drift (for example `4.999999999999999` where the
+//! unrotated point was `5`), so a port that restored the points, or rotated a
+//! repeated vertex once, fails here. The rotation's `cos`/`sin` are those
+//! of the hachure angle plus 90 (plus 180 for cross-hatch): 49, 90, 139 and
+//! 150 degrees in the exactly compared cases. V8 returns them correctly
+//! rounded, and every true value lies at least 0.07 ulp from a rounding
+//! midpoint, so any libm within glibc's documented 0.548 ulp bound returns
+//! the same doubles (checked on macOS arm64 and Linux arm64 glibc 2.36). Only 42 fill cases (all
+//! `dashed` or `zigzag-line`) in `rough-fills.json` and 5 in
+//! `rough-options.json` differ from V8 in the last bits.
 
 use std::path::Path;
 
@@ -206,9 +220,11 @@ fn call(method: &str, a: &[Value], o: &Options) -> Drawable {
     }
 }
 
-/// Whether rough.js computed this case through trigonometric functions.
+/// Whether rough.js computed this case through trigonometric functions
+/// whose last bit is platform-dependent (see the module comment). The
+/// hachure-fill rotation is not among them: it is checked exactly.
 fn uses_trig(method: &str, args: &[Value], o: &Options) -> bool {
-    if o.fill.is_some() {
+    if o.fill.is_some() && matches!(o.fill_style.as_str(), "dashed" | "zigzag-line") {
         return true;
     }
     match method {

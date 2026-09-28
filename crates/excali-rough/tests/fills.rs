@@ -156,19 +156,20 @@ mod hachure_fill {
                 ],
             ],
         );
-        // the polygon is rotated in place and back, as in hachure-fill:
+        // the polygon is rotated in place and back, as in hachure-fill, and
+        // keeps the drift bit for bit (Node:
         // [[0,0],[40,0],[40,30.000000000000004],[20,10.000000000000002],
-        //  [1.7763568394002505e-15,30]]
-        let expected = [
-            [0.0, 0.0],
-            [40.0, 0.0],
-            [40.0, 30.000000000000004],
-            [20.0, 10.000000000000002],
-            [1.7763568394002505e-15, 30.0],
-        ];
-        for (a, e) in p[0].iter().zip(expected) {
-            assert!(close(a[0], e[0]) && close(a[1], e[1]), "{:?}", p[0]);
-        }
+        //  [1.7763568394002505e-15,30]])
+        assert_eq!(
+            p[0],
+            vec![
+                [0.0, 0.0],
+                [40.0, 0.0],
+                [40.0, 30.000000000000004],
+                [20.0, 10.000000000000002],
+                [1.7763568394002505e-15, 30.0],
+            ]
+        );
     }
 
     #[test]
@@ -184,8 +185,12 @@ mod hachure_fill {
             hachure_lines(&mut closed.clone(), 2.0, 0.0, 1.0),
             hachure_lines(&mut square(10.0), 2.0, 0.0, 1.0)
         );
-        // one vertex: [p, p] after closing, not more than two, so no edges
-        assert!(hachure_lines(&mut [vec![[5.0, 5.0]]], 2.0, 0.0, 1.0).is_empty());
+        // one vertex: vertices[0] and vertices[length - 1] are the same point,
+        // so hachure-fill pushes no closing copy; length 1 is not > 2, so the
+        // polygon is skipped and there are no edges
+        let mut one = [vec![[5.0, 5.0]]];
+        assert!(hachure_lines(&mut one, 2.0, 0.0, 1.0).is_empty());
+        assert_eq!(one, [vec![[5.0, 5.0]]]);
     }
 
     #[test]
@@ -259,15 +264,15 @@ mod fillers {
         assert!(!set.ops.is_empty());
         // hachureLines(q, 8, 49, 1) leaves
         // [[0,0],[80,10.000000000000007],[90,60],[15.000000000000007,50]]
-        let expected = [
-            [0.0, 0.0],
-            [80.0, 10.000000000000007],
-            [90.0, 60.0],
-            [15.000000000000007, 50.0],
-        ];
-        for (a, e) in polygons[0].iter().zip(expected) {
-            assert!(close(a[0], e[0]) && close(a[1], e[1]), "{polygons:?}");
-        }
+        assert_eq!(
+            polygons,
+            vec![vec![
+                [0.0, 0.0],
+                [80.0, 10.000000000000007],
+                [90.0, 60.0],
+                [15.000000000000007, 50.0],
+            ]]
+        );
     }
 
     #[test]
