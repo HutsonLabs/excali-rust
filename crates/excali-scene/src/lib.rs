@@ -32,6 +32,7 @@
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-core`, `excali-freehand`, `excali-rough`, `excali-text`.
 
 pub mod bounds;
+pub mod canvas_export;
 pub mod display;
 pub mod elbow_arrow;
 pub mod export;

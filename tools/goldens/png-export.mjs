@@ -307,8 +307,15 @@ const runUtils = async (up, s) => {
   const input = plain(s.elements);
   const utilsAppState = plain(s.utilsAppState);
   const files = plain(s.files);
-  // what the wrapper hands exportToCanvas (utils/src/export.ts:52-62)
-  const restoredElements = up.getNonDeletedElements(up.restoreElements(plain(input), null, { deleteInvisibleElements: true }));
+  // what the wrapper hands exportToCanvas (utils/src/export.ts:52-62), and
+  // what exportToBlob serializes (restoreElements(opts.elements, null)):
+  // the same elements here, where nothing is deleted or invisible, and
+  // recorded from one restore so their version nonces agree
+  const restoredElements = up.restoreElements(plain(input), null);
+  const drawn = up.getNonDeletedElements(up.restoreElements(plain(input), null, { deleteInvisibleElements: true }));
+  if (drawn.map((e) => e.id).join() !== restoredElements.map((e) => e.id).join()) {
+    throw new Error(`${s.name}: a utils scene may not hold deleted or invisible elements`);
+  }
   const restoredAppState = up.restoreAppState(plain(utilsAppState), null);
   const appState = plain({ ...restoredAppState, offsetTop: 0, offsetLeft: 0, width: 0, height: 0 });
   const canvas = await up.utilsExportToCanvas({
@@ -340,7 +347,7 @@ const runUtils = async (up, s) => {
     ...recorded(canvas),
     // exportToBlob (utils/src/export.ts:136-160)
     ...(utilsAppState.exportEmbedScene
-      ? { metadata: up.serializeAsJSON(up.restoreElements(plain(input), null), utilsAppState, files || {}, "local") }
+      ? { metadata: up.serializeAsJSON(restoredElements, utilsAppState, files || {}, "local") }
       : {}),
   };
 };

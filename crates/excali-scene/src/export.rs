@@ -259,12 +259,19 @@ pub fn get_frame_like_elements(elements: &[Element]) -> Vec<&Element> {
 /// element not inside one of the frames among `elements` (no `frameId`, or
 /// one naming a frame that is not there).
 pub fn get_root_elements(elements: &[Element]) -> Vec<&Element> {
-    let frames: Vec<&str> = get_frame_like_elements(elements)
+    get_root_elements_of(&elements.iter().collect::<Vec<_>>())
+}
+
+/// [`get_root_elements`] of a list of references.
+pub fn get_root_elements_of<'a>(elements: &[&'a Element]) -> Vec<&'a Element> {
+    let frames: Vec<&str> = elements
         .iter()
+        .filter(|e| is_frame_like(e))
         .map(|f| f.base.id.as_str())
         .collect();
     elements
         .iter()
+        .copied()
         .filter(|e| {
             frames.contains(&e.base.id.as_str())
                 || e.base
@@ -331,7 +338,7 @@ pub struct SvgExportAppState {
 }
 
 /// `!!value` in JS for a JSON value (`false` when absent).
-fn truthy(value: Option<&Value>) -> bool {
+pub(crate) fn truthy(value: Option<&Value>) -> bool {
     match value {
         None | Some(Value::Null) => false,
         Some(Value::Bool(b)) => *b,

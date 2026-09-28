@@ -342,11 +342,16 @@ jobs:
   # upstream-subsets.json (ex-408), upstream's own
   # generateFontFaceDeclarations with its harfbuzzjs subsetting of every
   # face its SVG export inlines, whose export test scenes reproduce
-  # export.test.ts.snap's @font-face rules byte for byte, and
+  # export.test.ts.snap's @font-face rules byte for byte;
   # image-elements.mjs --check for excali-scene's image-elements.json
   # (ex-404), upstream's own renderElement exporting image elements under
   # jsdom, recorded call by call (placeholders, crops, flips, rounded clips,
-  # the dark filter on SVG files).
+  # the dark filter on SVG files); and
+  # png-export.mjs --check for excali-scene's canvas-export.json (ex-405),
+  # upstream's own exportToCanvas and utils exportToCanvas on the recording
+  # context (canvas size, every draw, the embedded scene text); then
+  # upstream's loadFromBlob and decodePngMetadata read back every PNG the
+  # port's png_export example writes (png-export.mjs --reimport).
   # Runs on arm64: V8's float results for some shapes differ in the last bits
   # between x64 and arm64, and the committed goldens are the arm64 output
   # (macOS and Linux arm64 agree byte for byte).
@@ -405,3 +410,12 @@ jobs:
         run: node tools/goldens/font-subset.mjs --check
       - name: excali-scene image element fixture matches upstream's renderElement
         run: node tools/goldens/image-elements.mjs --check
+      - name: excali-scene canvas export fixture matches upstream's exportToCanvas
+        run: node tools/goldens/png-export.mjs --check
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: upstream re-imports the port's PNG exports (loadFromBlob, decodePngMetadata)
+        run: |
+          cargo run --quiet --locked -p excali-raster --example png_export -- "$RUNNER_TEMP/png-export"
+          node tools/goldens/png-export.mjs --reimport "$RUNNER_TEMP/png-export"

@@ -382,6 +382,7 @@ dependencies = [
  "excali-text",
  "image",
  "resvg",
+ "png",
  "serde_json",
  "sha2",
  "tiny-skia",

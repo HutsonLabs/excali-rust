@@ -70,18 +70,18 @@ test("the canvas is the content size times exportScale, drawn at that scale", ()
   // a fractional size is truncated by the width attribute
   const frac = scene("fractional-scale-1.5");
   assert.equal(drawScale(frac), 1.5);
-  assert.equal(frac.width, reflect(frac.events[0].path[0][3] * 1.5));
+  assert.equal(frac.width, reflect(frac.events[0].rect[2] * 1.5));
 });
 
 test("the background is a rectangle over the whole canvas, or none", () => {
   for (const name of ["default", "scale-2", "background-coloured", "dark", "negative-size"]) {
     const s = scene(name);
     const k = drawScale(s);
-    assert.equal(s.events[0].op, "fill", name);
-    assert.deepEqual(s.events[0].path, [["rect", 0, 0, s.width / k, s.height / k]], name);
+    assert.equal(s.events[0].op, "fillRect", name);
+    assert.deepEqual(s.events[0].rect, [0, 0, s.width / k, s.height / k], name);
   }
   for (const name of ["no-background", "background-transparent", "utils-plain"]) {
-    assert.ok(!scene(name).events.some((e) => e.op === "fill" && e.path[0][0] === "rect" && e.path[0][1] === 0 && e.path[0][2] === 0), name);
+    assert.ok(!scene(name).events.some((e) => e.op === "fillRect" && e.rect[0] === 0 && e.rect[1] === 0), name);
   }
 });
 

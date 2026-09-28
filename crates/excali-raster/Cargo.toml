@@ -28,6 +28,9 @@ image = { version = "0.25.10", default-features = false, features = ["png", "jpe
 resvg = { version = "0.48.1", default-features = false, features = ["raster-images", "text"] }
 # The `;base64` bodies of data URLs (forgiving base64).
 base64 = { workspace = true }
+# PNG export (ex-405): the encoder tiny-skia's png-format uses, called
+# directly to write the embedded scene's tEXt chunk before IEND.
+png = "0.18.1"
 
 # serde_json reads `cargo metadata` in the no_element_knowledge test and the
 # fixture display lists (tests/fixtures.rs); png-format reads Chrome's

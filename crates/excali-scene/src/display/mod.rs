@@ -89,7 +89,9 @@ pub use builtin::{
     builtin_image, builtin_image_by_id, BuiltinImage, BUILTIN_IMAGE_NAMES, ELEMENT_LINK_ID,
     EXTERNAL_LINK_ID, IMAGE_ERROR_PLACEHOLDER_ID, IMAGE_PLACEHOLDER_ID,
 };
-pub use document::{FontFaceSource, FrameClip, SvgDocument, SvgPayload};
+pub use document::{
+    CanvasDocument, FontFaceSource, FrameClip, PngPayload, SvgDocument, SvgPayload,
+};
 pub use image::{ImageFilter, ImageItem, Rect};
 pub use number::{number_to_string, to_fixed};
 pub use paint::{Color, Dash, LineCap, LineJoin, Rgba, Stroke};
