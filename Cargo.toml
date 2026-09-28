@@ -65,6 +65,10 @@ unicode-properties = { version = "0.1.4", default-features = false, features = [
 # in the tree through url's IDNA (idna_adapter), at these versions.
 icu_properties = { version = "2.3.0", default-features = false, features = ["compiled_data"] }
 icu_normalizer = { version = "2.3.0", default-features = false, features = ["compiled_data"] }
+# fdlibm's sin and cos, the code V8's Math.sin and Math.cos run
+# (src/base/ieee754.cc), so rotations give upstream's doubles on every
+# platform (excali_math::js).
+libm = "0.2.16"
 # Test-only: golden digests and base64 payloads.
 sha2 = "0.11.0"
 base64 = "0.23.1"

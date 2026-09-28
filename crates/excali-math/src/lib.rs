@@ -10,10 +10,11 @@
 //!
 //! Arithmetic is kept in upstream's order, and the `Math` functions whose
 //! results differ from Rust's (`Math.hypot`, `Math.round`, `Math.min`,
-//! `Math.max`, `**`) go through [`js`].
+//! `Math.max`, `**`, `Math.sin`, `Math.cos`) go through [`js`].
 //!
 //! Targets: native, wasm32. Internal dependencies allowed by the architecture
-//! overview (`site/content/architecture/overview.md`, ADR-008): none (std only).
+//! overview (`site/content/architecture/overview.md`, ADR-008): none (std,
+//! and `libm` for V8's `Math.sin` and `Math.cos`).
 
 mod angle;
 mod constants;

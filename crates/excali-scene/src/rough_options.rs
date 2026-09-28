@@ -125,7 +125,7 @@ fn fill_style_name(style: FillStyle) -> &'static str {
 
 /// ECMA-262 `ToInt32` (section 7.1.6): truncate, wrap modulo 2^32 into
 /// the signed range; NaN and infinities are 0.
-fn to_int32(x: f64) -> i32 {
+pub(crate) fn to_int32(x: f64) -> i32 {
     if !x.is_finite() {
         return 0;
     }

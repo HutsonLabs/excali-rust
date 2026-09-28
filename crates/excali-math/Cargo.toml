@@ -8,8 +8,13 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
-# std only (architecture overview). serde_json reads goldens/math.json in the
-# parity test and never reaches the library.
+# std and libm only (architecture overview): libm is fdlibm, the sin and cos
+# V8 computes Math.sin and Math.cos with (excali_math::js).
+[dependencies]
+libm = { workspace = true }
+
+# serde_json reads goldens/math.json in the parity test and never reaches
+# the library.
 [dev-dependencies]
 serde_json = { workspace = true }
 

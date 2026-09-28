@@ -40,7 +40,7 @@ Build from primitives up. Each crate below is a pure layer over the one beneath 
 
 | Crate | Upstream counterpart | May depend on | Targets |
 |---|---|---|---|
-| `excali-math` | `packages/math` | `std` only | native, wasm32 |
+| `excali-math` | `packages/math` | `std`, `libm` (fdlibm `sin`/`cos`, the code behind V8's `Math.sin`/`Math.cos`) | native, wasm32 |
 | `excali-core` | `packages/element/src/types.ts`, `packages/excalidraw/data/*`, `packages/fractional-indexing` | `excali-math`, `serde`, `serde_json`, `flate2`, `png` (chunk read/write), `base64`, `nanoid` | native, wasm32 |
 | `excali-rough` | `roughjs` 4.6.4 as used by `packages/element/src/shape.ts` | `excali-math`; `serde_json` and `sha2` only behind the test-only `goldens` feature (the golden harness) | native, wasm32 |
 | `excali-freehand` | `perfect-freehand` 1.2.0 and `packages/laser-pointer` | `excali-math` | native, wasm32 |

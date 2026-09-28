@@ -44,10 +44,7 @@ fn comment(text: &str) -> String {
 ///
 /// The text node is base64, which needs no escaping.
 pub fn encode_svg_base64_payload(payload: &str) -> String {
-    let wrapper = encode(payload, true).to_json();
-    // Every char of the wrapper's JSON is at most U+00FF: the fields are
-    // ASCII and `encoded` is a byte string, so btoa cannot fail.
-    let base64 = string_to_base64(&wrapper, true).expect("EncodedData JSON is a byte string");
+    let base64 = svg_base64_payload(payload);
     let mut out = String::with_capacity(base64.len() + 128);
     out.push_str(&comment(&format!("payload-type:{PAYLOAD_MIME_TYPE}")));
     out.push_str(&comment("payload-version:2"));
@@ -56,6 +53,20 @@ pub fn encode_svg_base64_payload(payload: &str) -> String {
     out.push_str(&comment("payload-end"));
     out
 }
+
+/// The text node [`encode_svg_base64_payload`] puts between
+/// `payload-start` and `payload-end`: `btoa(JSON.stringify(encode({ text:
+/// payload })))`, for a writer that builds the comments itself (the SVG
+/// export, [`SVG_PAYLOAD_VERSION`]).
+pub fn svg_base64_payload(payload: &str) -> String {
+    let wrapper = encode(payload, true).to_json();
+    // Every char of the wrapper's JSON is at most U+00FF: the fields are
+    // ASCII and `encoded` is a byte string, so btoa cannot fail.
+    string_to_base64(&wrapper, true).expect("EncodedData JSON is a byte string")
+}
+
+/// The `payload-version` the writer records: 2, a byte-string payload.
+pub const SVG_PAYLOAD_VERSION: u32 = 2;
 
 /// Why [`decode_svg_base64_payload`] produced no scene.
 #[derive(Debug, Clone, PartialEq, Eq)]

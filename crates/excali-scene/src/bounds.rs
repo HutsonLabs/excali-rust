@@ -1,14 +1,17 @@
 //! Element geometry from `packages/element/src/bounds.ts`: diamond
-//! vertices, and where arrowheads go (`getArrowheadSize`,
-//! `getArrowheadAngle`, `getArrowheadPoints`; `site/content/research/
-//! rendering.md` section 2, arrowhead geometry).
+//! vertices, where arrowheads go (`getArrowheadSize`, `getArrowheadAngle`,
+//! `getArrowheadPoints`; `site/content/research/rendering.md` section 2,
+//! arrowhead geometry), and the boxes of elements
+//! (`getElementAbsoluteCoords`, `getElementBounds`, `getCommonBounds`)
+//! that size an export (section 6).
 
+use std::collections::HashMap;
 use std::f64::consts::PI;
 use std::fmt;
 
-use excali_core::element::{Arrowhead, Element, ElementKind, LocalPoint};
+use excali_core::element::{Arrowhead, BoundElementType, Element, ElementKind, LocalPoint};
 use excali_math::{
-    degrees_to_radians, js, point_from, point_rotate_rads, Degrees, Local, Point, Radians,
+    degrees_to_radians, js, point_from, point_rotate_rads, Degrees, Global, Local, Point, Radians,
 };
 use excali_rough::{Drawable, Op, OpSetType};
 
@@ -319,4 +322,371 @@ fn linear_points(element: &Element) -> &[LocalPoint] {
         ElementKind::Arrow(arrow) => &arrow.linear.points,
         _ => &[],
     }
+}
+
+// ---------------------------------------------------------------------------
+// Element bounds (`bounds.ts:84-297, 538-709, 997-1029`)
+
+/// `Bounds`: `[minX, minY, maxX, maxY]`.
+pub type Bounds = [f64; 4];
+
+/// `arrayToMap(elements)` (`common/src/utils.ts`): the elements by id, as
+/// the `ElementsMap` upstream's geometry looks containers and bound text up
+/// in. A repeated id maps to the last element with it, as `new Map(entries)`
+/// keeps the last entry.
+#[derive(Clone, Debug, Default)]
+pub struct ElementsMap<'a> {
+    map: HashMap<&'a str, &'a Element>,
+}
+
+impl<'a> ElementsMap<'a> {
+    /// The map of `elements`.
+    pub fn new<I: IntoIterator<Item = &'a Element>>(elements: I) -> ElementsMap<'a> {
+        let mut map = HashMap::new();
+        for element in elements {
+            map.insert(element.base.id.as_str(), element);
+        }
+        ElementsMap { map }
+    }
+
+    /// `elementsMap.get(id)`.
+    pub fn get(&self, id: &str) -> Option<&'a Element> {
+        self.map.get(id).copied()
+    }
+}
+
+/// `getContainerElement(element, elementsMap)` (`textElement.ts:357-371`):
+/// the element a text's `containerId` names, when the map has it.
+pub fn get_container_element<'a>(
+    element: &Element,
+    elements_map: &ElementsMap<'a>,
+) -> Option<&'a Element> {
+    match &element.kind {
+        ElementKind::Text(text) => match text.container_id.as_deref() {
+            Some(id) if !id.is_empty() => elements_map.get(id),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+/// `getBoundTextElementId(container)` (`textElement.ts:326-330`): the id of
+/// the first `text` entry of `boundElements`, unless it is empty.
+pub fn get_bound_text_element_id(container: &Element) -> Option<&str> {
+    container
+        .base
+        .bound_elements
+        .as_deref()?
+        .iter()
+        .find(|b| b.kind == BoundElementType::Text)
+        .map(|b| b.id.as_str())
+        .filter(|id| !id.is_empty())
+}
+
+/// `getBoundTextElement(element, elementsMap)` (`textElement.ts:332-355`):
+/// the element [`get_bound_text_element_id`] names, whatever its type, when
+/// the map has it.
+pub fn get_bound_text_element<'a>(
+    element: &Element,
+    elements_map: &ElementsMap<'a>,
+) -> Option<&'a Element> {
+    elements_map.get(get_bound_text_element_id(element)?)
+}
+
+/// `getElementAbsoluteCoords(element, elementsMap, includeBoundText)`
+/// (`bounds.ts:246-297`): `[x1, y1, x2, y2, cx, cy]`, the element's
+/// unrotated box in scene coordinates and its centre.
+///
+/// - Freedraw: the box of its points.
+/// - Lines and arrows: the box of the first rough.js shape's curves
+///   ([`crate::linear_element::get_element_absolute_coords`]), grown to
+///   hold the bound text when `include_bound_text` is set.
+/// - Text bound to an arrow: its box at the label position
+///   ([`crate::linear_element::get_bound_text_element_position`]).
+/// - Anything else: `x`, `y`, `width` and `height`.
+pub fn get_element_absolute_coords(
+    element: &Element,
+    elements_map: &ElementsMap<'_>,
+    include_bound_text: bool,
+) -> [f64; 6] {
+    let b = &element.base;
+    match &element.kind {
+        ElementKind::Freedraw(freedraw) => {
+            let [min_x, min_y, max_x, max_y] = get_bounds_from_points(&freedraw.points, 0.0);
+            let x1 = min_x + b.x;
+            let y1 = min_y + b.y;
+            let x2 = max_x + b.x;
+            let y2 = max_y + b.y;
+            return [x1, y1, x2, y2, (x1 + x2) / 2.0, (y1 + y2) / 2.0];
+        }
+        ElementKind::Line(_) | ElementKind::Arrow(_) => {
+            return crate::linear_element::get_element_absolute_coords(
+                element,
+                elements_map,
+                include_bound_text,
+            );
+        }
+        ElementKind::Text(_) => {
+            if let Some(container) = get_container_element(element, elements_map) {
+                if matches!(container.kind, ElementKind::Arrow(_)) {
+                    let [x, y] = crate::linear_element::get_bound_text_element_position(
+                        container,
+                        element,
+                        elements_map,
+                    );
+                    return [
+                        x,
+                        y,
+                        x + b.width,
+                        y + b.height,
+                        x + b.width / 2.0,
+                        y + b.height / 2.0,
+                    ];
+                }
+            }
+        }
+        _ => {}
+    }
+    [
+        b.x,
+        b.y,
+        b.x + b.width,
+        b.y + b.height,
+        b.x + b.width / 2.0,
+        b.y + b.height / 2.0,
+    ]
+}
+
+/// `Math.min(a, b, c, d)` and `Math.max(a, b, c, d)` of four points' x and
+/// y: `[minX, minY, maxX, maxY]`.
+fn extremes(points: [[f64; 2]; 4]) -> Bounds {
+    let [a, b, c, d] = points;
+    [
+        js::min(js::min(js::min(a[0], b[0]), c[0]), d[0]),
+        js::min(js::min(js::min(a[1], b[1]), c[1]), d[1]),
+        js::max(js::max(js::max(a[0], b[0]), c[0]), d[0]),
+        js::max(js::max(js::max(a[1], b[1]), c[1]), d[1]),
+    ]
+}
+
+/// `getElementBounds(element, elementsMap)` (`bounds.ts:997-1003`,
+/// `ElementBounds.calculateBounds`, `:143-240`): the axis-aligned box of the
+/// element as drawn, rotation included.
+///
+/// - Freedraw: its points rotated about the centre.
+/// - Lines and arrows: the extremes of the rotated curves of the first
+///   rough.js shape, grown by the bound text's counter-rotated box
+///   ([`crate::linear_element::get_linear_element_rotated_bounds`]).
+/// - Diamond: the rotated midpoints of the box's sides.
+/// - Ellipse: the rotated ellipse's extent.
+/// - Anything else: the rotated corners.
+///
+/// Upstream caches the result per element and version; the port computes
+/// it afresh, which gives the same numbers.
+pub fn get_element_bounds(element: &Element, elements_map: &ElementsMap<'_>) -> Bounds {
+    let b = &element.base;
+    let [x1, y1, x2, y2, cx, cy] = get_element_absolute_coords(element, elements_map, false);
+    let angle = Radians(b.angle.0);
+    let center: Point<Global> = point_from(cx, cy);
+    let rotate = |x: f64, y: f64| -> [f64; 2] {
+        let p = point_rotate_rads(point_from(x, y), center, angle);
+        [p.x, p.y]
+    };
+    match &element.kind {
+        ElementKind::Freedraw(freedraw) => {
+            let local_center: Point<Local> = point_from(cx - b.x, cy - b.y);
+            let rotated: Vec<LocalPoint> = freedraw
+                .points
+                .iter()
+                .map(|&[x, y]| {
+                    let p = point_rotate_rads(point_from(x, y), local_center, angle);
+                    [p.x, p.y]
+                })
+                .collect();
+            let [min_x, min_y, max_x, max_y] = get_bounds_from_points(&rotated, 0.0);
+            [min_x + b.x, min_y + b.y, max_x + b.x, max_y + b.y]
+        }
+        ElementKind::Line(_) | ElementKind::Arrow(_) => {
+            crate::linear_element::get_linear_element_rotated_bounds(element, cx, cy, elements_map)
+        }
+        ElementKind::Diamond => extremes([
+            rotate(cx, y1),
+            rotate(cx, y2),
+            rotate(x1, cy),
+            rotate(x2, cy),
+        ]),
+        ElementKind::Ellipse => {
+            let w = (x2 - x1) / 2.0;
+            let h = (y2 - y1) / 2.0;
+            let cos = js::cos(angle.0);
+            let sin = js::sin(angle.0);
+            let ww = js::hypot(w * cos, h * sin);
+            let hh = js::hypot(h * cos, w * sin);
+            [cx - ww, cy - hh, cx + ww, cy + hh]
+        }
+        _ => extremes([
+            rotate(x1, y1),
+            rotate(x1, y2),
+            rotate(x2, y2),
+            rotate(x2, y1),
+        ]),
+    }
+}
+
+/// `getCommonBounds(elements)` (`bounds.ts:1005-1029`): the box holding
+/// every element's [`get_element_bounds`], looking containers and bound
+/// text up among the elements themselves; `[0, 0, 0, 0]` for no elements.
+pub fn get_common_bounds(elements: &[&Element]) -> Bounds {
+    let elements_map = ElementsMap::new(elements.iter().copied());
+    get_common_bounds_in(elements, &elements_map)
+}
+
+/// `getCommonBounds(elements, elementsMap)`: [`get_common_bounds`] with the
+/// map given.
+pub fn get_common_bounds_in(elements: &[&Element], elements_map: &ElementsMap<'_>) -> Bounds {
+    if elements.is_empty() {
+        return [0.0, 0.0, 0.0, 0.0];
+    }
+    let mut min_x = f64::INFINITY;
+    let mut max_x = f64::NEG_INFINITY;
+    let mut min_y = f64::INFINITY;
+    let mut max_y = f64::NEG_INFINITY;
+    for element in elements {
+        let [x1, y1, x2, y2] = get_element_bounds(element, elements_map);
+        min_x = js::min(min_x, x1);
+        min_y = js::min(min_y, y1);
+        max_x = js::max(max_x, x2);
+        max_y = js::max(max_y, y2);
+    }
+    [min_x, min_y, max_x, max_y]
+}
+
+/// `getBoundsFromPoints(points, padding)` (`bounds.ts:680-697`).
+pub fn get_bounds_from_points(points: &[LocalPoint], padding: f64) -> Bounds {
+    let mut min_x = f64::INFINITY;
+    let mut min_y = f64::INFINITY;
+    let mut max_x = f64::NEG_INFINITY;
+    let mut max_y = f64::NEG_INFINITY;
+    for &[x, y] in points {
+        min_x = js::min(min_x, x);
+        min_y = js::min(min_y, y);
+        max_x = js::max(max_x, x);
+        max_y = js::max(max_y, y);
+    }
+    [
+        min_x - padding,
+        min_y - padding,
+        max_x + padding,
+        max_y + padding,
+    ]
+}
+
+/// `getBezierValueForT` (`bounds.ts:538-552`).
+fn get_bezier_value_for_t(t: f64, p0: f64, p1: f64, p2: f64, p3: f64) -> f64 {
+    let one_minus_t = 1.0 - t;
+    js::pow(one_minus_t, 3.0) * p0
+        + 3.0 * js::pow(one_minus_t, 2.0) * t * p1
+        + 3.0 * one_minus_t * js::pow(t, 2.0) * p2
+        + js::pow(t, 3.0) * p3
+}
+
+/// `solveQuadratic` (`bounds.ts:554-597`): the curve's value at each root
+/// of its derivative that falls in `[0, 1]`; `None` when there is no real
+/// root.
+fn solve_quadratic(p0: f64, p1: f64, p2: f64, p3: f64) -> Option<[Option<f64>; 2]> {
+    let i = p1 - p0;
+    let j = p2 - p1;
+    let k = p3 - p2;
+
+    let a = 3.0 * i - 6.0 * j + 3.0 * k;
+    let b = 6.0 * j - 6.0 * i;
+    let c = 3.0 * i;
+
+    let sqrt_part = b * b - 4.0 * a * c;
+    let has_solution = sqrt_part >= 0.0;
+    if !has_solution {
+        return None;
+    }
+
+    let (t1, t2) = if a == 0.0 {
+        let t = -c / b;
+        (t, t)
+    } else {
+        (
+            (-b + sqrt_part.sqrt()) / (2.0 * a),
+            (-b - sqrt_part.sqrt()) / (2.0 * a),
+        )
+    };
+    let value = |t: f64| {
+        (0.0..=1.0)
+            .contains(&t)
+            .then(|| get_bezier_value_for_t(t, p0, p1, p2, p3))
+    };
+    Some([value(t1), value(t2)])
+}
+
+/// `getCubicBezierCurveBound(p0, p1, p2, p3)` (`bounds.ts:599-625`).
+pub fn get_cubic_bezier_curve_bound(
+    p0: [f64; 2],
+    p1: [f64; 2],
+    p2: [f64; 2],
+    p3: [f64; 2],
+) -> Bounds {
+    let sol_x = solve_quadratic(p0[0], p1[0], p2[0], p3[0]);
+    let sol_y = solve_quadratic(p0[1], p1[1], p2[1], p3[1]);
+
+    let mut min_x = js::min(p0[0], p3[0]);
+    let mut max_x = js::max(p0[0], p3[0]);
+    if let Some(xs) = sol_x {
+        for x in xs.into_iter().flatten() {
+            min_x = js::min(min_x, x);
+            max_x = js::max(max_x, x);
+        }
+    }
+
+    let mut min_y = js::min(p0[1], p3[1]);
+    let mut max_y = js::max(p0[1], p3[1]);
+    if let Some(ys) = sol_y {
+        for y in ys.into_iter().flatten() {
+            min_y = js::min(min_y, y);
+            max_y = js::max(max_y, y);
+        }
+    }
+    [min_x, min_y, max_x, max_y]
+}
+
+/// `getMinMaxXYFromCurvePathOps(ops, transformXY)` (`bounds.ts:627-678`):
+/// the extremes of the ops' cubic curves, each point passed through
+/// `transform_xy` first. A `move` only sets where the next curve starts,
+/// and `lineTo` is not counted ("TODO: Implement this" upstream). No
+/// curves give `[Infinity, Infinity, -Infinity, -Infinity]`.
+pub fn get_min_max_xy_from_curve_path_ops(
+    ops: &[Op],
+    transform_xy: Option<&dyn Fn([f64; 2]) -> [f64; 2]>,
+) -> Bounds {
+    let transform = |p: [f64; 2]| transform_xy.map_or(p, |f| f(p));
+    let mut current = [0.0, 0.0];
+    let mut min_x = f64::INFINITY;
+    let mut min_y = f64::INFINITY;
+    let mut max_x = f64::NEG_INFINITY;
+    let mut max_y = f64::NEG_INFINITY;
+    for op in ops {
+        match *op {
+            Op::Move(p) => current = p,
+            Op::BCurveTo(d) => {
+                let p1 = transform([d[0], d[1]]);
+                let p2 = transform([d[2], d[3]]);
+                let p3 = transform([d[4], d[5]]);
+                let p0 = transform(current);
+                current = [d[4], d[5]];
+                let [x1, y1, x2, y2] = get_cubic_bezier_curve_bound(p0, p1, p2, p3);
+                min_x = js::min(min_x, x1);
+                min_y = js::min(min_y, y1);
+                max_x = js::max(max_x, x2);
+                max_y = js::max(max_y, y2);
+            }
+            Op::LineTo(_) => {}
+        }
+    }
+    [min_x, min_y, max_x, max_y]
 }

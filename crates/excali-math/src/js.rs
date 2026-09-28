@@ -4,6 +4,9 @@
 //! - `Math.hypot` is not libm's `hypot`: V8 (`src/builtins/math.tq`,
 //!   `MathHypot`) scales by the largest magnitude and sums with Kahan
 //!   compensation, which can differ from libm in the last bit.
+//! - `Math.sin` / `Math.cos` are fdlibm's in V8 (`src/base/ieee754.cc`);
+//!   the platform's can be one ulp away (macOS libm: `sin(4)`), so they go
+//!   through the `libm` crate, a port of the same fdlibm code.
 //! - `Math.round` rounds halves towards +infinity (`-2.5` -> `-2`) and keeps
 //!   the sign of zero (`-0.4` -> `-0`); `f64::round` rounds halves away from
 //!   zero.
@@ -47,6 +50,18 @@ pub fn hypot(a: f64, b: f64) -> f64 {
         sum = preliminary;
     }
     sum.sqrt() * max
+}
+
+/// `Math.sin(x)` as V8 computes it: fdlibm's `sin` (V8's
+/// `src/base/ieee754.cc`), which the `libm` crate ports. The platform's
+/// `sin` can differ in the last bit (macOS: `sin(4)`).
+pub fn sin(x: f64) -> f64 {
+    libm::sin(x)
+}
+
+/// `Math.cos(x)` as V8 computes it: fdlibm's `cos` (see [`sin`]).
+pub fn cos(x: f64) -> f64 {
+    libm::cos(x)
 }
 
 /// `Math.round(x)`: the nearest integer, halves rounded towards +infinity,

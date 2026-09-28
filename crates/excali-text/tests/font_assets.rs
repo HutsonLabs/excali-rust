@@ -17,7 +17,7 @@ use excali_core::element::{Element, ElementBase, ElementKind, FontFamily, TextFi
 use excali_text::font_assets::{
     contains_cjk, elements_font_loads, faces_to_load, font_face_declarations, parse_unicode_range,
     registered_families, registered_family, registered_family_named, scene_font_loads,
-    ui_font_faces, FontFaceAsset, FontFormat, CJK_RANGES, FULL_UNICODE_RANGE,
+    ui_font_faces, FontFaceAsset, FontFormat, ASSETS_FALLBACK_URL, CJK_RANGES, FULL_UNICODE_RANGE,
 };
 use serde_json::Value;
 
@@ -125,6 +125,62 @@ fn registry_is_upstreams_in_its_order() {
                 assert_eq!(face.format, FontFormat::Woff2);
                 assert_eq!(up["format"], "format('woff2')");
             }
+        }
+    }
+}
+
+#[test]
+fn fallback_urls_are_upstreams_asset_urls() {
+    // ExcalidrawFontFace.ASSETS_FALLBACK_URL (ExcalidrawFontFace.ts:11-15)
+    // resolves each face's import uri into its last url
+    // (createUrls, :150-170), which getContent answers when no url can be
+    // fetched; the fixture records that url for every bundled face.
+    let fixture = fixture();
+    assert_eq!(
+        ASSETS_FALLBACK_URL,
+        fixture["assetsFallbackUrl"].as_str().unwrap()
+    );
+    let upstream = fixture["registered"].as_array().unwrap();
+    let mut checked = 0;
+    for (fam, up) in registered_families().iter().zip(upstream) {
+        for (face, up) in fam.faces.iter().zip(up["faces"].as_array().unwrap()) {
+            assert_eq!(face.fallback_url(), up["url"].as_str().unwrap());
+            checked += 1;
+        }
+    }
+    assert!(checked > 200, "{checked}");
+    let liberation = &registered_family(FontFamily::LIBERATION_SANS)
+        .unwrap()
+        .faces[0];
+    assert_eq!(
+        liberation.fallback_url(),
+        "https://esm.sh/@excalidraw/excalidraw/dist/prod/fonts/Liberation/LiberationSans-Regular.woff2"
+    );
+}
+
+#[test]
+fn fallback_urls_follow_upstreams_build_layout() {
+    // Pinned to upstream's build output, not to the goldens harness: the
+    // package build (scripts/buildPackage.js:60-86, 108-125: esbuild's file
+    // loader for .woff2, assetNames "[dir]/[name]", outbase
+    // packages/excalidraw) writes each font to dist/prod/fonts/<dir>/<file>,
+    // <dir>/<file> being its path under packages/excalidraw/fonts, and
+    // imports it as ./fonts/<dir>/<file>. The app's preload links name the
+    // same Excalifont file under fonts/ (scripts/woff2/woff2-vite-plugins.js:80-85).
+    let excalifont = registered_family(FontFamily::EXCALIFONT).unwrap();
+    assert_eq!(
+        excalifont.faces[0].fallback_url(),
+        "https://esm.sh/@excalidraw/excalidraw/dist/prod/fonts/Excalifont/\
+         Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2"
+    );
+    for fam in registered_families() {
+        for face in fam.faces {
+            let url = face.fallback_url();
+            let path = url
+                .strip_prefix("https://esm.sh/@excalidraw/excalidraw/dist/prod/fonts/")
+                .unwrap_or_else(|| panic!("{url}"));
+            assert_eq!(path, face.upstream_file, "{url}");
+            assert!(path.ends_with(".woff2"), "{url}");
         }
     }
 }

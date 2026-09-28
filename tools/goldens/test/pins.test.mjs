@@ -36,8 +36,15 @@ test("pins agree with upstream's package.json files", () => {
     const deps = readJson(join(upstream, "packages", p, "package.json")).dependencies;
     Object.assign(declared, deps);
   }
+  // The DOM upstream's own test suite runs in (root package.json
+  // devDependencies), for the svg-export goldens.
+  const testEnvironment = readJson(join(upstream, "package.json")).devDependencies;
   for (const [name, version] of Object.entries(pkg.dependencies)) {
     if (name === "esbuild") continue; // build tool for the generator only
+    if (name === "jsdom") {
+      assert.equal(testEnvironment[name], version, `${name} differs from upstream's test environment`);
+      continue;
+    }
     assert.equal(declared[name], version, `${name} differs from upstream`);
   }
 });
