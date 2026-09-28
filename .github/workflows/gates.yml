@@ -196,3 +196,5 @@ jobs:
         run: node tools/goldens/scene-fixtures.mjs --check
       - name: excali-core restore fixtures match the generator
         run: node tools/goldens/restore-fixtures.mjs --check
+      - name: excali-core AppState goldens match the generator
+        run: node tools/goldens/app-state.mjs --check

@@ -178,6 +178,8 @@ const exposedModules = (upstream, exposed) => ({
   },
 });
 
+let loads = 0;
+
 /**
  * Bundles upstream's code and returns the imported module. `entry` is the
  * TypeScript entry's source, resolved from the checkout root (the default
@@ -212,10 +214,12 @@ export const loadUpstream = async (
     loader: { ".png": "empty", ".svg": "empty", ".scss": "empty", ".css": "empty" },
     define: { "import.meta.env.DEV": "false", "import.meta.env.PROD": "true", ...define },
   });
-  // One file per process: concurrent runs (the test suite) never share it.
+  // One file per process and load: concurrent runs (the test suite) never
+  // share it, and a second load in the same process (another `define`) is
+  // not answered from the ES module cache with the first bundle.
   const buildDir = join(TOOL_DIR, ".build");
   mkdirSync(buildDir, { recursive: true });
-  const file = join(buildDir, `upstream-${process.pid}.mjs`);
+  const file = join(buildDir, `upstream-${process.pid}-${loads++}.mjs`);
   writeFileSync(file, result.outputFiles[0].contents);
   try {
     return await import(pathToFileURL(file).href);

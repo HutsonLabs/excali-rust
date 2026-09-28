@@ -167,3 +167,35 @@ node tools/goldens/restore-fixtures.mjs --check   # exit 1 if it is stale
 
 CI runs `--check` in the `goldens` job, and `test/restore-fixtures.test.mjs`
 checks that two runs are byte-identical.
+
+## AppState goldens
+
+`app-state.mjs` writes `crates/excali-core/tests/fixtures/app-state.json` for
+excali-core's AppState port (ex-106). It bundles upstream's
+`getDefaultAppState`, `cleanAppStateForExport`,
+`clearAppStateForLocalStorage`, `clearAppStateForDatabase`
+(`packages/excalidraw/appState.ts`), `restoreAppState` and
+`AllowedExcalidrawActiveTools` (`packages/excalidraw/data/restore.ts`), and
+`colorToHex` / `isTransparent` (`packages/common/src/colors.ts`, on the pinned
+tinycolor2 1.6.0), and records:
+
+- `getDefaultAppState()` once per environment: each is a separate bundle with
+  `devicePixelRatio` and `import.meta.env.MODE` defined, since `exportScale`
+  and `currentItemRoundness` are fixed when the module loads;
+- the keys each storage cleaner keeps, for every `APP_STATE_STORAGE_CONF` key;
+- `colorToHex` and `isTransparent` for colour strings in every notation;
+- `restoreAppState(appState, localAppState)` for upstream's test cases and
+  every branch of its legacy handling, each result a diff against the
+  production, device-pixel-ratio-1 defaults (or the error it throws).
+
+Inputs are JSON round-tripped before upstream sees them, so the Rust tests read
+exactly what upstream read. Nothing here draws random numbers, and
+`Math.random` throws while generating.
+
+```sh
+node tools/goldens/app-state.mjs           # write the fixture
+node tools/goldens/app-state.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and `test/app-state.test.mjs` checks
+that two runs are byte-identical.
