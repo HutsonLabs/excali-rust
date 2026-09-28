@@ -233,16 +233,13 @@ const fontUris = (upstream) => ({
 let loads = 0;
 
 /**
- * Bundles upstream's code and returns the imported module. `entry` is the
- * TypeScript entry's source, resolved from the checkout root (the default
- * exports the shape code the goldens use); `stubs` lists modules replaced
- * by empty ones and `shims` maps modules to replacement CommonJS sources
- * (see stubbedModules); `expose` exports module-private functions and
- * `patch` rewrites checkout modules (see exposedModules); `define` adds
- * compile-time constants; `fontUris` makes each font file import its path
- * (see fontUris).
+ * Bundles upstream's code and returns the bundle's source. The options are
+ * loadUpstream's, plus esbuild's `platform` and `format` (default "node"
+ * and "esm") and `globalName` for an "iife" bundle, so a script can run
+ * upstream's own code in a browser page
+ * (scripts/fixtures/text_width_causes.mjs).
  */
-export const loadUpstream = async (
+export const bundleUpstream = async (
   { dir },
   {
     entry = ENTRY,
@@ -252,6 +249,9 @@ export const loadUpstream = async (
     patch = {},
     define = {},
     fontUris: withFontUris = false,
+    platform = "node",
+    format = "esm",
+    globalName,
   } = {},
 ) => {
   const esbuild = await import("esbuild");
@@ -264,8 +264,9 @@ export const loadUpstream = async (
     },
     bundle: true,
     write: false,
-    format: "esm",
-    platform: "node",
+    format,
+    ...(globalName ? { globalName } : {}),
+    platform,
     target: "esnext",
     logLevel: "silent",
     plugins: [
@@ -278,13 +279,28 @@ export const loadUpstream = async (
     loader: { ".png": "empty", ".svg": "empty", ".scss": "empty", ".css": "empty", ".woff2": "empty" },
     define: { "import.meta.env.DEV": "false", "import.meta.env.PROD": "true", ...define },
   });
+  return result.outputFiles[0].text;
+};
+
+/**
+ * Bundles upstream's code and returns the imported module. `entry` is the
+ * TypeScript entry's source, resolved from the checkout root (the default
+ * exports the shape code the goldens use); `stubs` lists modules replaced
+ * by empty ones and `shims` maps modules to replacement CommonJS sources
+ * (see stubbedModules); `expose` exports module-private functions and
+ * `patch` rewrites checkout modules (see exposedModules); `define` adds
+ * compile-time constants; `fontUris` makes each font file import its path
+ * (see fontUris).
+ */
+export const loadUpstream = async (upstream, options = {}) => {
+  const source = await bundleUpstream(upstream, { ...options, platform: "node", format: "esm" });
   // One file per process and load: concurrent runs (the test suite) never
   // share it, and a second load in the same process (another `define`) is
   // not answered from the ES module cache with the first bundle.
   const buildDir = join(TOOL_DIR, ".build");
   mkdirSync(buildDir, { recursive: true });
   const file = join(buildDir, `upstream-${process.pid}-${loads++}.mjs`);
-  writeFileSync(file, result.outputFiles[0].contents);
+  writeFileSync(file, source);
   try {
     return await import(pathToFileURL(file).href);
   } finally {

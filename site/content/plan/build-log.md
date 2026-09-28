@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-g303 · Show the cause of the 18 pinned Excalifont and Comic Shanns width deviations against upstream at the pin
+
+Each of the 18 Excalifont and Comic Shanns texts whose stored width differs from the port now names what wrote it: an ink box of upstream's older `getLineWidth`, measured per glyph or at whole pixels. Five are reproduced exactly by upstream's code in Chrome, and Chrome shows restore keeps all 18 stored widths. A new macOS gate re-runs the measurement and checks it against the committed fixture within 0.001 px. PR: [#72](https://github.com/HutsonLabs/excali-rust/pull/72).
+
 ## 2026-09-28 · ex-404 · Image elements: decode data URLs (image crate), crop, scale flip, rounded clip, placeholder
 
 Image elements now draw as they do in upstream's `renderElement`. This covers crops, flips, rounded clips, the dark-theme filter on SVG files, and the light, dark and error placeholders. The PNG backend decodes raster and SVG data URLs, and the browser canvas backend draws the same images. Built-in placeholders and link icons use one set of `excalidraw:` ids, and the static scene fills rectangles with `fillRect` wherever upstream does. PNG output matches Chrome 153 within each fixture's tolerance. PR: [#71](https://github.com/HutsonLabs/excali-rust/pull/71).
