@@ -118,6 +118,8 @@ The first release is **26.9.1**, numbered by calendar `YY.M.BUILD` ([ADR-009](..
 | Budget | Value | Basis |
 |---|---|---|
 | WASM module, no fonts, gzip | ≤ 1.5 MB | term.hut ships a 5.4 MB dmg and treats weight as a feature (`PRODUCT.md:165`); upstream's bundle is ~3.9 MB (`excalidrawScene.js:9`). Half of that is the ceiling; the number is a target to measure against, not a fact. |
-| ES-module shim | ≤ 20 KB | It only mounts the element and forwards host callbacks. |
+| ES-module JS (wasm-bindgen glue and shim), gzip | ≤ 20 KB | The shim only mounts the element and forwards host callbacks. |
 | First paint after module load | ≤ 300 ms | Upstream shows its canvas immediately; a slower start would read as a regression in term.hut. |
 | Fonts | lazy, per unicode range | Upstream ships Excalifont in 7 range-split files and Xiaolai in ~209; the port keeps that split. |
+
+The two size rows are enforced on every pull request (`ex-501`): `scripts/web/build.sh` builds `dist/excali_editor.js` and `dist/excali_editor_bg.wasm` (profile `web-release`, then `wasm-opt -Oz` from the pinned binaryen), and `scripts/gates/wasm_size.py` reads the budgets from this table and fails the build when either file's gzip size (level 9, no header timestamp) is over. Units are decimal: 1 KB is 1,000 bytes, 1 MB is 1,000,000 bytes.

@@ -4,6 +4,8 @@
 site/public/
 # rust (future crates)
 target/
+# web build output (scripts/web/build.sh)
+/dist/
 # editor/OS noise
 .DS_Store
 *.swp
