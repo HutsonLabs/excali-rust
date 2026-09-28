@@ -2,7 +2,8 @@
  "description": "Group transforms composed as ctx.transform: translate then rotate about an element's centre as renderElement does, scale, skew, a mirrored group, nesting, and a matrix with a NaN or infinite entry ignored as a whole (the translation in its own group survives a NaN angle)",
  "width": 96,
  "height": 96,
- "tolerance": {"channel": 0, "pixels": 0},
+ "tolerance": {"channel": 8, "pixels": 0},
+ "toleranceNote": "Every draw goes through ports of Chrome's own pipeline (Skia's analytic anti-aliasing, edge builder and clipper, stroker, dasher and AntiFillRect, Blink's arc handling), so what remains is rounding in blending, coverage and sampling: against Chrome 153 no pixel here is more than 3 levels off. 8 leaves room for another Chrome build that rounds differently.",
  "items": [
   {"type": "group", "transform": [1, 0, 0, 1, 24, 24], "items": [
    {"type": "group", "transform": [0.8660254037844387, 0.49999999999999994, -0.49999999999999994, 0.8660254037844387, 0, 0], "items": [

@@ -2,7 +2,8 @@
  "description": "Fill rules: a pentagram and two nested squares (same and opposite winding) under nonzero and evenodd, the rule roughjs uses for curve, polygon and path fills",
  "width": 96,
  "height": 96,
- "tolerance": {"channel": 0, "pixels": 0},
+ "tolerance": {"channel": 8, "pixels": 0},
+ "toleranceNote": "Every draw goes through ports of Chrome's own pipeline (Skia's analytic anti-aliasing, edge builder and clipper, stroker, dasher and AntiFillRect, Blink's arc handling), so what remains is rounding in blending, coverage and sampling: against Chrome 153 no pixel here is more than 1 level off. 8 leaves room for another Chrome build that rounds differently.",
  "items": [
   {"type": "fill", "color": "#1971c2", "rule": "nonzero", "path": [["M", 24, 2], ["L", 37, 42], ["L", 3, 17], ["L", 45, 17], ["L", 11, 42], ["Z"]]},
   {"type": "fill", "color": "#1971c2", "rule": "evenodd", "path": [["M", 72, 2], ["L", 85, 42], ["L", 51, 17], ["L", 93, 17], ["L", 59, 42], ["Z"]]},

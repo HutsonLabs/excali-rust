@@ -121,7 +121,10 @@ fn the_report_names_the_counts_and_the_worst_pixel() {
         channel: 10,
         pixels: 0,
     });
-    assert!(text.contains("1 of 4 pixels differ by more than 10"), "{text}");
+    assert!(
+        text.contains("1 of 4 pixels differ by more than 10"),
+        "{text}"
+    );
     assert!(text.contains("allowed 0"), "{text}");
     assert!(text.contains("max channel difference 40"), "{text}");
     assert!(text.contains("(1, 0)"), "{text}");

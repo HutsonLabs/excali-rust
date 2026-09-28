@@ -144,6 +144,24 @@ mod path {
         );
     }
 
+    /// `rect()` with an infinite or NaN argument returns before adding
+    /// anything (HTML canvas: "If any of the arguments are infinite or NaN,
+    /// then return"; Blink's `CanvasPath::rect`). Chrome draws nothing for
+    /// `rect(60, 70, Infinity, 10)` (raster fixture `path-rules.json`),
+    /// where dropping only the infinite corners would leave a stroked side.
+    #[test]
+    fn rect_with_a_non_finite_argument_adds_nothing() {
+        for args in [
+            [f64::INFINITY, 0.0, 1.0, 1.0],
+            [0.0, f64::NAN, 1.0, 1.0],
+            [0.0, 0.0, f64::INFINITY, 1.0],
+            [0.0, 0.0, 1.0, f64::NEG_INFINITY],
+        ] {
+            let p = Path::rect(args[0], args[1], args[2], args[3]);
+            assert!(p.is_empty(), "{args:?}: {:?}", p.commands);
+        }
+    }
+
     fn arc(cx: f64, cy: f64, radius: f64, start: f64, end: f64) -> PathCommand {
         Arc {
             cx,
@@ -322,6 +340,79 @@ mod path {
         let mut wrap = Path::new();
         wrap.arc(0.0, 0.0, 1.0, FRAC_PI_2, 0.0, false);
         assert_eq!(cubic_ends(&wrap.canonical().commands).len(), 3);
+    }
+
+    /// Chrome's `arc()` (Blink `CanvasPath::arc`, `CanonicalizeAngle`,
+    /// `AdjustEndAngle`): when the angles differ but meet modulo a whole
+    /// turn in the direction drawn, the arc is the whole circle, not the
+    /// zero remainder (`arc(x, y, r, 0, 2 * Math.PI, true)` is how pages
+    /// draw circles). Equal angles draw no sweep. The raster fixture
+    /// `arcs.json` shows Chrome doing both.
+    #[test]
+    fn canonical_arc_turns_where_the_angles_meet_modulo_a_turn() {
+        let turns = |start: f64, end: f64, anticlockwise: bool| {
+            let mut p = Path::new();
+            p.arc(0.0, 0.0, 1.0, start, end, anticlockwise);
+            cubic_ends(&p.canonical().commands).len()
+        };
+        assert_eq!(turns(0.0, 2.0 * PI, true), 4);
+        assert_eq!(turns(2.0 * PI, 0.0, false), 4);
+        assert_eq!(turns(0.0, -4.0 * PI, false), 4);
+        assert_eq!(turns(0.0, 4.0 * PI, true), 4);
+        assert_eq!(turns(1.0, 1.0, false), 0);
+        assert_eq!(turns(1.0, 1.0, true), 0);
+        // Not a multiple of a turn: the remainder, as before.
+        assert_eq!(turns(0.0, -1.5 * PI, false), 1);
+    }
+
+    /// `canonical_arcs` applies the same rules but keeps each arc as one
+    /// resolved command: after the line (or move) to its start, `end` is
+    /// `start + sweep` exactly and `anticlockwise` is the sweep's sign, so
+    /// a backend with its own arc geometry (the raster backend builds
+    /// Skia's conics) draws `end - start` as given.
+    #[test]
+    fn canonical_arcs_keeps_resolved_arcs() {
+        let mut p = Path::new();
+        p.move_to(0.0, 0.0)
+            .arc(20.0, 0.0, 5.0, 0.0, 5.0 * PI, false)
+            .arc(20.0, 0.0, 5.0, FRAC_PI_2, 0.0, false)
+            .arc(0.0, 0.0, 2.0, 0.0, FRAC_PI_2, true)
+            .arc(0.0, 0.0, 0.0, 0.0, 1.0, false)
+            .arc(0.0, 0.0, 2.0, 1.0, 1.0, false)
+            .arc(f64::NAN, 0.0, 2.0, 1.0, 1.0, false);
+        let arc = |cx: f64, cy: f64, radius: f64, start: f64, sweep: f64| PathCommand::Arc {
+            cx,
+            cy,
+            radius,
+            start,
+            end: start + sweep,
+            anticlockwise: sweep < 0.0,
+        };
+        let c = p.canonical_arcs().commands;
+        assert_eq!(c[0], MoveTo(0.0, 0.0));
+        assert_eq!(c[1], LineTo(25.0, 0.0));
+        assert_eq!(c[2], arc(20.0, 0.0, 5.0, 0.0, 2.0 * PI));
+        let LineTo(x, y) = c[3] else {
+            panic!("a line to the second arc's start: {:?}", c[3])
+        };
+        assert_point((x, y), (20.0, 5.0));
+        assert_eq!(c[4], arc(20.0, 0.0, 5.0, FRAC_PI_2, 1.5 * PI));
+        assert_eq!(c[5], LineTo(2.0, 0.0));
+        assert_eq!(c[6], arc(0.0, 0.0, 2.0, 0.0, -1.5 * PI));
+        // A zero radius and a zero sweep are only the line to the start.
+        assert_eq!(c[7], LineTo(0.0, 0.0));
+        let LineTo(x, y) = c[8] else {
+            panic!("a line to the start: {:?}", c[8])
+        };
+        assert_point((x, y), (2.0 * 1f64.cos(), 2.0 * 1f64.sin()));
+        assert_eq!(c.len(), 9);
+        // Without arcs, canonical_arcs and canonical agree.
+        let mut q = Path::new();
+        q.line_to(1.0, 2.0)
+            .quad_to(3.0, 4.0, 5.0, 6.0)
+            .close()
+            .line_to(7.0, 8.0);
+        assert_eq!(q.canonical_arcs(), q.canonical());
     }
 
     #[test]

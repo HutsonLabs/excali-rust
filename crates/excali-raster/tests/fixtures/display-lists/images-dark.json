@@ -2,7 +2,8 @@
  "description": "The dark-theme image filter: Chrome applies the CSS filter invert(93%) hue-rotate(180deg) to SVG images in dark mode; the raster backend applies upstream's numeric version of it (applyDarkModeFilter), so the tolerance is the distance between the two",
  "width": 64,
  "height": 40,
- "tolerance": {"channel": 0, "pixels": 0},
+ "tolerance": {"channel": 8, "pixels": 0},
+ "toleranceNote": "Every draw goes through ports of Chrome's own pipeline (Skia's analytic anti-aliasing, edge builder and clipper, stroker, dasher and AntiFillRect, Blink's arc handling), so what remains is rounding in blending, coverage and sampling: against Chrome 153 no pixel here is more than 2 levels off. 8 leaves room for another Chrome build that rounds differently. The dark filter is upstream's numeric applyDarkModeFilter against Chrome's CSS invert(93%) hue-rotate(180deg); they agree within 2 levels.",
  "images": {
   "quad": {"width": 4, "height": 4, "rgba": [224, 49, 49, 255, 47, 158, 68, 255, 25, 113, 194, 255, 240, 140, 0, 255, 30, 30, 30, 255, 255, 255, 255, 255, 165, 216, 255, 255, 156, 54, 181, 255, 255, 236, 153, 255, 0, 0, 0, 255, 178, 242, 187, 255, 255, 201, 201, 255, 12, 166, 120, 255, 92, 124, 250, 255, 250, 82, 82, 255, 134, 142, 150, 255]}
  },

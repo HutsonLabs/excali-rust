@@ -233,7 +233,11 @@ fn image(v: &Value) -> Pixmap {
         .iter()
         .map(|c| u8::try_from(c.as_u64().unwrap()).unwrap())
         .collect();
-    assert_eq!(rgba.len() as u32, w * h * 4, "rgba has width * height pixels");
+    assert_eq!(
+        rgba.len() as u32,
+        w * h * 4,
+        "rgba has width * height pixels"
+    );
     let mut data = Vec::with_capacity(rgba.len());
     for px in rgba.chunks_exact(4) {
         let c = ColorU8::from_rgba(px[0], px[1], px[2], px[3]).premultiply();
@@ -249,6 +253,10 @@ fn load(name: &str) -> Fixture {
     assert!(
         v["description"].as_str().is_some_and(|d| !d.is_empty()),
         "{name}: every fixture says what it pins"
+    );
+    assert!(
+        v["toleranceNote"].as_str().is_some_and(|d| !d.is_empty()),
+        "{name}: every tolerance says where the difference from Chrome comes from"
     );
     let tolerance = &v["tolerance"];
     let tolerance = Tolerance {
@@ -318,15 +326,18 @@ fn every_fixture_matches_chrome_within_its_tolerance() {
         let f = load(name);
         let actual = rendered(&f);
         let reference = references_dir().join(format!("{name}.png"));
-        let expected = Pixmap::load_png(&reference)
-            .unwrap_or_else(|e| panic!("{}: {e}", reference.display()));
-        let diff = compare(actual.as_ref(), expected.as_ref())
-            .unwrap_or_else(|e| panic!("{name}: {e}"));
+        let expected =
+            Pixmap::load_png(&reference).unwrap_or_else(|e| panic!("{}: {e}", reference.display()));
+        let diff =
+            compare(actual.as_ref(), expected.as_ref()).unwrap_or_else(|e| panic!("{name}: {e}"));
         summary.push(format!(
-            "{name}: max {} over {} {}/{} (tolerance {} / {})",
+            "{name}: max {:3}; pixels over 1/4/8/16/32: {}/{}/{}/{}/{} of {}; tolerance {} x {}",
             diff.max_channel,
-            f.tolerance.channel,
-            diff.pixels_over(f.tolerance.channel),
+            diff.pixels_over(1),
+            diff.pixels_over(4),
+            diff.pixels_over(8),
+            diff.pixels_over(16),
+            diff.pixels_over(32),
             diff.width * diff.height,
             f.tolerance.channel,
             f.tolerance.pixels,
@@ -359,8 +370,7 @@ fn every_fixture_matches_chrome_within_its_tolerance() {
 fn references_are_current() {
     let dir = references_dir();
     let manifest: Value =
-        serde_json::from_str(&std::fs::read_to_string(dir.join("manifest.json")).unwrap())
-            .unwrap();
+        serde_json::from_str(&std::fs::read_to_string(dir.join("manifest.json")).unwrap()).unwrap();
     assert!(
         manifest["userAgent"]
             .as_str()
@@ -417,8 +427,13 @@ fn every_fixture_draws_more_than_its_tolerance() {
 #[test]
 fn the_fixture_vocabulary() {
     let v: Value = serde_json::json!([
-        ["M", 1, 2], ["L", "NaN", 3], ["Q", 1, 2, 3, 4], ["C", 1, 2, 3, 4, 5, 6],
-        ["A", 5, 5, 2, 0, "Infinity", true], ["Z"], ["rect", 0, 0, 2, 3],
+        ["M", 1, 2],
+        ["L", "NaN", 3],
+        ["Q", 1, 2, 3, 4],
+        ["C", 1, 2, 3, 4, 5, 6],
+        ["A", 5, 5, 2, 0, "Infinity", true],
+        ["Z"],
+        ["rect", 0, 0, 2, 3],
         ["roundRect", 0, 0, 4, 4, 1]
     ]);
     let p = path(&v);
@@ -430,7 +445,9 @@ fn the_fixture_vocabulary() {
         .cubic_to(1.0, 2.0, 3.0, 4.0, 5.0, 6.0)
         .arc(5.0, 5.0, 2.0, 0.0, f64::INFINITY, true)
         .close();
-    expected.commands.extend(Path::rect(0.0, 0.0, 2.0, 3.0).commands);
+    expected
+        .commands
+        .extend(Path::rect(0.0, 0.0, 2.0, 3.0).commands);
     expected
         .commands
         .extend(Path::round_rect(0.0, 0.0, 4.0, 4.0, 1.0).commands);

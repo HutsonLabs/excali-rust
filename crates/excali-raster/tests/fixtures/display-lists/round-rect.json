@@ -2,7 +2,8 @@
  "description": "roundRect(): the radius upstream clips rounded images and frames with, filled and stroked, zero, large enough to be scaled down, on negative widths and heights, and a negative radius that draws nothing",
  "width": 96,
  "height": 96,
- "tolerance": {"channel": 0, "pixels": 0},
+ "tolerance": {"channel": 8, "pixels": 0},
+ "toleranceNote": "Every draw goes through ports of Chrome's own pipeline (Skia's analytic anti-aliasing, edge builder and clipper, stroker, dasher and AntiFillRect, Blink's arc handling), so what remains is rounding in blending, coverage and sampling: against Chrome 153 no pixel here is more than 3 levels off. 8 leaves room for another Chrome build that rounds differently.",
  "items": [
   {"type": "fill", "color": "#a5d8ff", "path": [["roundRect", 4, 4, 40, 26, 8]]},
   {"type": "stroke", "color": "#1971c2", "width": 2, "path": [["roundRect", 4, 4, 40, 26, 8]]},

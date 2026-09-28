@@ -2,7 +2,8 @@
  "description": "clip(): a rectangle, a circle with anti-aliased edges, nested clips intersecting, an evenodd clip with a hole, a rounded-rectangle clip as upstream clips frames and rounded images, a clip in a rotated group's space, and a sibling after the group drawn unclipped",
  "width": 96,
  "height": 96,
- "tolerance": {"channel": 0, "pixels": 0},
+ "tolerance": {"channel": 8, "pixels": 0},
+ "toleranceNote": "Every draw goes through ports of Chrome's own pipeline (Skia's analytic anti-aliasing, edge builder and clipper, stroker, dasher and AntiFillRect, Blink's arc handling), so what remains is rounding in blending, coverage and sampling: against Chrome 153 no pixel here is more than 2 levels off. 8 leaves room for another Chrome build that rounds differently.",
  "items": [
   {"type": "group", "clip": {"path": [["rect", 6.5, 6.5, 30, 20]]}, "items": [
    {"type": "fill", "color": "#e03131", "path": [["A", 20, 20, 20, 0, 6.283185307179586]]}
