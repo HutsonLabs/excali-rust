@@ -219,7 +219,10 @@ jobs:
   # for clipboard.json, upstream's own serializeAsClipboardJSON and
   # parseClipboard, rough-options.mjs --check for excali-scene's
   # rough-options.json, upstream's own generateRoughOptions and
-  # applyDarkModeFilter, and library-fixtures.mjs --check for
+  # applyDarkModeFilter, dark-mode.mjs --check for dark-mode.json,
+  # upstream's own applyDarkModeFilter, removeDarkModeFilter and rgbToHex
+  # over COLOR_PALETTE and every colour notation, and
+  # library-fixtures.mjs --check for
   # library.json, upstream's own parseLibraryJSON,
   # serializeLibraryAsJSON, mergeLibraryItems and getLibraryItemsHash, and
   # library-url-fixtures.mjs --check for library-url.json, upstream's own
@@ -259,6 +262,8 @@ jobs:
         run: node tools/goldens/clipboard-fixtures.mjs --check
       - name: excali-scene rough option goldens match the generator
         run: node tools/goldens/rough-options.mjs --check
+      - name: excali-scene dark-mode filter goldens match the generator
+        run: node tools/goldens/dark-mode.mjs --check
       - name: excali-core library fixtures match the generator
         run: node tools/goldens/library-fixtures.mjs --check
       - name: excali-core library URL fixtures match the generator
