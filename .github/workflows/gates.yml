@@ -64,6 +64,26 @@ jobs:
         run: python3 scripts/fixtures/corpus.py verify-upstream
       - name: every file equals its origin (live)
         run: python3 scripts/fixtures/corpus.py verify-remote
+  # ex-110: the payload codec goldens are upstream output. Regenerate them
+  # from encode.ts at the pin on the exact pako release upstream locks
+  # (downloaded and checked against the yarn.lock SHA-512) and fail if the
+  # committed file differs. The Rust tests (rust.yml) hold the port to them.
+  payload-goldens:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: upstream checkout at the pin
+        env:
+          UPSTREAM_DIR: ${{ runner.temp }}/upstream
+        run: scripts/upstream/checkout.sh
+      - name: goldens match upstream encode.ts + pako
+        env:
+          UPSTREAM_DIR: ${{ runner.temp }}/upstream
+          TOOLS_DIR: ${{ runner.temp }}/tools
+        run: scripts/fixtures/payload-goldens.sh --check
   # scripts/upstream/checkout.sh: the offline suite pins its behaviour
   # (fixture remotes over file://); the live step proves the real pin still
   # resolves on GitHub, lands clean, and a second run is a no-op.
