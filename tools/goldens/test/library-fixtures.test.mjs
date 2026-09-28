@@ -75,11 +75,21 @@ test("output is upstream's library codec in test mode", () => {
   assert.equal(byId.get("jumpingrivers/r").version, 1);
   assert.equal(byId.get("youritjang/stick-figures").version, 2);
   for (const c of catalogue) assert.match(c.output_sha256, /^[0-9a-f]{64}$/, c.id);
+  for (const c of catalogue) assert.match(c.reload_sha256, /^[0-9a-f]{64}$/, c.id);
+  // ex-114: a legacy `draw` restored to `line` has no `polygon` until the
+  // next load adds `polygon: false`, so upstream's own output of
+  // anumithaapollo12/emojis (v1, 14 draw elements) changes once when loaded
+  // again; a library without them loads back to the same bytes.
+  const emojis = byId.get("anumithaapollo12/emojis");
+  assert.notEqual(emojis.reload_sha256, emojis.output_sha256);
+  assert.equal(byId.get("jumpingrivers/r").reload_sha256, byId.get("jumpingrivers/r").output_sha256);
+  assert.equal(byId.get("youritjang/stick-figures").reload_sha256, byId.get("youritjang/stick-figures").output_sha256);
   // Legacy bindings (no mode) migrated with geometry: recorded with and
   // without the migration, which differ.
   const legacy = catalogue.filter((c) => c.geometry);
   assert.equal(legacy.length, 51);
   for (const c of legacy) assert.notEqual(c.output_sha256_without_geometry, c.output_sha256, c.id);
+  for (const c of legacy) assert.match(c.reload_sha256_without_geometry, /^[0-9a-f]{64}$/, c.id);
   const migrated = par.get("elements-legacy-binding-migrated");
   assert.equal(migrated.geometry, 1);
   assert.equal(JSON.parse(migrated.output).libraryItems[0].elements[1].startBinding.mode, "orbit");
