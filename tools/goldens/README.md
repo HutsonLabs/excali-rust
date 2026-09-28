@@ -1,0 +1,89 @@
+# Golden generator
+
+`generate.mjs` writes `goldens/*.json`: the exact numbers upstream Excalidraw
+produces for fixture elements, so the Rust crates (`excali-rough`,
+`excali-freehand`, `excali-scene`) can be checked op by op.
+
+The numbers are upstream's own. The generator bundles upstream's TypeScript
+from the pinned checkout (`scripts/upstream/checkout.sh`, commit in
+`site/config.toml`) with esbuild, which only strips types, and calls
+`ShapeCache.generateElementShape` from `packages/element/src/shape.ts`. That is
+the function the editor and the SVG export use. `@excalidraw/*` imports
+resolve to the checkout's package sources, the same way the aliases in
+upstream's `vitest.config.mts:63-71` and `excalidraw-app/vite.config.mts:86-89`
+resolve them. That makes laser-pointer the vendored in-repo copy. The rendering packages are the
+tarballs upstream's `yarn.lock` resolves. `package-lock.json` pins roughjs
+4.6.4, perfect-freehand 1.2.0, points-on-curve 1.0.1 and tinycolor2 1.6.0, and
+`test/pins.test.mjs` compares their integrity hashes with upstream's lockfile.
+
+```sh
+scripts/upstream/checkout.sh               # once; shared by every worktree
+npm ci --prefix tools/goldens
+node tools/goldens/generate.mjs            # write goldens/
+node tools/goldens/generate.mjs --check    # exit 1 if goldens/ is stale
+node --test tools/goldens/test/            # the suite CI runs
+```
+
+The generator runs under plain Node, with no browser or DOM. It refuses to run
+unless the checkout is clean and at the pin. While it generates, `Math.random`
+throws, so no output can come from rough.js's seed-0 fallback. Output is
+byte-identical across runs and across Node 22, 24 and 26. CI (the `goldens`
+job in `.github/workflows/gates.yml`) runs the suite and `--check` on every PR.
+
+## Files
+
+| file | contents | used by |
+|---|---|---|
+| `random.json` | `Random.next()` sequences for 7 seeds | ex-203 |
+| `rough-primitives.json` | `line`, `rectangle`, `polygon`, `ellipse`, `circle`, `arc`, `curve`, `linearPath`, `path` × seeds 1, 7, 1041657908 × roughness 0, 1, 2 | ex-203, ex-206 |
+| `rough-fills.json` | hachure, cross-hatch, zigzag, solid, dashed, zigzag-line at `fillWeight = sw/2`, `hachureGap = sw*4` | ex-204 |
+| `rough-options.json` | multi-stroke, preserveVertices, curveFitting, bowing, dashes, hachure angle, and the dashed/dotted stroke rule | ex-205 |
+| `elements-upstream-fixtures.json` | upstream `tests/fixtures/elementFixture.ts` and the export test's 100×100 variants | all |
+| `elements-rectangle.json`, `elements-diamond.json`, `elements-ellipse.json` | seeds × roughness, fills, stroke styles, adjustRoughness sizes, corner radius, dark theme | ex-208 |
+| `elements-line.json`, `elements-arrow.json` | linearPath, filled polygon loops, curves | ex-209 |
+| `elements-elbow-arrow.json` | elbow paths (radius 16), extreme-coordinate guard | ex-210 |
+| `elements-arrowheads.json` | all 14 arrowheads, start and end, sw 1/2/4, curved, dashed, dotted, short, outline fills | ex-212 |
+| `elements-freedraw.json` | perfect-freehand and laser-pointer outlines, trimmed SVG path, loop fills | ex-213, ex-214 |
+| `elements-iframe-like.json` | `modifyIframeLikeForRoughOptions` placeholders and defaults | ex-208 |
+| `freehand.json` | `getStrokePoints` and `getStroke` with Excalidraw's options and the library defaults | ex-213 |
+| `manifest.json` | upstream commit, package versions, case count and sha256 per file | ex-217 |
+
+rough.js's `dots` fill is not included. Its filler jitters every dot with
+`Math.random` (`roughjs/bin/fillers/dot-filler.js:33-34`), so it has no stable
+output, and Excalidraw never uses it.
+
+## Format
+
+Every file is `{ "description", "cases": [...] }` and every case has a unique
+`id`.
+
+- **rough cases:** `{ id, method, args, options, drawable }`. The call was
+  `new RoughGenerator()[method](...args, options)`.
+- **element cases:** `{ id, element, renderConfig, shapes }`. The call was
+  `ShapeCache.generateElementShape(element, renderConfig)`, with
+  `embedsValidationStatus` built from `renderConfig.validatedEmbeds`.
+  - `shapes` is upstream's shape flattened to a list. Each entry is either
+    `{ type: "rough", drawable }` or `{ type: "svgPath", d }` (the freedraw
+    stroke). `shapes` is empty when upstream returns `null` (text) or `[]`.
+  - Freedraw cases also carry `outline`, the output of
+    `getFreedrawOutlinePoints`.
+- **drawable:** `{ shape, options, sets: [{ type, ops: [{ op, data }] }] }`.
+  This is rough.js's `Drawable` with every resolved option except the RNG
+  state.
+  - `type` is `path`, `fillPath` or `fillSketch`.
+  - `op` is `move` (2 numbers), `lineTo` (2) or `bcurveTo` (6).
+- **freehand cases:** `{ id, points, options, strokePoints, outline }`.
+  `options.easing` is a name: `easeOutSine` is `sin(t·π/2)` (upstream
+  `shape.ts:1241`) and `linear` is `t`.
+
+Numbers are full-precision doubles written in ECMAScript's shortest
+round-trip form. Parse them exactly; in Rust, use serde_json's
+`float_roundtrip` feature. Upstream's SVG export rounds to 2 decimals.
+`test/upstream-snapshot.test.mjs` shows that the goldens reproduce upstream's
+`export.test.ts.snap` paths exactly at that precision.
+
+## Adding cases
+
+Add inputs to `fixtures.mjs`, run `node tools/goldens/generate.mjs`, and
+commit `goldens/` together with the change. Coverage the downstream tasks rely
+on is asserted in `test/goldens.test.mjs`.

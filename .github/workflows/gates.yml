@@ -134,3 +134,23 @@ jobs:
             tests/site/playwright-report/
             tests/site/test-results/
           retention-days: 14
+  # tools/goldens: upstream's own shape code (pinned checkout) run under node
+  # with roughjs 4.6.4 / perfect-freehand 1.2.0. The suite pins the package
+  # versions against upstream's yarn.lock, reproduces upstream's SVG export
+  # snapshot from the goldens and proves two runs are byte-identical; the
+  # --check step fails the PR when goldens/ no longer matches the generator.
+  goldens:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: tools/goldens/.node-version
+      - name: upstream checkout at the pin
+        run: scripts/upstream/checkout.sh
+      - name: install pinned generator dependencies
+        run: npm ci --prefix tools/goldens --no-audit --no-fund
+      - name: golden generator test suite
+        run: node --test tools/goldens/test/
+      - name: committed goldens match the generator
+        run: node tools/goldens/generate.mjs --check

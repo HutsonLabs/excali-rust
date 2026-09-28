@@ -1,0 +1,1519 @@
+{
+  "description": "Elbow arrows: generateElbowArrowShape paths (corner radius 16) and the extreme-coordinate guard.",
+  "cases": [
+    {
+      "id": "elbow/L",
+      "element": {
+        "id": "elbow_L",
+        "type": "arrow",
+        "x": 0,
+        "y": 0,
+        "width": 160,
+        "height": 120,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "index": null,
+        "seed": 1041657908,
+        "version": 1,
+        "versionNonce": 0,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": null,
+        "link": null,
+        "locked": false,
+        "points": [[0,0],[160,0],[160,120]],
+        "startBinding": null,
+        "endBinding": null,
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": true,
+        "fixedSegments": null,
+        "startIsSpecial": null,
+        "endIsSpecial": null
+      },
+      "renderConfig": {"isExporting":true,"canvasBackgroundColor":"#ffffff","theme":"light","validatedEmbeds":[]},
+      "shapes": [
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "path",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[0,0]},
+                  {"op":"bcurveTo","data":[37.56352135688067,-1.0885520300269127,74.84341534525157,-1.0716002306342125,144,0]},
+                  {"op":"move","data":[0,0]},
+                  {"op":"bcurveTo","data":[51.49579211995006,0.7404342724382877,102.37941520139576,-0.3165283368527889,144,0]},
+                  {"op":"move","data":[144,0]},
+                  {"op":"bcurveTo","data":[153.55048746118942,0.913572408258915,159.05371906608343,3.406372246642908,160,16]},
+                  {"op":"move","data":[144,0]},
+                  {"op":"bcurveTo","data":[154.27725868808724,-1.5125340063124892,159.67098128981888,7.071174180631837,160,16]},
+                  {"op":"move","data":[160,16]},
+                  {"op":"bcurveTo","data":[158.85217684209346,54.17010402232409,161.66301816403865,95.24877974241973,160,120]},
+                  {"op":"move","data":[160,16]},
+                  {"op":"bcurveTo","data":[159.37973335638642,54.577315000444656,159.79645052805543,95.02299428656698,160,120]}
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "line",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[151.26407908990072,96.57600192425534]},
+                  {"op":"bcurveTo","data":[153.1519749607503,101.74762125089832,154.72784575556213,107.94752255328818,160,120]},
+                  {"op":"move","data":[151.26407908990072,96.57600192425534]},
+                  {"op":"bcurveTo","data":[154.68951557162572,105.83772309976335,157.5283749190007,113.1007849997768,160,120]}
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "line",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[168.36455206370158,96.4408347182328]},
+                  {"op":"bcurveTo","data":[165.7388067493995,101.65789510596096,162.80087249127024,107.89347486113229,160,120]},
+                  {"op":"move","data":[168.36455206370158,96.4408347182328]},
+                  {"op":"bcurveTo","data":[165.71588398868855,105.77601041817941,162.48078645634328,113.08708267335619,160,120]}
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "elbow/S",
+      "element": {
+        "id": "elbow_S",
+        "type": "arrow",
+        "x": 0,
+        "y": 0,
+        "width": 220,
+        "height": 80,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "index": null,
+        "seed": 1041657908,
+        "version": 1,
+        "versionNonce": 0,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": null,
+        "link": null,
+        "locked": false,
+        "points": [[0,0],[100,0],[100,80],[220,80]],
+        "startBinding": null,
+        "endBinding": null,
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": true,
+        "fixedSegments": null,
+        "startIsSpecial": null,
+        "endIsSpecial": null
+      },
+      "renderConfig": {"isExporting":true,"canvasBackgroundColor":"#ffffff","theme":"light","validatedEmbeds":[]},
+      "shapes": [
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "path",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[0,0]},
+                  {"op":"bcurveTo","data":[21.726046943664553,-1.0542982114851474,43.168466518819336,-1.0373464120924472,84,0]},
+                  {"op":"move","data":[0,0]},
+                  {"op":"bcurveTo","data":[30.184252179414035,0.8297095900774002,59.75633532032371,-0.22725301921367647,84,0]},
+                  {"op":"move","data":[84,0]},
+                  {"op":"bcurveTo","data":[93.55048746118943,0.913572408258915,99.05371906608343,3.406372246642908,100,16]},
+                  {"op":"move","data":[84,0]},
+                  {"op":"bcurveTo","data":[94.27725868808727,-1.5125340063124892,99.67098128981888,7.071174180631837,100,16]},
+                  {"op":"move","data":[100,16]},
+                  {"op":"bcurveTo","data":[98.45561526864768,33.193137197196485,101.26645659059287,53.29484609216452,100,64]},
+                  {"op":"move","data":[100,16]},
+                  {"op":"bcurveTo","data":[99.36920727476478,33.52826888039708,99.78592444643378,52.924902046471836,100,64]},
+                  {"op":"move","data":[100,64]},
+                  {"op":"bcurveTo","data":[98.73247625678778,74.02805806944768,107.0577369754513,78.68820867687464,116,80]},
+                  {"op":"move","data":[100,64]},
+                  {"op":"bcurveTo","data":[98.29919762797654,76.03536672207217,104.05370781210561,79.9964648168534,116,80]},
+                  {"op":"move","data":[116,80]},
+                  {"op":"bcurveTo","data":[146.73072798103095,80.03133867383004,173.67486791163682,81.5436670601368,220,80]},
+                  {"op":"move","data":[116,80]},
+                  {"op":"bcurveTo","data":[152.64690920338035,80.25770779415966,187.7466711215675,80.55840357109905,220,80]}
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "line",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[196.59357718856907,88.78290220670402]},
+                  {"op":"bcurveTo","data":[202.31482251644124,85.4448802023082,207.76308828610937,83.14351551882666,220,80]},
+                  {"op":"move","data":[196.59357718856907,88.78290220670402]},
+                  {"op":"bcurveTo","data":[205.26505112686556,86.5831507914215,213.31476026120617,82.40656866259718,220,80]}
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "line",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[196.42409915645214,71.68273485963086]},
+                  {"op":"bcurveTo","data":[202.21081066394441,72.85834048108879,207.70381150023346,75.07070017795701,220,80]},
+                  {"op":"move","data":[196.42409915645214,71.68273485963086]},
+                  {"op":"bcurveTo","data":[205.13708759343018,75.5565795977125,213.2469940252792,77.45384579233817,220,80]}
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "elbow/U",
+      "element": {
+        "id": "elbow_U",
+        "type": "arrow",
+        "x": 0,
+        "y": 0,
+        "width": 180,
+        "height": 80,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "index": null,
+        "seed": 1041657908,
+        "version": 1,
+        "versionNonce": 0,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": null,
+        "link": null,
+        "locked": false,
+        "points": [[0,0],[0,-60],[180,-60],[180,20]],
+        "startBinding": null,
+        "endBinding": null,
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": true,
+        "fixedSegments": null,
+        "startIsSpecial": null,
+        "endIsSpecial": null
+      },
+      "renderConfig": {"isExporting":true,"canvasBackgroundColor":"#ffffff","theme":"light","validatedEmbeds":[]},
+      "shapes": [
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "path",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[0,0]},
+                  {"op":"bcurveTo","data":[-0.49975992754101756,-12.620490768551829,-1.229804530888796,-24.21768687218428,0,-44]},
+                  {"op":"move","data":[0,0]},
+                  {"op":"bcurveTo","data":[0.39616849094629286,-14.673767588287593,0.13209571510553358,-31.35919282063842,0,-44]},
+                  {"op":"move","data":[0,-44]},
+                  {"op":"bcurveTo","data":[-1.1161792054772377,-53.75309425840775,4.387052399416765,-61.926961086690426,16,-60]},
+                  {"op":"move","data":[0,-44]},
+                  {"op":"bcurveTo","data":[-0.389407978579402,-56.17920067297916,5.004314623152217,-58.2621591527015,16,-60]},
+                  {"op":"move","data":[16,-60]},
+                  {"op":"bcurveTo","data":[69.55483195781707,-62.11835841551423,127.80479988902808,-59.996906799227,164,-60]},
+                  {"op":"move","data":[16,-60]},
+                  {"op":"bcurveTo","data":[70.98980680778624,-59.5213406842947,127.03614586815239,-58.16674704968929,164,-60]},
+                  {"op":"move","data":[164,-60]},
+                  {"op":"bcurveTo","data":[173.39914292345443,-60.63860859721899,181.72440364211798,-55.97845798979203,180,-44]},
+                  {"op":"move","data":[164,-60]},
+                  {"op":"bcurveTo","data":[172.96586429464318,-58.6312999445945,178.72037447877227,-54.67020184981326,180,-44]},
+                  {"op":"move","data":[180,-44]},
+                  {"op":"bcurveTo","data":[181.73985013395549,-26.139230538904666,179.50441917806864,-6.670243145525454,180,20]},
+                  {"op":"move","data":[180,-44]},
+                  {"op":"bcurveTo","data":[181.2025557176769,-21.21106369420886,180.32215756341816,1.2312690503895283,180,20]}
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "line",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[171.9388714533714,-3.664703812951675]},
+                  {"op":"bcurveTo","data":[173.64894236010716,1.5708369331796814,175.04669637507396,7.834274418138381,180,20]},
+                  {"op":"move","data":[171.9388714533714,-3.664703812951675]},
+                  {"op":"bcurveTo","data":[175.1243638784606,5.683518233139562,177.72354215240767,13.032076965359732,180,20]}
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "line",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[189.03619566945454,-3.3098084038314433]},
+                  {"op":"bcurveTo","data":[186.23286241100132,1.8418157036322116,183.11764251252353,8.011575739235752,180,20]},
+                  {"op":"move","data":[189.03619566945454,-3.3098084038314433]},
+                  {"op":"bcurveTo","data":[186.1492373706286,5.93779699832631,182.6755771794532,13.160299602443501,180,20]}
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "elbow/tight-corners",
+      "element": {
+        "id": "elbow_tight-corners",
+        "type": "arrow",
+        "x": 0,
+        "y": 0,
+        "width": 60,
+        "height": 40,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "index": null,
+        "seed": 1041657908,
+        "version": 1,
+        "versionNonce": 0,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": null,
+        "link": null,
+        "locked": false,
+        "points": [[0,0],[20,0],[20,12],[60,12],[60,40]],
+        "startBinding": null,
+        "endBinding": null,
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": true,
+        "fixedSegments": null,
+        "startIsSpecial": null,
+        "endIsSpecial": null
+      },
+      "renderConfig": {"isExporting":true,"canvasBackgroundColor":"#ffffff","theme":"light","validatedEmbeds":[]},
+      "shapes": [
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "path",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[0,0]},
+                  {"op":"bcurveTo","data":[3.3829186320304876,-0.7124325635284185,6.567298106104136,-0.7005663039535284,14,0]},
+                  {"op":"move","data":[0,0]},
+                  {"op":"bcurveTo","data":[5.21636003665626,0.6474556168913841,10.004201746359467,-0.09241820961236952,14,0]},
+                  {"op":"move","data":[14,0]},
+                  {"op":"bcurveTo","data":[16.883820794522762,0.913572408258915,19.05371906608343,0.07303891330957413,20,6]},
+                  {"op":"move","data":[14,0]},
+                  {"op":"bcurveTo","data":[17.610592021420597,-1.5125340063124892,19.670981289818883,3.7378408472985027,20,6]},
+                  {"op":"move","data":[20,6]},
+                  {"op":"bcurveTo","data":[20,6,20,6,20,6]},
+                  {"op":"move","data":[20,6]},
+                  {"op":"bcurveTo","data":[20,6,20,6,20,6]},
+                  {"op":"move","data":[20,6]},
+                  {"op":"bcurveTo","data":[18.732476256787777,9.36139140278101,23.724403642117977,10.688208676874638,26,12]},
+                  {"op":"move","data":[20,6]},
+                  {"op":"bcurveTo","data":[18.299197627976536,11.368700055405498,20.720374478772282,11.996464816853404,26,12]},
+                  {"op":"move","data":[26,12]},
+                  {"op":"bcurveTo","data":[33.16261303424835,11.928577419370413,36.53863801807165,13.440905805677176,46,12]},
+                  {"op":"move","data":[26,12]},
+                  {"op":"bcurveTo","data":[33.58601068332791,12.572377887368201,39.62487408146262,12.873073664307594,46,12]},
+                  {"op":"move","data":[46,12]},
+                  {"op":"bcurveTo","data":[56.67773256947597,11.49552784115076,60.62442018836737,18.05357934782902,60,26]},
+                  {"op":"move","data":[46,12]},
+                  {"op":"bcurveTo","data":[54.94467057970663,14.260219685360788,60.264432050660254,16.066184087718526,60,26]},
+                  {"op":"move","data":[60,26]},
+                  {"op":"bcurveTo","data":[58.6888266737014,30.772842247784137,61.18140491791069,31.82927031442523,60,40]},
+                  {"op":"move","data":[60,26]},
+                  {"op":"bcurveTo","data":[60.71402467951179,30.725197953358293,60.49859092697501,35.34823715947569,60,40]}
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "line",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[56.34098385257394,26.486614013028586]},
+                  {"op":"bcurveTo","data":[57.01070076800197,29.34705016598354,57.4654957891986,32.92588150563465,60,40]},
+                  {"op":"move","data":[56.34098385257394,26.486614013028586]},
+                  {"op":"bcurveTo","data":[57.86954165737443,31.949307293442644,58.98434519376818,36.00928455349258,60,40]}
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "line",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[65.88326809031858,27.296175513750235]},
+                  {"op":"bcurveTo","data":[64.0332421725596,29.948369168691016,61.96927581944095,33.31351034911539,60,40]},
+                  {"op":"move","data":[65.88326809031858,27.296175513750235]},
+                  {"op":"bcurveTo","data":[64.02336418777968,32.48551693082059,61.74882152989606,36.25794415325469,60,40]}
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "elbow/long-sw4",
+      "element": {
+        "id": "elbow_long-sw4",
+        "type": "arrow",
+        "x": 0,
+        "y": 0,
+        "width": 520,
+        "height": 200,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 4,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "index": null,
+        "seed": 1041657908,
+        "version": 1,
+        "versionNonce": 0,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": null,
+        "link": null,
+        "locked": false,
+        "points": [[0,0],[300,0],[300,200],[520,200]],
+        "startBinding": null,
+        "endBinding": null,
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": true,
+        "fixedSegments": null,
+        "startIsSpecial": null,
+        "endIsSpecial": null
+      },
+      "renderConfig": {"isExporting":true,"canvasBackgroundColor":"#ffffff","theme":"light","validatedEmbeds":[]},
+      "shapes": [
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "path",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 4,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 2,
+              "hachureAngle": -41,
+              "hachureGap": 16,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[0,0]},
+                  {"op":"bcurveTo","data":[74.62478506413386,-0.8879995136675507,149.0340238791384,-0.8751167767360359,284,0]},
+                  {"op":"move","data":[0,0]},
+                  {"op":"bcurveTo","data":[101.1391625956472,0.4043953553823754,201.81309949471932,-0.39885690866977713,284,0]},
+                  {"op":"move","data":[284,0]},
+                  {"op":"bcurveTo","data":[293.55048746118945,0.913572408258915,299.05371906608343,3.406372246642908,300,16]},
+                  {"op":"move","data":[284,0]},
+                  {"op":"bcurveTo","data":[294.2772586880873,-1.5125340063124892,299.6709812898189,7.071174180631837,300,16]},
+                  {"op":"move","data":[300,16]},
+                  {"op":"bcurveTo","data":[299.30539006888864,78.14378039389848,302.11623139083383,143.1961324855685,300,184]},
+                  {"op":"move","data":[300,16]},
+                  {"op":"bcurveTo","data":[299.391763163954,78.63336770907046,299.808480335623,143.13509970381858,300,184]},
+                  {"op":"move","data":[300,184]},
+                  {"op":"bcurveTo","data":[298.7324762567878,194.02805806944767,307.0577369754513,198.68820867687464,316,200]},
+                  {"op":"move","data":[300,184]},
+                  {"op":"bcurveTo","data":[298.2991976279765,196.03536672207215,304.0537078121056,199.9964648168534,316,200]},
+                  {"op":"move","data":[316,200]},
+                  {"op":"bcurveTo","data":[374.62250976546267,200.1372775830369,429.8624346766819,201.48825081435777,520,200]},
+                  {"op":"move","data":[316,200]},
+                  {"op":"bcurveTo","data":[387.17207936697093,199.89557291776933,456.9620815434772,200.16418650004059,520,200]}
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "line",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 4,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 2,
+              "hachureAngle": -41,
+              "hachureGap": 16,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[496.5154039063211,208.57168281708815]},
+                  {"op":"bcurveTo","data":[502.25753975858163,205.28936921177885,507.7264399842064,203.04375755627427,520,200]},
+                  {"op":"move","data":[496.5154039063211,208.57168281708815]},
+                  {"op":"bcurveTo","data":[505.2144136271862,206.44683859369582,513.2918893119753,202.34527997250507,520,200]}
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "line",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 4,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 2,
+              "hachureAngle": -41,
+              "hachureGap": 16,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[496.4999841545564,191.47068260269913]},
+                  {"op":"bcurveTo","data":[502.26692229492994,192.70230441656335,507.7398926859553,194.9706369833219,520,200]},
+                  {"op":"move","data":[496.4999841545564,191.47068260269913]},
+                  {"op":"bcurveTo","data":[505.18578714423836,195.41995958745397,513.2687398066209,197.39254511779765,520,200]}
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "elbow/dashed",
+      "element": {
+        "id": "elbow_dashed",
+        "type": "arrow",
+        "x": 0,
+        "y": 0,
+        "width": 160,
+        "height": 120,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "dashed",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "index": null,
+        "seed": 1041657908,
+        "version": 1,
+        "versionNonce": 0,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": null,
+        "link": null,
+        "locked": false,
+        "points": [[0,0],[160,0],[160,120]],
+        "startBinding": null,
+        "endBinding": null,
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": true,
+        "fixedSegments": null,
+        "startIsSpecial": null,
+        "endIsSpecial": null
+      },
+      "renderConfig": {"isExporting":true,"canvasBackgroundColor":"#ffffff","theme":"light","validatedEmbeds":[]},
+      "shapes": [
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "path",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2.5,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": true,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8,
+              "strokeLineDash": [8,10]
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[0,0]},
+                  {"op":"bcurveTo","data":[37.56352135688067,-1.0885520300269127,74.84341534525157,-1.0716002306342125,144,0]},
+                  {"op":"move","data":[144,0]},
+                  {"op":"bcurveTo","data":[155.770513313512,-0.21851012855768204,160.29758439213037,6.02952585866054,160,16]},
+                  {"op":"move","data":[160,16]},
+                  {"op":"bcurveTo","data":[158.97120522081852,58.042400769889355,159.1411034923792,96.33069563657045,160,120]}
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "line",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2.5,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": true,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[150.9123004021593,96.71022292894573]},
+                  {"op":"bcurveTo","data":[152.8928883184351,101.84621273074143,154.56161387935057,108.01068533767295,160,120]}
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "line",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2.5,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": true,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[168.0087983559749,96.31753499119372]},
+                  {"op":"bcurveTo","data":[165.47710652617366,101.56693821807502,162.6330762721032,107.83506391111531,160,120]}
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "elbow/both-heads",
+      "element": {
+        "id": "elbow_both-heads",
+        "type": "arrow",
+        "x": 0,
+        "y": 0,
+        "width": 160,
+        "height": 120,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "index": null,
+        "seed": 1041657908,
+        "version": 1,
+        "versionNonce": 0,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": null,
+        "link": null,
+        "locked": false,
+        "points": [[0,0],[160,0],[160,120]],
+        "startBinding": null,
+        "endBinding": null,
+        "startArrowhead": "circle",
+        "endArrowhead": "triangle",
+        "elbowed": true,
+        "fixedSegments": null,
+        "startIsSpecial": null,
+        "endIsSpecial": null
+      },
+      "renderConfig": {"isExporting":true,"canvasBackgroundColor":"#ffffff","theme":"light","validatedEmbeds":[]},
+      "shapes": [
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "path",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[0,0]},
+                  {"op":"bcurveTo","data":[37.56352135688067,-1.0885520300269127,74.84341534525157,-1.0716002306342125,144,0]},
+                  {"op":"move","data":[0,0]},
+                  {"op":"bcurveTo","data":[51.49579211995006,0.7404342724382877,102.37941520139576,-0.3165283368527889,144,0]},
+                  {"op":"move","data":[144,0]},
+                  {"op":"bcurveTo","data":[153.55048746118942,0.913572408258915,159.05371906608343,3.406372246642908,160,16]},
+                  {"op":"move","data":[144,0]},
+                  {"op":"bcurveTo","data":[154.27725868808724,-1.5125340063124892,159.67098128981888,7.071174180631837,160,16]},
+                  {"op":"move","data":[160,16]},
+                  {"op":"bcurveTo","data":[158.85217684209346,54.17010402232409,161.66301816403865,95.24877974241973,160,120]},
+                  {"op":"move","data":[160,16]},
+                  {"op":"bcurveTo","data":[159.37973335638642,54.577315000444656,159.79645052805543,95.02299428656698,160,120]}
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "circle",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 0.5,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "solid",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8,
+              "fill": "#1e1e1e"
+            },
+            "sets": [
+              {
+                "type": "fillPath",
+                "ops": [
+                  {"op":"move","data":[1.0708824725297155,-7.442342685600722]},
+                  {"op":"bcurveTo","data":[2.5069958560081487,-7.451522297584949,3.9896420611258323,-6.692727389529911,5.076329252780063,-5.649588102045651]},
+                  {"op":"bcurveTo","data":[6.163016444434294,-4.60644881456139,7.497108442351529,-2.9157574395790187,7.591005622455099,-1.183506960695158]},
+                  {"op":"bcurveTo","data":[7.684902802558669,0.5487435181887024,6.506157724008572,3.3978485240718763,5.639712333401484,4.743914771257511]},
+                  {"op":"bcurveTo","data":[4.773266942794395,6.089981018443146,3.820092038683079,6.5336727764046545,2.3923332788125657,6.892890522418654]},
+                  {"op":"bcurveTo","data":[0.9645745189420525,7.252108268432653,-1.4018687159332022,7.424455727030658,-2.9268402258215973,6.899221247341506]},
+                  {"op":"bcurveTo","data":[-4.451811735709993,6.3739867676523545,-6.057715389472506,5.147073424267786,-6.757495780517805,3.7414836442837434]},
+                  {
+                    "op": "bcurveTo",
+                    "data": [-7.4572761715631035,2.3358938642997007,-7.5434687342033575,0.0545177587736958,-7.125522572093388,-1.5343174325627493]
+                  },
+                  {"op":"bcurveTo","data":[-6.707576409983418,-3.1231526238991947,-5.57680399794056,-4.866917657798561,-4.249818807857987,-5.791527503734928]},
+                  {"op":"bcurveTo","data":[-2.9228336177754137,-6.716137349671294,-0.1311783456908946,-6.910144981384159,0.8363885684020531,-7.081976508180946]},
+                  {"op":"bcurveTo","data":[1.8039554824950008,-7.253808034977734,1.5783878988392175,-6.931548131832624,1.5555826766996987,-6.822516664515652]},
+                  {"op":"move","data":[0.4250723706030738,-7.043699546465224]},
+                  {"op":"bcurveTo","data":[1.950131209573481,-7.140489081351703,4.236091197475154,-6.146590717540851,5.294348329472286,-5.134952993850102]},
+                  {"op":"bcurveTo","data":[6.352605461469419,-4.1233152701593525,6.53457387765974,-2.5054711952737754,6.774615162585871,-0.973873204320727]},
+                  {"op":"bcurveTo","data":[7.014656447512001,0.5577247866323214,7.499369960136613,2.724416488170249,6.734596039029067,4.05463495186819]},
+                  {"op":"bcurveTo","data":[5.969822117921521,5.3848534155661305,3.8405107919178256,6.387597168628747,2.1859716359405974,7.007437577866918]},
+                  {"op":"bcurveTo","data":[0.5314324799633692,7.6272779871050895,-1.7965460023502133,8.261742572387362,-3.192638896834303,7.773677407297216]},
+                  {"op":"bcurveTo","data":[-4.588731791318392,7.28561224220707,-5.562767389859962,5.49707345653506,-6.19058573096394,4.079046587326042]},
+                  {"op":"bcurveTo","data":[-6.818404072067917,2.661019718117024,-7.300227385771317,0.8874849701422411,-6.959548943458167,-0.7344838079568907]},
+                  {"op":"bcurveTo","data":[-6.618870501145018,-2.3564525860560224,-5.328633675349595,-4.638845111151163,-4.146515077085047,-5.65276608126875]},
+                  {
+                    "op": "bcurveTo",
+                    "data": [-2.964396478820499,-6.6666870513863365,-0.6074320125836259,-6.537050551577959,0.13316264612911874,-6.818009628662414]
+                  },
+                  {"op":"bcurveTo","data":[0.8737573048418634,-7.098968705746868,0.29836884276774117,-7.2606513493667455,0.2970528751914217,-7.338520543775476]}
+                ]
+              },
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[-0.6565200403118311,-7.517917977284662]},
+                  {"op":"bcurveTo","data":[0.8939042085286758,-7.73508460144947,2.7275236002841847,-7.038913028745797,4.099792712981566,-6.149834791852304]},
+                  {"op":"bcurveTo","data":[5.4720618256789475,-5.260756554958811,7.126907879181966,-3.647626876305697,7.577094635872455,-2.1834485559237042]},
+                  {"op":"bcurveTo","data":[8.027281392562944,-0.7192702355417111,7.4593305087481925,1.1956893776579027,6.800913253124499,2.6352351304396544]},
+                  {"op":"bcurveTo","data":[6.142495997500805,4.074780883221406,5.1146509648043885,5.684473846917225,3.6265911021302943,6.453825960766807]},
+                  {"op":"bcurveTo","data":[2.1385312394562006,7.2231780746163885,-0.48161789275442946,7.580738022535752,-2.127445922920063,7.251347813537145]},
+                  {"op":"bcurveTo","data":[-3.7732739530856962,6.921957604538538,-5.428650878271619,5.684970976453453,-6.2483770788635065,4.477484706775163]},
+                  {
+                    "op": "bcurveTo",
+                    "data": [-7.068103279455394,3.2699984370968735,-7.2372045339811075,1.5294774369588229,-7.045803126471385,0.006430195467406308]
+                  },
+                  {"op":"bcurveTo","data":[-6.854401718961662,-1.51661704602401,-6.083419126704178,-3.3783081735553138,-5.0999686338051715,-4.660798742173335]},
+                  {"op":"bcurveTo","data":[-4.116518140906165,-5.943289310791356,-1.9659591047064273,-7.294111919101265,-1.1451001690773477,-7.688513216240723]},
+                  {
+                    "op": "bcurveTo",
+                    "data": [-0.32424123344826816,-8.08291451338018,-0.32779092525487574,-7.186431796196782,-0.17481502003069405,-7.027206525010078]
+                  },
+                  {"op":"move","data":[-1.4074681842530028,-6.786654804854262]},
+                  {"op":"bcurveTo","data":[0.0691114954322174,-7.11254382330617,1.7758889703949208,-7.3567061843619435,3.285166689985068,-6.7282739772888]},
+                  {"op":"bcurveTo","data":[4.794444409575215,-6.099841770215656,7.1270768439313,-4.648757963465664,7.648198133287881,-3.0160615624154015]},
+                  {"op":"bcurveTo","data":[8.169319422644461,-1.3833651613651388,7.144179575894703,1.4753117174674288,6.4118944261245545,3.0679044290127773]},
+                  {"op":"bcurveTo","data":[5.679609276354406,4.6604971405581255,4.570928089696833,5.780747314858337,3.254487234666992,6.539494706856688]},
+                  {"op":"bcurveTo","data":[1.9380463796371514,7.29824209885504,0.0253488788890599,7.814076772245423,-1.4867507040544896,7.620388781002889]},
+                  {"op":"bcurveTo","data":[-2.998850286998039,7.426700789760355,-4.821201530369595,6.69884062767593,-5.818110262994305,5.377366759401487]},
+                  {"op":"bcurveTo","data":[-6.815018995619016,4.055892891127044,-7.582998890147763,1.342840235763956,-7.468203099802751,-0.30845442864376693]},
+                  {"op":"bcurveTo","data":[-7.353407309457738,-1.9597490930514898,-6.271994969477551,-3.3924241981289205,-5.129335520924228,-4.53040122704485]},
+                  {"op":"bcurveTo","data":[-3.986676072370906,-5.668378255960779,-1.3479223271244758,-6.760808123637662,-0.6122464084828174,-7.136316602139342]},
+                  {"op":"bcurveTo","data":[0.12342951015884096,-7.511825080641022,-0.6045932363909811,-6.978746781419811,-0.7152800090742779,-6.78345209805493]}
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "polygon",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "solid",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8,
+              "fill": "#1e1e1e"
+            },
+            "sets": [
+              {
+                "type": "fillPath",
+                "ops": [
+                  {"op":"move","data":[159.5727019533515,121.89599023014307]},
+                  {"op":"lineTo","data":[154.89787080974205,105.9514416317526]},
+                  {"op":"lineTo","data":[166.85604356821884,107.7426146027822]},
+                  {"op":"lineTo","data":[159.6620323881507,121.96540842205286]}
+                ]
+              },
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[160,120]},
+                  {"op":"bcurveTo","data":[157.94715496855596,115.67385450790842,155.6980093659253,112.11149971092401,153.5534715735994,106.45591379060184]},
+                  {"op":"move","data":[160,120]},
+                  {"op":"bcurveTo","data":[157.9861123298078,115.91485763713386,155.4983002806433,110.31138011000469,153.5534715735994,106.45591379060184]},
+                  {"op":"move","data":[153.5534715735994,106.45591379060184]},
+                  {"op":"bcurveTo","data":[155.42735147363288,106.27677069110803,158.91102488508886,106.28558890406964,166.23162337985147,106.35570192161984]},
+                  {"op":"move","data":[153.5534715735994,106.45591379060184]},
+                  {"op":"bcurveTo","data":[158.88431762629435,105.73124561136999,162.82600583679496,106.58454486757695,166.23162337985147,106.35570192161984]},
+                  {"op":"move","data":[166.23162337985147,106.35570192161984]},
+                  {"op":"bcurveTo","data":[163.04406983928993,110.4007409152994,160.99401545183338,116.02940695612862,160,120]},
+                  {"op":"move","data":[166.23162337985147,106.35570192161984]},
+                  {"op":"bcurveTo","data":[164.39834615657105,111.08441569948478,160.80362909143312,117.26318604647706,160,120]},
+                  {"op":"move","data":[160,120]},
+                  {"op":"bcurveTo","data":[160,120,160,120,160,120]},
+                  {"op":"move","data":[160,120]},
+                  {"op":"bcurveTo","data":[160,120,160,120,160,120]}
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "elbow/r2",
+      "element": {
+        "id": "elbow_r2",
+        "type": "arrow",
+        "x": 0,
+        "y": 0,
+        "width": 220,
+        "height": 80,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 2,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "index": null,
+        "seed": 1041657908,
+        "version": 1,
+        "versionNonce": 0,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": null,
+        "link": null,
+        "locked": false,
+        "points": [[0,0],[100,0],[100,80],[220,80]],
+        "startBinding": null,
+        "endBinding": null,
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": true,
+        "fixedSegments": null,
+        "startIsSpecial": null,
+        "endIsSpecial": null
+      },
+      "renderConfig": {"isExporting":true,"canvasBackgroundColor":"#ffffff","theme":"light","validatedEmbeds":[]},
+      "shapes": [
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "path",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 2,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": true,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[0,0]},
+                  {"op":"bcurveTo","data":[21.279629708826544,-2.1085964229702947,41.99200468063355,-2.0746928241848943,84,0]},
+                  {"op":"move","data":[0,0]},
+                  {"op":"bcurveTo","data":[30.532348442077637,1.6594191801548004,59.84035880714655,-0.45450603842735293,84,0]},
+                  {"op":"move","data":[84,0]},
+                  {"op":"bcurveTo","data":[92.4343082557122,1.82714481651783,98.10743813216686,1.4794111599524822,100,16]},
+                  {"op":"move","data":[84,0]},
+                  {"op":"bcurveTo","data":[93.88785070950787,-3.0250680126249785,99.34196257963777,8.80901502793034,100,16]},
+                  {"op":"move","data":[100,16]},
+                  {"op":"bcurveTo","data":[96.91123053729534,32.40601711571217,102.53291318118572,54.62917762696743,100,64]},
+                  {"op":"move","data":[100,16]},
+                  {"op":"bcurveTo","data":[98.73841454952955,33.014498229324815,99.57184889286756,53.76572503000498,100,64]},
+                  {"op":"move","data":[100,64]},
+                  {"op":"bcurveTo","data":[97.46495251357555,73.38944947222869,108.78214061756928,77.37641735374928,116,80]},
+                  {"op":"move","data":[100,64]},
+                  {"op":"bcurveTo","data":[96.59839525595308,77.40406677747767,102.7740822908779,79.99292963370681,116,80]},
+                  {"op":"move","data":[116,80]},
+                  {"op":"bcurveTo","data":[148.28188507556916,80.06267734766007,172.9905940502882,83.0873341202736,220,80]},
+                  {"op":"move","data":[116,80]},
+                  {"op":"bcurveTo","data":[153.31365833431482,80.5154155883193,187.53302209824324,81.11680714219808,220,80]}
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "line",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": false,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[196.23552509690856,88.0085440766378]},
+                  {"op":"bcurveTo","data":[201.64953713507117,85.6326329793525,210.08483131488333,84.02396322885268,220.29758439213037,80.6961925253272]},
+                  {"op":"move","data":[196.12385272900795,89.47167314629394]},
+                  {"op":"bcurveTo","data":[205.4228079305636,84.51014034790049,214.94822126886552,81.25088454731925,219.85694838687778,80.7555829770863]}
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "rough",
+          "drawable": {
+            "shape": "line",
+            "options": {
+              "maxRandomnessOffset": 2,
+              "roughness": 1,
+              "bowing": 1,
+              "stroke": "#1e1e1e",
+              "strokeWidth": 2,
+              "curveTightness": 0,
+              "curveFitting": 0.95,
+              "curveStepCount": 9,
+              "fillStyle": "hachure",
+              "fillWeight": 1,
+              "hachureAngle": -41,
+              "hachureGap": 8,
+              "dashOffset": -1,
+              "dashGap": -1,
+              "zigzagOffset": -1,
+              "seed": 1041657908,
+              "disableMultiStroke": false,
+              "disableMultiStrokeFill": false,
+              "preserveVertices": false,
+              "fillShapeRoughnessGain": 0.8
+            },
+            "sets": [
+              {
+                "type": "path",
+                "ops": [
+                  {"op":"move","data":[195.89625663492026,70.91090263075475]},
+                  {"op":"bcurveTo","data":[201.42054931694554,73.04785549488915,209.94539608985687,75.95224339314794,220.29758439213037,80.6961925253272]},
+                  {"op":"move","data":[195.78458426701965,72.37403170041088]},
+                  {"op":"bcurveTo","data":[205.2320758332906,74.17444163687946,214.8916595018005,77.67678160953305,219.85694838687778,80.7555829770863]}
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "elbow/extreme-coordinates",
+      "element": {
+        "id": "elbow_extreme-coordinates",
+        "type": "arrow",
+        "x": 0,
+        "y": 0,
+        "width": 2000000,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "index": null,
+        "seed": 1041657908,
+        "version": 1,
+        "versionNonce": 0,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": null,
+        "link": null,
+        "locked": false,
+        "points": [[0,0],[2000000,0]],
+        "startBinding": null,
+        "endBinding": null,
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": true,
+        "fixedSegments": null,
+        "startIsSpecial": null,
+        "endIsSpecial": null
+      },
+      "renderConfig": {"isExporting":true,"canvasBackgroundColor":"#ffffff","theme":"light","validatedEmbeds":[]},
+      "shapes": []
+    }
+  ]
+}

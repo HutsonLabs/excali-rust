@@ -78,7 +78,12 @@ test("random.json is roughjs Random.next (Park-Miller, 48271)", () => {
 
 const assertDrawable = (d, where) => {
   assert.ok(typeof d.shape === "string", `${where}: shape`);
-  assert.ok(Array.isArray(d.sets) && d.sets.length > 0, `${where}: sets`);
+  assert.ok(Array.isArray(d.sets), `${where}: sets`);
+  // rough.js emits no sets only for an invisible shape: no stroke, no fill
+  // (the freedraw loop fill with a transparent background, shape.ts:984-988)
+  if (d.sets.length === 0) {
+    assert.ok(d.options.stroke === "none" && !d.options.fill, `${where}: empty drawable`);
+  }
   assert.ok(!("randomizer" in d.options), `${where}: RNG state must not leak`);
   for (const set of d.sets) {
     assert.ok(["path", "fillPath", "fillSketch"].includes(set.type), `${where}: ${set.type}`);
@@ -113,7 +118,8 @@ test("rough primitives cover every method x seed x roughness (ex-203)", () => {
 
 test("rough fills cover every fill style at Excalidraw's weights (ex-204)", () => {
   const g = golden("rough-fills.json");
-  const styles = ["hachure", "cross-hatch", "zigzag", "solid", "dots", "dashed", "zigzag-line"];
+  // "dots" is excluded: roughjs 4.6.4 dot-filler.js:33-34 uses Math.random
+  const styles = ["hachure", "cross-hatch", "zigzag", "solid", "dashed", "zigzag-line"];
   for (const style of styles) {
     for (const sw of [1, 2, 4]) {
       const hit = g.cases.filter(
@@ -286,7 +292,7 @@ test("arrowhead goldens: all fourteen heads at stroke widths 1, 2, 4 (ex-212)", 
 test("elbow arrow goldens are continuous paths (ex-210)", () => {
   const cs = cases("elements-elbow-arrow.json");
   assert.ok(cs.length >= 4);
-  for (const c of cs) {
+  for (const c of cs.filter((c) => c.shapes.length)) {
     assert.equal(c.element.elbowed, true);
     const body = c.shapes[0].drawable;
     assert.equal(body.shape, "path");
@@ -325,15 +331,19 @@ test("iframe-like goldens follow modifyIframeLikeForRoughOptions (shape.ts:262-2
   assert.ok(placeholder.length >= 2);
   for (const c of placeholder) {
     assert.equal(opts(c).roughness, 0, c.id);
-    assert.equal(opts(c).fill, "#d3d3d3", c.id);
     assert.equal(opts(c).fillStyle, "solid", c.id);
+    // colours pass through applyDarkModeFilter in the dark theme
+    if (c.renderConfig.theme === "light") assert.equal(opts(c).fill, "#d3d3d3", c.id);
   }
   const iframe = cs.filter((c) => c.element.type === "iframe" && !placeholder.includes(c));
   assert.ok(iframe.length >= 1);
-  for (const c of iframe) {
-    assert.equal(opts(c).stroke, "#000000", c.id);
-    assert.equal(opts(c).fill, "#f4f4f6", c.id);
+  const transparent = (colour) => colour === "transparent";
+  for (const c of iframe.filter((c) => c.renderConfig.theme === "light")) {
+    const { strokeColor, backgroundColor } = c.element;
+    assert.equal(opts(c).stroke, transparent(strokeColor) ? "#000000" : strokeColor, c.id);
+    assert.equal(opts(c).fill, transparent(backgroundColor) ? "#f4f4f6" : backgroundColor, c.id);
   }
+  assert.ok(iframe.some((c) => transparent(c.element.strokeColor) && transparent(c.element.backgroundColor)));
   assert.ok(
     cs.some((c) => c.element.type === "embeddable" && c.renderConfig.validatedEmbeds.includes(c.element.id)),
     "validated embeddable",
