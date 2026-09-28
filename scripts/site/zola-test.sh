@@ -7,6 +7,8 @@
 # Usage: scripts/site/zola-test.sh [path-to-bash]
 #   path-to-bash defaults to /bin/bash so macOS runs the script under 3.2,
 #   which is the interpreter that broke `declare -A`.
+# Single-quoted $ in generated stub scripts is intentional.
+# shellcheck disable=SC2016
 set -uo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 zola_sh="$here/zola.sh"
@@ -193,9 +195,42 @@ out="$(env -i HOME="$HOME" PATH="$work/good-both/bin" ZOLA_TOOLS_DIR="$tools" \
 if [ $rc -eq 0 ] && [ "$out" = "fake-zola check --drafts" ]; then ok "check passes args through"; else bad "check: rc=$rc out=$out"; fi
 
 # 14. The default tools dir is the main clone's .tools, shared by worktrees.
-common="$(cd "$here" && git rev-parse --path-format=absolute --git-common-dir)"
+common="$(cd "$here" && cd "$(git rev-parse --git-common-dir)" && pwd -P)"
 got="$(cd "$here" && "$BASH_UNDER_TEST" "$zola_sh" tools-dir 2>&1)"; rc=$?
 if [ $rc -eq 0 ] && [ "$got" = "$(dirname "$common")/.tools" ]; then ok "tools dir is $got"; else bad "tools-dir: rc=$rc got=$got"; fi
+
+# 15. Linked worktrees share the main clone's .tools even on git < 2.31, which
+#     has no `rev-parse --path-format` (it used to fall back to
+#     <worktree>/.tools). A wrapper git rejects that option like old git does.
+repo="$work/wt-repo"
+mkdir -p "$repo"
+(
+  cd "$repo" && git init -q . && git -c user.name=t -c user.email=t@example.invalid \
+    -c commit.gpgsign=false -c core.hooksPath=/dev/null commit -q --allow-empty -m init \
+    && git worktree add -q "$work/wt-linked" 2>/dev/null
+) || bad "could not create a linked worktree fixture"
+repo_abs="$(cd "$repo" && pwd -P)"
+make_path "$work/oldgit/bin" both
+real_git="$(command -v git)"
+rm -f "$work/oldgit/bin/git"
+printf '#!/bin/sh\nfor a in "$@"; do\n  case "$a" in --path-format*) echo "error: unknown option $a" >&2; exit 129 ;; esac\ndone\nexec %s "$@"\n' \
+  "$real_git" >"$work/oldgit/bin/git"
+chmod +x "$work/oldgit/bin/git"
+for where in "$work/wt-linked" "$work/wt-linked/sub" "$repo" "$repo/sub"; do
+  mkdir -p "$where"
+  for gitdir in "$work/oldgit/bin" "$(dirname "$real_git")"; do
+    got="$(cd "$where" && env -i HOME="$HOME" PATH="$gitdir:$work/oldgit/bin" \
+      "$BASH_UNDER_TEST" "$zola_sh" tools-dir 2>&1)"; rc=$?
+    got_abs="$(cd "$(dirname "$got")" 2>/dev/null && pwd -P)/.tools"
+    if [ "$gitdir" = "$work/oldgit/bin" ]; then which_git="old git"; else which_git="current git"; fi
+    label="tools-dir from ${where#"$work"/} with $which_git"
+    if [ $rc -eq 0 ] && [ "$got_abs" = "$repo_abs/.tools" ] && [ "${got#/}" != "$got" ]; then
+      ok "$label is the main clone's .tools"
+    else
+      bad "$label: rc=$rc got=$got want=$repo_abs/.tools"
+    fi
+  done
+done
 
 echo "# $pass passed, $fail failed"
 [ $fail -eq 0 ]
