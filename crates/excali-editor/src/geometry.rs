@@ -4,10 +4,9 @@
 //!
 //! Ports of `packages/element/src/bounds.ts` (`ElementBounds`,
 //! `elementCenterPoint`, `aabbForElement`, `pointInsideBounds`,
-//! `getCenterForBounds`), `distance.ts` (`distanceToElement`), `utils.ts`
-//! (`deconstructRectanguloidElement`, `getDiamondBaseCorners`,
-//! `deconstructDiamondElement`), `stickyNote.ts`
-//! (`getStickyNoteCornerRadius`), `heading.ts`
+//! `getCenterForBounds`), `distance.ts` (`distanceToElement`, over the
+//! outlines of `excali_scene::utils::deconstruct_rectanguloid_element` and
+//! `deconstruct_diamond_element`), `heading.ts`
 //! (`headingForPointFromElement`) and `binding.ts` (`getBindingGap`,
 //! `maxBindingDistance_simple`, `getHeadingForElbowArrowSnap`,
 //! `normalizeFixedPoint`, `getGlobalFixedPointForBindableElement`), for
@@ -18,13 +17,14 @@
 
 use excali_core::element::{Element, ElementKind};
 use excali_math::{
-    curve, curve_point_distance, distance_to_line_segment, ellipse, ellipse_distance_from_point,
-    js, line_segment, point_rotate_rads, point_scale_from_origin, triangle_includes_point,
-    vector_cross, Curve, GlobalPoint, LineSegment, Point, Radians, Triangle, Vector,
+    curve_point_distance, distance_to_line_segment, ellipse, ellipse_distance_from_point, js,
+    point_rotate_rads, point_scale_from_origin, triangle_includes_point, vector_cross, GlobalPoint,
+    Point, Radians, Triangle, Vector,
 };
-use excali_scene::bounds::get_diamond_points;
 use excali_scene::heading::{heading_for_point, vector_to_heading, Heading};
-use excali_scene::utils::get_corner_radius;
+use excali_scene::utils::{
+    deconstruct_diamond_element, deconstruct_rectanguloid_element, ElementOutline,
+};
 
 /// `Bounds`: `[minX, minY, maxX, maxY]` (`common/src/utility-types` /
 /// `bounds.ts`).
@@ -36,11 +36,6 @@ pub const BASE_BINDING_GAP: f64 = 5.0;
 
 /// `FIXED_POINT_BOUND` (`binding.ts:2750`).
 const FIXED_POINT_BOUND: f64 = 10.0;
-
-/// `STICKY_NOTE_CORNER_RADIUS_RATIO` and `STICKY_NOTE_MAX_CORNER_RADIUS`
-/// (`stickyNote.ts:64-65`).
-const STICKY_NOTE_CORNER_RADIUS_RATIO: f64 = 0.04;
-const STICKY_NOTE_MAX_CORNER_RADIUS: f64 = 16.0;
 
 fn gp(p: [f64; 2]) -> GlobalPoint {
     Point::new(p[0], p[1])
@@ -174,147 +169,7 @@ pub fn point_inside_bounds(p: [f64; 2], bounds: Bounds) -> bool {
     p[0] > bounds[0] && p[0] < bounds[2] && p[1] > bounds[1] && p[1] < bounds[3]
 }
 
-/// `getStickyNoteCornerRadius(element)` (`stickyNote.ts:213-224`).
-fn sticky_note_corner_radius(element: &Element) -> f64 {
-    if element.base.roundness.is_none() {
-        return 0.0;
-    }
-    let b = &element.base;
-    js::min(
-        js::min(b.width, b.height) * STICKY_NOTE_CORNER_RADIUS_RATIO,
-        STICKY_NOTE_MAX_CORNER_RADIUS,
-    )
-}
-
-/// The unrotated sides and corner curves of an outline, as
-/// `deconstructRectanguloidElement` and `deconstructDiamondElement` return
-/// them with no offset.
-struct ElementShape {
-    sides: [LineSegment; 4],
-    corners: [Curve; 4],
-}
-
-impl ElementShape {
-    /// The sides between consecutive corners (`utils.ts:357-374`,
-    /// `utils.ts:472-489`).
-    fn from_corners(corners: [Curve; 4]) -> ElementShape {
-        let side = |a: usize, b: usize| line_segment(corners[a].3, corners[b].0);
-        ElementShape {
-            sides: [side(0, 1), side(1, 2), side(2, 3), side(3, 0)],
-            corners,
-        }
-    }
-}
-
-/// `deconstructRectanguloidElement(element)` (`utils.ts:245-376`).
-fn deconstruct_rectanguloid_element(element: &Element) -> ElementShape {
-    let b = &element.base;
-    let mut radius = if matches!(element.kind, ElementKind::StickyNote(_)) {
-        sticky_note_corner_radius(element)
-    } else {
-        get_corner_radius(js::min(b.width, b.height), element)
-    };
-    if radius == 0.0 {
-        radius = 0.01;
-    }
-    let r0 = [b.x, b.y];
-    let r1 = [b.x + b.width, b.y + b.height];
-    let top = [[r0[0] + radius, r0[1]], [r1[0] - radius, r0[1]]];
-    let right = [[r1[0], r0[1] + radius], [r1[0], r1[1] - radius]];
-    let bottom = [[r0[0] + radius, r1[1]], [r1[0] - radius, r1[1]]];
-    let left = [[r0[0], r1[1] - radius], [r0[0], r0[1] + radius]];
-    let toward = |p: [f64; 2], cx: f64, cy: f64| {
-        gp([
-            p[0] + (2.0 / 3.0) * (cx - p[0]),
-            p[1] + (2.0 / 3.0) * (cy - p[1]),
-        ])
-    };
-    let corners = [
-        // TOP LEFT
-        curve(
-            gp(left[1]),
-            toward(left[1], r0[0], r0[1]),
-            toward(top[0], r0[0], r0[1]),
-            gp(top[0]),
-        ),
-        // TOP RIGHT
-        curve(
-            gp(top[1]),
-            toward(top[1], r1[0], r0[1]),
-            toward(right[0], r1[0], r0[1]),
-            gp(right[0]),
-        ),
-        // BOTTOM RIGHT
-        curve(
-            gp(right[1]),
-            toward(right[1], r1[0], r1[1]),
-            toward(bottom[1], r1[0], r1[1]),
-            gp(bottom[1]),
-        ),
-        // BOTTOM LEFT
-        curve(
-            gp(bottom[0]),
-            toward(bottom[0], r0[0], r1[1]),
-            toward(left[0], r0[0], r1[1]),
-            gp(left[0]),
-        ),
-    ];
-    ElementShape::from_corners(corners)
-}
-
-/// `getDiamondBaseCorners(element)` and `deconstructDiamondElement(element)`
-/// (`utils.ts:378-493`).
-fn deconstruct_diamond_element(element: &Element) -> ElementShape {
-    let b = &element.base;
-    let [top_x, top_y, right_x, right_y, bottom_x, bottom_y, left_x, left_y] =
-        get_diamond_points(element);
-    let (vertical_radius, horizontal_radius) = if b.roundness.is_some() {
-        (
-            get_corner_radius((top_x - left_x).abs(), element),
-            get_corner_radius((right_y - top_y).abs(), element),
-        )
-    } else {
-        ((top_x - left_x) * 0.01, (right_y - top_y) * 0.01)
-    };
-    let top = [b.x + top_x, b.y + top_y];
-    let right = [b.x + right_x, b.y + right_y];
-    let bottom = [b.x + bottom_x, b.y + bottom_y];
-    let left = [b.x + left_x, b.y + left_y];
-    let (v, h) = (vertical_radius, horizontal_radius);
-    let corners = [
-        // RIGHT
-        curve(
-            gp([right[0] - v, right[1] - h]),
-            gp(right),
-            gp(right),
-            gp([right[0] - v, right[1] + h]),
-        ),
-        // BOTTOM
-        curve(
-            gp([bottom[0] + v, bottom[1] - h]),
-            gp(bottom),
-            gp(bottom),
-            gp([bottom[0] - v, bottom[1] - h]),
-        ),
-        // LEFT
-        curve(
-            gp([left[0] + v, left[1] + h]),
-            gp(left),
-            gp(left),
-            gp([left[0] + v, left[1] - h]),
-        ),
-        // TOP
-        curve(
-            gp([top[0] - v, top[1] + h]),
-            gp(top),
-            gp(top),
-            gp([top[0] + v, top[1] + h]),
-        ),
-    ];
-    ElementShape::from_corners(corners)
-}
-
-fn distance_to_shape(shape: &ElementShape, p: GlobalPoint) -> f64 {
+fn distance_to_shape(shape: &ElementOutline, p: GlobalPoint) -> f64 {
     let sides = shape.sides.iter().map(|&s| distance_to_line_segment(p, s));
     let corners = shape.corners.iter().map(|&c| curve_point_distance(c, p));
     sides.chain(corners).fold(f64::INFINITY, js::min)

@@ -288,14 +288,21 @@ fn frame_children_are_clipped_to_a_round_rect_of_radius_8_over_zoom() {
         .into_iter()
         .find(|(p, _)| *p == Path::round_rect(0.0, 0.0, 240.0, 160.0, 8.0 / 1.5))
         .unwrap();
-    // scale(2) · scale(1.5) · translate(50 + 7.3, 40 - 3.6)
+    // scale(2) · scale(1.5) · translate(50 + scrollX, 40 + scrollY), the
+    // scroll (7.3, -3.6) snapped to device pixels: round(7.3 × 3) / 3 and
+    // round(-3.6 × 3) / 3
+    let (sx, sy) = snap_scroll_to_device_pixels(7.3, -3.6, 1.5, 2.0);
+    assert_eq!((sx, sy), (22.0 / 3.0, -11.0 / 3.0));
     assert!(same_matrix(
         &m,
-        &Transform::new(3.0, 0.0, 0.0, 3.0, 3.0 * (50.0 + 7.3), 3.0 * (40.0 - 3.6))
+        &Transform::new(3.0, 0.0, 0.0, 3.0, 3.0 * (50.0 + sx), 3.0 * (40.0 + sy))
     ));
     // the port draws the same clips: every_scene_draws_what_upstream_draws
     let doc = fixture();
-    let host = doc["origin"].as_str().unwrap().trim_start_matches("https://");
+    let host = doc["origin"]
+        .as_str()
+        .unwrap()
+        .trim_start_matches("https://");
     for name in ["frame-clip", "frame-drag", "frame-clip-offsets"] {
         let s = scene(name);
         let mut recorder = Recorder::default();

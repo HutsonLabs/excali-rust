@@ -46,7 +46,12 @@ fn element(value: &Value) -> Element {
 }
 
 fn elements(scene: &Value) -> Vec<Element> {
-    scene["elements"].as_array().unwrap().iter().map(element).collect()
+    scene["elements"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(element)
+        .collect()
 }
 
 fn app_state(value: &Value) -> StaticCanvasAppState {
@@ -153,22 +158,22 @@ fn frame_decisions_are_upstreams() {
                         "intersecting",
                         is_element_intersecting_frame(el, frame, &map).unwrap(),
                     ),
-                    (
-                        "containing",
-                        is_element_containing_frame(el, frame, &map),
-                    ),
-                    (
-                        "inBounds",
-                        elements_are_in_frame_bounds(&[el], frame, &map),
-                    ),
+                    ("containing", is_element_containing_frame(el, frame, &map)),
+                    ("inBounds", elements_are_in_frame_bounds(&[el], frame, &map)),
                     (
                         "overlaps",
                         element_overlaps_with_frame(el, frame, &map).unwrap(),
                     ),
                     (
                         "inFrame",
-                        is_element_in_frame(el, &map, &state, Some(frame), Some(&mut HashMap::new()))
-                            .unwrap(),
+                        is_element_in_frame(
+                            el,
+                            &map,
+                            &state,
+                            Some(frame),
+                            Some(&mut HashMap::new()),
+                        )
+                        .unwrap(),
                     ),
                     (
                         "shouldClip",
@@ -193,7 +198,10 @@ fn frame_decisions_are_upstreams() {
         }
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
-    assert!(clipped > 50 && not_clipped > 50, "{clipped} clipped, {not_clipped} not");
+    assert!(
+        clipped > 50 && not_clipped > 50,
+        "{clipped} clipped, {not_clipped} not"
+    );
 }
 
 #[test]
@@ -211,15 +219,27 @@ fn the_fixture_covers_every_branch() {
     assert_eq!(decision("fc-grouped-out")["intersecting"], false);
     assert_eq!(decision("fc-grouped-out")["shouldClip"], true);
     // ellipses are 90 chords, frames 4 sides and 4 corners
-    assert_eq!(result("fc-ellipse")["segments"].as_array().unwrap().len(), 90);
-    assert_eq!(result("clip-frame")["segments"].as_array().unwrap().len(), 8);
+    assert_eq!(
+        result("fc-ellipse")["segments"].as_array().unwrap().len(),
+        90
+    );
+    assert_eq!(
+        result("clip-frame")["segments"].as_array().unwrap().len(),
+        8
+    );
     let names: Vec<&str> = doc["scenes"]
         .as_array()
         .unwrap()
         .iter()
         .map(|s| s["name"].as_str().unwrap())
         .collect();
-    for name in ["frame-clip", "frame-clip-off", "frame-drag", "frame-drag-editing-group", "frame-selected"] {
+    for name in [
+        "frame-clip",
+        "frame-clip-off",
+        "frame-drag",
+        "frame-drag-editing-group",
+        "frame-selected",
+    ] {
         assert!(names.contains(&name), "no scene {name}");
     }
 }
