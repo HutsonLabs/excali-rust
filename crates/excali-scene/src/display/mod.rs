@@ -72,6 +72,7 @@
 //! `excali_scene::export`. Numbers are printed as JavaScript prints them
 //! ([`number_to_string`], [`to_fixed`]).
 
+mod builtin;
 mod css_color;
 mod document;
 mod image;
@@ -83,8 +84,13 @@ mod replay;
 mod text;
 mod transform;
 
+pub use builtin::encode_uri_component;
+pub use builtin::{
+    builtin_image, builtin_image_by_id, BuiltinImage, BUILTIN_IMAGE_NAMES, ELEMENT_LINK_ID,
+    EXTERNAL_LINK_ID, IMAGE_ERROR_PLACEHOLDER_ID, IMAGE_PLACEHOLDER_ID,
+};
 pub use document::{FontFaceSource, FrameClip, SvgDocument, SvgPayload};
-pub use image::{BuiltinImage, ImageFilter, ImageItem, Rect};
+pub use image::{ImageFilter, ImageItem, Rect};
 pub use number::{number_to_string, to_fixed};
 pub use paint::{Color, Dash, LineCap, LineJoin, Rgba, Stroke};
 pub use path::{FillRule, Path, PathCommand};

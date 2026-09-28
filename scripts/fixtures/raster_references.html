@@ -166,6 +166,9 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
   try {
     const images = {};
     for (const [id, spec] of Object.entries(fixture.images || {})) images[id] = bitmap(spec);
+    // Built-in images (excalidraw:image-placeholder, ...) the items name by
+    // id: upstream's own data URLs.
+    for (const [id, url] of Object.entries(fixture.builtinImages || {})) images[id] = loadImage(url);
     const placeholders = {};
     for (const [kind, svg] of Object.entries(fixture.placeholders || {})) {
       placeholders[kind] = loadImage(`data:image/svg+xml,${encodeURIComponent(svg)}`);

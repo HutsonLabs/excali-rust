@@ -38,6 +38,11 @@ the file is stale):
   `renderElement` on image elements, `tools/goldens/image-elements.mjs`), with
   upstream's recorded canvas calls beside it as `canvasCalls`: Chrome replays
   upstream's calls, the port renders its items.
+- `static-scene-images.json`: the same test writes
+  `render_static_scene`'s display list for two image elements whose files are
+  not loaded, with link icons: the placeholders and link icons are built-in
+  images named by id, which the port's backend resolves itself and Chrome
+  loads from `builtinImages` (upstream's data URLs). Chrome draws the items.
 - `images-decoded.json`, `images-svg.json`: `scripts/fixtures/raster-images.py
   --lists` writes `drawImage`s of the files in `images/`.
 
@@ -60,8 +65,11 @@ anticlockwise]`, `["Z"]`, `["rect", x, y, w, h]` and `["roundRect", x, y, w,
 h, r]`. Images are `{width, height, rgba}` with straight-alpha RGBA rows, as
 `ImageData` holds them, or `{dataUrl}`, which Chrome loads as an `<img>` and
 the port decodes with `excali_raster::decode`. An image id the fixture does
-not define may name a built-in image (`builtin:image-placeholder`,
-`builtin:image-error-placeholder`), which the backend has itself. There is no
+not define may name a built-in image (`excalidraw:image-placeholder`,
+`excalidraw:image-error-placeholder`, `excalidraw:external-link`,
+`excalidraw:element-link`: `excali_scene::display::BuiltinImage`), which the
+backend has itself; `builtinImages` maps each such id to upstream's data URL
+for Chrome, and the test checks it is `BuiltinImage::data_url`. There is no
 text: glyphs come from the font pipeline, not from this backend.
 
 A fixture may also carry `canvasCalls`, recorded canvas calls that Chrome

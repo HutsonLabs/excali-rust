@@ -29,6 +29,34 @@ use excali_scene::display::{
 
 pub use web::WebCanvas;
 
+/// The `src` [`WebCanvas`] loads a built-in image from: upstream's own data
+/// URL (`BuiltinImage::data_url`) when the document has a `width`, as the
+/// link icons do, and otherwise the document with `width` and `height` set
+/// to its square `viewBox` (the same drawing): an `<img>` of an SVG with
+/// neither has no natural size to answer [`Context2d::image_size`] with.
+pub fn builtin_image_src(image: &excali_scene::display::BuiltinImage) -> String {
+    let svg = image.svg;
+    let root = &svg[..svg.find('>').unwrap_or(svg.len())];
+    if root.contains(" width=") {
+        return image.data_url.clone();
+    }
+    let side = root
+        .find("viewBox=\"")
+        .map(|i| &root[i + 9..])
+        .and_then(|v| v.split('"').next())
+        .and_then(|v| v.split(' ').nth(2))
+        .unwrap_or("0");
+    let sized = svg.replacen(
+        "<svg ",
+        &format!("<svg width=\"{side}\" height=\"{side}\" "),
+        1,
+    );
+    format!(
+        "data:image/svg+xml,{}",
+        excali_scene::display::encode_uri_component(&sized)
+    )
+}
+
 /// The `CanvasRenderingContext2D` surface the backend draws through. Each
 /// method is the canvas method or property of the same name; images are
 /// named by the display list's ids and resolved by the implementation.

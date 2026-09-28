@@ -403,8 +403,9 @@ mod tests {
             display_items(&tree(shape)).map(|i| kinds(&i).len()),
             Some(3)
         );
-        for builtin in excali_scene::display::BuiltinImage::ALL {
-            let items = display_items(&tree(builtin.svg())).unwrap();
+        for name in ["image-placeholder", "image-error-placeholder"] {
+            let builtin = excali_scene::display::builtin_image(name).unwrap();
+            let items = display_items(&tree(builtin.svg)).unwrap();
             assert!(kinds(&items)
                 .iter()
                 .all(|k| k == "fill rgba(136, 136, 136, 1)"));

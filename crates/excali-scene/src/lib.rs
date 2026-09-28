@@ -16,10 +16,6 @@
 //!   the element entry points `getFreedrawOutlinePoints` /
 //!   `getFreeDrawSvgPath` (perfect-freehand for variable width, the laser
 //!   pointer for constant width).
-//! - [`image`]: image elements as `renderElement` draws them (the file's
-//!   crop through a rounded clip, `scale` after the rotation, the dark
-//!   filter for SVG files, upstream's placeholders while a file is not
-//!   ready), from the caller's image cache.
 //! - [`static_scene`]: `renderStaticScene`, the canvas's background, grid
 //!   and elements in upstream's order as a display list, drawing each
 //!   element with [`render_element`] (`renderElement`).
@@ -41,7 +37,6 @@ pub mod elbow_arrow;
 pub mod export;
 pub mod freedraw;
 pub mod heading;
-pub mod image;
 pub mod linear_element;
 pub mod render_element;
 pub mod rough_canvas;

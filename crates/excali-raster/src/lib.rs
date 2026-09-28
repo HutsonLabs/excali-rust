@@ -64,9 +64,10 @@ mod hairline;
 mod stroke;
 mod svg;
 
+use excali_scene::display::{builtin_image_by_id, BUILTIN_IMAGE_NAMES};
 use excali_scene::display::{
-    BuiltinImage, Clip, Color, DisplayList, FillRule, ImageFilter, ImageItem, LineCap, LineJoin,
-    PaintState, Painter, Path, Rect, Rgba, Stroke, TextRun, Transform,
+    Clip, Color, DisplayList, FillRule, ImageFilter, ImageItem, LineCap, LineJoin, PaintState,
+    Painter, Path, Rect, Rgba, Stroke, TextRun, Transform,
 };
 pub use resvg;
 use resvg::usvg;
@@ -732,18 +733,20 @@ impl TextRasterizer for NoText {
     }
 }
 
-/// A built-in image's document, parsed once.
-fn builtin_tree(image: BuiltinImage) -> &'static usvg::Tree {
-    static TREES: [OnceLock<usvg::Tree>; BuiltinImage::ALL.len()] =
-        [OnceLock::new(), OnceLock::new()];
-    let slot = BuiltinImage::ALL
+/// The document of the built-in image named by `id`
+/// (`excali_scene::display::BuiltinImage`: upstream's image
+/// placeholders and link icons), parsed once; `None` when `id` is not one.
+fn builtin_tree(id: &str) -> Option<&'static usvg::Tree> {
+    static TREES: [OnceLock<usvg::Tree>; BUILTIN_IMAGE_NAMES.len()] =
+        [const { OnceLock::new() }; BUILTIN_IMAGE_NAMES.len()];
+    let image = builtin_image_by_id(id)?;
+    let slot = BUILTIN_IMAGE_NAMES
         .iter()
-        .position(|&b| b == image)
-        .expect("every built-in image is in ALL");
-    TREES[slot].get_or_init(|| {
-        usvg::Tree::from_str(image.svg(), &decode::svg_options())
+        .position(|name| image.id.strip_prefix("excalidraw:") == Some(*name))?;
+    Some(TREES[slot].get_or_init(|| {
+        usvg::Tree::from_str(image.svg, &decode::svg_options())
             .expect("the built-in SVG documents parse")
-    })
+    }))
 }
 
 /// `filter` on each unpremultiplied pixel of `pixmap`.
@@ -937,8 +940,8 @@ impl<I: ImageStore, T: TextRasterizer> Painter for RasterPainter<'_, I, T> {
     fn image(&mut self, image: &ImageItem, state: &PaintState) {
         let found = match self.images.image(&image.id) {
             Some(found) => found,
-            None => match BuiltinImage::from_id(&image.id) {
-                Some(builtin) => Image::Svg(builtin_tree(builtin)),
+            None => match builtin_tree(&image.id) {
+                Some(tree) => Image::Svg(tree),
                 None => return,
             },
         };

@@ -44,9 +44,7 @@ use excali_math::js;
 use excali_text::text_measurements::TextMetricsProvider;
 
 use crate::bounds::ElementsMap;
-use crate::display::{
-    Color, Dash, DisplayItem, DisplayList, FillRule, Group, Path, Stroke, Transform,
-};
+use crate::display::{Color, Dash, DisplayItem, DisplayList, Group, Path, Rect, Stroke, Transform};
 use crate::export::FrameRendering;
 use crate::render_element::{
     create_placeholder_embeddable_label, render_element, render_link_icon,
@@ -348,10 +346,10 @@ fn background(width: f64, height: f64, color: Option<&str>, theme: Theme) -> Opt
     } else {
         COLOR_WHITE.to_owned()
     };
-    Some(DisplayItem::Fill {
-        path: Path::rect(0.0, 0.0, width, height),
+    // fillRect: the canvas draws a rectangle, not a path
+    Some(DisplayItem::FillRect {
+        rect: Rect::new(0.0, 0.0, width, height),
         color: Color::new(fill),
-        rule: FillRule::NonZero,
     })
 }
 
