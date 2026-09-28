@@ -24,8 +24,10 @@ import {
   EASINGS,
   elementGoldens,
   freehandCases,
+  laserPointerCases,
   RANDOM_SEEDS,
   roughGoldens,
+  SIZE_MAPPINGS,
   strokeCases,
 } from "./fixtures.mjs";
 import { fractionalIndexCases, orderKeyCases } from "./fixtures-fractional.mjs";
@@ -144,6 +146,35 @@ const freehandCase = (up) => (c) => {
     strokePoints: up.getStrokePoints(c.points, options),
     outline: up.getStroke(c.points, options),
   };
+};
+
+/**
+ * A laser-pointer case (ex-214): the vendored LaserPointer driven as the
+ * case describes (see laserPointerCases). `originalPoints` are the points
+ * addPoint kept; a call that throws is recorded as `error: { at, message }`
+ * (`at` is the index of the throwing addPoint, or "close") and ends the case.
+ */
+const laserPointerCase = (up) => (c) => {
+  const options = { ...c.options };
+  if (typeof options.sizeMapping === "string") options.sizeMapping = SIZE_MAPPINGS[options.sizeMapping];
+  const laser = new up.LaserPointer(options);
+  const points = structuredClone(c.points);
+  for (let i = 0; i < points.length; i++) {
+    try {
+      laser.addPoint(points[i]);
+    } catch (error) {
+      return { ...c, originalPoints: laser.originalPoints, error: { at: i, message: error.message } };
+    }
+  }
+  if (c.close) {
+    try {
+      laser.close();
+    } catch (error) {
+      return { ...c, originalPoints: laser.originalPoints, error: { at: "close", message: error.message } };
+    }
+  }
+  if (c.keepHeadAfter !== undefined) laser.options.keepHead = c.keepHeadAfter;
+  return { ...c, originalPoints: laser.originalPoints, outline: laser.getStrokeOutline(c.sizeOverride) };
 };
 
 const mathCase = (up) => (c) => {
@@ -295,6 +326,12 @@ const buildGoldens = (up) => {
     description:
       "perfect-freehand 1.2.0 getStrokePoints and getStroke; easing is named (easeOutSine = sin(t*pi/2), shape.ts:1241; linear = t).",
     cases: freehandCases().map(freehandCase(up)),
+  });
+  files.push({
+    name: "laser-pointer.json",
+    description:
+      "The vendored @excalidraw/laser-pointer 1.3.1 (packages/laser-pointer/src): new LaserPointer(options), addPoint(p) for each [x, y, pressure], close() if close, options.keepHead = keepHeadAfter if set, then getStrokeOutline(sizeOverride) as [x, y, r] points; a throw is error { at, message }. sizeMapping is named: constantWidth = max(0.1, pressure) (shape.ts:1247-1253), trail = laserTrails.ts:28-40 at a clock of 1000 ms with the timestamp as pressure; see SIZE_MAPPINGS in tools/goldens/fixtures.mjs.",
+    cases: laserPointerCases().map(laserPointerCase(up)),
   });
   files.push({
     name: "math.json",

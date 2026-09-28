@@ -1,7 +1,12 @@
-//! Upstream's variable-width freedraw outline
-//! (`packages/element/src/shape.ts:1193-1245` at the pinned commit).
+//! Upstream's freedraw outlines (`packages/element/src/shape.ts:1193-1268`
+//! at the pinned commit): perfect-freehand for variable width, the laser
+//! pointer for constant width.
 
-use crate::{get_stroke, InputPoint, StrokeOptions};
+use std::sync::Arc;
+
+use excali_math::js;
+
+use crate::{get_stroke, InputPoint, LaserPointer, LaserPointerOptions, StrokeOptions};
 
 /// `DEFAULT_STROKE_STREAMLINE` (`packages/common/src/constants.ts:622`): the
 /// streamline of a freedraw element without `strokeOptions.streamline`.
@@ -75,4 +80,49 @@ pub fn variable_width_outline(
         &input,
         &variable_width_options(stroke_width, streamline, simulate_pressure),
     )
+}
+
+/// `CONSTANT_WIDTH_FREEDRAW.SIZE_FACTOR`: the laser pointer's `size` is
+/// `strokeWidth * 1.4`.
+pub const CONSTANT_WIDTH_SIZE_FACTOR: f64 = 1.4;
+
+/// `CONSTANT_WIDTH_FREEDRAW.COLLISION_SIMPLIFY_TOLERANCE`: the largest
+/// deviation (px) when dropping vertices of the dense laser outline for
+/// hit testing.
+pub const CONSTANT_WIDTH_COLLISION_SIMPLIFY_TOLERANCE: f64 = 0.2;
+
+/// `createLaserPointer(element)` (`shape.ts:1247-1253`) as options: size
+/// `strokeWidth * 1.4`, streamline from `strokeOptions.streamline` (default
+/// [`DEFAULT_STROKE_STREAMLINE`]), simplify 0, `sizeMapping`
+/// `max(0.1, pressure)`, and the library's defaults otherwise.
+pub fn constant_width_options(stroke_width: f64, streamline: Option<f64>) -> LaserPointerOptions {
+    LaserPointerOptions {
+        size: stroke_width * CONSTANT_WIDTH_SIZE_FACTOR,
+        streamline: streamline.unwrap_or(DEFAULT_STROKE_STREAMLINE),
+        simplify: 0.0,
+        size_mapping: Arc::new(|details| js::max(0.1, details.pressure)),
+        ..LaserPointerOptions::default()
+    }
+}
+
+/// `getConstantWidthFreedrawOutline(element)` (`shape.ts:1255-1268`): the
+/// laser-pointer outline of a freedraw element's `points`, each added as
+/// `[x, y, 1]` so the stroke keeps a constant width, without the third
+/// coordinate. An element with no points has no outline.
+pub fn constant_width_outline(
+    points: &[[f64; 2]],
+    stroke_width: f64,
+    streamline: Option<f64>,
+) -> Vec<[f64; 2]> {
+    let mut laser_pointer = LaserPointer::new(constant_width_options(stroke_width, streamline));
+    for &[x, y] in points {
+        laser_pointer
+            .add_point([x, y, 1.0])
+            .expect("simplify 0 never reaches the tail simplification");
+    }
+    laser_pointer
+        .get_stroke_outline(None)
+        .into_iter()
+        .map(|[x, y, _]| [x, y])
+        .collect()
 }

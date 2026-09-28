@@ -11,9 +11,10 @@
 //!   `sin(t * pi / 2)`, `last: true`, simulated and real pressure), the
 //!   library defaults, and `edge/` cases for every other branch. Every case
 //!   must run.
-//! - `elements-freedraw.json`: `getFreedrawOutlinePoints(element)` for the
-//!   variable-width elements (the constant-width ones are the laser pointer,
-//!   ex-214).
+//! - `elements-freedraw.json`: `getFreedrawOutlinePoints(element)` for every
+//!   element: perfect-freehand for variable width, the laser pointer
+//!   (`getConstantWidthFreedrawOutline`, `shape.ts:1247-1268`) for constant
+//!   width.
 //!
 //! Stroke points involve no trigonometry (lerps, V8's `Math.hypot`, which
 //! `excali_math::js::hypot` reproduces, and divisions), so they are compared
@@ -26,9 +27,9 @@
 use std::path::Path;
 
 use excali_freehand::{
-    ease_out_sine, get_stroke, get_stroke_outline_points, get_stroke_points,
-    variable_width_options, variable_width_outline, CapOptions, InputPoint, StrokeOptions,
-    StrokePoint, Taper, DEFAULT_STROKE_STREAMLINE,
+    constant_width_outline, ease_out_sine, get_stroke, get_stroke_outline_points,
+    get_stroke_points, variable_width_options, variable_width_outline, CapOptions, InputPoint,
+    StrokeOptions, StrokePoint, Taper, DEFAULT_STROKE_STREAMLINE,
 };
 use serde_json::Value;
 
@@ -220,7 +221,7 @@ fn variable_width_element_outlines() {
         let e = &c["element"];
         let stroke_options = &e["strokeOptions"];
         if stroke_options["variability"].as_str() == Some("constant") {
-            continue; // laser pointer, ex-214
+            continue; // constant_width_element_outlines
         }
         let points: Vec<[f64; 2]> = e["points"]
             .as_array()
@@ -246,6 +247,36 @@ fn variable_width_element_outlines() {
         seen += 1;
     }
     assert!(seen >= 30, "{seen} variable-width freedraw cases");
+}
+
+/// `getConstantWidthFreedrawOutline` (`shape.ts:1247-1268`): the
+/// laser-pointer outline of every constant-width element in
+/// elements-freedraw.json (size `strokeWidth * 1.4`, simplify 0, pressure 1).
+#[test]
+fn constant_width_element_outlines() {
+    let mut seen = 0;
+    for c in load("elements-freedraw.json") {
+        let id = c["id"].as_str().expect("id");
+        let e = &c["element"];
+        let stroke_options = &e["strokeOptions"];
+        if stroke_options["variability"].as_str() != Some("constant") {
+            continue;
+        }
+        let points: Vec<[f64; 2]> = e["points"]
+            .as_array()
+            .expect("points")
+            .iter()
+            .map(pair)
+            .collect();
+        let outline = constant_width_outline(
+            &points,
+            f(&e["strokeWidth"]),
+            stroke_options.get("streamline").map(f),
+        );
+        check_outline(id, &outline, &c["outline"]);
+        seen += 1;
+    }
+    assert_eq!(seen, 16, "constant-width freedraw cases");
 }
 
 #[test]

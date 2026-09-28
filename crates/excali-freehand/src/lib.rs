@@ -29,15 +29,35 @@
 //! [`variable_width_outline`] is upstream's `getVariableWidthFreedrawOutline`
 //! (`packages/element/src/shape.ts:1221-1245`): the outline of a freedraw
 //! element whose `strokeOptions.variability` is not `"constant"`.
+//! [`constant_width_outline`] is `getConstantWidthFreedrawOutline`
+//! (`shape.ts:1247-1268`): the laser-pointer outline of a constant-width
+//! element (size `strokeWidth * 1.4`, simplify 0, every point at pressure 1).
+//! `goldens/elements-freedraw.json` checks both.
+//!
+//! # Laser pointer
+//!
+//! [`LaserPointer`] is upstream's vendored `@excalidraw/laser-pointer`
+//! 1.3.1 (`packages/laser-pointer/src`), with [`douglas_peucker`] and
+//! [`run_length`]; the laser tool's trail and constant-width freedraw both
+//! use it. Where upstream throws (a `"tail"` simplify phase), the port
+//! returns [`LaserPointerError`]. `goldens/laser-pointer.json` checks every
+//! branch.
 
 mod freedraw;
+mod laser;
 mod outline;
 mod stroke_points;
 mod vec;
 
 pub use freedraw::{
-    ease_out_sine, variable_width_options, variable_width_outline, DEFAULT_STROKE_STREAMLINE,
-    VARIABLE_WIDTH_SIZE_FACTOR, VARIABLE_WIDTH_SMOOTHING, VARIABLE_WIDTH_THINNING,
+    constant_width_options, constant_width_outline, ease_out_sine, variable_width_options,
+    variable_width_outline, CONSTANT_WIDTH_COLLISION_SIMPLIFY_TOLERANCE,
+    CONSTANT_WIDTH_SIZE_FACTOR, DEFAULT_STROKE_STREAMLINE, VARIABLE_WIDTH_SIZE_FACTOR,
+    VARIABLE_WIDTH_SMOOTHING, VARIABLE_WIDTH_THINNING,
+};
+pub use laser::{
+    douglas_peucker, run_length, LaserPoint, LaserPointer, LaserPointerError, LaserPointerOptions,
+    SimplifyPhase, SizeMapping, SizeMappingDetails, CORNER_DETECTION_MAX_ANGLE, MAX_TAIL_LENGTH,
 };
 pub use outline::{get_stroke_outline_points, get_stroke_radius};
 pub use stroke_points::get_stroke_points;

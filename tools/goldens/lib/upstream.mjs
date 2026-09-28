@@ -57,6 +57,7 @@ export * as math from "./packages/math/src/index";
 export { RoughGenerator } from "roughjs/bin/generator";
 export { Random } from "roughjs/bin/math";
 export { getStroke, getStrokePoints } from "perfect-freehand";
+export { LaserPointer } from "@excalidraw/laser-pointer";
 export * as fractionalIndexing from "./packages/fractional-indexing/src/index";
 export {
   orderByFractionalIndex,

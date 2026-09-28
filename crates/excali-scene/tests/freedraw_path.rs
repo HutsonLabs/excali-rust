@@ -12,9 +12,8 @@
 //! - The element entry points `getFreedrawOutlinePoints` and
 //!   `getFreeDrawSvgPath` (`shape.ts:1187-1191, 1270-1277`) switch on
 //!   `strokeOptions.variability`: variable-width cases give the recorded
-//!   path, constant-width ones fail with
-//!   `FreedrawOutlineError::ConstantWidthNotPorted` until ex-214 ports the
-//!   laser pointer (no silent fallback to the variable outline).
+//!   path from perfect-freehand, constant-width ones from excali-freehand's
+//!   laser pointer (ex-214).
 //! - Edge cases the fixtures do not reach (exponent notation, `-0`,
 //!   non-finite numbers, integers) are pinned to the strings upstream's code
 //!   writes in Node 26 (the vectors below).
@@ -24,8 +23,9 @@ use std::path::Path;
 use excali_core::element::{Element, ElementKind, StrokeVariability};
 use excali_core::json::number_to_string;
 use excali_scene::freedraw::{
-    get_free_draw_svg_path, get_freedraw_outline_points, get_svg_path_from_stroke,
-    get_variable_width_freedraw_outline, trim_to_fixed_precision, FreedrawOutlineError,
+    get_constant_width_freedraw_outline, get_free_draw_svg_path, get_freedraw_outline_points,
+    get_svg_path_from_stroke, get_variable_width_freedraw_outline, trim_to_fixed_precision,
+    FreedrawOutlineError,
 };
 use serde_json::Value;
 
@@ -106,7 +106,7 @@ fn variable_width_elements_give_upstream_paths() {
         let id = c["id"].as_str().expect("id");
         let el = element(&c);
         if is_constant(&el) {
-            continue; // laser-pointer geometry, ex-214
+            continue; // laser-pointer geometry, below
         }
         let points = get_variable_width_freedraw_outline(&el).expect("freedraw");
         let d = get_svg_path_from_stroke(&points);
@@ -118,8 +118,8 @@ fn variable_width_elements_give_upstream_paths() {
 
 /// `getFreeDrawSvgPath` / `getFreedrawOutlinePoints` (`shape.ts:1187-1191,
 /// 1270-1277`): the variability switch. Variable width gives upstream's
-/// path; constant width is ex-214's laser pointer and must fail loudly
-/// rather than fall back to the variable outline.
+/// path through perfect-freehand, constant width through the laser pointer
+/// (never the other outline).
 #[test]
 fn element_entry_points_switch_on_variability() {
     let (mut variable, mut constant) = (0, 0);
@@ -128,13 +128,15 @@ fn element_entry_points_switch_on_variability() {
         let el = element(&c);
         if is_constant(&el) {
             assert_eq!(
-                get_freedraw_outline_points(&el),
-                Err(FreedrawOutlineError::ConstantWidthNotPorted),
+                get_freedraw_outline_points(&el).as_deref(),
+                Ok(get_constant_width_freedraw_outline(&el)
+                    .expect("freedraw")
+                    .as_slice()),
                 "{id}"
             );
             assert_eq!(
-                get_free_draw_svg_path(&el),
-                Err(FreedrawOutlineError::ConstantWidthNotPorted),
+                get_free_draw_svg_path(&el).as_deref(),
+                Ok(expected_path(&c)),
                 "{id}"
             );
             constant += 1;
@@ -182,9 +184,8 @@ fn element_entry_points_reject_other_types() {
         get_free_draw_svg_path(&el),
         Err(FreedrawOutlineError::NotFreedraw)
     );
-    assert!(FreedrawOutlineError::ConstantWidthNotPorted
-        .to_string()
-        .contains("ex-214"));
+    assert_eq!(get_constant_width_freedraw_outline(&el), None);
+    assert_eq!(get_variable_width_freedraw_outline(&el), None);
 }
 
 /// Outline coordinates go through `Math.sin`/`Math.cos`, which may differ

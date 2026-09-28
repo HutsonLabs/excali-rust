@@ -7,7 +7,8 @@
 //! - [`freedraw`]: a freedraw outline as the SVG path upstream fills with
 //!   the stroke colour (`getSvgPathFromStroke`, two-decimal trimming), and
 //!   the element entry points `getFreedrawOutlinePoints` /
-//!   `getFreeDrawSvgPath` (constant width waits for ex-214).
+//!   `getFreeDrawSvgPath` (perfect-freehand for variable width, the laser
+//!   pointer for constant width).
 //! - [`rough_canvas`]: roughjs's `RoughCanvas.draw`, producing display items.
 //! - [`rough_options`]: `generateRoughOptions` and `adjustRoughness`.
 //!
