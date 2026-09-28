@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-403 · Frames: clipping with radius 8/zoom, stroke #bbb, names as Helvetica text on export
+
+The static scene now clips each frame's children to the frame. The clip is a rounded rectangle of radius 8 / zoom at the frame's corner, as upstream's `frameClip` and `clipElementToFrame` draw it. Each child's bound text, placeholder label and link icon are clipped with it. The `frame.ts` predicates that decide the target frame are ported and held to upstream's results, including while dragging over a highlighted frame and while editing a group. PNG export carries these through as well. PR: [#75](https://github.com/HutsonLabs/excali-rust/pull/75).
+
 ## 2026-09-28 · ex-m3 · Milestone check: M3 reached
 
 The second M3 check ran on `main` at eec2b7b, with ex-301 to ex-308 and the gap tasks ex-g301 to ex-g303 merged. `cargo test -p excali-text --locked` passes 217 tests, including upstream's wrapping tests case for case, and the text goldens are up to date with upstream. The corpus width test now holds all six vendored families to 0.5 px. The 114 older stored widths outside that are pinned, and for 113 of them the test recomputes the stored width exactly from the older upstream measurement that wrote it. The remaining one is a Lilita One width kept from an earlier state of the element. Upstream's own code, run in Chromium, reproduces those causes. No gap tasks. PR: [#74](https://github.com/HutsonLabs/excali-rust/pull/74).
