@@ -107,6 +107,10 @@ version = "26.9.1"
 [[package]]
 name = "excali-freehand"
 version = "26.9.1"
+dependencies = [
+ "excali-math",
+ "serde_json",
+]
 
 [[package]]
 name = "excali-math"

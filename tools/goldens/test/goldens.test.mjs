@@ -413,7 +413,15 @@ test("freehand.json: perfect-freehand getStroke with Excalidraw's options (ex-21
   assert.ok(cs.some((c) => c.options.streamline !== 0.5));
   assert.ok(cs.some((c) => c.options.simulatePressure === false && c.points[0].length === 3));
   assert.ok(cs.some((c) => c.points.length === 1), "single point");
+  // The two empty results: no input points, and size 0 (getStrokeOutlinePoints
+  // returns [] for size <= 0 but getStrokePoints still runs).
+  const empty = cs.find((c) => c.id === "edge/empty");
+  assert.deepEqual([empty.strokePoints, empty.outline], [[], []]);
+  const size0 = cs.find((c) => c.id === "edge/scribble-size-0");
+  assert.ok(size0.strokePoints.length > 0);
+  assert.deepEqual(size0.outline, []);
   for (const c of cs) {
+    if (c === empty || c === size0) continue;
     assert.ok(c.outline.length > 0, c.id);
     assert.ok(c.strokePoints.length > 0, c.id);
     for (const p of c.strokePoints) {

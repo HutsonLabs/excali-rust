@@ -8,5 +8,14 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
+[dependencies]
+# js::hypot / js::min / js::max: the doubles V8's Math functions return.
+excali-math = { path = "../excali-math" }
+
+# serde_json reads goldens/freehand.json and goldens/elements-freedraw.json in
+# the parity tests and never reaches the library.
+[dev-dependencies]
+serde_json = { workspace = true }
+
 [lints]
 workspace = true
