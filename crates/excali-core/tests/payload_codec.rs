@@ -16,7 +16,11 @@
 //! - `deflate`: `pako.deflate(bytes)` for binary inputs and for every library
 //!   in the `fixtures/libraries` corpus;
 //! - `decode`: what `decode(data)` returns (as UTF-16 code units), throws, or
-//!   `undefined` when pako gives up on incomplete input.
+//!   `undefined` when pako gives up on incomplete input, for wrappers of any
+//!   JSON shape, gzip members, and hand-built streams hitting every error
+//!   pako's inflate reports;
+//! - `inflate`: `pako.inflate(bytes)` and `pako.inflate(bytes, { to: "string" })`
+//!   on 1,600 corrupted zlib and gzip streams.
 //!
 //! Large values are pinned by length and SHA-256; values up to 4 KiB are also
 //! stored inline so a failure shows the difference.
@@ -28,7 +32,7 @@ use std::sync::OnceLock;
 use base64::Engine as _;
 use excali_core::encode::{
     byte_string_to_bytes, byte_string_to_string, decode, deflate, encode, inflate,
-    inflate_to_string, to_byte_string, DecodeError, EncodedData, InflateError,
+    inflate_to_string, inflate_to_utf16, to_byte_string, DecodeError, EncodedData, InflateError,
 };
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -177,7 +181,7 @@ fn encode_output_is_identical_to_upstream() {
         let compressed = encode(&text, true);
         assert!(compressed.compressed, "{name}");
         assert_eq!(compressed.version.as_deref(), Some("1"), "{name}");
-        assert_eq!(compressed.encoding, "bstring", "{name}");
+        assert_eq!(compressed.encoding_str(), Some("bstring"), "{name}");
         check_text(
             &format!("{name}: encode"),
             &compressed.to_json(),
@@ -309,13 +313,133 @@ fn decode_matches_upstream_on_every_wrapper() {
 fn unknown_encoding_message_is_upstreams() {
     let data = EncodedData {
         version: None,
-        encoding: "utf8".into(),
+        encoding: Some("utf8".into()),
         compressed: false,
         encoded: "x".into(),
     };
     let err = decode(&data).unwrap_err();
     assert_eq!(err, DecodeError::UnknownEncoding("utf8".into()));
     assert_eq!(err.to_string(), r#"decode: unknown encoding "utf8""#);
+}
+
+/// Every message pako's inflate can report (`lib/zlib/inflate.js`,
+/// `lib/zlib/inffast.js`, `lib/zlib/messages.js` for `need dictionary`) is
+/// pinned by at least one upstream `decode` golden, and the port reports it.
+#[test]
+fn every_pako_inflate_message_has_a_decode_golden() {
+    let variants = [
+        InflateError::IncorrectHeaderCheck,
+        InflateError::UnknownCompressionMethod,
+        InflateError::InvalidWindowSize,
+        InflateError::NeedDictionary,
+        InflateError::UnknownHeaderFlags,
+        InflateError::HeaderCrcMismatch,
+        InflateError::InvalidBlockType,
+        InflateError::InvalidStoredBlockLengths,
+        InflateError::TooManyLengthOrDistanceSymbols,
+        InflateError::InvalidCodeLengthsSet,
+        InflateError::InvalidBitLengthRepeat,
+        InflateError::MissingEndOfBlock,
+        InflateError::InvalidLiteralLengthsSet,
+        InflateError::InvalidDistancesSet,
+        InflateError::InvalidLiteralLengthCode,
+        InflateError::InvalidDistanceCode,
+        InflateError::InvalidDistanceTooFarBack,
+        InflateError::IncorrectDataCheck,
+        InflateError::IncorrectLengthCheck,
+    ];
+    let thrown: Vec<&str> = cases("decode")
+        .iter()
+        .filter_map(|c| c["result"].get("error").and_then(Value::as_str))
+        .collect();
+    for v in variants {
+        let msg = v.to_string();
+        assert!(thrown.contains(&msg.as_str()), "no golden throws {msg:?}");
+    }
+}
+
+/// The reviewer's repro: a raw deflate made with a 20-byte zero preset
+/// dictionary, wrapped as zlib without FDICT. Its first match reaches before
+/// the start of the output.
+#[test]
+fn a_reference_before_the_start_of_the_output_is_rejected() {
+    let z = [
+        0x78, 0x9c, 0xc3, 0x06, 0x12, 0x93, 0x92, 0x01, 0x02, 0x61, 0x01, 0x27,
+    ];
+    assert_eq!(inflate(&z), Err(InflateError::InvalidDistanceTooFarBack));
+    assert_eq!(
+        inflate_to_string(&z),
+        Err(InflateError::InvalidDistanceTooFarBack)
+    );
+    assert_eq!(
+        InflateError::InvalidDistanceTooFarBack.to_string(),
+        "invalid distance too far back"
+    );
+}
+
+/// `pako.inflate` output in the generator's compact form.
+fn compact_result<T>(
+    got: Result<T, InflateError>,
+    digest: impl Fn(&T) -> (usize, String),
+) -> String {
+    match got {
+        Ok(v) => {
+            let (len, sha) = digest(&v);
+            format!("{len}:{sha}")
+        }
+        Err(InflateError::Incomplete) => "undefined".to_owned(),
+        Err(e) => format!("error:{e}"),
+    }
+}
+
+/// Differential check against pako on corrupted streams: bytes and string
+/// output, or the exact error, or `undefined`.
+#[test]
+fn inflate_matches_pako_on_corrupted_streams() {
+    let g = &goldens()["inflate"];
+    let bases: Vec<Vec<u8>> = g["bases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|b| {
+            base64::engine::general_purpose::STANDARD
+                .decode(b.as_str().unwrap())
+                .unwrap()
+        })
+        .collect();
+    let all = g["cases"].as_array().unwrap();
+    assert_eq!(all.len(), 1600);
+    let mut errors = std::collections::BTreeSet::new();
+    for (i, case) in all.iter().enumerate() {
+        let mut data = bases[case["base"].as_u64().unwrap() as usize].clone();
+        for flip in case["xor"].as_str().unwrap().split(' ') {
+            let (pos, mask) = flip.split_once('^').unwrap();
+            data[pos.parse::<usize>().unwrap()] ^= mask.parse::<u8>().unwrap();
+        }
+        let label = format!("case {i} ({})", case["xor"]);
+        let bytes = compact_result(inflate(&data), |b| (b.len(), sha256_hex(b)));
+        assert_eq!(bytes, case["bytes"].as_str().unwrap(), "{label}: bytes");
+        let string = compact_result(inflate_to_utf16(&data), |u| {
+            let le: Vec<u8> = u.iter().flat_map(|c| c.to_le_bytes()).collect();
+            (u.len(), sha256_hex(&le))
+        });
+        assert_eq!(string, case["string"].as_str().unwrap(), "{label}: string");
+        if let Some(e) = bytes.strip_prefix("error:") {
+            errors.insert(e.to_owned());
+        }
+    }
+    // The corpus exercises the block decoder, not only the wrapper.
+    for msg in [
+        "invalid distance too far back",
+        "invalid code lengths set",
+        "invalid stored block lengths",
+        "invalid bit length repeat",
+        "invalid block type",
+        "invalid distance code",
+        "invalid literal/length code",
+    ] {
+        assert!(errors.contains(msg), "{msg}");
+    }
 }
 
 /// The scene embedded in upstream's own `smiley_embedded_v2.svg` fixture
