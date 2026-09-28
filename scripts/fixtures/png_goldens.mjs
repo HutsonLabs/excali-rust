@@ -429,6 +429,11 @@ const HAND = [
   ["chunk_name_nul_bad_crc", smileyWith(rawChunk("\u0000\u0000\u0000\u0000", latin1("data"), 5))],
   ["truncated_claims_more_than_left", concat(png(IHDR), u32(1000), latin1("IDAT"), latin1("short"))],
   ["truncated_in_length_field", concat(png(IHDR), new Uint8Array([0, 0]))],
+  // A 0xFFFFFFFF length: png-chunks-extract allocates length + 4 bytes
+  // (4 GiB) and reads zeros past the end into them before the CRC check.
+  // About a minute and 4.4 GB resident per call; the port gets the same
+  // CRC without allocating.
+  ["huge_chunk_length", concat(png(IHDR), u32(0xffffffff), latin1("IDAT"), latin1("some data"))],
   ["zero_padded_crc_match", zeroPaddedCrcMatch(100000, 16)],
   ["zero_padded_crc_match_small", zeroPaddedCrcMatch(9, 4)],
 ];

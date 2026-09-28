@@ -3175,6 +3175,18 @@
    }
   },
   {
+   "name": "huge_chunk_length",
+   "input": {
+    "base64": "iVBORw0KGgoAAAANSUhEUgAAADgAAABNCAMAAADEt1de/////0lEQVRzb21lIGRhdGE="
+   },
+   "text_chunk": {
+    "error": "CRC values for IDAT header do not match, PNG file is likely corrupted"
+   },
+   "decoded": {
+    "error": "CRC values for IDAT header do not match, PNG file is likely corrupted"
+   }
+  },
+  {
    "name": "zero_padded_crc_match",
    "input": {
     "base64": "iVBORw0KGgoAAAANSUhEUgAAADgAAABNCAMAAADEt1deAAGGoElEQVQDChEYHyYtNDtCSVDemwTb"

@@ -417,6 +417,9 @@ fn metadata_chunk_goes_just_before_iend() {
 
 /// A chunk claiming 4 GiB is checked without allocating it: the CRC runs
 /// over the zeros png-chunks-extract reads past the end in O(log n).
+/// Upstream really does allocate 0xFFFFFFFF + 4 bytes and read zeros into
+/// them; the generator runs it (goldens case `huge_chunk_length`, about a
+/// minute and 4.4 GB per call in Node) so the error is upstream's own.
 #[test]
 fn a_huge_chunk_length_is_checked_without_allocating() {
     let mut png = fixture("smiley.png");
@@ -424,9 +427,22 @@ fn a_huge_chunk_length_is_checked_without_allocating() {
     png.extend_from_slice(&[0xff, 0xff, 0xff, 0xff]);
     png.extend_from_slice(b"IDAT");
     png.extend_from_slice(b"some data");
+    let case = cases("decode")
+        .iter()
+        .find(|c| c["name"] == "huge_chunk_length")
+        .expect("upstream golden for the 4 GiB chunk");
+    assert_eq!(materialize(&case["input"]), png, "same bytes as the golden");
+    let err = extract_chunks(&png).unwrap_err();
+    assert_eq!(err, PngError::CrcMismatch { name: *b"IDAT" });
     assert_eq!(
-        extract_chunks(&png).unwrap_err(),
-        PngError::CrcMismatch { name: *b"IDAT" }
+        err.to_string(),
+        case["text_chunk"]["error"].as_str().unwrap(),
+        "getTEXtChunk"
+    );
+    check_decoded(
+        "huge_chunk_length",
+        &decode_png_metadata(&png),
+        &case["decoded"],
     );
 }
 
