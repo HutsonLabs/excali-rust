@@ -613,6 +613,30 @@
    "labels": []
   },
   {
+   "id": "ex-117",
+   "epic": "ex-e1",
+   "title": "Typed element model: keep field values of a type the model has no form for (string strokeWidth) as upstream's restore does",
+   "priority": 0,
+   "blocked_by": [
+    "ex-108"
+   ],
+   "crates": [
+    "excali-core"
+   ],
+   "acceptance": "An element whose restored object has a known field holding a value of another JSON type than the model's (strokeWidth \"3\", a non-string fillStyle value, ...) is kept, not dropped, and written back as read until the field is changed, the way LibraryItem keeps an odd id or created: aarondiel/logic-gates parses to upstream's 24 lines and its serialized parse hashes to the output_sha256 in crates/excali-core/tests/fixtures/library.json, and crates/excali-core/tests/library.rs drops its logic-gates special case and elements_the_typed_model_cannot_read_are_dropped becomes a keep-as-read test against an upstream golden.",
+   "evidence": [
+    "packages/excalidraw/data/restore.ts:459 (strokeWidth: element.strokeWidth || DEFAULT_ELEMENT_PROPS.strokeWidth keeps the string \"3\") at the pinned commit",
+    "fixtures/libraries: aarondiel/logic-gates holds 24 lines whose strokeWidth is the string \"3\"",
+    "crates/excali-core/src/library.rs module docs (the two differences from upstream; Element::from_map rejects the object and restore drops the element)",
+    "crates/excali-core/src/library.rs LibraryItem::from_map/to_map (values without a typed form written back as read) as the pattern",
+    "site/content/architecture/file-format.md (library section, 'Two differences from upstream')",
+    "site/content/decisions/adr-008-crate-boundaries.md (tracked exceptions)"
+   ],
+   "description": "ex-108 restores each library item's elements with upstream's restoreElements, then reads each restored object with Element::from_map. Upstream's restore copies a truthy strokeWidth as it is, so a string \"3\" survives and the element loads; the typed model reads numbers only, so the port drops the element. In the catalogue that loses the 24 lines of aarondiel/logic-gates. ex-114's round-trip acceptance still passes after the drop, so this task tracks it. The same rule applies to scenes read through restore. M1 cannot close while this data loss remains.",
+   "type": "task",
+   "labels": []
+  },
+  {
    "id": "ex-201",
    "epic": "ex-e2",
    "title": "excali-math: points, vectors, segments, angles, ranges, rectangles, polygons",

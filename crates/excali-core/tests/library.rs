@@ -128,7 +128,7 @@ fn parse_matches_upstream() {
 /// output when the migration fails. One more, `aarondiel/logic-gates`,
 /// holds 24 lines whose `strokeWidth` is the string `"3"`: restore keeps
 /// it, the typed model reads numbers only, and those lines are dropped (see
-/// `excali_core::library`).
+/// `excali_core::library`; tracked as ex-117).
 #[test]
 fn catalogue_matches_upstream() {
     let f = fixture();
@@ -494,7 +494,8 @@ fn restore_items_from_a_value() {
 /// Stricter than upstream, as the typed model must be: an element whose
 /// restored form [`Element::from_map`] cannot read (a `fillStyle` no
 /// version of Excalidraw writes) is dropped with the elements
-/// `restoreElement` rejects, where upstream keeps the object as it is.
+/// `restoreElement` rejects, where upstream keeps the object as it is
+/// (ex-117).
 #[test]
 fn elements_the_typed_model_cannot_read_are_dropped() {
     let text = json!({

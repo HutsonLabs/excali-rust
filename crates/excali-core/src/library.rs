@@ -39,7 +39,11 @@
 //! - an element whose restored object [`Element::from_map`] cannot read (a
 //!   field of the wrong type, a `fillStyle` no version of Excalidraw writes)
 //!   is dropped with those `restoreElement` rejects, before the index sync;
-//!   upstream keeps the object as it is;
+//!   upstream keeps the object as it is (`restore.ts:459` copies a truthy
+//!   `strokeWidth` unchanged, so the 24 lines of the catalogue's
+//!   `aarondiel/logic-gates` with `strokeWidth: "3"` load there and are
+//!   dropped here). Tracked as ex-117: keep such values and write them back
+//!   as read, as [`LibraryItem`] does for an odd `id` or `created`;
 //! - `arrayToMap`, the map arrows look their bound elements up in, holds the
 //!   object items of the elements array; upstream also keys a string item
 //!   under itself and other non-object items under `undefined`, which only
