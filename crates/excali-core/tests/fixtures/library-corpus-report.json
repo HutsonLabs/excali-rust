@@ -1,0 +1,2878 @@
+{
+  "generator": "crates/excali-core/tests/library_corpus.rs",
+  "description": "What loading each catalogue library (fixtures/libraries; parseLibraryJSON with defaultStatus published in upstream's test mode) and writing it with serializeLibraryAsJSON loses: keys of the file absent from the written file, elements not written, arrow bindings written as null, legacy bindings that need element geometry, duplicate element ids replaced, and keys a second load adds. Every kind is explained under reasons. Regenerate with EXCALI_BLESS=1 cargo test -p excali-core --test library_corpus.",
+  "libraries": 232,
+  "reasons": {
+    "bindings_cleared": "repairBinding gives null for a binding whose element is not in the item and for a legacy binding whose migration fails (restore.ts:298-428); a line gets no bindings (restore.ts:636-638)",
+    "element_ids_replaced": "an id repeated within an item gets randomId() (restore.ts:1000-1003)",
+    "element_keys_added_on_reload.line.polygon": "a legacy draw is restored to line without polygon (isLineElement is false for draw, restore.ts:645-651); the next load reads a line and adds polygon: false",
+    "element_keys_dropped.boundElementIds": "legacy: read into boundElements as arrows, then deleted (restore.ts:486-488, 512)",
+    "element_keys_dropped.rawText": "legacy obsidian-excalidraw attribute of text elements, deleted (restore.ts:532-534)",
+    "element_keys_dropped.strokeSharpness": "legacy: read into roundness, then deleted (restore.ts:475-484, 511)",
+    "elements_dropped.deleted": "a library item keeps its non-deleted elements only (restore.ts:1374-1379)",
+    "elements_dropped.legacy selection element": "restoreElements filters type selection out (restore.ts:967-971)",
+    "elements_dropped.not an object": "restoreElement of a primitive has no type and gives null",
+    "elements_dropped.restore throws": "restoreElements drops an element restoreElement throws on (restore.ts:982-985)",
+    "elements_dropped.typed model cannot read it (ex-117)": "restore keeps a value of another JSON type (restore.ts:459 keeps strokeWidth \"3\") and upstream loads the element; the typed model reads numbers only and drops it (port gap, ex-117)",
+    "elements_dropped.unknown type": "restoreElement returns null for a type it does not know (restore.ts:751)",
+    "envelope_keys_dropped.library": "v1 items are written under libraryItems: serializeLibraryAsJSON writes {type, version: 2, source, libraryItems} only (json.ts:137-145)",
+    "legacy_bindings_without_geometry": "a binding without mode to an existing element is migrated with element geometry (restore.ts:347-418); restore::TestEnv has none, so it is cleared, counted in bindings_cleared (port gap, ex-116)"
+  },
+  "totals": {
+    "items_in": 4187,
+    "items_out": 4187,
+    "elements_in": 55113,
+    "elements_out": 55089,
+    "envelope_keys_dropped": {
+      "library": 70
+    },
+    "element_keys_dropped": {
+      "boundElementIds": 13305,
+      "rawText": 548,
+      "strokeSharpness": 32416
+    },
+    "elements_dropped": {
+      "typed model cannot read it (ex-117)": 24
+    },
+    "bindings_cleared": 1254,
+    "legacy_bindings_without_geometry": 1245,
+    "element_ids_replaced": 38,
+    "element_keys_added_on_reload": {
+      "line.polygon": 115
+    }
+  },
+  "files": [
+    {
+      "path": "libraries/7demonsrising/azure-compute.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 17,
+      "items_out": 17,
+      "elements_in": 171,
+      "elements_out": 171,
+      "element_keys_dropped": {
+        "strokeSharpness": 171
+      },
+      "bindings_cleared": 2,
+      "legacy_bindings_without_geometry": 2
+    },
+    {
+      "path": "libraries/7demonsrising/azure-containers.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 6,
+      "items_out": 6,
+      "elements_in": 80,
+      "elements_out": 80,
+      "element_keys_dropped": {
+        "strokeSharpness": 80
+      },
+      "bindings_cleared": 2,
+      "legacy_bindings_without_geometry": 2
+    },
+    {
+      "path": "libraries/7demonsrising/azure-general.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 19,
+      "items_out": 19,
+      "elements_in": 212,
+      "elements_out": 212,
+      "element_keys_dropped": {
+        "strokeSharpness": 212
+      }
+    },
+    {
+      "path": "libraries/7demonsrising/azure-network.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 29,
+      "items_out": 29,
+      "elements_in": 272,
+      "elements_out": 272,
+      "element_keys_dropped": {
+        "strokeSharpness": 272
+      },
+      "bindings_cleared": 2,
+      "legacy_bindings_without_geometry": 2
+    },
+    {
+      "path": "libraries/7demonsrising/azure-storage.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 13,
+      "items_out": 13,
+      "elements_in": 183,
+      "elements_out": 183,
+      "element_keys_dropped": {
+        "strokeSharpness": 183
+      }
+    },
+    {
+      "path": "libraries/Arqtangeles/architecture.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 42,
+      "items_out": 42,
+      "elements_in": 385,
+      "elements_out": 385,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 385,
+        "strokeSharpness": 385
+      }
+    },
+    {
+      "path": "libraries/BjoernKW/UML-ER-library.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 21,
+      "items_out": 21,
+      "elements_in": 60,
+      "elements_out": 60,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 60,
+        "strokeSharpness": 60
+      },
+      "bindings_cleared": 2,
+      "legacy_bindings_without_geometry": 2
+    },
+    {
+      "path": "libraries/IvanReznikov/yellow-box.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 1,
+      "items_out": 1,
+      "elements_in": 9,
+      "elements_out": 9,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 9,
+        "strokeSharpness": 9
+      }
+    },
+    {
+      "path": "libraries/Vasudevatirupathinaidu/random-figure-drawings.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 15,
+      "items_out": 15,
+      "elements_in": 192,
+      "elements_out": 192,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 192,
+        "strokeSharpness": 192
+      }
+    },
+    {
+      "path": "libraries/aarondiel/logic-gates.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 7,
+      "items_out": 7,
+      "elements_in": 40,
+      "elements_out": 16,
+      "element_keys_dropped": {
+        "strokeSharpness": 16
+      },
+      "elements_dropped": {
+        "typed model cannot read it (ex-117)": 24
+      }
+    },
+    {
+      "path": "libraries/ad115/music-notation.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 23,
+      "items_out": 23,
+      "elements_in": 66,
+      "elements_out": 66,
+      "element_keys_dropped": {
+        "strokeSharpness": 66
+      }
+    },
+    {
+      "path": "libraries/adamkdean/comms-platform-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 6,
+      "items_out": 6,
+      "elements_in": 34,
+      "elements_out": 34,
+      "element_keys_dropped": {
+        "strokeSharpness": 34
+      }
+    },
+    {
+      "path": "libraries/adrigrana/japanese-pitch-accent-graphs-template-collection.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 90,
+      "items_out": 90,
+      "elements_in": 1620,
+      "elements_out": 1620
+    },
+    {
+      "path": "libraries/aimpizza/3d-coordinate-systems-graphs.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 5,
+      "items_out": 5,
+      "elements_in": 760,
+      "elements_out": 760
+    },
+    {
+      "path": "libraries/aleksandr-hovhannisyan/clocks.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 3,
+      "items_out": 3,
+      "elements_in": 207,
+      "elements_out": 207,
+      "element_keys_dropped": {
+        "boundElementIds": 207,
+        "strokeSharpness": 207
+      }
+    },
+    {
+      "path": "libraries/alexandertsukanov/elk-stack.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 5,
+      "items_out": 5,
+      "elements_in": 23,
+      "elements_out": 23
+    },
+    {
+      "path": "libraries/alluvion/montessori-basic-grammar-symbols.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 10,
+      "items_out": 10,
+      "elements_in": 20,
+      "elements_out": 20
+    },
+    {
+      "path": "libraries/amelia/micro.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 1,
+      "items_out": 1,
+      "elements_in": 43,
+      "elements_out": 43,
+      "element_keys_dropped": {
+        "strokeSharpness": 43
+      }
+    },
+    {
+      "path": "libraries/andreandreandradecosta/3d-shapes.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 2,
+      "items_out": 2,
+      "elements_in": 8,
+      "elements_out": 8,
+      "element_keys_dropped": {
+        "strokeSharpness": 8
+      }
+    },
+    {
+      "path": "libraries/anna-pastushko/architecture-diagram-components.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 11,
+      "items_out": 11,
+      "elements_in": 73,
+      "elements_out": 73,
+      "element_keys_dropped": {
+        "strokeSharpness": 73
+      }
+    },
+    {
+      "path": "libraries/anumithaapollo12/emojis.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 48,
+      "items_out": 48,
+      "elements_in": 247,
+      "elements_out": 247,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 247,
+        "strokeSharpness": 247
+      },
+      "element_keys_added_on_reload": {
+        "line.polygon": 14
+      }
+    },
+    {
+      "path": "libraries/aocgame/domainstorytelling.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 7,
+      "items_out": 7,
+      "elements_in": 55,
+      "elements_out": 55
+    },
+    {
+      "path": "libraries/arach/systems-design-components.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 6,
+      "items_out": 6,
+      "elements_in": 105,
+      "elements_out": 105,
+      "element_keys_dropped": {
+        "boundElementIds": 105,
+        "strokeSharpness": 105
+      },
+      "bindings_cleared": 12,
+      "legacy_bindings_without_geometry": 12
+    },
+    {
+      "path": "libraries/aretecode/decision-flow-control.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 8,
+      "items_out": 8,
+      "elements_in": 88,
+      "elements_out": 88,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 88,
+        "strokeSharpness": 88
+      },
+      "bindings_cleared": 57,
+      "legacy_bindings_without_geometry": 56
+    },
+    {
+      "path": "libraries/aretecode/system-design-template.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 8,
+      "items_out": 8,
+      "elements_in": 195,
+      "elements_out": 195,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 195,
+        "strokeSharpness": 195
+      },
+      "bindings_cleared": 24,
+      "legacy_bindings_without_geometry": 24
+    },
+    {
+      "path": "libraries/artem-anufrij-live-de/artem-s-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 22,
+      "items_out": 22,
+      "elements_in": 95,
+      "elements_out": 95,
+      "element_keys_dropped": {
+        "strokeSharpness": 95
+      }
+    },
+    {
+      "path": "libraries/boemska-nik/kubernetes-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 74,
+      "items_out": 74,
+      "elements_in": 809,
+      "elements_out": 809,
+      "bindings_cleared": 16,
+      "legacy_bindings_without_geometry": 16
+    },
+    {
+      "path": "libraries/booknerdonmars/bullet-journal-trackers.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 2,
+      "items_out": 2,
+      "elements_in": 672,
+      "elements_out": 672,
+      "element_keys_dropped": {
+        "rawText": 52
+      }
+    },
+    {
+      "path": "libraries/braweria/customer-journey-map.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 14,
+      "items_out": 14,
+      "elements_in": 304,
+      "elements_out": 304,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 304,
+        "strokeSharpness": 304
+      }
+    },
+    {
+      "path": "libraries/cengizhanparlak/code-essentials.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 2,
+      "items_out": 2,
+      "elements_in": 4,
+      "elements_out": 4,
+      "element_keys_dropped": {
+        "strokeSharpness": 4
+      }
+    },
+    {
+      "path": "libraries/cespin/domain-driven-design.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 16,
+      "items_out": 16,
+      "elements_in": 46,
+      "elements_out": 46,
+      "element_keys_dropped": {
+        "strokeSharpness": 46
+      }
+    },
+    {
+      "path": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 249,
+      "items_out": 249,
+      "elements_in": 2846,
+      "elements_out": 2846,
+      "bindings_cleared": 38,
+      "legacy_bindings_without_geometry": 38
+    },
+    {
+      "path": "libraries/chuqbach/data-platform.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 33,
+      "items_out": 33,
+      "elements_in": 272,
+      "elements_out": 272
+    },
+    {
+      "path": "libraries/claracavalcante/baby-characters.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 232,
+      "elements_out": 232,
+      "element_keys_dropped": {
+        "boundElementIds": 232,
+        "strokeSharpness": 232
+      }
+    },
+    {
+      "path": "libraries/clementbosc/gcp-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 83,
+      "items_out": 83,
+      "elements_in": 598,
+      "elements_out": 598,
+      "element_keys_dropped": {
+        "strokeSharpness": 598
+      }
+    },
+    {
+      "path": "libraries/cloud/cloud.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 19,
+      "items_out": 19,
+      "elements_in": 449,
+      "elements_out": 449,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 449,
+        "strokeSharpness": 449
+      },
+      "bindings_cleared": 1,
+      "legacy_bindings_without_geometry": 1,
+      "element_keys_added_on_reload": {
+        "line.polygon": 49
+      }
+    },
+    {
+      "path": "libraries/coexist/mq.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 6,
+      "items_out": 6,
+      "elements_in": 31,
+      "elements_out": 31,
+      "element_keys_dropped": {
+        "boundElementIds": 31,
+        "strokeSharpness": 31
+      }
+    },
+    {
+      "path": "libraries/corlaez/hexagonal-architecture.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 27,
+      "items_out": 27,
+      "elements_in": 582,
+      "elements_out": 582,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 582,
+        "strokeSharpness": 582
+      },
+      "bindings_cleared": 115,
+      "legacy_bindings_without_geometry": 115
+    },
+    {
+      "path": "libraries/damitr/astronomical-symbols.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 27,
+      "items_out": 27,
+      "elements_in": 78,
+      "elements_out": 78,
+      "element_keys_dropped": {
+        "strokeSharpness": 78
+      }
+    },
+    {
+      "path": "libraries/danielpza/barotrauma.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 27,
+      "items_out": 27,
+      "elements_in": 293,
+      "elements_out": 293,
+      "element_keys_dropped": {
+        "strokeSharpness": 293
+      }
+    },
+    {
+      "path": "libraries/danimaniarqsoft/scrum-board.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 1,
+      "items_out": 1,
+      "elements_in": 142,
+      "elements_out": 142,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 142,
+        "strokeSharpness": 142
+      }
+    },
+    {
+      "path": "libraries/datavizfairy/dashboard-charts.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 53,
+      "items_out": 53,
+      "elements_in": 1994,
+      "elements_out": 1994
+    },
+    {
+      "path": "libraries/david-prta/dart-and-flutter-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 2,
+      "items_out": 2,
+      "elements_in": 10,
+      "elements_out": 10,
+      "element_keys_dropped": {
+        "strokeSharpness": 10
+      }
+    },
+    {
+      "path": "libraries/dbssticky/data-viz.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 32,
+      "items_out": 32,
+      "elements_in": 1241,
+      "elements_out": 1241,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 1241,
+        "strokeSharpness": 1241
+      }
+    },
+    {
+      "path": "libraries/dday987/common-home-network-basics.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 8,
+      "items_out": 8,
+      "elements_in": 136,
+      "elements_out": 136,
+      "element_keys_dropped": {
+        "strokeSharpness": 136
+      }
+    },
+    {
+      "path": "libraries/demondarakna/dnd-writing-icons-for-dm.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 42,
+      "items_out": 42,
+      "elements_in": 181,
+      "elements_out": 181,
+      "bindings_cleared": 24,
+      "legacy_bindings_without_geometry": 24
+    },
+    {
+      "path": "libraries/devdaejungyoon/github-actions.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 488,
+      "elements_out": 488,
+      "element_keys_dropped": {
+        "rawText": 4
+      }
+    },
+    {
+      "path": "libraries/dhaval_godwani/webpage-frames.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 3,
+      "items_out": 3,
+      "elements_in": 87,
+      "elements_out": 87,
+      "element_keys_dropped": {
+        "strokeSharpness": 87
+      }
+    },
+    {
+      "path": "libraries/dhtoran/stick-people.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 7,
+      "items_out": 7,
+      "elements_in": 73,
+      "elements_out": 73
+    },
+    {
+      "path": "libraries/dimitrios-fkliaras/clouds.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 4,
+      "elements_out": 4
+    },
+    {
+      "path": "libraries/dmitry-burnyshev/c4-architecture.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 10,
+      "items_out": 10,
+      "elements_in": 81,
+      "elements_out": 81,
+      "element_keys_dropped": {
+        "strokeSharpness": 81
+      },
+      "bindings_cleared": 2
+    },
+    {
+      "path": "libraries/dmtwng/archimate-application-layer.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 18,
+      "items_out": 18,
+      "elements_in": 50,
+      "elements_out": 50
+    },
+    {
+      "path": "libraries/dpalay/common-screen-resolutions.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 12,
+      "items_out": 12,
+      "elements_in": 60,
+      "elements_out": 60,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 60,
+        "strokeSharpness": 60
+      }
+    },
+    {
+      "path": "libraries/drwnio/drwnio.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 18,
+      "items_out": 18,
+      "elements_in": 120,
+      "elements_out": 120,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 120,
+        "strokeSharpness": 120
+      },
+      "element_keys_added_on_reload": {
+        "line.polygon": 1
+      }
+    },
+    {
+      "path": "libraries/drwnio/storytelling.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 16,
+      "items_out": 16,
+      "elements_in": 291,
+      "elements_out": 291,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 291,
+        "strokeSharpness": 291
+      }
+    },
+    {
+      "path": "libraries/dwelle/despair.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 10,
+      "items_out": 10,
+      "elements_in": 232,
+      "elements_out": 232,
+      "element_keys_dropped": {
+        "strokeSharpness": 232
+      }
+    },
+    {
+      "path": "libraries/dwelle/hearts.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 5,
+      "items_out": 5,
+      "elements_in": 33,
+      "elements_out": 33,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 33,
+        "strokeSharpness": 33
+      }
+    },
+    {
+      "path": "libraries/dwelle/network-topology-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 10,
+      "items_out": 10,
+      "elements_in": 99,
+      "elements_out": 99,
+      "element_keys_dropped": {
+        "strokeSharpness": 99
+      }
+    },
+    {
+      "path": "libraries/econ-graphs/macroeconomics.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 55,
+      "elements_out": 55,
+      "element_keys_dropped": {
+        "strokeSharpness": 55
+      }
+    },
+    {
+      "path": "libraries/egor-romanov/risk-based-test-strategy.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 8,
+      "items_out": 8,
+      "elements_in": 155,
+      "elements_out": 155,
+      "element_keys_dropped": {
+        "strokeSharpness": 155
+      },
+      "bindings_cleared": 6,
+      "legacy_bindings_without_geometry": 6
+    },
+    {
+      "path": "libraries/eho9734/2022-gantt.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 1,
+      "items_out": 1,
+      "elements_in": 199,
+      "elements_out": 199,
+      "element_keys_dropped": {
+        "strokeSharpness": 199
+      },
+      "bindings_cleared": 14,
+      "legacy_bindings_without_geometry": 14
+    },
+    {
+      "path": "libraries/ei-au/computers.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 125,
+      "elements_out": 125,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 125,
+        "strokeSharpness": 125
+      }
+    },
+    {
+      "path": "libraries/ella/science-chemistry-gcse.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 115,
+      "elements_out": 115,
+      "element_keys_dropped": {
+        "strokeSharpness": 115
+      },
+      "bindings_cleared": 13,
+      "legacy_bindings_without_geometry": 13
+    },
+    {
+      "path": "libraries/erlina/data-processing.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 8,
+      "items_out": 8,
+      "elements_in": 163,
+      "elements_out": 163,
+      "bindings_cleared": 4,
+      "legacy_bindings_without_geometry": 4
+    },
+    {
+      "path": "libraries/esteevens/logos.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 8,
+      "items_out": 8,
+      "elements_in": 45,
+      "elements_out": 45,
+      "element_keys_dropped": {
+        "boundElementIds": 45,
+        "strokeSharpness": 45
+      }
+    },
+    {
+      "path": "libraries/esteevens/retail-peripherals.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 3,
+      "items_out": 3,
+      "elements_in": 37,
+      "elements_out": 37,
+      "element_keys_dropped": {
+        "strokeSharpness": 37
+      }
+    },
+    {
+      "path": "libraries/ewels/nextflow-seqera-nf-core.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 14,
+      "items_out": 14,
+      "elements_in": 87,
+      "elements_out": 87
+    },
+    {
+      "path": "libraries/excacomp/mobile-kit.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 3,
+      "items_out": 3,
+      "elements_in": 44,
+      "elements_out": 44,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 44
+      }
+    },
+    {
+      "path": "libraries/excacomp/web-kit.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 9,
+      "items_out": 9,
+      "elements_in": 89,
+      "elements_out": 89,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 89,
+        "strokeSharpness": 89
+      },
+      "element_keys_added_on_reload": {
+        "line.polygon": 1
+      }
+    },
+    {
+      "path": "libraries/excalidraw/valentine-s-day.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 7,
+      "items_out": 7,
+      "elements_in": 188,
+      "elements_out": 188,
+      "element_keys_dropped": {
+        "strokeSharpness": 188
+      }
+    },
+    {
+      "path": "libraries/farisology/data-science.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 7,
+      "items_out": 7,
+      "elements_in": 41,
+      "elements_out": 41,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 41,
+        "strokeSharpness": 41
+      }
+    },
+    {
+      "path": "libraries/ferminrp/awesome-icons.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 24,
+      "items_out": 24,
+      "elements_in": 127,
+      "elements_out": 127,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 127,
+        "strokeSharpness": 127
+      }
+    },
+    {
+      "path": "libraries/ferminrp/awesome-slides.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 16,
+      "items_out": 16,
+      "elements_in": 364,
+      "elements_out": 364,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 364,
+        "strokeSharpness": 364
+      },
+      "bindings_cleared": 7,
+      "legacy_bindings_without_geometry": 7
+    },
+    {
+      "path": "libraries/ferminrp/gantt.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 1,
+      "items_out": 1,
+      "elements_in": 50,
+      "elements_out": 50,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 50,
+        "strokeSharpness": 50
+      }
+    },
+    {
+      "path": "libraries/ferminrp/post-it.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 13,
+      "items_out": 13,
+      "elements_in": 26,
+      "elements_out": 26,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 26,
+        "strokeSharpness": 26
+      }
+    },
+    {
+      "path": "libraries/fibreninja/fibre-network.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 3,
+      "items_out": 3,
+      "elements_in": 63,
+      "elements_out": 63,
+      "element_keys_dropped": {
+        "strokeSharpness": 63
+      }
+    },
+    {
+      "path": "libraries/finfin/flow-chart-symbols.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 15,
+      "items_out": 15,
+      "elements_in": 38,
+      "elements_out": 38,
+      "bindings_cleared": 2
+    },
+    {
+      "path": "libraries/fortijosh/fortinet.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 33,
+      "items_out": 33,
+      "elements_in": 365,
+      "elements_out": 365,
+      "element_keys_dropped": {
+        "strokeSharpness": 3
+      },
+      "bindings_cleared": 6,
+      "legacy_bindings_without_geometry": 5
+    },
+    {
+      "path": "libraries/franky47/apple-devices-frames.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 13,
+      "items_out": 13,
+      "elements_in": 46,
+      "elements_out": 46,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 46,
+        "strokeSharpness": 46
+      },
+      "element_keys_added_on_reload": {
+        "line.polygon": 2
+      }
+    },
+    {
+      "path": "libraries/fraoustin/bpmn.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 34,
+      "items_out": 34,
+      "elements_in": 116,
+      "elements_out": 116,
+      "element_keys_dropped": {
+        "strokeSharpness": 116
+      },
+      "element_ids_replaced": 38
+    },
+    {
+      "path": "libraries/g-script/android.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 9,
+      "items_out": 9,
+      "elements_in": 102,
+      "elements_out": 102,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 102,
+        "strokeSharpness": 102
+      }
+    },
+    {
+      "path": "libraries/g-script/charts.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 18,
+      "elements_out": 18,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 18,
+        "strokeSharpness": 18
+      }
+    },
+    {
+      "path": "libraries/g-script/forms.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 26,
+      "items_out": 26,
+      "elements_in": 124,
+      "elements_out": 124,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 124,
+        "strokeSharpness": 124
+      }
+    },
+    {
+      "path": "libraries/g-script/medias.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 6,
+      "items_out": 6,
+      "elements_in": 75,
+      "elements_out": 75,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 75,
+        "strokeSharpness": 75
+      },
+      "bindings_cleared": 4,
+      "legacy_bindings_without_geometry": 4
+    },
+    {
+      "path": "libraries/gabi-as-cosmos/periodic-table.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 1,
+      "items_out": 1,
+      "elements_in": 384,
+      "elements_out": 384,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 384,
+        "strokeSharpness": 384
+      }
+    },
+    {
+      "path": "libraries/gabrielamacakova/basic-ux-wireframing-elements.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 69,
+      "items_out": 69,
+      "elements_in": 209,
+      "elements_out": 209,
+      "element_keys_dropped": {
+        "strokeSharpness": 209
+      }
+    },
+    {
+      "path": "libraries/gabrielamacakova/christmas-essentials.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 27,
+      "items_out": 27,
+      "elements_in": 532,
+      "elements_out": 532
+    },
+    {
+      "path": "libraries/gabrielamacakova/halloween-elements.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 39,
+      "items_out": 39,
+      "elements_in": 744,
+      "elements_out": 744
+    },
+    {
+      "path": "libraries/gabrielamacakova/presentation-bundle.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 20,
+      "items_out": 20,
+      "elements_in": 558,
+      "elements_out": 558
+    },
+    {
+      "path": "libraries/gianpaima/stick-figures-collaboration.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 6,
+      "items_out": 6,
+      "elements_in": 208,
+      "elements_out": 208
+    },
+    {
+      "path": "libraries/gregory/golang-gophers.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 6,
+      "items_out": 6,
+      "elements_in": 207,
+      "elements_out": 207,
+      "element_keys_dropped": {
+        "strokeSharpness": 207
+      }
+    },
+    {
+      "path": "libraries/h7y/dropdowns.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 3,
+      "items_out": 3,
+      "elements_in": 25,
+      "elements_out": 25,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 25,
+        "strokeSharpness": 25
+      }
+    },
+    {
+      "path": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 72,
+      "items_out": 72,
+      "elements_in": 678,
+      "elements_out": 678,
+      "bindings_cleared": 1,
+      "legacy_bindings_without_geometry": 1
+    },
+    {
+      "path": "libraries/https-github-com-jinmingyi1998/collective-operation.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 8,
+      "items_out": 8,
+      "elements_in": 204,
+      "elements_out": 204,
+      "element_keys_dropped": {
+        "strokeSharpness": 64
+      },
+      "bindings_cleared": 159,
+      "legacy_bindings_without_geometry": 159
+    },
+    {
+      "path": "libraries/https-github-com-papacrispy/uml-library-activity-diagram.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 16,
+      "items_out": 16,
+      "elements_in": 30,
+      "elements_out": 30,
+      "element_keys_dropped": {
+        "strokeSharpness": 30
+      }
+    },
+    {
+      "path": "libraries/https-github-com-patrickcuba/snowflake-iconography.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 54,
+      "items_out": 54,
+      "elements_in": 1972,
+      "elements_out": 1972,
+      "element_keys_dropped": {
+        "strokeSharpness": 1972
+      }
+    },
+    {
+      "path": "libraries/https-github-com-sly-dog/ds-visualizations.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 2,
+      "items_out": 2,
+      "elements_in": 197,
+      "elements_out": 197,
+      "element_keys_dropped": {
+        "rawText": 15,
+        "strokeSharpness": 197
+      }
+    },
+    {
+      "path": "libraries/https-github-com-tomorrowx-dev/tomorrowx-composable-agentic-platform-cap.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 116,
+      "elements_out": 116
+    },
+    {
+      "path": "libraries/https-github-com-ytrkptl/math-teacher-library.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 12,
+      "items_out": 12,
+      "elements_in": 139,
+      "elements_out": 139,
+      "element_keys_dropped": {
+        "strokeSharpness": 139
+      },
+      "bindings_cleared": 4,
+      "legacy_bindings_without_geometry": 4
+    },
+    {
+      "path": "libraries/husainkhambaty/aws-simple-icons.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 17,
+      "items_out": 17,
+      "elements_in": 71,
+      "elements_out": 71,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 71,
+        "strokeSharpness": 71
+      }
+    },
+    {
+      "path": "libraries/ibex-technology/web3-crypto-solution-design-v1.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 10,
+      "items_out": 10,
+      "elements_in": 146,
+      "elements_out": 146,
+      "element_keys_dropped": {
+        "strokeSharpness": 146
+      }
+    },
+    {
+      "path": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 52,
+      "items_out": 52,
+      "elements_in": 938,
+      "elements_out": 938,
+      "bindings_cleared": 15,
+      "legacy_bindings_without_geometry": 15
+    },
+    {
+      "path": "libraries/intradeus/algorithms-and-data-structures-arrays-matrices-trees.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 22,
+      "items_out": 22,
+      "elements_in": 454,
+      "elements_out": 454,
+      "element_keys_dropped": {
+        "rawText": 86,
+        "strokeSharpness": 454
+      },
+      "bindings_cleared": 114,
+      "legacy_bindings_without_geometry": 114
+    },
+    {
+      "path": "libraries/inwardmovement/information-architecture.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 17,
+      "items_out": 17,
+      "elements_in": 56,
+      "elements_out": 56,
+      "element_keys_dropped": {
+        "strokeSharpness": 56
+      }
+    },
+    {
+      "path": "libraries/ipedrazas/go-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 2,
+      "items_out": 2,
+      "elements_in": 27,
+      "elements_out": 27,
+      "element_keys_dropped": {
+        "strokeSharpness": 27
+      }
+    },
+    {
+      "path": "libraries/itsmestefanjay/camunda-platform-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 12,
+      "items_out": 12,
+      "elements_in": 80,
+      "elements_out": 80
+    },
+    {
+      "path": "libraries/jakubpawlina/graphs.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 12,
+      "items_out": 12,
+      "elements_in": 267,
+      "elements_out": 267,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 267,
+        "strokeSharpness": 267
+      }
+    },
+    {
+      "path": "libraries/jasoncoelho/arduino-micro.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 1,
+      "items_out": 1,
+      "elements_in": 132,
+      "elements_out": 132,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 132,
+        "strokeSharpness": 132
+      }
+    },
+    {
+      "path": "libraries/jatinkrmalik/atlassian-product-suite.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 7,
+      "items_out": 7,
+      "elements_in": 18,
+      "elements_out": 18
+    },
+    {
+      "path": "libraries/jdelacruz/veeam_unofficial.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 76,
+      "items_out": 76,
+      "elements_in": 936,
+      "elements_out": 936,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 936,
+        "strokeSharpness": 936
+      },
+      "bindings_cleared": 35,
+      "legacy_bindings_without_geometry": 35
+    },
+    {
+      "path": "libraries/jgansaown/ultimate-frisbee.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 12,
+      "elements_out": 12
+    },
+    {
+      "path": "libraries/jgodoy/network-locations.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 5,
+      "items_out": 5,
+      "elements_in": 344,
+      "elements_out": 344,
+      "element_keys_dropped": {
+        "rawText": 5,
+        "strokeSharpness": 344
+      }
+    },
+    {
+      "path": "libraries/jgodoy/organization-chart.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 9,
+      "items_out": 9,
+      "elements_in": 35,
+      "elements_out": 35,
+      "element_keys_dropped": {
+        "strokeSharpness": 35
+      }
+    },
+    {
+      "path": "libraries/jgodoy/racks-and-servers-components.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 5,
+      "items_out": 5,
+      "elements_in": 58,
+      "elements_out": 58,
+      "element_keys_dropped": {
+        "strokeSharpness": 58
+      }
+    },
+    {
+      "path": "libraries/jhoughes/veeam.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 13,
+      "items_out": 13,
+      "elements_in": 230,
+      "elements_out": 230,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 230,
+        "strokeSharpness": 230
+      }
+    },
+    {
+      "path": "libraries/jjadup/mathematical-symbols.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 15,
+      "items_out": 15,
+      "elements_in": 22,
+      "elements_out": 22,
+      "element_keys_dropped": {
+        "strokeSharpness": 22
+      }
+    },
+    {
+      "path": "libraries/jkattnis/traffic-signs.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 9,
+      "items_out": 9,
+      "elements_in": 29,
+      "elements_out": 29,
+      "element_keys_dropped": {
+        "strokeSharpness": 29
+      }
+    },
+    {
+      "path": "libraries/jordangeurtsen/uml-component-diagram.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 6,
+      "items_out": 6,
+      "elements_in": 20,
+      "elements_out": 20,
+      "element_keys_dropped": {
+        "boundElementIds": 1,
+        "strokeSharpness": 3
+      },
+      "bindings_cleared": 2,
+      "legacy_bindings_without_geometry": 2
+    },
+    {
+      "path": "libraries/jordangeurtsen/uml-deployment-diagram.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 8,
+      "items_out": 8,
+      "elements_in": 44,
+      "elements_out": 44,
+      "bindings_cleared": 14,
+      "legacy_bindings_without_geometry": 14
+    },
+    {
+      "path": "libraries/jumpingrivers/r.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 2,
+      "items_out": 2,
+      "elements_in": 5,
+      "elements_out": 5,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 5,
+        "strokeSharpness": 5
+      }
+    },
+    {
+      "path": "libraries/jurgen-kattnis/picasso-s-line-drawings.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 9,
+      "items_out": 9,
+      "elements_in": 68,
+      "elements_out": 68,
+      "element_keys_dropped": {
+        "strokeSharpness": 68
+      }
+    },
+    {
+      "path": "libraries/kabirsinghshekhawat/genealogy-essentials.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 12,
+      "items_out": 12,
+      "elements_in": 68,
+      "elements_out": 68,
+      "element_keys_dropped": {
+        "strokeSharpness": 68
+      },
+      "bindings_cleared": 2,
+      "legacy_bindings_without_geometry": 2
+    },
+    {
+      "path": "libraries/kaligule/robots.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 7,
+      "items_out": 7,
+      "elements_in": 71,
+      "elements_out": 71,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 71,
+        "strokeSharpness": 71
+      }
+    },
+    {
+      "path": "libraries/kbentekik/piping-and-instrumentation-diagram-p-id.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 28,
+      "items_out": 28,
+      "elements_in": 188,
+      "elements_out": 188
+    },
+    {
+      "path": "libraries/kinghavok/some-common-cloud-apps.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 15,
+      "items_out": 15,
+      "elements_in": 62,
+      "elements_out": 62,
+      "element_keys_dropped": {
+        "boundElementIds": 62,
+        "strokeSharpness": 62
+      }
+    },
+    {
+      "path": "libraries/kleinpetr/simple-sticky-notes.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 7,
+      "items_out": 7,
+      "elements_in": 14,
+      "elements_out": 14
+    },
+    {
+      "path": "libraries/krustvalentin/printers.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 3,
+      "items_out": 3,
+      "elements_in": 32,
+      "elements_out": 32,
+      "element_keys_dropped": {
+        "strokeSharpness": 32
+      }
+    },
+    {
+      "path": "libraries/kvchitrapu/data-sources.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 6,
+      "items_out": 6,
+      "elements_in": 110,
+      "elements_out": 110,
+      "element_keys_dropped": {
+        "strokeSharpness": 110
+      },
+      "bindings_cleared": 2,
+      "legacy_bindings_without_geometry": 2
+    },
+    {
+      "path": "libraries/kvchitrapu/secure_shell.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 3,
+      "items_out": 3,
+      "elements_in": 6,
+      "elements_out": 6,
+      "element_keys_dropped": {
+        "strokeSharpness": 6
+      }
+    },
+    {
+      "path": "libraries/kvmet/chickens.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 3,
+      "items_out": 3,
+      "elements_in": 34,
+      "elements_out": 34
+    },
+    {
+      "path": "libraries/kwirke/some-handdrawn-signs.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 2,
+      "items_out": 2,
+      "elements_in": 3,
+      "elements_out": 3,
+      "element_keys_dropped": {
+        "strokeSharpness": 3
+      }
+    },
+    {
+      "path": "libraries/l8y/music-instruments.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 9,
+      "items_out": 9,
+      "elements_in": 231,
+      "elements_out": 231,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 231,
+        "strokeSharpness": 231
+      }
+    },
+    {
+      "path": "libraries/lipis/polygons.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 6,
+      "items_out": 6,
+      "elements_in": 6,
+      "elements_out": 6,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "strokeSharpness": 6
+      }
+    },
+    {
+      "path": "libraries/lipis/stars.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 12,
+      "items_out": 12,
+      "elements_in": 12,
+      "elements_out": 12,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "strokeSharpness": 12
+      }
+    },
+    {
+      "path": "libraries/lowess/kubernetes-icons-set.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 19,
+      "items_out": 19,
+      "elements_in": 137,
+      "elements_out": 137,
+      "element_keys_dropped": {
+        "strokeSharpness": 137
+      },
+      "bindings_cleared": 22,
+      "legacy_bindings_without_geometry": 22
+    },
+    {
+      "path": "libraries/lukethorp/databricks-architecture-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 24,
+      "items_out": 24,
+      "elements_in": 142,
+      "elements_out": 142
+    },
+    {
+      "path": "libraries/m47812/office-items.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 17,
+      "items_out": 17,
+      "elements_in": 100,
+      "elements_out": 100,
+      "element_keys_dropped": {
+        "strokeSharpness": 100
+      }
+    },
+    {
+      "path": "libraries/madhusuthanan-b/front-end-tech-and-tools.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 6,
+      "items_out": 6,
+      "elements_in": 48,
+      "elements_out": 48,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 48,
+        "strokeSharpness": 48
+      }
+    },
+    {
+      "path": "libraries/madhusuthanan-b/html-css-js-icons.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 3,
+      "items_out": 3,
+      "elements_in": 13,
+      "elements_out": 13,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 13,
+        "strokeSharpness": 13
+      }
+    },
+    {
+      "path": "libraries/maeddes/technology-logos.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 18,
+      "items_out": 18,
+      "elements_in": 261,
+      "elements_out": 261,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 261,
+        "strokeSharpness": 261
+      },
+      "element_keys_added_on_reload": {
+        "line.polygon": 20
+      }
+    },
+    {
+      "path": "libraries/manuelernestog/universal-ui-kit.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 22,
+      "items_out": 22,
+      "elements_in": 137,
+      "elements_out": 137,
+      "element_keys_dropped": {
+        "strokeSharpness": 137
+      }
+    },
+    {
+      "path": "libraries/marcottebear/raspberrypi-zero.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 1,
+      "items_out": 1,
+      "elements_in": 123,
+      "elements_out": 123,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 123,
+        "strokeSharpness": 123
+      }
+    },
+    {
+      "path": "libraries/markopolo123/dev_ops.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 29,
+      "items_out": 29,
+      "elements_in": 257,
+      "elements_out": 257,
+      "element_keys_dropped": {
+        "strokeSharpness": 257
+      }
+    },
+    {
+      "path": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 35,
+      "items_out": 35,
+      "elements_in": 340,
+      "elements_out": 340
+    },
+    {
+      "path": "libraries/marwinburesch/github-icons.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 7,
+      "items_out": 7,
+      "elements_in": 45,
+      "elements_out": 45,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 45,
+        "strokeSharpness": 45
+      }
+    },
+    {
+      "path": "libraries/marwinburesch/html-input-elements.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 8,
+      "items_out": 8,
+      "elements_in": 31,
+      "elements_out": 31,
+      "element_keys_dropped": {
+        "strokeSharpness": 31
+      }
+    },
+    {
+      "path": "libraries/mateuszbaransanok/it-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 48,
+      "items_out": 48,
+      "elements_in": 218,
+      "elements_out": 218
+    },
+    {
+      "path": "libraries/matthijssloep/fair-web-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 17,
+      "elements_out": 17
+    },
+    {
+      "path": "libraries/mattias-fjellstrom/hashicorp.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 8,
+      "items_out": 8,
+      "elements_in": 31,
+      "elements_out": 31
+    },
+    {
+      "path": "libraries/mayankguptadotcom/wardley-mapping-canvas.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 12,
+      "items_out": 12,
+      "elements_in": 476,
+      "elements_out": 476,
+      "bindings_cleared": 171,
+      "legacy_bindings_without_geometry": 171
+    },
+    {
+      "path": "libraries/mguidoti/google-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 139,
+      "items_out": 139,
+      "elements_in": 1305,
+      "elements_out": 1305,
+      "element_keys_dropped": {
+        "rawText": 139,
+        "strokeSharpness": 1305
+      }
+    },
+    {
+      "path": "libraries/mguidoti/it-tools-logos.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 5,
+      "items_out": 5,
+      "elements_in": 118,
+      "elements_out": 118,
+      "element_keys_dropped": {
+        "strokeSharpness": 118
+      }
+    },
+    {
+      "path": "libraries/mguidoti/original-google-architecture-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 139,
+      "items_out": 139,
+      "elements_in": 1453,
+      "elements_out": 1453,
+      "element_keys_dropped": {
+        "rawText": 139,
+        "strokeSharpness": 1453
+      }
+    },
+    {
+      "path": "libraries/michelcaradec/cloud-design-patterns.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 24,
+      "items_out": 24,
+      "elements_in": 203,
+      "elements_out": 203,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 203,
+        "strokeSharpness": 203
+      },
+      "bindings_cleared": 56,
+      "legacy_bindings_without_geometry": 56
+    },
+    {
+      "path": "libraries/mikhailredis/redis-grafana.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 13,
+      "items_out": 13,
+      "elements_in": 106,
+      "elements_out": 106,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 106,
+        "strokeSharpness": 106
+      },
+      "element_keys_added_on_reload": {
+        "line.polygon": 10
+      }
+    },
+    {
+      "path": "libraries/molibden/types-and-values-in-javascript.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 11,
+      "items_out": 11,
+      "elements_in": 27,
+      "elements_out": 27,
+      "element_keys_dropped": {
+        "rawText": 13
+      }
+    },
+    {
+      "path": "libraries/monty/an-adjustable-arrow-shape-that-can-be-modified-in-a-number-of-ways-to-suit-different-use-cases.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 3,
+      "items_out": 3,
+      "elements_in": 33,
+      "elements_out": 33
+    },
+    {
+      "path": "libraries/moochin/simple-characters.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 49,
+      "items_out": 49,
+      "elements_in": 1489,
+      "elements_out": 1489,
+      "bindings_cleared": 1,
+      "legacy_bindings_without_geometry": 1
+    },
+    {
+      "path": "libraries/morgemoensch/gadgets.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 5,
+      "items_out": 5,
+      "elements_in": 27,
+      "elements_out": 27,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 27,
+        "strokeSharpness": 27
+      }
+    },
+    {
+      "path": "libraries/mppowell/circuit-components.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 24,
+      "items_out": 24,
+      "elements_in": 82,
+      "elements_out": 82,
+      "element_keys_dropped": {
+        "strokeSharpness": 82
+      }
+    },
+    {
+      "path": "libraries/mrmaffen/dnd-ttrpg-battle-map-creature-tokens.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 1,
+      "items_out": 1,
+      "elements_in": 355,
+      "elements_out": 355
+    },
+    {
+      "path": "libraries/mwc360/microsoft-fabric-architecture-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 135,
+      "items_out": 135,
+      "elements_in": 1098,
+      "elements_out": 1098,
+      "element_keys_dropped": {
+        "strokeSharpness": 18
+      }
+    },
+    {
+      "path": "libraries/narhari-motivaras/aws-architecture-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 34,
+      "elements_out": 34,
+      "element_keys_dropped": {
+        "boundElementIds": 34,
+        "strokeSharpness": 34
+      },
+      "bindings_cleared": 3,
+      "legacy_bindings_without_geometry": 3
+    },
+    {
+      "path": "libraries/nemeki/ttrpg-clocks.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 21,
+      "items_out": 21,
+      "elements_in": 104,
+      "elements_out": 104
+    },
+    {
+      "path": "libraries/newbyca/cryptocurrencies.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 11,
+      "items_out": 11,
+      "elements_in": 126,
+      "elements_out": 126,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 126,
+        "strokeSharpness": 126
+      }
+    },
+    {
+      "path": "libraries/niknm/systemdesignicons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 3,
+      "items_out": 3,
+      "elements_in": 40,
+      "elements_out": 40,
+      "element_keys_dropped": {
+        "boundElementIds": 40,
+        "strokeSharpness": 40
+      },
+      "bindings_cleared": 10,
+      "legacy_bindings_without_geometry": 10
+    },
+    {
+      "path": "libraries/nikordaris/team-topologies.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 8,
+      "items_out": 8,
+      "elements_in": 10,
+      "elements_out": 10,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 10,
+        "strokeSharpness": 10
+      }
+    },
+    {
+      "path": "libraries/novakkkarel/nsx-t-vmware.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 20,
+      "items_out": 20,
+      "elements_in": 114,
+      "elements_out": 114,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 114,
+        "strokeSharpness": 114
+      },
+      "bindings_cleared": 2,
+      "legacy_bindings_without_geometry": 2
+    },
+    {
+      "path": "libraries/ocapraro/bubbles.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 46,
+      "elements_out": 46,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 46,
+        "strokeSharpness": 46
+      }
+    },
+    {
+      "path": "libraries/odraghi/vmware-architecture-design.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 48,
+      "items_out": 48,
+      "elements_in": 560,
+      "elements_out": 560,
+      "bindings_cleared": 1,
+      "legacy_bindings_without_geometry": 1
+    },
+    {
+      "path": "libraries/oehrlis/db-eng.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 39,
+      "items_out": 39,
+      "elements_in": 581,
+      "elements_out": 581,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 581,
+        "strokeSharpness": 581
+      },
+      "bindings_cleared": 6,
+      "legacy_bindings_without_geometry": 6
+    },
+    {
+      "path": "libraries/patrickcuba/data-vault.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 30,
+      "items_out": 30,
+      "elements_in": 468,
+      "elements_out": 468,
+      "element_keys_dropped": {
+        "strokeSharpness": 468
+      }
+    },
+    {
+      "path": "libraries/pclainchard/it-logos.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 31,
+      "items_out": 31,
+      "elements_in": 214,
+      "elements_out": 214
+    },
+    {
+      "path": "libraries/pfound/football-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 6,
+      "items_out": 6,
+      "elements_in": 146,
+      "elements_out": 146
+    },
+    {
+      "path": "libraries/pgilfernandez/basic-shapes.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 32,
+      "items_out": 32,
+      "elements_in": 32,
+      "elements_out": 32,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 32,
+        "strokeSharpness": 32
+      }
+    },
+    {
+      "path": "libraries/pixelass/body-builder-kit-1.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 15,
+      "items_out": 15,
+      "elements_in": 438,
+      "elements_out": 438,
+      "element_keys_dropped": {
+        "strokeSharpness": 438
+      }
+    },
+    {
+      "path": "libraries/pixelass/character-kit-1.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 2,
+      "items_out": 2,
+      "elements_in": 193,
+      "elements_out": 193,
+      "element_keys_dropped": {
+        "strokeSharpness": 193
+      }
+    },
+    {
+      "path": "libraries/pixelass/female-heads-diverse.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 8,
+      "items_out": 8,
+      "elements_in": 288,
+      "elements_out": 288,
+      "element_keys_dropped": {
+        "strokeSharpness": 288
+      }
+    },
+    {
+      "path": "libraries/pixelass/head-builder-kit-1.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 49,
+      "items_out": 49,
+      "elements_in": 233,
+      "elements_out": 233,
+      "element_keys_dropped": {
+        "strokeSharpness": 233
+      }
+    },
+    {
+      "path": "libraries/pixelass/male-heads-diverse-1.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 12,
+      "items_out": 12,
+      "elements_in": 449,
+      "elements_out": 449,
+      "element_keys_dropped": {
+        "strokeSharpness": 449
+      }
+    },
+    {
+      "path": "libraries/pixelass/tools.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 9,
+      "items_out": 9,
+      "elements_in": 236,
+      "elements_out": 236,
+      "element_keys_dropped": {
+        "strokeSharpness": 236
+      }
+    },
+    {
+      "path": "libraries/pocomane/boardgame.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 10,
+      "items_out": 10,
+      "elements_in": 51,
+      "elements_out": 51,
+      "element_keys_dropped": {
+        "strokeSharpness": 51
+      }
+    },
+    {
+      "path": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 7,
+      "items_out": 7,
+      "elements_in": 251,
+      "elements_out": 251,
+      "bindings_cleared": 62,
+      "legacy_bindings_without_geometry": 59
+    },
+    {
+      "path": "libraries/pret/chess-set.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 13,
+      "items_out": 13,
+      "elements_in": 93,
+      "elements_out": 93,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 93,
+        "strokeSharpness": 93
+      }
+    },
+    {
+      "path": "libraries/r4z4/elixir.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 6,
+      "items_out": 6,
+      "elements_in": 99,
+      "elements_out": 99
+    },
+    {
+      "path": "libraries/revolunet/raspberrypi3.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 1,
+      "items_out": 1,
+      "elements_in": 123,
+      "elements_out": 123,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 123,
+        "strokeSharpness": 123
+      }
+    },
+    {
+      "path": "libraries/risjain/electrical-engineering.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 15,
+      "items_out": 15,
+      "elements_in": 83,
+      "elements_out": 83,
+      "element_keys_dropped": {
+        "rawText": 5,
+        "strokeSharpness": 83
+      }
+    },
+    {
+      "path": "libraries/rkjc/arduino-boards.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 5,
+      "items_out": 5,
+      "elements_in": 979,
+      "elements_out": 979,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 979,
+        "strokeSharpness": 979
+      }
+    },
+    {
+      "path": "libraries/rkjc/schematic-symbols.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 24,
+      "items_out": 24,
+      "elements_in": 214,
+      "elements_out": 214,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 214,
+        "strokeSharpness": 214
+      }
+    },
+    {
+      "path": "libraries/robin-muller/digital-signal-processing.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 8,
+      "items_out": 8,
+      "elements_in": 32,
+      "elements_out": 32,
+      "element_keys_dropped": {
+        "strokeSharpness": 32
+      }
+    },
+    {
+      "path": "libraries/rochacbruno/computer-parts.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 8,
+      "items_out": 8,
+      "elements_in": 90,
+      "elements_out": 90,
+      "element_keys_dropped": {
+        "strokeSharpness": 90
+      }
+    },
+    {
+      "path": "libraries/rockssk/microsoft-azure-cloud-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 19,
+      "items_out": 19,
+      "elements_in": 233,
+      "elements_out": 233,
+      "element_keys_dropped": {
+        "strokeSharpness": 233
+      }
+    },
+    {
+      "path": "libraries/rohanp/system-design.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 24,
+      "items_out": 24,
+      "elements_in": 231,
+      "elements_out": 231,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 231,
+        "strokeSharpness": 231
+      },
+      "bindings_cleared": 13,
+      "legacy_bindings_without_geometry": 13
+    },
+    {
+      "path": "libraries/samu_x86/network-elements.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 5,
+      "items_out": 5,
+      "elements_in": 68,
+      "elements_out": 68,
+      "element_keys_dropped": {
+        "boundElementIds": 68,
+        "strokeSharpness": 68
+      },
+      "bindings_cleared": 3,
+      "legacy_bindings_without_geometry": 3
+    },
+    {
+      "path": "libraries/schiriki123/playing-cards.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 5,
+      "items_out": 5,
+      "elements_in": 48,
+      "elements_out": 48,
+      "element_keys_dropped": {
+        "strokeSharpness": 48
+      }
+    },
+    {
+      "path": "libraries/selanas/it-logos.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 7,
+      "items_out": 7,
+      "elements_in": 72,
+      "elements_out": 72,
+      "element_keys_dropped": {
+        "strokeSharpness": 72
+      }
+    },
+    {
+      "path": "libraries/sharathsanketh/biology.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 207,
+      "elements_out": 207,
+      "element_keys_dropped": {
+        "strokeSharpness": 207
+      }
+    },
+    {
+      "path": "libraries/shellerbrand/canvases.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 2,
+      "items_out": 2,
+      "elements_in": 121,
+      "elements_out": 121,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 121,
+        "strokeSharpness": 121
+      }
+    },
+    {
+      "path": "libraries/shinkim/desktop-resolutions.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 27,
+      "elements_out": 27,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 27,
+        "strokeSharpness": 27
+      }
+    },
+    {
+      "path": "libraries/shinkim/presentation-templates.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 6,
+      "items_out": 6,
+      "elements_in": 60,
+      "elements_out": 60,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 60,
+        "strokeSharpness": 60
+      }
+    },
+    {
+      "path": "libraries/simalexan/wardley-maps-symbols.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 10,
+      "items_out": 10,
+      "elements_in": 37,
+      "elements_out": 37,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 37,
+        "strokeSharpness": 37
+      },
+      "bindings_cleared": 2,
+      "legacy_bindings_without_geometry": 2
+    },
+    {
+      "path": "libraries/simonthomine/pathology.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 20,
+      "items_out": 20,
+      "elements_in": 601,
+      "elements_out": 601,
+      "bindings_cleared": 11,
+      "legacy_bindings_without_geometry": 11
+    },
+    {
+      "path": "libraries/sketchingdev/banners.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 7,
+      "items_out": 7,
+      "elements_in": 34,
+      "elements_out": 34,
+      "element_keys_dropped": {
+        "strokeSharpness": 34
+      }
+    },
+    {
+      "path": "libraries/slobodan/aws-serverless.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 15,
+      "items_out": 15,
+      "elements_in": 146,
+      "elements_out": 146,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 146,
+        "strokeSharpness": 146
+      },
+      "bindings_cleared": 4,
+      "legacy_bindings_without_geometry": 4
+    },
+    {
+      "path": "libraries/spfr/lo-fi-wireframing-kit.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 23,
+      "items_out": 23,
+      "elements_in": 296,
+      "elements_out": 296,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 296,
+        "strokeSharpness": 296
+      },
+      "element_keys_added_on_reload": {
+        "line.polygon": 11
+      }
+    },
+    {
+      "path": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 24,
+      "items_out": 24,
+      "elements_in": 264,
+      "elements_out": 264,
+      "bindings_cleared": 10,
+      "legacy_bindings_without_geometry": 10
+    },
+    {
+      "path": "libraries/stuc2010/enterprise-integration-patterns.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 42,
+      "items_out": 42,
+      "elements_in": 278,
+      "elements_out": 278,
+      "element_keys_dropped": {
+        "rawText": 50,
+        "strokeSharpness": 278
+      },
+      "bindings_cleared": 34,
+      "legacy_bindings_without_geometry": 34
+    },
+    {
+      "path": "libraries/sudotachy/medicine.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 91,
+      "elements_out": 91,
+      "element_keys_dropped": {
+        "boundElementIds": 91,
+        "rawText": 6,
+        "strokeSharpness": 91
+      }
+    },
+    {
+      "path": "libraries/surya-teja-venteddu/make-your-calendar.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 8,
+      "items_out": 8,
+      "elements_in": 622,
+      "elements_out": 622,
+      "element_keys_dropped": {
+        "strokeSharpness": 622
+      }
+    },
+    {
+      "path": "libraries/swissarmysam/maps.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 174,
+      "elements_out": 174,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 174,
+        "strokeSharpness": 174
+      },
+      "bindings_cleared": 8,
+      "legacy_bindings_without_geometry": 8
+    },
+    {
+      "path": "libraries/thebrahmnicboy/Logic-Gates.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 10,
+      "items_out": 10,
+      "elements_in": 71,
+      "elements_out": 71,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 71,
+        "strokeSharpness": 71
+      }
+    },
+    {
+      "path": "libraries/thijsdev/snowflake.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 8,
+      "items_out": 8,
+      "elements_in": 60,
+      "elements_out": 60,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 60,
+        "strokeSharpness": 60
+      }
+    },
+    {
+      "path": "libraries/thrsz/organic-chemistry-basics.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 27,
+      "items_out": 27,
+      "elements_in": 54,
+      "elements_out": 54,
+      "element_keys_dropped": {
+        "rawText": 13,
+        "strokeSharpness": 54
+      }
+    },
+    {
+      "path": "libraries/timothygalvin/excalidraw-archimate-template.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 38,
+      "items_out": 38,
+      "elements_in": 154,
+      "elements_out": 154,
+      "bindings_cleared": 2,
+      "legacy_bindings_without_geometry": 2
+    },
+    {
+      "path": "libraries/toman/checkmarks.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 10,
+      "elements_out": 10
+    },
+    {
+      "path": "libraries/tuckdiaz/internet-service-providers.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 7,
+      "items_out": 7,
+      "elements_in": 60,
+      "elements_out": 60,
+      "element_keys_dropped": {
+        "strokeSharpness": 60
+      }
+    },
+    {
+      "path": "libraries/tvoozmagnificent/coordinates.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 13,
+      "elements_out": 13,
+      "element_keys_dropped": {
+        "strokeSharpness": 13
+      }
+    },
+    {
+      "path": "libraries/tylerkron/event-storming.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 7,
+      "items_out": 7,
+      "elements_in": 14,
+      "elements_out": 14,
+      "element_keys_dropped": {
+        "strokeSharpness": 14
+      }
+    },
+    {
+      "path": "libraries/ubigene/misc-azure-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 7,
+      "items_out": 7,
+      "elements_in": 79,
+      "elements_out": 79,
+      "element_keys_dropped": {
+        "strokeSharpness": 79
+      }
+    },
+    {
+      "path": "libraries/weareborg/synths-and-fx.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 6,
+      "items_out": 6,
+      "elements_in": 996,
+      "elements_out": 996,
+      "element_keys_dropped": {
+        "rawText": 21,
+        "strokeSharpness": 996
+      }
+    },
+    {
+      "path": "libraries/webkul/ecommerce-mobile-ui.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 75,
+      "items_out": 75,
+      "elements_in": 1014,
+      "elements_out": 1014,
+      "bindings_cleared": 5,
+      "legacy_bindings_without_geometry": 5
+    },
+    {
+      "path": "libraries/wictorwilen/microsoft-365-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 37,
+      "items_out": 37,
+      "elements_in": 166,
+      "elements_out": 166
+    },
+    {
+      "path": "libraries/wmartzh/data-flow.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 4,
+      "items_out": 4,
+      "elements_in": 13,
+      "elements_out": 13,
+      "element_keys_dropped": {
+        "strokeSharpness": 13
+      }
+    },
+    {
+      "path": "libraries/xxxdeveloper/icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 65,
+      "items_out": 65,
+      "elements_in": 633,
+      "elements_out": 633,
+      "element_keys_dropped": {
+        "strokeSharpness": 633
+      }
+    },
+    {
+      "path": "libraries/xxxdeveloper/system-icons.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 24,
+      "items_out": 24,
+      "elements_in": 94,
+      "elements_out": 94,
+      "element_keys_dropped": {
+        "strokeSharpness": 94
+      }
+    },
+    {
+      "path": "libraries/xxxdeveloper/wireframing-placeholders.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 10,
+      "items_out": 10,
+      "elements_in": 94,
+      "elements_out": 94,
+      "element_keys_dropped": {
+        "strokeSharpness": 94
+      }
+    },
+    {
+      "path": "libraries/youritjang/azure-cloud-services.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 19,
+      "items_out": 19,
+      "elements_in": 125,
+      "elements_out": 125,
+      "element_keys_dropped": {
+        "strokeSharpness": 125
+      },
+      "bindings_cleared": 2,
+      "legacy_bindings_without_geometry": 2
+    },
+    {
+      "path": "libraries/youritjang/software-architecture.excalidrawlib.gz",
+      "version": 1,
+      "items_in": 7,
+      "items_out": 7,
+      "elements_in": 41,
+      "elements_out": 41,
+      "envelope_keys_dropped": {
+        "library": 1
+      },
+      "element_keys_dropped": {
+        "boundElementIds": 41,
+        "strokeSharpness": 41
+      },
+      "element_keys_added_on_reload": {
+        "line.polygon": 7
+      }
+    },
+    {
+      "path": "libraries/youritjang/stick-figures.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 9,
+      "items_out": 9,
+      "elements_in": 80,
+      "elements_out": 80,
+      "element_keys_dropped": {
+        "strokeSharpness": 80
+      }
+    },
+    {
+      "path": "libraries/yuelfei/deep-learning.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 12,
+      "items_out": 12,
+      "elements_in": 1007,
+      "elements_out": 1007,
+      "element_keys_dropped": {
+        "strokeSharpness": 1007
+      },
+      "bindings_cleared": 125,
+      "legacy_bindings_without_geometry": 125
+    },
+    {
+      "path": "libraries/zanetworker/red-hat.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 3,
+      "items_out": 3,
+      "elements_in": 15,
+      "elements_out": 15,
+      "element_keys_dropped": {
+        "strokeSharpness": 15
+      }
+    },
+    {
+      "path": "libraries/zesty-lemur/microsoft-apps.excalidrawlib.gz",
+      "version": 2,
+      "items_in": 8,
+      "items_out": 8,
+      "elements_in": 41,
+      "elements_out": 41,
+      "element_keys_dropped": {
+        "strokeSharpness": 41
+      }
+    }
+  ]
+}

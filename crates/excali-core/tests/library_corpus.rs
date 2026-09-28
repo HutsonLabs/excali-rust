@@ -77,6 +77,113 @@ fn catalogue() -> Vec<(String, String)> {
     files
 }
 
+const DESCRIPTION: &str = "What loading each catalogue library (fixtures/libraries; \
+parseLibraryJSON with defaultStatus published in upstream's test mode) and writing it with \
+serializeLibraryAsJSON loses: keys of the file absent from the written file, elements not \
+written, arrow bindings written as null, legacy bindings that need element geometry, \
+duplicate element ids replaced, and keys a second load adds. Every kind is explained under \
+reasons. Regenerate with EXCALI_BLESS=1 cargo test -p excali-core --test library_corpus.";
+
+/// Every kind of loss the report may list, with the upstream rule behind
+/// it (`packages/excalidraw/data/*.ts` at the pinned commit). A loss the
+/// table does not explain fails the test.
+const REASONS: &[(&str, &str)] = &[
+    (
+        "envelope_keys_dropped.library",
+        "v1 items are written under libraryItems: serializeLibraryAsJSON writes {type, \
+         version: 2, source, libraryItems} only (json.ts:137-145)",
+    ),
+    (
+        "element_keys_dropped.strokeSharpness",
+        "legacy: read into roundness, then deleted (restore.ts:475-484, 511)",
+    ),
+    (
+        "element_keys_dropped.boundElementIds",
+        "legacy: read into boundElements as arrows, then deleted (restore.ts:486-488, 512)",
+    ),
+    (
+        "element_keys_dropped.rawText",
+        "legacy obsidian-excalidraw attribute of text elements, deleted (restore.ts:532-534)",
+    ),
+    (
+        "elements_dropped.typed model cannot read it (ex-117)",
+        "restore keeps a value of another JSON type (restore.ts:459 keeps strokeWidth \"3\") \
+         and upstream loads the element; the typed model reads numbers only and drops it \
+         (port gap, ex-117)",
+    ),
+    (
+        "elements_dropped.deleted",
+        "a library item keeps its non-deleted elements only (restore.ts:1374-1379)",
+    ),
+    (
+        "elements_dropped.legacy selection element",
+        "restoreElements filters type selection out (restore.ts:967-971)",
+    ),
+    (
+        "elements_dropped.unknown type",
+        "restoreElement returns null for a type it does not know (restore.ts:751)",
+    ),
+    (
+        "elements_dropped.restore throws",
+        "restoreElements drops an element restoreElement throws on (restore.ts:982-985)",
+    ),
+    (
+        "elements_dropped.not an object",
+        "restoreElement of a primitive has no type and gives null",
+    ),
+    (
+        "bindings_cleared",
+        "repairBinding gives null for a binding whose element is not in the item and for \
+         a legacy binding whose migration fails (restore.ts:298-428); a line gets no \
+         bindings (restore.ts:636-638)",
+    ),
+    (
+        "legacy_bindings_without_geometry",
+        "a binding without mode to an existing element is migrated with element geometry \
+         (restore.ts:347-418); restore::TestEnv has none, so it is cleared, counted in \
+         bindings_cleared (port gap, ex-116)",
+    ),
+    (
+        "element_ids_replaced",
+        "an id repeated within an item gets randomId() (restore.ts:1000-1003)",
+    ),
+    (
+        "element_keys_added_on_reload.line.polygon",
+        "a legacy draw is restored to line without polygon (isLineElement is false for \
+         draw, restore.ts:645-651); the next load reads a line and adds polygon: false",
+    ),
+];
+
+/// Every kind of loss in `losses`, as the keys of [`REASONS`] name them.
+fn kinds(losses: &Losses) -> Vec<String> {
+    let mut kinds = Vec::new();
+    for (name, map) in [
+        ("envelope_keys_dropped", &losses.envelope_keys_dropped),
+        ("item_keys_dropped", &losses.item_keys_dropped),
+        ("element_keys_dropped", &losses.element_keys_dropped),
+        ("elements_dropped", &losses.elements_dropped),
+        (
+            "element_keys_added_on_reload",
+            &losses.element_keys_added_on_reload,
+        ),
+    ] {
+        kinds.extend(map.keys().map(|k| format!("{name}.{k}")));
+    }
+    for (name, n) in [
+        ("bindings_cleared", losses.bindings_cleared),
+        (
+            "legacy_bindings_without_geometry",
+            losses.legacy_bindings_without_geometry,
+        ),
+        ("element_ids_replaced", losses.element_ids_replaced),
+    ] {
+        if n > 0 {
+            kinds.push(name.to_owned());
+        }
+    }
+    kinds
+}
+
 /// [`TestEnv`] counting the legacy bindings restore asks it to migrate.
 #[derive(Default)]
 struct Counting {
@@ -115,24 +222,36 @@ struct Losses {
     elements_in: u64,
     elements_out: u64,
     /// Envelope keys the written v2 envelope does not have.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     envelope_keys_dropped: BTreeMap<String, u64>,
     /// Keys of a v2 item missing from the written item.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     item_keys_dropped: BTreeMap<String, u64>,
     /// Keys of an element as read missing from it as written.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     element_keys_dropped: BTreeMap<String, u64>,
     /// Elements not written, by reason.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     elements_dropped: BTreeMap<String, u64>,
     /// `startBinding`/`endBinding` objects written as `null`.
+    #[serde(skip_serializing_if = "is_zero")]
     bindings_cleared: u64,
     /// Legacy bindings (no `mode`) to an existing element: upstream keeps
     /// them with a computed `mode` and `fixedPoint`; without geometry they
     /// are cleared (ex-116).
+    #[serde(skip_serializing_if = "is_zero")]
     legacy_bindings_without_geometry: u64,
     /// Elements whose id repeated an earlier one in the item.
+    #[serde(skip_serializing_if = "is_zero")]
     element_ids_replaced: u64,
     /// Keys, as `type.key`, the written file does not have that loading it
     /// again adds (no other change is allowed).
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     element_keys_added_on_reload: BTreeMap<String, u64>,
+}
+
+fn is_zero(n: &u64) -> bool {
+    *n == 0
 }
 
 impl Losses {
@@ -330,7 +449,10 @@ fn added_on_reload(first: &Value, second: &Value) -> BTreeMap<String, u64> {
 #[derive(Serialize)]
 struct Report {
     generator: &'static str,
+    description: &'static str,
     libraries: usize,
+    /// Why each kind of loss happens.
+    reasons: BTreeMap<&'static str, &'static str>,
     totals: Losses,
     files: Vec<Losses>,
 }
@@ -449,9 +571,17 @@ fn every_catalogue_library_round_trips() {
     }
     assert_eq!(versions, BTreeMap::from([(1, 70), (2, 162)]));
 
+    for kind in kinds(&totals) {
+        assert!(
+            REASONS.iter().any(|(k, _)| *k == kind),
+            "{kind}: a loss the report does not explain; add it to REASONS"
+        );
+    }
     let report = Report {
         generator: "crates/excali-core/tests/library_corpus.rs",
+        description: DESCRIPTION,
         libraries: files.len(),
+        reasons: REASONS.iter().copied().collect(),
         totals,
         files,
     };
@@ -478,6 +608,10 @@ fn report_records_the_known_losses() {
     let totals = &report["totals"];
     assert_eq!(report["libraries"], 232);
     assert_eq!(totals["legacy_bindings_without_geometry"], 1245);
+    // Those, 7 bindings to elements the item does not hold and 2 on lines.
+    assert_eq!(totals["bindings_cleared"], 1254);
+    assert_eq!(totals["elements_in"], 55113);
+    assert_eq!(totals["elements_out"], 55089);
     assert_eq!(
         totals["elements_dropped"]["typed model cannot read it (ex-117)"],
         24
