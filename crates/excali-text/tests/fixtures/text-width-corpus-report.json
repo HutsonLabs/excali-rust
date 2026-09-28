@@ -3,6 +3,7 @@
   "description": "Stored against measured widths of every text element in a vendored family across the ex-003 corpus (fixtures/manifest.json): the catalogue libraries and the scene-bearing upstream test fixtures. deviation = |measured - stored| in px, measured with excali_text's FontStore as measureText(text, getFontString(element), lineHeight). Classes are decided without the width; see classes. Regenerate with EXCALI_BLESS=1 cargo test -p excali-text --test text_width_corpus.",
   "tolerance_px": 0.5,
   "gated_families": [
+    1,
     5,
     6,
     8
@@ -27,7 +28,7 @@
     {
       "fontFamily": 1,
       "name": "Virgil",
-      "gated": false,
+      "gated": true,
       "measured": {
         "texts": 1243,
         "within_tolerance": 1149,
@@ -138,7 +139,7 @@
       {
         "fontFamily": 1,
         "name": "Virgil",
-        "gated": false,
+        "gated": true,
         "legacy": {
           "texts": 4,
           "within_tolerance": 0,
@@ -196,7 +197,1145 @@
     },
     "malformed": 0
   },
+  "known_deviation_causes": {
+    "dom_offset_width": "measureText up to 3a141ca7^ (2023-01-30): offsetWidth of a white-space: pre div holding the text and a 1 px inline-block span after its last line; the widest line, ceiled to 1/64 px and rounded",
+    "dom_offset_width_plus_one": "measureText of 3a141ca7 to 9659254f^ (2023-02-23): the same offsetWidth + 1",
+    "scaled_dom_offset_width": "a dom_offset_width (or plus one) at an earlier font size, then resized: width and fontSize scaled together, the height scaling back to whole pixels",
+    "container_width": "bound text of 5c67329b (2022-01-03) to 4cb6f095^ (2022-09-22): width = container width - 2 * BOUND_TEXT_PADDING",
+    "ink_box": "getLineWidth of 62228e0b (2024-07-25) to e3060dfb^ (2025-02-11): max(|actualBoundingBoxLeft| + |actualBoundingBoxRight|, width) from the glyph outlines",
+    "ink_box_whole_pixels": "the same, with the ink box the advance box grown by the ink overhang on each side rounded out to whole pixels",
+    "ink_box_glyph_pixels": "the same, with each glyph's bounds rounded out to whole pixels about its origin",
+    "kept_width": "no measurement found; a width kept from an earlier state of the element"
+  },
   "known_deviations": [
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 3,
+      "id": "0JRcBSO_gKMJBazHfxAl5",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Data lake",
+      "stored_width": 103.8600082397461,
+      "measured_width": 102.86,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 22,
+      "id": "KGpnaWujf-puo-oaNV0qu",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Business data\ncatalog",
+      "stored_width": 143.5,
+      "measured_width": 142.5,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 36,
+      "id": "rGURyQjUp70vj7So_WBL0",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Geospatial\nML",
+      "stored_width": 107.14000701904297,
+      "measured_width": 106.14,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 48,
+      "id": "m0uvWqSaJRPECfyLSUvGH",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "CodeWhisperer",
+      "stored_width": 136.25999450683594,
+      "measured_width": 135.26,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 51,
+      "id": "PG9muBDxU8Hh77wIRcGtu",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Amazon Q",
+      "stored_width": 96.07999420166016,
+      "measured_width": 95.08,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 55,
+      "id": "_LJgifPgEA3C-zj1VhkgA",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Table",
+      "stored_width": 58.78000259399414,
+      "measured_width": 55.78,
+      "deviation_px": -3.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 63,
+      "id": "dtHwYAIJu-13X35LNNi6Y",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Multi-AZ\nDB cluster",
+      "stored_width": 109.50000762939453,
+      "measured_width": 108.5,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 66,
+      "id": "IjWOpBn7bNvJrkpCPuYNJ",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "RDS instance",
+      "stored_width": 131.86000061035156,
+      "measured_width": 130.86,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 67,
+      "id": "7Pp35atG3G5vHW-3XRqpM",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Aurora instance",
+      "stored_width": 156.63999938964844,
+      "measured_width": 155.64,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 75,
+      "id": "fWykqsSesmp54v7rW9O7p",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Glacier",
+      "stored_width": 70.34000396728516,
+      "measured_width": 68.34,
+      "deviation_px": -2.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 76,
+      "id": "S7kh-UnJCL1TuSUY2hReC",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Managed\nBlockchain",
+      "stored_width": 98.63999938964844,
+      "measured_width": 97.64,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 77,
+      "id": "j7xALRrIexOFUYEiJoTd3",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Quantum Ledger\nDatabase",
+      "stored_width": 158.3199920654297,
+      "measured_width": 157.32,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 96,
+      "id": "n_JDfl_g6uQDrqVKGbUcw",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Registry",
+      "stored_width": 80.04000091552734,
+      "measured_width": 79.04,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 97,
+      "id": "u_uhh3cfmkMM66sXwtBTU",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Image",
+      "stored_width": 58.86000061035156,
+      "measured_width": 57.86,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 99,
+      "id": "xhQ10Dk-SS6b7H8WKRJTy",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Container",
+      "stored_width": 92.20000457763672,
+      "measured_width": 91.2,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 101,
+      "id": "kV40coNBHgOxUNfFtSXZH",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Task",
+      "stored_width": 52.019996643066406,
+      "measured_width": 50.02,
+      "deviation_px": -2.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 102,
+      "id": "6l6iMXkjj9hfubtTZAtY1",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Service",
+      "stored_width": 68.52000427246094,
+      "measured_width": 67.52,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 103,
+      "id": "UsC36xWMGRdXNDrxvt7CI",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "EKS Anywhere",
+      "stored_width": 133.27999877929688,
+      "measured_width": 132.28,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 112,
+      "id": "duplSvMz1eOw6FdTpM05f",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Rule",
+      "stored_width": 42.119998931884766,
+      "measured_width": 41.12,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 114,
+      "id": "jo3rSyijSdJ6n371iB9IP",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Scheduler",
+      "stored_width": 91.56000518798828,
+      "measured_width": 90.56,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 123,
+      "id": "itFmV-sk7NxvCvHyMAdsz",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "IoT sensor",
+      "stored_width": 110.73999786376953,
+      "measured_width": 109.74,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 131,
+      "id": "026Kun7u_LYI6n-CyHSm2",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Tools and \nSDKS",
+      "stored_width": 110.41999053955078,
+      "measured_width": 108.42,
+      "deviation_px": -2.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 146,
+      "id": "3SOkju7gYyVeG4PTWWgVp",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Discovery",
+      "stored_width": 92.33999633789062,
+      "measured_width": 91.34,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 162,
+      "id": "UEwP82gJFZqYzzZato7Nk",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "License Manager",
+      "stored_width": 160.3800048828125,
+      "measured_width": 159.38,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 170,
+      "id": "1uR8aa9lbwX2WUvcu4cpL",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Parameter Store",
+      "stored_width": 168.02001953125,
+      "measured_width": 167.02,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 171,
+      "id": "ScekL0QomoQCfwlJ-OEjF",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Incident Manager",
+      "stored_width": 169.52000427246094,
+      "measured_width": 168.52,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 172,
+      "id": "VY2cvZbn-GYu1zKtdrx4E",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Session Manager",
+      "stored_width": 161.52000427246094,
+      "measured_width": 160.52,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 194,
+      "id": "4UrgpAQ0P4tskB24urtBJ",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Role",
+      "stored_width": 41.84000015258789,
+      "measured_width": 40.84,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 200,
+      "id": "hI_kvnC-eTmApf1FEkcVx",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "IAM Identity\nCenter",
+      "stored_width": 129.25999450683594,
+      "measured_width": 128.26,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 206,
+      "id": "XJfpCe3R8fKC6hsJTEyIK",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Private Certificate\nAuthority",
+      "stored_width": 191.05999755859375,
+      "measured_width": 190.06,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 212,
+      "id": "THWNHGv_rtwEZuKeO2933",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Resolver",
+      "stored_width": 82.70000457763672,
+      "measured_width": 81.7,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 213,
+      "id": "vg_7jzFraD46NANjmsIAx",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Route table",
+      "stored_width": 120.0,
+      "measured_width": 119.24,
+      "deviation_px": -0.76,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 213,
+      "id": "yKx_tNXOKttAdgFX2aiRs",
+      "fontFamily": 1,
+      "fontSize": 8.785855803035645,
+      "text": "172.16.0.0",
+      "stored_width": 43.0,
+      "measured_width": 40.679,
+      "deviation_px": -2.3215,
+      "cause": "dom_offset_width_plus_one"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 213,
+      "id": "b0HjIfccJDbGzOD0oJTqW",
+      "fontFamily": 1,
+      "fontSize": 8.785855803035645,
+      "text": "172.16.0.0",
+      "stored_width": 43.0,
+      "measured_width": 40.679,
+      "deviation_px": -2.3215,
+      "cause": "dom_offset_width_plus_one"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 213,
+      "id": "v3JV0jo1y8ri7u-ezyS3J",
+      "fontFamily": 1,
+      "fontSize": 8.785855803035645,
+      "text": "172.16.0.0",
+      "stored_width": 43.0,
+      "measured_width": 40.679,
+      "deviation_px": -2.3215,
+      "cause": "dom_offset_width_plus_one"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 220,
+      "id": "crYgsUPUOuoGa3B3yWSmU",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "ENI",
+      "stored_width": 38.0,
+      "measured_width": 37.26,
+      "deviation_px": -0.74,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 231,
+      "id": "NGYrle_mTo26iQ1bDz4M6",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "GLB",
+      "stored_width": 43.29999923706055,
+      "measured_width": 42.3,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 241,
+      "id": "mk0-Mdu4ulTVe7X9VAi1N",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Region",
+      "stored_width": 60.0,
+      "measured_width": 59.32,
+      "deviation_px": -0.68,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 243,
+      "id": "Hwjeq64YjpS2TC6hOJWkh",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Data center",
+      "stored_width": 125.7400131225586,
+      "measured_width": 124.74,
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 247,
+      "id": "uZDG6Xf8faPMwtOC9NHGI",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "AWS account",
+      "stored_width": 128.0,
+      "measured_width": 126.7,
+      "deviation_px": -1.3,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/erlina/data-processing.excalidrawlib.gz",
+      "item": 5,
+      "id": "NPzVqC8DV7s17WxsuEJk_",
+      "fontFamily": 1,
+      "fontSize": 14.59822695761671,
+      "text": "STOP",
+      "stored_width": 43.44949194141259,
+      "measured_width": 40.86,
+      "deviation_px": -2.5891,
+      "cause": "scaled_dom_offset_width"
+    },
+    {
+      "file": "libraries/gabrielamacakova/halloween-elements.excalidrawlib.gz",
+      "item": 1,
+      "id": "EzBbdxqivZ8QhmV67VrnF",
+      "fontFamily": 1,
+      "fontSize": 46.57185045355689,
+      "text": "I",
+      "stored_width": 26.082033226856986,
+      "measured_width": 25.382,
+      "deviation_px": -0.7004,
+      "cause": "scaled_dom_offset_width"
+    },
+    {
+      "file": "libraries/gabrielamacakova/halloween-elements.excalidrawlib.gz",
+      "item": 1,
+      "id": "rx9xT52592PqRrVqDy5kq",
+      "fontFamily": 1,
+      "fontSize": 46.57185045355689,
+      "text": "P",
+      "stored_width": 31.515790149118853,
+      "measured_width": 30.784,
+      "deviation_px": -0.7318,
+      "cause": "scaled_dom_offset_width"
+    },
+    {
+      "file": "libraries/gabrielamacakova/halloween-elements.excalidrawlib.gz",
+      "item": 4,
+      "id": "Yq_9tkFIFmnNSEQCtu_gl",
+      "fontFamily": 1,
+      "fontSize": 35.14536547403585,
+      "text": "I",
+      "stored_width": 19.682760747889198,
+      "measured_width": 19.154,
+      "deviation_px": -0.5285,
+      "cause": "scaled_dom_offset_width"
+    },
+    {
+      "file": "libraries/gabrielamacakova/halloween-elements.excalidrawlib.gz",
+      "item": 4,
+      "id": "v5hy6FLFxs3QvXlyPRpK0",
+      "fontFamily": 1,
+      "fontSize": 35.14536547403585,
+      "text": "P",
+      "stored_width": 23.78333590369944,
+      "measured_width": 23.231,
+      "deviation_px": -0.5522,
+      "cause": "scaled_dom_offset_width"
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "item": 0,
+      "id": "Ai0jv2vBdOIZUkYOjDZdz",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Kafka Streams Topology Design",
+      "stored_width": 313.759730219841,
+      "measured_width": 313.24,
+      "deviation_px": -0.5197,
+      "cause": "ink_box"
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "item": 0,
+      "id": "7ExgwdP8Ry41GVZAiXzen",
+      "fontFamily": 1,
+      "fontSize": 36.0,
+      "text": "Diagram Title",
+      "stored_width": 245.84391552209854,
+      "measured_width": 244.62,
+      "deviation_px": -1.2239,
+      "cause": "ink_box"
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "item": 1,
+      "id": "dDlDHKYYP2k4hMDK05QC2",
+      "fontFamily": 1,
+      "fontSize": 28.0,
+      "text": "my-topology",
+      "stored_width": 155.17593908309937,
+      "measured_width": 153.048,
+      "deviation_px": -2.1279,
+      "cause": "ink_box"
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "item": 17,
+      "id": "XBDtnVgCPkwD_lLW0pbG0",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "mapValues",
+      "stored_width": 98.63993012905121,
+      "measured_width": 97.96,
+      "deviation_px": -0.6799,
+      "cause": "ink_box"
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "item": 34,
+      "id": "kDGfu_d9JBFZC-eMtRrQn",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "transformValues",
+      "stored_width": 158.35986077785492,
+      "measured_width": 157.6,
+      "deviation_px": -0.7599,
+      "cause": "ink_box"
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "item": 37,
+      "id": "cleW_j4SllhjLikgaQ7Y-",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "store-name",
+      "stored_width": 107.9799053966999,
+      "measured_width": 107.28,
+      "deviation_px": -0.6999,
+      "cause": "ink_box"
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "item": 48,
+      "id": "bZRkonncf_xINk1YXivYs",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Read-only",
+      "stored_width": 74.91195410490036,
+      "measured_width": 74.0,
+      "deviation_px": -0.912,
+      "cause": "ink_box"
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "item": 68,
+      "id": "cNJNEAfu-mAf3iuWRs7Hl",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "AbcProcessor",
+      "stored_width": 129.43988341093063,
+      "measured_width": 128.6,
+      "deviation_px": -0.8399,
+      "cause": "ink_box"
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "item": 16,
+      "id": "zPt1vdWcfV0U6qTeFwvqQ",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Firewall",
+      "stored_width": 73.0,
+      "measured_width": 71.44,
+      "deviation_px": -1.56,
+      "cause": "dom_offset_width_plus_one"
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "item": 21,
+      "id": "4F4iRcCo-63GtJr5xmT4d",
+      "fontFamily": 1,
+      "fontSize": 10.043801765984826,
+      "text": "Windows",
+      "stored_width": 39.0,
+      "measured_width": 37.232,
+      "deviation_px": -1.7676,
+      "cause": "dom_offset_width_plus_one"
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "item": 31,
+      "id": "KUvdjejdRDVTCqcI7bE4y",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Target Systems",
+      "stored_width": 160.0,
+      "measured_width": 158.44,
+      "deviation_px": -1.56,
+      "cause": "dom_offset_width_plus_one"
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "item": 31,
+      "id": "bKuB0x46YysJPYBtvVFDw",
+      "fontFamily": 1,
+      "fontSize": 10.043801765984826,
+      "text": "Windows",
+      "stored_width": 38.078209181986566,
+      "measured_width": 37.232,
+      "deviation_px": -0.8458,
+      "cause": "scaled_dom_offset_width"
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "item": 34,
+      "id": "sD-TUGTrTnjM5PCRcDr_m",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Server",
+      "stored_width": 64.0,
+      "measured_width": 61.7,
+      "deviation_px": -2.3,
+      "cause": "dom_offset_width_plus_one"
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "item": 35,
+      "id": "_ZrRanQkZaMGg_98NfYcw",
+      "fontFamily": 1,
+      "fontSize": 10.043801765984826,
+      "text": "Windows",
+      "stored_width": 39.0,
+      "measured_width": 37.232,
+      "deviation_px": -1.7676,
+      "cause": "dom_offset_width_plus_one"
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "item": 40,
+      "id": "_S5sXU3j0JBXsptKfzJa3",
+      "fontFamily": 1,
+      "fontSize": 24.266628665607765,
+      "text": "Windows",
+      "stored_width": 92.0,
+      "measured_width": 89.956,
+      "deviation_px": -2.0436,
+      "cause": "dom_offset_width_plus_one"
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "item": 43,
+      "id": "Y8SrMyXIof1WKbEfwq0Me",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Private",
+      "stored_width": 74.0,
+      "measured_width": 72.24,
+      "deviation_px": -1.76,
+      "cause": "dom_offset_width_plus_one"
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "item": 44,
+      "id": "yhsOGotiHG9vbMrS23eiC",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Public",
+      "stored_width": 56.0,
+      "measured_width": 54.42,
+      "deviation_px": -1.58,
+      "cause": "dom_offset_width_plus_one"
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "item": 45,
+      "id": "w4K_7dkA_4tcZpqraCAWS",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Bob",
+      "stored_width": 38.0,
+      "measured_width": 35.78,
+      "deviation_px": -2.22,
+      "cause": "dom_offset_width_plus_one"
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "item": 46,
+      "id": "Lf9ubXISAq7xb7rW5qXjN",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Alice",
+      "stored_width": 46.0,
+      "measured_width": 43.74,
+      "deviation_px": -2.26,
+      "cause": "dom_offset_width_plus_one"
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "item": 47,
+      "id": "w3yVI0yBdVFOd4FFO6X7j",
+      "fontFamily": 1,
+      "fontSize": 21.400934235565295,
+      "text": "123DOG",
+      "stored_width": 87.0,
+      "measured_width": 84.726,
+      "deviation_px": -2.2737,
+      "cause": "dom_offset_width_plus_one"
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "item": 47,
+      "id": "k0DHmaQpBmdgY-c6KH68e",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "(hash)",
+      "stored_width": 49.0,
+      "measured_width": 47.216,
+      "deviation_px": -1.784,
+      "cause": "dom_offset_width_plus_one"
+    },
+    {
+      "file": "libraries/infamousjoeg/cyberark.excalidrawlib.gz",
+      "item": 50,
+      "id": "gfMbCz4eVWHzzjSebdG9o",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "PC",
+      "stored_width": 28.0,
+      "measured_width": 26.1,
+      "deviation_px": -1.9,
+      "cause": "dom_offset_width_plus_one"
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "item": 2,
+      "id": "JA4CWhChhKQuYXuq8R3y-",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "API\nGateway",
+      "stored_width": 203.0,
+      "measured_width": 86.26,
+      "deviation_px": -116.74,
+      "cause": "container_width"
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "item": 3,
+      "id": "0txHLBnPaLdbC-6oBR5Nc",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Load\nBalancers",
+      "stored_width": 78.0,
+      "measured_width": 77.008,
+      "deviation_px": -0.992,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "item": 3,
+      "id": "GHgonuJ-4BpYWc45yBXyV",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Cache",
+      "stored_width": 58.0,
+      "measured_width": 57.08,
+      "deviation_px": -0.92,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "item": 5,
+      "id": "Rux2x4t2eZD_IGJdiVVLi",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Cache",
+      "stored_width": 58.0,
+      "measured_width": 57.08,
+      "deviation_px": -0.92,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "item": 5,
+      "id": "P7W_lCMx6UrdVeWVX6mPg",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Load\nBalancers",
+      "stored_width": 78.0,
+      "measured_width": 77.008,
+      "deviation_px": -0.992,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "item": 5,
+      "id": "j-7bmxUrNpmryK2lf0Tye",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Replica",
+      "stored_width": 55.0,
+      "measured_width": 53.904,
+      "deviation_px": -1.096,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "item": 5,
+      "id": "uXu53U7-3eUe4fieMfYJj",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Replica",
+      "stored_width": 55.0,
+      "measured_width": 53.904,
+      "deviation_px": -1.096,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "item": 5,
+      "id": "esmwWoflQ6lHYdt6r2lJ9",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Database",
+      "stored_width": 100.0,
+      "measured_width": 98.88,
+      "deviation_px": -1.12,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "item": 5,
+      "id": "M1CFTYVU0kZhawVm1DnJZ",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Elasticsearch",
+      "stored_width": 107.0,
+      "measured_width": 105.856,
+      "deviation_px": -1.144,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "item": 6,
+      "id": "0XgLS_x0P0NFlolAyltTu",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Load\nBalancers",
+      "stored_width": 78.0,
+      "measured_width": 77.008,
+      "deviation_px": -0.992,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "item": 6,
+      "id": "CrTBdkdD6bD_uOC81RfJz",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Replica",
+      "stored_width": 55.0,
+      "measured_width": 53.904,
+      "deviation_px": -1.096,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "item": 6,
+      "id": "R50TfCqfoj-BTvf2yrEi7",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Replica",
+      "stored_width": 55.0,
+      "measured_width": 53.904,
+      "deviation_px": -1.096,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
+      "item": 6,
+      "id": "mzKXC_i4q_CKOUKxaNHCf",
+      "fontFamily": 1,
+      "fontSize": 20.0,
+      "text": "Database",
+      "stored_width": 100.0,
+      "measured_width": 98.88,
+      "deviation_px": -1.12,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "item": 0,
+      "id": "ZS_5Ir5d4kbWmXs-m8L1_",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "AWS Lambda",
+      "stored_width": 99.0,
+      "measured_width": 98.448,
+      "deviation_px": -0.552,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "item": 1,
+      "id": "NbIy6eIDsKO1igUZaMSB6",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "AWS AppSync",
+      "stored_width": 100.0,
+      "measured_width": 99.168,
+      "deviation_px": -0.832,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "item": 2,
+      "id": "gqJ1RHbaIkEhYxrR4Ozuz",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Amazon\nAPI Gateway",
+      "stored_width": 108.0,
+      "measured_width": 106.8,
+      "deviation_px": -1.2,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "item": 3,
+      "id": "rVl-wrsBP-LVOCQEBgtmn",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Amazon\nDynamoDB",
+      "stored_width": 82.0,
+      "measured_width": 81.232,
+      "deviation_px": -0.768,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "item": 5,
+      "id": "oXtk3I7XPc6BTLgTSHjMy",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Amazon\nEventBridge",
+      "stored_width": 93.0,
+      "measured_width": 92.304,
+      "deviation_px": -0.696,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "item": 7,
+      "id": "y3ysQIwsKjYzw9HfoyoHk",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Amazon SNS",
+      "stored_width": 96.0,
+      "measured_width": 94.544,
+      "deviation_px": -1.456,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "item": 8,
+      "id": "0YXrCqAaxqzIeHee0kVTy",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Amazon S3",
+      "stored_width": 86.0,
+      "measured_width": 85.408,
+      "deviation_px": -0.592,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "item": 9,
+      "id": "ZrvzmoYKDdyp_9vcshcqg",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Amazon\nCloudFront",
+      "stored_width": 84.0,
+      "measured_width": 83.008,
+      "deviation_px": -0.992,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "item": 10,
+      "id": "6YpWOhFlj6o9250kO4Zfz",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Amazon SES",
+      "stored_width": 96.0,
+      "measured_width": 95.024,
+      "deviation_px": -0.976,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "item": 11,
+      "id": "syd-pcs8a7hGFqOmxXH6Q",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Amazon\nCloudWatch",
+      "stored_width": 90.0,
+      "measured_width": 89.152,
+      "deviation_px": -0.848,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "item": 12,
+      "id": "kgxsBAsfAvP9OaUEfDKPG",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "AWS\nStep Functions",
+      "stored_width": 116.0,
+      "measured_width": 114.752,
+      "deviation_px": -1.248,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "item": 13,
+      "id": "6Qn7igOMwRE2ekgcmcUWb",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "AWS Amplify",
+      "stored_width": 93.0,
+      "measured_width": 91.664,
+      "deviation_px": -1.336,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "item": 15,
+      "id": "jAnR8WvZYPDLMbUl3PBkT",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Amazon Kinesis",
+      "stored_width": 116.0,
+      "measured_width": 115.2,
+      "deviation_px": -0.8,
+      "cause": "dom_offset_width"
+    },
+    {
+      "file": "libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
+      "item": 16,
+      "id": "KVNCfIQjm95Hg6bcTSOxn",
+      "fontFamily": 1,
+      "fontSize": 16.0,
+      "text": "Amazon EFS",
+      "stored_width": 95.0,
+      "measured_width": 94.48,
+      "deviation_px": -0.52,
+      "cause": "dom_offset_width"
+    },
     {
       "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
       "item": 103,
@@ -206,7 +1345,8 @@
       "text": "K",
       "stored_width": 10.807999610900879,
       "measured_width": 9.808,
-      "deviation_px": -1.0
+      "deviation_px": -1.0,
+      "cause": "ink_box_whole_pixels"
     },
     {
       "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
@@ -217,7 +1357,8 @@
       "text": "Read the KSTD docs",
       "stored_width": 167.9038791656494,
       "measured_width": 166.96,
-      "deviation_px": -0.9439
+      "deviation_px": -0.9439,
+      "cause": "ink_box"
     },
     {
       "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
@@ -228,7 +1369,8 @@
       "text": "RPC / Other",
       "stored_width": 101.34393501281738,
       "measured_width": 100.32,
-      "deviation_px": -1.0239
+      "deviation_px": -1.0239,
+      "cause": "ink_box"
     },
     {
       "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
@@ -239,7 +1381,8 @@
       "text": "Read the KSTD docs",
       "stored_width": 167.9038791656494,
       "measured_width": 166.96,
-      "deviation_px": -0.9439
+      "deviation_px": -0.9439,
+      "cause": "ink_box"
     },
     {
       "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
@@ -250,7 +1393,8 @@
       "text": "kstd.thriving.dev",
       "stored_width": 130.2078845500946,
       "measured_width": 129.52,
-      "deviation_px": -0.6879
+      "deviation_px": -0.6879,
+      "cause": "ink_box"
     },
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
@@ -261,7 +1405,8 @@
       "text": "Alarms",
       "stored_width": 112.87196350097656,
       "measured_width": 111.42,
-      "deviation_px": -1.452
+      "deviation_px": -1.452,
+      "cause": "kept_width"
     },
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
@@ -272,7 +1417,8 @@
       "text": "Events",
       "stored_width": 123.52796936035156,
       "measured_width": 122.076,
-      "deviation_px": -1.452
+      "deviation_px": -1.452,
+      "cause": "ink_box_glyph_pixels"
     },
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
@@ -283,7 +1429,8 @@
       "text": "Service\nGateway",
       "stored_width": 153.6599578857422,
       "measured_width": 151.74,
-      "deviation_px": -1.92
+      "deviation_px": -1.92,
+      "cause": "ink_box_glyph_pixels"
     },
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
@@ -294,7 +1441,8 @@
       "text": "NAT\nGateway",
       "stored_width": 153.6599578857422,
       "measured_width": 151.74,
-      "deviation_px": -1.92
+      "deviation_px": -1.92,
+      "cause": "ink_box_glyph_pixels"
     },
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
@@ -305,7 +1453,8 @@
       "text": "Internet\nGateway",
       "stored_width": 153.6599578857422,
       "measured_width": 151.74,
-      "deviation_px": -1.92
+      "deviation_px": -1.92,
+      "cause": "ink_box_glyph_pixels"
     },
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
@@ -316,7 +1465,8 @@
       "text": "VCN\n(Region Identifier)",
       "stored_width": 329.6038818359375,
       "measured_width": 329.076,
-      "deviation_px": -0.5279
+      "deviation_px": -0.5279,
+      "cause": "kept_width"
     },
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
@@ -327,7 +1477,8 @@
       "text": "Route Table",
       "stored_width": 218.53192138671875,
       "measured_width": 216.864,
-      "deviation_px": -1.6679
+      "deviation_px": -1.6679,
+      "cause": "ink_box_glyph_pixels"
     },
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
@@ -338,7 +1489,8 @@
       "text": "WAF",
       "stored_width": 74.31198120117188,
       "measured_width": 72.108,
-      "deviation_px": -2.204
+      "deviation_px": -2.204,
+      "cause": "ink_box_glyph_pixels"
     },
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
@@ -349,7 +1501,8 @@
       "text": "File Storage",
       "stored_width": 212.419921875,
       "measured_width": 211.752,
-      "deviation_px": -0.6679
+      "deviation_px": -0.6679,
+      "cause": "ink_box_glyph_pixels"
     },
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
@@ -360,7 +1513,8 @@
       "text": "On-premises\ndata center",
       "stored_width": 209.21194458007812,
       "measured_width": 208.044,
-      "deviation_px": -1.1679
+      "deviation_px": -1.1679,
+      "cause": "ink_box_glyph_pixels"
     },
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
@@ -371,7 +1525,8 @@
       "text": "Oracle\nAutonomous\nDatabase",
       "stored_width": 212.30393981933594,
       "measured_width": 210.852,
-      "deviation_px": -1.4519
+      "deviation_px": -1.4519,
+      "cause": "kept_width"
     },
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
@@ -382,7 +1537,8 @@
       "text": "A",
       "stored_width": 25.0,
       "measured_width": 24.336,
-      "deviation_px": -0.664
+      "deviation_px": -0.664,
+      "cause": "kept_width"
     },
     {
       "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
@@ -393,7 +1549,8 @@
       "text": "7",
       "stored_width": 11.519999623298645,
       "measured_width": 11.0,
-      "deviation_px": -0.52
+      "deviation_px": -0.52,
+      "cause": "kept_width"
     }
   ]
 }
