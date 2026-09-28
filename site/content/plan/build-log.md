@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-402 · Static scene assembly: background, grid, element order, bound text after container, iframes last
+
+`excali_scene::static_scene::render_static_scene` builds the static canvas the way upstream's `renderStaticScene` does, as a display list: the background with its white fallback, the device pixel ratio and zoom, the grid with its colours, dashes and 10 px zoom cutoff, elements with bound text after their container and link icons, iframes and embeddables last, and pending flowchart nodes. `render_element` draws every element kind except sticky notes. The display list matches upstream draw for draw across 34 scenes and 1,776 draws. PR: [#67](https://github.com/HutsonLabs/excali-rust/pull/67).
+
 ## 2026-09-28 · ex-m3 · Milestone check: M3 not yet reached
 
 The M3 check ran on `main` at c720406, with ex-301 to ex-308 merged. `cargo test -p excali-text --locked` passes 205 tests. That covers `textWrapping.test.ts` ported case for case, the bound-text cases of `textElement.test.ts`, and the text goldens, which are up to date with upstream. The corpus gate passes, but it holds only Excalifont, Nunito and Comic Shanns to 0.5 px, and it needs 18 pinned exceptions to do so. Among the corpus texts whose stored width is a browser measurement, 94 of 1243 Virgil texts, 1 of 35 Cascadia texts and 1 of 3 Lilita One texts miss by more than 0.5 px, so M3's corpus criterion is not met. Three gap tasks are open: ex-g301 gates Virgil, ex-g302 gates Cascadia and Lilita One, and ex-g303 shows the cause of the pinned deviations. PR: [#66](https://github.com/HutsonLabs/excali-rust/pull/66).
