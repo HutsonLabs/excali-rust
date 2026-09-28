@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-101 · Element model: enums, structs and shared base fields
+
+`excali-core` now has the full Excalidraw element model: `ElementBase` with every `_ExcalidrawElementBase` field under upstream's JSON names, and `ElementKind` tagged on `type` for all 14 element types with their per-type fields. Supporting enums (fill and stroke styles, roundness, font families, alignment, arrowheads with legacy names, bindings, fixed segments, crop), type groupings, arrow subtypes and upstream's construction defaults and constants are in place, pinned by 29 tests. PR: [#11](https://github.com/HutsonLabs/excali-rust/pull/11).
+
 ## 2026-09-28 · ex-004 · Golden generator: node script producing rough.js 4.6.4 path output for fixture elements
 
 `tools/goldens/generate.mjs` runs upstream's own `ShapeCache.generateElementShape` from the pinned checkout under plain Node, with roughjs 4.6.4 and perfect-freehand 1.2.0 pinned to upstream's `yarn.lock` hashes. It writes 16 byte-stable files to `goldens/` (465 element shapes, raw rough.js primitives and fills, `Random.next` sequences, freehand strokes) with a sha256 manifest, and the goldens reproduce upstream's export snapshot paths exactly. The new `goldens` CI job runs the 28 tests and `generate.mjs --check` on every PR. PR: [#10](https://github.com/HutsonLabs/excali-rust/pull/10).
