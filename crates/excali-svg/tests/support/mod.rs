@@ -80,7 +80,8 @@ pub fn shell(document: &SvgDocument) -> SvgDocument {
 }
 
 /// Upstream's whole document for a scene, without the nodes it draws for
-/// sticky notes (`stickyNoteNodes`), which ex-703 ports.
+/// sticky notes (`stickyNoteNodes`), which ex-703 ports, and with an
+/// embeddable's `border: none` as a browser keeps it ([`chrome_border`]).
 pub fn expected_document(scene: &Value) -> String {
     let mut expected = scene["document"].as_str().unwrap().to_owned();
     for node in scene["stickyNoteNodes"].as_array().into_iter().flatten() {
@@ -88,7 +89,40 @@ pub fn expected_document(scene: &Value) -> String {
         assert_eq!(expected.matches(node).count(), 1, "{}", scene["name"]);
         expected = expected.replacen(node, "", 1);
     }
-    expected
+    chrome_border(&expected)
+}
+
+/// `style.border = "none"` as Chrome 153 serializes it in the `style`
+/// attribute (a headless Chrome run of the same assignments,
+/// `chrome-headless-shell` 1243, 2026-09-28): its four longhands where the
+/// declaration was set. Upstream's recorded documents come from jsdom
+/// 22.1.0, whose cssstyle drops the declaration: the `<foreignObject>` and
+/// the `<iframe>` of a rendered embeddable (`staticSvgScene.ts:380-392`).
+pub const CHROME_BORDER_NONE: &str =
+    "border-width: medium; border-style: none; border-color: currentcolor; border-image: none;";
+
+/// The jsdom document with [`CHROME_BORDER_NONE`] where upstream sets
+/// `border: none`: after the `<foreignObject>`'s width and height, and
+/// after the `<iframe>`'s width and height.
+pub fn chrome_border(markup: &str) -> String {
+    let mut out = String::with_capacity(markup.len());
+    let mut rest = markup;
+    while let Some(at) = rest.find("<foreignObject style=\"") {
+        let start = at + "<foreignObject style=\"".len();
+        let end = start + rest[start..].find('"').unwrap();
+        out.push_str(&rest[..end]);
+        out.push(' ');
+        out.push_str(CHROME_BORDER_NONE);
+        rest = &rest[end..];
+        let iframe = "height: 100%; border-radius:";
+        let at = rest.find(iframe).unwrap() + "height: 100%;".len();
+        out.push_str(&rest[..at]);
+        out.push(' ');
+        out.push_str(CHROME_BORDER_NONE);
+        rest = &rest[at..];
+    }
+    out.push_str(rest);
+    out
 }
 
 /// Where two strings first differ, with some context.

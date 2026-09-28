@@ -63,7 +63,7 @@ The dependency direction is enforced in CI: `excali-core`, `excali-math`, `excal
 2. **Scene.** `excali-editor` owns the `Scene` (elements, non-deleted map, frames, nonce) and the `Store` (snapshots and deltas for history). Every mutation goes through `mutate(element, patch)`, which bumps `version`, `versionNonce` and `updated` as upstream's `mutateElement` does.
 3. **Shapes.** `excali-scene` turns an element into a `Drawable`: rough op-sets for shapes, an outline path for freedraw, text runs for text. Results are cached per element by object identity and invalidated on the same conditions as upstream's `ShapeCache`.
 4. **Display list.** The static scene assembles `DisplayItem`s in upstream's order: background, grid, elements with bound text, iframes last. The [display list](../display-list/) page defines the items and their canvas semantics.
-5. **Backend.** `excali-canvas2d` (browser) or `excali-raster` (native) consumes the list. `excali-svg` writes it as SVG with upstream's document structure.
+5. **Backend.** `excali-canvas2d` (browser) or `excali-raster` (native) consumes the list. `excali-svg` writes it as SVG with upstream's document structure; for SVG the scene hands over the markup `renderSceneToSvg` builds (`display::SvgNode`, `excali_scene::svg_scene`).
 6. **Interaction.** Pointer and keyboard events reach `excali-editor` as plain data; it returns a list of `Effect`s (repaint layers, open textarea, set cursor, emit event) that `excali-ui` applies. No DOM calls inside the editor crate, which keeps it testable natively.
 7. **Save.** `save()` serialises through `excali-core` with `JSON.stringify(data, null, 2)` semantics and returns the string; the host writes it.
 

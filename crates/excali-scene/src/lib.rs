@@ -20,6 +20,8 @@
 //!   the element entry points `getFreedrawOutlinePoints` /
 //!   `getFreeDrawSvgPath` (perfect-freehand for variable width, the laser
 //!   pointer for constant width).
+//! - [`svg_scene`]: `renderSceneToSvg`, the elements of an SVG export as
+//!   the markup upstream builds, [`display::SvgNode`] trees.
 //! - [`static_scene`]: `renderStaticScene`, the canvas's background, grid
 //!   and elements in upstream's order as a display list, drawing each
 //!   element with [`render_element`] (`renderElement`).
@@ -50,4 +52,5 @@ pub mod rough_canvas;
 pub mod rough_options;
 pub mod shape;
 pub mod static_scene;
+pub mod svg_scene;
 pub mod utils;

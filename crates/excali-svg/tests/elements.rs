@@ -164,6 +164,30 @@ fn attribute_text(tag: &SvgTag, name: &str) -> String {
 }
 
 #[test]
+fn a_rendered_embeddable_has_no_border() {
+    // renderEmbeddables: the iframe of a YouTube link, rounded, with
+    // `border: none` kept as Chrome keeps it
+    let fixture = fixture();
+    let source = fixture["source"].as_str().unwrap();
+    let got = export(scene(&fixture, "embeds-rendered"), source);
+    assert!(got.contains(
+        "<foreignObject style=\"width: 320px; height: 180px; border-width: medium; \
+         border-style: none; border-color: currentcolor; border-image: none;\">\
+         <div xmlns=\"http://www.w3.org/1999/xhtml\" style=\"width: 100%; height: 100%;\">\
+         <iframe src=\"https://www.youtube.com/embed/dQw4w9WgXcQ?enablejsapi=1&amp;start=90\" \
+         style=\"width: 100%; height: 100%; border-width: medium; border-style: none; \
+         border-color: currentcolor; border-image: none; border-radius: 32px; top: 0px; \
+         left: 0px;\" allowfullscreen=\"\"></iframe></div></foreignObject>"
+    ));
+    // upstream's recorded document (jsdom) drops the declaration
+    let recorded = scene(&fixture, "embeds-rendered")["document"]
+        .as_str()
+        .unwrap();
+    assert!(!recorded.contains("border-style"));
+    assert!(recorded.contains("<foreignObject style=\"width: 320px; height: 180px;\">"));
+}
+
+#[test]
 fn an_empty_scene_draws_nothing() {
     let fixture = fixture();
     let source = fixture["source"].as_str().unwrap();

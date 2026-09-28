@@ -1,5 +1,5 @@
 {
-  "description": "Upstream exportToSvg (packages/excalidraw/scene/export.ts:293-508) at the pinned commit under jsdom 22.1.0 (tools/goldens/svg-export.mjs): the arguments and the document shell (svgRoot.outerHTML without the element nodes). getExportSource() is `source`; a font face's content is font:<its last url, upstream's asset fallback>#<characters>; text measures 10 px per UTF-16 code unit.",
+  "description": "Upstream exportToSvg (packages/excalidraw/scene/export.ts:293-508) at the pinned commit under jsdom 22.1.0 in test mode (tools/goldens/svg-export.mjs): the arguments, the document shell (svgRoot.outerHTML before the elements are rendered) and the whole document. getExportSource() is `source`; a font face's content is font:<its last url, upstream's asset fallback>#<characters>; text measures 10 px per UTF-16 code unit.",
   "upstream": "438d89861f53d8a90ad566113ecac1b83761098f",
   "source": "https://excalidraw.com",
   "scenes": [

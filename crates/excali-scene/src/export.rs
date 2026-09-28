@@ -17,7 +17,10 @@
 //!   "local")` through `encodeSvgBase64Payload`), the clip path of every
 //!   frame (rounded by `FRAME_STYLE.radius` unless it is the frame being
 //!   exported), the font faces to inline (`generateFontFaceDeclarations`)
-//!   and the background colour through the dark-mode filter.
+//!   and the background colour through the dark-mode filter;
+//! - the drawing: `renderSceneToSvg` over the elements to render (the
+//!   frame's overlapping elements when exporting a frame, else the elements
+//!   with each frame's name label before it), `crate::svg_scene`.
 //!
 //! Text is measured by the caller's [`TextMetrics`], upstream's canvas
 //! `measureText`.
@@ -33,9 +36,14 @@ use excali_math::js;
 use excali_text::font_assets::font_face_declarations;
 use excali_text::font_metadata::{get_font_string, get_line_height_in_px};
 
+use excali_text::text_measurements::TextMetricsProvider;
+
 use crate::bounds::{get_common_bounds, get_element_absolute_coords, ElementsMap};
+use crate::canvas_export::{get_elements_overlapping_frame, label_element};
 use crate::display::{FontFaceSource, FrameClip, SvgDocument, SvgPayload};
 use crate::frame::is_frame_like;
+use crate::shape::Theme;
+use crate::svg_scene::{label_id, render_scene_to_svg, SvgRenderConfig};
 
 /// `DEFAULT_EXPORT_PADDING` (`common/src/constants.ts:402`), in pixels.
 pub const DEFAULT_EXPORT_PADDING: f64 = 10.0;
@@ -111,6 +119,15 @@ pub fn get_frame_rendering_config(
 /// string (`getFontString`), `text` may hold line breaks.
 pub trait TextMetrics {
     fn measure(&self, text: &str, font: &str) -> f64;
+}
+
+/// [`TextMetrics`] as the text layout measures a line.
+struct LineMetrics<'a>(&'a dyn TextMetrics);
+
+impl TextMetricsProvider for LineMetrics<'_> {
+    fn get_line_width(&self, text: &str, font: &str) -> f64 {
+        self.0.measure(text, font)
+    }
 }
 
 /// A frame's name as the text element export draws above it
@@ -580,7 +597,7 @@ pub fn svg_document(
     });
 
     let elements_map = ElementsMap::new(elements);
-    let frame_clips = get_frame_like_elements(elements)
+    let frame_clips: Vec<FrameClip> = get_frame_like_elements(elements)
         .into_iter()
         .map(|frame| {
             let b = &frame.base;
@@ -618,6 +635,63 @@ pub fn svg_document(
     let background = (app_state.export_background && !app_state.view_background_color.is_empty())
         .then(|| apply_dark_mode_filter(&app_state.view_background_color, export_with_dark_mode));
 
+    // prepareElementsForRender (export.ts:156-178): the labels are text
+    // elements, each before its frame
+    let label_elements: Vec<Element> = labels
+        .iter()
+        .enumerate()
+        .map(|(n, label)| {
+            let id = label_id(opts.data_ids, n, || {
+                format!("{}:frame-label", label.frame_id)
+            });
+            label_element(label, id)
+        })
+        .collect();
+    let elements_for_render: Vec<&Element> = match exporting_frame {
+        Some(frame) => get_elements_overlapping_frame(elements, frame, &elements_map),
+        None if !label_elements.is_empty() => {
+            let mut labels_left = label_elements.iter();
+            let mut out = Vec::with_capacity(elements.len() + label_elements.len());
+            for element in elements {
+                if is_frame_like(element) {
+                    out.extend(labels_left.next());
+                }
+                out.push(element);
+            }
+            out
+        }
+        None => elements.iter().collect(),
+    };
+    let render_map = ElementsMap::new(elements_for_render.iter().copied());
+    let empty_files = Map::new();
+    let metrics = LineMetrics(opts.text_metrics);
+    let drawing = render_scene_to_svg(
+        &elements_for_render,
+        &render_map,
+        files.unwrap_or(&empty_files),
+        frame_clips
+            .iter()
+            .map(|c: &FrameClip| c.id.clone())
+            .collect(),
+        label_elements.len(),
+        &SvgRenderConfig {
+            offset_x,
+            offset_y,
+            theme: if export_with_dark_mode {
+                Theme::Dark
+            } else {
+                Theme::Light
+            },
+            frame_rendering,
+            render_embeddables: opts.render_embeddables,
+            reuse_images: opts.reuse_images,
+            canvas_background_color: &app_state.view_background_color,
+            data_ids: opts.data_ids,
+            origin: opts.origin,
+            text_metrics: &metrics,
+        },
+    );
+
     SvgDocument {
         width,
         height,
@@ -628,7 +702,7 @@ pub fn svg_document(
         frame_clips,
         font_faces,
         background,
-        symbols: Vec::new(),
-        nodes: Vec::new(),
+        symbols: drawing.symbols,
+        nodes: drawing.nodes,
     }
 }
