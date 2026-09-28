@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-g201 · Freedraw background fill: port getFreedrawFillCurvePoints and the loop fill curve of generateElementShape
+
+`excali_scene::generate_freedraw_shapes` follows upstream's freedraw case: when a stroke closes into a loop, it first draws a rough.js curve over the points simplified to 0.75 (`get_freedraw_fill_curve_points`) with the element's fill style and `stroke: "none"`, then the stroke path. All 48 freedraw goldens match upstream, including the 14 looped fills. PR: [#57](https://github.com/HutsonLabs/excali-rust/pull/57).
+
 ## 2026-09-28 · ex-302 · Advance-width measurement from font files (ttf-parser, rustybuzz where shaping matters)
 
 `excali_text::text_measurements` ports `textMeasurements.ts`, and `FontStore` measures each line from the vendored font files. It picks a face per character through the fallback list the way the browser does and shapes each run with rustybuzz, kerning included. Each face is parsed once and its shaping plans are cached. 991 corpus texts measure within 0.5 px of their stored width. PR: [#56](https://github.com/HutsonLabs/excali-rust/pull/56).
