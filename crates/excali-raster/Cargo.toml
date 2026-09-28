@@ -32,8 +32,13 @@ base64 = { workspace = true }
 # serde_json reads `cargo metadata` in the no_element_knowledge test and the
 # fixture display lists (tests/fixtures.rs); png-format reads Chrome's
 # reference PNGs and writes the rendered and diff images of a failing
-# fixture; sha2 ties each reference to the fixture it was drawn from.
+# fixture; sha2 ties each reference to the fixture it was drawn from. The PNG
+# export tests and the png_export example build their documents from
+# excali-scene's canvas export golden as the backend's callers do: elements
+# (excali-core, which also reads the PNGs back) measured with excali-text.
 [dev-dependencies]
+excali-core = { path = "../excali-core" }
+excali-text = { path = "../excali-text" }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
 tiny-skia = { version = "0.12.0", default-features = false, features = ["std", "simd", "png-format"] }
