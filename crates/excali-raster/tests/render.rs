@@ -1328,3 +1328,55 @@ fn fill_rect_is_drawrect_with_fine_edges() {
         assert!(p.pixels().iter().all(|c| c.alpha() == 0), "{r:?}");
     }
 }
+
+#[test]
+fn built_in_images_resolve_by_their_excalidraw_ids() {
+    use excali_scene::display::{
+        builtin_image, ELEMENT_LINK_ID, EXTERNAL_LINK_ID, IMAGE_ERROR_PLACEHOLDER_ID,
+        IMAGE_PLACEHOLDER_ID,
+    };
+    // the ids the static scene names upstream's placeholders and link
+    // icons by draw without the caller giving the backend any image
+    let drawn = |id: &str| {
+        let p = draw(
+            &list(vec![DisplayItem::Image(ImageItem::new(
+                id,
+                Rect::new(0.0, 0.0, 32.0, 32.0),
+            ))]),
+            32,
+            32,
+        );
+        p.pixels().iter().filter(|c| c.alpha() > 0).count()
+    };
+    for id in [
+        IMAGE_PLACEHOLDER_ID,
+        IMAGE_ERROR_PLACEHOLDER_ID,
+        EXTERNAL_LINK_ID,
+        ELEMENT_LINK_ID,
+    ] {
+        assert!(drawn(id) > 50, "{id} draws");
+    }
+    // the placeholder's icon is #888
+    let p = draw(
+        &list(vec![DisplayItem::Image(ImageItem::new(
+            IMAGE_PLACEHOLDER_ID,
+            Rect::new(0.0, 0.0, 64.0, 64.0),
+        ))]),
+        64,
+        64,
+    );
+    assert!(near(px(&p, 4, 32), (0x88, 0x88, 0x88, 255)));
+    // an id that is no built-in image and no file draws nothing, among
+    // them the scheme the port no longer uses
+    for id in [
+        "builtin:image-placeholder",
+        "excalidraw:unknown",
+        "image-placeholder",
+    ] {
+        assert_eq!(drawn(id), 0, "{id}");
+    }
+    assert_eq!(
+        builtin_image("image-placeholder").map(|b| b.id),
+        Some(IMAGE_PLACEHOLDER_ID)
+    );
+}

@@ -16,7 +16,10 @@
 //   coordinates they were given in, or a Path2D's SVG data), the current
 //   matrix and globalAlpha, the fill rule, and for strokes the line width,
 //   caps, joins, miter limit and dash as the canvas holds them;
-//   fillRect/strokeRect are a fill/stroke of their rectangle;
+//   strokeRect is a stroke of its rectangle;
+// - `fillRect`: its rectangle, the current matrix, globalAlpha and
+//   fillStyle (kept apart from `fill`: the canvas draws it as a rectangle,
+//   which it anti-aliases differently from a filled path);
 // - `text`: fillText's arguments with the font, textAlign and the canvas's
 //   `dir` attribute;
 // - `image`: drawImage's arguments, the image's name (a file of the image
@@ -363,7 +366,7 @@ class RecordingContext {
   }
   fillRect(x, y, w, h) {
     if (!finite(x, y, w, h)) return;
-    this.events.push({ ...this.base("fill"), fillStyle: [...this.s.fill], rule: "nonzero", path: [["rect", x, y, w, h]] });
+    this.events.push({ ...this.base("fillRect"), fillStyle: [...this.s.fill], rect: [x, y, w, h] });
   }
   strokeRect(x, y, w, h) {
     if (!finite(x, y, w, h)) return;

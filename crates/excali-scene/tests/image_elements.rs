@@ -9,6 +9,9 @@
 //! its calls, for loaded, pending, missing and uninitialized images, crops,
 //! flips, rotations, rounded clips, both themes, SVG and PNG files.
 //!
+//! The port's side is `excali_scene::render_element::render_element`, the
+//! function `render_static_scene` draws every element with, exporting.
+//!
 //! Each case's calls are played on a model of the canvas state (matrix,
 //! `globalAlpha`, `fillStyle`, `filter`, clip stack) into the draws they
 //! make, and the port's display list is replayed into the same form. The
@@ -29,17 +32,22 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use excali_core::document::FileMimeType;
-use excali_core::element::Element;
+use excali_core::element::{Element, ElementKind};
+use excali_scene::bounds::ElementsMap;
 use excali_scene::display::{
-    BuiltinImage, Clip, Color, DisplayItem, DisplayList, FillRule, ImageFilter, ImageItem,
-    PaintState, Painter, Path, Rect, Rgba, Stroke, TextRun, Transform,
+    Clip, Color, DisplayItem, DisplayList, FillRule, ImageFilter, ImageItem, PaintState, Painter,
+    Path, Rect, Rgba, Stroke, TextRun, Transform,
 };
-use excali_scene::image::{
-    draw_image_element, placeholder_icon_size, render_image_element, ImageCacheEntry, Placeholder,
-    PLACEHOLDER_BACKGROUND_DARK, PLACEHOLDER_BACKGROUND_LIGHT,
+use excali_scene::render_element::{
+    builtin_image, builtin_image_by_id, image_placeholder_size, render_element, BuiltinImage,
+    BUILTIN_IMAGE_NAMES, ELEMENT_LINK_ID, EXTERNAL_LINK_ID, IMAGE_ERROR_PLACEHOLDER_ID,
+    IMAGE_PLACEHOLDER_FILL_DARK, IMAGE_PLACEHOLDER_FILL_LIGHT, IMAGE_PLACEHOLDER_ID,
 };
 use excali_scene::shape::Theme;
+use excali_scene::static_scene::{
+    render_static_scene, CachedImage, StaticCanvasAppState, StaticCanvasRenderConfig, StaticScene,
+};
+use excali_text::text_measurements::TextMetricsProvider;
 use serde_json::{json, Value};
 
 #[path = "support/vocabulary.rs"]
@@ -68,41 +76,53 @@ fn element(case: &Value) -> Element {
     serde_json::from_value(case["element"].clone()).expect("an image element")
 }
 
-/// The image cache the case's export had: the file's image once loaded, the
-/// load's promise while it runs (or after it failed), or no entry.
-fn cache(g: &Value, case: &Value) -> HashMap<String, ImageCacheEntry> {
+/// The image cache the case's export had, as the port holds it: the file's
+/// MIME type once its image has loaded. A load still running (or failed)
+/// leaves upstream's promise in the cache, which draws the placeholder as
+/// no entry does, so the port has no entry for it.
+fn cache(g: &Value, case: &Value) -> HashMap<String, CachedImage> {
     let mut cache = HashMap::new();
     let Some(file_id) = case["element"]["fileId"].as_str() else {
         return cache;
     };
-    let mime: FileMimeType =
-        serde_json::from_value(g["files"][file_id]["mimeType"].clone()).unwrap();
+    let mime_type = g["files"][file_id]["mimeType"].as_str().unwrap().to_owned();
     match case["cache"].as_str().unwrap() {
         "loaded" => {
-            cache.insert(
-                file_id.to_owned(),
-                ImageCacheEntry::Ready { mime_type: mime },
-            );
+            cache.insert(file_id.to_owned(), CachedImage { mime_type });
         }
-        "pending" => {
-            cache.insert(file_id.to_owned(), ImageCacheEntry::Loading);
-        }
-        "none" => {}
+        "pending" | "none" => {}
         other => panic!("unknown cache state {other}"),
     }
     cache
 }
 
-/// `resolveElementRenderState`'s opacity for an element outside frames,
-/// nothing pending erasure: `100 * clamp(opacity, 0, 100) / 10000`.
-fn opacity(el: &Element) -> f64 {
-    100.0 * el.base.opacity.clamp(0.0, 100.0) / 10000.0
+/// `renderElement` exporting `el` with the image cache `images`, in
+/// `theme`, at `scroll`: what `render_static_scene` draws for it.
+fn render_with(
+    el: &Element,
+    images: HashMap<String, CachedImage>,
+    theme: Theme,
+    scroll: (f64, f64),
+) -> DisplayItem {
+    let config = StaticCanvasRenderConfig {
+        image_cache: images,
+        is_exporting: true,
+        theme,
+        ..StaticCanvasRenderConfig::default()
+    };
+    let app_state = StaticCanvasAppState {
+        scroll_x: scroll.0,
+        scroll_y: scroll.1,
+        theme,
+        ..StaticCanvasAppState::default()
+    };
+    let map = ElementsMap::new([el]);
+    render_element(el, &map, &map, &config, &app_state, None).expect("image elements draw")
 }
 
 fn render(g: &Value, case: &Value) -> DisplayItem {
-    let el = element(case);
     let scroll = (num(&case["scroll"][0]), num(&case["scroll"][1]));
-    render_image_element(&el, scroll, opacity(&el), theme(case), &cache(g, case))
+    render_with(&element(case), cache(g, case), theme(case), scroll)
 }
 
 // -- draws ------------------------------------------------------------------
@@ -138,8 +158,8 @@ struct Drawn {
 /// The golden's placeholder kind as the port's built-in image.
 fn placeholder_image(kind: &str) -> BuiltinImage {
     match kind {
-        "image" => BuiltinImage::ImagePlaceholder,
-        "error" => BuiltinImage::ImageErrorPlaceholder,
+        "image" => builtin_image("image-placeholder").unwrap(),
+        "error" => builtin_image("image-error-placeholder").unwrap(),
         other => panic!("unknown placeholder {other}"),
     }
 }
@@ -234,7 +254,7 @@ fn upstream_draws(g: &Value, case: &Value) -> Vec<Drawn> {
                     let vb = svg_view_box(g["placeholders"][kind].as_str().unwrap());
                     out.push(Drawn {
                         draw: Draw::Image {
-                            id: builtin.id().to_owned(),
+                            id: builtin.id.to_owned(),
                             source: Rect::new(0.0, 0.0, vb, vb),
                             dest: Rect::new(args[0], args[1], args[2], args[3]),
                             filter: s.filter.clone(),
@@ -323,9 +343,10 @@ fn naturals(g: &Value) -> HashMap<String, (f64, f64)> {
             (num(&f["naturalWidth"]), num(&f["naturalHeight"])),
         )
     });
-    let builtins = BuiltinImage::ALL
-        .into_iter()
-        .map(|b| (b.id().to_owned(), (b.view_box(), b.view_box())));
+    let builtins = ["image", "error"].into_iter().map(|kind| {
+        let side = svg_view_box(placeholder_image(kind).svg);
+        (placeholder_image(kind).id.to_owned(), (side, side))
+    });
     files.chain(builtins).collect()
 }
 
@@ -441,23 +462,28 @@ fn every_case_draws_what_upstream_draws() {
 #[test]
 fn the_placeholders_are_upstreams_svgs() {
     let g = golden();
-    for (kind, p) in [("image", Placeholder::Image), ("error", Placeholder::Error)] {
+    for (kind, id) in [
+        ("image", IMAGE_PLACEHOLDER_ID),
+        ("error", IMAGE_ERROR_PLACEHOLDER_ID),
+    ] {
         let svg = g["placeholders"][kind].as_str().unwrap();
-        assert_eq!(p.svg(), svg);
-        assert_eq!(p.image(), placeholder_image(kind));
-        assert_eq!(p.image().view_box(), svg_view_box(svg));
-        assert_eq!(BuiltinImage::from_id(p.image().id()), Some(p.image()));
+        let image = placeholder_image(kind);
+        assert_eq!(image.svg, svg);
+        assert_eq!(image.id, id);
+        assert_eq!(builtin_image_by_id(id), Some(image.clone()));
         // Upstream's src: data:image/svg+xml, then encodeURIComponent(svg).
-        let url = p.image().data_url();
-        let body = url.strip_prefix("data:image/svg+xml,").unwrap();
+        let body = image.data_url.strip_prefix("data:image/svg+xml,").unwrap();
         assert!(!body.contains(['<', '>', '"', ' ', '#']));
         assert_eq!(percent_decode(body), svg);
     }
-    assert_eq!(BuiltinImage::from_id("png"), None);
-    assert_eq!(
-        Placeholder::for_status(excali_core::element::ImageStatus::Error),
-        Placeholder::Error
-    );
+    // one id scheme for every built-in image, and no file id is one
+    for name in BUILTIN_IMAGE_NAMES {
+        let image = builtin_image(name).unwrap();
+        assert_eq!(image.id, format!("excalidraw:{name}"));
+        assert_eq!(builtin_image_by_id(image.id), Some(image));
+    }
+    assert_eq!(builtin_image_by_id("png"), None);
+    assert_eq!(builtin_image_by_id("builtin:image-placeholder"), None);
 }
 
 fn percent_decode(s: &str) -> String {
@@ -480,21 +506,32 @@ fn percent_decode(s: &str) -> String {
 /// `min(min(w, h) * 0.4, 100)`, never above `min(w, h)`.
 #[test]
 fn the_icon_size_rule() {
-    assert_eq!(placeholder_icon_size(120.0, 80.0), 32.0);
-    assert_eq!(placeholder_icon_size(300.0, 260.0), 100.0);
-    assert_eq!(placeholder_icon_size(1000.0, 1000.0), 100.0);
-    assert_eq!(placeholder_icon_size(249.0, 400.0), 249.0 * 0.4);
-    assert_eq!(placeholder_icon_size(12.0, 30.0), 12.0 * 0.4);
-    assert_eq!(placeholder_icon_size(0.0, 30.0), 0.0);
+    assert_eq!(image_placeholder_size(120.0, 80.0), 32.0);
+    assert_eq!(image_placeholder_size(300.0, 260.0), 100.0);
+    assert_eq!(image_placeholder_size(1000.0, 1000.0), 100.0);
+    assert_eq!(image_placeholder_size(249.0, 400.0), 249.0 * 0.4);
+    assert_eq!(image_placeholder_size(12.0, 30.0), 12.0 * 0.4);
+    assert_eq!(image_placeholder_size(0.0, 30.0), 0.0);
     // Math.min: NaN wins, and a negative side stays negative.
-    assert!(placeholder_icon_size(f64::NAN, 30.0).is_nan());
-    assert_eq!(placeholder_icon_size(-10.0, 30.0), -10.0);
-    assert_eq!(PLACEHOLDER_BACKGROUND_LIGHT, "#E7E7E7");
-    assert_eq!(PLACEHOLDER_BACKGROUND_DARK, "#2E2E2E");
+    assert!(image_placeholder_size(f64::NAN, 30.0).is_nan());
+    assert_eq!(image_placeholder_size(-10.0, 30.0), -10.0);
+    assert_eq!(IMAGE_PLACEHOLDER_FILL_LIGHT, "#E7E7E7");
+    assert_eq!(IMAGE_PLACEHOLDER_FILL_DARK, "#2E2E2E");
 }
 
-/// The element's own drawing, without the export's placement, is what the
-/// placement groups hold.
+/// The innermost items of the export's placement groups: the element's own
+/// drawing.
+fn innermost(item: &DisplayItem) -> &[DisplayItem] {
+    match item {
+        DisplayItem::Group(g) => match g.items.as_slice() {
+            [only @ DisplayItem::Group(_)] => innermost(only),
+            items => items,
+        },
+        _ => panic!("the placement is groups"),
+    }
+}
+
+/// The element's own drawing sits inside the placement groups.
 #[test]
 fn the_placement_holds_the_element_drawing() {
     let g = golden();
@@ -504,25 +541,42 @@ fn the_placement_holds_the_element_drawing() {
         .iter()
         .find(|c| c["id"] == "png-rotated-flipped")
         .unwrap();
-    let el = element(case);
-    let items = draw_image_element(&el, theme(case), &cache(&g, case));
     assert_eq!(
-        items,
-        vec![DisplayItem::Image(ImageItem::new(
+        innermost(&render(&g, case)),
+        [DisplayItem::Image(ImageItem::new(
             "png",
             Rect::new(0.0, 0.0, 80.0, 50.0)
         ))]
     );
-    fn innermost(item: &DisplayItem) -> &[DisplayItem] {
-        match item {
-            DisplayItem::Group(g) => match g.items.as_slice() {
-                [only @ DisplayItem::Group(_)] => innermost(only),
-                items => items,
-            },
-            _ => panic!("the placement is groups"),
+}
+
+/// `drawImagePlaceholder`'s box is upstream's `fillRect`, a
+/// [`DisplayItem::FillRect`] (the canvas anti-aliases it as a rectangle,
+/// not as a filled path), then the built-in placeholder.
+#[test]
+fn the_placeholder_box_is_a_fill_rect() {
+    let g = golden();
+    let case = g["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|c| c["id"] == "png")
+        .unwrap();
+    let el = element(case);
+    for (theme, fill) in [
+        (Theme::Light, IMAGE_PLACEHOLDER_FILL_LIGHT),
+        (Theme::Dark, IMAGE_PLACEHOLDER_FILL_DARK),
+    ] {
+        let item = render_with(&el, HashMap::new(), theme, (0.0, 0.0));
+        match innermost(&item) {
+            [DisplayItem::FillRect { rect, color }, DisplayItem::Image(icon)] => {
+                assert_eq!(*rect, Rect::new(0.0, 0.0, el.base.width, el.base.height));
+                assert_eq!(color.as_str(), fill);
+                assert_eq!(icon.id, IMAGE_PLACEHOLDER_ID);
+            }
+            other => panic!("a fillRect and the placeholder: {other:?}"),
         }
     }
-    assert_eq!(innermost(&render(&g, case)), items.as_slice());
 }
 
 /// A dark SVG gets the filter, a dark PNG does not, a light SVG does not.
@@ -537,23 +591,28 @@ fn only_dark_svg_images_are_filtered() {
         .unwrap();
     let mut el: Element = element(png);
     let file = match &el.kind {
-        excali_core::element::ElementKind::Image(f) => f.file_id.clone().unwrap().0,
+        ElementKind::Image(f) => f.file_id.clone().unwrap().0,
         _ => panic!("an image"),
     };
     el.base.roundness = None;
-    let filter = |mime, theme| {
-        let cache = HashMap::from([(file.clone(), ImageCacheEntry::Ready { mime_type: mime })]);
-        match draw_image_element(&el, theme, &cache).as_slice() {
+    let filter = |mime: &str, theme| {
+        let cache = HashMap::from([(
+            file.clone(),
+            CachedImage {
+                mime_type: mime.to_owned(),
+            },
+        )]);
+        match innermost(&render_with(&el, cache, theme, (0.0, 0.0))) {
             [DisplayItem::Image(i)] => i.filter,
             other => panic!("one image: {other:?}"),
         }
     };
     assert_eq!(
-        filter(FileMimeType::Svg, Theme::Dark),
+        filter("image/svg+xml", Theme::Dark),
         Some(ImageFilter::DarkTheme)
     );
-    assert_eq!(filter(FileMimeType::Png, Theme::Dark), None);
-    assert_eq!(filter(FileMimeType::Svg, Theme::Light), None);
+    assert_eq!(filter("image/png", Theme::Dark), None);
+    assert_eq!(filter("image/svg+xml", Theme::Light), None);
 }
 
 // -- raster fixtures ----------------------------------------------------------
@@ -687,7 +746,7 @@ impl Split {
 fn background() -> (Value, Vec<Value>) {
     let (w, h) = (FIXTURE_WIDTH, FIXTURE_HEIGHT);
     (
-        json!({"type": "fill", "color": "#ffffff", "path": [["rect", 0, 0, w, h]]}),
+        json!({"type": "fillRect", "color": "#ffffff", "rect": [0, 0, w, h]}),
         vec![
             json!(["save"]),
             json!(["set", "fillStyle", "#ffffff"]),
@@ -738,4 +797,200 @@ fn the_raster_fixtures_are_the_ports_output_beside_upstreams_calls() {
             )
         );
     }
+}
+
+// -- the static scene's images through the raster backend ---------------------
+
+const STATIC_SCENE_WIDTH: u32 = 300;
+const STATIC_SCENE_HEIGHT: u32 = 140;
+const STATIC_SCENE_FIXTURE: &str = "static-scene-images";
+const STATIC_SCENE_DESCRIPTION: &str = "Image placeholders and link icons as render_static_scene draws them in the editor (excali-scene tests/image_elements.rs): bootstrapCanvas's background as fillRect, an image element whose file is not in the image cache (drawImagePlaceholder: a #E7E7E7 fillRect and the built-in excalidraw:image-placeholder), one whose status is error (excalidraw:image-error-placeholder), rotated, and their link icons (excalidraw:external-link, excalidraw:element-link) on a fillRect of the view background. The built-in images are named by id only: the port's backend resolves them itself (builtinImages gives Chrome upstream's data URLs for them).";
+
+/// No text is measured: the scene has no iframes.
+struct NoText;
+
+impl TextMetricsProvider for NoText {
+    fn get_line_width(&self, _: &str, _: &str) -> f64 {
+        panic!("no text in the scene")
+    }
+}
+
+fn image_element(id: &str, x: f64, y: f64, w: f64, h: f64, extra: Value) -> Element {
+    let mut raw = json!({
+        "id": id, "type": "image", "x": x, "y": y, "width": w, "height": h,
+        "angle": 0, "strokeColor": "transparent", "backgroundColor": "transparent",
+        "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1,
+        "opacity": 100, "groupIds": [], "frameId": null, "index": null, "roundness": null,
+        "seed": 1, "version": 1, "versionNonce": 0, "isDeleted": false,
+        "boundElements": null, "updated": 1, "created": 1, "link": null, "locked": false,
+        "status": "saved", "fileId": "not-loaded", "scale": [1, 1], "crop": null
+    });
+    for (k, v) in extra.as_object().unwrap() {
+        raw[k] = v.clone();
+    }
+    serde_json::from_value(raw).expect("an image element")
+}
+
+/// `renderStaticScene` in the editor over two image elements whose files
+/// are not loaded, each with a link.
+fn static_scene_images() -> DisplayList {
+    let elements = vec![
+        image_element(
+            "placeholder",
+            20.0,
+            30.0,
+            120.0,
+            80.0,
+            json!({"link": "https://example.com"}),
+        ),
+        image_element(
+            "error",
+            170.0,
+            40.0,
+            100.0,
+            70.0,
+            json!({
+                "status": "error",
+                "angle": 0.3,
+                "link": "https://excalidraw.com/?element=placeholder"
+            }),
+        ),
+    ];
+    let map = ElementsMap::new(&elements);
+    let visible: Vec<&Element> = elements.iter().collect();
+    let config = StaticCanvasRenderConfig {
+        render_grid: false,
+        location_host: "excalidraw.com".to_owned(),
+        ..StaticCanvasRenderConfig::default()
+    };
+    let app_state = StaticCanvasAppState {
+        view_background_color: Some("#f8f9fa".to_owned()),
+        ..StaticCanvasAppState::default()
+    };
+    render_static_scene(&StaticScene {
+        canvas_width: f64::from(STATIC_SCENE_WIDTH),
+        canvas_height: f64::from(STATIC_SCENE_HEIGHT),
+        scale: 1.0,
+        elements_map: &map,
+        all_elements_map: &map,
+        visible_elements: &visible,
+        app_state: &app_state,
+        render_config: &config,
+        text_metrics: &NoText,
+    })
+}
+
+fn image_ids(items: &[DisplayItem], out: &mut Vec<String>) {
+    for item in items {
+        match item {
+            DisplayItem::Image(i) => out.push(i.id.clone()),
+            DisplayItem::Group(g) => image_ids(&g.items, out),
+            _ => {}
+        }
+    }
+}
+
+fn static_scene_file() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!(
+        "../excali-raster/tests/fixtures/display-lists/{STATIC_SCENE_FIXTURE}.json"
+    ))
+}
+
+/// The static scene names upstream's placeholders and link icons by the
+/// built-in ids every backend resolves, and the raster fixture
+/// `static-scene-images.json` (drawn by Chrome from upstream's data URLs,
+/// by excali-raster from its own built-in images) is its output.
+#[test]
+fn the_static_scene_names_built_in_images_the_backends_resolve() {
+    let list = static_scene_images();
+    let mut ids = Vec::new();
+    image_ids(&list.items, &mut ids);
+    assert_eq!(
+        ids,
+        // each element's link icon right after it (staticScene.ts)
+        [
+            IMAGE_PLACEHOLDER_ID,
+            EXTERNAL_LINK_ID,
+            IMAGE_ERROR_PLACEHOLDER_ID,
+            ELEMENT_LINK_ID
+        ]
+    );
+    for id in &ids {
+        assert!(builtin_image_by_id(id).is_some(), "{id} resolves");
+    }
+    // the background is bootstrapCanvas's fillRect
+    fn first_leaf(items: &[DisplayItem]) -> Option<&DisplayItem> {
+        items.iter().find_map(|item| match item {
+            DisplayItem::Group(g) => first_leaf(&g.items),
+            other => Some(other),
+        })
+    }
+    assert!(matches!(
+        first_leaf(&list.items),
+        Some(DisplayItem::FillRect { color, .. }) if color.as_str() == "#f8f9fa"
+    ));
+
+    let items: Vec<Value> = list.items.iter().map(item_json).collect();
+    let builtins: serde_json::Map<String, Value> = BUILTIN_IMAGE_NAMES
+        .iter()
+        .map(|name| builtin_image(name).unwrap())
+        .filter(|b| ids.iter().any(|id| id == b.id))
+        .map(|b| (b.id.to_owned(), json!(b.data_url)))
+        .collect();
+    if std::env::var_os("EXCALI_WRITE_RASTER_FIXTURE").is_some() {
+        let existing: Option<Value> = std::fs::read_to_string(static_scene_file())
+            .ok()
+            .and_then(|t| serde_json::from_str(&t).ok());
+        let keep = |key: &str, default: Value| {
+            existing
+                .as_ref()
+                .and_then(|v| v.get(key).cloned())
+                .unwrap_or(default)
+        };
+        let header = [
+            ("description", json!(STATIC_SCENE_DESCRIPTION)),
+            ("width", json!(STATIC_SCENE_WIDTH)),
+            ("height", json!(STATIC_SCENE_HEIGHT)),
+            (
+                "tolerance",
+                keep("tolerance", json!({"channel": 0, "pixels": 0})),
+            ),
+            (
+                "toleranceNote",
+                keep("toleranceNote", json!("to be measured")),
+            ),
+            ("builtinImages", Value::Object(builtins.clone())),
+        ];
+        let mut out = String::from("{\n");
+        for (k, v) in header {
+            out.push_str(&format!(" {}: {},\n", json!(k), v));
+        }
+        out.push_str(" \"items\": [\n");
+        out.push_str(
+            &items
+                .iter()
+                .map(|v| format!("  {v}"))
+                .collect::<Vec<_>>()
+                .join(",\n"),
+        );
+        out.push_str("\n ]\n}\n");
+        std::fs::write(static_scene_file(), out).unwrap();
+    }
+    let text = std::fs::read_to_string(static_scene_file()).unwrap_or_else(|_| {
+        panic!("{STATIC_SCENE_FIXTURE}.json exists (EXCALI_WRITE_RASTER_FIXTURE=1 writes it)")
+    });
+    let file: Value = serde_json::from_str(&text).unwrap();
+    let stale = format!("{STATIC_SCENE_FIXTURE}.json is stale: EXCALI_WRITE_RASTER_FIXTURE=1 cargo test -p excali-scene --test image_elements, then scripts/fixtures/raster-references.sh");
+    if let Err(at) = close(&file["items"], &Value::Array(items), "items") {
+        panic!("{stale} ({at})");
+    }
+    assert_eq!(file["builtinImages"], Value::Object(builtins), "{stale}");
+    assert_eq!(file["description"], STATIC_SCENE_DESCRIPTION, "{stale}");
+    assert_eq!(
+        (file["width"].as_u64(), file["height"].as_u64()),
+        (
+            Some(u64::from(STATIC_SCENE_WIDTH)),
+            Some(u64::from(STATIC_SCENE_HEIGHT))
+        )
+    );
 }

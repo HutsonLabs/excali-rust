@@ -22,8 +22,8 @@ use excali_raster::diff::{compare, diff_image, Tolerance};
 use excali_raster::tiny_skia::{self, ColorU8, IntSize, Mask, Pixmap};
 use excali_raster::{render_scaled, TextRasterizer};
 use excali_scene::display::{
-    Clip, Color, Dash, DisplayItem, DisplayList, FillRule, Group, ImageFilter, ImageItem, LineCap,
-    LineJoin, Path, Rect, Stroke, TextRun, Transform,
+    builtin_image_by_id, Clip, Color, Dash, DisplayItem, DisplayList, FillRule, Group, ImageFilter,
+    ImageItem, LineCap, LineJoin, Path, Rect, Stroke, TextRun, Transform,
 };
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -277,11 +277,28 @@ fn load(name: &str) -> Fixture {
         channel: u8::try_from(tolerance["channel"].as_u64().expect("tolerance.channel")).unwrap(),
         pixels: tolerance["pixels"].as_u64().expect("tolerance.pixels") as usize,
     };
-    let images = v
+    let images: HashMap<String, DecodedImage> = v
         .get("images")
         .and_then(Value::as_object)
         .map(|m| m.iter().map(|(id, img)| (id.clone(), image(img))).collect())
         .unwrap_or_default();
+    // Built-in images are for Chrome, which loads them from upstream's data
+    // URLs; the port's backend resolves the ids itself, so they are not in
+    // its image store.
+    for (id, url) in v
+        .get("builtinImages")
+        .and_then(Value::as_object)
+        .into_iter()
+        .flatten()
+    {
+        let builtin = builtin_image_by_id(id)
+            .unwrap_or_else(|| panic!("{name}: {id} is not a built-in image"));
+        assert_eq!(
+            url, &builtin.data_url,
+            "{name}: {id}'s data URL is upstream's"
+        );
+        assert!(!images.contains_key(id), "{name}: {id} is built in");
+    }
     Fixture {
         width: v["width"].as_u64().unwrap() as u32,
         height: v["height"].as_u64().unwrap() as u32,
