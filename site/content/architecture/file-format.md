@@ -101,6 +101,7 @@ Libraries cannot contain `iframe`, `embeddable` or `image` elements.
 - **PNG:** a `tEXt` chunk before `IEND` with keyword `application/vnd.excalidraw+json` and text `JSON.stringify(encode({text: sceneJSON, compress: true}))`. Legacy files hold raw scene JSON in the chunk.
 - **SVG:** `<!-- svg-source:excalidraw -->` then `<metadata>` containing `<!-- payload-type:application/vnd.excalidraw+json --><!-- payload-version:2 --><!-- payload-start -->BASE64<!-- payload-end -->`. Without `payload-version` the base64 decodes to UTF-8 text (v1).
 - **Wrapper:** `{ version: "1", encoding: "bstring", compressed: bool, encoded: string }`, where `encoded` is a byte string (one char per byte) of the zlib-deflated or raw UTF-8 text.
+- **Compression:** the deflated bytes must equal pako 2.0.3 `deflate` at its defaults (level 6), which is what upstream writes. `flate2`'s miniz_oxide backend picks different matches (for the empty-scene fixture its output differs from byte 11), so `excali_core::encode` ports pako's `deflate_slow` and Huffman coder and uses `flate2` only to inflate. Decoding follows pako: gzip or zlib per stream, concatenated streams, pako's own UTF-8 decoder for compressed text, `TextDecoder` for uncompressed text. Goldens: `crates/excali-core/tests/fixtures/payload/goldens.json`, produced from upstream `encode.ts` at the pin by `scripts/fixtures/payload-goldens.sh` and re-checked in CI.
 - **Clipboard:** `{ type: "excalidraw/clipboard", elements, files? }` under `application/vnd.excalidraw.clipboard+json` and `text/plain`.
 
 ## Fixtures
