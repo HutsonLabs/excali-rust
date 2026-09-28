@@ -19,6 +19,7 @@
     {"name":"elements-elbow-arrow.json","cases":9,"sha256":"ce64faabec68d00351622e924ef67ff51156186a5585fbf9bb12fedb08a0d248"},
     {"name":"elements-freedraw.json","cases":48,"sha256":"b7cbd0ad0ec703629680f3037e2ff5ac0324e2e0deb2afd5deff215132b757c6"},
     {"name":"elements-iframe-like.json","cases":13,"sha256":"08ab9fadb41160189ff84f09e26371a128a152f716ee012f0afedfd36a7494d4"},
+    {"name":"elements-matrix.json","cases":684,"sha256":"2c828355603780290147ba4db64283d4af9e10daeaf35565bc80078d20c22893"},
     {"name":"freehand.json","cases":51,"sha256":"5376d39d44a873434da5e01ebde06a2fab319b446887b8dfb84ae78d90a977a1"},
     {"name":"laser-pointer.json","cases":61,"sha256":"cc87317d60f9a532cb41a801daa89a3741312c9086173ebcb5c9e71d64257038"},
     {"name":"math.json","cases":2942,"sha256":"6096ee4182c6f475cf4cee1dd3cdd40b8401cc8fd6748f30d5bd5c2e709f64a1"},

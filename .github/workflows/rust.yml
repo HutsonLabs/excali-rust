@@ -117,7 +117,9 @@ jobs:
   # golden prints the case and element id, shape, set and op index, and the
   # expected and actual numbers; goldens_manifest checks every golden file's
   # sha256 and case count against goldens/manifest.json and its upstream
-  # commit against site/config.toml.
+  # commit against site/config.toml. element_matrix (ex-g202) is the M2
+  # matrix: every element type x fill style x roughness 0/1/2 x seeds
+  # 1/7/1041657908, and it fails if any cell of the matrix has no case.
   goldens:
     runs-on: ubuntu-24.04-arm
     steps:
@@ -129,6 +131,7 @@ jobs:
         run: >-
           cargo test --workspace --locked --features goldens
           --test golden_harness --test goldens_manifest --test goldens
+          --test element_matrix
   # ex-206: the roughr evaluation behind ADR-003 (tools/roughr-eval, a
   # stand-alone package outside the workspace). Its tests fail if
   # report.json differs from a fresh run over goldens/ or ADR-003 does not
