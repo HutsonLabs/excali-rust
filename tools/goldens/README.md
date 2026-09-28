@@ -382,6 +382,35 @@ CI runs `--check` in the `goldens` job, and `test/dark-mode.test.mjs` checks
 that two runs are byte-identical and that the palette and its filtered colours
 equal upstream's vitest snapshot (`common/src/__snapshots__/colors.test.ts.snap`).
 
+## Font metadata goldens
+
+`font-metadata.mjs` writes `crates/excali-text/tests/fixtures/font-metadata.json`
+for the font metadata table and the baseline formula (ex-301). It bundles
+upstream's `FONT_METADATA`, `GOOGLE_FONTS_RANGES`, `LOCAL_FONT_PROTOCOL`,
+`getVerticalOffset` and `getLineHeight`
+(`packages/common/src/font-metadata.ts:35-181`), `getLineHeightInPx`
+(`packages/element/src/textMeasurements.ts:91-96`), the family ids and
+fallbacks (`common/src/constants.ts:129-197`) and `getFontFamilyString` /
+`getFontString` (`common/src/utils.ts:123-147`), and records:
+
+- `metadata`: `Object.entries(FONT_METADATA)` in JavaScript key order;
+- `families`: `getLineHeight`, the generic fallback, the fallback list and
+  `getFontFamilyString` for named, fallback, unused and custom ids;
+- `lineHeightInPx`: `getLineHeightInPx` over sizes and unitless line heights;
+- `verticalOffset`: `getVerticalOffset` for every id and size, with the
+  family's own line height, other unitless ones and odd pixel heights;
+- `fontString`: `getFontString` for every id at a few sizes.
+
+```sh
+node tools/goldens/font-metadata.mjs           # write the fixture
+node tools/goldens/font-metadata.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and `test/font-metadata.test.mjs`
+checks that two runs are byte-identical and that the fixture holds upstream's
+`textElement.test.ts:188-210` expectations. The Rust side
+(`crates/excali-text/tests/font_metadata.rs`) compares every offset bit for bit.
+
 ## Library fixtures
 
 `library-fixtures.mjs` writes `crates/excali-core/tests/fixtures/library.json`

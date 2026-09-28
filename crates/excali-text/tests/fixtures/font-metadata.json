@@ -1,5 +1,5 @@
 {
-  "description": "Upstream FONT_METADATA, getVerticalOffset, getLineHeight (common/src/font-metadata.ts:35-181), getLineHeightInPx (element/src/textMeasurements.ts:91-96), the font family constants and fallbacks (common/src/constants.ts:127-197), getFontFamilyString and getFontString (common/src/utils.ts:123-147) at the pinned commit (tools/goldens/font-metadata.mjs).",
+  "description": "Upstream FONT_METADATA, getVerticalOffset, getLineHeight (common/src/font-metadata.ts:35-181), getLineHeightInPx (element/src/textMeasurements.ts:91-96), the font family constants and fallbacks (common/src/constants.ts:129-197), getFontFamilyString and getFontString (common/src/utils.ts:123-147) at the pinned commit (tools/goldens/font-metadata.mjs).",
   "upstream": "438d89861f53d8a90ad566113ecac1b83761098f",
   "fontFamily": {"Virgil":1,"Helvetica":2,"Cascadia":3,"Excalifont":5,"Nunito":6,"Lilita One":7,"Comic Shanns":8,"Liberation Sans":9,"Assistant":10},
   "fallbacks": {"Xiaolai":100,"sans-serif":998,"monospace":999,"Segoe UI Emoji":1000},

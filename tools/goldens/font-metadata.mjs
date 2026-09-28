@@ -3,7 +3,7 @@
 // FONT_METADATA, getVerticalOffset and getLineHeight
 // (packages/common/src/font-metadata.ts:35-181), getLineHeightInPx
 // (packages/element/src/textMeasurements.ts:91-96), the family constants and
-// fallbacks (packages/common/src/constants.ts:127-197) and getFontFamilyString
+// fallbacks (packages/common/src/constants.ts:129-197) and getFontFamilyString
 // / getFontString (packages/common/src/utils.ts:123-147), run from the pinned
 // checkout under plain Node.
 //
@@ -140,7 +140,7 @@ const build = async (upstream) => {
   const up = await loadUpstream(upstream, { entry: ENTRY });
   return format({
     description:
-      "Upstream FONT_METADATA, getVerticalOffset, getLineHeight (common/src/font-metadata.ts:35-181), getLineHeightInPx (element/src/textMeasurements.ts:91-96), the font family constants and fallbacks (common/src/constants.ts:127-197), getFontFamilyString and getFontString (common/src/utils.ts:123-147) at the pinned commit (tools/goldens/font-metadata.mjs).",
+      "Upstream FONT_METADATA, getVerticalOffset, getLineHeight (common/src/font-metadata.ts:35-181), getLineHeightInPx (element/src/textMeasurements.ts:91-96), the font family constants and fallbacks (common/src/constants.ts:129-197), getFontFamilyString and getFontString (common/src/utils.ts:123-147) at the pinned commit (tools/goldens/font-metadata.mjs).",
     upstream: upstream.commit,
     fontFamily: up.FONT_FAMILY,
     fallbacks: up.FONT_FAMILY_FALLBACKS,

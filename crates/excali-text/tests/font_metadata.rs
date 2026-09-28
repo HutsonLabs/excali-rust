@@ -2,7 +2,7 @@
 //! `FONT_METADATA`, `getVerticalOffset` and `getLineHeight`
 //! (`packages/common/src/font-metadata.ts:35-181`), `getLineHeightInPx`
 //! (`packages/element/src/textMeasurements.ts:91-96`), the family fallbacks
-//! (`packages/common/src/constants.ts:127-197`) and `getFontFamilyString` /
+//! (`packages/common/src/constants.ts:129-197`) and `getFontFamilyString` /
 //! `getFontString` (`packages/common/src/utils.ts:123-147`).
 //!
 //! Fixture: `tests/fixtures/font-metadata.json`, upstream's own output at the
@@ -62,7 +62,9 @@ fn normalise(v: &Value) -> Value {
     match v {
         Value::Number(n) => json!(n.as_f64().unwrap()),
         Value::Array(a) => Value::Array(a.iter().map(normalise).collect()),
-        Value::Object(o) => Value::Object(o.iter().map(|(k, v)| (k.clone(), normalise(v))).collect()),
+        Value::Object(o) => {
+            Value::Object(o.iter().map(|(k, v)| (k.clone(), normalise(v))).collect())
+        }
         other => other.clone(),
     }
 }
@@ -70,7 +72,12 @@ fn normalise(v: &Value) -> Value {
 #[test]
 fn metadata_table_is_upstreams_in_key_order() {
     let fixture = fixture();
-    let expected: Vec<Value> = fixture["metadata"].as_array().unwrap().iter().map(normalise).collect();
+    let expected: Vec<Value> = fixture["metadata"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(normalise)
+        .collect();
     let actual: Vec<Value> = FONT_METADATA
         .iter()
         .map(|(id, meta)| normalise(&metadata_json(*id, meta)))
@@ -99,7 +106,10 @@ fn ten_families_plus_fallbacks_have_metrics() {
     ] {
         assert!(font_metadata(f).is_none(), "{f:?}");
         // Excalifont's metrics stand in (font-metadata.ts:160-162).
-        assert_eq!(font_metrics(f), &font_metadata(FontFamily::EXCALIFONT).unwrap().metrics);
+        assert_eq!(
+            font_metrics(f),
+            &font_metadata(FontFamily::EXCALIFONT).unwrap().metrics
+        );
     }
 }
 
@@ -120,7 +130,11 @@ fn metrics_match_the_research_table() {
     ];
     for (f, upm, asc, desc, lh) in rows {
         let m = &font_metadata(f).unwrap().metrics;
-        assert_eq!((m.units_per_em, m.ascender, m.descender, m.line_height), (upm, asc, desc, lh), "{f:?}");
+        assert_eq!(
+            (m.units_per_em, m.ascender, m.descender, m.line_height),
+            (upm, asc, desc, lh),
+            "{f:?}"
+        );
     }
     let flags = |f| {
         let m = font_metadata(f).unwrap();
@@ -129,10 +143,16 @@ fn metrics_match_the_research_table() {
     assert_eq!(flags(FontFamily::VIRGIL), (true, false, false, false));
     assert_eq!(flags(FontFamily::HELVETICA), (true, false, true, false));
     assert_eq!(flags(FontFamily::CASCADIA), (true, false, false, false));
-    assert_eq!(flags(FontFamily::LIBERATION_SANS), (false, true, false, false));
+    assert_eq!(
+        flags(FontFamily::LIBERATION_SANS),
+        (false, true, false, false)
+    );
     assert_eq!(flags(FontFamily::ASSISTANT), (false, true, false, false));
     assert_eq!(flags(FontFamily::XIAOLAI), (false, false, false, true));
-    assert_eq!(flags(FontFamily::SEGOE_UI_EMOJI), (false, false, true, true));
+    assert_eq!(
+        flags(FontFamily::SEGOE_UI_EMOJI),
+        (false, false, true, true)
+    );
     assert_eq!(flags(FontFamily::EXCALIFONT), (false, false, false, false));
 }
 
@@ -159,7 +179,11 @@ fn line_height_in_px_is_upstreams() {
     let fixture = fixture();
     for case in fixture["lineHeightInPx"].as_array().unwrap() {
         let (size, lh) = (num(&case["fontSize"]), num(&case["lineHeight"]));
-        assert_eq!(get_line_height_in_px(size, lh).to_bits(), num(&case["px"]).to_bits(), "{size} {lh}");
+        assert_eq!(
+            get_line_height_in_px(size, lh).to_bits(),
+            num(&case["px"]).to_bits(),
+            "{size} {lh}"
+        );
     }
 }
 
@@ -191,7 +215,11 @@ fn vertical_offset_is_upstreams_bit_for_bit() {
         assert_eq!(heights.len(), offsets.len());
         for (h, o) in heights.iter().zip(offsets) {
             let got = get_vertical_offset(f, size, num(h));
-            assert_eq!(got.to_bits(), num(o).to_bits(), "{f:?} {size} {h}: {got} != {o}");
+            assert_eq!(
+                got.to_bits(),
+                num(o).to_bits(),
+                "{f:?} {size} {h}: {got} != {o}"
+            );
             checked += 1;
         }
     }
@@ -216,8 +244,16 @@ fn fallbacks_are_upstreams() {
     assert_eq!(family(&fixture["defaultFontFamily"]), FontFamily::DEFAULT);
     for case in fixture["families"].as_array().unwrap() {
         let f = family(&case["id"]);
-        assert_eq!(get_generic_font_family_fallback(f), case["genericFallback"], "{f:?}");
-        assert_eq!(json!(get_font_family_fallbacks(f)), case["fallbacks"], "{f:?}");
+        assert_eq!(
+            get_generic_font_family_fallback(f),
+            case["genericFallback"],
+            "{f:?}"
+        );
+        assert_eq!(
+            json!(get_font_family_fallbacks(f)),
+            case["fallbacks"],
+            "{f:?}"
+        );
         assert_eq!(get_font_family_string(f), case["fontFamilyString"], "{f:?}");
     }
 }
