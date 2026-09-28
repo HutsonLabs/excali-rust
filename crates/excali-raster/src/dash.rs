@@ -848,19 +848,35 @@ fn points_of(segs: &[Seg]) -> Vec<F> {
     out
 }
 
-/// `SkDashPath::InternalFilter`: the dashed path, and whether it is to be
-/// filled as it is (`SpecialLineRec` turns a butt-capped line's dashes
-/// into rectangles) rather than stroked.
-pub(crate) fn dash(
-    src: &[Seg],
-    intervals: &[f32],
-    phase: f32,
-    stroke: &DashStroke,
-) -> Option<(Vec<Seg>, bool)> {
-    let (initial_len, initial_index, interval_length, phase) = dash_parameters(phase, intervals)?;
+/// What `SkDashPath::InternalFilter` leaves `FillPathWithPaint` to draw.
+#[derive(Debug, PartialEq)]
+pub(crate) enum Dashed {
+    /// The dashes, to be stroked.
+    Stroke(Vec<Seg>),
+    /// The dashes as outlines, to be filled: `SpecialLineRec` turns a
+    /// butt-capped line's dashes into rectangles.
+    Fill(Vec<Seg>),
+    /// The filter failed (an invalid interval list, which leaves the canvas
+    /// without a path effect, or more than `kMaxDashCount` dashes), and
+    /// `FillPathWithPaint` draws the source path with the stroke record as
+    /// the filter left it: stroked, or, when `SpecialLineRec` had already
+    /// set the fill style, filled.
+    Failed { filled: bool },
+}
+
+/// `SkDashPath::kMaxDashCount`.
+const MAX_DASH_COUNT: f32 = 1_000_000.0;
+
+/// `SkDashPath::InternalFilter`.
+pub(crate) fn dash(src: &[Seg], intervals: &[f32], phase: f32, stroke: &DashStroke) -> Dashed {
+    let Some((initial_len, initial_index, interval_length, phase)) =
+        dash_parameters(phase, intervals)
+    else {
+        return Dashed::Failed { filled: false };
+    };
     let count = intervals.len();
     if points_of(src).is_empty() {
-        return Some((Vec::new(), false));
+        return Dashed::Stroke(Vec::new());
     }
     let mut culled: Option<Vec<Seg>> = None;
     // cull_path.
@@ -1018,8 +1034,10 @@ pub(crate) fn dash(
         let length = meas.length;
         let mut index = initial_index;
         dash_count += length * (count >> 1) as f32 / interval_length;
-        if dash_count > 1_000_000.0 {
-            return None;
+        if dash_count > MAX_DASH_COUNT {
+            return Dashed::Failed {
+                filled: special.is_some(),
+            };
         }
         let mut dist = 0.0f64;
         let mut dlen = f64::from(initial_len);
@@ -1057,7 +1075,11 @@ pub(crate) fn dash(
             meas.get_segment(0.0, initial_len, &mut dst, !added);
         }
     }
-    Some((dst.segs, special.is_some()))
+    if special.is_some() {
+        Dashed::Fill(dst.segs)
+    } else {
+        Dashed::Stroke(dst.segs)
+    }
 }
 
 #[cfg(test)]
@@ -1108,8 +1130,9 @@ mod tests {
             res_scale: 1.0,
             cull: None,
         };
-        let (out, fill) = dash(&segs, &[5.0, 5.0], 0.0, &stroke).unwrap();
-        assert!(fill);
+        let Dashed::Fill(out) = dash(&segs, &[5.0, 5.0], 0.0, &stroke) else {
+            panic!("a butt-capped line dashes into outlines");
+        };
         assert_eq!(
             &out[..4],
             &[
@@ -1138,8 +1161,9 @@ mod tests {
             res_scale: 1.0,
             cull: None,
         };
-        let (out, fill) = dash(&segs, &[4.0, 4.0], 0.0, &stroke).unwrap();
-        assert!(!fill);
+        let Dashed::Stroke(out) = dash(&segs, &[4.0, 4.0], 0.0, &stroke) else {
+            panic!("a conic dashes into pieces to stroke");
+        };
         assert!(out.iter().any(|s| matches!(s, Seg::Conic(..))));
         let m = measure(&segs, 1.0);
         // The quarter of a radius-10 circle (15.708), measured by chords
@@ -1148,6 +1172,74 @@ mod tests {
             m[0].length > 15.5 && m[0].length < 15.708,
             "{}",
             m[0].length
+        );
+    }
+
+    fn stroke(width: f32, butt_cap: bool) -> DashStroke {
+        DashStroke {
+            width,
+            butt_cap,
+            miter_join: true,
+            miter_limit: 10.0,
+            res_scale: 1.0,
+            cull: Some([-1.0, -1.0, 201.0, 201.0]),
+        }
+    }
+
+    #[test]
+    fn more_than_a_million_dashes_fail_the_filter() {
+        // SkDashPath::InternalFilter gives up past kMaxDashCount and
+        // FillPathWithPaint draws the source undashed: stroked, unless
+        // SpecialLineRec (a butt-capped line, not a hairline) has already
+        // set the fill style. Counted after the cull: the culled line is
+        // about 285 long, 14 million dashes of 0.00001 + 0.00001.
+        let line = [Seg::Move((0.0, 0.0)), Seg::Line((1e6, 1e6))];
+        let tiny = [0.00001, 0.00001];
+        assert_eq!(
+            dash(&line, &tiny, 0.0, &stroke(0.0, true)),
+            Dashed::Failed { filled: false }
+        );
+        assert_eq!(
+            dash(&line, &tiny, 0.0, &stroke(3.0, false)),
+            Dashed::Failed { filled: false }
+        );
+        assert_eq!(
+            dash(&line, &tiny, 0.0, &stroke(3.0, true)),
+            Dashed::Failed { filled: true }
+        );
+        let polyline = [
+            Seg::Move((100.0, 1e6)),
+            Seg::Line((100.0, 70.0)),
+            Seg::Line((1e6, 120.0)),
+        ];
+        assert_eq!(
+            dash(&polyline, &tiny, 0.0, &stroke(2.0, true)),
+            Dashed::Failed { filled: false }
+        );
+        // Under the limit the same line dashes.
+        assert!(matches!(
+            dash(&line, &[1.0, 1.0], 0.0, &stroke(3.0, true)),
+            Dashed::Fill(out) if !out.is_empty()
+        ));
+    }
+
+    #[test]
+    fn invalid_intervals_leave_the_stroke_undashed() {
+        let line = [Seg::Move((0.0, 0.0)), Seg::Line((10.0, 0.0))];
+        for intervals in [&[5.0, -1.0][..], &[0.0, 0.0], &[4.0, f32::NAN], &[4.0]] {
+            assert_eq!(
+                dash(&line, intervals, 0.0, &stroke(2.0, false)),
+                Dashed::Failed { filled: false },
+                "{intervals:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn an_empty_source_dashes_to_nothing() {
+        assert_eq!(
+            dash(&[], &[4.0, 4.0], 0.0, &stroke(2.0, false)),
+            Dashed::Stroke(Vec::new())
         );
     }
 }

@@ -355,14 +355,14 @@ fn solid_paint(c: tiny_skia::Color) -> Paint<'static> {
     paint
 }
 
-/// The canonical path as a tiny-skia path (the one tiny-skia's dasher,
-/// stroker and hairliner take), or `None` when it has no geometry. Arcs
+/// A path's segments as a tiny-skia path (the one tiny-skia's hairliner
+/// takes), or `None` when it has no geometry. Arcs
 /// are Skia's conics, as quadratics within 1/4 unit.
-fn skia_path(path: &Path) -> Option<tiny_skia::Path> {
+fn skia_path(segs: &[edges::Seg]) -> Option<tiny_skia::Path> {
     let mut pb = tiny_skia::PathBuilder::new();
     let mut last = (0.0, 0.0);
     let f = |p: edges::P| (p.0 as f32, p.1 as f32);
-    for seg in edges::from_display(path, &Transform::IDENTITY) {
+    for &seg in segs {
         match seg {
             edges::Seg::Move(p) => {
                 pb.move_to(f(p).0, f(p).1);
@@ -406,12 +406,8 @@ fn skia_stroke(stroke: &Stroke) -> tiny_skia::Stroke {
             LineJoin::Round => tiny_skia::LineJoin::Round,
             LineJoin::Bevel => tiny_skia::LineJoin::Bevel,
         },
-        dash: stroke.dash.as_ref().and_then(|d| {
-            tiny_skia::StrokeDash::new(
-                d.segments().iter().map(|&s| s as f32).collect(),
-                d.offset() as f32,
-            )
-        }),
+        // The dash is dash.rs's (SkDashPath), applied before the stroke.
+        dash: None,
     }
 }
 
@@ -460,48 +456,54 @@ impl<I: ImageStore, T: TextRasterizer> Painter for RasterPainter<'_, I, T> {
         let ts = transform(&state.transform);
         let sk = skia_stroke(stroke);
         let paint = solid_paint(c);
-        if is_hairline(sk.width, ts) {
-            // Skia's anti-aliased hairline with the alpha scaled by the
-            // width, as the browser draws it; tiny-skia ports it.
-            let Some(path) = skia_path(path) else {
-                return;
-            };
-            let clip = self.clips.last().map(|c| &c.mask);
-            self.pixmap.stroke_path(&path, &paint, &sk, ts, clip);
-            return;
-        }
-        // As SkDraw::drawPath: the dash (tiny-skia's port of SkDashPath),
-        // then Skia's stroker (stroke.rs), both in user space at the
-        // matrix's resolution scale, then the outline filled nonzero in
-        // device space. Undashed paths keep their arcs as conics.
+        let hairline = is_hairline(sk.width, ts);
+        // As SkDraw::drawPath: the dash (dash.rs, SkDashPath), then Skia's
+        // stroker (stroke.rs), both in user space at the matrix's
+        // resolution scale, then the outline filled nonzero in device
+        // space. Undashed paths keep their arcs as conics. A hairline
+        // (modifyPaintForHairlines: width 0) is dashed the same way.
         let res_scale = tiny_skia::PathStroker::compute_resolution_scale(&ts);
         let src = edges::from_display(path, &Transform::IDENTITY);
         let src = match &stroke.dash {
             Some(pattern) => {
                 let intervals: Vec<f32> = pattern.segments().iter().map(|&v| v as f32).collect();
                 let dash_stroke = dash::DashStroke {
-                    width: sk.width,
+                    width: if hairline { 0.0 } else { sk.width },
                     butt_cap: stroke.cap == LineCap::Butt,
                     miter_join: stroke.join == LineJoin::Miter,
                     miter_limit: sk.miter_limit,
                     res_scale,
                     cull: self.local_cull(&state.transform),
                 };
-                let Some((dashed, fill)) =
-                    dash::dash(&src, &intervals, pattern.offset() as f32, &dash_stroke)
-                else {
-                    return;
-                };
-                if fill {
-                    // SpecialLineRec: the dashes are already the outline.
-                    let device = edges::transform_segs(&dashed, &state.transform);
-                    self.cover(&device, FillRule::NonZero, &paint);
-                    return;
+                match dash::dash(&src, &intervals, pattern.offset() as f32, &dash_stroke) {
+                    dash::Dashed::Stroke(dashed) => dashed,
+                    dash::Dashed::Fill(outline) => {
+                        // SpecialLineRec: the dashes are already the outline.
+                        let device = edges::transform_segs(&outline, &state.transform);
+                        self.cover(&device, FillRule::NonZero, &paint);
+                        return;
+                    }
+                    // FillPathWithPaint draws the source undashed.
+                    dash::Dashed::Failed { filled: false } => src,
+                    dash::Dashed::Failed { filled: true } => {
+                        let device = edges::transform_segs(&src, &state.transform);
+                        self.cover(&device, FillRule::NonZero, &paint);
+                        return;
+                    }
                 }
-                dashed
             }
             None => src,
         };
+        if hairline {
+            // Skia's anti-aliased hairline with the alpha scaled by the
+            // width, as the browser draws it; tiny-skia ports it.
+            let Some(path) = skia_path(&src) else {
+                return;
+            };
+            let clip = self.clips.last().map(|c| &c.mask);
+            self.pixmap.stroke_path(&path, &paint, &sk, ts, clip);
+            return;
+        }
         let style = stroke::StrokeStyle {
             width: sk.width,
             miter_limit: sk.miter_limit,

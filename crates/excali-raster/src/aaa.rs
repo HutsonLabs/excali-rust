@@ -2795,6 +2795,35 @@ fn round_out(r: [f32; 4]) -> IRect {
     }
 }
 
+/// `safeRoundOut` (SkScan_AntiPath.cpp): `SkRect::roundOut`, which pins
+/// huge floats to the i32 range, intersected with
+/// `±(SK_MaxS32 >> SK_SUPERSAMPLE_SHIFT)` so that the width and height of
+/// the bounds of a path with huge coordinates fit in an i32. As
+/// `SkIRect::intersect`, a rectangle outside the limit is left as it is
+/// (and is then empty, or clipped out by the caller).
+fn safe_round_out(r: [f32; 4]) -> IRect {
+    const LIMIT: i32 = i32::MAX >> 2;
+    let dst = round_out(r);
+    let limited = IRect {
+        left: dst.left.max(-LIMIT),
+        top: dst.top.max(-LIMIT),
+        right: dst.right.min(LIMIT),
+        bottom: dst.bottom.min(LIMIT),
+    };
+    if limited.left < limited.right && limited.top < limited.bottom {
+        limited
+    } else {
+        dst
+    }
+}
+
+/// `SkIRect::isEmpty`: no area, or a width or height past i32.
+fn is_empty(r: &IRect) -> bool {
+    let w = i64::from(r.right) - i64::from(r.left);
+    let h = i64::from(r.bottom) - i64::from(r.top);
+    w <= 0 || h <= 0 || w > i64::from(i32::MAX) || h > i64::from(i32::MAX)
+}
+
 /// `SkScan::AntiFillPath` + `SkScan::AAAFillPath` for a device-space path.
 pub(crate) fn fill_path(
     segs: &[Seg],
@@ -2806,8 +2835,8 @@ pub(crate) fn fill_path(
     // Trailing moves add nothing to the bounds of a Skia path's edges, but
     // SkPath::getBounds includes every point.
     let bounds = float_bounds(&pts)?;
-    let ir = round_out(bounds);
-    if ir.left >= ir.right || ir.top >= ir.bottom {
+    let ir = safe_round_out(bounds);
+    if is_empty(&ir) {
         return None;
     }
     let clipped = ir.intersect(&clip)?;
@@ -3160,6 +3189,62 @@ pub(crate) fn fill_rect(rect: [f32; 4], clip: IRect) -> Option<Fill> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn safe_round_out_keeps_huge_bounds_measurable() {
+        const LIMIT: i32 = i32::MAX >> 2;
+        let r = safe_round_out([-1e30, -1e30, 1e30, 1e30]);
+        assert_eq!(
+            r,
+            IRect {
+                left: -LIMIT,
+                top: -LIMIT,
+                right: LIMIT,
+                bottom: LIMIT
+            }
+        );
+        assert!(!is_empty(&r));
+        // Bounds within the limit round out as SkRect::roundOut.
+        assert_eq!(
+            safe_round_out([0.5, -1.5, 10.2, 3.0]),
+            IRect {
+                left: 0,
+                top: -2,
+                right: 11,
+                bottom: 3
+            }
+        );
+        // Wholly past the limit: SkIRect::intersect leaves the rectangle,
+        // which is empty once saturated or is clipped out later.
+        let far = safe_round_out([1e30, 0.0, 2e30, 1.0]);
+        assert!(is_empty(&far));
+        // A saturated width past i32 is empty, as SkIRect::isEmpty says.
+        assert!(is_empty(&IRect {
+            left: i32::MIN,
+            top: 0,
+            right: i32::MAX,
+            bottom: 1
+        }));
+    }
+
+    #[test]
+    fn huge_coordinates_fill_the_clip() {
+        let segs = vec![
+            Seg::Move((-1e30, -1e30)),
+            Seg::Line((1e30, 5.0)),
+            Seg::Line((5.0, 1e30)),
+            Seg::Close,
+        ];
+        let clip = IRect {
+            left: 0,
+            top: 0,
+            right: 200,
+            bottom: 200,
+        };
+        let fill = fill_path(&segs, false, clip, false).expect("covers the clip");
+        assert_eq!(fill.rect, clip);
+        assert!(fill.data.iter().all(|&a| a == 255));
+    }
 
     fn rect_segs(l: f64, t: f64, r: f64, b: f64) -> Vec<Seg> {
         vec![
