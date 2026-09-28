@@ -1,0 +1,5 @@
+#!/bin/sh
+# Strip tool attribution trailers from the message deterministically, then
+# refuse the commit if anything attributable remains. Activated by
+# scripts/bootstrap.sh (git config core.hooksPath .githooks).
+exec python3 "$(git rev-parse --show-toplevel)/scripts/gates/attribution.py" message "$1"

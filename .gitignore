@@ -1,0 +1,16 @@
+# pinned tool downloads (scripts/site/zola.sh)
+.tools/
+# zola output
+site/public/
+# rust (future crates)
+target/
+# editor/OS noise
+.DS_Store
+*.swp
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
+*.gate.lock*

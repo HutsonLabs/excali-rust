@@ -1,0 +1,14 @@
+#!/bin/sh
+# 1. Refresh the git-tracked beads export so the task graph in the commit
+#    matches the database (bd's own hooks are NOT installed: its
+#    prepare-commit-msg adds "agent identity trailers", which the authorship
+#    gate forbids).
+# 2. Scan every staged file for attribution and invisible watermarks.
+set -e
+root="$(git rev-parse --show-toplevel)"
+if command -v bd >/dev/null 2>&1 && [ -d "$root/.beads" ] && [ -z "$EXCALI_SKIP_BD_EXPORT" ]; then
+  if bd -C "$root" export -o .beads/issues.jsonl >/dev/null 2>&1; then
+    git -C "$root" add .beads/issues.jsonl
+  fi
+fi
+exec python3 "$root/scripts/gates/attribution.py" files --staged
