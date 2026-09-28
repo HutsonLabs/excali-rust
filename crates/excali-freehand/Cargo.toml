@@ -1,0 +1,12 @@
+[package]
+name = "excali-freehand"
+description = "Freedraw stroke outlines and the laser pointer trail, a port of perfect-freehand."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true

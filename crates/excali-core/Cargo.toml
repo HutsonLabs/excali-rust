@@ -1,0 +1,15 @@
+[package]
+name = "excali-core"
+description = "The .excalidraw data model: types, serde, restore, fractional index, library and payload codecs."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

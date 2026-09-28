@@ -1,0 +1,7 @@
+# Pinned stable toolchain for development and CI. The MSRV (rust-version in
+# Cargo.toml) is older and checked separately by the msrv job in rust.yml.
+[toolchain]
+channel = "1.97.1"
+components = ["rustfmt", "clippy"]
+targets = ["wasm32-unknown-unknown"]
+profile = "minimal"

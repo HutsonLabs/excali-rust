@@ -55,7 +55,7 @@ Build from primitives up. Each crate below is a pure layer over the one beneath 
 | `excali-wasm` | the `Excalidraw` React component's public props | `excali-ui`, `wasm-bindgen` | wasm32 |
 | `tauri-plugin-excali` | none (new) | `excali-raster`, `excali-core`, `tauri`, `tauri-plugin-dialog` | native |
 
-The dependency direction is enforced in CI: `excali-core`, `excali-math`, `excali-rough`, `excali-freehand`, `excali-scene` and `excali-editor` are built with `--target wasm32-unknown-unknown` and must not pull `std::fs`, `tokio` or `web-sys`.
+The dependency direction is enforced in CI: `excali-core`, `excali-math`, `excali-rough`, `excali-freehand`, `excali-text`, `excali-scene` and `excali-editor` are built with `--target wasm32-unknown-unknown` and must not pull `std::fs`, `tokio` or `web-sys`.
 
 ## Data flow
 

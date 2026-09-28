@@ -1,0 +1,12 @@
+[package]
+name = "excali-math"
+description = "Geometry primitives: points, vectors, segments, curves, polygons."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true

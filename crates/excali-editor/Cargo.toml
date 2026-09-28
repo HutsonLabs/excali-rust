@@ -1,0 +1,12 @@
+[package]
+name = "excali-editor"
+description = "Editor state machine: tools, hit testing, transforms, binding, snapping and history, returning effects instead of touching the DOM."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
