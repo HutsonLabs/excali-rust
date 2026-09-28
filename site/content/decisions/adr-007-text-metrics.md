@@ -65,10 +65,10 @@ The report, `crates/excali-text/tests/fixtures/text-width-corpus-report.json`, g
 | fontFamily | texts | within 0.5 px | max deviation | mean deviation |
 | --- | --- | --- | --- | --- |
 | 1 Virgil (gated since `ex-g301`) | 1243 | 1149 | 116.74 px | 0.193 px |
-| 3 Cascadia | 35 | 34 | 0.58 px | 0.054 px |
+| 3 Cascadia (gated since `ex-g302`) | 35 | 34 | 0.58 px | 0.054 px |
 | 5 Excalifont (gated) | 198 | 181 | 2.20 px | 0.144 px |
 | 6 Nunito (gated) | 20 | 20 | 0.06 px | 0.003 px |
-| 7 Lilita One | 3 | 2 | 0.89 px | 0.393 px |
+| 7 Lilita One (gated since `ex-g302`) | 3 | 2 | 0.89 px | 0.393 px |
 | 8 Comic Shanns (gated) | 39 | 38 | 0.52 px | 0.049 px |
 
 The four upstream fixture texts are all `legacy` Virgil (`test` stored as 77 px and measured as 79.92, and an emoji that Virgil does not draw). Family 2 (Helvetica, 465 texts) has no vendored faces and is only counted.
@@ -92,6 +92,13 @@ The upstream code fixes each formula. The rounding conventions (1/64 px layout u
 
 The DOM causes cover `stojanovic/aws-serverless-icons-v2` (14), `pratheeshpm/basic-system-design` (12 and the bound `API\nGateway`, stored 203 px in a 213 px rectangle, the 116.74 px maximum), `infamousjoeg/cyberark` (13 and one scaled), `erlina/data-processing` and `gabrielamacakova/halloween-elements` (scaled, the four halloween texts from one font size of 85.708 px), and 7 texts of `childishgirl/aws-architecture-icons`. The ink-box causes cover the other 33 childishgirl texts and the 8 kafka texts. Five texts have no cause: the Excalifont `A` (stored as a whole 25 px), `Alarms` and `Oracle\nAutonomous\nDatabase` (each exactly 1 px wider than the per-glyph ink box), `VCN\n(Region Identifier)`, and the Comic Shanns `7`. They stay `kept_width`, pinned by stored and measured width alone. Restore keeps a stored width unless it is called with `refreshDimensions` (`packages/excalidraw/data/restore.ts:1033-1046` at the pin), and the port keeps it on load. On edit the port measures today's advance width, as upstream at the pin does.
 
+`ex-g302`, 2026-09-28. Cascadia (3) and Lilita One (7) are gated as well: `GATED_FAMILIES` is `[1, 3, 5, 6, 7, 8]`, and their `measured` texts, and each family's mean (0.054 px and 0.393 px), are held to 0.5 px. Each family has one text outside 0.5 px. Both are pinned in `KNOWN_DEVIATIONS`, which now holds 114 texts, and each is explained by measurement in its own test:
+
+- Cascadia `{}` in `childishgirl/aws-architecture-icons` (fontSize 13.5046) is stored as 16.40625 px and measures 15.826 px. 16.40625 px is exactly `measureText` at 14 px (2 × 1200/2048 em × 14). All seven Cascadia texts of that library (`9`, `{}` and five `</>`) store exactly the width at `Math.round(fontSize)`, not at their fractional `fontSize` as upstream's `getFontString` measures. The other six are within 0.5 px only because their sizes are nearer a whole pixel. Its cause is `whole_pixel_font_size`, which `known_deviations_are_what_their_cause_writes` recomputes exactly. The test is `the_cascadia_deviation_is_a_width_measured_at_the_whole_pixel_size`.
+- Lilita One `Metrics` in `devdaejungyoon/github-actions` (fontSize 29.1220) is stored as 97.108 px and measures 96.219 px. Upstream's Lilita One is unhinted, and no kerning pair applies to `Metrics` (it shapes to 3304 units per 1000 with or without `kern`). So `measureText` is 3.304 em at every size, whole pixels included, and the stored width is 3.3345 em. Every resize keeps `width / fontSize` (`measureFontSizeFromWidth`, `packages/element/src/resizeElements.ts:292-315`), so the element cannot have got this width from a measurement at an earlier size. No vendored family measures within 0.5 px at the stored size. Upstream's two Lilita One files have the same blobs from `61623bbeba`, where they were added under `fonts/Lilita/`, to the pin; at `a80cb5896a` they sat in `fonts/assets/` with the same blobs. So no other upstream Lilita build exists to try. The nearest earlier measurement is the per-glyph ink box (`ink_box_glyph_pixels`), 97.114 px, 0.006 px off: closer than any other cause, but outside the 0.001 px a cause must reproduce, so the text stays `kept_width`. The test is `the_lilita_one_deviation_is_no_measurement_of_its_text`.
+
+Neither width can be reproduced by measuring the stored text at the stored size, which is what upstream does. The port keeps upstream's behaviour and pins both.
+
 ## Consequences
 
-Files open pixel-identical. Edits may differ from the browser by sub-pixel amounts; `ex-308` measures that across the corpus, and the 0.5 px threshold is a CI gate (`cargo test`) for Virgil and the three top-pick families, per text and per family mean.
+Files open pixel-identical. Edits may differ from the browser by sub-pixel amounts; `ex-308` measures that across the corpus, and the 0.5 px threshold is a CI gate (`cargo test`) for Virgil, Cascadia, Excalifont, Nunito, Lilita One and Comic Shanns, per text and per family mean.
