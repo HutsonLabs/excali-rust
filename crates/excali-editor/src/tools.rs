@@ -14,7 +14,9 @@
 //!   [`ActiveTool`], `preferredSelectionTool`, `penMode`, `penDetected`;
 //! - `packages/excalidraw/components/App.tsx`: `isInteractionEnabled`
 //!   (:963), `isToolSupported` (:1045), `isToolLocked` (:1079),
-//!   `isSameForcedTool` / `handleForcedToolChange` (:3519-3571),
+//!   the non-interactive tool reset of `handleInteractionStateChange`
+//!   (:3486-3499), `isSameForcedTool` / `handleForcedToolChange`
+//!   (:3519-3571), their order in `componentDidUpdate` (:4326-4327),
 //!   `toggleLock` (:5220), `togglePenMode` (:5271), the tool keys of
 //!   `onKeyDown` (:5768-5846), `setActiveTool` (:6210-6335), pen detection
 //!   (:8830-8837), the pen-mode pointer gate (:8963-8969) and the pen pinch
@@ -885,16 +887,46 @@ impl ToolState {
     }
 
     /// Sets (or clears) the host-forced tool (`props.activeTool`) and
-    /// applies it.
+    /// applies it through [`Self::sync_options`].
     pub fn force_tool(&mut self, tool: Option<Tool>) {
         self.options.forced_tool = tool;
+        self.sync_options();
+    }
+
+    /// The tool half of `componentDidUpdate` (`App.tsx:4326-4327`): run after
+    /// any change to [`Self::options`] (interaction, forced tool, image
+    /// tool). First [`Self::reset_unsupported_tool`]
+    /// (`handleInteractionStateChange`), then [`Self::sync_forced_tool`]
+    /// (`handleForcedToolChange`).
+    pub fn sync_options(&mut self) {
+        self.reset_unsupported_tool();
         self.sync_forced_tool();
+    }
+
+    /// The non-interactive invariant of `handleInteractionStateChange`
+    /// (`App.tsx:3486-3499`): while interaction is not fully enabled, an
+    /// active tool that is not supported (and is not already selection)
+    /// resets to selection through `updateActiveTool`, bypassing
+    /// [`Self::set_active_tool`], so it applies although selection itself is
+    /// unsupported while inert (e.g. a presenter's laser after handing off).
+    pub fn reset_unsupported_tool(&mut self) {
+        if !self.is_interaction_enabled()
+            && !self.is_tool_supported(&self.active_tool.tool)
+            && !self.active_tool.tool.is(ToolType::Selection)
+        {
+            self.active_tool = update_active_tool(
+                &self.active_tool,
+                ActiveToolUpdate::to(Tool::Builtin(ToolType::Selection)),
+            );
+        }
     }
 
     /// `handleForcedToolChange` (`App.tsx:3535-3571`): re-applies the forced
     /// tool after a write that bypassed [`Self::set_active_tool`] or an
     /// option change that made it activatable. The image tool cannot be
-    /// forced; an unsupported forced tool leaves the tool as is.
+    /// forced; an unsupported forced tool leaves the tool as is. After an
+    /// option change, call [`Self::sync_options`], which resets a stale
+    /// tool first.
     pub fn sync_forced_tool(&mut self) {
         let Some(forced) = self.options.forced_tool.clone() else {
             return;

@@ -9,8 +9,8 @@
 //! - `packages/excalidraw/components/App.tsx` (`isInteractionEnabled`
 //!   :963, `isToolSupported` :1045, `isToolLocked` :1079, `toggleLock`
 //!   :5220, `togglePenMode` :5271, the tool keys of `onKeyDown`
-//!   :5768-5846, `setActiveTool` :6210, pen detection :8830 and the pen-mode
-//!   pointer gate :8963);
+//!   :5768-5846, `setActiveTool` :6210, pen detection :8830, the pen-mode
+//!   pointer gate :8963 and the non-interactive tool reset :3486-3499);
 //! - `packages/excalidraw/actions/actionDeselect.ts:18-33` and
 //!   `actionFinalize.tsx:343-355` (the tool after Esc / finalize);
 //! - `packages/excalidraw/tests/tool.test.tsx` (the `findShapeByKey()`
