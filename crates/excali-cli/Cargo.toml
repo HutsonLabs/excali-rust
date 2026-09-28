@@ -1,6 +1,6 @@
 [package]
 name = "excali-cli"
-description = "Command-line export of .excalidraw files."
+description = "Command-line validation, export and library tools for .excalidraw files."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,9 +8,31 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
+[lib]
+name = "excali_cli"
+path = "src/lib.rs"
+
 [[bin]]
 name = "excali"
 path = "src/main.rs"
+
+# The architecture overview's crates: excali-raster (PNG) and excali-svg
+# (SVG), and what they are reached through: excali-scene (the export
+# documents), excali-text (the vendored fonts: measurement, and the glyph
+# outlines the PNG's text is filled from) and excali-core (loading,
+# restore, the payload codecs and libraries). clap parses the arguments.
+[dependencies]
+excali-core = { path = "../excali-core" }
+excali-raster = { path = "../excali-raster" }
+excali-scene = { path = "../excali-scene" }
+excali-svg = { path = "../excali-svg" }
+excali-text = { path = "../excali-text" }
+clap = { version = "4.6.7", features = ["derive"] }
+serde_json = { workspace = true }
+
+# png reads the PNGs the tests render.
+[dev-dependencies]
+png = "0.18.1"
 
 [lints]
 workspace = true
