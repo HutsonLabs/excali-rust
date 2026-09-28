@@ -1168,10 +1168,10 @@ mod boundaries {
                 "crate::{",
                 "crate::display",
                 "super::super",
-                "super::shape",
+                "::super::shape",
                 "super::{",
                 "self::super",
-                "super::y",
+                "::super::y",
                 "crate)",
                 "self)",
                 "excali_core::{",
@@ -1182,13 +1182,66 @@ mod boundaries {
         let in_submodule: Vec<bool> = found.iter().map(|r| allowed(r, false)).collect();
         assert_eq!(
             in_submodule,
-            [false, true, false, true, true, false, true, true, true, false, true, false]
+            [false, true, false, false, true, false, false, true, true, false, true, false]
         );
         let in_mod_rs: Vec<bool> = found.iter().map(|r| allowed(r, true)).collect();
         assert_eq!(
             in_mod_rs,
             [false, true, false, false, false, false, false, true, true, false, true, false]
         );
+
+        // A `super` inside a use group is relative to the group's prefix,
+        // not to the file (`super::{super::x}` is `super::super::x`); a
+        // `super` after `::` is relative to whatever precedes it; `self as p`
+        // names the prefix under another name. Each is rejected wherever it
+        // appears, so no spelling of `super::super` reaches the crate root.
+        let code = "use super::{super::shape::ShapeCache};\n\
+                    use self::{super::shape::X};\n\
+                    use super::{self as p}; use p::super::shape;\n\
+                    use super::{a, b::{c, super::d}}; use super :: { super :: e };\n\
+                    use super::paint::{self, Color}; fn g(a: u8) { h(a, super::x()) }";
+        let found = roots(code, is_root);
+        assert_eq!(
+            found,
+            [
+                "super::{",
+                "{super::shape",
+                "self::{",
+                "{super::shape",
+                "super::{",
+                "{self as",
+                "::super::shape",
+                "super::{",
+                "{super::d",
+                "super::{",
+                "{super::e",
+                "super::paint",
+                "{self",
+                "super::x",
+            ]
+        );
+        let in_submodule: Vec<bool> = found.iter().map(|r| allowed(r, false)).collect();
+        assert_eq!(
+            in_submodule,
+            [
+                true, false, true, false, true, false, false, true, false, true, false, true, true,
+                true
+            ]
+        );
+        for (r, ok) in found.iter().zip(&in_submodule) {
+            assert!(*ok || !allowed(r, true), "{r} is allowed in mod.rs");
+        }
+        for bypass in [
+            "use super::{super::shape::ShapeCache};",
+            "use self::{super::shape::X};",
+            "use super::{self as p}; use p::super::shape;",
+        ] {
+            let found = roots(bypass, is_root);
+            assert!(
+                found.iter().any(|r| !allowed(r, false)),
+                "{bypass} passes as {found:?}"
+            );
+        }
     }
 
     /// The roots the display module's path check follows.
