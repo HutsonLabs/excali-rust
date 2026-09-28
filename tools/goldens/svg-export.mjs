@@ -20,13 +20,22 @@
 //   truncateText, :64-139, 156-183), and getCanvasSize (:566-576) of the
 //   root elements with the padding.
 // - crates/excali-svg/tests/fixtures/svg-export.json: per scene, the
-//   arguments exportToSvg was called with and the document shell it built,
-//   as svgRoot.outerHTML serializes it (what exportCanvas saves after
-//   SVG_DOCUMENT_PREAMBLE, packages/excalidraw/data/index.ts:123-146): the
-//   root element with its attributes, the svg-source comment, <metadata>
-//   with the embedded scene, <defs> with the frame clip paths and the
-//   style-fonts block, and the background <rect>. The element nodes
-//   renderSceneToSvg appends after them are left out (ex-407).
+//   arguments exportToSvg was called with, the document shell it built
+//   before rendering the elements (ex-406: the root element with its
+//   attributes, the svg-source comment, <metadata> with the embedded scene,
+//   <defs> with the frame clip paths and the style-fonts block, and the
+//   background <rect>) and the whole document with the elements
+//   renderSceneToSvg adds (ex-407, renderer/staticSvgScene.ts: rough.js
+//   paths, freedraw outlines, one <text> per line, image <symbol>s and
+//   <use>s, arrow label masks, frame clips and outlines, links), each as
+//   svgRoot.outerHTML serializes it (what exportCanvas saves after
+//   SVG_DOCUMENT_PREAMBLE, packages/excalidraw/data/index.ts:123-146).
+//   Upstream runs in test mode, so every element's node carries its
+//   data-id (isTestEnv, staticSvgScene.ts:140-145), and the text elements
+//   export makes (frame name labels, embeddable placeholder labels) are
+//   named by randomId's test sequence, id0, id1, ..., which restarts for
+//   each scene. `stickyNoteNodes` lists the nodes upstream draws for sticky
+//   notes (their data-id is the note's), which ex-703 ports.
 //
 // Deterministic: upstream runs in its test mode (import.meta.env.MODE
 // "test"), Math.random throws while generating, and every input is fixed.
@@ -402,6 +411,406 @@ const FILES = {
   },
 };
 
+const PNG_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+const SVG_DATA_URL = `data:image/svg+xml;base64,${Buffer.from(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10" fill="#e03131"/></svg>',
+).toString("base64")}`;
+
+const IMAGE_FILES = {
+  png: { mimeType: "image/png", id: "png", dataURL: PNG_DATA_URL, created: RANDOM_SEED },
+  "png-2": { mimeType: "image/png", id: "png-2", dataURL: PNG_DATA_URL, created: RANDOM_SEED },
+  "png-3": { mimeType: "image/png", id: "png-3", dataURL: PNG_DATA_URL, created: RANDOM_SEED },
+  svg: { mimeType: "image/svg+xml", id: "svg", dataURL: SVG_DATA_URL, created: RANDOM_SEED },
+  // a file id that is no plain CSS identifier (querySelector("#image-a.b")
+  // reads an id and a class, and matches nothing)
+  "a.b": { mimeType: "image/png", id: "a.b", dataURL: PNG_DATA_URL, created: RANDOM_SEED },
+};
+
+const CROP = { x: 10, y: 5, width: 50, height: 40, naturalWidth: 100, naturalHeight: 80 };
+
+/** Image elements: symbols and uses, crops, flips, rounded clips, links. */
+const images = (up) => {
+  const image = (id, fileId, x, y, more = {}) =>
+    up.newImageElement({ type: "image", id, x, y, width: 40, height: 30, seed: 100, fileId, status: "saved", ...more });
+  return [
+    image("img", "png", 0, 0, { width: 40.4, height: 30.6 }),
+    // the same file again: another <use> of the same symbol
+    image("img-again", "png", 60, 0, { width: 20.5, height: 20.5, angle: 0.5 }),
+    image("img-flip-x", "png", 100, 0, { scale: [-1, 1] }),
+    image("img-flip-y", "png", 150, 0, { scale: [1, -1], angle: 1 }),
+    image("img-crop", "png", 0, 60, { width: 50, height: 40, crop: CROP }),
+    // the same crop of the same file: the same symbol
+    image("img-crop-2", "png", 60, 60, { width: 25, height: 20, crop: CROP }),
+    image("img-crop-round", "png-2", 120, 60, {
+      width: 50,
+      height: 40,
+      crop: CROP,
+      roundness: { type: 3 },
+      scale: [-1, -1],
+      angle: 2,
+    }),
+    image("img-round", "png-2", 0, 120, { roundness: { type: 3 } }),
+    image("img-round-small", "png-2", 60, 120, { width: 12, height: 9.5, roundness: { type: 2 } }),
+    image("img-svg", "svg", 120, 120, { opacity: 40 }),
+    image("img-odd-id", "a.b", 180, 120),
+    image("img-odd-id-2", "a.b", 180, 170),
+    // no such file, and no file at all: nothing is drawn
+    image("img-missing", "missing", 0, 180),
+    up.newImageElement({ type: "image", id: "img-pending", x: 60, y: 180, width: 30, height: 30, seed: 101 }),
+    // a link: the anchor is the root, which has no <defs>, so the symbol
+    // goes first in the anchor
+    image("img-link", "png-3", 120, 180, { link: 'https://example.com/?a=1&b="2"' }),
+    image("img-link-2", "svg", 180, 220, { link: "https://excalidraw.com" }),
+  ];
+};
+
+/** Text elements: lines, alignment, direction, fonts, containers. */
+const texts = (up) => {
+  const text = (id, x, y, value, more = {}) => up.newTextElement({ id, x, y, text: value, seed: 110, ...more });
+  const container = up.newElement({ type: "rectangle", id: "t-box", x: 400, y: 0, width: 160, height: 80, seed: 111 });
+  const boxed = text("t-boxed", 410, 20, "in a\nbox", { textAlign: "center", verticalAlign: "middle" });
+  // a label listed before its container: drawn with the container
+  const early = text("t-early", 410, 120, "early", { textAlign: "center" });
+  const late = up.newElement({ type: "ellipse", id: "t-late-box", x: 400, y: 100, width: 160, height: 80, seed: 112 });
+  // a label whose container is not exported: drawn on its own
+  const orphan = text("t-orphan", 400, 220, "orphan", { containerId: "not-exported" });
+  // a deleted label: skipped, its container drawn
+  const deleted = { ...text("t-deleted", 410, 330, "deleted"), isDeleted: true };
+  const withDeleted = up.newElement({ type: "rectangle", id: "t-deleted-box", x: 400, y: 300, width: 100, height: 60, seed: 113 });
+  bind(late, early);
+  bind(withDeleted, deleted);
+  return [
+    text("t-multi", 0, 0, "first\nsecond line\n\nfourth"),
+    { ...text("t-crlf", 0, 120, "a b c"), text: "a\r\nb\rc" },
+    text("t-center", 0, 200, "centred\ntext", { textAlign: "center" }),
+    text("t-right", 0, 260, "right\naligned", { textAlign: "right", angle: 2 }),
+    text("t-rtl", 0, 320, "שלום עולם"),
+    text("t-rtl-center", 0, 360, "مرحبا\nworld", { textAlign: "center" }),
+    text("t-virgil", 200, 0, "Virgil", { fontFamily: 1, fontSize: 36 }),
+    text("t-helvetica", 200, 60, "Helvetica", { fontFamily: 2, strokeColor: "#e03131" }),
+    text("t-cascadia", 200, 100, "Cascadia", { fontFamily: 3, lineHeight: 1.5 }),
+    text("t-comic", 200, 140, "Comic Shanns", { fontFamily: 8, fontSize: 16.5 }),
+    text("t-liberation", 200, 180, "Liberation", { fontFamily: 9, opacity: 50 }),
+    text("t-lilita", 200, 220, "Lilita", { fontFamily: 7 }),
+    text("t-escape", 200, 260, "<a> & \"b\" 'c'"),
+    text("t-spaces", 200, 300, "  padded  \n\ttab"),
+    text("t-empty", 200, 360, ""),
+    text("t-link", 200, 400, "linked", { link: "https://excalidraw.com" }),
+    ...bind(container, boxed),
+    early,
+    late,
+    orphan,
+    withDeleted,
+    deleted,
+  ];
+};
+
+/** Freedraw: a loop with a fill, open strokes, pressures, constant width. */
+const freedraws = (up) => {
+  const freedraw = (id, x, y, points, more = {}) =>
+    up.newFreeDrawElement({ type: "freedraw", id, x, y, seed: 120, points, simulatePressure: true, ...more });
+  const loop = [
+    [0, 0],
+    [30, -10],
+    [60, 5],
+    [55, 40],
+    [20, 45],
+    [2, 20],
+    [0, 0],
+  ];
+  return [
+    freedraw("fd-loop", 0, 0, loop, { backgroundColor: "#a5d8ff", fillStyle: "solid" }),
+    freedraw("fd-loop-hachure", 100, 0, loop, { backgroundColor: "#ffc9c9", fillStyle: "hachure", angle: 0.8 }),
+    freedraw(
+      "fd-open",
+      0,
+      100,
+      [
+        [0, 0],
+        [10, 4],
+        [25, 12],
+        [40, 30],
+        [44, 60],
+      ],
+      { strokeWidth: 4, opacity: 60 },
+    ),
+    freedraw(
+      "fd-pressure",
+      100,
+      100,
+      [
+        [0, 0],
+        [20, 10],
+        [40, 0],
+        [60, 20],
+      ],
+      { simulatePressure: false, pressures: [0.2, 0.9, 0.5, 0.1], strokeColor: "#1971c2" },
+    ),
+    freedraw(
+      "fd-constant",
+      200,
+      100,
+      [
+        [0, 0],
+        [15, 15],
+        [30, 0],
+        [45, 15],
+      ],
+      { strokeOptions: { variability: "constant", streamline: 0.5 } },
+    ),
+    freedraw("fd-point", 300, 100, [[0, 0]]),
+    freedraw("fd-link", 300, 0, loop, { link: "https://excalidraw.com/#json=1", backgroundColor: "#b2f2bb" }),
+  ];
+};
+
+/** Every Arrowhead (packages/element/src/types.ts:356-365). */
+const ARROWHEADS = [
+  "arrow",
+  "bar",
+  "circle",
+  "circle_outline",
+  "triangle",
+  "triangle_outline",
+  "diamond",
+  "diamond_outline",
+  "cardinality_one",
+  "cardinality_many",
+  "cardinality_one_or_many",
+  "cardinality_exactly_one",
+  "cardinality_zero_or_one",
+  "cardinality_zero_or_many",
+];
+
+const TRIANGLE = [
+  [0, 0],
+  [60, 10],
+  [30, 50],
+  [0, 0],
+];
+
+/** Stroke and fill styles, opacity, roundness and every arrowhead. */
+const styles = (up) => {
+  const box = (id, type, x, y, more = {}) =>
+    up.newElement({ type, id, x, y, width: 80, height: 60, seed: 130, backgroundColor: "#ffec99", ...more });
+  const fills = ["hachure", "cross-hatch", "zigzag", "solid"].map((fillStyle, i) =>
+    box(`fill-${fillStyle}`, "rectangle", i * 100, 0, { fillStyle }),
+  );
+  const line = (id, x, more) => up.newLinearElement({ type: "line", id, x, y: 200, seed: 131, points: TRIANGLE, ...more });
+  const strokes = [
+    box("dashed", "rectangle", 0, 100, { strokeStyle: "dashed", backgroundColor: "transparent" }),
+    box("dotted", "ellipse", 100, 100, { strokeStyle: "dotted", strokeWidth: 4 }),
+    box("dashed-diamond", "diamond", 200, 100, { strokeStyle: "dashed", roundness: { type: 2 }, fillStyle: "cross-hatch" }),
+    box("round", "rectangle", 300, 100, { roundness: { type: 3 }, roughness: 0, fillStyle: "solid" }),
+    box("round-value", "rectangle", 400, 100, { roundness: { type: 3, value: 20 }, roughness: 2, strokeWidth: 1 }),
+    box("faint", "ellipse", 0, 200, { opacity: 30, fillStyle: "zigzag", angle: 4 }),
+    box("round-diamond", "diamond", 100, 200, { roundness: { type: 2 }, opacity: 70 }),
+    line("loop-filled", 200, { backgroundColor: "#d0bfff", fillStyle: "solid" }),
+    line("loop-transparent", 300, {}),
+    line("loop-curved", 400, { backgroundColor: "#96f2d7", roundness: { type: 2 } }),
+    up.newLinearElement({
+      type: "line",
+      id: "line-dashed",
+      x: 500,
+      y: 200,
+      seed: 134,
+      strokeStyle: "dashed",
+      points: [
+        [0, 0],
+        [80, 40],
+      ],
+    }),
+  ];
+  const heads = ARROWHEADS.map((head, i) =>
+    up.newArrowElement({
+      type: "arrow",
+      id: `head-${head}`,
+      x: (i % 4) * 120,
+      y: 300 + Math.floor(i / 4) * 80,
+      seed: 140 + i,
+      points: [
+        [0, 0],
+        [90, 30],
+      ],
+      startArrowhead: i % 2 ? head : null,
+      endArrowhead: head,
+      strokeStyle: i % 3 === 1 ? "dotted" : "solid",
+      elbowed: false,
+    }),
+  );
+  return [...fills, ...strokes, ...heads];
+};
+
+/** Links on every kind of element; the anchor wraps what the element draws. */
+const links = (up) => [
+  up.newElement({ type: "rectangle", id: "l-rect", x: 0, y: 0, width: 60, height: 40, seed: 150, link: "excalidraw.com" }),
+  up.newElement({ type: "diamond", id: "l-js", x: 100, y: 0, width: 60, height: 40, seed: 151, link: "javascript:alert(1)" }),
+  up.newElement({
+    type: "ellipse",
+    id: "l-quotes",
+    x: 200,
+    y: 0,
+    width: 60,
+    height: 40,
+    seed: 152,
+    link: '  https://example.com/?q="x"&r=<y>  ',
+  }),
+  ...bind(
+    up.newArrowElement({
+      type: "arrow",
+      id: "l-arrow",
+      x: 0,
+      y: 100,
+      seed: 153,
+      points: [
+        [0, 0],
+        [160, 20],
+      ],
+      endArrowhead: "arrow",
+      elbowed: false,
+      link: "https://excalidraw.com/#l",
+    }),
+    up.newTextElement({ id: "l-label", x: 0, y: 0, text: "label", textAlign: "center", verticalAlign: "middle", seed: 154 }),
+  ),
+  up.newLinearElement({
+    type: "line",
+    id: "l-line",
+    x: 200,
+    y: 100,
+    seed: 155,
+    points: [
+      [0, 0],
+      [50, 50],
+    ],
+    link: "/relative/path",
+  }),
+  up.newFrameElement({ id: "l-frame", x: 300, y: 0, width: 120, height: 90, seed: 156, link: "https://excalidraw.com/frame", name: "linked" }),
+  up.newElement({ type: "rectangle", id: "l-empty", x: 0, y: 200, width: 60, height: 40, seed: 157, link: "" }),
+];
+
+/** Iframes and embeddables: the placeholder, its label, the link. */
+const embeds = (up) => {
+  const embeddable = (id, x, y, link, more = {}) =>
+    up.newEmbeddableElement({ type: "embeddable", id, x, y, width: 160, height: 90, seed: 160, link, ...more });
+  return [
+    up.newIframeElement({ type: "iframe", id: "e-iframe", x: 0, y: 0, width: 160, height: 90, seed: 160 }),
+    embeddable("e-empty", 200, 0, null, { width: 120, height: 80 }),
+    embeddable("e-youtube", 0, 150, "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=1m30s", {
+      width: 320,
+      height: 180,
+      roundness: { type: 3 },
+    }),
+    embeddable("e-twitter", 400, 150, "https://twitter.com/excalidraw/status/1234567890", { width: 200, height: 200, angle: 0.3 }),
+    embeddable("e-generic", 700, 150, "https://example.com/page?x=1", {
+      width: 100,
+      height: 100,
+      opacity: 50,
+      strokeColor: "transparent",
+    }),
+    embeddable("e-vimeo", 0, 400, "https://vimeo.com/12345"),
+    embeddable("e-figma", 200, 400, "https://www.figma.com/file/abc"),
+    embeddable("e-gist", 400, 400, "https://gist.github.com/user/0123abcd"),
+    embeddable("e-drive", 600, 400, "https://drive.google.com/file/d/abc_DEF-123/view?resourcekey=key-1&t=90"),
+    embeddable("e-valtown", 0, 550, "https://www.val.town/v/user.fn"),
+    embeddable("e-msforms", 200, 550, "https://forms.microsoft.com/r/abc"),
+    embeddable("e-reddit", 400, 550, "https://www.reddit.com/r/excalidraw/comments/abc123/some_title/"),
+    embeddable("e-shorts", 600, 550, "youtube.com/shorts/xyz_12-3?start=42", { width: 90, height: 160 }),
+    embeddable("e-playlist", 800, 550, "https://youtube.com/playlist?list=PL123"),
+    embeddable("e-quote", 1000, 550, 'https://example.com/"quoted"', { roundness: { type: 3 } }),
+    // a rectangle after the embeddables in the scene: embeddables draw last
+    up.newElement({
+      type: "rectangle",
+      id: "e-front",
+      x: 50,
+      y: 50,
+      width: 60,
+      height: 40,
+      seed: 174,
+      backgroundColor: "#ffc9c9",
+      fillStyle: "solid",
+    }),
+  ];
+};
+
+/** A frame with children of every kind: each is clipped to the frame. */
+const frameChildren = (up) => {
+  const frameId = "fc-frame";
+  const child = (element) => ({ ...element, frameId });
+  return [
+    up.newFrameElement({ id: frameId, x: 0, y: 0, width: 400, height: 300, seed: 180, opacity: 50, name: "children" }),
+    child(up.newElement({ type: "rectangle", id: "fc-rect", x: 20, y: 20, width: 80, height: 60, seed: 181, link: "https://excalidraw.com" })),
+    child(up.newTextElement({ id: "fc-text", x: 120, y: 20, text: "clipped\ntext", seed: 182, opacity: 50 })),
+    ...bind(
+      child(
+        up.newArrowElement({
+          type: "arrow",
+          id: "fc-arrow",
+          x: 20,
+          y: 150,
+          seed: 183,
+          points: [
+            [0, 0],
+            [200, 40],
+          ],
+          endArrowhead: "arrow",
+          elbowed: false,
+        }),
+      ),
+      up.newTextElement({ id: "fc-label", x: 0, y: 0, text: "label", textAlign: "center", verticalAlign: "middle", seed: 184 }),
+    ),
+    child(
+      up.newLinearElement({
+        type: "line",
+        id: "fc-line",
+        x: 250,
+        y: 150,
+        seed: 185,
+        points: [
+          [0, 0],
+          [60, 60],
+        ],
+      }),
+    ),
+    child(
+      up.newFreeDrawElement({
+        type: "freedraw",
+        id: "fc-freedraw",
+        x: 300,
+        y: 30,
+        seed: 186,
+        points: [
+          [0, 0],
+          [20, 30],
+          [40, 10],
+        ],
+        simulatePressure: true,
+      }),
+    ),
+    child(
+      up.newImageElement({
+        type: "image",
+        id: "fc-image",
+        x: 330,
+        y: 200,
+        width: 100,
+        height: 80,
+        seed: 187,
+        fileId: "png",
+        status: "saved",
+        roundness: { type: 3 },
+      }),
+    ),
+    child(up.newIframeElement({ type: "iframe", id: "fc-iframe", x: 200, y: 220, width: 100, height: 60, seed: 188 })),
+  ];
+};
+
+/** What upstream refuses to draw: a selection, alone and with a link. */
+const refused = (up) => [
+  up.newElement({ type: "selection", id: "sel", x: 0, y: 0, width: 50, height: 50, seed: 190 }),
+  up.newElement({ type: "selection", id: "sel-link", x: 100, y: 0, width: 50, height: 50, seed: 191, link: "https://excalidraw.com" }),
+  up.newElement({ type: "rectangle", id: "after", x: 200, y: 0, width: 50, height: 50, seed: 192 }),
+];
+
 /**
  * Scenes: exportToSvg's arguments. `opts.exportingFrame` names the frame by
  * id (the element itself is passed).
@@ -535,6 +944,31 @@ const scenes = (up) => {
       elements: frameElements,
       appState: { ...DEFAULT_OPTIONS, exportEmbedScene: true, frameRendering: { enabled: true, name: true, outline: false, clip: false } },
     },
+    // ex-407: the elements
+    { name: "images", elements: images(up), appState: DEFAULT_OPTIONS, files: IMAGE_FILES },
+    { name: "images-dark", elements: images(up), appState: { ...DEFAULT_OPTIONS, exportWithDarkMode: true }, files: IMAGE_FILES },
+    { name: "images-no-reuse", elements: images(up), appState: DEFAULT_OPTIONS, files: IMAGE_FILES, opts: { reuseImages: false } },
+    { name: "images-no-files", elements: images(up), appState: DEFAULT_OPTIONS },
+    { name: "texts", elements: texts(up), appState: DEFAULT_OPTIONS },
+    { name: "texts-dark", elements: texts(up), appState: { ...DEFAULT_OPTIONS, exportWithDarkMode: true } },
+    { name: "freedraws", elements: freedraws(up), appState: DEFAULT_OPTIONS },
+    { name: "freedraws-dark", elements: freedraws(up), appState: { ...DEFAULT_OPTIONS, exportWithDarkMode: true } },
+    { name: "styles", elements: styles(up), appState: { ...DEFAULT_OPTIONS, viewBackgroundColor: "#f8f9fa" } },
+    { name: "styles-dark", elements: styles(up), appState: { ...DEFAULT_OPTIONS, exportWithDarkMode: true } },
+    { name: "links", elements: links(up), appState: DEFAULT_OPTIONS },
+    { name: "embeds", elements: embeds(up), appState: DEFAULT_OPTIONS },
+    { name: "embeds-dark", elements: embeds(up), appState: { ...DEFAULT_OPTIONS, exportWithDarkMode: true } },
+    { name: "embeds-rendered", elements: embeds(up), appState: DEFAULT_OPTIONS, opts: { renderEmbeddables: true } },
+    { name: "frame-children", elements: frameChildren(up), appState: DEFAULT_OPTIONS, files: IMAGE_FILES },
+    {
+      name: "frame-children-unclipped",
+      elements: frameChildren(up),
+      appState: { ...DEFAULT_OPTIONS, frameRendering: { enabled: true, name: true, outline: true, clip: false } },
+      files: IMAGE_FILES,
+    },
+    { name: "frame-children-exported", elements: frameChildren(up), appState: DEFAULT_OPTIONS, files: IMAGE_FILES, opts: { exportingFrame: "fc-frame" } },
+    { name: "arrow-labels-dark", elements: arrowLabels(up), appState: { ...DEFAULT_OPTIONS, exportWithDarkMode: true } },
+    { name: "refused", elements: refused(up), appState: DEFAULT_OPTIONS },
   ];
 };
 
@@ -611,15 +1045,36 @@ const run = async (up, scene) => {
     ? elements.find((e) => e.id === scene.opts.exportingFrame)
     : null;
   const opts = scene.opts
-    ? { ...(exportingFrame ? { exportingFrame } : {}), ...(scene.opts.skipInliningFonts ? { skipInliningFonts: true } : {}) }
+    ? {
+        ...(exportingFrame ? { exportingFrame } : {}),
+        ...(scene.opts.skipInliningFonts ? { skipInliningFonts: true } : {}),
+        ...("renderEmbeddables" in scene.opts ? { renderEmbeddables: scene.opts.renderEmbeddables } : {}),
+        ...("reuseImages" in scene.opts ? { reuseImages: scene.opts.reuseImages } : {}),
+      }
     : undefined;
 
   let captured = null;
   globalThis.__svgExportShell = (root) => {
     captured = root;
   };
-  const svg = await up.exportToSvg(elements, appState, files, opts);
+  // randomId's test sequence starts again: the labels export makes are id0,
+  // id1, ... in each scene (common/src/random.ts)
+  up.reseed(RANDOM_SEED);
+  // renderSceneToSvg logs what it refuses to draw (a selection) and goes on
+  // (staticSvgScene.ts:906-908, 928-930); the document is what is recorded
+  const consoleError = console.error;
+  console.error = () => {};
+  let svg;
+  try {
+    svg = await up.exportToSvg(elements, appState, files, opts);
+  } finally {
+    console.error = consoleError;
+  }
   delete globalThis.__svgExportShell;
+  const stickyNotes = new Set(elements.filter((e) => e.type === "stickynote").map((e) => e.id));
+  const stickyNoteNodes = [...svg.querySelectorAll("[data-id]")]
+    .filter((n) => stickyNotes.has(n.getAttribute("data-id")))
+    .map((n) => n.outerHTML);
 
   // What exportToSvg computes before building the document, recomputed with
   // its own (exposed) helpers on the same inputs.
@@ -644,6 +1099,8 @@ const run = async (up, scene) => {
       files,
       opts: scene.opts ?? null,
       shell: shell(svg, captured, Boolean(appState.exportBackground && appState.viewBackgroundColor)),
+      document: svg.outerHTML,
+      ...(stickyNoteNodes.length ? { stickyNoteNodes } : {}),
       // The rough.js paths RoughSVG.draw writes with fixedDecimalPlaceDigits
       // MAX_DECIMALS_FOR_SVG_EXPORT (staticSvgScene.ts:60-74), in document
       // order: the two-decimal numbers of the upstream test's scene.

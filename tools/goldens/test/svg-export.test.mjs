@@ -121,6 +121,24 @@ test("upstream's export test expectations hold in the shells", () => {
   assert.match(scene("link").shell, /<metadata><\/metadata><defs><style class="style-fonts">\n {6}<\/style><\/defs><\/svg>$/);
 });
 
+test("the documents are upstream's snapshots where the test environments agree", () => {
+  // "with elements that have a link" snapshots svgElement.innerHTML: no
+  // fonts, so vitest's FontFace mock and export source play no part
+  const link = scene("link").document;
+  const inner = link.slice(link.indexOf(">") + 1, link.lastIndexOf("</svg>"));
+  assert.equal(`\n"${inner}"\n`, snapshot("exportToSvg > with elements that have a link 1"));
+  // the elements after the style block of "with exportEmbedScene": the
+  // same nodes, whatever the fonts and the embedded source
+  const elements = (markup) => markup.slice(markup.indexOf("</defs>"));
+  const embed = snapshot("exportToSvg > with exportEmbedScene 1");
+  assert.equal(`${elements(scene("fixture-embed").document)}`, `${elements(embed).slice(0, -2)}</svg>`);
+  // every document starts with its shell's root, comment and metadata
+  for (const s of committed(SVG).scenes) {
+    const shell = s.shell.slice(0, s.shell.indexOf("<defs>"));
+    assert.ok(s.document.startsWith(shell), s.name);
+  }
+});
+
 test("the bounds fixture sizes the documents of the svg fixture", () => {
   const bounds = committed(BOUNDS).scenes;
   const svg = committed(SVG).scenes;

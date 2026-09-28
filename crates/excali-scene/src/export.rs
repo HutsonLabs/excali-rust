@@ -487,8 +487,40 @@ pub struct SvgExportOptions<'a> {
     pub exporting_frame: Option<&'a Element>,
     /// `opts.skipInliningFonts`.
     pub skip_inlining_fonts: bool,
-    /// Measures the frame names.
+    /// `opts.renderEmbeddables` (upstream's default is `false`): draw an
+    /// embeddable's content as an `<iframe>` in a `<foreignObject>` rather
+    /// than a link.
+    pub render_embeddables: bool,
+    /// `opts.reuseImages` (upstream's default is `true`): images of the
+    /// same file (and crop) share one `<symbol>`.
+    pub reuse_images: bool,
+    /// `isTestEnv()`: every element's node carries its id as `data-id`,
+    /// and the text elements export makes (frame names, embeddable
+    /// placeholders) are named by `randomId`'s test sequence, `id0`, `id1`,
+    /// ... Upstream's own snapshots are written this way.
+    pub data_ids: bool,
+    /// `window.location.origin`, which `toValidURL` puts before a link
+    /// starting with `/` (an embeddable's `<iframe>` source).
+    pub origin: &'a str,
+    /// Measures the frame names and embeddable placeholders.
     pub text_metrics: &'a dyn TextMetrics,
+}
+
+impl<'a> SvgExportOptions<'a> {
+    /// `exportToSvg`'s defaults: no frame, fonts inlined, embeddables as
+    /// links, images reused, no `data-id`, the export source as the origin.
+    pub fn new(source: &'a str, text_metrics: &'a dyn TextMetrics) -> SvgExportOptions<'a> {
+        SvgExportOptions {
+            source,
+            exporting_frame: None,
+            skip_inlining_fonts: false,
+            render_embeddables: false,
+            reuse_images: true,
+            data_ids: false,
+            origin: source,
+            text_metrics,
+        }
+    }
 }
 
 /// `serializeAsJSON(elements, appState, files || {}, "local")`
@@ -596,5 +628,7 @@ pub fn svg_document(
         frame_clips,
         font_faces,
         background,
+        symbols: Vec::new(),
+        nodes: Vec::new(),
     }
 }

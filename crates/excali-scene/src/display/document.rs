@@ -36,6 +36,13 @@ pub struct SvgDocument {
     /// The background rectangle's fill, after the dark-mode filter, when
     /// `exportBackground` is set and the background colour is not empty.
     pub background: Option<String>,
+    /// The image `<symbol>`s `renderSceneToSvg` puts first in `<defs>`, in
+    /// document order (each new one goes before the others:
+    /// `defs.prepend(symbol)`, `staticSvgScene.ts:621`).
+    pub symbols: Vec<super::SvgNode>,
+    /// What `renderSceneToSvg` appends to the root after the background:
+    /// the elements' nodes, in order (`staticSvgScene.ts:850-933`).
+    pub nodes: Vec<super::SvgNode>,
 }
 
 /// The canvas a PNG export encodes: `exportToCanvas`

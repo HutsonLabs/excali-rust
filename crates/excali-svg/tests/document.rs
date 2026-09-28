@@ -6,71 +6,18 @@
 //!
 //! Fixture: `tests/fixtures/svg-export.json`, upstream's own `exportToSvg`
 //! at the pinned commit under jsdom 22.1.0 (`tools/goldens/svg-export.mjs`;
-//! its test checks the shells against upstream's vitest snapshot). A font
-//! face's content there is `font:<url>#<characters>`, with the face's last
-//! url (its file under upstream's asset fallback), and text measures
-//! 10 px per UTF-16 code unit.
+//! its test checks the shells against upstream's vitest snapshot). Each
+//! scene's `shell` is the document when upstream starts rendering the
+//! elements (`tests/elements.rs` holds the whole document).
 
-use excali_core::element::Element;
-use excali_scene::display::FontFaceSource;
-use excali_scene::export::{svg_document, SvgExportAppState, SvgExportOptions, TextMetrics};
-use excali_svg::{export_to_svg, to_svg_file, FontContent, FontFiles, SVG_DOCUMENT_PREAMBLE};
-use serde_json::{Map, Value};
+mod support;
 
-fn fixture() -> Value {
-    serde_json::from_str(include_str!("fixtures/svg-export.json")).unwrap()
-}
-
-struct TenPxPerCodeUnit;
-
-impl TextMetrics for TenPxPerCodeUnit {
-    fn measure(&self, text: &str, _font: &str) -> f64 {
-        text.encode_utf16().count() as f64 * 10.0
-    }
-}
-
-/// The fixture's font content: the face's last url in upstream (the url
-/// `getContent` answers when it cannot fetch the file) and the characters
-/// it was asked to keep.
-struct Marker;
-
-impl FontContent for Marker {
-    fn content(&self, face: &FontFaceSource) -> String {
-        format!("font:{}#{}", face.fallback_url, face.characters)
-    }
-}
-
-fn elements(scene: &Value) -> Vec<Element> {
-    scene["elements"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|e| Element::from_map(e.as_object().unwrap().clone()).unwrap())
-        .collect()
-}
-
-/// `exportToSvg(elements, appState, files, opts)` for a fixture scene, as
-/// markup.
-fn export(scene: &Value, source: &str) -> String {
-    let elements = elements(scene);
-    let app_state = SvgExportAppState::from_app_state(scene["appState"].as_object().unwrap());
-    let files: Option<&Map<String, Value>> = scene["files"].as_object();
-    let opts = &scene["opts"];
-    let exporting_frame = opts["exportingFrame"]
-        .as_str()
-        .map(|id| elements.iter().find(|e| e.base.id == id).unwrap());
-    let options = SvgExportOptions {
-        source,
-        exporting_frame,
-        skip_inlining_fonts: opts["skipInliningFonts"].as_bool().unwrap_or(false),
-        text_metrics: &TenPxPerCodeUnit,
-    };
-    let document = svg_document(&elements, &app_state, files, &options);
-    export_to_svg(&document, &Marker).outer_html()
-}
+use excali_scene::export::{svg_document, SvgExportAppState, SvgExportOptions};
+use excali_svg::{export_to_svg, to_svg_file, FontFiles, SVG_DOCUMENT_PREAMBLE};
+use support::{document, elements, fixture, shell, Marker, TenPxPerCodeUnit};
 
 #[test]
-fn every_scene_matches_upstreams_document() {
+fn every_scene_matches_upstreams_document_shell() {
     let fixture = fixture();
     let source = fixture["source"].as_str().unwrap();
     let scenes = fixture["scenes"].as_array().unwrap();
@@ -78,7 +25,7 @@ fn every_scene_matches_upstreams_document() {
     let mut failures = Vec::new();
     for scene in scenes {
         let expected = scene["shell"].as_str().unwrap();
-        let got = export(scene, source);
+        let got = export_to_svg(&shell(&document(scene, source, true)), &Marker).outer_html();
         if got != expected {
             failures.push(format!(
                 "{}:\n  got      {got}\n  expected {expected}",
@@ -94,13 +41,15 @@ fn the_upstream_test_scene() {
     let fixture = fixture();
     let scene = &fixture["scenes"][0];
     assert_eq!(scene["name"], "fixture");
-    let svg = export(scene, "https://excalidraw.com");
+    let svg =
+        export_to_svg(&document(scene, "https://excalidraw.com", false), &Marker).outer_html();
     assert!(svg.starts_with(
         "<svg version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 120 120\" \
          width=\"120\" height=\"120\"><!-- svg-source:excalidraw --><metadata></metadata>\
          <defs><style class=\"style-fonts\">\n      @font-face { font-family: Excalifont; "
     ));
-    assert!(svg.ends_with("</style></defs></svg>"));
+    assert!(svg.contains("</style></defs><g stroke-linecap=\"round\" transform=\"translate(10 10) rotate(0 50 50)\"><path d=\"M0.32 50.63 "));
+    assert!(svg.ends_with("original text</text></g></svg>"));
 }
 
 #[test]
@@ -110,10 +59,8 @@ fn a_file_starts_with_the_svg_preamble() {
     let elements = elements(scene);
     let app_state = SvgExportAppState::from_app_state(scene["appState"].as_object().unwrap());
     let options = SvgExportOptions {
-        source: "https://excalidraw.com",
-        exporting_frame: None,
         skip_inlining_fonts: true,
-        text_metrics: &TenPxPerCodeUnit,
+        ..SvgExportOptions::new("https://excalidraw.com", &TenPxPerCodeUnit)
     };
     let root = export_to_svg(
         &svg_document(&elements, &app_state, None, &options),
@@ -141,12 +88,7 @@ fn without_the_font_files_a_face_names_upstreams_asset_url() {
     let scene = &fixture["scenes"][0];
     let elements = elements(scene);
     let app_state = SvgExportAppState::from_app_state(scene["appState"].as_object().unwrap());
-    let options = SvgExportOptions {
-        source: "https://excalidraw.com",
-        exporting_frame: None,
-        skip_inlining_fonts: false,
-        text_metrics: &TenPxPerCodeUnit,
-    };
+    let options = SvgExportOptions::new("https://excalidraw.com", &TenPxPerCodeUnit);
     let missing = FontFiles::new(concat!(env!("CARGO_MANIFEST_DIR"), "/no-such-font-dir"));
     let svg = export_to_svg(
         &svg_document(&elements, &app_state, None, &options),

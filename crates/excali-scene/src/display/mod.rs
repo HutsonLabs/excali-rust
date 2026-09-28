@@ -69,8 +69,11 @@
 //! An SVG export also has a document around the drawing ([`SvgDocument`]:
 //! its size, the embedded scene, the frame clip paths, the fonts to inline
 //! and the background), computed from the elements by
-//! `excali_scene::export`. Numbers are printed as JavaScript prints them
-//! ([`number_to_string`], [`to_fixed`]).
+//! `excali_scene::export`. Its drawing is not a list of draws but the
+//! markup upstream's `renderSceneToSvg` builds, one group per element, as
+//! [`SvgNode`] trees whose values ([`SvgValue`]) the SVG backend prints.
+//! Numbers are printed as JavaScript prints them ([`number_to_string`],
+//! [`to_fixed`]).
 
 mod builtin;
 mod css_color;
@@ -81,6 +84,7 @@ mod paint;
 mod path;
 mod path_data;
 mod replay;
+mod svg;
 mod text;
 mod transform;
 
@@ -97,6 +101,7 @@ pub use number::{number_to_string, to_fixed};
 pub use paint::{Color, Dash, LineCap, LineJoin, Rgba, Stroke};
 pub use path::{FillRule, Path, PathCommand};
 pub use replay::{PaintState, Painter};
+pub use svg::{SvgNode, SvgTag, SvgValue};
 pub use text::{Direction, Font, TextAlign, TextRun};
 pub use transform::Transform;
 
