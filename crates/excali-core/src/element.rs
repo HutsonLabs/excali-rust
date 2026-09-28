@@ -1245,6 +1245,17 @@ impl Element {
         json::ordered_like_js(json::decode_map(&self.to_encoded()))
     }
 
+    /// Whether the JSON object this element writes ([`Element::to_map`])
+    /// has `key`: JavaScript's `element[key] !== undefined` for a known key.
+    /// A key the element was read without stays absent while its typed
+    /// value is unchanged (a legacy arrow read without `endArrowhead`,
+    /// whose renderer then defaults it to `"arrow"`, `shape.ts:937`); an
+    /// element built in Rust has every key its type models.
+    pub fn has_key(&self, key: &str) -> bool {
+        self.to_encoded()
+            .contains_key(&json::escape_str(key).into_owned())
+    }
+
     /// The object to write, in the sentinel form of [`crate::json`].
     pub(crate) fn to_encoded(&self) -> Map<String, Value> {
         let typed = json::escape_map(&typed_map(&self.base, &self.kind));

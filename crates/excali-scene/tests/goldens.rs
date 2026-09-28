@@ -10,8 +10,12 @@
 //!
 //! Lines and arrows (ex-209): every case of `goldens/elements-line.json`
 //! whole (linearPath, filled polygon loops and curves), and the body
-//! (`shapes[0]`) of every arrow in `elements-{arrow,arrowheads}.json`; the
-//! arrowheads after it are ex-212's.
+//! (`shapes[0]`) of every arrow in `elements-{arrow,arrowheads}.json`.
+//!
+//! Arrowheads (ex-212): every shape of every arrow in
+//! `elements-{arrow,arrowheads}.json`, the body exactly and the heads after
+//! it within `PLATFORM_TOLERANCE` (their wings are rotated with `Math.cos`
+//! and `Math.sin`, and circles are rough.js ellipses).
 //!
 //! Elbow arrows (ex-210): the body (`shapes[0]`) of every case of
 //! `goldens/elements-elbow-arrow.json`, the rounded path of
@@ -26,12 +30,14 @@
 use std::collections::HashMap;
 use std::path::Path;
 
+use excali_core::element::Arrowhead;
 use excali_core::element::Element;
 use excali_rough::goldens::{ActualShape, Report, Tolerance, PLATFORM_TOLERANCE};
 use excali_rough::{Drawable, RoughGenerator};
 use excali_scene::rough_options::generate_rough_options;
 use excali_scene::shape::{
-    generate_elbow_arrow_shape, generate_element_shape, generate_linear_shape, RenderConfig, Theme,
+    generate_elbow_arrow_shape, generate_element_shape, generate_linear_element_shapes,
+    generate_linear_shape, RenderConfig, Theme,
 };
 use serde_json::Value;
 
@@ -230,7 +236,7 @@ fn lines_match_upstream() {
 }
 
 /// Compares the body (`shapes[0]`: "curve is always the first element") of
-/// every arrow in `file`; the arrowheads after it are ex-212's. Returns how
+/// every arrow in `file`; [`check_arrows`] compares the heads. Returns how
 /// many ran and how many bodies of each rough.js shape there were.
 fn check_arrow_bodies(file: &str) -> (usize, HashMap<&'static str, usize>) {
     let doc = load(file);
@@ -310,4 +316,109 @@ fn elbow_arrow_bodies_match_upstream() {
     }
     assert_eq!(report.assert_ok(), 9);
     assert_eq!((drawn, skipped), (8, 1));
+}
+
+// ---------------------------------------------------------------------------
+// Arrowheads (ex-212)
+
+/// Every shape of every arrow in `file` from the port's
+/// `generate_linear_element_shapes`: the body exactly, each head within
+/// `PLATFORM_TOLERANCE`. Returns how many shapes were compared.
+fn check_arrows(file: &str) -> usize {
+    let doc = load(file);
+    let generator = RoughGenerator::new();
+    let mut report = Report::new(file);
+    for c in doc["cases"].as_array().expect("cases") {
+        let id = c["id"].as_str().expect("id");
+        let el = Element::from_map(c["element"].as_object().expect("element").clone())
+            .unwrap_or_else(|e| panic!("{id}: {e}"));
+        let (is_exporting, background, embeds, theme) = render_config(&c["renderConfig"]);
+        let config = RenderConfig {
+            is_exporting,
+            canvas_background_color: &background,
+            embeds_validation_status: Some(&embeds),
+            theme,
+        };
+        let actual = generate_linear_element_shapes(&el, &generator, &config)
+            .unwrap_or_else(|e| panic!("{id}: {e}"));
+        let expected = c["shapes"].as_array().expect("shapes");
+        assert_eq!(
+            expected.len(),
+            actual.len(),
+            "{id}: {} shapes upstream, {} in the port",
+            expected.len(),
+            actual.len()
+        );
+        for (i, (e, a)) in expected.iter().zip(&actual).enumerate() {
+            assert_eq!(e["type"], "rough", "{id}");
+            let tolerance = if i == 0 {
+                Tolerance::Exact
+            } else {
+                Tolerance::Relative(PLATFORM_TOLERANCE)
+            };
+            report.drawable(c, &e["drawable"], a, tolerance);
+        }
+    }
+    report.assert_ok()
+}
+
+#[test]
+fn arrows_with_their_heads_match_upstream() {
+    // 34 arrows, most with the default end head (an arrow: two lines)
+    assert_eq!(check_arrows("elements-arrow.json"), 102);
+}
+
+#[test]
+fn every_arrowhead_matches_upstream() {
+    // all fourteen kinds at either end and both, sw 1/2/4, curved, dashed,
+    // dotted, short, and the outline fills on a tinted and a dark canvas
+    assert_eq!(check_arrows("elements-arrowheads.json"), 442);
+}
+
+/// The acceptance of ex-212: a golden for every arrowhead at stroke widths
+/// 1, 2 and 4, at the start and at the end, and outline variants filled
+/// with the canvas background (tinted and dark-filtered).
+#[test]
+fn arrowhead_goldens_cover_every_kind_width_and_outline_fill() {
+    let doc = load("elements-arrowheads.json");
+    let cases = doc["cases"].as_array().expect("cases");
+    for head in Arrowhead::ALL {
+        for sw in [1, 2, 4] {
+            for (key, other) in [
+                ("startArrowhead", "endArrowhead"),
+                ("endArrowhead", "startArrowhead"),
+            ] {
+                assert!(
+                    cases.iter().any(|c| c["element"][key] == head.as_str()
+                        && c["element"][other].is_null()
+                        && c["element"]["strokeWidth"] == sw),
+                    "no golden for {} as {key} at sw {sw}",
+                    head.as_str()
+                );
+            }
+        }
+    }
+    // in the goldens themselves the outline heads fill with the canvas
+    // background (dark-filtered on a dark canvas), the others with the
+    // stroke colour
+    let fill_of = |id: &str, shape: usize| -> Value {
+        let c = cases.iter().find(|c| c["id"] == id).expect(id);
+        c["shapes"][shape]["drawable"]["options"]["fill"].clone()
+    };
+    let dark = excali_core::color::apply_dark_mode_filter("#ffffff", true);
+    for kind in ["circle_outline", "triangle_outline", "diamond_outline"] {
+        assert_eq!(fill_of(&format!("arrowhead/{kind}-end-sw2"), 1), "#ffffff");
+        assert_eq!(
+            fill_of(&format!("arrowhead/{kind}-tinted-canvas"), 1),
+            "#fff9db"
+        );
+        assert_eq!(fill_of(&format!("arrowhead/{kind}-dark"), 1), dark.as_str());
+    }
+    for kind in ["circle", "triangle", "diamond"] {
+        assert_eq!(fill_of(&format!("arrowhead/{kind}-end-sw2"), 1), "#1e1e1e");
+    }
+    assert_eq!(
+        fill_of("arrowhead/cardinality_zero_or_one-end-sw2", 1),
+        "#ffffff"
+    );
 }

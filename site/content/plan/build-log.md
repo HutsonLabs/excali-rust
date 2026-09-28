@@ -6,6 +6,18 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-m1 · Milestone check (second run): M1 not yet reached
+
+The M1 check ran again on `main` at 46d9d4e, after ex-g101 merged. 851 workspace tests pass, the fixture corpus verifies, and all twelve goldens checks are current, including the D1 document round trip. Every scene-bearing upstream fixture and all 232 catalogue libraries round-trip byte for byte against upstream. D1 is still not met because two known losses remain. The 24 logic-gates lines with a string `strokeWidth` are dropped (ex-117). 1245 legacy arrow bindings are cleared instead of migrated (ex-116, blocked by ex-507 and ex-510). The check found no other gap, so it added no new tasks. PR: [#49](https://github.com/HutsonLabs/excali-rust/pull/49).
+
+## 2026-09-28 · ex-212 · Arrowheads: all fourteen kinds with sizes, angles and roughness rules
+
+`excali_scene::bounds` now has `get_arrowhead_size`, `get_arrowhead_angle` and `get_arrowhead_points`, and `excali_scene::shape` has `get_arrowhead_shapes` for all fourteen kinds. `generate_linear_element_shapes` draws the arrow body and then its start and end heads. Line heads cap roughness at 1 and are drawn solid unless the arrow is dotted. Circle heads cap roughness at 0.5. Outline heads fill with the canvas background, dark-filtered on a dark canvas. A missing `endArrowhead` key still defaults to an arrow. All 102 shapes in `elements-arrow.json` and all 442 in `elements-arrowheads.json` match upstream. PR: [#48](https://github.com/HutsonLabs/excali-rust/pull/48).
+
+## 2026-09-28 · ex-218 · Dark-mode colour filter maths (invert 93% hue-rotate 180deg) and reverse
+
+`excali_core::color` now has `remove_dark_mode_filter`, a port of upstream's `removeDarkModeFilter`, next to the existing `apply_dark_mode_filter`. It also has a public `rgb_to_hex` that follows upstream's int32 arithmetic and optional alpha, and `COLOR_PALETTE` in upstream key order. `DARK_THEME_FILTER` is in `excali_core::constants`. For all 63 palette colours, apply, remove and the apply-remove-apply round trip all match upstream exactly. So do every CSS colour notation tested and all 256 greys. PR: [#47](https://github.com/HutsonLabs/excali-rust/pull/47).
+
 ## 2026-09-28 · ex-210 · Elbow arrow path from fixed points (radius 16) and validation
 
 `excali_scene::shape` now draws an elbow arrow the way upstream's `_generateElementShape` does. It calls `generator.path` on `generateElbowArrowShape(points, 16)` with continuous options, and corners shrink on short segments. Empty points become `[0, 0]`, and nothing is drawn past the 1e6 coordinate guard. The `heading` helpers and `validate_elbow_points` (DEDUP_TRESHOLD 1, strict) are ported too, and all 9 elbow golden bodies match upstream op by op. PR: [#46](https://github.com/HutsonLabs/excali-rust/pull/46).

@@ -10,7 +10,7 @@
 //!   `generator.linearPath(points)`.
 //! - Roundness: `generator.curve(points)`, filled when the line loops.
 //! - Empty points are drawn as the single point `[0, 0]`.
-//! - Arrows never fill; their heads (ex-212) and elbow arrows (ex-210) are
+//! - Arrows never fill; their heads (ex-212, `tests/arrowheads.rs`) and elbow arrows (ex-210) are
 //!   built elsewhere.
 //!
 //! The goldens are compared op by op in `tests/goldens.rs`.

@@ -354,6 +354,34 @@ node tools/goldens/rough-options.mjs --check   # exit 1 if it is stale
 CI runs `--check` in the `goldens` job, and `test/rough-options.test.mjs`
 checks that two runs are byte-identical.
 
+## Dark-mode filter goldens
+
+`dark-mode.mjs` writes `crates/excali-scene/tests/fixtures/dark-mode.json` for
+the dark-mode colour filter (ex-218). It bundles upstream's
+`applyDarkModeFilter` and `removeDarkModeFilter`
+(`packages/common/src/colors.ts:86-160`), `rgbToHex` (`:345-362`),
+`COLOR_PALETTE` (`:193-212`) and `DARK_THEME_FILTER`
+(`common/src/constants.ts:204`), and records:
+
+- `palette`: `COLOR_PALETTE` in upstream's key order;
+- `paletteFilter`: for every palette colour, `applyDarkModeFilter`,
+  `removeDarkModeFilter`, the reverse of the filtered colour, and the filter
+  of that again (the round trip of `colors.test.ts:225-235`);
+- `apply`: `applyDarkModeFilter(color)` and `(color, false)` for the cases of
+  `colors.test.ts` and every notation tinycolor reads, including strings it
+  does not (opaque black);
+- `remove`: `removeDarkModeFilter` for the same inputs and all 256 greys;
+- `rgbToHex`: the cases of `colors.test.ts:237-305` and alpha rounding.
+
+```sh
+node tools/goldens/dark-mode.mjs           # write the fixture
+node tools/goldens/dark-mode.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and `test/dark-mode.test.mjs` checks
+that two runs are byte-identical and that the palette and its filtered colours
+equal upstream's vitest snapshot (`common/src/__snapshots__/colors.test.ts.snap`).
+
 ## Library fixtures
 
 `library-fixtures.mjs` writes `crates/excali-core/tests/fixtures/library.json`

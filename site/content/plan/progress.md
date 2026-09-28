@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 13:53 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 14:06 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**136 issues** · 43 closed (32%) · 0 in progress · 0 blocked · 92 open
+**136 issues** · 44 closed (32%) · 0 in progress · 0 blocked · 91 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -87,21 +87,21 @@ excali-math, excali-rough (rough.js 4.6.4 semantics), excali-freehand, the displ
 
 ## ex-e3 · Phase 3: Text and fonts (excali-text)
 
-<span class="status open">open</span> 0/9 children closed
+<span class="status open">open</span> 1/9 children closed
 
 Font metadata, measurement from font files, wrapping port, bound-text sizing, lazy font assets with verified licences.
 
 | id | title | type | P | status | ready | blocked by |
 |---|---|---|---|---|---|---|
-| `ex-301` | Font metadata table and vertical offset formula | task | P0 | <span class="status open">open</span> | yes |  |
-| `ex-302` | Advance-width measurement from font files (ttf-parser, rustybuzz where shaping matters) | task | P0 | <span class="status open">open</span> |  | `ex-301`, `ex-306` |
+| `ex-301` | Font metadata table and vertical offset formula | task | P0 | <span class="status closed">closed</span> |  |  |
+| `ex-302` | Advance-width measurement from font files (ttf-parser, rustybuzz where shaping matters) | task | P0 | <span class="status open">open</span> |  | `ex-306` |
 | `ex-303` | Wrapping port (textWrapping.ts) with upstream tests | task | P0 | <span class="status open">open</span> |  | `ex-302` |
 | `ex-304` | Bound-text sizing: padding 5, ellipse and diamond insets, arrow label width | task | P1 | <span class="status open">open</span> |  | `ex-303` |
 | `ex-305` | Text element sizing on edit: autoResize, originalText/text, anchor growth by align | task | P1 | <span class="status open">open</span> |  | `ex-303` |
 | `ex-306` | Verify and record the licence of every font family before vendoring | decision | P0 | <span class="status open">open</span> | yes |  |
 | `ex-307` | Font asset pipeline: range-split woff2 manifest and lazy loading | task | P1 | <span class="status open">open</span> |  | `ex-306` |
 | `ex-308` | Corpus test: stored vs measured text widths across fixtures and libraries | task | P1 | <span class="status open">open</span> |  | `ex-302` |
-| `ex-m3` | M3: text measurement and wrapping parity | milestone | P2 | <span class="status open">open</span> |  | `ex-301`, `ex-302`, `ex-303`, `ex-304`, `ex-305`, `ex-306` … |
+| `ex-m3` | M3: text measurement and wrapping parity | milestone | P2 | <span class="status open">open</span> |  | `ex-302`, `ex-303`, `ex-304`, `ex-305`, `ex-306`, `ex-307` … |
 
 ## ex-e4 · Phase 4: Headless rendering and export
 
@@ -154,7 +154,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-521` | Footer: zoom actions, undo/redo, help button, exit zen | task | P1 | <span class="status open">open</span> |  | `ex-505`, `ex-516` |
 | `ex-522` | Help dialog with the three shortcut islands | task | P2 | <span class="status open">open</span> |  | `ex-516` |
 | `ex-523` | Colour picker: top picks, palette 5x3, shades, hex input, eyedropper, keyboard map | task | P1 | <span class="status open">open</span> |  | `ex-516` |
-| `ex-524` | Font picker: three top picks, scene/available groups, deprecated badge, search | task | P2 | <span class="status open">open</span> |  | `ex-301`, `ex-516` |
+| `ex-524` | Font picker: three top picks, scene/available groups, deprecated badge, search | task | P2 | <span class="status open">open</span> |  | `ex-516` |
 | `ex-525` | Context menus (canvas and element) generated from the actions registry | task | P1 | <span class="status open">open</span> |  | `ex-514`, `ex-516` |
 | `ex-526` | Library sidebar: tabs, header menu, personal/excalidraw sections, drag to canvas, add to library | task | P1 | <span class="status open">open</span> |  | `ex-516` |
 | `ex-527` | Command palette with category order and item lists | task | P2 | <span class="status open">open</span> |  | `ex-514`, `ex-516` |
