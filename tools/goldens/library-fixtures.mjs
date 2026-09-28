@@ -37,12 +37,15 @@
 //   import from libraries.excalidraw.com, library.ts:754-760), and the sha256
 //   of the serialized output recorded with the item count, and
 //   as for parse cases the output without geometry. `reload_sha256` is the
-//   sha256 of that output parsed again the same way and serialized (ex-114:
-//   a file written by upstream is not always what upstream writes after
-//   loading it; a legacy `draw` element becomes a `line` without `polygon`,
-//   restore.ts:646, and gets `polygon: false` on the next load), checked to
-//   be a fixed point; with geometry probed, the reload of the output without
-//   it.
+//   sha256 of that output parsed again the same way and serialized, checked
+//   to be a fixed point; with geometry probed, the reload of the output
+//   without it. (ex-114: a file written by upstream is not always what
+//   upstream writes after loading it. A legacy binding migrated with
+//   geometry is written {mode, elementId, fixedPoint}, restore.ts:412-416,
+//   and rebuilt on the next load as {elementId, mode, fixedPoint},
+//   restore.ts:338-342: every `geometry` library changes. A legacy `draw`
+//   element becomes a `line` without `polygon`, restore.ts:645-651, and
+//   gets `polygon: false` on the next load: 9 libraries.)
 // - merge cases: { id, local, other, output }: parseLibraryJSON of the two
 //   inputs (each after reseed(1)), mergeLibraryItems(local, other), written
 //   with serializeLibraryAsJSON.

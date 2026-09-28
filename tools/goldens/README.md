@@ -373,10 +373,20 @@ for excali-core's `.excalidrawlib` port (ex-108). It bundles upstream's
   232 files), the item count and the sha256 of the serialized parse, with
   `defaultStatus` `"published"` as an import from libraries.excalidraw.com,
   and `reload_sha256`, the sha256 of that output parsed and serialized once
-  more (ex-114). The two differ where a legacy `draw` element became a `line`
-  without `polygon` (`restore.ts:645-651`): the next load adds
-  `polygon: false`. The generator fails unless a further load leaves the
-  reloaded file unchanged;
+  more (ex-114). The two differ for 59 libraries, for two reasons:
+  - all 51 libraries with `geometry` (below): a legacy binding migrated with
+    geometry is written as `{mode, elementId, fixedPoint}`
+    (`restore.ts:412-416`); the next load reads a binding with a `mode` and
+    rebuilds it as `{elementId, mode, fixedPoint}` (`restore.ts:338-342`),
+    same values, new key order;
+  - 9 libraries (8 without `geometry`, and `cloud/cloud`) hold a legacy
+    `draw` element that became a `line` without `polygon`
+    (`isLineElement` is false for `draw`, `restore.ts:645-651`): the next
+    load adds `polygon: false`.
+
+  Without the migration only the second applies: `reload_sha256_without_geometry`
+  equals `output_sha256_without_geometry` except for `cloud/cloud`. The
+  generator fails unless a further load leaves the reloaded file unchanged;
 - `merge`: `mergeLibraryItems(local, other)` of two parsed libraries;
 - `hash`: `getLibraryItemsHash` of parsed items.
 

@@ -90,6 +90,35 @@ test("output is upstream's library codec in test mode", () => {
   assert.equal(legacy.length, 51);
   for (const c of legacy) assert.notEqual(c.output_sha256_without_geometry, c.output_sha256, c.id);
   for (const c of legacy) assert.match(c.reload_sha256_without_geometry, /^[0-9a-f]{64}$/, c.id);
+  // ex-114: a migrated binding is written {mode, elementId, fixedPoint}
+  // (restore.ts:412-416) and rebuilt on reload as {elementId, mode,
+  // fixedPoint} (restore.ts:338-342), so upstream's output of every legacy
+  // library changes on reload; without the migration it does not, except
+  // for cloud/cloud, which also holds legacy `draw` elements.
+  const azure = byId.get("7demonsrising/azure-containers");
+  assert.ok(azure.geometry > 0);
+  assert.notEqual(azure.reload_sha256, azure.output_sha256);
+  assert.equal(azure.reload_sha256_without_geometry, azure.output_sha256_without_geometry);
+  for (const c of legacy) {
+    assert.notEqual(c.reload_sha256, c.output_sha256, c.id);
+    const same = c.reload_sha256_without_geometry === c.output_sha256_without_geometry;
+    assert.equal(same, c.id !== "cloud/cloud", c.id);
+  }
+  // The `draw` libraries: 8 without legacy bindings, and cloud/cloud.
+  assert.deepEqual(
+    catalogue.filter((c) => !c.geometry && c.reload_sha256 !== c.output_sha256).map((c) => c.id),
+    [
+      "anumithaapollo12/emojis",
+      "drwnio/drwnio",
+      "excacomp/web-kit",
+      "franky47/apple-devices-frames",
+      "maeddes/technology-logos",
+      "mikhailredis/redis-grafana",
+      "spfr/lo-fi-wireframing-kit",
+      "youritjang/software-architecture",
+    ],
+  );
+  assert.equal(catalogue.filter((c) => c.reload_sha256 !== c.output_sha256).length, 59);
   const migrated = par.get("elements-legacy-binding-migrated");
   assert.equal(migrated.geometry, 1);
   assert.equal(JSON.parse(migrated.output).libraryItems[0].elements[1].startBinding.mode, "orbit");

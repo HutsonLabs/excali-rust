@@ -2,8 +2,13 @@
 //! `fixtures/libraries`, as listed in `fixtures/manifest.json` (ex-003,
 //! `excalidraw/excalidraw-libraries` at the commit the manifest pins),
 //! parses, is written back with `serialize_library_as_json` and parses
-//! again to the same items, element for element; the second write is byte
-//! for byte the first.
+//! again to the same items, element for element. That second parse is
+//! written once more and must be where the file settles (a third load
+//! writes it unchanged). The second write is not always the first: a
+//! legacy `draw` restored to `line` has no `polygon` until the next load
+//! adds `polygon: false` (`restore.ts:645-651`); the report counts those
+//! keys (115 `line.polygon`) and any other difference between the two
+//! writes fails the test.
 //!
 //! What a load loses is recorded in
 //! `tests/fixtures/library-corpus-report.json`, which this test rebuilds
@@ -16,9 +21,16 @@
 //! Run with `EXCALI_BLESS=1` to rewrite the report after a deliberate
 //! change; the diff is the review.
 //!
-//! Whether the written bytes are upstream's own is `library.rs`'s
-//! `catalogue_matches_upstream`; this test also checks the corpus it walks
-//! is exactly the catalogue that golden covers.
+//! Both writes are checked against upstream's own bytes in
+//! `fixtures/library.json` (`tools/goldens/library-fixtures.mjs`): the
+//! first against `output_sha256`, the second against `reload_sha256`, or
+//! for a library with legacy bindings that need geometry against the
+//! `*_without_geometry` digests, since the port drops those bindings
+//! (ex-116; upstream's migrated bindings also change key order on reload,
+//! `restore.ts:412-416` against `restore.ts:338-342`). The exception is
+//! `aarondiel/logic-gates`, whose 24 dropped lines (ex-117) leave
+//! `library.rs`'s `catalogue_matches_upstream` to check what it keeps.
+//! The corpus walked is exactly the catalogue that golden covers.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
