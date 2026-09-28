@@ -1,0 +1,399 @@
+{
+  "generator": "crates/excali-text/tests/text_width_corpus.rs",
+  "description": "Stored against measured widths of every text element in a vendored family across the ex-003 corpus (fixtures/manifest.json): the catalogue libraries and the scene-bearing upstream test fixtures. deviation = |measured - stored| in px, measured with excali_text's FontStore as measureText(text, getFontString(element), lineHeight). Classes are decided without the width; see classes. Regenerate with EXCALI_BLESS=1 cargo test -p excali-text --test text_width_corpus.",
+  "tolerance_px": 0.5,
+  "gated_families": [
+    5,
+    6,
+    8
+  ],
+  "classes": {
+    "measured": "lineHeight set, autoResize not false, stored height = fontSize * lineHeight * lines (getTextHeight): a width measureText wrote; gated for the gated families",
+    "height_mismatch": "lineHeight set and autoResize not false, but a stored height measureText cannot give: not written by upstream's measurement; reported",
+    "legacy": "no lineHeight: written before measureText used a unitless line height; reported",
+    "fixed_width": "autoResize false: width is the wrap width the user set, not a measurement; counted"
+  },
+  "sources": {
+    "library_files": 232,
+    "upstream_files": [
+      "upstream/packages/excalidraw/tests/fixtures/fixture_library.excalidrawlib",
+      "upstream/packages/excalidraw/tests/fixtures/smiley_embedded_v2.png",
+      "upstream/packages/excalidraw/tests/fixtures/smiley_embedded_v2.svg",
+      "upstream/packages/excalidraw/tests/fixtures/test_embedded_v1.png",
+      "upstream/packages/excalidraw/tests/fixtures/test_embedded_v1.svg"
+    ]
+  },
+  "families": [
+    {
+      "fontFamily": 1,
+      "name": "Virgil",
+      "gated": false,
+      "measured": {
+        "texts": 1243,
+        "within_tolerance": 1149,
+        "max_deviation_px": 116.74,
+        "mean_deviation_px": 0.1927
+      },
+      "legacy": {
+        "texts": 3797,
+        "within_tolerance": 1268,
+        "max_deviation_px": 251.196,
+        "mean_deviation_px": 2.7274
+      },
+      "fixed_width": {
+        "texts": 1,
+        "within_tolerance": 0,
+        "max_deviation_px": 2.5906,
+        "mean_deviation_px": 2.5906
+      }
+    },
+    {
+      "fontFamily": 3,
+      "name": "Cascadia",
+      "gated": false,
+      "measured": {
+        "texts": 35,
+        "within_tolerance": 34,
+        "max_deviation_px": 0.5806,
+        "mean_deviation_px": 0.0542
+      },
+      "legacy": {
+        "texts": 606,
+        "within_tolerance": 539,
+        "max_deviation_px": 444.375,
+        "mean_deviation_px": 9.4041
+      }
+    },
+    {
+      "fontFamily": 5,
+      "name": "Excalifont",
+      "gated": true,
+      "measured": {
+        "texts": 198,
+        "within_tolerance": 181,
+        "max_deviation_px": 2.204,
+        "mean_deviation_px": 0.1437
+      },
+      "fixed_width": {
+        "texts": 581,
+        "within_tolerance": 3,
+        "max_deviation_px": 421.8932,
+        "mean_deviation_px": 5.4155
+      }
+    },
+    {
+      "fontFamily": 6,
+      "name": "Nunito",
+      "gated": true,
+      "measured": {
+        "texts": 20,
+        "within_tolerance": 20,
+        "max_deviation_px": 0.0556,
+        "mean_deviation_px": 0.0029
+      },
+      "height_mismatch": {
+        "texts": 328,
+        "within_tolerance": 26,
+        "max_deviation_px": 47.515,
+        "mean_deviation_px": 6.2896
+      },
+      "fixed_width": {
+        "texts": 1,
+        "within_tolerance": 0,
+        "max_deviation_px": 0.6831,
+        "mean_deviation_px": 0.6831
+      }
+    },
+    {
+      "fontFamily": 7,
+      "name": "Lilita One",
+      "gated": false,
+      "measured": {
+        "texts": 3,
+        "within_tolerance": 2,
+        "max_deviation_px": 0.8894,
+        "mean_deviation_px": 0.3928
+      },
+      "fixed_width": {
+        "texts": 2,
+        "within_tolerance": 0,
+        "max_deviation_px": 26.5026,
+        "mean_deviation_px": 13.7029
+      }
+    },
+    {
+      "fontFamily": 8,
+      "name": "Comic Shanns",
+      "gated": true,
+      "measured": {
+        "texts": 39,
+        "within_tolerance": 38,
+        "max_deviation_px": 0.52,
+        "mean_deviation_px": 0.0489
+      }
+    }
+  ],
+  "upstream_fixtures": {
+    "families": [
+      {
+        "fontFamily": 1,
+        "name": "Virgil",
+        "gated": false,
+        "legacy": {
+          "texts": 4,
+          "within_tolerance": 0,
+          "max_deviation_px": 24.3,
+          "mean_deviation_px": 13.61
+        }
+      }
+    ],
+    "texts": [
+      {
+        "file": "upstream/packages/excalidraw/tests/fixtures/smiley_embedded_v2.png",
+        "id": "cNkxk0RfgJPpJRdvC2LDL",
+        "fontFamily": 1,
+        "fontSize": 36.0,
+        "text": "\ud83d\ude00",
+        "class": "legacy",
+        "stored_width": 36.0,
+        "measured_width": 11.7
+      },
+      {
+        "file": "upstream/packages/excalidraw/tests/fixtures/smiley_embedded_v2.svg",
+        "id": "SC8cylFGpzB0IwzyDYe_V",
+        "fontFamily": 1,
+        "fontSize": 36.0,
+        "text": "\ud83d\ude00",
+        "class": "legacy",
+        "stored_width": 36.0,
+        "measured_width": 11.7
+      },
+      {
+        "file": "upstream/packages/excalidraw/tests/fixtures/test_embedded_v1.png",
+        "id": "tZmQpkG2BVvK3qOMbpuWz",
+        "fontFamily": 1,
+        "fontSize": 36.0,
+        "text": "test",
+        "class": "legacy",
+        "stored_width": 77.0,
+        "measured_width": 79.92
+      },
+      {
+        "file": "upstream/packages/excalidraw/tests/fixtures/test_embedded_v1.svg",
+        "id": "tZmQpkG2BVvK3qOMbpuWz",
+        "fontFamily": 1,
+        "fontSize": 36.0,
+        "text": "test",
+        "class": "legacy",
+        "stored_width": 77.0,
+        "measured_width": 79.92
+      }
+    ]
+  },
+  "skipped": {
+    "not_vendored_by_fontFamily": {
+      "2": 465
+    },
+    "malformed": 0
+  },
+  "known_deviations": [
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "item": 103,
+      "id": "tSfxrqkItq3SZLhIbkX8I",
+      "fontFamily": 5,
+      "fontSize": 16.0,
+      "text": "K",
+      "stored_width": 10.807999610900879,
+      "measured_width": 9.808,
+      "deviation_px": -1.0
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "item": 69,
+      "id": "Vw9cbJ_YyXodALTOaKDJl",
+      "fontFamily": 5,
+      "fontSize": 16.0,
+      "text": "Read the KSTD docs",
+      "stored_width": 167.9038791656494,
+      "measured_width": 166.96,
+      "deviation_px": -0.9439
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "item": 70,
+      "id": "ZtJ-xO5KFQFAKmKZw52Sk",
+      "fontFamily": 5,
+      "fontSize": 16.0,
+      "text": "RPC / Other",
+      "stored_width": 101.34393501281738,
+      "measured_width": 100.32,
+      "deviation_px": -1.0239
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "item": 70,
+      "id": "3hvYeGmB_6MXefzOj3ju5",
+      "fontFamily": 5,
+      "fontSize": 16.0,
+      "text": "Read the KSTD docs",
+      "stored_width": 167.9038791656494,
+      "measured_width": 166.96,
+      "deviation_px": -0.9439
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "item": 71,
+      "id": "g3eA4wT2HZVZ3tORzoFoa",
+      "fontFamily": 5,
+      "fontSize": 16.0,
+      "text": "kstd.thriving.dev",
+      "stored_width": 130.2078845500946,
+      "measured_width": 129.52,
+      "deviation_px": -0.6879
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "item": 0,
+      "id": "b13s8Yg3H6MAv5DP57EQu",
+      "fontFamily": 5,
+      "fontSize": 36.0,
+      "text": "Alarms",
+      "stored_width": 112.87196350097656,
+      "measured_width": 111.42,
+      "deviation_px": -1.452
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "item": 3,
+      "id": "4hdzG83Rxx1fldGChWrTe",
+      "fontFamily": 5,
+      "fontSize": 36.0,
+      "text": "Events",
+      "stored_width": 123.52796936035156,
+      "measured_width": 122.076,
+      "deviation_px": -1.452
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "item": 14,
+      "id": "bcj9TbntkjxAbnJT_A8Kq",
+      "fontFamily": 5,
+      "fontSize": 36.0,
+      "text": "Service\nGateway",
+      "stored_width": 153.6599578857422,
+      "measured_width": 151.74,
+      "deviation_px": -1.92
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "item": 15,
+      "id": "MGLV7_xBOL0gssIKcdHJa",
+      "fontFamily": 5,
+      "fontSize": 36.0,
+      "text": "NAT\nGateway",
+      "stored_width": 153.6599578857422,
+      "measured_width": 151.74,
+      "deviation_px": -1.92
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "item": 16,
+      "id": "dmlv3N_9yOdMLcbvn0XXr",
+      "fontFamily": 5,
+      "fontSize": 36.0,
+      "text": "Internet\nGateway",
+      "stored_width": 153.6599578857422,
+      "measured_width": 151.74,
+      "deviation_px": -1.92
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "item": 19,
+      "id": "iZXwggIULIN6zn5T-JunY",
+      "fontFamily": 5,
+      "fontSize": 36.0,
+      "text": "VCN\n(Region Identifier)",
+      "stored_width": 329.6038818359375,
+      "measured_width": 329.076,
+      "deviation_px": -0.5279
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "item": 20,
+      "id": "ycFqvLAQT_EpoP5IbUbMZ",
+      "fontFamily": 5,
+      "fontSize": 36.0,
+      "text": "Route Table",
+      "stored_width": 218.53192138671875,
+      "measured_width": 216.864,
+      "deviation_px": -1.6679
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "item": 26,
+      "id": "oLC62R0OYAZYsSLIqv04a",
+      "fontFamily": 5,
+      "fontSize": 36.0,
+      "text": "WAF",
+      "stored_width": 74.31198120117188,
+      "measured_width": 72.108,
+      "deviation_px": -2.204
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "item": 29,
+      "id": "nANmHqm_Fgj1adE7oRI0H",
+      "fontFamily": 5,
+      "fontSize": 36.0,
+      "text": "File Storage",
+      "stored_width": 212.419921875,
+      "measured_width": 211.752,
+      "deviation_px": -0.6679
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "item": 31,
+      "id": "bMz65OYUyPcq4ZMyzw3nX",
+      "fontFamily": 5,
+      "fontSize": 36.0,
+      "text": "On-premises\ndata center",
+      "stored_width": 209.21194458007812,
+      "measured_width": 208.044,
+      "deviation_px": -1.1679
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "item": 32,
+      "id": "ZNbPoQfsdlJcHOS4dgTd9",
+      "fontFamily": 5,
+      "fontSize": 36.0,
+      "text": "Oracle\nAutonomous\nDatabase",
+      "stored_width": 212.30393981933594,
+      "measured_width": 210.852,
+      "deviation_px": -1.4519
+    },
+    {
+      "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
+      "item": 32,
+      "id": "HcRiKbkgPSdROBEureNmK",
+      "fontFamily": 5,
+      "fontSize": 36.0,
+      "text": "A",
+      "stored_width": 25.0,
+      "measured_width": 24.336,
+      "deviation_px": -0.664
+    },
+    {
+      "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
+      "item": 61,
+      "id": "19KTHBlJtvmGlR4K0BJ3U",
+      "fontFamily": 8,
+      "fontSize": 20.0,
+      "text": "7",
+      "stored_width": 11.519999623298645,
+      "measured_width": 11.0,
+      "deviation_px": -0.52
+    }
+  ]
+}
