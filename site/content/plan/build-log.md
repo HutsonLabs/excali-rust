@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-m0 · Milestone check: M0 reached
+
+The M0 acceptance check was rerun end to end on deddc2d and all four criteria pass. **Pages:** the pages workflow for deddc2d built, deployed and passed its post-deploy smoke ([run](https://github.com/HutsonLabs/excali-rust/actions/runs/36388405351)), and the site returns HTTP 200. **Bootstrap:** `scripts/bootstrap.sh` under `/bin/bash` 3.2 in a fresh clone on macOS arm64 completed, and the `bootstrap-and-site` job passed on ubuntu and macOS. **Attribution:** the `attribution` job of the gates run for deddc2d ran the 11 planted-violation cases of `scripts/gates/test_attribution.py`, and every one was rejected with exit 1 while the clean control passed ([run](https://github.com/HutsonLabs/excali-rust/actions/runs/36388405346)). **Workspace:** fmt, clippy `-D warnings` and `cargo test --workspace --locked` pass (50 tests, 0 failed, 0 ignored), and so do the workspace, version and wasm32 gates ([run](https://github.com/HutsonLabs/excali-rust/actions/runs/36388405357)). The Playwright smoke suite (140), the corpus checks and the goldens `--check` are green. No gap tasks. PR: see the ex-m0 milestone PR.
+
 ## 2026-09-28 · ex-g001 · Attribution gate self-test in CI: a planted attribution line must fail the gate
 
 `scripts/gates/test_attribution.py` plants violations one at a time in a scratch git repository outside this one (a tool-attribution line, a Co-Authored-By trailer, zero-width characters in a file and in a message, a non-human author and committer, and a violation below a clean tip) and asserts the attribution gate exits 1 with the matching rule id, while a clean control exits 0. The `attribution` job in the gates workflow runs it on every PR and on `main`; the first run was green ([gates run](https://github.com/HutsonLabs/excali-rust/actions/runs/36387970984)). PR: [#14](https://github.com/HutsonLabs/excali-rust/pull/14).
