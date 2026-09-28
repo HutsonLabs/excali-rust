@@ -852,6 +852,15 @@
     },
     {
       "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+      "id": "osMt0yXwVUW2nOIpka3FE",
+      "cause": "whole_pixel_font_size",
+      "stored": 16.40625,
+      "restored": 16.40625,
+      "refreshed": 15.8203125,
+      "ink_box_62228e0b": 15.83349609375
+    },
+    {
+      "file": "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
       "id": "tSfxrqkItq3SZLhIbkX8I",
       "cause": "ink_box_whole_pixels",
       "stored": 10.807999610900879,
@@ -898,7 +907,7 @@
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
       "id": "b13s8Yg3H6MAv5DP57EQu",
-      "cause": "kept_width",
+      "cause": "ink_box_glyph_pixels",
       "stored": 112.87196350097656,
       "restored": 112.87196350097656,
       "refreshed": 111.41995239257812,
@@ -943,7 +952,7 @@
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
       "id": "iZXwggIULIN6zn5T-JunY",
-      "cause": "kept_width",
+      "cause": "ink_box_glyph_pixels",
       "stored": 329.6038818359375,
       "restored": 329.6038818359375,
       "refreshed": 329.0758972167969,
@@ -988,7 +997,7 @@
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
       "id": "ZNbPoQfsdlJcHOS4dgTd9",
-      "cause": "kept_width",
+      "cause": "ink_box_glyph_pixels",
       "stored": 212.30393981933594,
       "restored": 212.30393981933594,
       "refreshed": 210.8519287109375,
@@ -997,16 +1006,25 @@
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
       "id": "HcRiKbkgPSdROBEureNmK",
-      "cause": "kept_width",
+      "cause": "ink_box_glyph_pixels",
       "stored": 25,
       "restored": 25,
       "refreshed": 24.33599853515625,
       "ink_box_62228e0b": 24.33599853515625
     },
     {
+      "file": "libraries/devdaejungyoon/github-actions.excalidrawlib.gz",
+      "id": "HrDCzdqG",
+      "cause": "kept_width",
+      "stored": 97.10844421386719,
+      "restored": 97.10844421386719,
+      "refreshed": 96.21243286132812,
+      "ink_box_62228e0b": 96.91132366657257
+    },
+    {
       "file": "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
       "id": "19KTHBlJtvmGlR4K0BJ3U",
-      "cause": "kept_width",
+      "cause": "ink_box_first_comic_shanns",
       "stored": 11.519999623298645,
       "restored": 11.519999623298645,
       "refreshed": 11,

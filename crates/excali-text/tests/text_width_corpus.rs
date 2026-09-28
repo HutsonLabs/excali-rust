@@ -84,7 +84,7 @@ const GATED_FAMILIES: [u32; 6] = [1, 3, 5, 6, 7, 8];
 /// library, file or scene asks. `scripts/fixtures/text_width_causes.mjs`
 /// runs upstream's own restore at the pin in Chrome on every text here
 /// (`tests/fixtures/text-width-causes.json`): `restoreLibraryItems` keeps
-/// all 112 stored widths, and `refreshDimensions` gives what the port
+/// all 114 stored widths, and `refreshDimensions` gives what the port
 /// measures. The port does the same on load and on refresh
 /// (`port_restore_keeps_every_known_deviation_width`). In the same Chrome,
 /// upstream's `getLineWidth` of `62228e0b` writes the stored width of every
@@ -943,14 +943,19 @@ const HEIGHT_MISMATCH: &[(&str, u32, usize)] = &[(
 /// 5 since `5c67329b` (2022-01-03).
 const BOUND_TEXT_PADDING: f64 = 5.0;
 
-/// What wrote the stored width of a [`KNOWN_DEVIATIONS`] text: a width an
-/// earlier upstream `measureText` or bound-text layout computes.
-/// [`Cause::width`] recomputes it from the vendored fonts (and, for
+/// What wrote the stored width of a [`KNOWN_DEVIATIONS`] text. Every cause
+/// but [`Cause::KeptWidth`] is a width an earlier upstream `measureText` or
+/// bound-text layout computes. [`Cause::width`] recomputes it from the vendored fonts (and, for
 /// [`Cause::FirstComicShannsInkBox`], the font file upstream served then)
 /// and `known_deviations_are_what_their_cause_writes` requires it to equal
 /// the stored width.
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Cause {
+    /// No earlier measurement found: a width kept from an earlier state of
+    /// the element (see [`KNOWN_DEVIATIONS`]); only the stored and measured
+    /// widths are pinned. Only the Lilita One `Metrics` of
+    /// `devdaejungyoon/github-actions` has it.
+    KeptWidth,
     /// `measureText` of `3a141ca7^` (2023-01-30) and before: the
     /// `offsetWidth` of an absolutely positioned `white-space: pre` div
     /// holding the text and, after its last line, a 1 px inline-block span
@@ -1003,6 +1008,7 @@ enum Cause {
 impl Cause {
     fn key(self) -> &'static str {
         match self {
+            Cause::KeptWidth => "kept_width",
             Cause::DomOffsetWidth => "dom_offset_width",
             Cause::DomOffsetWidthPlusOne => "dom_offset_width_plus_one",
             Cause::ScaledDomOffsetWidth { .. } => "scaled_dom_offset_width",
@@ -1015,12 +1021,14 @@ impl Cause {
         }
     }
 
-    /// The width this cause writes for `t`, `None` for a bound text whose
-    /// container is not in its item. Panics if a scaled width's earlier state fails its own
+    /// The width this cause writes for `t`, `None` for
+    /// [`Cause::KeptWidth`] and for a bound text whose container is not in
+    /// its item. Panics if a scaled width's earlier state fails its own
     /// check (whole-pixel height, `px` measured there).
     fn width(self, t: &Text) -> Option<f64> {
         let lines: Vec<&str> = t.text.split('\n').collect();
         match self {
+            Cause::KeptWidth => None,
             Cause::DomOffsetWidth => Some(dom_offset_width(&lines, t.family, t.font_size)),
             Cause::DomOffsetWidthPlusOne => {
                 Some(dom_offset_width(&lines, t.family, t.font_size) + 1.0)
@@ -1125,10 +1133,35 @@ fn family_faces(family: u32) -> &'static [Vec<u8>] {
 }
 
 /// The sfnt bytes of the Comic Shanns file upstream served from `62228e0b`
-/// to `b479f3bd65^` ([`Cause::FirstComicShannsInkBox`]).
+/// to `b479f3bd65^` ([`Cause::FirstComicShannsInkBox`]): one face, the
+/// whole family.
 fn first_comic_shanns() -> &'static [Vec<u8>] {
-    family_faces(8)
+    static FACE: OnceLock<Vec<Vec<u8>>> = OnceLock::new();
+    FACE.get_or_init(|| {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(FIRST_COMIC_SHANNS);
+        let bytes = std::fs::read(&path).expect(FIRST_COMIC_SHANNS);
+        assert_eq!(
+            sha256(&bytes),
+            FIRST_COMIC_SHANNS_SHA256,
+            "{FIRST_COMIC_SHANNS}"
+        );
+        vec![decode_font_file(&bytes).expect(FIRST_COMIC_SHANNS)]
+    })
 }
+
+/// `packages/excalidraw/fonts/assets/ComicShanns-Regular.woff2` from
+/// `62228e0b` (2024-07-25) to `b479f3bd65^` (2024-10-17), git blob
+/// `efa4f1c742bfba4b04e1c66b86e08e3d7460a83e` at both ends (GitHub contents
+/// API, 2026-09-28), with its MIT licence (name ID 13) beside it.
+const FIRST_COMIC_SHANNS: &str = "tests/fixtures/fonts/ComicShanns/ComicShanns-Regular.woff2";
+const FIRST_COMIC_SHANNS_SHA256: &str =
+    "1bfc3e12a0dcc8c6dcc43611a695899de7bc02f92cbd814f922c165f186c4d99";
+
+/// How far [`Ink::GlyphPixels`] grows each glyph's bounds on each side
+/// before rounding them out: a third of a pixel. Any growth from 0.257 to
+/// 0.46 px gives all 12 stored widths of that cause; none gives them
+/// without growth (four texts come out 0.53 to 1 px narrower).
+const GLYPH_SPREAD: f64 = 1.0 / 3.0;
 
 /// How a browser reports a line's ink box to `getLineWidth`.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -1138,10 +1171,15 @@ enum Ink {
     /// The advance box grown by the ink's overhang on each side, each
     /// overhang rounded out to a whole pixel.
     WholePixels,
-    /// The union of each glyph's bounds rounded out to whole pixels about
-    /// the glyph's own origin, at the glyph's fractional pen position:
-    /// Blink's glyph bounds when the font is not subpixel-positioned
-    /// (`SkRect::roundOut` per glyph in `SkFontGetBoundsForGlyphs`).
+    /// The union of each glyph's bounds, grown by [`GLYPH_SPREAD`] on each
+    /// side and rounded out to whole pixels about the glyph's own origin,
+    /// at the glyph's fractional pen position: Blink's per-glyph bounds when
+    /// the font is not subpixel-positioned (`SkRect::roundOut` per glyph in
+    /// `SkFontGetBoundsForGlyphs`), taken from a rasterized glyph whose
+    /// coverage reaches past the outline, as a ClearType filter's third of
+    /// a pixel does. Inferred from the stored widths of one library:
+    /// Chromium 153 reports no such bounds on macOS, nor headless in
+    /// Playwright's Linux image (2026-09-28).
     GlyphPixels,
 }
 
@@ -1152,13 +1190,14 @@ struct InkLayout {
     /// The ink extent `(left, right)` of the outlines, from the line's
     /// origin; `None` when no glyph has an outline.
     exact: Option<(f64, f64)>,
-    /// The same with each glyph's bounds rounded out to whole pixels.
+    /// The same with each glyph's bounds grown by the spread (normally
+    /// [`GLYPH_SPREAD`]) and rounded out to whole pixels.
     glyph_pixels: Option<(f64, f64)>,
 }
 
 /// `line` in the first of `faces` (a family's, in font assets manifest
 /// order) that maps every character, at `font_size`.
-fn ink_layout(line: &str, faces: &[Vec<u8>], font_size: f64) -> InkLayout {
+fn ink_layout(line: &str, faces: &[Vec<u8>], font_size: f64, spread: f64) -> InkLayout {
     let data = faces
         .iter()
         .find(|data| {
@@ -1189,8 +1228,8 @@ fn ink_layout(line: &str, faces: &[Vec<u8>], font_size: f64) -> InkLayout {
             layout.exact = unite(layout.exact, origin + x_min, origin + x_max);
             layout.glyph_pixels = unite(
                 layout.glyph_pixels,
-                origin + x_min.floor(),
-                origin + x_max.ceil(),
+                origin + (x_min - spread).floor(),
+                origin + (x_max + spread).ceil(),
             );
         }
         layout.advance += f64::from(pos.x_advance) * scale;
@@ -1202,7 +1241,19 @@ fn ink_layout(line: &str, faces: &[Vec<u8>], font_size: f64) -> InkLayout {
 /// `max(|actualBoundingBoxLeft| + |actualBoundingBoxRight|, width)`, with
 /// the ink box as `ink` reports it.
 fn ink_box_width(line: &str, faces: &[Vec<u8>], font_size: f64, ink: Ink) -> f64 {
-    let layout = ink_layout(line, faces, font_size);
+    ink_box_width_spread(line, faces, font_size, ink, GLYPH_SPREAD)
+}
+
+/// [`ink_box_width`] with [`Ink::GlyphPixels`] growing each glyph by
+/// `spread` instead of [`GLYPH_SPREAD`].
+fn ink_box_width_spread(
+    line: &str,
+    faces: &[Vec<u8>],
+    font_size: f64,
+    ink: Ink,
+    spread: f64,
+) -> f64 {
+    let layout = ink_layout(line, faces, font_size, spread);
     let advance = layout.advance;
     let bounds = match ink {
         Ink::Exact | Ink::WholePixels => layout.exact,
@@ -1629,8 +1680,10 @@ fn report() -> Value {
     max(|actualBoundingBoxLeft| + |actualBoundingBoxRight|, width) from the glyph outlines",
             "ink_box_whole_pixels": "the same, with the ink box the advance box grown by the \
     ink overhang on each side rounded out to whole pixels",
-            "ink_box_glyph_pixels": "the same, with each glyph's bounds rounded out to whole \
-    pixels about its origin",
+            "ink_box_glyph_pixels": "the same, with each glyph's bounds grown by a third of a \
+    pixel on each side and rounded out to whole pixels about its origin",
+            "ink_box_first_comic_shanns": "ink_box measured with the Comic Shanns file upstream \
+    served from 62228e0b to b479f3bd65^ (2024-10-17)",
             "kept_width": "no measurement found; a width kept from an earlier state of the \
     element",
         },
@@ -1818,9 +1871,10 @@ fn known_deviations_are_what_their_cause_writes() {
     let mut failures = Vec::new();
     for (file, id, stored, _, cause) in KNOWN_DEVIATIONS {
         let t = find(file, id);
-        let width = cause
-            .width(t)
-            .unwrap_or_else(|| panic!("{id}: no container for {cause:?}"));
+        let Some(width) = cause.width(t) else {
+            assert_eq!(*cause, Cause::KeptWidth, "{id}: no container for {cause:?}");
+            continue;
+        };
         if (width - stored).abs() > 0.001 {
             failures.push(format!(
                 "{file} {id} {:?}: {cause:?} writes {width}, stored {stored}",
@@ -1919,7 +1973,7 @@ fn chrome(entry: &Value, key: &str) -> f64 {
 
 /// Chrome's canvas sets a font size in whole hundredths of a pixel,
 /// dropping the rest: `8.785855803035645px` measures as `8.78px`, and so
-/// does every fractional size of the corpus.
+/// it goes for all 15 fractional sizes of [`KNOWN_DEVIATIONS`].
 fn chrome_font_size(font_size: f64) -> f64 {
     (font_size * 100.0).floor() / 100.0
 }
@@ -2068,7 +2122,7 @@ fn ink_layout_advances_are_the_measured_width() {
     for (family, text) in texts {
         for size in [16.0, 20.0, 36.0] {
             let font = get_font_string(size, FontFamily(family));
-            let advance = ink_layout(text, family_faces(family), size).advance;
+            let advance = ink_layout(text, family_faces(family), size, GLYPH_SPREAD).advance;
             assert!(
                 (advance - store.line_width(text, &font)).abs() < 1e-9,
                 "{family} {text} {size}"
@@ -2080,14 +2134,14 @@ fn ink_layout_advances_are_the_measured_width() {
 #[test]
 fn ink_box_is_the_advance_without_ink_and_never_narrower() {
     let virgil = family_faces(1);
-    let blank = ink_layout("  ", virgil, 20.0);
+    let blank = ink_layout("  ", virgil, 20.0, GLYPH_SPREAD);
     assert_eq!(blank.exact, None);
     assert_eq!(blank.glyph_pixels, None);
     for ink in [Ink::Exact, Ink::WholePixels, Ink::GlyphPixels] {
         assert_eq!(ink_box_width("  ", virgil, 20.0, ink), blank.advance);
     }
     for text in ["Table", "Glacier", "mapValues", "I", "P"] {
-        let layout = ink_layout(text, virgil, 20.0);
+        let layout = ink_layout(text, virgil, 20.0, GLYPH_SPREAD);
         let (left, right) = layout.exact.expect("ink");
         let (pixel_left, pixel_right) = layout.glyph_pixels.expect("ink");
         // Rounding each glyph out only grows the box.
@@ -2108,7 +2162,7 @@ fn ink_box_is_the_advance_without_ink_and_never_narrower() {
     }
     // "Table" at 20 px: the T's ink starts 1.04 px left of the origin and
     // the e's ends 0.42 px past the advance, so whole pixels add 2 + 1.
-    let table = ink_layout("Table", virgil, 20.0);
+    let table = ink_layout("Table", virgil, 20.0, GLYPH_SPREAD);
     assert_eq!(
         ink_box_width("Table", virgil, 20.0, Ink::WholePixels) - table.advance,
         3.0
@@ -2233,4 +2287,63 @@ fn the_lilita_one_deviation_is_no_measurement_of_its_text() {
         "{}: not in KNOWN_DEVIATIONS as kept_width",
         t.id
     );
+}
+
+#[test]
+fn glyph_spread_is_what_the_stored_widths_allow() {
+    // The per-glyph whole-pixel ink box gives the stored width of all 12
+    // texts of its cause only when each glyph grows by 0.257 to 0.46 px.
+    let texts: Vec<(&Text, f64)> = KNOWN_DEVIATIONS
+        .iter()
+        .filter(|k| k.4 == Cause::InkBox(Ink::GlyphPixels))
+        .map(|(file, id, stored, _, _)| (find(file, id), *stored))
+        .collect();
+    assert_eq!(texts.len(), 12);
+    let matching = |spread: f64| {
+        texts
+            .iter()
+            .filter(|(t, stored)| {
+                let width = t
+                    .text
+                    .split('\n')
+                    .map(|l| {
+                        ink_box_width_spread(
+                            l,
+                            family_faces(t.family),
+                            t.font_size,
+                            Ink::GlyphPixels,
+                            spread,
+                        )
+                    })
+                    .fold(0.0, f64::max);
+                (width - stored).abs() < 0.001
+            })
+            .count()
+    };
+    assert_eq!(matching(0.0), 8);
+    assert!(matching(0.256) < 12);
+    assert_eq!(matching(0.257), 12);
+    assert_eq!(matching(GLYPH_SPREAD), 12);
+    assert_eq!(matching(0.46), 12);
+    assert!(matching(0.461) < 12);
+}
+
+#[test]
+fn every_excalifont_and_comic_shanns_deviation_has_a_measured_cause() {
+    // The 18 Excalifont and Comic Shanns texts (ex-g303) each name what
+    // wrote them; the Lilita One `Metrics` is the one `kept_width` left.
+    let mut counted = 0;
+    let mut kept = Vec::new();
+    for (file, id, _, _, cause) in KNOWN_DEVIATIONS {
+        let family = find(file, id).family;
+        if family == 5 || family == 8 {
+            counted += 1;
+            assert_ne!(*cause, Cause::KeptWidth, "{id}: no cause");
+        }
+        if *cause == Cause::KeptWidth {
+            kept.push((family, *id));
+        }
+    }
+    assert_eq!(counted, 18);
+    assert_eq!(kept, [(7, "HrDCzdqG")]);
 }

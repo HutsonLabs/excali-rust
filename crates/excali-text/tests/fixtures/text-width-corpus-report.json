@@ -206,7 +206,8 @@
     "container_width": "bound text of 5c67329b (2022-01-03) to 4cb6f095^ (2022-09-22): width = container width - 2 * BOUND_TEXT_PADDING",
     "ink_box": "getLineWidth of 62228e0b (2024-07-25) to e3060dfb^ (2025-02-11): max(|actualBoundingBoxLeft| + |actualBoundingBoxRight|, width) from the glyph outlines",
     "ink_box_whole_pixels": "the same, with the ink box the advance box grown by the ink overhang on each side rounded out to whole pixels",
-    "ink_box_glyph_pixels": "the same, with each glyph's bounds rounded out to whole pixels about its origin",
+    "ink_box_glyph_pixels": "the same, with each glyph's bounds grown by a third of a pixel on each side and rounded out to whole pixels about its origin",
+    "ink_box_first_comic_shanns": "ink_box measured with the Comic Shanns file upstream served from 62228e0b to b479f3bd65^ (2024-10-17)",
     "kept_width": "no measurement found; a width kept from an earlier state of the element"
   },
   "known_deviations": [
@@ -1420,7 +1421,7 @@
       "stored_width": 112.87196350097656,
       "measured_width": 111.42,
       "deviation_px": -1.452,
-      "cause": "kept_width"
+      "cause": "ink_box_glyph_pixels"
     },
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
@@ -1480,7 +1481,7 @@
       "stored_width": 329.6038818359375,
       "measured_width": 329.076,
       "deviation_px": -0.5279,
-      "cause": "kept_width"
+      "cause": "ink_box_glyph_pixels"
     },
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
@@ -1540,7 +1541,7 @@
       "stored_width": 212.30393981933594,
       "measured_width": 210.852,
       "deviation_px": -1.4519,
-      "cause": "kept_width"
+      "cause": "ink_box_glyph_pixels"
     },
     {
       "file": "libraries/martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib.gz",
@@ -1552,7 +1553,7 @@
       "stored_width": 25.0,
       "measured_width": 24.336,
       "deviation_px": -0.664,
-      "cause": "kept_width"
+      "cause": "ink_box_glyph_pixels"
     },
     {
       "file": "libraries/devdaejungyoon/github-actions.excalidrawlib.gz",
@@ -1576,7 +1577,7 @@
       "stored_width": 11.519999623298645,
       "measured_width": 11.0,
       "deviation_px": -0.52,
-      "cause": "kept_width"
+      "cause": "ink_box_first_comic_shanns"
     }
   ]
 }

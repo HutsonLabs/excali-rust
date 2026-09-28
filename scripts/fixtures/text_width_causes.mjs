@@ -28,7 +28,7 @@
 //   CanvasTextMetricsProvider (packages/element/src/textMeasurements.ts)
 //   on this Chrome's canvas.
 // - `ink_box_62228e0b`: getLineWidth of 62228e0b (2024-07-25) to
-//   e3060dfb^ (2025-02-11), `packages/excalidraw/element/textElement.ts:345-384`
+//   e3060dfb^ (2025-02-11), `packages/excalidraw/element/textElement.ts:345-385`
 //   at 62228e0b, quoted below as it was (the pinned checkout has no history):
 //   max(|actualBoundingBoxLeft| + |actualBoundingBoxRight|, width) per
 //   line, the widest line. Measured with the fonts upstream served then
@@ -41,19 +41,23 @@
 //   vendored ones do (ADR-007), so the page uses the vendored ones.
 //
 // The fonts are the vendored faces (crates/excali-text/assets/fonts/
-// manifest.json) under their upstream family names, each with its
-// unicode-range, loaded before anything is measured.
+// manifest.json) of every family a listed text is set in, under their
+// upstream family names, each with its unicode-range, loaded before
+// anything is measured.
 //
 // Chrome's canvas measures differently per platform: on macOS the ink box is
 // the outlines' (fractional), on Linux advances snap to whole pixels. The
-// committed fixture is macOS arm64; --check compares every number except
-// the recorded browser and platform, and the Rust test
-// (text_width_corpus.rs) reads the fixture.
+// committed fixture is macOS arm64. --check ignores the recorded browser
+// and platform, holds every number to the committed one within TOLERANCE
+// (0.001 px, what the Rust test text_width_corpus.rs holds the port to
+// against Chrome) and everything else exactly, so another macOS or Chrome
+// build may round the last bits differently.
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { arch, platform } from "node:os";
 import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import { gunzipSync } from "node:zlib";
 
 import { format } from "../../tools/goldens/lib/format.mjs";
@@ -64,14 +68,16 @@ const REPORT = join(FIXTURES, "text-width-corpus-report.json");
 export const OUT = join(FIXTURES, "text-width-causes.json");
 const FONTS = join(REPO_ROOT, "crates", "excali-text", "assets", "fonts");
 const FIRST_COMIC_SHANNS = join(FIXTURES, "fonts", "ComicShanns", "ComicShanns-Regular.woff2");
-const FAMILIES = [1, 5, 8];
+
+/** How far --check lets a number move: 0.001 px. */
+export const TOLERANCE = 0.001;
 
 const ENTRY = `
 export { restoreLibraryItems, restoreElements } from "./packages/excalidraw/data/restore";
 export { getFontString } from "@excalidraw/common";
 `;
 
-// getLineWidth, packages/excalidraw/element/textElement.ts:345-384 at
+// getLineWidth, packages/excalidraw/element/textElement.ts:345-385 at
 // 62228e0bbb (2024-07-25), unchanged but for the canvas it is handed; the
 // test-environment branch after it is unreachable in a browser.
 const GET_LINE_WIDTH_62228E0B = `(canvas) => (text, font, forceAdvanceWidth) => {
@@ -108,7 +114,7 @@ const usage = () => {
 };
 
 /** The known deviations, each with its library item. */
-const texts = () => {
+export const texts = () => {
   const report = JSON.parse(readFileSync(REPORT, "utf8"));
   const libraries = new Map();
   return report.known_deviations.map((k) => {
@@ -124,12 +130,18 @@ const texts = () => {
   });
 };
 
-/** Font faces for the page: [family, base64, unicodeRange | undefined]. */
-const faces = (firstBuild) => {
+/** The fontFamily of `id` in a library item. */
+const fontFamily = (item, id) => (Array.isArray(item) ? item : item.elements).find((e) => e.id === id).fontFamily;
+
+/** The font families the texts are set in, ascending. */
+export const familiesOf = (list) => [...new Set(list.map((t) => fontFamily(t.item, t.id)))].sort((a, b) => a - b);
+
+/** Font faces of `families` for the page: [family, base64, unicodeRange | undefined]. */
+const faces = (families, firstBuild) => {
   const manifest = JSON.parse(readFileSync(join(FONTS, "manifest.json"), "utf8"));
   const out = [];
   for (const family of manifest.families) {
-    if (!FAMILIES.includes(family.id)) continue;
+    if (!families.includes(family.id)) continue;
     if (firstBuild && family.id === 8) {
       out.push([family.family, readFileSync(FIRST_COMIC_SHANNS).toString("base64"), undefined]);
       continue;
@@ -168,7 +180,8 @@ const measure = async () => {
     const input = list.map(({ id, item }) => ({ id, item }));
     const pin = await browser.newPage();
     await pin.setContent("<!doctype html><html><body></body></html>");
-    await loadFonts(pin, faces(false));
+    const families = familiesOf(list);
+    await loadFonts(pin, faces(families, false));
     await pin.addScriptTag({ content: bundle });
     const atPin = await pin.evaluate((input) => {
       const up = globalThis.__upstream;
@@ -183,7 +196,7 @@ const measure = async () => {
 
     const then = await browser.newPage();
     await then.setContent("<!doctype html><html><body></body></html>");
-    await loadFonts(then, faces(true));
+    await loadFonts(then, faces(families, true));
     await then.addScriptTag({ content: bundle });
     const inkBox = await then.evaluate(
       ({ input, source }) => {
@@ -226,6 +239,36 @@ const measure = async () => {
   }
 };
 
+/**
+ * Where `actual` differs from `expected`, as `path: expected != actual`:
+ * numbers by more than TOLERANCE, anything else at all. The recorded
+ * browser is not compared.
+ */
+export const differences = (expected, actual) => {
+  const out = [];
+  const walk = (a, b, path) => {
+    if (typeof a === "number" && typeof b === "number") {
+      if (!(Math.abs(a - b) <= TOLERANCE)) out.push(`${path}: ${a} != ${b}`);
+      return;
+    }
+    if (a && b && typeof a === "object" && typeof b === "object" && Array.isArray(a) === Array.isArray(b)) {
+      const keys = [...new Set([...Object.keys(a), ...Object.keys(b)])];
+      for (const key of keys) {
+        if (path === "" && key === "browser") continue;
+        if (!(key in a) || !(key in b)) {
+          out.push(`${path}${path && "."}${key}: ${JSON.stringify(a[key])} != ${JSON.stringify(b[key])}`);
+          continue;
+        }
+        walk(a[key], b[key], `${path}${path && "."}${key}`);
+      }
+      return;
+    }
+    if (a !== b) out.push(`${path}: ${JSON.stringify(a)} != ${JSON.stringify(b)}`);
+  };
+  walk(expected, actual, "");
+  return out;
+};
+
 const main = async () => {
   const args = process.argv.slice(2);
   if (args.length > 1 || (args.length === 1 && args[0] !== "--check")) usage();
@@ -238,9 +281,12 @@ const main = async () => {
       process.exit(1);
     }
     const committed = JSON.parse(readFileSync(OUT, "utf8"));
-    const strip = ({ browser, ...rest }) => rest;
-    if (format(strip(committed)) !== format(strip(fixture))) {
-      process.stderr.write(`${where}: ${fixture.browser} measures differently than ${committed.browser}\n`);
+    const found = differences(committed, fixture);
+    if (found.length > 0) {
+      process.stderr.write(
+        `${where}: ${fixture.browser} measures differently than ${committed.browser}:\n` +
+          found.map((d) => `  ${d}\n`).join(""),
+      );
       process.exit(1);
     }
     process.stdout.write(`text width causes reproduced by ${fixture.browser}: ${where}\n`);
@@ -250,4 +296,4 @@ const main = async () => {
   process.stdout.write(`wrote ${where} with ${fixture.browser}\n`);
 };
 
-await main();
+if (process.argv[1] === fileURLToPath(import.meta.url)) await main();

@@ -161,6 +161,39 @@ jobs:
           "$RUNNER_TEMP/fonttools/bin/pip" install fonttools==4.60.2 brotli==1.2.0
       - name: glyph-advance fixture matches the vendored fonts
         run: '"$RUNNER_TEMP/fonttools/bin/python" scripts/fonts/advances.py check'
+  # ex-g303: the cause of every pinned text-width deviation, in upstream's
+  # own code. scripts/fixtures/text-width-causes.sh bundles upstream at the
+  # pin and runs its restoreLibraryItems and restoreElements with
+  # refreshDimensions, and upstream's getLineWidth of 62228e0b, in
+  # Playwright's Chromium on every KNOWN_DEVIATIONS text of
+  # text_width_corpus.rs, and fails unless they give the committed
+  # crates/excali-text/tests/fixtures/text-width-causes.json, which the
+  # Rust tests (rust.yml) hold the port to: every number within 0.001 px,
+  # the tolerance of those tests, so another macOS or Chrome build may move
+  # the last bits; everything else exactly. On macOS arm64, the platform the
+  # fixture was measured on: Chrome on Linux rounds advances to whole pixels.
+  text-width-causes:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: upstream checkout at the pin
+        env:
+          UPSTREAM_DIR: ${{ runner.temp }}/upstream
+        run: scripts/upstream/checkout.sh
+      - name: install
+        run: |
+          npm ci --prefix tools/goldens
+          npm ci --prefix tests/web
+      - name: install chromium
+        working-directory: tests/web
+        run: npx playwright install chromium
+      - name: upstream at the pin gives the committed widths in Chrome
+        env:
+          UPSTREAM_DIR: ${{ runner.temp }}/upstream
+        run: scripts/fixtures/text-width-causes.sh --check
   # ex-109: excali-core's ada_idna port reads ada's own IDNA table blob.
   # Take it again from the ada 4.0.0 release (the ada Node 26 bundles;
   # ada.cpp checked against its pinned SHA-256) and fail if the committed
