@@ -145,8 +145,14 @@ pub const MIME_TYPE_EXCALIDRAW: &str = "application/vnd.excalidraw+json";
 /// `EXPORT_DATA_TYPES.excalidraw`, `constants.ts:345`: the `type` of a
 /// `.excalidraw` file.
 pub const EXPORT_DATA_TYPE_EXCALIDRAW: &str = "excalidraw";
+/// `EXPORT_DATA_TYPES.excalidrawClipboard`, `constants.ts:346`: the `type`
+/// of the clipboard JSON a copy writes.
+pub const EXPORT_DATA_TYPE_EXCALIDRAW_CLIPBOARD: &str = "excalidraw/clipboard";
 /// `EXPORT_DATA_TYPES.excalidrawLibrary`, `constants.ts:347`.
 pub const EXPORT_DATA_TYPE_EXCALIDRAW_LIBRARY: &str = "excalidrawlib";
+/// `EXPORT_DATA_TYPES.excalidrawClipboardWithAPI`, `constants.ts:348`: the
+/// `type` of clipboard JSON a host writes through the API.
+pub const EXPORT_DATA_TYPE_EXCALIDRAW_CLIPBOARD_WITH_API: &str = "excalidraw-api/clipboard";
 /// `VERSIONS.excalidraw`, `constants.ts:417`: the `version` of a
 /// `.excalidraw` file.
 pub const VERSION_EXCALIDRAW: f64 = 2.0;

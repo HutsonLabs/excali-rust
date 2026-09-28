@@ -38,7 +38,7 @@
 //! The typed codec ([`crate::document::Document`]) builds on this module.
 
 use serde::Serialize;
-use serde_json::ser::{Formatter, PrettyFormatter};
+use serde_json::ser::{CompactFormatter, Formatter, PrettyFormatter};
 use serde_json::{Map, Value};
 use std::borrow::Cow;
 use std::io::{self, Write};
@@ -98,20 +98,36 @@ pub(crate) fn same(a: &Value, b: &Value) -> bool {
     }
 }
 
+/// [`to_string_pretty`] without indentation: `JSON.stringify(value)`.
+pub fn to_string_compact(value: &Value) -> String {
+    write_with(value, false, false)
+}
+
+/// [`write_parsed`] without indentation: `JSON.stringify(value)` for a value
+/// in the sentinel form.
+pub(crate) fn write_parsed_compact(value: &Value) -> String {
+    write_with(value, true, false)
+}
+
 fn write(value: &Value, decode_sentinels: bool) -> String {
+    write_with(value, decode_sentinels, true)
+}
+
+fn write_with(value: &Value, decode_sentinels: bool, pretty: bool) -> String {
     if has_array_index_key(value) {
         let mut ordered = value.clone();
         order_keys_like_js(&mut ordered);
-        return write_ordered(&ordered, decode_sentinels);
+        return write_ordered(&ordered, decode_sentinels, pretty);
     }
-    write_ordered(value, decode_sentinels)
+    write_ordered(value, decode_sentinels, pretty)
 }
 
-/// [`write`] for a value whose objects are already in JS property order.
-fn write_ordered(value: &Value, decode_sentinels: bool) -> String {
+/// [`write_with`] for a value whose objects are already in JS property
+/// order.
+fn write_ordered(value: &Value, decode_sentinels: bool, pretty: bool) -> String {
     let mut out = Vec::new();
     let formatter = JsFormatter {
-        pretty: PrettyFormatter::with_indent(b"  "),
+        pretty: pretty.then(|| PrettyFormatter::with_indent(b"  ")),
         decode_sentinels,
     };
     let mut ser = serde_json::Serializer::with_formatter(&mut out, formatter);
@@ -214,7 +230,8 @@ fn shortest_digits(x: f64) -> (String, i64) {
 /// `PrettyFormatter` with a two-space indent, ECMAScript number output and,
 /// for [`round_trip`], lone-surrogate sentinel decoding.
 struct JsFormatter {
-    pretty: PrettyFormatter<'static>,
+    /// `None` writes compactly, as `JSON.stringify(value)` does.
+    pretty: Option<PrettyFormatter<'static>>,
     decode_sentinels: bool,
 }
 
@@ -294,39 +311,66 @@ impl Formatter for JsFormatter {
     }
 
     fn begin_array<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
-        self.pretty.begin_array(w)
+        match &mut self.pretty {
+            Some(pretty) => pretty.begin_array(w),
+            None => CompactFormatter.begin_array(w),
+        }
     }
 
     fn end_array<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
-        self.pretty.end_array(w)
+        match &mut self.pretty {
+            Some(pretty) => pretty.end_array(w),
+            None => CompactFormatter.end_array(w),
+        }
     }
 
     fn begin_array_value<W: ?Sized + Write>(&mut self, w: &mut W, first: bool) -> io::Result<()> {
-        self.pretty.begin_array_value(w, first)
+        match &mut self.pretty {
+            Some(pretty) => pretty.begin_array_value(w, first),
+            None => CompactFormatter.begin_array_value(w, first),
+        }
     }
 
     fn end_array_value<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
-        self.pretty.end_array_value(w)
+        match &mut self.pretty {
+            Some(pretty) => pretty.end_array_value(w),
+            None => CompactFormatter.end_array_value(w),
+        }
     }
 
     fn begin_object<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
-        self.pretty.begin_object(w)
+        match &mut self.pretty {
+            Some(pretty) => pretty.begin_object(w),
+            None => CompactFormatter.begin_object(w),
+        }
     }
 
     fn end_object<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
-        self.pretty.end_object(w)
+        match &mut self.pretty {
+            Some(pretty) => pretty.end_object(w),
+            None => CompactFormatter.end_object(w),
+        }
     }
 
     fn begin_object_key<W: ?Sized + Write>(&mut self, w: &mut W, first: bool) -> io::Result<()> {
-        self.pretty.begin_object_key(w, first)
+        match &mut self.pretty {
+            Some(pretty) => pretty.begin_object_key(w, first),
+            None => CompactFormatter.begin_object_key(w, first),
+        }
     }
 
     fn begin_object_value<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
-        self.pretty.begin_object_value(w)
+        match &mut self.pretty {
+            Some(pretty) => pretty.begin_object_value(w),
+            None => CompactFormatter.begin_object_value(w),
+        }
     }
 
     fn end_object_value<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
-        self.pretty.end_object_value(w)
+        match &mut self.pretty {
+            Some(pretty) => pretty.end_object_value(w),
+            None => CompactFormatter.end_object_value(w),
+        }
     }
 }
 
@@ -659,6 +703,19 @@ mod tests {
             round_trip(r#"{"a":[],"b":{}}"#).unwrap(),
             "{\n  \"a\": [],\n  \"b\": {}\n}"
         );
+    }
+
+    #[test]
+    fn compact_output_is_json_stringify_without_indent() {
+        // JSON.stringify(JSON.parse('{"b":[1.50,{}],"2":-0,"a":1e21,"s":"\ud83d"}'))
+        // === '{"2":0,"b":[1.5,{}],"a":1e+21,"s":"\\ud83d"}'
+        let parsed = parse(r#"{"b":[1.50,{}],"2":-0,"a":1e21,"s":"\ud83d"}"#).unwrap();
+        assert_eq!(
+            write_parsed_compact(&parsed),
+            r#"{"2":0,"b":[1.5,{}],"a":1e+21,"s":"\ud83d"}"#
+        );
+        let value: Value = serde_json::json!({"x": [1, 2.5], "7": "y"});
+        assert_eq!(to_string_compact(&value), r#"{"7":"y","x":[1,2.5]}"#);
     }
 
     #[test]

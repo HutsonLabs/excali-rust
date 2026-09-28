@@ -150,7 +150,10 @@ fn copy_writes_the_json_under_both_mime_types() {
             ("text/plain", "{}")
         ]
     );
-    assert_eq!(MIME_TYPE_EXCALIDRAW_CLIPBOARD, "application/vnd.excalidraw.clipboard+json");
+    assert_eq!(
+        MIME_TYPE_EXCALIDRAW_CLIPBOARD,
+        "application/vnd.excalidraw.clipboard+json"
+    );
     assert_eq!(MIME_TYPE_TEXT, "text/plain");
 }
 
@@ -246,8 +249,14 @@ fn accepts_the_three_export_types() {
 fn parse_clipboard_text_does_not_trim() {
     // parseClipboard's JSON step takes the event text as it is; only the
     // text/plain read (parse_clipboard) trims.
-    assert_eq!(parse_clipboard_text(" x ", false), ClipboardData::Text(" x ".into()));
-    assert_eq!(parse_clipboard(Some(" x "), false), ClipboardData::Text("x".into()));
+    assert_eq!(
+        parse_clipboard_text(" x ", false),
+        ClipboardData::Text(" x ".into())
+    );
+    assert_eq!(
+        parse_clipboard(Some(" x "), false),
+        ClipboardData::Text("x".into())
+    );
 }
 
 #[test]

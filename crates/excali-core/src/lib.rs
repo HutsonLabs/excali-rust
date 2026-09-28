@@ -6,6 +6,7 @@
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-math`.
 
 pub mod app_state;
+pub mod clipboard;
 pub mod color;
 pub mod constants;
 pub mod document;
