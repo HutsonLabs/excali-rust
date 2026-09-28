@@ -20,12 +20,14 @@
 //! Upstream caches shapes, positions and path metrics per element version;
 //! the port computes them afresh, which gives the same numbers.
 
-use excali_core::element::{Element, ElementKind, LocalPoint};
+use excali_core::element::{Element, ElementKind, FreedrawFields, LocalPoint, StrokeVariability};
+use excali_freehand::CONSTANT_WIDTH_COLLISION_SIMPLIFY_TOLERANCE;
 use excali_math::{
     curve, curve_length, curve_point_at_length, curve_point_at_length_with, js, line_segment,
     line_segment_point_at, point_center, point_distance, point_from, point_rotate_rads, Curve,
     Global, GlobalPoint, LineSegment, Radians,
 };
+use excali_rough::points_on_curve::simplify;
 use excali_rough::{Drawable, Op, Options, RoughGenerator};
 
 use crate::bounds::{
@@ -33,6 +35,7 @@ use crate::bounds::{
     get_min_max_xy_from_curve_path_ops, Bounds, ElementsMap,
 };
 use crate::elbow_arrow::{elbow_arrow_path, ELBOW_ARROW_CORNER_RADIUS};
+use crate::freedraw::get_freedraw_outline_points;
 use crate::rough_options::to_int32;
 use crate::shape::{generate_elbow_arrow_shape, generate_linear_shape, RenderConfig};
 
@@ -415,8 +418,20 @@ fn clamp(value: f64, min: f64, max: f64) -> f64 {
 }
 
 /// `deconstructLinearOrFreeDrawElement(element, elementsMap)`
-/// (`utils.ts:129-204`) for a line or an arrow: the straight segments and
-/// the curves of its collision shape, in scene coordinates.
+/// (`utils.ts:129-204`): the straight segments and the curves of a line's,
+/// arrow's or freedraw's collision shape
+/// ([`generate_linear_collision_shape`]), in scene coordinates and
+/// **rotated**. Nothing for any other element type.
+///
+/// Upstream caches the shape per element and version; the port computes it
+/// afresh, which gives the same numbers.
+pub fn deconstruct_linear_or_freedraw_element(
+    element: &Element,
+    elements_map: &ElementsMap<'_>,
+) -> (Vec<LineSegment<Global>>, Vec<Curve<Global>>) {
+    deconstruct_linear_element(element, elements_map)
+}
+
 fn deconstruct_linear_element(
     element: &Element,
     elements_map: &ElementsMap<'_>,
@@ -453,12 +468,28 @@ fn deconstruct_linear_element(
     (lines, curves)
 }
 
-/// `generateLinearCollisionShape(element, elementsMap)` (`shape.ts:621-715`)
-/// for a line or an arrow: rough.js at roughness 0 with one stroke,
-/// relative to the element's position and rotated about its centre
-/// (`elementCenterPoint`): an elbow arrow's rounded path (unrotated), a
-/// sharp line's points, or a round line's curve.
-fn generate_linear_collision_shape(element: &Element, elements_map: &ElementsMap<'_>) -> Vec<Op> {
+/// `generateLinearCollisionShape(element, elementsMap)` (`shape.ts:621-757`):
+/// ops relative to the element's position and rotated about its centre
+/// (`elementCenterPoint`).
+///
+/// - Lines and arrows: rough.js at roughness 0 with one stroke: an elbow
+///   arrow's rounded path (unrotated), a sharp line's points, or a round
+///   line's curve.
+/// - Freedraw: the closed stroke outline ([`get_freedraw_outline_points`]),
+///   a constant-width one first simplified by
+///   [`CONSTANT_WIDTH_COLLISION_SIMPLIFY_TOLERANCE`]; nothing for an
+///   outline of fewer than two points.
+/// - Anything else: nothing.
+pub fn generate_linear_collision_shape(
+    element: &Element,
+    elements_map: &ElementsMap<'_>,
+) -> Vec<Op> {
+    if let ElementKind::Freedraw(fields) = &element.kind {
+        return generate_freedraw_collision_shape(element, fields, elements_map);
+    }
+    if !matches!(element.kind, ElementKind::Line(_) | ElementKind::Arrow(_)) {
+        return Vec::new();
+    }
     let generator = RoughGenerator::new();
     let b = &element.base;
     let options = Options {
@@ -532,6 +563,54 @@ fn generate_linear_collision_shape(element: &Element, elements_map: &ElementsMap
                 Op::BCurveTo([a[0], a[1], c[0], c[1], e[0], e[1]])
             }
             other => other,
+        })
+        .collect()
+}
+
+/// The freedraw case of `generateLinearCollisionShape` (`shape.ts:716-755`).
+fn generate_freedraw_collision_shape(
+    element: &Element,
+    fields: &FreedrawFields,
+    elements_map: &ElementsMap<'_>,
+) -> Vec<Op> {
+    let outline_points = get_freedraw_outline_points(element).unwrap_or_default();
+    if outline_points.len() < 2 {
+        return Vec::new();
+    }
+    let collision_outline = match fields.stroke_options.variability {
+        // simplify only fails for a negative distance
+        StrokeVariability::Constant => {
+            simplify(&outline_points, CONSTANT_WIDTH_COLLISION_SIMPLIFY_TOLERANCE)
+                .expect("a non-negative distance always simplifies")
+        }
+        StrokeVariability::Variable => outline_points,
+    };
+    if collision_outline.len() < 2 {
+        return Vec::new();
+    }
+    // Close the outline polygon so its boundary never has a gap at the seam.
+    let mut closed = collision_outline;
+    let first = closed[0];
+    let last = closed[closed.len() - 1];
+    if first[0] != last[0] || first[1] != last[1] {
+        closed.push(first);
+    }
+
+    let b = &element.base;
+    let [x1, y1, x2, y2, _, _] = element_coords(element, elements_map, false);
+    let center = [(x1 + x2) / 2.0, (y1 + y2) / 2.0];
+    let angle = angle(element);
+    closed
+        .into_iter()
+        .enumerate()
+        .map(|(idx, [x, y])| {
+            let [px, py] = rotate([b.x + x, b.y + y], center, angle);
+            let p = [px - b.x, py - b.y];
+            if idx == 0 {
+                Op::Move(p)
+            } else {
+                Op::LineTo(p)
+            }
         })
         .collect()
 }

@@ -40,6 +40,31 @@ fn sin_and_cos_are_v8s() {
     assert_eq!(js::cos(0.0), 1.0);
 }
 
+/// `[y, x, Math.atan2(y, x)]` from Node 26 (V8).
+const V8_ATAN2: [[f64; 3]; 8] = [
+    [1.0, 1.0, std::f64::consts::FRAC_PI_4],
+    [-3.0, 4.0, -0.6435011087932844],
+    [0.5, -2.0, 2.896613990462929],
+    [-0.0, -1.0, -std::f64::consts::PI],
+    [7.25, -0.001, 1.5709342578285048],
+    [-100.5, -33.3, -1.890754768414758],
+    [2.9, 0.01, 1.567348064600094],
+    [
+        -14.610474032366646,
+        -0.21460940732155498,
+        -1.5854840073046295,
+    ],
+];
+
+#[test]
+fn atan2_is_fdlibms() {
+    for [y, x, atan2] in V8_ATAN2 {
+        assert_eq!(js::atan2(y, x), atan2, "atan2({y}, {x})");
+    }
+    assert!(js::atan2(f64::NAN, 1.0).is_nan());
+    assert!(js::atan2(-0.0, 1.0).is_sign_negative());
+}
+
 #[test]
 fn rotation_uses_v8s_sin_and_cos() {
     // pointRotateRads([10, 0], [0, 0], 4): (10 cos 4, 10 sin 4) in V8

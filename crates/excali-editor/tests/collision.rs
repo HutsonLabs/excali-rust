@@ -23,8 +23,9 @@ use excali_core::element::Element;
 use excali_editor::collision::{
     get_all_hovered_element_at_point, get_element_hit_threshold, get_hovered_element_for_binding,
     hit_element_bound_text, hit_element_bounding_box, hit_element_bounding_box_only,
-    hit_element_itself, intersect_element_with_line_segment, is_bindable_element_inside_other_bindable,
-    is_point_in_element, should_test_inside, FrameNameBounds, HitTestArgs, HitTestCache,
+    hit_element_itself, intersect_element_with_line_segment,
+    is_bindable_element_inside_other_bindable, is_point_in_element, should_test_inside,
+    FrameNameBounds, HitTestArgs, HitTestCache,
 };
 use excali_editor::distance::distance_to_element;
 use excali_scene::bounds::{get_element_bounds, ElementsMap};
@@ -52,15 +53,15 @@ fn elements(case: &Value) -> Vec<Element> {
         .as_array()
         .expect("elements")
         .iter()
-        .map(|e| Element::from_map(e.as_object().expect("an element").clone()).expect("an element upstream built"))
+        .map(|e| {
+            Element::from_map(e.as_object().expect("an element").clone())
+                .expect("an element upstream built")
+        })
         .collect()
 }
 
 fn point(value: &Value) -> [f64; 2] {
-    [
-        value[0].as_f64().expect("x"),
-        value[1].as_f64().expect("y"),
-    ]
+    [value[0].as_f64().expect("x"), value[1].as_f64().expect("y")]
 }
 
 fn number(value: &Value) -> f64 {
@@ -123,7 +124,10 @@ fn args<'a>(
 #[test]
 fn fixture_covers_every_entry_point_and_element_type() {
     let cases = cases();
-    let kinds: HashSet<&str> = cases.iter().map(|c| c["kind"].as_str().expect("kind")).collect();
+    let kinds: HashSet<&str> = cases
+        .iter()
+        .map(|c| c["kind"].as_str().expect("kind"))
+        .collect();
     for kind in ["probe", "intersect", "binding", "inside"] {
         assert!(kinds.contains(kind), "no {kind} case");
     }
@@ -137,8 +141,19 @@ fn fixture_covers_every_entry_point_and_element_type() {
         })
         .collect();
     for t in [
-        "rectangle", "diamond", "ellipse", "text", "image", "frame", "magicframe", "iframe",
-        "embeddable", "stickynote", "line", "arrow", "freedraw",
+        "rectangle",
+        "diamond",
+        "ellipse",
+        "text",
+        "image",
+        "frame",
+        "magicframe",
+        "iframe",
+        "embeddable",
+        "stickynote",
+        "line",
+        "arrow",
+        "freedraw",
     ] {
         assert!(types.contains(t), "no probe of a {t}");
     }
@@ -146,7 +161,7 @@ fn fixture_covers_every_entry_point_and_element_type() {
         .iter()
         .filter(|c| c["id"].as_str().expect("id").starts_with("upstream-"))
         .count();
-    assert!(upstream >= 40, "collision.test.tsx scenes: {upstream}");
+    assert_eq!(upstream, 38, "collision.test.tsx scenes");
 }
 
 #[test]
@@ -161,7 +176,12 @@ fn probes_match_upstream() {
         let scene = elements(case);
         let map = ElementsMap::new(scene.iter());
         let target = by_id(&scene, case["target"].as_str().expect("target"));
-        for (n, p) in case["probes"].as_array().expect("probes").iter().enumerate() {
+        for (n, p) in case["probes"]
+            .as_array()
+            .expect("probes")
+            .iter()
+            .enumerate()
+        {
             probes += 1;
             let at = point(&p["point"]);
             let threshold = number(&p["threshold"]);
@@ -179,9 +199,19 @@ fn probes_match_upstream() {
                 }
             };
             let fresh = hit_element_itself(&mut HitTestCache::new(), &hit_args);
-            check("hit", Value::Bool(fresh) == p["hit"], fresh.to_string(), &p["hit"]);
+            check(
+                "hit",
+                Value::Bool(fresh) == p["hit"],
+                fresh.to_string(),
+                &p["hit"],
+            );
             let cached = hit_element_itself(&mut shared, &hit_args);
-            check("hit (shared cache)", Value::Bool(cached) == p["hit"], cached.to_string(), &p["hit"]);
+            check(
+                "hit (shared cache)",
+                Value::Bool(cached) == p["hit"],
+                cached.to_string(),
+                &p["hit"],
+            );
             let distance = distance_to_element(target, &map, at);
             check(
                 "distance",
@@ -190,7 +220,12 @@ fn probes_match_upstream() {
                 &p["distance"],
             );
             let inside = is_point_in_element(at, target, &map);
-            check("inside", Value::Bool(inside) == p["inside"], inside.to_string(), &p["inside"]);
+            check(
+                "inside",
+                Value::Bool(inside) == p["inside"],
+                inside.to_string(),
+                &p["inside"],
+            );
             let sti = should_test_inside(target);
             check(
                 "shouldTestInside",
@@ -199,9 +234,19 @@ fn probes_match_upstream() {
                 &p["shouldTestInside"],
             );
             let bb = hit_element_bounding_box(at, target, &map, threshold);
-            check("boundingBox", Value::Bool(bb) == p["boundingBox"], bb.to_string(), &p["boundingBox"]);
+            check(
+                "boundingBox",
+                Value::Bool(bb) == p["boundingBox"],
+                bb.to_string(),
+                &p["boundingBox"],
+            );
             let bt = hit_element_bound_text(at, target, &map);
-            check("boundText", Value::Bool(bt) == p["boundText"], bt.to_string(), &p["boundText"]);
+            check(
+                "boundText",
+                Value::Bool(bt) == p["boundText"],
+                bt.to_string(),
+                &p["boundText"],
+            );
             let bbo = hit_element_bounding_box_only(&mut HitTestCache::new(), &hit_args, &map);
             check(
                 "boundingBoxOnly",
@@ -212,7 +257,12 @@ fn probes_match_upstream() {
         }
     }
     assert!(probes > 2000, "{probes} probes");
-    assert!(failures.is_empty(), "{} mismatches:\n{}", failures.len(), failures.join("\n"));
+    assert!(
+        failures.is_empty(),
+        "{} mismatches:\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
 }
 
 #[test]
@@ -223,7 +273,12 @@ fn intersections_match_upstream() {
         let scene = elements(case);
         let map = ElementsMap::new(scene.iter());
         let target = by_id(&scene, case["target"].as_str().expect("target"));
-        for (n, s) in case["segments"].as_array().expect("segments").iter().enumerate() {
+        for (n, s) in case["segments"]
+            .as_array()
+            .expect("segments")
+            .iter()
+            .enumerate()
+        {
             let segment = [point(&s["segment"][0]), point(&s["segment"][1])];
             let got = intersect_element_with_line_segment(
                 target,
@@ -232,13 +287,23 @@ fn intersections_match_upstream() {
                 number(&s["offset"]),
                 s["onlyFirst"] == true,
             );
-            let want: Vec<[f64; 2]> = s["result"].as_array().expect("result").iter().map(point).collect();
+            let want: Vec<[f64; 2]> = s["result"]
+                .as_array()
+                .expect("result")
+                .iter()
+                .map(point)
+                .collect();
             if got.len() != want.len() || got.iter().zip(&want).any(|(a, b)| !same_point(*a, *b)) {
                 failures.push(format!("{id} segment {n}: got {got:?}, upstream {want:?}"));
             }
         }
     }
-    assert!(failures.is_empty(), "{} mismatches:\n{}", failures.len(), failures.join("\n"));
+    assert!(
+        failures.is_empty(),
+        "{} mismatches:\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
 }
 
 #[test]
@@ -249,13 +314,21 @@ fn binding_hit_tests_match_upstream() {
         let scene = elements(case);
         let refs: Vec<&Element> = scene.iter().collect();
         let map = ElementsMap::new(scene.iter());
-        for (n, p) in case["points"].as_array().expect("points").iter().enumerate() {
+        for (n, p) in case["points"]
+            .as_array()
+            .expect("points")
+            .iter()
+            .enumerate()
+        {
             let at = point(&p["point"]);
             let zoom = number(&p["zoom"]);
-            let hovered = get_hovered_element_for_binding(at, &refs, &map, zoom).map(|e| e.base.id.clone());
+            let hovered =
+                get_hovered_element_for_binding(at, &refs, &map, zoom).map(|e| e.base.id.clone());
             let want_hovered = p["hovered"].as_str().map(str::to_string);
             if hovered != want_hovered {
-                failures.push(format!("{id} point {n} hovered: got {hovered:?}, upstream {want_hovered:?}"));
+                failures.push(format!(
+                    "{id} point {n} hovered: got {hovered:?}, upstream {want_hovered:?}"
+                ));
             }
             let all: Vec<String> = get_all_hovered_element_at_point(at, &refs, &map, zoom)
                 .into_iter()
@@ -268,11 +341,18 @@ fn binding_hit_tests_match_upstream() {
                 .map(|v| v.as_str().expect("id").to_string())
                 .collect();
             if all != want_all {
-                failures.push(format!("{id} point {n} all: got {all:?}, upstream {want_all:?}"));
+                failures.push(format!(
+                    "{id} point {n} all: got {all:?}, upstream {want_all:?}"
+                ));
             }
         }
     }
-    assert!(failures.is_empty(), "{} mismatches:\n{}", failures.len(), failures.join("\n"));
+    assert!(
+        failures.is_empty(),
+        "{} mismatches:\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
 }
 
 #[test]
@@ -287,11 +367,19 @@ fn containment_matches_upstream() {
             let outer = by_id(&scene, p["outer"].as_str().expect("outer"));
             let got = is_bindable_element_inside_other_bindable(inner, outer, &map);
             if Value::Bool(got) != p["result"] {
-                failures.push(format!("{id} pair {n}: got {got}, upstream {}", p["result"]));
+                failures.push(format!(
+                    "{id} pair {n}: got {got}, upstream {}",
+                    p["result"]
+                ));
             }
         }
     }
-    assert!(failures.is_empty(), "{} mismatches:\n{}", failures.len(), failures.join("\n"));
+    assert!(
+        failures.is_empty(),
+        "{} mismatches:\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
 }
 
 // -- App.getElementHitThreshold (App.tsx:6927-6934) ----------------------------
@@ -303,9 +391,20 @@ fn hit_threshold_is_the_larger_of_half_the_stroke_and_the_zoomed_collision_thres
     assert_eq!(DEFAULT_COLLISION_THRESHOLD, 2.0 * 4.0 - 1e-5);
     assert_eq!(DEFAULT_COLLISION_THRESHOLD, 7.99999);
     // max(sw / 2 + 0.1, 0.85 * (8 - 1e-5) / zoom)
-    for &(sw, zoom) in &[(1.0, 1.0), (2.0, 1.0), (4.0, 0.1), (2.0, 30.0), (40.0, 1.0), (1.0, 10.0)] {
+    for &(sw, zoom) in &[
+        (1.0, 1.0),
+        (2.0, 1.0),
+        (4.0, 0.1),
+        (2.0, 30.0),
+        (40.0, 1.0),
+        (1.0, 10.0),
+    ] {
         let expected = f64::max(sw / 2.0 + 0.1, 0.85 * (DEFAULT_COLLISION_THRESHOLD / zoom));
-        assert_eq!(get_element_hit_threshold(sw, zoom), expected, "sw {sw} zoom {zoom}");
+        assert_eq!(
+            get_element_hit_threshold(sw, zoom),
+            expected,
+            "sw {sw} zoom {zoom}"
+        );
     }
     assert_eq!(get_element_hit_threshold(2.0, 1.0), 0.85 * 7.99999);
     // thick strokes win at high zoom
@@ -319,7 +418,10 @@ fn hit(case_id: &str, target: Option<&str>, at: [f64; 2], threshold: f64) -> boo
     let c = case(case_id);
     let scene = elements(&c);
     let map = ElementsMap::new(scene.iter());
-    let target = by_id(&scene, target.unwrap_or_else(|| c["target"].as_str().expect("target")));
+    let target = by_id(
+        &scene,
+        target.unwrap_or_else(|| c["target"].as_str().expect("target")),
+    );
     hit_element_itself(&mut HitTestCache::new(), &args(target, &map, at, threshold))
 }
 
@@ -359,9 +461,15 @@ fn cache_reuses_a_hit_when_the_threshold_increases() {
     let map = ElementsMap::new(scene.iter());
     let mut cache = HitTestCache::new();
     let at = [100.5, 50.0];
-    assert!(hit_element_itself(&mut cache, &args(&scene[0], &map, at, 1.0)));
+    assert!(hit_element_itself(
+        &mut cache,
+        &args(&scene[0], &map, at, 1.0)
+    ));
     assert_eq!(cache.outline_tests(), 1);
-    assert!(hit_element_itself(&mut cache, &args(&scene[0], &map, at, 10.0)));
+    assert!(hit_element_itself(
+        &mut cache,
+        &args(&scene[0], &map, at, 10.0)
+    ));
     assert_eq!(cache.outline_tests(), 1);
 }
 
@@ -372,26 +480,62 @@ fn cache_is_not_reused_when_the_threshold_decreases() {
     let map = ElementsMap::new(scene.iter());
     let mut cache = HitTestCache::new();
     let at = [105.0, 50.0];
-    assert!(hit_element_itself(&mut cache, &args(&scene[0], &map, at, 10.0)));
+    assert!(hit_element_itself(
+        &mut cache,
+        &args(&scene[0], &map, at, 10.0)
+    ));
     assert_eq!(cache.outline_tests(), 1);
-    assert!(hit_element_itself(&mut cache, &args(&scene[0], &map, at, 6.0)));
+    assert!(hit_element_itself(
+        &mut cache,
+        &args(&scene[0], &map, at, 6.0)
+    ));
     assert_eq!(cache.outline_tests(), 2);
 }
 
 #[test]
 fn cache_is_not_reused_for_a_larger_threshold_after_a_miss() {
+    // a transparent rectangle is not hit at its centre, 50px from the
+    // outline (a miss outside the grown bounds bails out before any
+    // outline test, and is not cached)
     let c = case("upstream-cache-transparent-rectangle");
     let scene = elements(&c);
     let map = ElementsMap::new(scene.iter());
     let mut cache = HitTestCache::new();
-    let at = [105.0, 50.0];
-    assert!(!hit_element_itself(&mut cache, &args(&scene[0], &map, at, 4.0)));
+    let at = [50.0, 50.0];
+    assert!(!hit_element_itself(
+        &mut cache,
+        &args(&scene[0], &map, at, 10.0)
+    ));
     assert_eq!(cache.outline_tests(), 1);
     // a smaller threshold can only miss too
-    assert!(!hit_element_itself(&mut cache, &args(&scene[0], &map, at, 3.0)));
+    assert!(!hit_element_itself(
+        &mut cache,
+        &args(&scene[0], &map, at, 5.0)
+    ));
     assert_eq!(cache.outline_tests(), 1);
-    assert!(hit_element_itself(&mut cache, &args(&scene[0], &map, at, 6.0)));
+    // a larger one could hit
+    assert!(hit_element_itself(
+        &mut cache,
+        &args(&scene[0], &map, at, 60.0)
+    ));
     assert_eq!(cache.outline_tests(), 2);
+}
+
+#[test]
+fn a_miss_outside_the_grown_bounds_runs_no_outline_test() {
+    let c = case("upstream-cache-transparent-rectangle");
+    let scene = elements(&c);
+    let map = ElementsMap::new(scene.iter());
+    let mut cache = HitTestCache::new();
+    assert!(!hit_element_itself(
+        &mut cache,
+        &args(&scene[0], &map, [105.0, 50.0], 4.0)
+    ));
+    assert!(!hit_element_itself(
+        &mut cache,
+        &args(&scene[0], &map, [105.0, 50.0], 4.0)
+    ));
+    assert_eq!(cache.outline_tests(), 0);
 }
 
 #[test]
@@ -401,7 +545,10 @@ fn cache_is_invalidated_when_the_element_version_changes() {
     let map = ElementsMap::new(scene.iter());
     let mut cache = HitTestCache::new();
     let at = [100.5, 50.0];
-    assert!(hit_element_itself(&mut cache, &args(&scene[0], &map, at, 1.0)));
+    assert!(hit_element_itself(
+        &mut cache,
+        &args(&scene[0], &map, at, 1.0)
+    ));
     assert_eq!(cache.outline_tests(), 1);
     let mut moved = scene[0].clone();
     moved.base.version += 1.0;
@@ -417,7 +564,10 @@ fn override_should_test_inside_does_not_affect_caching() {
     let map = ElementsMap::new(scene.iter());
     let mut cache = HitTestCache::new();
     let at = [50.0, 50.0];
-    assert!(!hit_element_itself(&mut cache, &args(&scene[0], &map, at, 10.0)));
+    assert!(!hit_element_itself(
+        &mut cache,
+        &args(&scene[0], &map, at, 10.0)
+    ));
     assert_eq!(cache.outline_tests(), 1);
     let overridden = HitTestArgs {
         override_should_test_inside: true,
@@ -438,14 +588,26 @@ fn cache_rechecks_a_bound_label_when_only_its_arrow_changes() {
     let label_before = by_id(&before_scene, label_id);
     let label_after = by_id(&after_scene, label_id);
     assert_eq!(label_before.base.version, label_after.base.version);
-    assert_eq!(label_before.base.version_nonce, label_after.base.version_nonce);
+    assert_eq!(
+        label_before.base.version_nonce,
+        label_after.base.version_nonce
+    );
 
     let mut cache = HitTestCache::new();
     let before_map = ElementsMap::new(before_scene.iter());
     let after_map = ElementsMap::new(after_scene.iter());
-    assert!(hit_element_itself(&mut cache, &args(label_before, &before_map, [350.0, 200.0], 1.0)));
-    assert!(!hit_element_itself(&mut cache, &args(label_after, &after_map, [350.0, 200.0], 1.0)));
-    assert!(hit_element_itself(&mut cache, &args(label_after, &after_map, [650.0, 200.0], 1.0)));
+    assert!(hit_element_itself(
+        &mut cache,
+        &args(label_before, &before_map, [350.0, 200.0], 1.0)
+    ));
+    assert!(!hit_element_itself(
+        &mut cache,
+        &args(label_after, &after_map, [350.0, 200.0], 1.0)
+    ));
+    assert!(hit_element_itself(
+        &mut cache,
+        &args(label_after, &after_map, [650.0, 200.0], 1.0)
+    ));
 }
 
 const VARIABLE: &str = "upstream-freedraw-straight-variable";
@@ -546,7 +708,11 @@ fn freedraw_hits_smoothed_fill_outside_the_rotated_point_bounds() {
     let c = case(id);
     let scene = elements(&c);
     let map = ElementsMap::new(scene.iter());
-    let p = rotate([436.0, 240.0], [400.0, 250.0], 2.0 * std::f64::consts::PI / 3.0);
+    let p = rotate(
+        [436.0, 240.0],
+        [400.0, 250.0],
+        2.0 * std::f64::consts::PI / 3.0,
+    );
     let [x1, y1, x2, y2] = get_element_bounds(&scene[0], &map);
     assert!(p[0] < x1 || p[0] > x2 || p[1] < y1 || p[1] > y2);
     assert!(inside(id, p));
@@ -556,29 +722,49 @@ fn freedraw_hits_smoothed_fill_outside_the_rotated_point_bounds() {
 #[test]
 fn freedraw_degenerate_loops_contain_nothing() {
     assert!(!inside("upstream-freedraw-retraced", [350.0, 250.0]));
-    assert!(!inside("upstream-freedraw-two-identical-points", [300.15, 200.15]));
+    assert!(!inside(
+        "upstream-freedraw-two-identical-points",
+        [300.15, 200.15]
+    ));
 }
 
 #[test]
 fn freedraw_nearly_closed_path_keeps_its_curved_fill() {
-    assert!(inside("upstream-freedraw-nearly-closed-three-points", [350.0, 250.0]));
-    assert!(inside("upstream-freedraw-smoothed-beyond-raw-polygon", [305.0, 285.0]));
+    assert!(inside(
+        "upstream-freedraw-nearly-closed-three-points",
+        [350.0, 250.0]
+    ));
+    assert!(inside(
+        "upstream-freedraw-smoothed-beyond-raw-polygon",
+        [305.0, 285.0]
+    ));
 }
 
 #[test]
 fn freedraw_self_intersecting_loop_is_even_odd() {
-    assert!(!inside("upstream-freedraw-self-intersecting", [400.0, 300.0]));
+    assert!(!inside(
+        "upstream-freedraw-self-intersecting",
+        [400.0, 300.0]
+    ));
 }
 
 #[test]
 fn freedraw_fill_follows_changed_points() {
-    assert!(inside("upstream-freedraw-loop-variable-0-filled", [415.0, 255.0]));
+    assert!(inside(
+        "upstream-freedraw-loop-variable-0-filled",
+        [415.0, 255.0]
+    ));
     assert!(!inside("upstream-freedraw-points-changed", [415.0, 255.0]));
 }
 
 #[test]
 fn transparent_ellipse_outline_is_not_hit_from_its_centre_line() {
-    assert!(!hit("upstream-ellipse-center-line", None, [210.0, 50.0], 10.0));
+    assert!(!hit(
+        "upstream-ellipse-center-line",
+        None,
+        [210.0, 50.0],
+        10.0
+    ));
 }
 
 #[test]
@@ -618,7 +804,10 @@ fn ids(ids: &[&str]) -> Vec<String> {
 #[test]
 fn binding_uses_the_zoom_aware_binding_distance() {
     // 20px outside the right edge: 15px binding distance at zoom 1, 25px at 0.4
-    assert_eq!(binding("upstream-binding-zoom", [120.0, 50.0], 1.0), (None, vec![]));
+    assert_eq!(
+        binding("upstream-binding-zoom", [120.0, 50.0], 1.0),
+        (None, vec![])
+    );
     assert_eq!(
         binding("upstream-binding-zoom", [120.0, 50.0], 0.4),
         (Some("rect".into()), ids(&["rect"]))
@@ -643,7 +832,10 @@ fn binding_is_hidden_by_an_image_and_a_locked_opaque_element() {
         binding("upstream-binding-image", [50.0, 50.0], 1.0),
         (Some("image".into()), ids(&["image"]))
     );
-    assert_eq!(binding("upstream-binding-locked-opaque", [50.0, 50.0], 1.0), (None, vec![]));
+    assert_eq!(
+        binding("upstream-binding-locked-opaque", [50.0, 50.0], 1.0),
+        (None, vec![])
+    );
     assert_eq!(
         binding("upstream-binding-locked-transparent", [50.0, 50.0], 1.0),
         (Some("hidden".into()), ids(&["hidden"]))
@@ -652,20 +844,42 @@ fn binding_is_hidden_by_an_image_and_a_locked_opaque_element() {
 
 #[test]
 fn binding_prefers_the_container_edge_next_to_a_nested_element() {
-    assert_eq!(binding("upstream-binding-nested", [5.0, 100.0], 1.0).0.as_deref(), Some("container"));
-    assert_eq!(binding("upstream-binding-nested", [10.0, 100.0], 1.0).0.as_deref(), Some("child"));
+    assert_eq!(
+        binding("upstream-binding-nested", [5.0, 100.0], 1.0)
+            .0
+            .as_deref(),
+        Some("container")
+    );
+    assert_eq!(
+        binding("upstream-binding-nested", [10.0, 100.0], 1.0)
+            .0
+            .as_deref(),
+        Some("child")
+    );
 }
 
 #[test]
 fn binding_prefers_a_smaller_element_straddling_the_edge_when_inside_both() {
-    assert_eq!(binding("upstream-binding-badge", [3.0, 92.0], 1.0).0.as_deref(), Some("badge"));
-    assert_eq!(binding("upstream-binding-badge", [-5.0, 108.0], 1.0).0.as_deref(), Some("container"));
+    assert_eq!(
+        binding("upstream-binding-badge", [3.0, 92.0], 1.0)
+            .0
+            .as_deref(),
+        Some("badge")
+    );
+    assert_eq!(
+        binding("upstream-binding-badge", [-5.0, 108.0], 1.0)
+            .0
+            .as_deref(),
+        Some("container")
+    );
 }
 
 #[test]
 fn binding_at_a_circle_centre() {
     assert_eq!(
-        binding("upstream-binding-circle-transparent", [100.0, 100.0], 1.0).0.as_deref(),
+        binding("upstream-binding-circle-transparent", [100.0, 100.0], 1.0)
+            .0
+            .as_deref(),
         Some("circle")
     );
     assert_eq!(

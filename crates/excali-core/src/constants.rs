@@ -27,6 +27,23 @@ pub const DARK_THEME_FILTER: &str = "invert(93%) hue-rotate(180deg)";
 /// `constants.ts:30`).
 pub const LINE_CONFIRM_THRESHOLD: f64 = 8.0;
 
+/// The gap between transform handles (`DEFAULT_TRANSFORM_HANDLE_SPACING`,
+/// `constants.ts:277`).
+pub const DEFAULT_TRANSFORM_HANDLE_SPACING: f64 = 2.0;
+
+/// How close to a side a pointer resizes it (`SIDE_RESIZING_THRESHOLD`,
+/// `constants.ts:279`): twice the handle spacing.
+pub const SIDE_RESIZING_THRESHOLD: f64 = 2.0 * DEFAULT_TRANSFORM_HANDLE_SPACING;
+
+/// `EPSILON` (`constants.ts:282`), which keeps side resizing ahead of hit
+/// testing.
+pub const EPSILON: f64 = 0.00001;
+
+/// The hit testing distance at zoom 1 before the stroke width is
+/// considered (`DEFAULT_COLLISION_THRESHOLD`, `constants.ts:283-284`):
+/// `2 * SIDE_RESIZING_THRESHOLD - EPSILON`.
+pub const DEFAULT_COLLISION_THRESHOLD: f64 = 2.0 * SIDE_RESIZING_THRESHOLD - EPSILON;
+
 /// Font size presets (`FONT_SIZES`, `constants.ts:122-127`).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FontSizes {

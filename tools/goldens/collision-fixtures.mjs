@@ -203,13 +203,24 @@ const probe = (up, elements, target, p) => {
   };
 };
 
-const probeCase = (up, id, elements, target, probes) => ({
-  id,
-  kind: "probe",
-  elements: clone(elements),
-  target,
-  probes: probes.map((p) => probe(up, elements, target, p)),
-});
+/**
+ * The elements as fresh objects, as a file or the clipboard gives them:
+ * upstream caches bounds and shapes per element object and version, so a
+ * builder's in-place edits (which keep the version) must not reach the
+ * functions under test through a stale cache entry.
+ */
+const fresh = (elements) => clone(elements);
+
+const probeCase = (up, id, elements, target, probes) => {
+  const scene = fresh(elements);
+  return {
+    id,
+    kind: "probe",
+    elements: clone(scene),
+    target,
+    probes: probes.map((p) => probe(up, scene, target, p)),
+  };
+};
 
 // -- upstream's scenes (collision.test.tsx) ------------------------------------
 
@@ -540,7 +551,8 @@ const upstreamCases = () => {
   });
 
   // "binding hit tests"
-  const bindingCase = (up, id, elements, points) => {
+  const bindingCase = (up, id, built, points) => {
+    const elements = fresh(built);
     const map = up.arrayToMap(elements);
     return {
       id,
@@ -885,7 +897,7 @@ const randomProbeCases = () => {
         id,
         build: (up) => {
           const r = rng(20000 + k * 100 + n);
-          const elements = randomScene(up, r, kind);
+          const elements = fresh(randomScene(up, r, kind));
           const target = elements[elements.length - 1];
           const map = up.arrayToMap(elements);
           const points = probePoints(up, r, target, map, 12);
@@ -915,7 +927,7 @@ const randomIntersectCases = () => {
         id,
         build: (up) => {
           const r = rng(40000 + k * 100 + n);
-          const elements = randomScene(up, r, kind);
+          const elements = fresh(randomScene(up, r, kind));
           const target = elements[elements.length - 1];
           const map = up.arrayToMap(elements);
           const [x1, y1, x2, y2] = up.getElementBounds(target, map);
@@ -987,9 +999,11 @@ const randomBindingCases = () => {
             if (e !== frame && elements.indexOf(e) > elements.indexOf(frame) && r.chance(0.6)) e.frameId = frame.id;
           }
         }
-        const map = up.arrayToMap(elements);
-        const all = up.getElementBounds(elements[0], map);
-        for (const e of elements) {
+        const scene = fresh(elements);
+        const map = up.arrayToMap(scene);
+        // a copy: getElementBounds answers its cached array
+        const all = [...up.getElementBounds(scene[0], map)];
+        for (const e of scene) {
           const b = up.getElementBounds(e, map);
           all[0] = Math.min(all[0], b[0]);
           all[1] = Math.min(all[1], b[1]);
@@ -1006,12 +1020,12 @@ const randomBindingCases = () => {
         return {
           id,
           kind: "binding",
-          elements: clone(elements),
+          elements: clone(scene),
           points: points.map(([point, zoom]) => ({
             point,
             zoom,
-            hovered: up.getHoveredElementForBinding(point, elements, map, { value: zoom })?.id ?? null,
-            all: up.getAllHoveredElementAtPoint(point, elements, map, { value: zoom }).map((e) => e.id),
+            hovered: up.getHoveredElementForBinding(point, scene, map, { value: zoom })?.id ?? null,
+            all: up.getAllHoveredElementAtPoint(point, scene, map, { value: zoom }).map((e) => e.id),
           })),
         };
       },
@@ -1047,20 +1061,22 @@ const randomInsideCases = () => {
           inner.y = r.int(-40, outer.height - inner.height + 40);
           elements.push(inner);
         }
-        const map = up.arrayToMap(elements);
-        for (const inner of elements.slice(1)) {
+        const scene = fresh(elements);
+        const map = up.arrayToMap(scene);
+        const [outerElement] = scene;
+        for (const inner of scene.slice(1)) {
           pairs.push({
             inner: inner.id,
-            outer: outer.id,
-            result: up.isBindableElementInsideOtherBindable(inner, outer, map),
+            outer: outerElement.id,
+            result: up.isBindableElementInsideOtherBindable(inner, outerElement, map),
           });
           pairs.push({
-            inner: outer.id,
+            inner: outerElement.id,
             outer: inner.id,
-            result: up.isBindableElementInsideOtherBindable(outer, inner, map),
+            result: up.isBindableElementInsideOtherBindable(outerElement, inner, map),
           });
         }
-        return { id, kind: "inside", elements: clone(elements), pairs };
+        return { id, kind: "inside", elements: clone(scene), pairs };
       },
     });
   }

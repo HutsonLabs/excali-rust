@@ -24,7 +24,7 @@ pub const VARIABLE_WIDTH_SMOOTHING: f64 = 0.5;
 
 /// easeOutSine, `Math.sin((t * Math.PI) / 2)` (`shape.ts:1241`).
 pub fn ease_out_sine(t: f64) -> f64 {
-    ((t * std::f64::consts::PI) / 2.0).sin()
+    js::sin((t * std::f64::consts::PI) / 2.0)
 }
 
 /// The `getStroke` options of `getVariableWidthFreedrawOutline`: size

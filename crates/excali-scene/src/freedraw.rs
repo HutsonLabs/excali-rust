@@ -20,8 +20,13 @@ use std::fmt;
 
 use excali_core::element::{Element, ElementKind, StrokeVariability};
 use excali_core::json::number_to_string;
-use excali_freehand::{constant_width_outline, variable_width_outline};
-use excali_rough::points_on_curve::simplify;
+use excali_freehand::{
+    constant_width_outline, variable_width_outline, CONSTANT_WIDTH_SIZE_FACTOR,
+    VARIABLE_WIDTH_SIZE_FACTOR,
+};
+use excali_math::{polygon_from_points, LocalPoint as MathLocalPoint, Point, Polygon};
+use excali_rough::points_on_curve::{points_on_bezier_curves, simplify};
+use excali_rough::{Options, RoughGenerator};
 
 /// Why [`get_freedraw_outline_points`] or [`get_free_draw_svg_path`] gave
 /// no outline.
@@ -125,6 +130,68 @@ pub fn get_freedraw_fill_curve_points(element: &Element) -> Option<Vec<[f64; 2]>
         simplify(&fields.points, FREEDRAW_FILL_SIMPLIFY_DISTANCE)
             .expect("a non-negative distance always simplifies"),
     )
+}
+
+/// `getFreedrawFillPolygon(element)` (`shape.ts:583-619`): the flattened
+/// contour of a freedraw loop's fill, in local unrotated coordinates,
+/// following the rendered fill rather than the stroke outline: rough.js's
+/// `curve` through [`get_freedraw_fill_curve_points`] at roughness 0 with a
+/// single stroke, its control points flattened by points-on-curve's
+/// `pointsOnBezierCurves(points, 0.5)` and closed (`polygonFromPoints`).
+/// `None` for any other element type.
+///
+/// Upstream draws with an unseeded generator (seed 0, `Math.random`); every
+/// draw is multiplied by the roughness 0, so none reaches the contour.
+/// Upstream caches the contour per element and version; the port computes
+/// it afresh, which gives the same points.
+pub fn get_freedraw_fill_polygon(element: &Element) -> Option<Polygon<excali_math::Local>> {
+    let points = get_freedraw_fill_curve_points(element)?;
+    let generator = RoughGenerator::new();
+    let options = Options {
+        roughness: 0.0,
+        disable_multi_stroke: true,
+        ..generator.default_options().clone()
+    };
+    let ops = generator
+        .curve(&points, &options)
+        .ok()
+        .and_then(|drawable| drawable.sets.into_iter().next())
+        .map(|set| set.ops)
+        .unwrap_or_default();
+    // a single curve pass is a move followed by cubic control points
+    let bezier_points: Vec<[f64; 2]> = ops
+        .iter()
+        .flat_map(|op| {
+            op.data()
+                .chunks(2)
+                .map(|c| [c[0], c[1]])
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    // no distance: the boundary is not simplified again
+    let flattened = points_on_bezier_curves(&bezier_points, 0.5, None).unwrap_or_default();
+    Some(polygon_from_points(
+        flattened
+            .into_iter()
+            .map(|[x, y]| -> MathLocalPoint { Point::new(x, y) })
+            .collect(),
+    ))
+}
+
+/// `getFreedrawMaxStrokeRadius(element)` (`shape.ts:1279-1291`): how far a
+/// freedraw stroke's ink can reach past its centerline points,
+/// `strokeWidth * 1.4` at constant width, `strokeWidth * 4.25 + 3` at
+/// variable width (perfect-freehand's start cap on strokes under 3px).
+/// 0 for any other element type.
+pub fn get_freedraw_max_stroke_radius(element: &Element) -> f64 {
+    let ElementKind::Freedraw(fields) = &element.kind else {
+        return 0.0;
+    };
+    let stroke_width = element.base.stroke_width;
+    match fields.stroke_options.variability {
+        StrokeVariability::Constant => stroke_width * CONSTANT_WIDTH_SIZE_FACTOR,
+        StrokeVariability::Variable => stroke_width * VARIABLE_WIDTH_SIZE_FACTOR + 3.0,
+    }
 }
 
 /// `med(A, B)` (`shape.ts:1314-1316`).
