@@ -8,5 +8,19 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
+# The writer knows only the display list (ADR-008): its one workspace
+# dependency is excali-scene, reached through excali_scene::display.
+[dependencies]
+excali-scene = { path = "../excali-scene" }
+
+# The tests build their scenes from elements, as the writer's callers do
+# (excali-core, excali_scene::export), draw rough.js shapes (excali-rough),
+# read the fixtures (serde_json), and run `cargo metadata` in the boundary
+# test.
+[dev-dependencies]
+excali-core = { path = "../excali-core" }
+excali-rough = { path = "../excali-rough" }
+serde_json = { workspace = true }
+
 [lints]
 workspace = true

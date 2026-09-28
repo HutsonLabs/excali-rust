@@ -322,6 +322,12 @@ dependencies = [
 [[package]]
 name = "excali-svg"
 version = "26.9.1"
+dependencies = [
+ "excali-core",
+ "excali-rough",
+ "excali-scene",
+ "serde_json",
+]
 
 [[package]]
 name = "excali-text"
