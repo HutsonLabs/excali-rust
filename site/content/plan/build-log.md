@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-506 · Editor state machine: tools registry (keys, fillable, toggle), active tool, tool lock, pen mode
+
+The editor now has upstream's tool registry: the TOOLS table with its letter and number keys, a caps-lock insensitive `find_shape_by_key`, and the fillable and toggle flags. `ToolState` holds the active tool, tool lock and pen mode, applies forced tools, and resets an unsupported tool to selection while interaction is off, in the order upstream's componentDidUpdate uses. PR: [#77](https://github.com/HutsonLabs/excali-rust/pull/77).
+
 ## 2026-09-28 · ex-501 · WASM build pipeline: wasm-bindgen --target web, wasm-opt, size check in CI
 
 `scripts/web/build.sh` now builds the editor for the browser: the `web-release` profile, `wasm-bindgen --target web`, then `wasm-opt -Oz` from binaryen 133, pinned and SHA-256 verified. It writes `dist/excali_editor.js` and `dist/excali_editor_bg.wasm`. CI runs the build on every pull request and fails when a gzip size goes over its budget in phases.md. The module is 213,439 bytes gzip against a 1,500,000 budget. PR: [#76](https://github.com/HutsonLabs/excali-rust/pull/76).
