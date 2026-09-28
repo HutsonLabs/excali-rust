@@ -772,6 +772,90 @@ const sceneCases = () => [
   ], { opts: repairDelete }),
 ];
 
+// -- refreshTextDimensions (ex-304) --------------------------------------------------
+//
+// restoreElements with refreshDimensions over the bound-text sizing rules of
+// textElement.ts (getBoundTextMaxWidth for rectangle, ellipse, diamond and a
+// line that lists its text) and the anchoring of newElement.ts
+// (getAdjustedDimensions: every textAlign and verticalAlign, rotated, and
+// the free text branches). Arrow labels are left out: their position is
+// LinearElementEditor's (ex-511), which excali-text takes from its caller.
+
+const refreshCases = () => {
+  const refresh = { opts: { repairBindings: true, refreshDimensions: true } };
+  const long = "the quick brown fox jumps over the lazy dog";
+  const boundTo = (id) => [{ type: "text", id }];
+  return [
+    scene("refresh-containers", [
+      saved("ellipse", { id: "e", index: "a0", width: 200, height: 100, boundElements: boundTo("et") }),
+      label("et", "e", {
+        index: "a1",
+        text: long,
+        originalText: long,
+        textAlign: "center",
+        verticalAlign: "middle",
+      }),
+      saved("diamond", { id: "d", index: "a2", width: 201, height: 120, boundElements: boundTo("dt") }),
+      label("dt", "d", {
+        index: "a3",
+        text: long,
+        originalText: long,
+        textAlign: "right",
+        verticalAlign: "bottom",
+        fontSize: 16,
+        lineHeight: 1.35,
+      }),
+      rect("r", { index: "a4", width: 150, angle: 0.5, boundElements: boundTo("rt") }),
+      // refreshTextDimensions wraps `text`, not `originalText`
+      label("rt", "r", {
+        index: "a5",
+        text: "short",
+        originalText: long,
+        textAlign: "center",
+        verticalAlign: "top",
+        angle: 0.5,
+      }),
+      rect("wide", { index: "a6", x: 12.5, y: -7.25, width: 333, height: 40, boundElements: boundTo("wt") }),
+      label("wt", "wide", { index: "a7", text: "a\tb\n\nc", originalText: "a\tb\n\nc", textAlign: "right" }),
+      savedLinear("line", { id: "l", index: "a8", boundElements: boundTo("lt") }),
+      label("lt", "l", { index: "a9", text: long, originalText: long }),
+    ], refresh),
+    scene("refresh-free-text", [
+      savedText({
+        id: "centered",
+        index: "a0",
+        text: "grow\nme wider",
+        originalText: "grow\nme wider",
+        textAlign: "center",
+        verticalAlign: "middle",
+      }),
+      savedText({ id: "fixed", index: "a1", autoResize: false, width: 55, text: long, originalText: long }),
+      savedText({
+        id: "rotated",
+        index: "a2",
+        text: "abc\ndefgh",
+        originalText: "abc\ndefgh",
+        textAlign: "right",
+        verticalAlign: "bottom",
+        angle: 1.2,
+      }),
+      savedText({
+        id: "middle-left",
+        index: "a3",
+        x: 3.3,
+        text: "one two",
+        originalText: "one two",
+        verticalAlign: "middle",
+        angle: 2,
+        width: 200,
+        height: 10,
+      }),
+      savedText({ id: "orphan", index: "a4", containerId: "missing" }),
+      savedText({ id: "empty", index: "a5", text: "", originalText: "", width: 0, height: 0 }),
+    ], refresh),
+  ];
+};
+
 export const buildScenesCases = () => [
   ...upstreamCases(),
   ...idCases(),
@@ -785,4 +869,5 @@ export const buildScenesCases = () => [
   ...elbowCases(),
   ...errorCases(),
   ...sceneCases(),
+  ...refreshCases(),
 ];
