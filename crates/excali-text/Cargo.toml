@@ -27,10 +27,14 @@ yoke = { workspace = true }
 test-util = []
 
 # This crate as its own dev-dependency turns `test-util` on for `cargo test`.
-# serde_json reads the JSON fixtures under tests/fixtures in the parity tests.
+# serde_json reads the JSON fixtures under tests/fixtures in the parity tests;
+# flate2 and sha2 read the gzipped library corpus and check it against
+# fixtures/manifest.json in the width corpus test (ex-308).
 [dev-dependencies]
 excali-text = { path = ".", features = ["test-util"] }
+flate2 = { workspace = true }
 serde_json = { workspace = true }
+sha2 = { workspace = true }
 
 [lints]
 workspace = true
