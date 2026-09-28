@@ -55,7 +55,7 @@ on an arm64 machine only.
 | `math.json` | every `packages/math/src` export except `curve.ts` and `pca.ts`, called on fixed and Park-Miller-random inputs (`math.mjs`): `{ id, fn, args, result }` | ex-201 |
 | `js-sort.json` | V8's `Array.prototype.sort` (TimSort) permutation when the comparator answers NaN, and `convexHull` on points with NaN or infinite coordinates (`jssort.mjs`) | ex-201 |
 | `fractional-indexing.json` | vendored `fractional-indexing`: `validateOrderKey`, `generateKeyBetween` over every pair of a key pool (base 62, plus the rocicorp suite's base 10 and base 95), `generateNKeysBetween` for n = 0..40 and long runs, random insertion walks; result or thrown message | ex-107 |
-| `fractional-index.json` | `element/src/fractionalIndex.ts`: `syncInvalidIndices` and `syncMovedIndices` on every scenario of `fractionalIndex.test.ts` and 400 random lists (indices and versions after), `validateFractionalIndices` log messages, `orderByFractionalIndex` (V8 TimSort order, also with unindexed elements and duplicate ids) | ex-107 |
+| `fractional-index.json` | `element/src/fractionalIndex.ts`: `syncInvalidIndices` and `syncMovedIndices` on every scenario of `fractionalIndex.test.ts` and 400 random lists (indices and versions after), `syncInvalidIndicesImmutable` on those scenarios and 200 random lists with duplicate ids (the returned map), `validateFractionalIndices` log messages, `orderByFractionalIndex` (V8 TimSort order, also with unindexed elements and duplicate ids) | ex-107 |
 | `manifest.json` | upstream commit, package versions, case count and sha256 per file | ex-217 |
 
 rough.js's `dots` fill is not included. Its filler jitters every dot with
@@ -97,7 +97,9 @@ Every file is `{ "description", "cases": [...] }` and every case has a unique
 - **fractional index cases:** `elements` are `{ id, index }` (validation
   cases add `type`, `boundElements`, `isDeleted`, `version`, ...). Sync cases
   record `validInput`, then `indices`, `versions` and `validOutput` (or
-  `error`); validation cases record the logged `messages`; order cases the
+  `error`); `syncInvalidIndicesImmutable` cases record the returned map as
+  `entries`, `[id, position in elements, index, version]` in map order;
+  validation cases record the logged `messages`; order cases the
   resulting `order` as positions in `elements`. The bundle defines `import.meta.env.MODE` as
   `"production"`, which `getUpdatedTimestamp` reads.
 

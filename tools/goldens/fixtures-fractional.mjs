@@ -274,5 +274,30 @@ export const fractionalIndexCases = () => {
     fn: "orderByFractionalIndex",
     elements: Array.from({ length: 80 }, (_, i) => ({ id: `d${i % 3}`, index: pick(orderPool) })),
   });
+
+  // syncInvalidIndicesImmutable returns arrayToMap(elements) with the
+  // updated copies set over it, so duplicate ids keep the first position,
+  // the last element, and then the last update (store.ts:158 passes live
+  // scene elements). Its own generator so the cases above keep their draws.
+  const dup = mulberry32(1071);
+  const dupPick = (list) => list[Math.floor(dup() * list.length)];
+  const immutable = [
+    [["x", null], ["x", "a1"]],
+    [["x", "a1"], ["x", null]],
+    [["x", "a0"], ["x", "a0"]],
+    [["x", "a1"], ["y", null], ["x", "a0"]],
+    [["x", null], ["y", "a1"], ["x", null], ["z", "a1"]],
+    ...UPSTREAM_SYNC_SCENARIOS.map((s) => s.elements),
+  ].map(toElements);
+  for (let c = 0; c < 200; c++) {
+    const size = Math.floor(dup() * 13);
+    const ids = ["p", "q", "r", "s"].slice(0, 1 + Math.floor(dup() * 4));
+    immutable.push(
+      Array.from({ length: size }, () => ({ id: dupPick(ids), index: dupPick(SYNC_INDEX_POOL) })),
+    );
+  }
+  immutable.forEach((elements, i) =>
+    cases.push({ id: `immutable-${i}`, fn: "syncInvalidIndicesImmutable", elements }),
+  );
   return cases;
 };

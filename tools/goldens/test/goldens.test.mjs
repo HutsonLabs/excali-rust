@@ -444,13 +444,14 @@ test("fractional-index goldens cover the upstream test's scenarios and every out
   const cs = cases("fractional-index.json");
   const upstream = cs.filter((c) => c.id.startsWith("upstream-"));
   assert.equal(upstream.filter((c) => c.fn === "syncInvalidIndices").length, 33);
-  for (const c of cs.filter((c) => c.fn.startsWith("sync"))) {
+  const syncs = cs.filter((c) => c.fn === "syncInvalidIndices" || c.fn === "syncMovedIndices");
+  for (const c of syncs) {
     assert.equal(c.error, undefined, c.id);
     assert.equal(c.validOutput, true, c.id);
     assert.equal(c.indices.length, c.elements.length, c.id);
   }
-  assert.ok(cs.some((c) => c.fn.startsWith("sync") && c.validInput));
-  assert.ok(cs.some((c) => c.fn.startsWith("sync") && !c.validInput));
+  assert.ok(syncs.some((c) => c.validInput));
+  assert.ok(syncs.some((c) => !c.validInput));
   const growing = cs.find((c) => c.id === "growing-600-invalid");
   assert.equal(growing.elements.at(-1).index, growing.indices.at(-1));
   const messages = cs.filter((c) => c.fn === "validateFractionalIndices").flatMap((c) => c.messages);
@@ -460,4 +461,28 @@ test("fractional-index goldens cover the upstream test's scenarios and every out
   assert.ok(orders.length >= 120);
   assert.ok(orders.some((c) => c.elements.length > 64 && c.elements.some((e) => !e.index)));
   for (const c of orders) assert.deepEqual([...c.order].sort((a, b) => a - b), c.elements.map((_, i) => i), c.id);
+});
+
+test("syncInvalidIndicesImmutable goldens are arrayToMap with the updates set over it", () => {
+  const cs = cases("fractional-index.json").filter((c) => c.fn === "syncInvalidIndicesImmutable");
+  assert.ok(cs.length >= 200);
+  // the reviewer's case: the update for the first x replaces the last x
+  const first = cs.find((c) => c.id === "immutable-0");
+  assert.deepEqual(first.elements, [{ id: "x", index: null }, { id: "x", index: "a1" }]);
+  assert.deepEqual(first.entries, [["x", 0, "a0", 2]]);
+  let overwritten = 0;
+  for (const c of cs) {
+    assert.equal(c.error, undefined, c.id);
+    const ids = [...new Set(c.elements.map((e) => e.id))];
+    assert.deepEqual(c.entries.map(([id]) => id), ids, c.id);
+    for (const [id, from, , version] of c.entries) {
+      assert.equal(c.elements[from].id, id, c.id);
+      const last = c.elements.findLastIndex((e) => e.id === id);
+      if (from !== last) {
+        assert.equal(version, 2, c.id);
+        overwritten++;
+      }
+    }
+  }
+  assert.ok(overwritten > 0);
 });

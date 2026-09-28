@@ -220,6 +220,15 @@ const fractionalIndexCase = (up) => (c) => {
       if (r.error !== undefined) return { ...out, error: r.error };
       return { ...out, ...synced(r.result), validOutput: isValidScene(up, r.result) };
     }
+    case "syncInvalidIndicesImmutable": {
+      // each element carries its input position (fractionalIndex.ts never
+      // reads it; newElementWith copies it), so equal ids stay distinguishable
+      const list = elements().map((e, i) => ({ ...e, from: i }));
+      const r = outcome(() => up.syncInvalidIndicesImmutable(list));
+      if (r.error !== undefined) return { ...rest, elements: input, error: r.error };
+      const entries = [...r.result].map(([id, e]) => [id, e.from, e.index, e.version]);
+      return { ...rest, elements: input, entries };
+    }
     case "validateFractionalIndices": {
       const logged = [];
       const error = console.error;
@@ -281,7 +290,7 @@ const buildGoldens = (up) => {
   files.push({
     name: "fractional-index.json",
     description:
-      "packages/element/src/fractionalIndex.ts: syncInvalidIndices and syncMovedIndices (indices and versions after the sync, or the thrown message), validateFractionalIndices log messages, orderByFractionalIndex id order.",
+      "packages/element/src/fractionalIndex.ts: syncInvalidIndices and syncMovedIndices (indices and versions after the sync, or the thrown message), syncInvalidIndicesImmutable (the returned map as [id, input position, index, version] entries in map order), validateFractionalIndices log messages, orderByFractionalIndex id order.",
     cases: fractionalIndexCases().map(fractionalIndexCase(up)),
   });
   return files;

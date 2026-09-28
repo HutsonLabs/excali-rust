@@ -61,6 +61,7 @@ export * as fractionalIndexing from "./packages/fractional-indexing/src/index";
 export {
   orderByFractionalIndex,
   syncInvalidIndices,
+  syncInvalidIndicesImmutable,
   syncMovedIndices,
   validateFractionalIndices,
 } from "./packages/element/src/fractionalIndex";

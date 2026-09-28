@@ -1,5 +1,5 @@
 {
-  "description": "packages/element/src/fractionalIndex.ts: syncInvalidIndices and syncMovedIndices (indices and versions after the sync, or the thrown message), validateFractionalIndices log messages, orderByFractionalIndex id order.",
+  "description": "packages/element/src/fractionalIndex.ts: syncInvalidIndices and syncMovedIndices (indices and versions after the sync, or the thrown message), syncInvalidIndicesImmutable (the returned map as [id, input position, index, version] entries in map order), validateFractionalIndices log messages, orderByFractionalIndex id order.",
   "cases": [
     {"id":"upstream-0-invalid","fn":"syncInvalidIndices","elements":[],"validInput":true,"indices":[],"versions":[],"validOutput":true},
     {"id":"upstream-0-moved","fn":"syncMovedIndices","elements":[],"moved":[],"validInput":true,"indices":[],"versions":[],"validOutput":true},
@@ -27028,6 +27028,2190 @@
         {"id":"d1","index":"a0"}
       ],
       "order": [3,51,19,56,66,43,46,64,79,11,20,62,68,30,57,61,8,17,23,26,24,42,69,35,38,0,6,12,33,36,45,54,60,63,75,4,28,34,40,58,67,76,5,41,47,59,65,15,18,27,48,10,37,49,50,53,71,74,77,39,72,78,1,16,25,55,70,73,9,21,7,13,22,31,52,2,14,29,32,44]
-    }
+    },
+    {"id":"immutable-0","fn":"syncInvalidIndicesImmutable","elements":[{"id":"x","index":null},{"id":"x","index":"a1"}],"entries":[["x",0,"a0",2]]},
+    {"id":"immutable-1","fn":"syncInvalidIndicesImmutable","elements":[{"id":"x","index":"a1"},{"id":"x","index":null}],"entries":[["x",1,"a2",2]]},
+    {"id":"immutable-2","fn":"syncInvalidIndicesImmutable","elements":[{"id":"x","index":"a0"},{"id":"x","index":"a0"}],"entries":[["x",1,"a1",2]]},
+    {
+      "id": "immutable-3",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"x","index":"a1"},{"id":"y","index":null},{"id":"x","index":"a0"}],
+      "entries": [["x",2,"a3",2],["y",1,"a2",2]]
+    },
+    {
+      "id": "immutable-4",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"x","index":null},{"id":"y","index":"a1"},{"id":"x","index":null},{"id":"z","index":"a1"}],
+      "entries": [["x",2,"a2",2],["y",1,"a1",1],["z",3,"a3",2]]
+    },
+    {"id":"immutable-5","fn":"syncInvalidIndicesImmutable","elements":[],"entries":[]},
+    {"id":"immutable-6","fn":"syncInvalidIndicesImmutable","elements":[{"id":"A","index":"a1"}],"entries":[["A",0,"a1",1]]},
+    {
+      "id": "immutable-7",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a1"},{"id":"B","index":"a2"},{"id":"C","index":"a3"}],
+      "entries": [["A",0,"a1",1],["B",1,"a2",1],["C",2,"a3",1]]
+    },
+    {"id":"immutable-8","fn":"syncInvalidIndicesImmutable","elements":[{"id":"A","index":null}],"entries":[["A",0,"a0",2]]},
+    {"id":"immutable-9","fn":"syncInvalidIndicesImmutable","elements":[{"id":"A","index":"zd0032"}],"entries":[["A",0,"a0",2]]},
+    {
+      "id": "immutable-10",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a1"},{"id":"B","index":"zd0032"},{"id":"C","index":"a3"}],
+      "entries": [["A",0,"a1",1],["B",1,"a2",2],["C",2,"a3",1]]
+    },
+    {"id":"immutable-11","fn":"syncInvalidIndicesImmutable","elements":[{"id":"A","index":"a!"}],"entries":[["A",0,"a0",2]]},
+    {
+      "id": "immutable-12",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a1"},{"id":"B","index":"a!"},{"id":"C","index":"a2"}],
+      "entries": [["A",0,"a1",1],["B",1,"a1V",2],["C",2,"a2",1]]
+    },
+    {
+      "id": "immutable-13",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a1"},{"id":"B","index":"a1"}],
+      "entries": [["A",0,"a1",1],["B",1,"a2",2]]
+    },
+    {
+      "id": "immutable-14",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a2"},{"id":"B","index":"a1"}],
+      "entries": [["A",0,"a2",1],["B",1,"a3",2]]
+    },
+    {
+      "id": "immutable-15",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a2"},{"id":"B","index":"a1"}],
+      "entries": [["A",0,"a2",1],["B",1,"a3",2]]
+    },
+    {
+      "id": "immutable-16",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a3"},{"id":"B","index":"a2"},{"id":"C","index":"a1"}],
+      "entries": [["A",0,"a3",1],["B",1,"a4",2],["C",2,"a5",2]]
+    },
+    {
+      "id": "immutable-17",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a1"},{"id":"B","index":"a0"},{"id":"C","index":"a2"}],
+      "entries": [["A",0,"a1",1],["B",1,"a1V",2],["C",2,"a2",1]]
+    },
+    {
+      "id": "immutable-18",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a1"},{"id":"B","index":"a2"},{"id":"C","index":"a1"}],
+      "entries": [["A",0,"a1",1],["B",1,"a2",1],["C",2,"a3",2]]
+    },
+    {
+      "id": "immutable-19",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a0"},{"id":"B","index":"a2"},{"id":"C","index":"a1"},{"id":"D","index":"a1"},{"id":"E","index":"a2"}],
+      "entries": [["A",0,"a0",1],["B",1,"a2",1],["C",2,"a3",2],["D",3,"a4",2],["E",4,"a5",2]]
+    },
+    {
+      "id": "immutable-20",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"A","index":null},
+        {"id":"B","index":null},
+        {"id":"C","index":"a0"},
+        {"id":"D","index":"a2"},
+        {"id":"E","index":null},
+        {"id":"F","index":"a3"},
+        {"id":"G","index":null},
+        {"id":"H","index":"a1"},
+        {"id":"I","index":"a2"},
+        {"id":"J","index":null}
+      ],
+      "entries": [["A",0,"Zy",2],["B",1,"Zz",2],["C",2,"a0",1],["D",3,"a2",1],["E",4,"a2V",2],["F",5,"a3",1],["G",6,"a4",2],["H",7,"a5",2],["I",8,"a6",2],["J",9,"a7",2]]
+    },
+    {
+      "id": "immutable-21",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a2"},{"id":"B","index":"a4"}],
+      "entries": [["A",0,"a2",1],["B",1,"a4",1]]
+    },
+    {
+      "id": "immutable-22",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a2"},{"id":"B","index":"a4"}],
+      "entries": [["A",0,"a2",1],["B",1,"a4",1]]
+    },
+    {
+      "id": "immutable-23",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"C","index":"a2"},{"id":"D","index":"a3"},{"id":"A","index":"a0"},{"id":"B","index":"a1"}],
+      "entries": [["C",0,"a2",1],["D",1,"a3",1],["A",2,"a4",2],["B",3,"a5",2]]
+    },
+    {
+      "id": "immutable-24",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"A","index":"a1"},
+        {"id":"B","index":"a2"},
+        {"id":"D","index":"a4"},
+        {"id":"C","index":"a3"},
+        {"id":"F","index":"a6"},
+        {"id":"E","index":"a5"},
+        {"id":"H","index":"a8"},
+        {"id":"G","index":"a7"},
+        {"id":"I","index":"a9"}
+      ],
+      "entries": [["A",0,"a1",1],["B",1,"a2",1],["D",2,"a4",1],["C",3,"a5",2],["F",4,"a6",1],["E",5,"a7",2],["H",6,"a8",1],["G",7,"a8V",2],["I",8,"a9",1]]
+    },
+    {
+      "id": "immutable-25",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a1"},{"id":"B","index":"a0"},{"id":"C","index":"a2"}],
+      "entries": [["A",0,"a1",1],["B",1,"a1V",2],["C",2,"a2",1]]
+    },
+    {
+      "id": "immutable-26",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a1"},{"id":"B","index":"a0"},{"id":"C","index":"a2"}],
+      "entries": [["A",0,"a1",1],["B",1,"a1V",2],["C",2,"a2",1]]
+    },
+    {
+      "id": "immutable-27",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a0"},{"id":"B","index":"a2"},{"id":"C","index":"a1"},{"id":"D","index":"a1"},{"id":"E","index":"a2"}],
+      "entries": [["A",0,"a0",1],["B",1,"a2",1],["C",2,"a3",2],["D",3,"a4",2],["E",4,"a5",2]]
+    },
+    {
+      "id": "immutable-28",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"A","index":null},
+        {"id":"B","index":null},
+        {"id":"C","index":"a0"},
+        {"id":"D","index":"a2"},
+        {"id":"E","index":null},
+        {"id":"F","index":"a3"},
+        {"id":"G","index":null},
+        {"id":"H","index":"a1"},
+        {"id":"I","index":"a2"},
+        {"id":"J","index":null}
+      ],
+      "entries": [["A",0,"Zy",2],["B",1,"Zz",2],["C",2,"a0",1],["D",3,"a2",1],["E",4,"a2V",2],["F",5,"a3",1],["G",6,"a4",2],["H",7,"a5",2],["I",8,"a6",2],["J",9,"a7",2]]
+    },
+    {
+      "id": "immutable-29",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a1"},{"id":"B","index":"a1"},{"id":"C","index":"a2"}],
+      "entries": [["A",0,"a1",1],["B",1,"a1V",2],["C",2,"a2",1]]
+    },
+    {
+      "id": "immutable-30",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"A","index":"a01"},
+        {"id":"B","index":"a01"},
+        {"id":"C","index":"a01"},
+        {"id":"D","index":"a01"},
+        {"id":"E","index":"a02"},
+        {"id":"F","index":"a02"},
+        {"id":"G","index":"a02"}
+      ],
+      "entries": [["A",0,"a01",1],["B",1,"a01G",2],["C",2,"a01V",2],["D",3,"a01l",2],["E",4,"a02",1],["F",5,"a1",2],["G",6,"a2",2]]
+    },
+    {
+      "id": "immutable-31",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"A","index":"a01"},
+        {"id":"B","index":"a01"},
+        {"id":"C","index":"a01"},
+        {"id":"D","index":"a01"},
+        {"id":"E","index":"a02"},
+        {"id":"F","index":"a02"},
+        {"id":"G","index":"a02"}
+      ],
+      "entries": [["A",0,"a01",1],["B",1,"a01G",2],["C",2,"a01V",2],["D",3,"a01l",2],["E",4,"a02",1],["F",5,"a1",2],["G",6,"a2",2]]
+    },
+    {
+      "id": "immutable-32",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"A","index":"a01"},
+        {"id":"B","index":"a01"},
+        {"id":"C","index":"a01"},
+        {"id":"D","index":"a01"},
+        {"id":"E","index":"a02"},
+        {"id":"F","index":"a02"},
+        {"id":"G","index":"a02"}
+      ],
+      "entries": [["A",0,"a01",1],["B",1,"a01G",2],["C",2,"a01V",2],["D",3,"a01l",2],["E",4,"a02",1],["F",5,"a1",2],["G",6,"a2",2]]
+    },
+    {
+      "id": "immutable-33",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a1"},{"id":"B","index":"a1"},{"id":"C","index":"a1"}],
+      "entries": [["A",0,"a1",1],["B",1,"a2",2],["C",2,"a3",2]]
+    },
+    {
+      "id": "immutable-34",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a1"},{"id":"B","index":null},{"id":"C","index":"a0"}],
+      "entries": [["A",0,"a1",1],["B",1,"a2",2],["C",2,"a3",2]]
+    },
+    {
+      "id": "immutable-35",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a1"},{"id":"B","index":"a2"},{"id":"C","index":"a1"}],
+      "entries": [["A",0,"a1",1],["B",1,"a2",1],["C",2,"a3",2]]
+    },
+    {
+      "id": "immutable-36",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"A","index":"a2"},{"id":"B","index":null},{"id":"C","index":"a1"}],
+      "entries": [["A",0,"a2",1],["B",1,"a3",2],["C",2,"a4",2]]
+    },
+    {
+      "id": "immutable-37",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"A","index":"a01"},
+        {"id":"B","index":null},
+        {"id":"C","index":null},
+        {"id":"D","index":"a01"},
+        {"id":"E","index":"a01"},
+        {"id":"F","index":"a01"},
+        {"id":"G","index":null},
+        {"id":"I","index":"a03"},
+        {"id":"H","index":null}
+      ],
+      "entries": [["A",0,"a01",1],["B",1,"a01G",2],["C",2,"a01V",2],["D",3,"a01l",2],["E",4,"a02",2],["F",5,"a02G",2],["G",6,"a02V",2],["I",7,"a03",1],["H",8,"a1",2]]
+    },
+    {
+      "id": "immutable-38",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a0V"},
+        {"id":"q","index":"a02"},
+        {"id":"q","index":"aé"},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":"a3"},
+        {"id":"p","index":null},
+        {"id":"p","index":"😀"},
+        {"id":"p","index":"zd0032"}
+      ],
+      "entries": [["p",7,"a7",2],["q",2,"a2",2]]
+    },
+    {
+      "id": "immutable-39",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"s","index":""},
+        {"id":"r","index":"a00"},
+        {"id":"p","index":"😀"},
+        {"id":"p","index":"a3"},
+        {"id":"q","index":"a00"},
+        {"id":"r","index":null},
+        {"id":"s","index":"a1V"},
+        {"id":"q","index":"a1V"},
+        {"id":"q","index":"b00"},
+        {"id":"q","index":"a3"},
+        {"id":"r","index":"a0"}
+      ],
+      "entries": [["s",6,"a6",2],["r",10,"aA",2],["p",3,"a3",1],["q",9,"a9",2]]
+    },
+    {"id":"immutable-40","fn":"syncInvalidIndicesImmutable","elements":[],"entries":[]},
+    {"id":"immutable-41","fn":"syncInvalidIndicesImmutable","elements":[],"entries":[]},
+    {
+      "id": "immutable-42",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"aé"},{"id":"p","index":"a1"},{"id":"p","index":"a00"},{"id":"p","index":"a1V"}],
+      "entries": [["p",3,"a3",2]]
+    },
+    {
+      "id": "immutable-43",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"a3"},
+        {"id":"p","index":null},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"a01"},
+        {"id":"p","index":null},
+        {"id":"p","index":null},
+        {"id":"p","index":null},
+        {"id":"p","index":"a1V"},
+        {"id":"p","index":"a00"},
+        {"id":"p","index":null}
+      ],
+      "entries": [["p",11,"aB",2]]
+    },
+    {"id":"immutable-44","fn":"syncInvalidIndicesImmutable","elements":[{"id":"r","index":"a1"},{"id":"r","index":"a1"}],"entries":[["r",1,"a2",2]]},
+    {
+      "id": "immutable-45",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":"aé"},{"id":"q","index":"😀"},{"id":"q","index":"b00"},{"id":"p","index":"zd0032"},{"id":"q","index":null}],
+      "entries": [["q",4,"a4",2],["p",3,"a3",2]]
+    },
+    {
+      "id": "immutable-46",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a0V"},
+        {"id":"q","index":"A00000000000000000000000000"},
+        {"id":"p","index":"a1V"},
+        {"id":"q","index":"a01"},
+        {"id":"q","index":null},
+        {"id":"p","index":"a02"},
+        {"id":"p","index":"b00"}
+      ],
+      "entries": [["p",5,"a3",2],["q",4,"a2",2]]
+    },
+    {"id":"immutable-47","fn":"syncInvalidIndicesImmutable","elements":[],"entries":[]},
+    {
+      "id": "immutable-48",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"s","index":null},
+        {"id":"p","index":"a1V"},
+        {"id":"r","index":null},
+        {"id":"p","index":null},
+        {"id":"p","index":null},
+        {"id":"s","index":"zd0032"},
+        {"id":"q","index":"a01"},
+        {"id":"s","index":"a3"},
+        {"id":"p","index":"a!"},
+        {"id":"s","index":"a1"},
+        {"id":"p","index":"a00"},
+        {"id":"q","index":"Zz"}
+      ],
+      "entries": [["s",9,"a9",2],["p",10,"aA",2],["r",2,"a2",2],["q",11,"aB",2]]
+    },
+    {
+      "id": "immutable-49",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a2"},
+        {"id":"p","index":"a0"},
+        {"id":"p","index":null},
+        {"id":"p","index":"a01"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"b00"},
+        {"id":"p","index":"Zz"}
+      ],
+      "entries": [["p",8,"b01",2]]
+    },
+    {
+      "id": "immutable-50",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"😀"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"a2"},
+        {"id":"p","index":"a02"}
+      ],
+      "entries": [["p",6,"a6",2]]
+    },
+    {"id":"immutable-51","fn":"syncInvalidIndicesImmutable","elements":[{"id":"p","index":null},{"id":"p","index":"a1V"}],"entries":[["p",0,"a1",2]]},
+    {"id":"immutable-52","fn":"syncInvalidIndicesImmutable","elements":[{"id":"p","index":"a1"},{"id":"p","index":"a1"}],"entries":[["p",1,"a2",2]]},
+    {
+      "id": "immutable-53",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":"A00000000000000000000000000"},{"id":"q","index":"a0V"}],
+      "entries": [["q",0,"a0",2]]
+    },
+    {
+      "id": "immutable-54",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":""},
+        {"id":"p","index":"a2"},
+        {"id":"q","index":"A00000000000000000000000000"},
+        {"id":"q","index":"aé"},
+        {"id":"p","index":null},
+        {"id":"p","index":"Zz"},
+        {"id":"q","index":"a3"},
+        {"id":"q","index":"a1V"},
+        {"id":"q","index":null},
+        {"id":"p","index":"😀"},
+        {"id":"p","index":"zd0032"}
+      ],
+      "entries": [["q",8,"a9",2],["p",10,"aB",2]]
+    },
+    {
+      "id": "immutable-55",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":null},
+        {"id":"q","index":"a0V"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":null},
+        {"id":"p","index":"😀"},
+        {"id":"q","index":"a0V"},
+        {"id":"p","index":null}
+      ],
+      "entries": [["q",5,"a4",2],["p",6,"a5",2]]
+    },
+    {
+      "id": "immutable-56",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"r","index":"a2"},
+        {"id":"r","index":"a0V"},
+        {"id":"r","index":"a02"},
+        {"id":"r","index":"a00"},
+        {"id":"q","index":"a0V"},
+        {"id":"q","index":"zd0032"},
+        {"id":"q","index":"a02"},
+        {"id":"r","index":"a02"},
+        {"id":"r","index":"a2"},
+        {"id":"r","index":"zd0032"},
+        {"id":"r","index":"a1"},
+        {"id":"q","index":"a01"}
+      ],
+      "entries": [["r",10,"aC",2],["q",11,"aD",2]]
+    },
+    {
+      "id": "immutable-57",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":null},{"id":"q","index":""}],
+      "entries": [["p",0,"a0",2],["q",1,"a1",2]]
+    },
+    {
+      "id": "immutable-58",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"a0"},{"id":"p","index":""},{"id":"p","index":"b00"},{"id":"p","index":"a01"},{"id":"p","index":null},{"id":"p","index":"aé"}],
+      "entries": [["p",5,"b03",2]]
+    },
+    {
+      "id": "immutable-59",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":"a1"},{"id":"q","index":"😀"},{"id":"q","index":"b00"},{"id":"q","index":"a3"}],
+      "entries": [["q",3,"a4",2]]
+    },
+    {
+      "id": "immutable-60",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"b00"},
+        {"id":"p","index":"Zz"},
+        {"id":"p","index":null},
+        {"id":"p","index":"Zz"},
+        {"id":"p","index":"a2"},
+        {"id":"p","index":"a01"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":"a02"}
+      ],
+      "entries": [["p",8,"b08",2]]
+    },
+    {
+      "id": "immutable-61",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":null},
+        {"id":"r","index":"a01"},
+        {"id":"p","index":"a1"},
+        {"id":"r","index":"Zz"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"😀"},
+        {"id":"q","index":null},
+        {"id":"r","index":"a01"},
+        {"id":"p","index":"a2"},
+        {"id":"r","index":"Zz"}
+      ],
+      "entries": [["q",6,"a5",2],["r",9,"a8",2],["p",8,"a7",2]]
+    },
+    {"id":"immutable-62","fn":"syncInvalidIndicesImmutable","elements":[],"entries":[]},
+    {
+      "id": "immutable-63",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"r","index":"a01"},{"id":"r","index":"a0"},{"id":"q","index":"aé"}],
+      "entries": [["r",1,"a1",2],["q",2,"a2",2]]
+    },
+    {"id":"immutable-64","fn":"syncInvalidIndicesImmutable","elements":[{"id":"r","index":null}],"entries":[["r",0,"a0",2]]},
+    {
+      "id": "immutable-65",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"A00000000000000000000000000"},{"id":"p","index":"a!"},{"id":"p","index":"a3"},{"id":"p","index":"a0V"}],
+      "entries": [["p",3,"a4",2]]
+    },
+    {
+      "id": "immutable-66",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"s","index":"a0V"},{"id":"q","index":null},{"id":"s","index":"😀"},{"id":"r","index":"a0"},{"id":"p","index":"a1"}],
+      "entries": [["s",2,"a2",2],["q",1,"a1",2],["r",3,"a3",2],["p",4,"a4",2]]
+    },
+    {"id":"immutable-67","fn":"syncInvalidIndicesImmutable","elements":[{"id":"q","index":"a1V"},{"id":"q","index":"a0V"}],"entries":[["q",1,"a2",2]]},
+    {
+      "id": "immutable-68",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"r","index":"a01"},
+        {"id":"p","index":"a02"},
+        {"id":"s","index":"a1"},
+        {"id":"q","index":"b00"},
+        {"id":"r","index":"a1"},
+        {"id":"q","index":"a3"},
+        {"id":"p","index":null}
+      ],
+      "entries": [["r",4,"b01",2],["p",6,"b03",2],["s",2,"a1",1],["q",5,"b02",2]]
+    },
+    {
+      "id": "immutable-69",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":null},{"id":"q","index":"a3"},{"id":"q","index":"aé"},{"id":"q","index":""},{"id":"q","index":"a1V"}],
+      "entries": [["q",4,"a6",2]]
+    },
+    {
+      "id": "immutable-70",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":"a1V"},{"id":"q","index":"zd0032"},{"id":"q","index":null},{"id":"p","index":"a00"},{"id":"q","index":"a00"}],
+      "entries": [["q",4,"a5",2],["p",3,"a4",2]]
+    },
+    {"id":"immutable-71","fn":"syncInvalidIndicesImmutable","elements":[],"entries":[]},
+    {
+      "id": "immutable-72",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"r","index":"a01"},
+        {"id":"q","index":"a1"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"q","index":"A00000000000000000000000000"},
+        {"id":"r","index":""},
+        {"id":"r","index":"a02"}
+      ],
+      "entries": [["r",5,"a5",2],["q",3,"a3",2],["p",2,"a2",2]]
+    },
+    {
+      "id": "immutable-73",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"r","index":"aé"},
+        {"id":"q","index":"zd0032"},
+        {"id":"s","index":"a0V"},
+        {"id":"r","index":null},
+        {"id":"r","index":"Zz"},
+        {"id":"p","index":null},
+        {"id":"s","index":"😀"},
+        {"id":"r","index":null},
+        {"id":"p","index":"Zz"},
+        {"id":"r","index":"a3"},
+        {"id":"q","index":null}
+      ],
+      "entries": [["r",9,"a9",2],["q",10,"aA",2],["s",6,"a6",2],["p",8,"a8",2]]
+    },
+    {"id":"immutable-74","fn":"syncInvalidIndicesImmutable","elements":[{"id":"r","index":null}],"entries":[["r",0,"a0",2]]},
+    {
+      "id": "immutable-75",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a2"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":null},
+        {"id":"p","index":"a00"},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"b00"},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":null},
+        {"id":"p","index":null}
+      ],
+      "entries": [["p",8,"aA",2]]
+    },
+    {
+      "id": "immutable-76",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"😀"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"a02"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"a3"},
+        {"id":"p","index":"😀"},
+        {"id":"p","index":"a3"},
+        {"id":"p","index":"a2"},
+        {"id":"p","index":"A00000000000000000000000000"}
+      ],
+      "entries": [["p",11,"aA",2]]
+    },
+    {
+      "id": "immutable-77",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"r","index":"b00"},
+        {"id":"p","index":"a02"},
+        {"id":"r","index":"zd0032"},
+        {"id":"r","index":"a!"},
+        {"id":"p","index":"a3"},
+        {"id":"p","index":"a3"},
+        {"id":"r","index":"a01"},
+        {"id":"q","index":null},
+        {"id":"p","index":"a1V"}
+      ],
+      "entries": [["r",6,"b06",2],["p",8,"b08",2],["q",7,"b07",2]]
+    },
+    {
+      "id": "immutable-78",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"a02"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"a3"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"zd0032"}
+      ],
+      "entries": [["p",5,"a5",2]]
+    },
+    {"id":"immutable-79","fn":"syncInvalidIndicesImmutable","elements":[],"entries":[]},
+    {
+      "id": "immutable-80",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"a02"},{"id":"p","index":null},{"id":"p","index":"a0"}],
+      "entries": [["p",2,"a2",2]]
+    },
+    {"id":"immutable-81","fn":"syncInvalidIndicesImmutable","elements":[{"id":"q","index":"a01"},{"id":"q","index":"a0V"}],"entries":[["q",1,"a0V",1]]},
+    {
+      "id": "immutable-82",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a3"},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":"a2"},
+        {"id":"p","index":"Zz"},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"a02"},
+        {"id":"p","index":"😀"},
+        {"id":"p","index":null},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"a0V"}
+      ],
+      "entries": [["p",9,"aC",2]]
+    },
+    {"id":"immutable-83","fn":"syncInvalidIndicesImmutable","elements":[{"id":"r","index":"a0V"}],"entries":[["r",0,"a0V",1]]},
+    {
+      "id": "immutable-84",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"a0V"},{"id":"p","index":"a3"},{"id":"p","index":"a00"},{"id":"p","index":"a01"},{"id":"p","index":"a!"}],
+      "entries": [["p",4,"a6",2]]
+    },
+    {"id":"immutable-85","fn":"syncInvalidIndicesImmutable","elements":[],"entries":[]},
+    {
+      "id": "immutable-86",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"Zz"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"a02"},
+        {"id":"p","index":"a0"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"Zz"}
+      ],
+      "entries": [["p",6,"a2",2]]
+    },
+    {
+      "id": "immutable-87",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"a01"},
+        {"id":"p","index":"a!"},
+        {"id":"r","index":null},
+        {"id":"q","index":"😀"},
+        {"id":"s","index":null},
+        {"id":"q","index":"zd0032"},
+        {"id":"r","index":"a3"},
+        {"id":"p","index":"a00"},
+        {"id":"q","index":"a00"}
+      ],
+      "entries": [["q",8,"a8",2],["p",7,"a7",2],["r",6,"a6",2],["s",4,"a4",2]]
+    },
+    {
+      "id": "immutable-88",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a0"},
+        {"id":"s","index":"a!"},
+        {"id":"p","index":"a00"},
+        {"id":"r","index":""},
+        {"id":"p","index":"a1"},
+        {"id":"r","index":"a02"},
+        {"id":"q","index":"a2"},
+        {"id":"p","index":"A00000000000000000000000000"}
+      ],
+      "entries": [["p",7,"a3",2],["s",1,"a0G",2],["r",5,"a1V",2],["q",6,"a2",1]]
+    },
+    {
+      "id": "immutable-89",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a2"},
+        {"id":"p","index":"a3"},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"a!"},
+        {"id":"p","index":"aé"},
+        {"id":"p","index":"a3"},
+        {"id":"p","index":"a1V"},
+        {"id":"p","index":"b00"},
+        {"id":"p","index":"a3"}
+      ],
+      "entries": [["p",8,"aA",2]]
+    },
+    {"id":"immutable-90","fn":"syncInvalidIndicesImmutable","elements":[{"id":"q","index":"a00"},{"id":"q","index":"b00"}],"entries":[["q",0,"az",2]]},
+    {"id":"immutable-91","fn":"syncInvalidIndicesImmutable","elements":[{"id":"p","index":"aé"},{"id":"p","index":"a1"}],"entries":[["p",1,"a1",1]]},
+    {
+      "id": "immutable-92",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"zd0032"},{"id":"r","index":"a1V"},{"id":"q","index":"zd0032"}],
+      "entries": [["p",0,"a0",2],["r",1,"a1",2],["q",2,"a2",2]]
+    },
+    {
+      "id": "immutable-93",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"😀"},{"id":"p","index":null},{"id":"p","index":"zd0032"},{"id":"p","index":"a1"},{"id":"p","index":"zd0032"}],
+      "entries": [["p",4,"a4",2]]
+    },
+    {
+      "id": "immutable-94",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"a00"},{"id":"p","index":null},{"id":"p","index":"a02"}],
+      "entries": [["p",1,"a0",2]]
+    },
+    {
+      "id": "immutable-95",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"a1"},
+        {"id":"s","index":null},
+        {"id":"s","index":"a1V"},
+        {"id":"r","index":"a02"},
+        {"id":"q","index":"a0"},
+        {"id":"r","index":null},
+        {"id":"r","index":"a!"},
+        {"id":"p","index":"a02"},
+        {"id":"r","index":"a1"},
+        {"id":"q","index":"a1"},
+        {"id":"q","index":"A00000000000000000000000000"},
+        {"id":"r","index":"😀"}
+      ],
+      "entries": [["q",10,"a9",2],["s",1,"a1G",2],["r",11,"aA",2],["p",7,"a6",2]]
+    },
+    {
+      "id": "immutable-96",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"r","index":"a1V"},{"id":"r","index":"a02"},{"id":"p","index":null},{"id":"p","index":null}],
+      "entries": [["r",1,"a2",2],["p",3,"a4",2]]
+    },
+    {"id":"immutable-97","fn":"syncInvalidIndicesImmutable","elements":[{"id":"p","index":"a3"}],"entries":[["p",0,"a3",1]]},
+    {
+      "id": "immutable-98",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a1"},
+        {"id":"q","index":"a1V"},
+        {"id":"q","index":"a01"},
+        {"id":"p","index":"a00"},
+        {"id":"p","index":""},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"a!"}
+      ],
+      "entries": [["p",6,"a6",2],["q",2,"a2",2]]
+    },
+    {
+      "id": "immutable-99",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"b00"},
+        {"id":"s","index":"a0"},
+        {"id":"s","index":"aé"},
+        {"id":"q","index":"a02"},
+        {"id":"q","index":"b00"},
+        {"id":"s","index":"a01"},
+        {"id":"p","index":"a00"},
+        {"id":"q","index":"a00"},
+        {"id":"s","index":"a02"},
+        {"id":"s","index":"zd0032"},
+        {"id":"r","index":"😀"}
+      ],
+      "entries": [["q",7,"b07",2],["s",9,"b09",2],["p",6,"b06",2],["r",10,"b0A",2]]
+    },
+    {
+      "id": "immutable-100",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":null},{"id":"p","index":"zd0032"},{"id":"q","index":"zd0032"},{"id":"p","index":"a3"}],
+      "entries": [["q",2,"a2",2],["p",3,"a3",1]]
+    },
+    {
+      "id": "immutable-101",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":""},
+        {"id":"p","index":"a01"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"a!"},
+        {"id":"p","index":"a2"},
+        {"id":"p","index":"zd0032"}
+      ],
+      "entries": [["p",7,"a7",2]]
+    },
+    {
+      "id": "immutable-102",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"a!"},
+        {"id":"r","index":""},
+        {"id":"q","index":"a!"},
+        {"id":"p","index":"a!"},
+        {"id":"p","index":"a02"},
+        {"id":"q","index":"Zz"},
+        {"id":"q","index":"aé"}
+      ],
+      "entries": [["q",6,"a2",2],["r",1,"Zy",2],["p",3,"a0",2]]
+    },
+    {
+      "id": "immutable-103",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"b00"},
+        {"id":"p","index":null},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"😀"},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":null},
+        {"id":"p","index":"b00"},
+        {"id":"p","index":"a3"},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":"a00"},
+        {"id":"p","index":""},
+        {"id":"p","index":"b00"}
+      ],
+      "entries": [["p",11,"b0B",2]]
+    },
+    {
+      "id": "immutable-104",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":null},
+        {"id":"p","index":"a01"},
+        {"id":"p","index":"a00"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"a3"},
+        {"id":"p","index":null},
+        {"id":"p","index":"a2"},
+        {"id":"p","index":"a0V"}
+      ],
+      "entries": [["p",7,"a6",2]]
+    },
+    {
+      "id": "immutable-105",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"r","index":"aé"},{"id":"p","index":null},{"id":"s","index":null},{"id":"s","index":"a!"}],
+      "entries": [["r",0,"a0",2],["p",1,"a1",2],["s",3,"a3",2]]
+    },
+    {"id":"immutable-106","fn":"syncInvalidIndicesImmutable","elements":[{"id":"p","index":null},{"id":"p","index":"a2"}],"entries":[["p",0,"a1",2]]},
+    {
+      "id": "immutable-107",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a02"},
+        {"id":"q","index":null},
+        {"id":"p","index":"Zz"},
+        {"id":"r","index":"a0V"},
+        {"id":"q","index":"a0V"},
+        {"id":"q","index":null},
+        {"id":"p","index":"a1V"},
+        {"id":"p","index":"a1V"},
+        {"id":"r","index":null},
+        {"id":"p","index":null},
+        {"id":"p","index":"a!"},
+        {"id":"p","index":"a!"}
+      ],
+      "entries": [["p",11,"a6",2],["q",5,"a1",2],["r",8,"a3",2]]
+    },
+    {
+      "id": "immutable-108",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"s","index":"a00"},{"id":"q","index":"Zz"},{"id":"r","index":null}],
+      "entries": [["s",0,"a0",2],["q",1,"a1",2],["r",2,"a2",2]]
+    },
+    {
+      "id": "immutable-109",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"a1V"},{"id":"p","index":null},{"id":"q","index":null}],
+      "entries": [["p",1,"a2",2],["q",2,"a3",2]]
+    },
+    {
+      "id": "immutable-110",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"😀"},
+        {"id":"p","index":"a1V"},
+        {"id":"r","index":"a!"},
+        {"id":"p","index":"a00"},
+        {"id":"p","index":"a00"},
+        {"id":"r","index":"a0"},
+        {"id":"q","index":null}
+      ],
+      "entries": [["p",4,"a4",2],["r",5,"a5",2],["q",6,"a6",2]]
+    },
+    {
+      "id": "immutable-111",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":"a1"},{"id":"p","index":"a02"}],
+      "entries": [["q",0,"a1",1],["p",1,"a2",2]]
+    },
+    {
+      "id": "immutable-112",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":null},
+        {"id":"q","index":null},
+        {"id":"r","index":"a1"},
+        {"id":"r","index":"aé"},
+        {"id":"q","index":null},
+        {"id":"p","index":"a3"},
+        {"id":"r","index":"a01"},
+        {"id":"q","index":"a1V"},
+        {"id":"r","index":"a1V"}
+      ],
+      "entries": [["p",5,"a4",2],["q",7,"a6",2],["r",8,"a7",2]]
+    },
+    {
+      "id": "immutable-113",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"b00"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"😀"},
+        {"id":"q","index":"a3"},
+        {"id":"q","index":null},
+        {"id":"p","index":"b00"},
+        {"id":"p","index":"zd0032"},
+        {"id":"q","index":"a1"}
+      ],
+      "entries": [["q",7,"b07",2],["p",6,"b06",2]]
+    },
+    {
+      "id": "immutable-114",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"r","index":"a01"},{"id":"r","index":"a01"},{"id":"q","index":"a00"}],
+      "entries": [["r",1,"a1",2],["q",2,"a2",2]]
+    },
+    {
+      "id": "immutable-115",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a2"},
+        {"id":"p","index":"a01"},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"a3"},
+        {"id":"p","index":"a02"},
+        {"id":"p","index":"A00000000000000000000000000"}
+      ],
+      "entries": [["p",6,"a8",2]]
+    },
+    {
+      "id": "immutable-116",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"s","index":"a01"},{"id":"p","index":"a1"},{"id":"p","index":"😀"},{"id":"q","index":"aé"},{"id":"p","index":"a1"}],
+      "entries": [["s",0,"a01",1],["p",4,"a4",2],["q",3,"a3",2]]
+    },
+    {
+      "id": "immutable-117",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"zd0032"},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"😀"},
+        {"id":"q","index":"a3"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":null},
+        {"id":"q","index":"a0V"},
+        {"id":"q","index":"a02"},
+        {"id":"p","index":"b00"},
+        {"id":"p","index":""}
+      ],
+      "entries": [["q",7,"a7",2],["p",9,"a9",2]]
+    },
+    {"id":"immutable-118","fn":"syncInvalidIndicesImmutable","elements":[{"id":"r","index":"Zz"},{"id":"r","index":"😀"}],"entries":[["r",1,"a0",2]]},
+    {
+      "id": "immutable-119",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":"aé"},{"id":"q","index":"a1"},{"id":"r","index":"😀"}],
+      "entries": [["q",1,"a1",1],["r",2,"a2",2]]
+    },
+    {
+      "id": "immutable-120",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":null},{"id":"p","index":"a!"},{"id":"q","index":""},{"id":"q","index":"a01"}],
+      "entries": [["p",1,"Zz",2],["q",2,"a0",2]]
+    },
+    {
+      "id": "immutable-121",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"a0V"},{"id":"p","index":"b00"},{"id":"p","index":"Zz"},{"id":"p","index":"a!"}],
+      "entries": [["p",3,"b02",2]]
+    },
+    {
+      "id": "immutable-122",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":null},
+        {"id":"r","index":"zd0032"},
+        {"id":"p","index":"a0V"},
+        {"id":"r","index":"a!"},
+        {"id":"p","index":"a02"},
+        {"id":"r","index":"a02"},
+        {"id":"p","index":null},
+        {"id":"p","index":"a3"}
+      ],
+      "entries": [["q",0,"a0",2],["r",5,"a5",2],["p",7,"a7",2]]
+    },
+    {
+      "id": "immutable-123",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"a1"},
+        {"id":"p","index":"a0V"},
+        {"id":"q","index":"a0"},
+        {"id":"q","index":"a3"},
+        {"id":"q","index":"A00000000000000000000000000"},
+        {"id":"p","index":""},
+        {"id":"p","index":"Zz"},
+        {"id":"p","index":"a!"}
+      ],
+      "entries": [["q",4,"a4",2],["p",7,"a7",2]]
+    },
+    {"id":"immutable-124","fn":"syncInvalidIndicesImmutable","elements":[{"id":"p","index":"a1"}],"entries":[["p",0,"a1",1]]},
+    {"id":"immutable-125","fn":"syncInvalidIndicesImmutable","elements":[],"entries":[]},
+    {
+      "id": "immutable-126",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":null},
+        {"id":"q","index":null},
+        {"id":"q","index":"aé"},
+        {"id":"p","index":"a0"},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"a3"},
+        {"id":"p","index":null},
+        {"id":"p","index":"a02"},
+        {"id":"q","index":"zd0032"}
+      ],
+      "entries": [["p",8,"a8",2],["q",9,"a9",2]]
+    },
+    {
+      "id": "immutable-127",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a01"},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":"a2"},
+        {"id":"q","index":"b00"},
+        {"id":"p","index":null},
+        {"id":"p","index":"a00"},
+        {"id":"q","index":"a3"}
+      ],
+      "entries": [["p",5,"b02",2],["q",6,"b03",2]]
+    },
+    {
+      "id": "immutable-128",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"a00"},{"id":"p","index":"a02"},{"id":"p","index":"aé"},{"id":"p","index":"aé"}],
+      "entries": [["p",3,"a2",2]]
+    },
+    {
+      "id": "immutable-129",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":""},{"id":"p","index":"aé"},{"id":"p","index":""},{"id":"p","index":"Zz"},{"id":"p","index":"aé"},{"id":"p","index":"a2"}],
+      "entries": [["p",5,"a5",2]]
+    },
+    {"id":"immutable-130","fn":"syncInvalidIndicesImmutable","elements":[{"id":"r","index":null}],"entries":[["r",0,"a0",2]]},
+    {
+      "id": "immutable-131",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"zd0032"},{"id":"p","index":null},{"id":"p","index":"a01"},{"id":"p","index":"a01"},{"id":"p","index":"aé"}],
+      "entries": [["p",4,"a4",2]]
+    },
+    {
+      "id": "immutable-132",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a1"},
+        {"id":"r","index":"A00000000000000000000000000"},
+        {"id":"r","index":"a1V"},
+        {"id":"q","index":"a01"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"a!"},
+        {"id":"q","index":"a01"},
+        {"id":"r","index":"a0"},
+        {"id":"p","index":"a02"},
+        {"id":"r","index":"zd0032"},
+        {"id":"q","index":"😀"}
+      ],
+      "entries": [["p",8,"a7",2],["r",9,"a8",2],["q",10,"a9",2]]
+    },
+    {"id":"immutable-133","fn":"syncInvalidIndicesImmutable","elements":[{"id":"p","index":"a00"}],"entries":[["p",0,"a0",2]]},
+    {
+      "id": "immutable-134",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"aé"},{"id":"p","index":"A00000000000000000000000000"}],
+      "entries": [["p",1,"a1",2]]
+    },
+    {
+      "id": "immutable-135",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"a0V"},
+        {"id":"q","index":"a00"},
+        {"id":"r","index":"zd0032"},
+        {"id":"s","index":"A00000000000000000000000000"},
+        {"id":"r","index":""},
+        {"id":"p","index":"a00"},
+        {"id":"q","index":null},
+        {"id":"r","index":"a01"},
+        {"id":"s","index":"a1"}
+      ],
+      "entries": [["q",6,"a6",2],["r",7,"a7",2],["s",8,"a8",2],["p",5,"a5",2]]
+    },
+    {
+      "id": "immutable-136",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":null},{"id":"r","index":null},{"id":"r","index":"a2"},{"id":"s","index":"Zz"},{"id":"s","index":"a1V"}],
+      "entries": [["p",0,"a0",2],["r",1,"a1",2],["s",4,"a4",2]]
+    },
+    {
+      "id": "immutable-137",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":null},
+        {"id":"p","index":"😀"},
+        {"id":"q","index":"a1V"},
+        {"id":"p","index":null},
+        {"id":"q","index":""},
+        {"id":"p","index":"😀"},
+        {"id":"p","index":"😀"},
+        {"id":"q","index":"a01"},
+        {"id":"p","index":"a2"},
+        {"id":"q","index":"b00"},
+        {"id":"p","index":"a1"},
+        {"id":"q","index":"a1"}
+      ],
+      "entries": [["q",11,"aB",2],["p",10,"aA",2]]
+    },
+    {
+      "id": "immutable-138",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":null},{"id":"q","index":"a00"},{"id":"q","index":"b00"},{"id":"p","index":null}],
+      "entries": [["q",1,"az",2],["p",3,"b01",2]]
+    },
+    {
+      "id": "immutable-139",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"A00000000000000000000000000"},{"id":"p","index":null},{"id":"q","index":"a1V"},{"id":"p","index":"aé"}],
+      "entries": [["p",3,"a2",2],["q",2,"a1V",1]]
+    },
+    {
+      "id": "immutable-140",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"q","index":"aé"},
+        {"id":"p","index":"a!"},
+        {"id":"r","index":null},
+        {"id":"q","index":"a!"},
+        {"id":"p","index":null},
+        {"id":"r","index":"Zz"},
+        {"id":"p","index":"a02"},
+        {"id":"q","index":"a01"}
+      ],
+      "entries": [["p",8,"a8",2],["q",9,"a9",2],["r",7,"a7",2]]
+    },
+    {
+      "id": "immutable-141",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"b00"},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":"a02"},
+        {"id":"q","index":"a01"},
+        {"id":"q","index":"aé"},
+        {"id":"r","index":null},
+        {"id":"q","index":"A00000000000000000000000000"},
+        {"id":"q","index":"A00000000000000000000000000"},
+        {"id":"q","index":null},
+        {"id":"q","index":"a0V"},
+        {"id":"q","index":"a02"},
+        {"id":"q","index":"a0"}
+      ],
+      "entries": [["q",11,"b0B",2],["p",2,"b02",2],["r",5,"b05",2]]
+    },
+    {
+      "id": "immutable-142",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a2"},
+        {"id":"p","index":"😀"},
+        {"id":"p","index":null},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"a1V"},
+        {"id":"p","index":"a0"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"a1V"},
+        {"id":"p","index":"a!"}
+      ],
+      "entries": [["p",8,"aA",2]]
+    },
+    {
+      "id": "immutable-143",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"aé"},{"id":"r","index":null},{"id":"q","index":null},{"id":"s","index":"zd0032"},{"id":"s","index":"a01"},{"id":"p","index":null}],
+      "entries": [["p",5,"a5",2],["r",1,"a1",2],["q",2,"a2",2],["s",4,"a4",2]]
+    },
+    {"id":"immutable-144","fn":"syncInvalidIndicesImmutable","elements":[],"entries":[]},
+    {
+      "id": "immutable-145",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"s","index":"a0V"},
+        {"id":"q","index":"a1V"},
+        {"id":"r","index":"a02"},
+        {"id":"q","index":"b00"},
+        {"id":"s","index":null},
+        {"id":"p","index":null},
+        {"id":"q","index":null},
+        {"id":"p","index":null},
+        {"id":"r","index":"b00"},
+        {"id":"q","index":null},
+        {"id":"s","index":"a01"}
+      ],
+      "entries": [["s",10,"b07",2],["q",9,"b06",2],["r",8,"b05",2],["p",7,"b04",2]]
+    },
+    {
+      "id": "immutable-146",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":""},
+        {"id":"q","index":"zd0032"},
+        {"id":"p","index":"aé"},
+        {"id":"p","index":"a01"},
+        {"id":"p","index":"a1V"},
+        {"id":"p","index":"😀"},
+        {"id":"p","index":"a00"},
+        {"id":"q","index":"b00"},
+        {"id":"p","index":"a0V"},
+        {"id":"q","index":"a00"}
+      ],
+      "entries": [["q",9,"a9",2],["p",8,"a8",2]]
+    },
+    {
+      "id": "immutable-147",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"a2"},
+        {"id":"p","index":"a2"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":null},
+        {"id":"p","index":"a02"},
+        {"id":"p","index":"Zz"},
+        {"id":"p","index":null},
+        {"id":"p","index":"a01"}
+      ],
+      "entries": [["p",8,"a9",2]]
+    },
+    {
+      "id": "immutable-148",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"A00000000000000000000000000"},
+        {"id":"s","index":"a0V"},
+        {"id":"q","index":"b00"},
+        {"id":"s","index":"a1V"},
+        {"id":"r","index":"a1"},
+        {"id":"r","index":"😀"}
+      ],
+      "entries": [["q",0,"a0",2],["s",3,"b01",2],["r",5,"b03",2]]
+    },
+    {"id":"immutable-149","fn":"syncInvalidIndicesImmutable","elements":[{"id":"p","index":""},{"id":"p","index":"a3"}],"entries":[["p",0,"a2",2]]},
+    {
+      "id": "immutable-150",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":"Zz"},{"id":"p","index":"a!"},{"id":"p","index":"a0"},{"id":"p","index":"zd0032"},{"id":"q","index":null}],
+      "entries": [["q",4,"a2",2],["p",3,"a1",2]]
+    },
+    {
+      "id": "immutable-151",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"Zz"},
+        {"id":"q","index":"a01"},
+        {"id":"p","index":"Zz"},
+        {"id":"r","index":"A00000000000000000000000000"},
+        {"id":"q","index":null},
+        {"id":"q","index":"aé"},
+        {"id":"q","index":"a2"},
+        {"id":"p","index":"b00"},
+        {"id":"p","index":"zd0032"},
+        {"id":"q","index":"a0"}
+      ],
+      "entries": [["p",8,"b01",2],["q",9,"b02",2],["r",3,"a0W",2]]
+    },
+    {
+      "id": "immutable-152",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"r","index":"A00000000000000000000000000"},
+        {"id":"q","index":"a0"},
+        {"id":"p","index":"zd0032"},
+        {"id":"r","index":"a2"},
+        {"id":"q","index":null},
+        {"id":"q","index":"A00000000000000000000000000"},
+        {"id":"r","index":"aé"}
+      ],
+      "entries": [["r",6,"a5",2],["q",5,"a4",2],["p",2,"a1",2]]
+    },
+    {
+      "id": "immutable-153",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"r","index":"zd0032"},
+        {"id":"q","index":"a!"},
+        {"id":"q","index":"zd0032"},
+        {"id":"p","index":null},
+        {"id":"q","index":null},
+        {"id":"q","index":"aé"},
+        {"id":"p","index":"a2"}
+      ],
+      "entries": [["r",0,"a0",2],["q",5,"a5",2],["p",6,"a6",2]]
+    },
+    {
+      "id": "immutable-154",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"Zz"},
+        {"id":"p","index":""},
+        {"id":"p","index":"a2"},
+        {"id":"p","index":"a02"},
+        {"id":"p","index":"aé"},
+        {"id":"q","index":"zd0032"},
+        {"id":"q","index":"A00000000000000000000000000"},
+        {"id":"p","index":null},
+        {"id":"p","index":"zd0032"},
+        {"id":"q","index":"a01"}
+      ],
+      "entries": [["p",8,"a8",2],["q",9,"a9",2]]
+    },
+    {
+      "id": "immutable-155",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"zd0032"},
+        {"id":"q","index":null},
+        {"id":"q","index":"zd0032"},
+        {"id":"p","index":"a0V"},
+        {"id":"q","index":"a0V"},
+        {"id":"p","index":"a02"}
+      ],
+      "entries": [["p",5,"a5",2],["q",4,"a4",2]]
+    },
+    {
+      "id": "immutable-156",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a01"},
+        {"id":"p","index":"a!"},
+        {"id":"p","index":null},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"b00"},
+        {"id":"p","index":"Zz"},
+        {"id":"p","index":null},
+        {"id":"p","index":null},
+        {"id":"p","index":"a0"},
+        {"id":"p","index":null}
+      ],
+      "entries": [["p",9,"b05",2]]
+    },
+    {"id":"immutable-157","fn":"syncInvalidIndicesImmutable","elements":[],"entries":[]},
+    {
+      "id": "immutable-158",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":"a1V"},
+        {"id":"r","index":null},
+        {"id":"p","index":"aé"},
+        {"id":"q","index":null},
+        {"id":"q","index":"b00"},
+        {"id":"p","index":"aé"},
+        {"id":"r","index":"a0V"},
+        {"id":"p","index":"a00"},
+        {"id":"q","index":"a1"}
+      ],
+      "entries": [["p",8,"b03",2],["r",7,"b02",2],["q",9,"b04",2]]
+    },
+    {
+      "id": "immutable-159",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":"Zz"},{"id":"q","index":"a1"},{"id":"r","index":"a!"}],
+      "entries": [["q",1,"a1",1],["r",2,"a2",2]]
+    },
+    {
+      "id": "immutable-160",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":"a02"},{"id":"p","index":"a!"},{"id":"q","index":"zd0032"}],
+      "entries": [["q",2,"a2",2],["p",1,"a1",2]]
+    },
+    {
+      "id": "immutable-161",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":null},
+        {"id":"s","index":"a02"},
+        {"id":"q","index":"a0"},
+        {"id":"q","index":"a1V"},
+        {"id":"r","index":"a1"},
+        {"id":"q","index":"a3"},
+        {"id":"q","index":null},
+        {"id":"s","index":"aé"},
+        {"id":"r","index":"Zz"},
+        {"id":"p","index":null},
+        {"id":"s","index":"zd0032"},
+        {"id":"s","index":"zd0032"}
+      ],
+      "entries": [["q",6,"a4",2],["s",11,"a9",2],["r",8,"a6",2],["p",9,"a7",2]]
+    },
+    {
+      "id": "immutable-162",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"zd0032"},
+        {"id":"s","index":"a01"},
+        {"id":"s","index":"b00"},
+        {"id":"r","index":"a3"},
+        {"id":"q","index":"zd0032"},
+        {"id":"p","index":"a!"},
+        {"id":"p","index":null},
+        {"id":"q","index":"a1"}
+      ],
+      "entries": [["p",6,"a6",2],["s",2,"a2",2],["r",3,"a3",1],["q",7,"a7",2]]
+    },
+    {
+      "id": "immutable-163",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"😀"},
+        {"id":"p","index":"a3"},
+        {"id":"p","index":"a00"},
+        {"id":"p","index":"b00"},
+        {"id":"p","index":"a1V"},
+        {"id":"p","index":"a3"},
+        {"id":"p","index":""},
+        {"id":"p","index":"a3"},
+        {"id":"p","index":"a02"}
+      ],
+      "entries": [["p",8,"a8",2]]
+    },
+    {"id":"immutable-164","fn":"syncInvalidIndicesImmutable","elements":[{"id":"p","index":"a3"},{"id":"p","index":"a00"}],"entries":[["p",1,"a4",2]]},
+    {"id":"immutable-165","fn":"syncInvalidIndicesImmutable","elements":[{"id":"p","index":"a0"}],"entries":[["p",0,"a0",1]]},
+    {
+      "id": "immutable-166",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"aé"},{"id":"p","index":"a0V"},{"id":"p","index":null},{"id":"p","index":"a!"},{"id":"p","index":"b00"},{"id":"p","index":"a0V"}],
+      "entries": [["p",5,"b01",2]]
+    },
+    {
+      "id": "immutable-167",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"b00"},{"id":"p","index":"a3"},{"id":"p","index":"a1V"}],
+      "entries": [["p",2,"b02",2]]
+    },
+    {
+      "id": "immutable-168",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a01"},
+        {"id":"p","index":"a3"},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":"a01"},
+        {"id":"p","index":null},
+        {"id":"p","index":"Zz"},
+        {"id":"p","index":"a00"},
+        {"id":"p","index":"😀"},
+        {"id":"p","index":"Zz"},
+        {"id":"p","index":"a01"},
+        {"id":"p","index":"Zz"}
+      ],
+      "entries": [["p",10,"aC",2]]
+    },
+    {"id":"immutable-169","fn":"syncInvalidIndicesImmutable","elements":[{"id":"r","index":"zd0032"}],"entries":[["r",0,"a0",2]]},
+    {
+      "id": "immutable-170",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":"a1"},{"id":"p","index":"a1"},{"id":"p","index":"zd0032"},{"id":"p","index":"A00000000000000000000000000"},{"id":"q","index":"😀"}],
+      "entries": [["q",4,"a5",2],["p",3,"a4",2]]
+    },
+    {
+      "id": "immutable-171",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"a00"},
+        {"id":"p","index":"Zz"},
+        {"id":"q","index":"a1"},
+        {"id":"p","index":"a02"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"q","index":"b00"},
+        {"id":"q","index":"b00"},
+        {"id":"q","index":"a0"}
+      ],
+      "entries": [["q",7,"b02",2],["p",4,"a2",2]]
+    },
+    {
+      "id": "immutable-172",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"aé"},
+        {"id":"p","index":"a1V"},
+        {"id":"q","index":"a1V"},
+        {"id":"p","index":null},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"a1"},
+        {"id":"q","index":""},
+        {"id":"q","index":"a01"},
+        {"id":"q","index":"😀"}
+      ],
+      "entries": [["q",8,"a8",2],["p",5,"a5",2]]
+    },
+    {
+      "id": "immutable-173",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":"a0"},{"id":"r","index":"a02"},{"id":"r","index":"a00"},{"id":"p","index":"a3"}],
+      "entries": [["q",0,"a0",1],["r",2,"a1",2],["p",3,"a3",1]]
+    },
+    {
+      "id": "immutable-174",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"Zz"},
+        {"id":"p","index":"a02"},
+        {"id":"p","index":"a!"},
+        {"id":"r","index":null},
+        {"id":"r","index":"zd0032"},
+        {"id":"r","index":"😀"},
+        {"id":"p","index":null}
+      ],
+      "entries": [["p",6,"a5",2],["r",5,"a4",2]]
+    },
+    {
+      "id": "immutable-175",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a0"},
+        {"id":"p","index":"aé"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"a3"},
+        {"id":"p","index":"a0"},
+        {"id":"p","index":"aé"},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":"b00"},
+        {"id":"p","index":null}
+      ],
+      "entries": [["p",9,"a9",2]]
+    },
+    {
+      "id": "immutable-176",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"q","index":"😀"},
+        {"id":"q","index":"a3"},
+        {"id":"q","index":"a00"},
+        {"id":"q","index":null},
+        {"id":"q","index":"Zz"},
+        {"id":"q","index":"aé"},
+        {"id":"q","index":"a2"}
+      ],
+      "entries": [["p",0,"a0",2],["q",7,"a7",2]]
+    },
+    {
+      "id": "immutable-177",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":null},{"id":"p","index":"aé"},{"id":"q","index":"Zz"},{"id":"q","index":"aé"}],
+      "entries": [["p",1,"a1",2],["q",3,"a3",2]]
+    },
+    {"id":"immutable-178","fn":"syncInvalidIndicesImmutable","elements":[{"id":"p","index":"a02"},{"id":"p","index":"a0V"}],"entries":[["p",1,"a0V",1]]},
+    {
+      "id": "immutable-179",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a!"},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"a1V"},
+        {"id":"p","index":"a01"},
+        {"id":"p","index":"a2"},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"a1V"},
+        {"id":"p","index":"a!"},
+        {"id":"p","index":null}
+      ],
+      "entries": [["p",8,"a8",2]]
+    },
+    {"id":"immutable-180","fn":"syncInvalidIndicesImmutable","elements":[],"entries":[]},
+    {
+      "id": "immutable-181",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"a3"},{"id":"p","index":"A00000000000000000000000000"}],
+      "entries": [["p",1,"a4",2]]
+    },
+    {
+      "id": "immutable-182",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"a1V"},{"id":"q","index":"a3"},{"id":"q","index":"a01"},{"id":"q","index":"Zz"},{"id":"q","index":"a3"},{"id":"p","index":"😀"}],
+      "entries": [["p",5,"a7",2],["q",4,"a6",2]]
+    },
+    {"id":"immutable-183","fn":"syncInvalidIndicesImmutable","elements":[{"id":"q","index":"a1"},{"id":"q","index":"a02"}],"entries":[["q",1,"a2",2]]},
+    {
+      "id": "immutable-184",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a01"},
+        {"id":"q","index":null},
+        {"id":"p","index":""},
+        {"id":"r","index":"b00"},
+        {"id":"s","index":"b00"},
+        {"id":"q","index":"😀"},
+        {"id":"r","index":"a3"},
+        {"id":"r","index":null},
+        {"id":"s","index":"a02"},
+        {"id":"q","index":"Zz"},
+        {"id":"q","index":null}
+      ],
+      "entries": [["p",2,"a1",2],["q",10,"b07",2],["r",7,"b04",2],["s",8,"b05",2]]
+    },
+    {"id":"immutable-185","fn":"syncInvalidIndicesImmutable","elements":[],"entries":[]},
+    {
+      "id": "immutable-186",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"s","index":"a!"},{"id":"p","index":"a0"},{"id":"q","index":"a!"}],
+      "entries": [["s",0,"Zz",2],["p",1,"a0",1],["q",2,"a1",2]]
+    },
+    {"id":"immutable-187","fn":"syncInvalidIndicesImmutable","elements":[{"id":"q","index":"a1"}],"entries":[["q",0,"a1",1]]},
+    {
+      "id": "immutable-188",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"aé"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"a1V"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"a01"},
+        {"id":"p","index":"a01"},
+        {"id":"p","index":"Zz"},
+        {"id":"p","index":"aé"},
+        {"id":"p","index":null}
+      ],
+      "entries": [["p",9,"a9",2]]
+    },
+    {"id":"immutable-189","fn":"syncInvalidIndicesImmutable","elements":[{"id":"q","index":""}],"entries":[["q",0,"a0",2]]},
+    {
+      "id": "immutable-190",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"a0V"},{"id":"q","index":null},{"id":"p","index":"😀"},{"id":"p","index":"a02"},{"id":"p","index":""}],
+      "entries": [["p",4,"a4",2],["q",1,"a1",2]]
+    },
+    {"id":"immutable-191","fn":"syncInvalidIndicesImmutable","elements":[{"id":"s","index":null}],"entries":[["s",0,"a0",2]]},
+    {
+      "id": "immutable-192",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a0"},
+        {"id":"q","index":"a2"},
+        {"id":"q","index":"😀"},
+        {"id":"p","index":"aé"},
+        {"id":"p","index":"aé"},
+        {"id":"q","index":null},
+        {"id":"p","index":"a3"},
+        {"id":"q","index":"aé"},
+        {"id":"p","index":"zd0032"},
+        {"id":"q","index":"b00"},
+        {"id":"p","index":"a0V"}
+      ],
+      "entries": [["p",10,"aB",2],["q",9,"aA",2]]
+    },
+    {
+      "id": "immutable-193",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":"a0V"},{"id":"p","index":""},{"id":"p","index":"A00000000000000000000000000"},{"id":"p","index":"a!"}],
+      "entries": [["q",0,"a0V",1],["p",3,"a3",2]]
+    },
+    {
+      "id": "immutable-194",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"r","index":"a3"},
+        {"id":"s","index":null},
+        {"id":"s","index":null},
+        {"id":"q","index":"aé"},
+        {"id":"s","index":"a00"},
+        {"id":"q","index":"a0"},
+        {"id":"q","index":"aé"}
+      ],
+      "entries": [["r",0,"a3",1],["s",4,"a7",2],["q",6,"a9",2]]
+    },
+    {
+      "id": "immutable-195",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":null},
+        {"id":"r","index":"b00"},
+        {"id":"q","index":"a1"},
+        {"id":"r","index":"a3"},
+        {"id":"s","index":"a0"},
+        {"id":"p","index":"a1V"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"a01"}
+      ],
+      "entries": [["q",2,"b01",2],["r",3,"b02",2],["s",4,"b03",2],["p",7,"b06",2]]
+    },
+    {"id":"immutable-196","fn":"syncInvalidIndicesImmutable","elements":[{"id":"p","index":null}],"entries":[["p",0,"a0",2]]},
+    {
+      "id": "immutable-197",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a1V"},
+        {"id":"p","index":"a1V"},
+        {"id":"p","index":"a0"},
+        {"id":"p","index":"Zz"},
+        {"id":"r","index":"a02"},
+        {"id":"q","index":"a1"},
+        {"id":"q","index":"a1V"}
+      ],
+      "entries": [["p",3,"a4",2],["r",4,"a5",2],["q",6,"a7",2]]
+    },
+    {
+      "id": "immutable-198",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"r","index":"😀"},{"id":"r","index":"a3"},{"id":"q","index":"Zz"},{"id":"r","index":"a1V"},{"id":"q","index":"a00"}],
+      "entries": [["r",3,"a3",2],["q",4,"a4",2]]
+    },
+    {
+      "id": "immutable-199",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"a2"},
+        {"id":"p","index":"a!"},
+        {"id":"p","index":"aé"},
+        {"id":"p","index":"aé"},
+        {"id":"p","index":"a02"},
+        {"id":"p","index":null},
+        {"id":"p","index":"a02"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"Zz"}
+      ],
+      "entries": [["p",9,"aA",2]]
+    },
+    {
+      "id": "immutable-200",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"a0V"},{"id":"p","index":"aé"},{"id":"q","index":"aé"},{"id":"q","index":"a0V"},{"id":"q","index":"😀"},{"id":"p","index":"a01"}],
+      "entries": [["p",5,"a5",2],["q",4,"a4",2]]
+    },
+    {
+      "id": "immutable-201",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"a1V"},
+        {"id":"s","index":"zd0032"},
+        {"id":"q","index":"a0"},
+        {"id":"s","index":null},
+        {"id":"s","index":"a1"},
+        {"id":"p","index":"a1V"},
+        {"id":"q","index":"a01"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"a0"},
+        {"id":"r","index":"a3"},
+        {"id":"q","index":"a2"},
+        {"id":"r","index":"a01"}
+      ],
+      "entries": [["q",10,"aB",2],["s",4,"a5",2],["p",8,"a9",2],["r",11,"aC",2]]
+    },
+    {
+      "id": "immutable-202",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":"Zz"},{"id":"r","index":null}],
+      "entries": [["q",0,"Zz",1],["r",1,"a0",2]]
+    },
+    {"id":"immutable-203","fn":"syncInvalidIndicesImmutable","elements":[{"id":"p","index":"a2"},{"id":"p","index":null}],"entries":[["p",1,"a3",2]]},
+    {
+      "id": "immutable-204",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"😀"},{"id":"p","index":"a1"},{"id":"p","index":"b00"},{"id":"p","index":""},{"id":"p","index":"aé"},{"id":"p","index":"Zz"}],
+      "entries": [["p",5,"a5",2]]
+    },
+    {"id":"immutable-205","fn":"syncInvalidIndicesImmutable","elements":[],"entries":[]},
+    {
+      "id": "immutable-206",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"a3"},{"id":"q","index":""},{"id":"p","index":"😀"}],
+      "entries": [["p",2,"a5",2],["q",1,"a4",2]]
+    },
+    {"id":"immutable-207","fn":"syncInvalidIndicesImmutable","elements":[{"id":"s","index":"a00"}],"entries":[["s",0,"a0",2]]},
+    {
+      "id": "immutable-208",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"😀"},
+        {"id":"q","index":null},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"aé"},
+        {"id":"q","index":"a0"},
+        {"id":"r","index":null},
+        {"id":"p","index":"a2"},
+        {"id":"q","index":"a1"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":null}
+      ],
+      "entries": [["p",10,"aA",2],["q",8,"a8",2],["r",6,"a6",2]]
+    },
+    {
+      "id": "immutable-209",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"a1"},{"id":"p","index":"a02"},{"id":"p","index":"aé"}],
+      "entries": [["p",2,"a3",2]]
+    },
+    {
+      "id": "immutable-210",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":null},{"id":"r","index":"a0"},{"id":"p","index":null},{"id":"p","index":null},{"id":"p","index":"a0V"}],
+      "entries": [["q",0,"Zz",2],["r",1,"a0",1],["p",3,"a0G",2]]
+    },
+    {
+      "id": "immutable-211",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":null},
+        {"id":"q","index":"a!"},
+        {"id":"q","index":"Zz"},
+        {"id":"p","index":"a01"},
+        {"id":"q","index":"A00000000000000000000000000"},
+        {"id":"p","index":null},
+        {"id":"q","index":"a!"},
+        {"id":"p","index":"b00"}
+      ],
+      "entries": [["q",6,"a2",2],["p",5,"a1",2]]
+    },
+    {"id":"immutable-212","fn":"syncInvalidIndicesImmutable","elements":[{"id":"p","index":null}],"entries":[["p",0,"a0",2]]},
+    {
+      "id": "immutable-213",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a0V"},
+        {"id":"r","index":"b00"},
+        {"id":"p","index":"a3"},
+        {"id":"r","index":"a1"},
+        {"id":"p","index":"zd0032"},
+        {"id":"r","index":"Zz"},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":"a1"}
+      ],
+      "entries": [["p",7,"b06",2],["r",5,"b04",2]]
+    },
+    {
+      "id": "immutable-214",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":null},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":"a02"},
+        {"id":"p","index":"a0"},
+        {"id":"p","index":null},
+        {"id":"p","index":"a1V"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":""}
+      ],
+      "entries": [["p",8,"a3",2]]
+    },
+    {
+      "id": "immutable-215",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"r","index":"a1"},
+        {"id":"p","index":"a3"},
+        {"id":"p","index":"a01"},
+        {"id":"s","index":"a02"},
+        {"id":"p","index":null},
+        {"id":"r","index":"b00"},
+        {"id":"p","index":"a00"},
+        {"id":"s","index":"a2"},
+        {"id":"q","index":"a0"},
+        {"id":"q","index":"aé"}
+      ],
+      "entries": [["r",5,"b00",1],["p",6,"b01",2],["s",7,"b02",2],["q",9,"b04",2]]
+    },
+    {
+      "id": "immutable-216",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"s","index":""},{"id":"s","index":"a3"},{"id":"r","index":"a3"},{"id":"r","index":null},{"id":"q","index":"a01"},{"id":"s","index":""}],
+      "entries": [["s",5,"a7",2],["r",3,"a5",2],["q",4,"a6",2]]
+    },
+    {
+      "id": "immutable-217",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"a02"},
+        {"id":"p","index":"a00"},
+        {"id":"q","index":"a01"},
+        {"id":"p","index":""},
+        {"id":"q","index":"a00"},
+        {"id":"r","index":"a00"},
+        {"id":"q","index":"aé"},
+        {"id":"s","index":"a02"},
+        {"id":"q","index":"Zz"}
+      ],
+      "entries": [["q",8,"a8",2],["p",3,"a3",2],["r",5,"a5",2],["s",7,"a7",2]]
+    },
+    {"id":"immutable-218","fn":"syncInvalidIndicesImmutable","elements":[{"id":"r","index":"a1V"}],"entries":[["r",0,"a1V",1]]},
+    {
+      "id": "immutable-219",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"a3"},
+        {"id":"p","index":"b00"},
+        {"id":"p","index":"a1V"},
+        {"id":"p","index":"😀"},
+        {"id":"p","index":"a0V"},
+        {"id":"q","index":"a01"},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":null},
+        {"id":"q","index":""},
+        {"id":"p","index":null},
+        {"id":"q","index":null}
+      ],
+      "entries": [["q",10,"b09",2],["p",9,"b08",2]]
+    },
+    {
+      "id": "immutable-220",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":null},{"id":"p","index":"a0V"},{"id":"p","index":"Zz"}],
+      "entries": [["p",2,"a1",2]]
+    },
+    {
+      "id": "immutable-221",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"r","index":"a2"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"q","index":"b00"},
+        {"id":"p","index":"b00"},
+        {"id":"r","index":"a2"},
+        {"id":"p","index":null},
+        {"id":"q","index":"a0V"},
+        {"id":"r","index":null},
+        {"id":"q","index":"a0V"},
+        {"id":"p","index":"a1V"},
+        {"id":"p","index":""},
+        {"id":"p","index":"a01"}
+      ],
+      "entries": [["r",7,"b05",2],["p",11,"b09",2],["q",8,"b06",2]]
+    },
+    {
+      "id": "immutable-222",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"a00"},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":"a2"},
+        {"id":"q","index":"Zz"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":""},
+        {"id":"q","index":"a01"},
+        {"id":"p","index":"😀"}
+      ],
+      "entries": [["q",6,"a6",2],["p",7,"a7",2]]
+    },
+    {
+      "id": "immutable-223",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"aé"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"zd0032"},
+        {"id":"q","index":"a0V"},
+        {"id":"q","index":"a!"}
+      ],
+      "entries": [["q",6,"a6",2],["p",4,"a4",2]]
+    },
+    {
+      "id": "immutable-224",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"r","index":"a02"},
+        {"id":"q","index":null},
+        {"id":"r","index":null},
+        {"id":"r","index":null},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":"a0V"},
+        {"id":"r","index":"a3"},
+        {"id":"q","index":null},
+        {"id":"q","index":"a!"},
+        {"id":"r","index":"a2"},
+        {"id":"r","index":""},
+        {"id":"q","index":"a1"}
+      ],
+      "entries": [["r",10,"a7",2],["q",11,"a8",2],["p",5,"a1",2]]
+    },
+    {"id":"immutable-225","fn":"syncInvalidIndicesImmutable","elements":[{"id":"p","index":"a01"},{"id":"p","index":"a1"}],"entries":[["p",1,"a1",1]]},
+    {
+      "id": "immutable-226",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"a!"},
+        {"id":"r","index":null},
+        {"id":"p","index":"a!"},
+        {"id":"q","index":"aé"},
+        {"id":"p","index":"a00"},
+        {"id":"p","index":"a2"},
+        {"id":"r","index":"A00000000000000000000000000"}
+      ],
+      "entries": [["p",6,"a7",2],["r",7,"a8",2],["q",4,"a5",2]]
+    },
+    {
+      "id": "immutable-227",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"Zz"},{"id":"p","index":"zd0032"},{"id":"p","index":"a01"},{"id":"p","index":"a0V"},{"id":"p","index":"b00"},{"id":"p","index":"b00"}],
+      "entries": [["p",5,"a4",2]]
+    },
+    {
+      "id": "immutable-228",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":"Zz"},{"id":"p","index":null},{"id":"p","index":"a2"},{"id":"p","index":null},{"id":"q","index":"b00"},{"id":"p","index":null}],
+      "entries": [["q",4,"b00",1],["p",5,"b01",2]]
+    },
+    {
+      "id": "immutable-229",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"a01"},
+        {"id":"p","index":""},
+        {"id":"q","index":"a2"},
+        {"id":"p","index":"a02"},
+        {"id":"p","index":"a01"},
+        {"id":"p","index":"😀"},
+        {"id":"p","index":"a02"},
+        {"id":"q","index":"a0V"}
+      ],
+      "entries": [["q",7,"a7",2],["p",6,"a6",2]]
+    },
+    {
+      "id": "immutable-230",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"😀"},
+        {"id":"p","index":"aé"},
+        {"id":"p","index":"a01"},
+        {"id":"p","index":"a1"},
+        {"id":"p","index":"b00"},
+        {"id":"p","index":"😀"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"a0"}
+      ],
+      "entries": [["p",7,"a7",2]]
+    },
+    {
+      "id": "immutable-231",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"p","index":"a3"},{"id":"s","index":"a00"},{"id":"r","index":"Zz"}],
+      "entries": [["p",0,"a3",1],["s",1,"a4",2],["r",2,"a5",2]]
+    },
+    {
+      "id": "immutable-232",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":"a02"},
+        {"id":"q","index":"a02"},
+        {"id":"q","index":"A00000000000000000000000000"},
+        {"id":"p","index":"aé"},
+        {"id":"p","index":"a2"},
+        {"id":"q","index":null},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"q","index":"b00"},
+        {"id":"p","index":null},
+        {"id":"p","index":"a0"}
+      ],
+      "entries": [["p",9,"b02",2],["q",5,"a1V",2]]
+    },
+    {
+      "id": "immutable-233",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"p","index":null},
+        {"id":"p","index":"a1V"},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"a2"},
+        {"id":"p","index":"zd0032"},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":null},
+        {"id":"p","index":null}
+      ],
+      "entries": [["p",7,"a7",2]]
+    },
+    {
+      "id": "immutable-234",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"q","index":"😀"},
+        {"id":"q","index":"Zz"},
+        {"id":"p","index":"a0V"},
+        {"id":"p","index":"a1V"},
+        {"id":"p","index":"a01"},
+        {"id":"q","index":"a2"},
+        {"id":"p","index":"A00000000000000000000000000"},
+        {"id":"p","index":"a00"},
+        {"id":"r","index":"aé"},
+        {"id":"r","index":"a1"}
+      ],
+      "entries": [["q",5,"a5",2],["p",7,"a7",2],["r",9,"a9",2]]
+    },
+    {
+      "id": "immutable-235",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [{"id":"q","index":null},{"id":"q","index":"a0V"},{"id":"q","index":"a1"},{"id":"r","index":""},{"id":"r","index":"a2"},{"id":"r","index":"b00"}],
+      "entries": [["q",0,"a0",2],["r",3,"a1V",2]]
+    },
+    {
+      "id": "immutable-236",
+      "fn": "syncInvalidIndicesImmutable",
+      "elements": [
+        {"id":"r","index":null},
+        {"id":"q","index":"a1V"},
+        {"id":"q","index":"a1"},
+        {"id":"q","index":null},
+        {"id":"q","index":null},
+        {"id":"r","index":"a00"},
+        {"id":"q","index":"a02"},
+        {"id":"r","index":null},
+        {"id":"q","index":"aé"}
+      ],
+      "entries": [["r",7,"a7",2],["q",8,"a8",2]]
+    },
+    {"id":"immutable-237","fn":"syncInvalidIndicesImmutable","elements":[{"id":"p","index":""}],"entries":[["p",0,"a0",2]]}
   ]
 }

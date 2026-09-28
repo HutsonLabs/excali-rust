@@ -21,6 +21,6 @@
     {"name":"math.json","cases":1932,"sha256":"06fa5918a9be9acbeb9a5039eb40922590cf1487838d4e5f0ce8a5bb77e8b6a9"},
     {"name":"js-sort.json","cases":200,"sha256":"cdc8039d805c0cd0bb2e9352483c9b981b6dc2e418cd6814c43583c72002087c"},
     {"name":"fractional-indexing.json","cases":5165,"sha256":"398c068bd6414f829527ec74d960ffeed4026b53237fe3195e360bedb0f4c42f"},
-    {"name":"fractional-index.json","cases":1036,"sha256":"d781439c9fe2fc4608b010cbb1948f34a9bbd6e49485b00aa9e3b5769d44115e"}
+    {"name":"fractional-index.json","cases":1274,"sha256":"563e16870b4b420c1ed8a8fbb8b665a8afc69fd06177e68d87f20178760ac3ba"}
   ]
 }
