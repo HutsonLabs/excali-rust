@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-203 · excali-rough: Park-Miller RNG and core generator (line, rectangle, polygon, ellipse, curve, path)
+
+`excali-rough` now ports rough.js 4.6.4: the Park-Miller `Random`, the generator strokes, the renderer primitives, path-data-parser, points-on-curve and points-on-path. Random draws happen in the same order as in rough.js. OpSets equal goldens generated from the pinned roughjs at seeds 1, 7 and 1041657908 at roughness 0, 1 and 2 (228 generator cases). Bezier flattening and simplify never overflow the stack. PR: [#21](https://github.com/HutsonLabs/excali-rust/pull/21).
+
 ## 2026-09-28 · ex-103 · Restore: base normalisation rules
 
 `excali-core` now restores the base fields of any element the way upstream's `restoreElementWithProperties` does: JS `||` and `??` defaults, legacy `strokeSharpness` to `roundness` by type, `boundElementIds` to `boundElements`, links sanitised through a port of `@braintree/sanitize-url` 6.0.2, negative sizes flipped, and upstream's object-spread key order. All 311 cases generated from the pinned upstream match byte for byte (`tools/goldens/restore-fixtures.mjs --check`). PR: [#20](https://github.com/HutsonLabs/excali-rust/pull/20).
