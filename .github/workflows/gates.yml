@@ -46,3 +46,34 @@ jobs:
           scripts/upstream/checkout.sh
           scripts/upstream/checkout.sh | grep -q '^upstream already at '
           scripts/upstream/checkout.sh --verify
+  # scripts/site/zola.sh must run under macOS /bin/bash 3.2 (no declare -A,
+  # no sha256sum) as well as Linux bash 5. The runners put a newer bash first
+  # on PATH (Homebrew bash 5 on macOS), and bootstrap.sh starts zola.sh through
+  # its `#!/usr/bin/env bash` shebang, so the real download, SHA-256 check and
+  # extraction are run explicitly under /bin/bash first; the step fails unless
+  # it downloaded and verified against the pinned digest for the runner.
+  # bootstrap then finds the verified binary and the build uses it.
+  bootstrap-and-site:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: zola.sh tests under /bin/bash
+        run: /bin/bash scripts/site/zola-test.sh /bin/bash
+      - name: real zola download and SHA-256 check under /bin/bash
+        run: |
+          set -o pipefail
+          /bin/bash -c 'echo "bash $BASH_VERSION"'
+          log="$RUNNER_TEMP/zola-ensure.log"
+          /bin/bash scripts/site/zola.sh ensure | tee "$log"
+          t="$(/bin/bash scripts/site/zola.sh target)"
+          d="$(/bin/bash scripts/site/zola.sh digest "$t")"
+          grep -qF 'downloading https://github.com/getzola/zola/releases/download/' "$log"
+          grep -qF "sha256 verified ($t $d)" "$log"
+      - name: bootstrap under /bin/bash (fresh clone)
+        run: /bin/bash scripts/bootstrap.sh
+      - name: site build under /bin/bash
+        run: /bin/bash scripts/site/zola.sh build

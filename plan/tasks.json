@@ -219,6 +219,23 @@
    "labels": []
   },
   {
+   "id": "ex-007",
+   "epic": "ex-e0",
+   "title": "scripts/site/zola.sh works on macOS (bash 3.2, shasum) with the aarch64-apple-darwin digest pinned",
+   "priority": 0,
+   "blocked_by": [],
+   "crates": [],
+   "acceptance": "bootstrap.sh and `scripts/site/zola.sh build` succeed on macOS arm64 under /bin/bash 3.2 and on Linux CI, SHA verified on both.",
+   "evidence": [
+    "scripts/site/zola.sh (declare -A fails under /bin/bash 3.2 with \"x86_64: unbound variable\"; sha256sum is absent on macOS)",
+    "https://github.com/getzola/zola/releases/tag/v0.22.0 asset digests (gh api repos/getzola/zola/releases/tags/v0.22.0, read 2026-09-27)",
+    "site/content/decisions/adr-006-site.md"
+   ],
+   "description": "Replace the associative array with a case lookup, verify with sha256sum or shasum -a 256, refuse unverified downloads, share .tools across worktrees, and record the v0.22.0 digests for every unix release target. CI runs the script tests and a real ensure+build on ubuntu and macos.",
+   "type": "task",
+   "labels": []
+  },
+  {
    "id": "ex-101",
    "epic": "ex-e1",
    "title": "Element model: enums, structs and shared base fields",
