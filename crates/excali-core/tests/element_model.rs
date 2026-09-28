@@ -60,10 +60,10 @@ fn numbers_as_f64(value: &Value) -> Value {
 /// and merge them. Every key of the document must come back with the same
 /// value: that pins each field's JSON name and type.
 fn typed_round_trip(doc: &Value) -> (ElementBase, ElementKind) {
-    let base: ElementBase = serde_json::from_value(doc.clone())
-        .unwrap_or_else(|e| panic!("base fields of {doc}: {e}"));
-    let kind: ElementKind = serde_json::from_value(doc.clone())
-        .unwrap_or_else(|e| panic!("type fields of {doc}: {e}"));
+    let base: ElementBase =
+        serde_json::from_value(doc.clone()).unwrap_or_else(|e| panic!("base fields of {doc}: {e}"));
+    let kind: ElementKind =
+        serde_json::from_value(doc.clone()).unwrap_or_else(|e| panic!("type fields of {doc}: {e}"));
     let mut merged: Map<String, Value> = match serde_json::to_value(&base).unwrap() {
         Value::Object(map) => map,
         other => panic!("base serialised to {other}"),
@@ -242,7 +242,12 @@ fn new_base_has_new_element_base_defaults() {
 #[test]
 fn base_serialises_exactly_the_documented_keys() {
     let value = serde_json::to_value(base("k")).unwrap();
-    let keys: Vec<&str> = value.as_object().unwrap().keys().map(String::as_str).collect();
+    let keys: Vec<&str> = value
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(String::as_str)
+        .collect();
     assert_eq!(keys, BASE_KEYS);
 
     let mut with_data = base("k");
@@ -266,7 +271,7 @@ fn base_field_types_accept_every_documented_value() {
             "link": "https://excalidraw.com",
             "locked": true,
             "isDeleted": true,
-            "angle": 1.5707963267948966,
+            "angle": 0.785,
             "customData": {"nested": {"k": [1, "two", null]}}
         }),
     );
@@ -298,8 +303,11 @@ fn base_field_types_accept_every_documented_value() {
     assert_eq!(b.created, Some(1_700_000_000_000.0));
     assert_eq!(b.link.as_deref(), Some("https://excalidraw.com"));
     assert!(b.locked && b.is_deleted);
-    assert_eq!(b.angle, Radians(std::f64::consts::FRAC_PI_2));
-    assert_eq!(b.custom_data.unwrap()["nested"]["k"], json!([1, "two", null]));
+    assert_eq!(b.angle, Radians(0.785));
+    assert_eq!(
+        b.custom_data.unwrap()["nested"]["k"],
+        json!([1, "two", null])
+    );
 }
 
 #[test]
@@ -385,7 +393,10 @@ fn string_enumerations_use_upstream_spellings() {
     ]);
     assert_eq!(Arrowhead::ALL.len(), 14);
     for s in ["Solid", "cross_hatch", "dot", ""] {
-        assert!(serde_json::from_value::<FillStyle>(json!(s)).is_err(), "{s}");
+        assert!(
+            serde_json::from_value::<FillStyle>(json!(s)).is_err(),
+            "{s}"
+        );
     }
 }
 
@@ -550,7 +561,10 @@ fn every_variant() -> Vec<Element> {
         Element::new(base("embeddable"), ElementKind::Embeddable),
         Element::new(base("iframe"), ElementKind::Iframe),
         Element::new(base("image"), ElementKind::Image(ImageFields::default())),
-        Element::new(base("frame"), ElementKind::Frame(FrameFields { name: None })),
+        Element::new(
+            base("frame"),
+            ElementKind::Frame(FrameFields { name: None }),
+        ),
         Element::new(
             base("magicframe"),
             ElementKind::MagicFrame(FrameFields {
@@ -568,7 +582,10 @@ fn every_variant() -> Vec<Element> {
                 polygon: false,
             }),
         ),
-        Element::new(base("arrow"), ElementKind::Arrow(ArrowFields::new(linear, false))),
+        Element::new(
+            base("arrow"),
+            ElementKind::Arrow(ArrowFields::new(linear, false)),
+        ),
         Element::new(
             base("freedraw"),
             ElementKind::Freedraw(FreedrawFields::new(vec![[0.0, 0.0], [1.0, 1.0]], true)),
@@ -1149,11 +1166,23 @@ fn bound_elbow_arrow_document_round_trips() {
 #[test]
 fn a_type_field_mismatch_is_rejected() {
     let bad = [
-        with(base_json("x", "image"), json!({"fileId": null, "status": "done", "scale": [1, 1], "crop": null})),
-        with(base_json("x", "image"), json!({"fileId": null, "status": "saved", "scale": [1], "crop": null})),
+        with(
+            base_json("x", "image"),
+            json!({"fileId": null, "status": "done", "scale": [1, 1], "crop": null}),
+        ),
+        with(
+            base_json("x", "image"),
+            json!({"fileId": null, "status": "saved", "scale": [1], "crop": null}),
+        ),
         with(base_json("x", "frame"), json!({"name": 3})),
-        with(base_json("x", "line"), json!({"points": [[0, 0, 0]], "startBinding": null, "endBinding": null, "startArrowhead": null, "endArrowhead": null, "polygon": false})),
-        with(base_json("x", "arrow"), json!({"points": [], "startBinding": null, "endBinding": null, "startArrowhead": "dot", "endArrowhead": null, "elbowed": false})),
+        with(
+            base_json("x", "line"),
+            json!({"points": [[0, 0, 0]], "startBinding": null, "endBinding": null, "startArrowhead": null, "endArrowhead": null, "polygon": false}),
+        ),
+        with(
+            base_json("x", "arrow"),
+            json!({"points": [], "startBinding": null, "endBinding": null, "startArrowhead": "dot", "endArrowhead": null, "elbowed": false}),
+        ),
         with(base_json("x", "draw"), json!({})),
         with(base_json("x", "unknown"), json!({})),
     ];
@@ -1166,7 +1195,10 @@ fn a_type_field_mismatch_is_rejected() {
     let bad_base = [
         with(base_json("x", "rectangle"), json!({"fillStyle": "dots"})),
         with(base_json("x", "rectangle"), json!({"strokeStyle": "wavy"})),
-        with(base_json("x", "rectangle"), json!({"boundElements": [{"id": "a", "type": "line"}]})),
+        with(
+            base_json("x", "rectangle"),
+            json!({"boundElements": [{"id": "a", "type": "line"}]}),
+        ),
         with(base_json("x", "rectangle"), json!({"groupIds": "g"})),
         with(base_json("x", "rectangle"), json!({"x": "1"})),
     ];
@@ -1209,10 +1241,7 @@ fn magic_generation_data_is_read_from_iframe_custom_data() {
         let mut e = Element::new(base("i"), ElementKind::Iframe);
         assert_eq!(e.magic_generation_data(), None);
         e.set_magic_generation_data(expected.clone());
-        assert_eq!(
-            e.base.custom_data.as_ref().unwrap()["generationData"],
-            data
-        );
+        assert_eq!(e.base.custom_data.as_ref().unwrap()["generationData"], data);
         assert_eq!(e.magic_generation_data(), Some(expected));
     }
     // Other elements never carry generation data.
@@ -1318,11 +1347,17 @@ fn text_is_bindable_only_without_a_container() {
 fn arrow_subtypes_follow_elbowed_and_roundness() {
     // typeChecks.ts:130-157
     let linear = LinearFields::new(vec![[0.0, 0.0], [1.0, 1.0]]);
-    let mut arrow = Element::new(base("a"), ElementKind::Arrow(ArrowFields::new(linear.clone(), false)));
+    let mut arrow = Element::new(
+        base("a"),
+        ElementKind::Arrow(ArrowFields::new(linear.clone(), false)),
+    );
     assert_eq!(arrow.arrow_subtype(), Some(ArrowSubtype::Sharp));
     arrow.base.roundness = Some(Roundness::new(RoundnessType::ProportionalRadius));
     assert_eq!(arrow.arrow_subtype(), Some(ArrowSubtype::Curved));
-    let elbow = Element::new(base("e"), ElementKind::Arrow(ArrowFields::new(linear.clone(), true)));
+    let elbow = Element::new(
+        base("e"),
+        ElementKind::Arrow(ArrowFields::new(linear.clone(), true)),
+    );
     assert_eq!(elbow.arrow_subtype(), Some(ArrowSubtype::Elbow));
     let line = Element::new(
         base("l"),
