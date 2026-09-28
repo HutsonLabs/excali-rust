@@ -122,6 +122,11 @@ const elementCase = (up) => (c) => {
 const freehandCase = (up) => (c) => {
   const options = { ...c.options };
   if (typeof options.easing === "string") options.easing = EASINGS[options.easing];
+  for (const end of ["start", "end"]) {
+    if (typeof options[end]?.easing === "string") {
+      options[end] = { ...options[end], easing: EASINGS[options[end].easing] };
+    }
+  }
   return {
     ...c,
     strokePoints: up.getStrokePoints(c.points, options),

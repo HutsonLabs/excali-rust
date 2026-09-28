@@ -345,6 +345,61 @@ export const freehandCases = () => {
     points: withPressure(FREEHAND_POINTS.scribble),
     options: { size: 6, thinning: 0, simulatePressure: false, last: true },
   });
+  // Branches Excalidraw's options never reach, so the port is checked over
+  // the whole library: taper true/false, flat caps, cap easings, single
+  // points with a taper, object points, missing or negative pressures,
+  // reversals, exact duplicates, streamline extremes, and empty results.
+  const { wave: w, scribble: s, dot, pair } = FREEHAND_POINTS;
+  const reversal = [[0, 0], [20, 0], [40, 0], [60, 0], [80, 0], [60, 1], [40, 2], [20, 3], [0, 4], [20, 5], [40, 6]];
+  const edge = (id, points, options) => cases.push({ id: `edge/${id}`, points, options });
+  edge("wave-taper-true", w, { size: 8, start: { taper: true }, end: { taper: true }, last: true });
+  edge("wave-taper-false-flat-caps", w, {
+    size: 8,
+    start: { taper: false, cap: false },
+    end: { taper: false, cap: false },
+    last: true,
+  });
+  edge("scribble-flat-caps", s, { size: 12, start: { cap: false }, end: { cap: false } });
+  edge("wave-taper-cap-easings", w, {
+    size: 9,
+    start: { taper: 60, easing: "linear" },
+    end: { taper: 45, easing: "easeOutSine" },
+    last: true,
+  });
+  edge("wave-start-taper-only", w, { size: 9, start: { taper: 25 }, last: true });
+  edge("wave-end-taper-only", w, { size: 9, end: { taper: 25 }, last: false });
+  edge("dot-start-taper", dot, { size: 10, start: { taper: 20 } });
+  edge("dot-start-taper-last", dot, { size: 10, start: { taper: 20 }, last: true });
+  edge("dot-end-taper", dot, { size: 10, end: { taper: 20 } });
+  edge("dot-with-pressure", [[3, 4, 0.8]], { size: 10, simulatePressure: false });
+  edge("pair-with-pressure", withPressure(pair), { size: 10, simulatePressure: false });
+  edge("pair-not-last", pair, { size: 10 });
+  edge(
+    "scribble-objects",
+    s.map(([x, y], i) => (i % 3 === 0 ? { x, y } : { x, y, pressure: pressuresFor(s)[i] })),
+    { size: 7, simulatePressure: false, last: true },
+  );
+  edge(
+    "scribble-missing-and-negative-pressure",
+    s.map((p, i) => (i % 4 === 0 ? p : [...p, i % 4 === 1 ? -1 : pressuresFor(s)[i]])),
+    { size: 7, thinning: 0.7, simulatePressure: false, easing: "linear", last: true },
+  );
+  edge("reversal", reversal, { size: 6, streamline: 0, smoothing: 0.2, last: true });
+  edge("reversal-streamline1", reversal, { size: 6, streamline: 1, last: true });
+  edge(
+    "duplicates",
+    [[0, 0], [0, 0], [10, 0], [10, 0], [10, 0], [25, 5], [25, 5], [40, 20], [40, 20]],
+    { size: 5, streamline: 0, last: true },
+  );
+  // Three identical points leave a single stroke point (one or two points
+  // are padded to five or two first), the only way into
+  // getStrokeOutlinePoints' one-point branch through getStroke.
+  const same = [[7, 3], [7, 3], [7, 3]];
+  edge("all-duplicates", same, { size: 10 });
+  edge("all-duplicates-start-taper", same, { size: 10, start: { taper: 20 } });
+  edge("all-duplicates-end-taper-last", same, { size: 10, end: { taper: 20 }, last: true });
+  edge("scribble-size-0", s, { size: 0, last: true });
+  edge("empty", [], {});
   return cases;
 };
 
