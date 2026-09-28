@@ -163,10 +163,28 @@ test("rough fills cover every fill style at Excalidraw's weights (ex-204)", () =
   for (const c of g.cases) {
     assertDrawable(c.drawable, c.id);
     const types = c.drawable.sets.map((s) => s.type);
+    if (c.id.startsWith("edge/nofill/")) {
+      assert.ok(types.every((t) => t === "path"), `${c.id}: no fill set`);
+      continue;
+    }
     assert.ok(
       types.includes(c.options.fillStyle === "solid" ? "fillPath" : "fillSketch"),
       `${c.id}: fill set present`,
     );
+  }
+  // edge cases: curve and arc fills in every style
+  for (const style of styles) {
+    for (const m of ["curve", "arc"]) {
+      assert.ok(
+        g.cases.some((c) => c.method === m && c.options.fillStyle === style && !c.id.includes("nofill")),
+        `${style} on ${m}`,
+      );
+    }
+  }
+  // every call got its own copy of the arguments (the fillers rotate the
+  // polygon in place), so the recorded polygon is the fixture input
+  for (const c of g.cases.filter((c) => c.id.endsWith("/polygon-sw1"))) {
+    assert.deepEqual(c.args, [[[0, 0], [80, 10], [90, 60], [15, 50]]], c.id);
   }
 });
 
