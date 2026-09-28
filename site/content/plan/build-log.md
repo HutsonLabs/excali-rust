@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-301 · Font metadata table and vertical offset formula
+
+`excali_text::font_metadata` now has upstream's `FONT_METADATA` table, `get_vertical_offset`, `get_line_height`, `get_line_height_in_px`, `GOOGLE_FONTS_RANGES`, the fallback font names and the family fallback and font string helpers. Every font's metrics, line height and vertical offset match upstream bit for bit, checked against a golden fixture generated from the pinned upstream checkout. PR: [#50](https://github.com/HutsonLabs/excali-rust/pull/50).
+
 ## 2026-09-28 · ex-m1 · Milestone check (second run): M1 not yet reached
 
 The M1 check ran again on `main` at 46d9d4e, after ex-g101 merged. 851 workspace tests pass, the fixture corpus verifies, and all twelve goldens checks are current, including the D1 document round trip. Every scene-bearing upstream fixture and all 232 catalogue libraries round-trip byte for byte against upstream. D1 is still not met because two known losses remain. The 24 logic-gates lines with a string `strokeWidth` are dropped (ex-117). 1245 legacy arrow bindings are cleared instead of migrated (ex-116, blocked by ex-507 and ex-510). The check found no other gap, so it added no new tasks. PR: [#49](https://github.com/HutsonLabs/excali-rust/pull/49).
