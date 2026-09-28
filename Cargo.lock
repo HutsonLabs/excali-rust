@@ -236,6 +236,12 @@ dependencies = [
 [[package]]
 name = "excali-editor"
 version = "26.9.1"
+dependencies = [
+ "excali-core",
+ "excali-math",
+ "excali-scene",
+ "serde_json",
+]
 
 [[package]]
 name = "excali-freehand"

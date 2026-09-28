@@ -228,7 +228,10 @@ jobs:
   # own new URL (ada's IDNA) on hosts outside ASCII: cases, every code point
   # and seeded random URLs, and document-fixtures.mjs --check for
   # document-round-trip.json (ex-g101, D1), upstream's own loadFromBlob and
-  # serializeAsJSON on every scene-bearing file of its test fixtures.
+  # serializeAsJSON on every scene-bearing file of its test fixtures, and
+  # elbow-routing-fixtures.mjs --check for excali-editor's
+  # elbow-routing.json (ex-211), upstream's own updateElbowArrowPoints on
+  # seeded tables of unbound, bound and fixed-segment elbow arrows.
   # Runs on arm64: V8's float results for some shapes differ in the last bits
   # between x64 and arm64, and the committed goldens are the arm64 output
   # (macOS and Linux arm64 agree byte for byte).
@@ -267,3 +270,5 @@ jobs:
         run: node tools/goldens/url-host-fixtures.mjs --check
       - name: excali-core D1 fixture round-trip golden matches upstream's loadFromBlob and serializeAsJSON
         run: node tools/goldens/document-fixtures.mjs --check
+      - name: excali-editor elbow routing fixture matches upstream's updateElbowArrowPoints
+        run: node tools/goldens/elbow-routing-fixtures.mjs --check

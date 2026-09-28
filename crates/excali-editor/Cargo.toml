@@ -8,5 +8,14 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
+# excali-core and excali-math are reached through excali-scene (the crate
+# table of site/content/architecture/overview.md); serde_json carries the
+# element maps restore hands to the router (excali_core::restore::RestoreEnv).
+[dependencies]
+excali-core = { path = "../excali-core" }
+excali-math = { path = "../excali-math" }
+excali-scene = { path = "../excali-scene" }
+serde_json = { workspace = true }
+
 [lints]
 workspace = true
