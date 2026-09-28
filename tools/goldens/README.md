@@ -343,6 +343,15 @@ call. The loader replaces those modules with empty ones, and
 `editor-jotai` with a shim whose `atom` returns a plain object, since
 `library.ts` creates an atom while it loads (`shims` in `lib/upstream.mjs`).
 
+A legacy arrow binding (no `mode`) whose target exists is migrated with
+element geometry (`restore.ts:362-418`), which excali-core's restore asks its
+environment for (ex-116). Cases that reach it record `geometry`, the number
+of binding ends that did, and the output with that computation failing
+(`outputWithoutGeometry`, `output_sha256_without_geometry` for the
+catalogue): the case run again with
+`LinearElementEditor.getPointAtIndexGlobalCoordinates` throwing, as in the
+restore fixtures.
+
 Upstream runs in its test mode (`randomId()` gives `id0`, `id1`, ...,
 restarted by `reseed(1)` before each parse; `getUpdatedTimestamp()` gives 1)
 and `Date.now`, which `restoreLibraryItems` reads for `created`, returns 1,

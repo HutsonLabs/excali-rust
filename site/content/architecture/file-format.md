@@ -127,6 +127,27 @@ Version 1 (71 of the 232 public libraries on 2026-09-28): the key is `library` a
 
 Merge rule: two items are equal when their element `id`/`versionNonce` pairs match in order; new unique items are prepended.
 
+`excali_core::library` ports this:
+
+- **Read.** `parse_library_json` is `parseLibraryJSON` (`data/blob.ts:218-228`). It runs `JSON.parse`, then `isValidLibrary` (`type` `"excalidrawlib"`, `version` the number 1 or 2), then `restore_library_items` on `libraryItems || library` (`restore.ts:1374-1415`). The JS semantics carry over:
+  - `||` is truthiness, so `libraryItems: []` wins over `library` while `libraryItems: null` falls back to it.
+  - A string of items is iterated by code point and every item is dropped.
+  - `null`, `false`, numbers and objects are not iterable and throw `libraryItems is not iterable`.
+  - An item that is `null`, an `elements` value that is truthy but not an array, or a `null` element throws out of the whole parse with V8's message.
+  - Other items are `{...item, id: item.id || randomId(), status: item.status || defaultStatus, created: item.created || Date.now()}`, so keys keep their place, unknown ones included.
+- **Elements.** Each item's elements go through `restoreElements(elements, null)` without its repair pass:
+  - each element is restored by `restore_element`, and one that throws, or is `selection` or of an unknown type, is dropped;
+  - a repeated id gets a fresh one;
+  - `syncInvalidIndices` runs;
+  - deleted elements are then removed, and an item left empty is dropped.
+- **Write.** `serialize_library_as_json` writes the v2 envelope byte for byte as `serializeLibraryAsJSON` does. `merge_library_items` is `mergeLibraryItems`, and `library_items_hash` is `getLibraryItemsHash`: djb2 in JS arithmetic over UTF-16 code units, sorted by code unit.
+- **The typed item.** `LibraryItem` keeps unknown keys and key order. A value it has no form for (a numeric `id`, a `status` other than the two, a string `created`) is written back as read until the field changes.
+- **Arrows and lines.** The typed element model reads a missing `elbowed` (arrows from before elbow arrows) or `polygon` (a legacy `draw` restored to `line`) as `false` and writes it back absent, because restore leaves both out (`restore.ts:645-650, 697`).
+- **Two differences from upstream.** Both come from the typed model:
+  - An element whose restored object the typed model cannot read is dropped. Restore keeps such an object as it is. In the catalogue this happens only to the 24 lines of `aarondiel/logic-gates` whose `strokeWidth` is the string `"3"`.
+  - A legacy arrow binding to an existing element needs geometry, so it is dropped (ex-116, the known gap under the restore rules above). In the catalogue this affects 51 libraries with 1,245 binding ends.
+- **Goldens.** `crates/excali-core/tests/fixtures/library.json` is upstream's own output, written by `tools/goldens/library-fixtures.mjs` and re-checked in CI. It holds the parse, merge and hash tables, and for every one of the 232 catalogue libraries the hash of what upstream writes after parsing, with the legacy binding migration and without it.
+
 Import from a URL is allowed only for `excalidraw.com` and `raw.githubusercontent.com/excalidraw/excalidraw-libraries` (suffix match on the host at a subdomain boundary, prefix match on the path). The `#addLibrary=<url>&token=<id>` hash form and the legacy `?addLibrary=` query form are both parsed.
 
 Libraries cannot contain `iframe`, `embeddable` or `image` elements.

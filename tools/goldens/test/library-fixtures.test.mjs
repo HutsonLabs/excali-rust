@@ -75,6 +75,15 @@ test("output is upstream's library codec in test mode", () => {
   assert.equal(byId.get("jumpingrivers/r").version, 1);
   assert.equal(byId.get("youritjang/stick-figures").version, 2);
   for (const c of catalogue) assert.match(c.output_sha256, /^[0-9a-f]{64}$/, c.id);
+  // Legacy bindings (no mode) migrated with geometry: recorded with and
+  // without the migration, which differ.
+  const legacy = catalogue.filter((c) => c.geometry);
+  assert.equal(legacy.length, 51);
+  for (const c of legacy) assert.notEqual(c.output_sha256_without_geometry, c.output_sha256, c.id);
+  const migrated = par.get("elements-legacy-binding-migrated");
+  assert.equal(migrated.geometry, 1);
+  assert.equal(JSON.parse(migrated.output).libraryItems[0].elements[1].startBinding.mode, "orbit");
+  assert.equal(JSON.parse(migrated.outputWithoutGeometry).libraryItems[0].elements[1].startBinding, null);
 
   const merged = (id) => JSON.parse(merge.find((c) => c.id === id).output).libraryItems.map((i) => i.id);
   assert.deepEqual(merged("identical-not-added"), ["A", "B"]);

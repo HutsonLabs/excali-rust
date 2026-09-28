@@ -426,6 +426,14 @@
       "output": "{\n  \"type\": \"excalidrawlib\",\n  \"version\": 2,\n  \"source\": \"https://excalidraw.com\",\n  \"libraryItems\": [\n    {\n      \"id\": \"i\",\n      \"status\": \"published\",\n      \"elements\": [\n        {\n          \"id\": \"box\",\n          \"type\": \"rectangle\",\n          \"x\": 10,\n          \"y\": 20,\n          \"width\": 100,\n          \"height\": 50,\n          \"angle\": 0,\n          \"strokeColor\": \"#1e1e1e\",\n          \"backgroundColor\": \"transparent\",\n          \"fillStyle\": \"solid\",\n          \"strokeWidth\": 2,\n          \"strokeStyle\": \"solid\",\n          \"roughness\": 1,\n          \"opacity\": 100,\n          \"groupIds\": [],\n          \"frameId\": null,\n          \"index\": \"a0\",\n          \"roundness\": null,\n          \"seed\": 7,\n          \"version\": 3,\n          \"versionNonce\": 1234,\n          \"isDeleted\": false,\n          \"boundElements\": [],\n          \"updated\": 1700000000000,\n          \"link\": null,\n          \"locked\": false,\n          \"created\": null\n        },\n        {\n          \"id\": \"arr\",\n          \"type\": \"arrow\",\n          \"x\": 10,\n          \"y\": 20,\n          \"width\": 50,\n          \"height\": 0,\n          \"angle\": 0,\n          \"strokeColor\": \"#1e1e1e\",\n          \"backgroundColor\": \"transparent\",\n          \"fillStyle\": \"solid\",\n          \"strokeWidth\": 2,\n          \"strokeStyle\": \"solid\",\n          \"roughness\": 1,\n          \"opacity\": 100,\n          \"groupIds\": [],\n          \"frameId\": null,\n          \"index\": \"a1\",\n          \"roundness\": null,\n          \"seed\": 7,\n          \"version\": 3,\n          \"versionNonce\": 1234,\n          \"isDeleted\": false,\n          \"boundElements\": [],\n          \"updated\": 1700000000000,\n          \"link\": null,\n          \"locked\": false,\n          \"points\": [\n            [\n              0,\n              0\n            ],\n            [\n              50,\n              0\n            ]\n          ],\n          \"startBinding\": {\n            \"elementId\": \"box\",\n            \"mode\": \"orbit\",\n            \"fixedPoint\": [\n              0.5001,\n              0.5001\n            ]\n          },\n          \"endBinding\": {\n            \"elementId\": \"gone\",\n            \"mode\": \"orbit\",\n            \"fixedPoint\": [\n              0.5001,\n              0.5001\n            ]\n          },\n          \"startArrowhead\": null,\n          \"endArrowhead\": \"arrow\",\n          \"created\": null\n        }\n      ],\n      \"created\": 1600000000000\n    }\n  ]\n}"
     },
     {
+      "id": "elements-legacy-binding-migrated",
+      "input": "{\n  \"type\": \"excalidrawlib\",\n  \"version\": 2,\n  \"libraryItems\": [\n    {\n      \"id\": \"i\",\n      \"status\": \"published\",\n      \"elements\": [\n        {\n          \"id\": \"box\",\n          \"type\": \"rectangle\",\n          \"x\": 10,\n          \"y\": 20,\n          \"width\": 100,\n          \"height\": 50,\n          \"angle\": 0,\n          \"strokeColor\": \"#1e1e1e\",\n          \"backgroundColor\": \"transparent\",\n          \"fillStyle\": \"solid\",\n          \"strokeWidth\": 2,\n          \"strokeStyle\": \"solid\",\n          \"roughness\": 1,\n          \"opacity\": 100,\n          \"groupIds\": [],\n          \"frameId\": null,\n          \"index\": \"a0\",\n          \"roundness\": null,\n          \"seed\": 7,\n          \"version\": 3,\n          \"versionNonce\": 1234,\n          \"isDeleted\": false,\n          \"boundElements\": null,\n          \"updated\": 1700000000000,\n          \"link\": null,\n          \"locked\": false\n        },\n        {\n          \"id\": \"arr\",\n          \"type\": \"arrow\",\n          \"x\": 150,\n          \"y\": 45,\n          \"width\": 80,\n          \"height\": 0,\n          \"angle\": 0,\n          \"strokeColor\": \"#1e1e1e\",\n          \"backgroundColor\": \"transparent\",\n          \"fillStyle\": \"solid\",\n          \"strokeWidth\": 2,\n          \"strokeStyle\": \"solid\",\n          \"roughness\": 1,\n          \"opacity\": 100,\n          \"groupIds\": [],\n          \"frameId\": null,\n          \"index\": \"a1\",\n          \"roundness\": null,\n          \"seed\": 7,\n          \"version\": 3,\n          \"versionNonce\": 1234,\n          \"isDeleted\": false,\n          \"boundElements\": null,\n          \"updated\": 1700000000000,\n          \"link\": null,\n          \"locked\": false,\n          \"points\": [\n            [\n              0,\n              0\n            ],\n            [\n              80,\n              0\n            ]\n          ],\n          \"startBinding\": {\n            \"elementId\": \"box\",\n            \"focus\": 0,\n            \"gap\": 5\n          },\n          \"endBinding\": null,\n          \"startArrowhead\": null,\n          \"endArrowhead\": \"arrow\"\n        }\n      ],\n      \"created\": 1600000000000\n    }\n  ]\n}",
+      "defaultStatus": "unpublished",
+      "output": "{\n  \"type\": \"excalidrawlib\",\n  \"version\": 2,\n  \"source\": \"https://excalidraw.com\",\n  \"libraryItems\": [\n    {\n      \"id\": \"i\",\n      \"status\": \"published\",\n      \"elements\": [\n        {\n          \"id\": \"box\",\n          \"type\": \"rectangle\",\n          \"x\": 10,\n          \"y\": 20,\n          \"width\": 100,\n          \"height\": 50,\n          \"angle\": 0,\n          \"strokeColor\": \"#1e1e1e\",\n          \"backgroundColor\": \"transparent\",\n          \"fillStyle\": \"solid\",\n          \"strokeWidth\": 2,\n          \"strokeStyle\": \"solid\",\n          \"roughness\": 1,\n          \"opacity\": 100,\n          \"groupIds\": [],\n          \"frameId\": null,\n          \"index\": \"a0\",\n          \"roundness\": null,\n          \"seed\": 7,\n          \"version\": 3,\n          \"versionNonce\": 1234,\n          \"isDeleted\": false,\n          \"boundElements\": [],\n          \"updated\": 1700000000000,\n          \"link\": null,\n          \"locked\": false,\n          \"created\": null\n        },\n        {\n          \"id\": \"arr\",\n          \"type\": \"arrow\",\n          \"x\": 150,\n          \"y\": 45,\n          \"width\": 80,\n          \"height\": 0,\n          \"angle\": 0,\n          \"strokeColor\": \"#1e1e1e\",\n          \"backgroundColor\": \"transparent\",\n          \"fillStyle\": \"solid\",\n          \"strokeWidth\": 2,\n          \"strokeStyle\": \"solid\",\n          \"roughness\": 1,\n          \"opacity\": 100,\n          \"groupIds\": [],\n          \"frameId\": null,\n          \"index\": \"a1\",\n          \"roundness\": null,\n          \"seed\": 7,\n          \"version\": 3,\n          \"versionNonce\": 1234,\n          \"isDeleted\": false,\n          \"boundElements\": [],\n          \"updated\": 1700000000000,\n          \"link\": null,\n          \"locked\": false,\n          \"points\": [\n            [\n              0,\n              0\n            ],\n            [\n              80,\n              0\n            ]\n          ],\n          \"startBinding\": {\n            \"mode\": \"orbit\",\n            \"elementId\": \"box\",\n            \"fixedPoint\": [\n              0.5001,\n              0.5001\n            ]\n          },\n          \"endBinding\": null,\n          \"startArrowhead\": null,\n          \"endArrowhead\": \"arrow\",\n          \"created\": null\n        }\n      ],\n      \"created\": 1600000000000\n    }\n  ]\n}",
+      "geometry": 1,
+      "outputWithoutGeometry": "{\n  \"type\": \"excalidrawlib\",\n  \"version\": 2,\n  \"source\": \"https://excalidraw.com\",\n  \"libraryItems\": [\n    {\n      \"id\": \"i\",\n      \"status\": \"published\",\n      \"elements\": [\n        {\n          \"id\": \"box\",\n          \"type\": \"rectangle\",\n          \"x\": 10,\n          \"y\": 20,\n          \"width\": 100,\n          \"height\": 50,\n          \"angle\": 0,\n          \"strokeColor\": \"#1e1e1e\",\n          \"backgroundColor\": \"transparent\",\n          \"fillStyle\": \"solid\",\n          \"strokeWidth\": 2,\n          \"strokeStyle\": \"solid\",\n          \"roughness\": 1,\n          \"opacity\": 100,\n          \"groupIds\": [],\n          \"frameId\": null,\n          \"index\": \"a0\",\n          \"roundness\": null,\n          \"seed\": 7,\n          \"version\": 3,\n          \"versionNonce\": 1234,\n          \"isDeleted\": false,\n          \"boundElements\": [],\n          \"updated\": 1700000000000,\n          \"link\": null,\n          \"locked\": false,\n          \"created\": null\n        },\n        {\n          \"id\": \"arr\",\n          \"type\": \"arrow\",\n          \"x\": 150,\n          \"y\": 45,\n          \"width\": 80,\n          \"height\": 0,\n          \"angle\": 0,\n          \"strokeColor\": \"#1e1e1e\",\n          \"backgroundColor\": \"transparent\",\n          \"fillStyle\": \"solid\",\n          \"strokeWidth\": 2,\n          \"strokeStyle\": \"solid\",\n          \"roughness\": 1,\n          \"opacity\": 100,\n          \"groupIds\": [],\n          \"frameId\": null,\n          \"index\": \"a1\",\n          \"roundness\": null,\n          \"seed\": 7,\n          \"version\": 3,\n          \"versionNonce\": 1234,\n          \"isDeleted\": false,\n          \"boundElements\": [],\n          \"updated\": 1700000000000,\n          \"link\": null,\n          \"locked\": false,\n          \"points\": [\n            [\n              0,\n              0\n            ],\n            [\n              80,\n              0\n            ]\n          ],\n          \"startBinding\": null,\n          \"endBinding\": null,\n          \"startArrowhead\": null,\n          \"endArrowhead\": \"arrow\",\n          \"created\": null\n        }\n      ],\n      \"created\": 1600000000000\n    }\n  ]\n}"
+    },
+    {
       "id": "elements-text-and-freedraw",
       "input": "{\n  \"type\": \"excalidrawlib\",\n  \"version\": 2,\n  \"libraryItems\": [\n    {\n      \"id\": \"i\",\n      \"status\": \"published\",\n      \"elements\": [\n        {\n          \"id\": \"t\",\n          \"type\": \"text\",\n          \"x\": 10,\n          \"y\": 20,\n          \"width\": 100,\n          \"height\": 50,\n          \"angle\": 0,\n          \"strokeColor\": \"#1e1e1e\",\n          \"backgroundColor\": \"transparent\",\n          \"fillStyle\": \"solid\",\n          \"strokeWidth\": 2,\n          \"strokeStyle\": \"solid\",\n          \"roughness\": 1,\n          \"opacity\": 100,\n          \"groupIds\": [],\n          \"frameId\": null,\n          \"index\": \"a0\",\n          \"roundness\": null,\n          \"seed\": 7,\n          \"version\": 3,\n          \"versionNonce\": 1234,\n          \"isDeleted\": false,\n          \"boundElements\": null,\n          \"updated\": 1700000000000,\n          \"link\": null,\n          \"locked\": false,\n          \"text\": \"hi\\nthere\",\n          \"originalText\": \"hi\\nthere\",\n          \"fontSize\": 20,\n          \"fontFamily\": 1,\n          \"textAlign\": \"left\",\n          \"verticalAlign\": \"top\",\n          \"containerId\": null,\n          \"lineHeight\": 1.25\n        },\n        {\n          \"id\": \"f\",\n          \"type\": \"freedraw\",\n          \"x\": 10,\n          \"y\": 20,\n          \"width\": 100,\n          \"height\": 50,\n          \"angle\": 0,\n          \"strokeColor\": \"#1e1e1e\",\n          \"backgroundColor\": \"transparent\",\n          \"fillStyle\": \"solid\",\n          \"strokeWidth\": 2,\n          \"strokeStyle\": \"solid\",\n          \"roughness\": 1,\n          \"opacity\": 100,\n          \"groupIds\": [],\n          \"frameId\": null,\n          \"index\": \"a1\",\n          \"roundness\": null,\n          \"seed\": 7,\n          \"version\": 3,\n          \"versionNonce\": 1234,\n          \"isDeleted\": false,\n          \"boundElements\": null,\n          \"updated\": 1700000000000,\n          \"link\": null,\n          \"locked\": false,\n          \"points\": [\n            [\n              0,\n              0\n            ],\n            [\n              3,\n              4\n            ],\n            [\n              6,\n              1\n            ]\n          ],\n          \"pressures\": [],\n          \"simulatePressure\": true\n        },\n        {\n          \"id\": \"l\",\n          \"type\": \"draw\",\n          \"x\": 10,\n          \"y\": 20,\n          \"width\": 100,\n          \"height\": 50,\n          \"angle\": 0,\n          \"strokeColor\": \"#1e1e1e\",\n          \"backgroundColor\": \"transparent\",\n          \"fillStyle\": \"solid\",\n          \"strokeWidth\": 2,\n          \"strokeStyle\": \"solid\",\n          \"roughness\": 1,\n          \"opacity\": 100,\n          \"groupIds\": [],\n          \"frameId\": null,\n          \"index\": \"a2\",\n          \"roundness\": null,\n          \"seed\": 7,\n          \"version\": 3,\n          \"versionNonce\": 1234,\n          \"isDeleted\": false,\n          \"boundElements\": null,\n          \"updated\": 1700000000000,\n          \"link\": null,\n          \"locked\": false,\n          \"points\": [\n            [\n              1,\n              1\n            ],\n            [\n              11,\n              6\n            ]\n          ]\n        }\n      ],\n      \"created\": 1600000000000\n    }\n  ]\n}",
       "defaultStatus": "unpublished",
@@ -444,14 +452,18 @@
       "file": "fixtures/libraries/7demonsrising/azure-compute.excalidrawlib.gz",
       "version": 2,
       "items": 17,
-      "output_sha256": "00b2da0eaa4d258ff2a4b541423fdc82ec72ec51ad12027153a9ea6b8a6d9627"
+      "output_sha256": "00b2da0eaa4d258ff2a4b541423fdc82ec72ec51ad12027153a9ea6b8a6d9627",
+      "geometry": 2,
+      "output_sha256_without_geometry": "fa75c137e69b664e6fe6dd97f5086f793d983cf902e4dcdc0340a28e50196568"
     },
     {
       "id": "7demonsrising/azure-containers",
       "file": "fixtures/libraries/7demonsrising/azure-containers.excalidrawlib.gz",
       "version": 2,
       "items": 6,
-      "output_sha256": "9ffdb7f1f2557be0bbf5031b17345654bb68a5ad6e1af1752b6b5326e81f54ea"
+      "output_sha256": "9ffdb7f1f2557be0bbf5031b17345654bb68a5ad6e1af1752b6b5326e81f54ea",
+      "geometry": 2,
+      "output_sha256_without_geometry": "99fe71c22521a8d5d8a9b9f66da0a1174f4f349584ea206b2dfb3e0374a1d4a0"
     },
     {
       "id": "7demonsrising/azure-general",
@@ -465,7 +477,9 @@
       "file": "fixtures/libraries/7demonsrising/azure-network.excalidrawlib.gz",
       "version": 2,
       "items": 29,
-      "output_sha256": "4022578223682f5fe5dfee9645bbfee6f9af3ab5131a5ce387055cb469cd35c2"
+      "output_sha256": "4022578223682f5fe5dfee9645bbfee6f9af3ab5131a5ce387055cb469cd35c2",
+      "geometry": 2,
+      "output_sha256_without_geometry": "2b818a7d4dabfba647b3901b42f1e91bdca295a35f09ed787c7b0118da93218c"
     },
     {
       "id": "7demonsrising/azure-storage",
@@ -486,7 +500,9 @@
       "file": "fixtures/libraries/BjoernKW/UML-ER-library.excalidrawlib.gz",
       "version": 1,
       "items": 21,
-      "output_sha256": "918885c9b9f7f872c6f08888e65312e6982e377874ca1f005430409dfa7a1ee3"
+      "output_sha256": "918885c9b9f7f872c6f08888e65312e6982e377874ca1f005430409dfa7a1ee3",
+      "geometry": 2,
+      "output_sha256_without_geometry": "a4962fd9fc48c2d00b6e367bbfcbdeeeb8cd716230ea037ec0ffb72056487666"
     },
     {
       "id": "IvanReznikov/yellow-box",
@@ -598,21 +614,27 @@
       "file": "fixtures/libraries/arach/systems-design-components.excalidrawlib.gz",
       "version": 2,
       "items": 6,
-      "output_sha256": "fa1c7364e725b348cd65b5b8ca31c4d4b2a607f17088b1b89f899b68bf9a5de7"
+      "output_sha256": "fa1c7364e725b348cd65b5b8ca31c4d4b2a607f17088b1b89f899b68bf9a5de7",
+      "geometry": 12,
+      "output_sha256_without_geometry": "8724d9eff40923909337156536c8e1e56642aaca9b45d35cc28410cb3131813f"
     },
     {
       "id": "aretecode/decision-flow-control",
       "file": "fixtures/libraries/aretecode/decision-flow-control.excalidrawlib.gz",
       "version": 1,
       "items": 8,
-      "output_sha256": "a8c7adaac5ac5108d299d95ee588c12ac6743cb4d3523b149c1dbcaa97926b03"
+      "output_sha256": "a8c7adaac5ac5108d299d95ee588c12ac6743cb4d3523b149c1dbcaa97926b03",
+      "geometry": 56,
+      "output_sha256_without_geometry": "53e7c4acea7d373a4412b7a61f20a4d57854b703fd869b0adbd351a4cb7ec991"
     },
     {
       "id": "aretecode/system-design-template",
       "file": "fixtures/libraries/aretecode/system-design-template.excalidrawlib.gz",
       "version": 1,
       "items": 8,
-      "output_sha256": "da1cd9165312c040a286fb3237a1dd8f0ef2c3ff826a404430f37bfb7ad635df"
+      "output_sha256": "da1cd9165312c040a286fb3237a1dd8f0ef2c3ff826a404430f37bfb7ad635df",
+      "geometry": 24,
+      "output_sha256_without_geometry": "ed3d8b63ff878e438f28543b313a010bbd4f9ce32c8382b96fde14c6b93bff43"
     },
     {
       "id": "artem-anufrij-live-de/artem-s-icons",
@@ -626,7 +648,9 @@
       "file": "fixtures/libraries/boemska-nik/kubernetes-icons.excalidrawlib.gz",
       "version": 2,
       "items": 74,
-      "output_sha256": "2e1b00a3f74a18ffa40c97bd59c91f59420a0fb0548ece42d2391e7500cbd3c9"
+      "output_sha256": "2e1b00a3f74a18ffa40c97bd59c91f59420a0fb0548ece42d2391e7500cbd3c9",
+      "geometry": 16,
+      "output_sha256_without_geometry": "d48018561668f24a1d59660118a609fe8614376710fecd73360af4c3aac39ffe"
     },
     {
       "id": "booknerdonmars/bullet-journal-trackers",
@@ -661,7 +685,9 @@
       "file": "fixtures/libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
       "version": 2,
       "items": 249,
-      "output_sha256": "fe741b9f91317a7a9c1472dd347d2a30fb4dbcf76bc678791120126af7bac2e8"
+      "output_sha256": "fe741b9f91317a7a9c1472dd347d2a30fb4dbcf76bc678791120126af7bac2e8",
+      "geometry": 38,
+      "output_sha256_without_geometry": "194ab651767d813dea55168421c8ae21553403ca29d21b7b2caeaed71098cc39"
     },
     {
       "id": "chuqbach/data-platform",
@@ -689,7 +715,9 @@
       "file": "fixtures/libraries/cloud/cloud.excalidrawlib.gz",
       "version": 1,
       "items": 19,
-      "output_sha256": "dbc5735bdd0ac0b2745c2ebc89173922e7061916cc27c5628f8d8386c229c0b9"
+      "output_sha256": "dbc5735bdd0ac0b2745c2ebc89173922e7061916cc27c5628f8d8386c229c0b9",
+      "geometry": 1,
+      "output_sha256_without_geometry": "1e1173c813425c11f25dfe2fa474e100d6554e7059895fe4b346f892051eb4b8"
     },
     {
       "id": "coexist/mq",
@@ -703,7 +731,9 @@
       "file": "fixtures/libraries/corlaez/hexagonal-architecture.excalidrawlib.gz",
       "version": 1,
       "items": 27,
-      "output_sha256": "f931243f8ce23fbf43ff76e992829ada990bcbd2942df76a2819b9fcf402090f"
+      "output_sha256": "f931243f8ce23fbf43ff76e992829ada990bcbd2942df76a2819b9fcf402090f",
+      "geometry": 115,
+      "output_sha256_without_geometry": "7b5cfbfb0439c3189425bf0ffcf38fa919dc94d785db8852ec2714d3807f6c28"
     },
     {
       "id": "damitr/astronomical-symbols",
@@ -759,7 +789,9 @@
       "file": "fixtures/libraries/demondarakna/dnd-writing-icons-for-dm.excalidrawlib.gz",
       "version": 2,
       "items": 42,
-      "output_sha256": "9d9f7bbc6beab926165dcfef08ddb09b0e800862698b219418d4e3ed68b58fe5"
+      "output_sha256": "9d9f7bbc6beab926165dcfef08ddb09b0e800862698b219418d4e3ed68b58fe5",
+      "geometry": 24,
+      "output_sha256_without_geometry": "bd511deddcb82f0f008774f3282a5166fd32e730e8b3bb54aaf211025aeb55fc"
     },
     {
       "id": "devdaejungyoon/github-actions",
@@ -857,14 +889,18 @@
       "file": "fixtures/libraries/egor-romanov/risk-based-test-strategy.excalidrawlib.gz",
       "version": 2,
       "items": 8,
-      "output_sha256": "e38fe67422d8632e53007e11e13fc3486eddc44f189d4690ba9c109ca9b58740"
+      "output_sha256": "e38fe67422d8632e53007e11e13fc3486eddc44f189d4690ba9c109ca9b58740",
+      "geometry": 6,
+      "output_sha256_without_geometry": "f9ecac0aa158844169dca31f2861994ca63484fa7ab56279c0f6cea8b63720c3"
     },
     {
       "id": "eho9734/2022-gantt",
       "file": "fixtures/libraries/eho9734/2022-gantt.excalidrawlib.gz",
       "version": 2,
       "items": 1,
-      "output_sha256": "25cbaa8573190cd39caf3e0ed5b37a5bd5d93f4ed160fd2a9c3511e6440df9f2"
+      "output_sha256": "25cbaa8573190cd39caf3e0ed5b37a5bd5d93f4ed160fd2a9c3511e6440df9f2",
+      "geometry": 14,
+      "output_sha256_without_geometry": "0c1910f764da2e2a46d6cc2a59b2266926c3ef4c073c43c10c8871fa9baacb55"
     },
     {
       "id": "ei-au/computers",
@@ -878,14 +914,18 @@
       "file": "fixtures/libraries/ella/science-chemistry-gcse.excalidrawlib.gz",
       "version": 2,
       "items": 4,
-      "output_sha256": "89cc627e513595e4102bb2aeaa9d2ade2fb084ff1af24b8b887ad3298806684d"
+      "output_sha256": "89cc627e513595e4102bb2aeaa9d2ade2fb084ff1af24b8b887ad3298806684d",
+      "geometry": 13,
+      "output_sha256_without_geometry": "4796f72a337f8dbdb37e2ae37032f516b2867be583bc052dad5d9ee462acda84"
     },
     {
       "id": "erlina/data-processing",
       "file": "fixtures/libraries/erlina/data-processing.excalidrawlib.gz",
       "version": 2,
       "items": 8,
-      "output_sha256": "bbfc2a0b769b12235cc7cd735820c1d7797abeecb1096a01145c2174f347b709"
+      "output_sha256": "bbfc2a0b769b12235cc7cd735820c1d7797abeecb1096a01145c2174f347b709",
+      "geometry": 4,
+      "output_sha256_without_geometry": "30c2c4cf15d93a7b8a8164a695e6a53820e8650fad8c40971e16ebf193822ac3"
     },
     {
       "id": "esteevens/logos",
@@ -948,7 +988,9 @@
       "file": "fixtures/libraries/ferminrp/awesome-slides.excalidrawlib.gz",
       "version": 1,
       "items": 16,
-      "output_sha256": "f9e26e0cf8089c537c754743c71f1216a0df716b7e8006d28a33e0d0dd801152"
+      "output_sha256": "f9e26e0cf8089c537c754743c71f1216a0df716b7e8006d28a33e0d0dd801152",
+      "geometry": 7,
+      "output_sha256_without_geometry": "d9c0116a8e86980e2dbd1052a9546011a41bf10991cefe68475bcb98be4f3133"
     },
     {
       "id": "ferminrp/gantt",
@@ -983,7 +1025,9 @@
       "file": "fixtures/libraries/fortijosh/fortinet.excalidrawlib.gz",
       "version": 2,
       "items": 33,
-      "output_sha256": "edc7a62701b56527784dcf95ba19f1c892177636f9753482fa6a05293d0a388c"
+      "output_sha256": "edc7a62701b56527784dcf95ba19f1c892177636f9753482fa6a05293d0a388c",
+      "geometry": 5,
+      "output_sha256_without_geometry": "38d20f8a1360a75f893ff3aaa8f28b4cf353ece80e9efabdfa8fa31bf05a3827"
     },
     {
       "id": "franky47/apple-devices-frames",
@@ -1025,7 +1069,9 @@
       "file": "fixtures/libraries/g-script/medias.excalidrawlib.gz",
       "version": 1,
       "items": 6,
-      "output_sha256": "bba44fb67a2d67a700324651309865ec7064282bbda844d12e43441992143363"
+      "output_sha256": "bba44fb67a2d67a700324651309865ec7064282bbda844d12e43441992143363",
+      "geometry": 4,
+      "output_sha256_without_geometry": "e13ada51416da5f9380ab219ef318a12cf33cd5783b8fc0601170dcc351aaebe"
     },
     {
       "id": "gabi-as-cosmos/periodic-table",
@@ -1088,14 +1134,18 @@
       "file": "fixtures/libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
       "version": 2,
       "items": 72,
-      "output_sha256": "b40857afca330b326a8176b0c02002142ec71ae10336721a36cd3d0bd91c2db2"
+      "output_sha256": "b40857afca330b326a8176b0c02002142ec71ae10336721a36cd3d0bd91c2db2",
+      "geometry": 1,
+      "output_sha256_without_geometry": "c23c16da887446311a1005ed60af42c28f8be2b5807745cd682e37a487573bc1"
     },
     {
       "id": "https-github-com-jinmingyi1998/collective-operation",
       "file": "fixtures/libraries/https-github-com-jinmingyi1998/collective-operation.excalidrawlib.gz",
       "version": 2,
       "items": 8,
-      "output_sha256": "c864107637980ac88562079ac723683896a6b2042904a0d7c707cae8201098c5"
+      "output_sha256": "c864107637980ac88562079ac723683896a6b2042904a0d7c707cae8201098c5",
+      "geometry": 159,
+      "output_sha256_without_geometry": "3882f59540b6f90a07b1f8c7e8917687e965d84a6ba93524aef03450239b763e"
     },
     {
       "id": "https-github-com-papacrispy/uml-library-activity-diagram",
@@ -1130,7 +1180,9 @@
       "file": "fixtures/libraries/https-github-com-ytrkptl/math-teacher-library.excalidrawlib.gz",
       "version": 2,
       "items": 12,
-      "output_sha256": "c83271d6276741bfa26925fa18cca554581737f18321d9a30d2ad756ee98233e"
+      "output_sha256": "c83271d6276741bfa26925fa18cca554581737f18321d9a30d2ad756ee98233e",
+      "geometry": 4,
+      "output_sha256_without_geometry": "69a761adf70665d07c1b5bdd1ad5e1132928d499b136197b105464956fb59ea6"
     },
     {
       "id": "husainkhambaty/aws-simple-icons",
@@ -1151,14 +1203,18 @@
       "file": "fixtures/libraries/infamousjoeg/cyberark.excalidrawlib.gz",
       "version": 2,
       "items": 52,
-      "output_sha256": "6c9f2039929e8388e4b5244753402655c156ffd9f5071aeb1939e9591d9bd8a4"
+      "output_sha256": "6c9f2039929e8388e4b5244753402655c156ffd9f5071aeb1939e9591d9bd8a4",
+      "geometry": 15,
+      "output_sha256_without_geometry": "a8627aadb399599ee9eabc80d40d0adb8fe6b52eb618984e80e426236749c0a2"
     },
     {
       "id": "intradeus/algorithms-and-data-structures-arrays-matrices-trees",
       "file": "fixtures/libraries/intradeus/algorithms-and-data-structures-arrays-matrices-trees.excalidrawlib.gz",
       "version": 2,
       "items": 22,
-      "output_sha256": "5b97975527f7e2cf8b591df16b1ada4cd339818e578d5c8436d7301629685c35"
+      "output_sha256": "5b97975527f7e2cf8b591df16b1ada4cd339818e578d5c8436d7301629685c35",
+      "geometry": 114,
+      "output_sha256_without_geometry": "a21ed8dfbad8f6fe86591a2a999cee297e39bf8385b573a8221bfb5f70d469d9"
     },
     {
       "id": "inwardmovement/information-architecture",
@@ -1207,7 +1263,9 @@
       "file": "fixtures/libraries/jdelacruz/veeam_unofficial.excalidrawlib.gz",
       "version": 1,
       "items": 76,
-      "output_sha256": "9abd458f24c228732248aeec62c9891cad7c4c868c505058b481dca9fad6ed7c"
+      "output_sha256": "9abd458f24c228732248aeec62c9891cad7c4c868c505058b481dca9fad6ed7c",
+      "geometry": 35,
+      "output_sha256_without_geometry": "b4d8475c23c36fe703f17b35f0708ae9ea0edf53560cfb677902b8e89958db1b"
     },
     {
       "id": "jgansaown/ultimate-frisbee",
@@ -1263,14 +1321,18 @@
       "file": "fixtures/libraries/jordangeurtsen/uml-component-diagram.excalidrawlib.gz",
       "version": 2,
       "items": 6,
-      "output_sha256": "a261d1061ff1d7404fc33b43ea31b41729aa2ac63b565c888f562c305b406b3d"
+      "output_sha256": "a261d1061ff1d7404fc33b43ea31b41729aa2ac63b565c888f562c305b406b3d",
+      "geometry": 2,
+      "output_sha256_without_geometry": "8a727166cd6957c25f71ce52ef8b51880706905092f3ce66ee54ad743ed730bd"
     },
     {
       "id": "jordangeurtsen/uml-deployment-diagram",
       "file": "fixtures/libraries/jordangeurtsen/uml-deployment-diagram.excalidrawlib.gz",
       "version": 2,
       "items": 8,
-      "output_sha256": "f05df9ace4d2a8f2304632291e26449753e9683f54fbd6ec1bfa1834af66411b"
+      "output_sha256": "f05df9ace4d2a8f2304632291e26449753e9683f54fbd6ec1bfa1834af66411b",
+      "geometry": 14,
+      "output_sha256_without_geometry": "330142ad0b044ae05d2096072949c03ddee00b60acf9c2a5cf57ddd994d82122"
     },
     {
       "id": "jumpingrivers/r",
@@ -1291,7 +1353,9 @@
       "file": "fixtures/libraries/kabirsinghshekhawat/genealogy-essentials.excalidrawlib.gz",
       "version": 2,
       "items": 12,
-      "output_sha256": "a0e4de196029d24f2ed0b01a5f4f511f6cd9118fe1bc981475f490f2775762db"
+      "output_sha256": "a0e4de196029d24f2ed0b01a5f4f511f6cd9118fe1bc981475f490f2775762db",
+      "geometry": 2,
+      "output_sha256_without_geometry": "6225b00883246a5bf1ef9c79c18f218eb8fb1a6032e2c1dcc713a4e4a0858a82"
     },
     {
       "id": "kaligule/robots",
@@ -1333,7 +1397,9 @@
       "file": "fixtures/libraries/kvchitrapu/data-sources.excalidrawlib.gz",
       "version": 2,
       "items": 6,
-      "output_sha256": "6105512a0487f8b84f16b01ea377aa2927917d4b3f19db10cf17f51352291d42"
+      "output_sha256": "6105512a0487f8b84f16b01ea377aa2927917d4b3f19db10cf17f51352291d42",
+      "geometry": 2,
+      "output_sha256_without_geometry": "4fc407aadc435f90baf008eb42a0af614c6dd7c3e20215dc7de9311ad73c9b45"
     },
     {
       "id": "kvchitrapu/secure_shell",
@@ -1382,7 +1448,9 @@
       "file": "fixtures/libraries/lowess/kubernetes-icons-set.excalidrawlib.gz",
       "version": 2,
       "items": 19,
-      "output_sha256": "6baa895eda1529139ca405a3cd534a2d740abeb278b5dbbf898a71a63b9c7bbf"
+      "output_sha256": "6baa895eda1529139ca405a3cd534a2d740abeb278b5dbbf898a71a63b9c7bbf",
+      "geometry": 22,
+      "output_sha256_without_geometry": "abe4a0849321509122f485f09eb1ff3a92f1ed00faba8fbebe7b13d42bfa6b8f"
     },
     {
       "id": "lukethorp/databricks-architecture-icons",
@@ -1487,7 +1555,9 @@
       "file": "fixtures/libraries/mayankguptadotcom/wardley-mapping-canvas.excalidrawlib.gz",
       "version": 2,
       "items": 12,
-      "output_sha256": "eea037a6c7428836df7b95ca749d4838d80acd0021b9e3f009f8f51ed7da16ec"
+      "output_sha256": "eea037a6c7428836df7b95ca749d4838d80acd0021b9e3f009f8f51ed7da16ec",
+      "geometry": 171,
+      "output_sha256_without_geometry": "0b0cfcc2f824fb7398324ef084aa80e8a28edfb2bd26b74bcd2a914623123083"
     },
     {
       "id": "mguidoti/google-icons",
@@ -1515,7 +1585,9 @@
       "file": "fixtures/libraries/michelcaradec/cloud-design-patterns.excalidrawlib.gz",
       "version": 1,
       "items": 24,
-      "output_sha256": "a84bbb985905a52bbd3e4104c60b4c028be4d999d69721d5a4d6bd0fc7d978de"
+      "output_sha256": "a84bbb985905a52bbd3e4104c60b4c028be4d999d69721d5a4d6bd0fc7d978de",
+      "geometry": 56,
+      "output_sha256_without_geometry": "84b873db60fedd162b1c38b3a9a41ad8e692ce6823342255bad45ddf62961da5"
     },
     {
       "id": "mikhailredis/redis-grafana",
@@ -1543,7 +1615,9 @@
       "file": "fixtures/libraries/moochin/simple-characters.excalidrawlib.gz",
       "version": 2,
       "items": 49,
-      "output_sha256": "f5be047e732930d5a32a734c8d7b666aacb9d960b614acc7a6e07f8c9680215e"
+      "output_sha256": "f5be047e732930d5a32a734c8d7b666aacb9d960b614acc7a6e07f8c9680215e",
+      "geometry": 1,
+      "output_sha256_without_geometry": "290c79ea6d9c2104a2c6d0304945dc48c4716d5f0cde0c2c512733b16e8c4b51"
     },
     {
       "id": "morgemoensch/gadgets",
@@ -1578,7 +1652,9 @@
       "file": "fixtures/libraries/narhari-motivaras/aws-architecture-icons.excalidrawlib.gz",
       "version": 2,
       "items": 4,
-      "output_sha256": "8b66d561d392ea89e240813312f90b6ff09f07c2318f289df7b5ad11e6d6ca75"
+      "output_sha256": "8b66d561d392ea89e240813312f90b6ff09f07c2318f289df7b5ad11e6d6ca75",
+      "geometry": 3,
+      "output_sha256_without_geometry": "be6b31508dcf87e2ce32b3fa0db22a09babcdca9a162d5d9fa919899c44e0ce4"
     },
     {
       "id": "nemeki/ttrpg-clocks",
@@ -1599,7 +1675,9 @@
       "file": "fixtures/libraries/niknm/systemdesignicons.excalidrawlib.gz",
       "version": 2,
       "items": 3,
-      "output_sha256": "77c48691b7a9e2978da8a5992097b34de3cb96e4251fa9d30f039313040e4c21"
+      "output_sha256": "77c48691b7a9e2978da8a5992097b34de3cb96e4251fa9d30f039313040e4c21",
+      "geometry": 10,
+      "output_sha256_without_geometry": "8921694bc21a7eca5bc4cfc406a3a3c05ed9ff68c4986f91b16f0bca200b8321"
     },
     {
       "id": "nikordaris/team-topologies",
@@ -1613,7 +1691,9 @@
       "file": "fixtures/libraries/novakkkarel/nsx-t-vmware.excalidrawlib.gz",
       "version": 1,
       "items": 20,
-      "output_sha256": "dcf50d7bdc1a4a47204ea229169fb8a36f3450ab7e7285c5a303defb8c9b2997"
+      "output_sha256": "dcf50d7bdc1a4a47204ea229169fb8a36f3450ab7e7285c5a303defb8c9b2997",
+      "geometry": 2,
+      "output_sha256_without_geometry": "31f25e51085412f751b6e9b56d22448425b792b3177cc9a0e77251f308a870c8"
     },
     {
       "id": "ocapraro/bubbles",
@@ -1627,14 +1707,18 @@
       "file": "fixtures/libraries/odraghi/vmware-architecture-design.excalidrawlib.gz",
       "version": 2,
       "items": 48,
-      "output_sha256": "2b2b61bee332aa21240f6081c795ef45bfe8e6af4e45e04927385ad18d5cbc04"
+      "output_sha256": "2b2b61bee332aa21240f6081c795ef45bfe8e6af4e45e04927385ad18d5cbc04",
+      "geometry": 1,
+      "output_sha256_without_geometry": "4614c5129bfa1b3c94ba7ef527ce7d7a6cf7da543232b3dd8028c95b0e6d0aca"
     },
     {
       "id": "oehrlis/db-eng",
       "file": "fixtures/libraries/oehrlis/db-eng.excalidrawlib.gz",
       "version": 1,
       "items": 39,
-      "output_sha256": "45b45d88310dea3ce8c6911c645bd4737cc1e1920fda9d6317e45cfdc4a23764"
+      "output_sha256": "45b45d88310dea3ce8c6911c645bd4737cc1e1920fda9d6317e45cfdc4a23764",
+      "geometry": 6,
+      "output_sha256_without_geometry": "c7fd1624ee3876a4d83b3ea970682a2cd15413a12c618abcc289351857e18227"
     },
     {
       "id": "patrickcuba/data-vault",
@@ -1718,7 +1802,9 @@
       "file": "fixtures/libraries/pratheeshpm/basic-system-design.excalidrawlib.gz",
       "version": 2,
       "items": 7,
-      "output_sha256": "c5e61ef5375a93f4b5c5f996517144bf01cbc20da2898a5d1a66259d4aa39d53"
+      "output_sha256": "c5e61ef5375a93f4b5c5f996517144bf01cbc20da2898a5d1a66259d4aa39d53",
+      "geometry": 59,
+      "output_sha256_without_geometry": "2c341d4b237e5831792015bee73757d1bab4b2844986b3ec53e570cb25b62769"
     },
     {
       "id": "pret/chess-set",
@@ -1788,14 +1874,18 @@
       "file": "fixtures/libraries/rohanp/system-design.excalidrawlib.gz",
       "version": 1,
       "items": 24,
-      "output_sha256": "09140c56cc8f92ead495a40ee77436ebcd3d162e84e93b9996fd3840ac1c8b6d"
+      "output_sha256": "09140c56cc8f92ead495a40ee77436ebcd3d162e84e93b9996fd3840ac1c8b6d",
+      "geometry": 13,
+      "output_sha256_without_geometry": "fb3263d4cb21170c33a9ccc3a1240255a5fa0c3334781fff6c6e402f8f8b0578"
     },
     {
       "id": "samu_x86/network-elements",
       "file": "fixtures/libraries/samu_x86/network-elements.excalidrawlib.gz",
       "version": 2,
       "items": 5,
-      "output_sha256": "004d0260518735de1d6ab94ea282f7a03cdd08f8114bd07708c27828acc0af1d"
+      "output_sha256": "004d0260518735de1d6ab94ea282f7a03cdd08f8114bd07708c27828acc0af1d",
+      "geometry": 3,
+      "output_sha256_without_geometry": "6160c10a83d7dae7c1cd22bfdda8c51fe6ad63a04fd6507edd96a4797cd52e66"
     },
     {
       "id": "schiriki123/playing-cards",
@@ -1844,14 +1934,18 @@
       "file": "fixtures/libraries/simalexan/wardley-maps-symbols.excalidrawlib.gz",
       "version": 1,
       "items": 10,
-      "output_sha256": "1d3896b5993cef83514cadca94f8024e8077b0ebf594fd8c413aaac525aaf574"
+      "output_sha256": "1d3896b5993cef83514cadca94f8024e8077b0ebf594fd8c413aaac525aaf574",
+      "geometry": 2,
+      "output_sha256_without_geometry": "7e8b312b701f26c6eda62f9015e0dcbd4db2bcb855abe97c8716cca0b4adedfd"
     },
     {
       "id": "simonthomine/pathology",
       "file": "fixtures/libraries/simonthomine/pathology.excalidrawlib.gz",
       "version": 2,
       "items": 20,
-      "output_sha256": "91c3c9e7340d88120ac935ed915906fa4798cd071e72906b1deadbb5b1048513"
+      "output_sha256": "91c3c9e7340d88120ac935ed915906fa4798cd071e72906b1deadbb5b1048513",
+      "geometry": 11,
+      "output_sha256_without_geometry": "cb9b2efc2482debb336be59234e040ed4c0f04bb23ce320264dbe32e8abc7dd6"
     },
     {
       "id": "sketchingdev/banners",
@@ -1865,7 +1959,9 @@
       "file": "fixtures/libraries/slobodan/aws-serverless.excalidrawlib.gz",
       "version": 1,
       "items": 15,
-      "output_sha256": "893a3ad7b40b9360431562d64ae405f0f5a7714d3acd9a8cd7712db3266ff62b"
+      "output_sha256": "893a3ad7b40b9360431562d64ae405f0f5a7714d3acd9a8cd7712db3266ff62b",
+      "geometry": 4,
+      "output_sha256_without_geometry": "9aeeb9a6ae459599128d117ae12a3232b1a56009158aeec4695bbc8e531d9132"
     },
     {
       "id": "spfr/lo-fi-wireframing-kit",
@@ -1879,14 +1975,18 @@
       "file": "fixtures/libraries/stojanovic/aws-serverless-icons-v2.excalidrawlib.gz",
       "version": 2,
       "items": 24,
-      "output_sha256": "284c262c665602ec0e95d80edda62bcdf115811236d4f6dab72b5508a9beb0cf"
+      "output_sha256": "284c262c665602ec0e95d80edda62bcdf115811236d4f6dab72b5508a9beb0cf",
+      "geometry": 10,
+      "output_sha256_without_geometry": "b984287366fb17cdb928fcef08833c6f42c1c622a1f4d6b77435372bfbbb1c1d"
     },
     {
       "id": "stuc2010/enterprise-integration-patterns",
       "file": "fixtures/libraries/stuc2010/enterprise-integration-patterns.excalidrawlib.gz",
       "version": 2,
       "items": 42,
-      "output_sha256": "583977317963422354063657ee97741339bce0b37a4d47140a5e75aeb8707ce5"
+      "output_sha256": "583977317963422354063657ee97741339bce0b37a4d47140a5e75aeb8707ce5",
+      "geometry": 34,
+      "output_sha256_without_geometry": "51ccf63b1b811c7d44b40e5241aadfd51f04bd3951b9d572a45b187df79657bd"
     },
     {
       "id": "sudotachy/medicine",
@@ -1907,7 +2007,9 @@
       "file": "fixtures/libraries/swissarmysam/maps.excalidrawlib.gz",
       "version": 1,
       "items": 4,
-      "output_sha256": "123b3513d283911c410316b34b7299dfcf9c879336200370015a62eaa4a5203a"
+      "output_sha256": "123b3513d283911c410316b34b7299dfcf9c879336200370015a62eaa4a5203a",
+      "geometry": 8,
+      "output_sha256_without_geometry": "572a7e3a278e14b8571171362ebe1e861a02b85518012fdfd1c8114a80696645"
     },
     {
       "id": "thebrahmnicboy/Logic-Gates",
@@ -1935,7 +2037,9 @@
       "file": "fixtures/libraries/timothygalvin/excalidraw-archimate-template.excalidrawlib.gz",
       "version": 2,
       "items": 38,
-      "output_sha256": "ffe918311117d734b92e4002af21cd99192bc00a21b474d34de05e39fbebbb68"
+      "output_sha256": "ffe918311117d734b92e4002af21cd99192bc00a21b474d34de05e39fbebbb68",
+      "geometry": 2,
+      "output_sha256_without_geometry": "55d6a33f80557fa90edeb2e0da519bb53b98777367cf7d2d9c82101363771fa7"
     },
     {
       "id": "toman/checkmarks",
@@ -1984,7 +2088,9 @@
       "file": "fixtures/libraries/webkul/ecommerce-mobile-ui.excalidrawlib.gz",
       "version": 2,
       "items": 75,
-      "output_sha256": "6969e02ba77a9de1afb4192553102aaa4512fc380e1ed6a08f66571e2b0ed42a"
+      "output_sha256": "6969e02ba77a9de1afb4192553102aaa4512fc380e1ed6a08f66571e2b0ed42a",
+      "geometry": 5,
+      "output_sha256_without_geometry": "17d9415a85aeaf9c7a829d8a130b574d782be47ca48b7daf72578886b3de7c6b"
     },
     {
       "id": "wictorwilen/microsoft-365-icons",
@@ -2026,7 +2132,9 @@
       "file": "fixtures/libraries/youritjang/azure-cloud-services.excalidrawlib.gz",
       "version": 2,
       "items": 19,
-      "output_sha256": "df43dfe4855224033bbcdec04e1f4252ca98946e92194f7217d19b7887a2912a"
+      "output_sha256": "df43dfe4855224033bbcdec04e1f4252ca98946e92194f7217d19b7887a2912a",
+      "geometry": 2,
+      "output_sha256_without_geometry": "c01d9042331105a5d9f7c7c767fefc046fea57540812abdfd0a5820c0f6695cf"
     },
     {
       "id": "youritjang/software-architecture",
@@ -2047,7 +2155,9 @@
       "file": "fixtures/libraries/yuelfei/deep-learning.excalidrawlib.gz",
       "version": 2,
       "items": 12,
-      "output_sha256": "73c31b3593f04fad9803934efb8fdf9b0730cf328cf31e2117547b663452555f"
+      "output_sha256": "73c31b3593f04fad9803934efb8fdf9b0730cf328cf31e2117547b663452555f",
+      "geometry": 125,
+      "output_sha256_without_geometry": "949ec2b2cb5ec461ef5e2bacd6d4e2aa4a3774116ff029d37e844c6f43186332"
     },
     {
       "id": "zanetworker/red-hat",

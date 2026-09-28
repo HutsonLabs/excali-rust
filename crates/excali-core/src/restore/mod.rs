@@ -50,8 +50,6 @@ use crate::element::ElementType;
 use crate::js;
 use crate::json;
 
-#[cfg(test)]
-use element::restore_element_encoded;
 pub use element::{
     restore_element, BindingEnd, ElementsMap, LegacyBinding, LegacyBindingRequest, RestoreOptions,
     MAX_LINEAR_PX,
@@ -62,6 +60,7 @@ pub use scene::{
 };
 #[cfg(test)]
 use scene::{restore_elements_encoded, SceneCall};
+pub(crate) use element::{restore_element_encoded, MapKey};
 
 /// Where restore gets what upstream draws from global state, and the
 /// element geometry it needs for one migration.
@@ -369,7 +368,7 @@ fn normalized_axis(position: f64, size: f64) -> (f64, f64) {
 
 /// A [`RestoreEnv`] whose ids are put in the sentinel form, and whose
 /// legacy binding migration sees public values.
-struct EscapingEnv<'a>(&'a mut dyn RestoreEnv);
+pub(crate) struct EscapingEnv<'a>(pub(crate) &'a mut dyn RestoreEnv);
 
 impl RestoreEnv for EscapingEnv<'_> {
     fn now(&mut self) -> f64 {

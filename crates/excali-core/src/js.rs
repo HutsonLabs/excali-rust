@@ -395,10 +395,37 @@ pub(crate) fn to_uint16(x: f64) -> u16 {
     x.trunc().rem_euclid(65536.0) as u16
 }
 
+/// ECMA-262 `ToUint32` (section 7.1.7) of a number: NaN and the infinities
+/// are 0, others truncated and taken modulo 2^32. What `x >>> 0` gives.
+pub(crate) fn to_uint32(x: f64) -> u32 {
+    if !x.is_finite() {
+        return 0;
+    }
+    // Exact: the remainder of an integral f64 by 2^32 is below 2^32.
+    x.trunc().rem_euclid(4_294_967_296.0) as u32
+}
+
+/// ECMA-262 `ToInt32` (section 7.1.6) of a number: [`to_uint32`] read as a
+/// signed 32-bit integer. What the operands of `<<` become.
+pub(crate) fn to_int32(x: f64) -> i32 {
+    to_uint32(x) as i32
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn int32_conversions() {
+        assert_eq!(to_uint32(-1.0), u32::MAX);
+        assert_eq!(to_uint32(4_294_967_296.0 + 5.5), 5);
+        assert_eq!(to_uint32(f64::NAN), 0);
+        assert_eq!(to_uint32(f64::INFINITY), 0);
+        assert_eq!(to_int32(2_147_483_648.0), i32::MIN);
+        assert_eq!(to_int32(-2.9), -2);
+        assert_eq!(to_int32(1e20), 1_661_992_960);
+    }
 
     #[test]
     fn to_string_follows_ecmascript() {

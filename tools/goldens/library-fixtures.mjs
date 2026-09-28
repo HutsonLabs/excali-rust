@@ -21,12 +21,21 @@
 //   reseed(1). `output` is serializeLibraryAsJSON(items) exactly as upstream
 //   returns it (the items restoreLibraryItems gave, written with `source`);
 //   `error` the message of what the call threw. `file` names the input's
-//   path from the repository root when it is a fixture file.
-// - catalogue cases: { id, file, version, items, output_sha256 } for every
+//   path from the repository root when it is a fixture file. When arrow
+//   bindings reached the legacy migration, which needs element geometry
+//   (restore.ts:362-418, excali-core's RestoreEnv::migrate_legacy_binding,
+//   task ex-116), `geometry` counts the binding ends that did and
+//   `outputWithoutGeometry` is the output with that computation failing
+//   (upstream then drops the binding, restore.ts:423-427): the case run
+//   again with LinearElementEditor.getPointAtIndexGlobalCoordinates, the
+//   branch's first call, throwing.
+// - catalogue cases: { id, file, version, items, output_sha256, geometry?,
+//   output_sha256_without_geometry? } for every
 //   library of fixtures/libraries (fixtures/manifest.json, ex-003): the
 //   gzipped file is read, parsed as above with defaultStatus "published" (an
 //   import from libraries.excalidraw.com, library.ts:754-760), and the sha256
-//   of the serialized output recorded with the item count.
+//   of the serialized output recorded with the item count, and
+//   as for parse cases the output without geometry.
 // - merge cases: { id, local, other, output }: parseLibraryJSON of the two
 //   inputs (each after reseed(1)), mergeLibraryItems(local, other), written
 //   with serializeLibraryAsJSON.
@@ -57,6 +66,7 @@ export { parseLibraryJSON } from "./packages/excalidraw/data/blob";
 export { serializeLibraryAsJSON } from "./packages/excalidraw/data/json";
 export { mergeLibraryItems, getLibraryItemsHash } from "./packages/excalidraw/data/library";
 export { reseed } from "./packages/common/src/random";
+export { LinearElementEditor } from "./packages/element/src/linearElementEditor";
 `;
 
 // blob.ts and library.ts import browser and React code (file dialogs, image
@@ -298,6 +308,32 @@ const parseCases = () => [
     ]),
   },
   {
+    // A binding saved before bindings had a mode, to an element of the
+    // item: migrated with geometry (restore.ts:362-418).
+    id: "elements-legacy-binding-migrated",
+    input: v2([
+      item("i", [
+        el("box"),
+        el("arr", {
+          type: "arrow",
+          index: "a1",
+          x: 150,
+          y: 45,
+          width: 80,
+          height: 0,
+          points: [
+            [0, 0],
+            [80, 0],
+          ],
+          startBinding: { elementId: "box", focus: 0, gap: 5 },
+          endBinding: null,
+          startArrowhead: null,
+          endArrowhead: "arrow",
+        }),
+      ]),
+    ]),
+  },
+  {
     id: "elements-text-and-freedraw",
     input: v2([
       item("i", [
@@ -425,8 +461,35 @@ const runParse = (up, c) => {
     out.output = up.serializeLibraryAsJSON(parse(up, input, c.defaultStatus));
   } catch (error) {
     out.error = error.message;
+    return out;
+  }
+  const probe = withoutGeometry(up, () => up.serializeLibraryAsJSON(parse(up, input, c.defaultStatus)));
+  if (probe.ends) {
+    out.geometry = probe.ends;
+    out.outputWithoutGeometry = probe.result;
   }
   return out;
+};
+
+/**
+ * Runs fn with the legacy binding migration failing at its first geometry
+ * call (see header): { ends, result }, ends the number of binding ends that
+ * reached it.
+ */
+const withoutGeometry = (up, fn) => {
+  const editor = up.LinearElementEditor;
+  const original = editor.getPointAtIndexGlobalCoordinates;
+  let ends = 0;
+  editor.getPointAtIndexGlobalCoordinates = () => {
+    ends++;
+    throw new Error("geometry probe");
+  };
+  try {
+    const result = fn();
+    return { ends, result };
+  } finally {
+    editor.getPointAtIndexGlobalCoordinates = original;
+  }
 };
 
 const sha256 = (text) => createHash("sha256").update(text, "utf8").digest("hex");
@@ -435,13 +498,19 @@ const runCatalogue = (up, file) => {
   const input = readInput({ file });
   const items = parse(up, input, "published");
   const output = up.serializeLibraryAsJSON(items);
-  return {
+  const out = {
     id: file.replace(/^fixtures\/libraries\//, "").replace(/\.excalidrawlib\.gz$/, ""),
     file,
     version: JSON.parse(input).version,
     items: items.length,
     output_sha256: sha256(output),
   };
+  const probe = withoutGeometry(up, () => up.serializeLibraryAsJSON(parse(up, input, "published")));
+  if (probe.ends) {
+    out.geometry = probe.ends;
+    out.output_sha256_without_geometry = sha256(probe.result);
+  }
+  return out;
 };
 
 const runMerge = (up, c) => {

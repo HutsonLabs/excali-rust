@@ -20,11 +20,11 @@ use std::io::Read;
 
 use excali_core::element::{Element, ElementBase, ElementKind};
 use excali_core::library::{
-    hash_elements_version, hash_string, is_valid_library, library_items_hash,
-    merge_library_items, parse_library_json, restore_library_items, serialize_library_as_json,
-    LibraryError, LibraryItem, LibraryItemStatus, MIME_TYPE_EXCALIDRAWLIB,
+    hash_elements_version, hash_string, is_valid_library, library_items_hash, merge_library_items,
+    parse_library_json, restore_library_items, serialize_library_as_json, LibraryError,
+    LibraryItem, LibraryItemStatus, MIME_TYPE_EXCALIDRAWLIB,
 };
-use excali_core::restore::TestEnv;
+use excali_core::restore::{BindingEnd, LegacyBinding, LegacyBindingRequest, RestoreEnv, TestEnv};
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 
@@ -77,6 +77,12 @@ fn sha256(text: &str) -> String {
 
 /// Every `parse` case: the items `parseLibraryJSON` gives, written by
 /// `serializeLibraryAsJSON` byte for byte, or the error it throws.
+///
+/// `TestEnv` has no element geometry, so a legacy arrow binding whose
+/// target exists is dropped (ex-116); cases that reach that migration are
+/// compared with upstream's output when the migration fails
+/// (`outputWithoutGeometry`), and `legacy_binding_migration_goes_through_the_env`
+/// checks the migrated form.
 #[test]
 fn parse_matches_upstream() {
     let f = fixture();
@@ -87,7 +93,8 @@ fn parse_matches_upstream() {
         let input = case["input"].as_str().expect("input");
         let default_status = status(case["defaultStatus"].as_str().expect("defaultStatus"));
         let result = parse(input, default_status);
-        match (&case["output"], &case["error"]) {
+        let expected = case.get("outputWithoutGeometry").unwrap_or(&case["output"]);
+        match (expected, &case["error"]) {
             (Value::String(output), _) => {
                 let items = result.unwrap_or_else(|e| panic!("{id}: {e}"));
                 assert_eq!(
@@ -114,22 +121,129 @@ fn parse_matches_upstream() {
 /// Every library of the catalogue (`fixtures/libraries`, 232 files, 70 of
 /// version 1 and 162 of version 2): parsed as an import from
 /// libraries.excalidraw.com (`"published"`), written back, and hashed.
+///
+/// 51 of them hold arrow bindings saved before bindings had a `mode`
+/// (1,245 binding ends), which upstream migrates with element geometry;
+/// `TestEnv` has none (ex-116), so those are compared with upstream's
+/// output when the migration fails. One more, `aarondiel/logic-gates`,
+/// holds 24 lines whose `strokeWidth` is the string `"3"`: restore keeps
+/// it, the typed model reads numbers only, and those lines are dropped (see
+/// `excali_core::library`).
 #[test]
 fn catalogue_matches_upstream() {
     let f = fixture();
     let cases = f["catalogue"].as_array().expect("catalogue cases");
     assert_eq!(cases.len(), 232);
     let mut versions = [0; 3];
+    let (mut with_geometry, mut ends) = (0, 0);
     for case in cases {
         let id = case["id"].as_str().expect("id");
         let text = repo_file(case["file"].as_str().expect("file"));
-        let items = parse(&text, LibraryItemStatus::Published).unwrap_or_else(|e| panic!("{id}: {e}"));
-        assert_eq!(items.len() as u64, case["items"].as_u64().expect("items"), "{id}");
+        let items =
+            parse(&text, LibraryItemStatus::Published).unwrap_or_else(|e| panic!("{id}: {e}"));
         let output = serialize_library_as_json(&items, source(&f));
-        assert_eq!(sha256(&output), case["output_sha256"].as_str().expect("sha"), "{id}");
         versions[case["version"].as_u64().expect("version") as usize] += 1;
+        if id == "aarondiel/logic-gates" {
+            assert_logic_gates_lines_dropped(&text, &items);
+            continue;
+        }
+        assert_eq!(
+            items.len() as u64,
+            case["items"].as_u64().expect("items"),
+            "{id}"
+        );
+        let expected = match case.get("output_sha256_without_geometry") {
+            Some(sha) => {
+                with_geometry += 1;
+                ends += case["geometry"].as_u64().expect("geometry");
+                sha
+            }
+            None => &case["output_sha256"],
+        };
+        assert_eq!(sha256(&output), expected.as_str().expect("sha"), "{id}");
     }
     assert_eq!(versions, [0, 70, 162]);
+    assert_eq!((with_geometry, ends), (51, 1245));
+}
+
+/// `aarondiel/logic-gates`: every element but the lines with a string
+/// `strokeWidth` is kept, and the file holds no legacy binding.
+fn assert_logic_gates_lines_dropped(text: &str, items: &[LibraryItem]) {
+    let f = fixture();
+    let case = f["catalogue"]
+        .as_array()
+        .expect("catalogue")
+        .iter()
+        .find(|c| c["id"] == "aarondiel/logic-gates")
+        .expect("case");
+    assert!(case.get("geometry").is_none());
+    assert_eq!(case["items"], json!(items.len()));
+    let raw: Value = serde_json::from_str(text).expect("json");
+    let mut string_widths = 0;
+    let mut kept_ids = Vec::new();
+    for item in raw["libraryItems"].as_array().expect("libraryItems") {
+        for e in item["elements"].as_array().expect("elements") {
+            if e["strokeWidth"].is_string() {
+                string_widths += 1;
+            } else if e["isDeleted"] != json!(true) {
+                kept_ids.push(e["id"].as_str().expect("id").to_owned());
+            }
+        }
+    }
+    assert_eq!(string_widths, 24);
+    let ids: Vec<String> = items
+        .iter()
+        .flat_map(|i| i.elements.iter().map(|e| e.base.id.clone()))
+        .collect();
+    assert_eq!(ids, kept_ids);
+}
+
+/// The legacy binding of `elements-legacy-binding-migrated`, answered by an
+/// environment with upstream's `mode` and `fixedPoint`, gives upstream's
+/// output.
+#[test]
+fn legacy_binding_migration_goes_through_the_env() {
+    struct Geometry(TestEnv);
+    impl RestoreEnv for Geometry {
+        fn now(&mut self) -> f64 {
+            self.0.now()
+        }
+        fn random_id(&mut self) -> String {
+            self.0.random_id()
+        }
+        fn random_integer(&mut self) -> f64 {
+            self.0.random_integer()
+        }
+        fn migrate_legacy_binding(
+            &mut self,
+            request: LegacyBindingRequest<'_>,
+        ) -> Option<LegacyBinding> {
+            assert_eq!(request.end, BindingEnd::Start);
+            assert_eq!(request.bound_element["id"], json!("box"));
+            Some(LegacyBinding {
+                mode: json!("orbit"),
+                fixed_point: json!([0.5001, 0.5001]),
+            })
+        }
+    }
+    let f = fixture();
+    let case = f["parse"]
+        .as_array()
+        .expect("parse")
+        .iter()
+        .find(|c| c["id"] == "elements-legacy-binding-migrated")
+        .expect("case");
+    assert_eq!(case["geometry"], json!(1));
+    let items = parse_library_json(
+        case["input"].as_str().expect("input"),
+        LibraryItemStatus::Unpublished,
+        &mut Geometry(TestEnv::default()),
+    )
+    .expect("parses");
+    assert_eq!(
+        serialize_library_as_json(&items, source(&f)),
+        case["output"].as_str().expect("output")
+    );
 }
 
 /// Every `merge` case: `mergeLibraryItems(local, other)` of the two parsed
@@ -139,10 +253,16 @@ fn merge_matches_upstream() {
     let f = fixture();
     for case in f["merge"].as_array().expect("merge cases") {
         let id = case["id"].as_str().expect("id");
-        let local = parse(case["local"].as_str().expect("local"), LibraryItemStatus::Unpublished)
-            .expect("local parses");
-        let other = parse(case["other"].as_str().expect("other"), LibraryItemStatus::Unpublished)
-            .expect("other parses");
+        let local = parse(
+            case["local"].as_str().expect("local"),
+            LibraryItemStatus::Unpublished,
+        )
+        .expect("local parses");
+        let other = parse(
+            case["other"].as_str().expect("other"),
+            LibraryItemStatus::Unpublished,
+        )
+        .expect("other parses");
         let merged = merge_library_items(&local, &other);
         assert_eq!(
             serialize_library_as_json(&merged, source(&f)),
@@ -158,8 +278,11 @@ fn hash_matches_upstream() {
     let f = fixture();
     for case in f["hash"].as_array().expect("hash cases") {
         let id = case["id"].as_str().expect("id");
-        let items = parse(case["input"].as_str().expect("input"), LibraryItemStatus::Unpublished)
-            .expect("parses");
+        let items = parse(
+            case["input"].as_str().expect("input"),
+            LibraryItemStatus::Unpublished,
+        )
+        .expect("parses");
         assert_eq!(
             f64::from(library_items_hash(&items)),
             case["hash"].as_f64().expect("hash"),
@@ -175,7 +298,9 @@ fn hash_matches_upstream() {
 /// and creation time.
 #[test]
 fn upstream_v1_fixture_parses() {
-    let text = repo_file("fixtures/upstream/packages/excalidraw/tests/fixtures/fixture_library.excalidrawlib");
+    let text = repo_file(
+        "fixtures/upstream/packages/excalidraw/tests/fixtures/fixture_library.excalidrawlib",
+    );
     let items = parse(&text, LibraryItemStatus::Unpublished).expect("parses");
     assert_eq!(items.len(), 1);
     let item = &items[0];
@@ -190,7 +315,10 @@ fn upstream_v1_fixture_parses() {
     assert!(!map.contains_key("strokeSharpness"));
     assert!(!map.contains_key("boundElementIds"));
     assert_eq!(map["boundElements"], json!([]));
-    assert_eq!(element.base.index.as_ref().map(|i| i.0.as_str()), Some("a0"));
+    assert_eq!(
+        element.base.index.as_ref().map(|i| i.0.as_str()),
+        Some("a0")
+    );
     // Key order of the migrated item (restore.ts:1389-1394).
     let keys: Vec<String> = item.to_map().keys().cloned().collect();
     assert_eq!(keys, ["status", "elements", "id", "created"]);
@@ -203,8 +331,13 @@ fn catalogue_v1_and_v2_files_parse() {
     assert_eq!(raw["version"], json!(1));
     assert!(raw.get("library").is_some() && raw.get("libraryItems").is_none());
     let items = parse(&r, LibraryItemStatus::Published).expect("v1 parses");
-    assert_eq!(items.len(), raw["library"].as_array().expect("library").len());
-    assert!(items.iter().all(|i| i.status == LibraryItemStatus::Published));
+    assert_eq!(
+        items.len(),
+        raw["library"].as_array().expect("library").len()
+    );
+    assert!(items
+        .iter()
+        .all(|i| i.status == LibraryItemStatus::Published));
 
     let sticks = repo_file("fixtures/libraries/youritjang/stick-figures.excalidrawlib.gz");
     let raw: Value = serde_json::from_str(&sticks).expect("json");
@@ -242,7 +375,11 @@ fn serialized_library_parses_back_to_the_same_items() {
         let text = serialize_library_as_json(&items, "https://excalidraw.com");
         let again = parse(&text, LibraryItemStatus::Unpublished).expect("parses back");
         assert_eq!(again, items, "{rel}");
-        assert_eq!(serialize_library_as_json(&again, "https://excalidraw.com"), text, "{rel}");
+        assert_eq!(
+            serialize_library_as_json(&again, "https://excalidraw.com"),
+            text,
+            "{rel}"
+        );
     }
 }
 
@@ -261,7 +398,10 @@ fn valid_library_envelope() {
     assert!(!valid(json!(null)));
     assert!(!valid(json!([])));
     assert!(!valid(json!("excalidrawlib")));
-    assert_eq!(MIME_TYPE_EXCALIDRAWLIB, "application/vnd.excalidrawlib+json");
+    assert_eq!(
+        MIME_TYPE_EXCALIDRAWLIB,
+        "application/vnd.excalidrawlib+json"
+    );
 }
 
 fn rect(id: &str, nonce: f64) -> Element {
@@ -301,10 +441,19 @@ fn merge_dedupes_by_element_id_and_nonce_in_order() {
         item("C", vec![rect("c1", 4.0)]),
     ];
     let merged = merge_library_items(&local, &other);
-    assert_eq!(ids(&merged), ["A-nonce", "A-order", "A-prefix", "C", "A", "B"]);
+    assert_eq!(
+        ids(&merged),
+        ["A-nonce", "A-order", "A-prefix", "C", "A", "B"]
+    );
     // Only the local items are compared against: duplicates within the
     // other list are all added.
-    let twice = merge_library_items(&[], &[item("C", vec![rect("c1", 4.0)]), item("C2", vec![rect("c1", 4.0)])]);
+    let twice = merge_library_items(
+        &[],
+        &[
+            item("C", vec![rect("c1", 4.0)]),
+            item("C2", vec![rect("c1", 4.0)]),
+        ],
+    );
     assert_eq!(ids(&twice), ["C", "C2"]);
     assert!(merge_library_items(&local, &[]) == local);
 }
@@ -319,13 +468,20 @@ fn restore_items_from_a_value() {
         3
     ]);
     let mut env = TestEnv::default();
-    let restored = restore_library_items(Some(&items), LibraryItemStatus::Published, &mut env).expect("restores");
+    let restored = restore_library_items(Some(&items), LibraryItemStatus::Published, &mut env)
+        .expect("restores");
     assert_eq!(ids(&restored), ["id0", "keep"]);
     assert_eq!(restored[1].name.as_deref(), Some("Diamond"));
     assert_eq!(restored[1].created, 5.0);
-    assert!(restored.iter().all(|i| i.status == LibraryItemStatus::Published));
+    assert!(restored
+        .iter()
+        .all(|i| i.status == LibraryItemStatus::Published));
     // `undefined` is the default parameter, `[]`.
-    assert!(restore_library_items(None, LibraryItemStatus::Unpublished, &mut env).expect("restores").is_empty());
+    assert!(
+        restore_library_items(None, LibraryItemStatus::Unpublished, &mut env)
+            .expect("restores")
+            .is_empty()
+    );
     // `null` is not iterable.
     assert_eq!(
         restore_library_items(Some(&Value::Null), LibraryItemStatus::Unpublished, &mut env)
@@ -357,7 +513,11 @@ fn elements_the_typed_model_cannot_read_are_dropped() {
     .to_string();
     let items = parse(&text, LibraryItemStatus::Unpublished).expect("parses");
     assert_eq!(ids(&items), ["i"]);
-    let element_ids: Vec<&str> = items[0].elements.iter().map(|e| e.base.id.as_str()).collect();
+    let element_ids: Vec<&str> = items[0]
+        .elements
+        .iter()
+        .map(|e| e.base.id.as_str())
+        .collect();
     assert_eq!(element_ids, ["ok"]);
 }
 
@@ -375,7 +535,9 @@ fn library_item_codec_round_trip() {
         "name": "Box",
         "extra": {"k": [1, 2]}
     });
-    let Value::Object(raw) = raw else { unreachable!() };
+    let Value::Object(raw) = raw else {
+        unreachable!()
+    };
     let item = LibraryItem::from_map(raw.clone()).expect("reads");
     assert_eq!(item.id, "5");
     assert_eq!(item.status, LibraryItemStatus::Unpublished);
@@ -385,7 +547,10 @@ fn library_item_codec_round_trip() {
     let back = item.to_map();
     assert_eq!(back, raw);
     let keys: Vec<&String> = back.keys().collect();
-    assert_eq!(keys, ["2", "elements", "id", "status", "created", "name", "extra"]);
+    assert_eq!(
+        keys,
+        ["2", "elements", "id", "status", "created", "name", "extra"]
+    );
 
     // A changed field is written from the model.
     let mut changed = item.clone();
@@ -395,7 +560,12 @@ fn library_item_codec_round_trip() {
     assert_eq!(changed.to_map()["id"], json!("item"));
 
     // Built in Rust: upstream's `LibraryItem` key order (types.ts:652-660).
-    let built = LibraryItem::new("n", LibraryItemStatus::Unpublished, vec![rect("a", 1.0)], 9.0);
+    let built = LibraryItem::new(
+        "n",
+        LibraryItemStatus::Unpublished,
+        vec![rect("a", 1.0)],
+        9.0,
+    );
     let keys: Vec<String> = built.to_map().keys().cloned().collect();
     assert_eq!(keys, ["id", "status", "elements", "created"]);
 
