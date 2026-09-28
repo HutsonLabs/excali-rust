@@ -134,8 +134,9 @@ pub fn convex_hull<S: Space>(points: &[Point<S>]) -> Vec<Point<S>> {
         return points.to_vec();
     }
 
-    // Array.prototype.sort semantics: stable, and no panic when NaN
-    // coordinates make the comparator inconsistent.
+    // Array.prototype.sort as V8 runs it: stable, no panic when NaN or
+    // infinite coordinates make the comparator inconsistent, and then the
+    // same permutation as V8 (goldens/js-sort.json).
     let mut sorted = points.to_vec();
     crate::js::sort(
         &mut sorted,

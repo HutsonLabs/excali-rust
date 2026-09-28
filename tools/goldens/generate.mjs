@@ -28,6 +28,7 @@ import {
   roughGoldens,
 } from "./fixtures.mjs";
 import { format } from "./lib/format.mjs";
+import { jsSortCases, jsSortResult } from "./jssort.mjs";
 import { mathCases } from "./math.mjs";
 import { loadUpstream, readJson, REPO_ROOT, TOOL_DIR, verifyUpstream } from "./lib/upstream.mjs";
 
@@ -145,6 +146,12 @@ const buildGoldens = (up) => {
     description:
       "packages/math/src (all but curve.ts and pca.ts): math[fn](...args) = result. Points, vectors, segments, lines, triangles, rectangles and ranges are arrays; an ellipse is { center, halfWidth, halfHeight }.",
     cases: mathCases().map(mathCase(up)),
+  });
+  files.push({
+    name: "js-sort.json",
+    description:
+      "Array.prototype.sort (V8 TimSort) with a comparator that can answer NaN: kind sort is [0..n).sort((i, j) => values[i] - values[j]); kind convexHull is packages/math/src/polygon.ts convexHull(points) as indices into points. Non-finite inputs are the strings NaN, Infinity, -Infinity.",
+    cases: jsSortCases().map((c) => ({ ...c, result: jsSortResult(up, c) })),
   });
   return files;
 };

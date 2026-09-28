@@ -88,3 +88,22 @@ test("math.json reproduces upstream's own math tests (packages/math/tests)", () 
   // point.test.ts
   assert.deepEqual(call("pointRotateRads", [10, 20], [20, 30], Math.PI / 2), [30, 20]);
 });
+
+test("js-sort.json pins V8's order for inconsistent comparators", () => {
+  const cases = golden("js-sort.json").cases;
+  const sorts = cases.filter((c) => c.kind === "sort");
+  const hulls = cases.filter((c) => c.kind === "convexHull");
+  const nonFinite = (v) => typeof v === "string";
+  // Most cases must actually make the comparator answer NaN.
+  assert.ok(sorts.filter((c) => c.values.some(nonFinite)).length >= 100);
+  assert.ok(hulls.every((c) => c.points.flat().some(nonFinite)));
+  // Lengths either side of V8's small-array (8) and min-run (64) cutoffs.
+  const lengths = new Set(sorts.map((c) => c.values.length));
+  for (const n of [5, 8, 63, 64, 65, 257]) assert.ok(lengths.has(n), `no sort of length ${n}`);
+  for (const c of sorts) {
+    assert.deepEqual([...c.result].sort((a, b) => a - b), [...c.values.keys()], `${c.id}: not a permutation`);
+  }
+  for (const c of hulls) {
+    assert.ok(c.result.every((i) => Number.isInteger(i) && i >= 0 && i < c.points.length), c.id);
+  }
+});

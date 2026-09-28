@@ -305,7 +305,9 @@ mod types {
     #[test]
     fn js_sort_is_stable_and_total_safe() {
         // Consistent comparator: the same order as a stable std sort, over
-        // lengths on both sides of the insertion-sort cutoff.
+        // lengths on both sides of V8's small-array (< 8) and min-run (64)
+        // cutoffs. The NaN-mixed permutations are pinned against V8 itself
+        // in tests/js_sort.rs.
         let mut seed: u64 = 0x9e37_79b9_7f4a_7c15;
         for len in 0..200 {
             let items: Vec<(i32, usize)> = (0..len)
@@ -324,7 +326,8 @@ mod types {
         let mut v: Vec<usize> = (0..100).rev().collect();
         js::sort(&mut v, |_, _| f64::NAN);
         assert_eq!(v, (0..100).rev().collect::<Vec<_>>());
-        // Mixed NaN: still a permutation of the input.
+        // Mixed NaN: still a permutation of the input (which one is
+        // checked against V8 in tests/js_sort.rs).
         let mut w: Vec<f64> = (0..100)
             .map(|i| {
                 if i % 4 == 0 {
@@ -349,9 +352,11 @@ mod types {
     #[test]
     fn hulls_of_points_with_nan_or_infinite_coordinates_do_not_panic() {
         // Upstream sorts with Array.prototype.sort, which never throws when
-        // the comparator answers NaN (polygon.ts convexHull); it just returns
-        // some order. Rust's slice sort may abort on an inconsistent
-        // comparator, so the port must not hand it one.
+        // the comparator answers NaN (polygon.ts convexHull); it returns
+        // TimSort's order. Rust's slice sort may abort on an inconsistent
+        // comparator, so the port must not hand it one. This only checks
+        // that nothing panics; tests/js_sort.rs checks the hulls themselves
+        // against upstream's.
         let mut seed: u64 = 0x2545_f491_4f6c_dd1d;
         let mut next = || {
             seed ^= seed << 13;
@@ -373,7 +378,7 @@ mod types {
                 })
                 .collect();
             let hull = convex_hull(&cloud);
-            // NaN crosses never pop, as upstream: each chain keeps n - 1.
+            // A chain pops only on cross <= 0, so each keeps at most n - 1.
             assert!(hull.len() <= 2 * cloud.len());
             let _ = simplify_convex_polygon(&hull, 0.4);
             let _ = simplify_convex_polygon(&cloud, 0.4);

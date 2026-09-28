@@ -217,4 +217,5 @@ export const ALL_FILES = [
   ...ELEMENT_FILES,
   "freehand.json",
   "math.json",
+  "js-sort.json",
 ];

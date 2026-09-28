@@ -53,6 +53,7 @@ on an arm64 machine only.
 | `elements-iframe-like.json` | `modifyIframeLikeForRoughOptions` placeholders and defaults | ex-208 |
 | `freehand.json` | `getStrokePoints` and `getStroke` with Excalidraw's options and the library defaults | ex-213 |
 | `math.json` | every `packages/math/src` export except `curve.ts` and `pca.ts`, called on fixed and Park-Miller-random inputs (`math.mjs`): `{ id, fn, args, result }` | ex-201 |
+| `js-sort.json` | V8's `Array.prototype.sort` (TimSort) permutation when the comparator answers NaN, and `convexHull` on points with NaN or infinite coordinates (`jssort.mjs`) | ex-201 |
 | `manifest.json` | upstream commit, package versions, case count and sha256 per file | ex-217 |
 
 rough.js's `dots` fill is not included. Its filler jitters every dot with
@@ -82,6 +83,11 @@ Every file is `{ "description", "cases": [...] }` and every case has a unique
 - **freehand cases:** `{ id, points, options, strokePoints, outline }`.
   `options.easing` is a name: `easeOutSine` is `sin(t·π/2)` (upstream
   `shape.ts:1241`) and `linear` is `t`.
+- **js-sort cases:** `{ id, kind: "sort", pattern, values, result }` (the
+  call was `[0..n).sort((i, j) => values[i] - values[j])`) or `{ id, kind:
+  "convexHull", points, result }`; `result` is indices into the input. JSON
+  has no NaN or infinity, so those inputs are the strings `"NaN"`,
+  `"Infinity"` and `"-Infinity"`.
 
 Numbers are full-precision doubles written in ECMAScript's shortest
 round-trip form. Parse them exactly; in Rust, use serde_json's

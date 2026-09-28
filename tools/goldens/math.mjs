@@ -10,7 +10,7 @@
 // (Math.random is disabled while generating), so the file is byte-stable.
 
 /** Park-Miller minimal standard, 48271 (the same generator as rough.js). */
-const rng = (seed) => {
+export const rng = (seed) => {
   let s = seed;
   return () => {
     s = Math.imul(48271, s) & 0x7fffffff;
