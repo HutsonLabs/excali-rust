@@ -23,8 +23,6 @@
 use serde_json::{Map, Number, Value};
 use std::fmt;
 
-use crate::json;
-
 /// A JavaScript `TypeError`, with V8's message.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeError(pub String);
@@ -75,16 +73,7 @@ pub(crate) fn nullish_or(
     }
 }
 
-/// `Number::toString(x)` (section 6.1.6.1.20), non-finite values included.
-pub(crate) fn number_to_string(x: f64) -> String {
-    if x.is_nan() {
-        "NaN".to_owned()
-    } else if x.is_infinite() {
-        if x > 0.0 { "Infinity" } else { "-Infinity" }.to_owned()
-    } else {
-        json::js_number(x)
-    }
-}
+pub(crate) use crate::json::number_to_string;
 
 /// `String(value)`: `ToString` (section 7.1.17) of a JSON value, `None`
 /// being `undefined`. An object converts through `ToPrimitive`: with its

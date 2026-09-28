@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-208 · Shape construction: rectangle (adaptive radius path), diamond (rounded C corners), ellipse (curveFitting 1), iframe defaults
+
+`excali-scene` now builds the rough.js drawables for rectangles, iframes, embeddables, diamonds and ellipses as upstream's `_generateElementShape` does: the adaptive-radius Q path for rounded rectangles, rounded diamond corners as C curves from `getDiamondPoints`, ellipses with curveFitting 1, and the `modifyIframeLikeForRoughOptions` defaults. `getCornerRadius` matches upstream's table (proportional 0.25, adaptive 32 with cutoff), and the element goldens for all five types pass. PR: [#30](https://github.com/HutsonLabs/excali-rust/pull/30).
+
 ## 2026-09-28 · ex-213 · excali-freehand: perfect-freehand 1.2.0 port (variable width)
 
 `excali-freehand` now ports perfect-freehand 1.2.0 statement by statement: stroke points, outline points, `getStroke` and the stroke radius, plus upstream's `getVariableWidthFreedrawOutline` preset (size strokeWidth*4.25, thinning 0.6, smoothing 0.5, sine ease-out). Stroke points match all 51 freehand goldens exactly, including 22 new edge cases for tapers, caps, pressures and reversals, and the outlines match all 36 variable-width freedraw elements. PR: [#29](https://github.com/HutsonLabs/excali-rust/pull/29).

@@ -279,6 +279,18 @@ pub(crate) fn js_number(x: f64) -> String {
     format!("{sign}{body}")
 }
 
+/// `Number::toString(x)` (ECMA-262 §6.1.6.1.20), non-finite values
+/// included: what `String(x)` and a template literal's `${x}` write.
+pub fn number_to_string(x: f64) -> String {
+    if x.is_nan() {
+        "NaN".to_owned()
+    } else if x.is_infinite() {
+        if x > 0.0 { "Infinity" } else { "-Infinity" }.to_owned()
+    } else {
+        js_number(x)
+    }
+}
+
 /// Shortest decimal digits `d1..dk` and exponent `e` with
 /// `x == d1.d2..dk × 10^e` after rounding to f64, for finite `x > 0`.
 ///
