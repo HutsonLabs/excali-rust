@@ -62,16 +62,28 @@
 //! [`DisplayList::replay`] walks the tree and hands a backend's [`Painter`]
 //! each draw with its absolute matrix, alpha and resolved colour, so
 //! backends share one reading of these rules.
+//!
+//! # Documents
+//!
+//! An SVG export also has a document around the drawing ([`SvgDocument`]:
+//! its size, the embedded scene, the frame clip paths, the fonts to inline
+//! and the background), computed from the elements by
+//! `excali_scene::export`. Numbers are printed as JavaScript prints them
+//! ([`number_to_string`], [`to_fixed`]).
 
 mod css_color;
+mod document;
 mod image;
+mod number;
 mod paint;
 mod path;
 mod replay;
 mod text;
 mod transform;
 
+pub use document::{FontFaceSource, FrameClip, SvgDocument, SvgPayload};
 pub use image::{ImageFilter, ImageItem, Rect};
+pub use number::{number_to_string, to_fixed};
 pub use paint::{Color, Dash, LineCap, LineJoin, Rgba, Stroke};
 pub use path::{FillRule, Path, PathCommand};
 pub use replay::{PaintState, Painter};

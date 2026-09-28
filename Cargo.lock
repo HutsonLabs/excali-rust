@@ -285,6 +285,7 @@ dependencies = [
 name = "excali-math"
 version = "26.9.1"
 dependencies = [
+ "libm",
  "serde_json",
 ]
 
@@ -316,6 +317,7 @@ dependencies = [
  "excali-freehand",
  "excali-math",
  "excali-rough",
+ "excali-text",
  "serde_json",
 ]
 

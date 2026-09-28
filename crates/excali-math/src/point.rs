@@ -67,8 +67,8 @@ pub fn point_rotate_rads<S: Space>(point: Point<S>, center: Point<S>, angle: Rad
     let (x, y) = (point.x, point.y);
     let (cx, cy) = (center.x, center.y);
     point_from(
-        (x - cx) * angle.cos() - (y - cy) * angle.sin() + cx,
-        (x - cx) * angle.sin() + (y - cy) * angle.cos() + cy,
+        (x - cx) * js::cos(angle) - (y - cy) * js::sin(angle) + cx,
+        (x - cx) * js::sin(angle) + (y - cy) * js::cos(angle) + cy,
     )
 }
 

@@ -43,13 +43,27 @@ fn elements(scene: &Value) -> Vec<Element> {
         .collect()
 }
 
+/// The fixture's numbers; a non-finite one is its `String()`.
 fn numbers(value: &Value) -> Vec<f64> {
     value
         .as_array()
         .unwrap()
         .iter()
-        .map(|v| v.as_f64().unwrap())
+        .map(|v| match v.as_str() {
+            Some("Infinity") => f64::INFINITY,
+            Some("-Infinity") => f64::NEG_INFINITY,
+            Some("NaN") => f64::NAN,
+            _ => v.as_f64().unwrap(),
+        })
         .collect()
+}
+
+/// Equal as `Object.is` compares numbers: NaN equals NaN.
+fn same(a: &[f64], b: &[f64]) -> bool {
+    a.len() == b.len()
+        && a.iter()
+            .zip(b)
+            .all(|(x, y)| x == y || (x.is_nan() && y.is_nan()))
 }
 
 fn frame_rendering(value: &Value) -> Option<FrameRendering> {
@@ -96,7 +110,7 @@ fn element_absolute_coords_match_upstream() {
         for (element, expected) in elements.iter().zip(scene["coords"].as_array().unwrap()) {
             count += 1;
             let got = get_element_absolute_coords(element, &map, false);
-            if got.to_vec() != numbers(expected) {
+            if !same(&got, &numbers(expected)) {
                 failures.push(format!(
                     "{} {}: {got:?} != {expected}",
                     scene["name"], element.base.id
@@ -116,7 +130,7 @@ fn element_bounds_match_upstream() {
         let map = ElementsMap::new(&elements);
         for (element, expected) in elements.iter().zip(scene["bounds"].as_array().unwrap()) {
             let got = get_element_bounds(element, &map);
-            if got.to_vec() != numbers(expected) {
+            if !same(&got, &numbers(expected)) {
                 failures.push(format!(
                     "{} {}: {got:?} != {expected}",
                     scene["name"], element.base.id

@@ -73,6 +73,15 @@ From `packages/element/src/shape.ts:195-260` (research: rendering section 1):
 
 SVG output must reproduce upstream's document: `<!-- svg-source:excalidraw -->`, `<metadata>` payload, `<defs>` with a `clipPath` per frame (`rx 8`), `<style class="style-fonts">` with subsetted `@font-face` rules, background `<rect>`, then one `<g stroke-linecap="round" transform="translate(ox oy) rotate(deg cx cy)">` per element. Numbers are written with two decimals (`MAX_DECIMALS_FOR_SVG_EXPORT = 2`). The golden for this is `packages/excalidraw/tests/scene/__snapshots__/export.test.ts.snap`.
 
+The document around the elements (ex-406) is split along the display-list boundary. `excali_scene::export::svg_document` computes it from the elements as upstream's `exportToSvg` does (`scene/export.ts:293-470`). The canvas is the common bounds of the root elements and the frame name labels, plus the padding, or the exported frame alone with no padding. Bounds follow `getElementBounds`, including rough.js curve extremes for lines and arrows and arrow labels at their `labelPosition`. The embedded scene is `serializeAsJSON(…, "local")` through the payload codec. Each frame gets a clip rectangle, and the font faces come from `generateFontFaceDeclarations`. `excali_svg::export_to_svg` writes that document as the DOM nodes upstream creates, and `outerHTML` serializes them with the HTML fragment serializer. Every number is printed as JavaScript prints it; a rough.js path has two decimals (`excali_svg::path::rough_path_data`).
+
+`tools/goldens/svg-export.mjs` runs upstream's `exportToSvg` under jsdom 22.1.0, the DOM of upstream's own test suite. It records 29 scenes: the document before the elements, and the element bounds, frame labels and canvas size behind it. The port reproduces all of them byte for byte (`crates/excali-svg/tests/document.rs`, `crates/excali-scene/tests/export_bounds.rs`). The generator's own test checks its scenes against upstream's vitest snapshot: the same root, comment, metadata, style block and font family order, and the same embedded scene apart from the export source.
+
+Two differences remain:
+
+- **Font content.** Upstream subsets each face with HarfBuzz in a worker. `excali_svg::FontFiles` inlines the vendored file whole. That draws the same glyphs in a larger document; ex-408 decides whether to subset.
+- **Math.** Rotations use `excali_math::js::{sin, cos}` (fdlibm through `libm`), because V8's `Math.sin`/`Math.cos` and macOS libm differ in the last bit, for example at `sin(4)`.
+
 PNG export: canvas = common bounds + 2 × 10 padding, times `exportScale`; no grid; background optional; scene payload in a `tEXt` chunk.
 
 ## Text: trust the file, then measure the same way

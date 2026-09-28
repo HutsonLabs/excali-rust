@@ -211,7 +211,7 @@ const linear = (up) => [
       [0, 0],
       [-90, 70],
     ],
-    startArrowhead: "dot",
+    startArrowhead: "circle",
     endArrowhead: "arrow",
     elbowed: false,
   }),
@@ -544,20 +544,38 @@ const scenes = (up) => {
 const plain = (value) => JSON.parse(JSON.stringify(value));
 
 /**
- * The shell: the root with its attributes and the nodes exportToSvg appends
- * before renderSceneToSvg (comment, metadata, defs, background rect).
+ * The shell: a copy of the root exportToSvg made just before it renders the
+ * elements (the probe PATCH inserts), so it holds the root's attributes,
+ * the comment, metadata, defs and background rect, and nothing the element
+ * renderer adds to them (image symbols go into defs). Its nodes must also
+ * be where the finished document has them.
  */
-const shell = (svg, hasBackground) => {
-  const count = 3 + (hasBackground ? 1 : 0);
-  const nodes = [...svg.childNodes].slice(0, count);
-  const kinds = nodes.map((n) => (n.nodeType === 8 ? "#comment" : n.nodeName));
+const shell = (svg, captured, hasBackground) => {
+  if (!captured) throw new Error("exportToSvg did not reach renderSceneToSvg");
+  const kinds = [...captured.childNodes].map((n) => (n.nodeType === 8 ? "#comment" : n.nodeName));
   const expected = ["#comment", "metadata", "defs", ...(hasBackground ? ["rect"] : [])];
   if (JSON.stringify(kinds) !== JSON.stringify(expected)) {
     throw new Error(`unexpected document shell ${kinds.join(", ")}`);
   }
-  const root = svg.cloneNode(false);
-  for (const node of nodes) root.appendChild(node.cloneNode(true));
-  return root.outerHTML;
+  for (const [i, node] of [...captured.childNodes].entries()) {
+    const final = svg.childNodes[i];
+    if (node.nodeName !== final.nodeName || (node.nodeName !== "defs" && !node.isEqualNode(final))) {
+      throw new Error(`document shell node ${i} changed while rendering`);
+    }
+  }
+  return captured.outerHTML;
+};
+
+/**
+ * Hands a copy of the root to globalThis.__svgExportShell right before
+ * exportToSvg renders the elements (export.ts:475).
+ */
+const PATCH = {
+  "packages/excalidraw/scene/export": (source) => {
+    const anchor = "  const rsvg = rough.svg(svgRoot);";
+    if (!source.includes(anchor)) throw new Error("export.ts changed: no rough.svg(svgRoot)");
+    return source.replace(anchor, `  globalThis.__svgExportShell?.(svgRoot.cloneNode(true));\n${anchor}`);
+  },
 };
 
 const pathOf = (p) => ({
@@ -566,6 +584,12 @@ const pathOf = (p) => ({
   strokeWidth: p.getAttribute("stroke-width"),
   fill: p.getAttribute("fill"),
 });
+
+/**
+ * Numbers for JSON: a non-finite one (a line with no curves has infinite
+ * extremes) as its String(), "Infinity", "-Infinity" or "NaN".
+ */
+const numbers = (values) => values.map((v) => (Number.isFinite(v) ? v : String(v)));
 
 const labelOf = (e) => ({
   text: e.text,
@@ -590,7 +614,12 @@ const run = async (up, scene) => {
     ? { ...(exportingFrame ? { exportingFrame } : {}), ...(scene.opts.skipInliningFonts ? { skipInliningFonts: true } : {}) }
     : undefined;
 
+  let captured = null;
+  globalThis.__svgExportShell = (root) => {
+    captured = root;
+  };
   const svg = await up.exportToSvg(elements, appState, files, opts);
+  delete globalThis.__svgExportShell;
 
   // What exportToSvg computes before building the document, recomputed with
   // its own (exposed) helpers on the same inputs.
@@ -614,7 +643,7 @@ const run = async (up, scene) => {
       appState,
       files,
       opts: scene.opts ?? null,
-      shell: shell(svg, Boolean(appState.exportBackground && appState.viewBackgroundColor)),
+      shell: shell(svg, captured, Boolean(appState.exportBackground && appState.viewBackgroundColor)),
       // The rough.js paths RoughSVG.draw writes with fixedDecimalPlaceDigits
       // MAX_DECIMALS_FOR_SVG_EXPORT (staticSvgScene.ts:60-74), in document
       // order: the two-decimal numbers of the upstream test's scene.
@@ -625,9 +654,9 @@ const run = async (up, scene) => {
       elements,
       appState,
       exportingFrame: exportingFrame?.id ?? null,
-      coords: elements.map((e) => up.getElementAbsoluteCoords(e, elementsMap)),
-      bounds: elements.map((e) => up.getElementBounds(e, elementsMap)),
-      commonBounds: up.getCommonBounds(elements),
+      coords: elements.map((e) => numbers(up.getElementAbsoluteCoords(e, elementsMap))),
+      bounds: elements.map((e) => numbers(up.getElementBounds(e, elementsMap))),
+      commonBounds: numbers(up.getCommonBounds(elements)),
       frameRendering,
       labels: elementsForRender.filter((e) => !inputs.has(e)).map(labelOf),
       rootElements: sized.filter((e) => inputs.has(e)).map((e) => e.id),
@@ -683,6 +712,7 @@ const build = async (upstream) => {
     expose: {
       "packages/excalidraw/scene/export": ["getCanvasSize", "getFrameRenderingConfig", "prepareElementsForRender"],
     },
+    patch: PATCH,
     define: {
       "import.meta.env.MODE": '"test"',
       "import.meta.env.PKG_NAME": "undefined",

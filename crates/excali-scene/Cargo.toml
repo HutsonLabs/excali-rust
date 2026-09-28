@@ -13,6 +13,11 @@ excali-core = { path = "../excali-core" }
 excali-freehand = { path = "../excali-freehand" }
 excali-math = { path = "../excali-math" }
 excali-rough = { path = "../excali-rough" }
+# The font faces an SVG export inlines (excali_text::font_assets) and the
+# frame name font (excali_text::font_metadata).
+excali-text = { path = "../excali-text" }
+# The app state and files an SVG export embeds (excali_scene::export).
+serde_json = { workspace = true }
 
 # `goldens`: turns on excali-rough's golden harness (ex-217), so
 # `cargo test --workspace --features goldens` names the parity gate the same
@@ -20,12 +25,10 @@ excali-rough = { path = "../excali-rough" }
 [features]
 goldens = ["excali-rough/goldens"]
 
-# serde_json reads tests/fixtures/*.json and goldens/*.json in the parity
-# tests, and the element goldens go through excali-rough's golden harness;
-# neither reaches the library.
+# The element goldens go through excali-rough's golden harness, which does
+# not reach the library.
 [dev-dependencies]
 excali-rough = { path = "../excali-rough", features = ["goldens"] }
-serde_json = { workspace = true }
 
 [lints]
 workspace = true

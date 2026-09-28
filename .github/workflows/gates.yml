@@ -292,7 +292,11 @@ jobs:
   # serializeAsJSON on every scene-bearing file of its test fixtures, and
   # elbow-routing-fixtures.mjs --check for excali-editor's
   # elbow-routing.json (ex-211), upstream's own updateElbowArrowPoints on
-  # seeded tables of unbound, bound and fixed-segment elbow arrows.
+  # seeded tables of unbound, bound and fixed-segment elbow arrows, and
+  # svg-export.mjs --check for excali-scene's export-bounds.json and
+  # excali-svg's svg-export.json (ex-406), upstream's own exportToSvg under
+  # jsdom 22.1.0 (the document before the elements, element bounds, frame
+  # labels and canvas size) on scenes of every element kind.
   # Runs on arm64: V8's float results for some shapes differ in the last bits
   # between x64 and arm64, and the committed goldens are the arm64 output
   # (macOS and Linux arm64 agree byte for byte).
@@ -341,3 +345,5 @@ jobs:
         run: node tools/goldens/document-fixtures.mjs --check
       - name: excali-editor elbow routing fixture matches upstream's updateElbowArrowPoints
         run: node tools/goldens/elbow-routing-fixtures.mjs --check
+      - name: excali-scene export bounds and excali-svg document fixtures match upstream's exportToSvg
+        run: node tools/goldens/svg-export.mjs --check

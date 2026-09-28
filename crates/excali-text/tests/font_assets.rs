@@ -17,7 +17,7 @@ use excali_core::element::{Element, ElementBase, ElementKind, FontFamily, TextFi
 use excali_text::font_assets::{
     contains_cjk, elements_font_loads, faces_to_load, font_face_declarations, parse_unicode_range,
     registered_families, registered_family, registered_family_named, scene_font_loads,
-    ui_font_faces, FontFaceAsset, FontFormat, CJK_RANGES, FULL_UNICODE_RANGE,
+    ui_font_faces, FontFaceAsset, FontFormat, ASSETS_FALLBACK_URL, CJK_RANGES, FULL_UNICODE_RANGE,
 };
 use serde_json::Value;
 
@@ -127,6 +127,30 @@ fn registry_is_upstreams_in_its_order() {
             }
         }
     }
+}
+
+#[test]
+fn fallback_urls_are_upstreams_asset_urls() {
+    // ExcalidrawFontFace.ASSETS_FALLBACK_URL (ExcalidrawFontFace.ts:11-15),
+    // the last url of every bundled face, which getContent answers when no
+    // url can be fetched
+    let fixture = fixture();
+    assert_eq!(
+        ASSETS_FALLBACK_URL,
+        fixture["assetsFallbackUrl"].as_str().unwrap()
+    );
+    let face = &registered_family(FontFamily::EXCALIFONT).unwrap().faces[0];
+    assert_eq!(
+        face.fallback_url(),
+        format!("{ASSETS_FALLBACK_URL}{}", face.upstream_file)
+    );
+    let liberation = &registered_family(FontFamily::LIBERATION_SANS)
+        .unwrap()
+        .faces[0];
+    assert_eq!(
+        liberation.fallback_url(),
+        "https://esm.sh/@excalidraw/excalidraw/dist/prod/Liberation/LiberationSans-Regular.woff2"
+    );
 }
 
 #[test]
