@@ -82,7 +82,10 @@ fn text_of(spec: &Value) -> String {
         return String::from_utf8(read_repo(f.as_str().unwrap())).expect("fixture is UTF-8");
     }
     if let Some(r) = spec.get("repeat") {
-        return r.as_str().unwrap().repeat(spec["count"].as_u64().unwrap() as usize);
+        return r
+            .as_str()
+            .unwrap()
+            .repeat(spec["count"].as_u64().unwrap() as usize);
     }
     if let Some(x) = spec.get("xorshift_text") {
         let alphabet: Vec<&str> = x["alphabet"]
@@ -129,8 +132,16 @@ fn check_bytes(label: &str, got: &[u8], golden: &Value) {
             .unwrap();
         assert_eq!(got, &want[..], "{label}");
     }
-    assert_eq!(got.len() as u64, golden["len"].as_u64().unwrap(), "{label}: length");
-    assert_eq!(sha256_hex(got), golden["sha256"].as_str().unwrap(), "{label}: sha256");
+    assert_eq!(
+        got.len() as u64,
+        golden["len"].as_u64().unwrap(),
+        "{label}: length"
+    );
+    assert_eq!(
+        sha256_hex(got),
+        golden["sha256"].as_str().unwrap(),
+        "{label}: sha256"
+    );
 }
 
 fn check_text(label: &str, got: &str, golden: &Value) {
@@ -149,7 +160,11 @@ fn deflate_is_byte_identical_to_pako_for_text() {
     for case in cases("encode") {
         let name = case["name"].as_str().unwrap();
         let text = text_of(&case["input"]);
-        check_bytes(&format!("{name}: deflate"), &deflate(text.as_bytes()), &case["deflate"]);
+        check_bytes(
+            &format!("{name}: deflate"),
+            &deflate(text.as_bytes()),
+            &case["deflate"],
+        );
     }
 }
 
@@ -163,11 +178,19 @@ fn encode_output_is_identical_to_upstream() {
         assert!(compressed.compressed, "{name}");
         assert_eq!(compressed.version.as_deref(), Some("1"), "{name}");
         assert_eq!(compressed.encoding, "bstring", "{name}");
-        check_text(&format!("{name}: encode"), &compressed.to_json(), &case["encoded_json"]);
+        check_text(
+            &format!("{name}: encode"),
+            &compressed.to_json(),
+            &case["encoded_json"],
+        );
 
         let raw = encode(&text, false);
         assert!(!raw.compressed, "{name}");
-        check_text(&format!("{name}: encode (no compression)"), &raw.to_json(), &case["raw_json"]);
+        check_text(
+            &format!("{name}: encode (no compression)"),
+            &raw.to_json(),
+            &case["raw_json"],
+        );
     }
 }
 
@@ -178,11 +201,19 @@ fn encode_decode_round_trip() {
         let text = text_of(&case["input"]);
         for compress in [true, false] {
             let data = encode(&text, compress);
-            assert_eq!(decode(&data).unwrap(), text, "{name} (compress: {compress})");
+            assert_eq!(
+                decode(&data).unwrap(),
+                text,
+                "{name} (compress: {compress})"
+            );
             // Through JSON, as the PNG and SVG embeddings carry it.
             let parsed: EncodedData = serde_json::from_str(&data.to_json()).unwrap();
             assert_eq!(parsed, data, "{name} (compress: {compress})");
-            assert_eq!(decode(&parsed).unwrap(), text, "{name} (compress: {compress})");
+            assert_eq!(
+                decode(&parsed).unwrap(),
+                text,
+                "{name} (compress: {compress})"
+            );
         }
     }
 }
@@ -196,7 +227,11 @@ fn upstream_encoded_json_decodes_to_the_text() {
                 continue;
             };
             let data: EncodedData = serde_json::from_str(json.as_str().unwrap()).unwrap();
-            assert_eq!(decode(&data).unwrap(), text_of(&case["input"]), "{name}: {key}");
+            assert_eq!(
+                decode(&data).unwrap(),
+                text_of(&case["input"]),
+                "{name}: {key}"
+            );
         }
     }
 }
@@ -228,8 +263,8 @@ fn utf16_le(s: &str) -> Vec<u8> {
 fn decode_matches_upstream_on_every_wrapper() {
     for case in cases("decode") {
         let name = case["name"].as_str().unwrap();
-        let data: EncodedData = serde_json::from_value(case["data"].clone())
-            .unwrap_or_else(|e| panic!("{name}: {e}"));
+        let data: EncodedData =
+            serde_json::from_value(case["data"].clone()).unwrap_or_else(|e| panic!("{name}: {e}"));
         let result = &case["result"];
         let got = decode(&data);
         if let Some(want) = result.get("utf16") {
@@ -246,8 +281,16 @@ fn decode_matches_upstream_on_every_wrapper() {
                 assert_eq!(got, String::from_utf16_lossy(&units), "{name}");
             }
             let le = utf16_le(&got);
-            assert_eq!(le.len() as u64 / 2, want["len"].as_u64().unwrap(), "{name}: length");
-            assert_eq!(sha256_hex(&le), want["sha256"].as_str().unwrap(), "{name}: sha256");
+            assert_eq!(
+                le.len() as u64 / 2,
+                want["len"].as_u64().unwrap(),
+                "{name}: length"
+            );
+            assert_eq!(
+                sha256_hex(&le),
+                want["sha256"].as_str().unwrap(),
+                "{name}: sha256"
+            );
         } else if let Some(msg) = result.get("error") {
             let err = got.expect_err(name);
             assert_eq!(err.to_string(), msg.as_str().unwrap(), "{name}");
@@ -309,9 +352,15 @@ fn byte_string_helpers_follow_encode_ts() {
     assert!(bs.chars().zip(0u32..).all(|(c, i)| c as u32 == i));
     assert_eq!(byte_string_to_bytes(&bs), all);
     // byteStringToArrayBuffer: each UTF-16 code unit is stored in a Uint8Array.
-    assert_eq!(byte_string_to_bytes("\u{141}\u{2603}x\u{1F600}"), [0x41, 0x03, 0x78, 0x3d, 0x00]);
+    assert_eq!(
+        byte_string_to_bytes("\u{141}\u{2603}x\u{1F600}"),
+        [0x41, 0x03, 0x78, 0x3d, 0x00]
+    );
     // byteStringToString: TextDecoder("utf-8"), BOM stripped, U+FFFD on errors.
-    assert_eq!(byte_string_to_string(&to_byte_string("é中😀".as_bytes())), "é中😀");
+    assert_eq!(
+        byte_string_to_string(&to_byte_string("é中😀".as_bytes())),
+        "é中😀"
+    );
     assert_eq!(byte_string_to_string("\u{ef}\u{bb}\u{bf}a"), "a");
     assert_eq!(byte_string_to_string("\u{ff}"), "\u{fffd}");
     assert_eq!(byte_string_to_string(""), "");
@@ -322,7 +371,9 @@ fn inflate_to_string_uses_pakos_utf8_decoder() {
     // pako's buf2string does not validate continuation bytes and keeps a BOM.
     let z = deflate(&[0xef, 0xbb, 0xbf, b'h', b'i']);
     assert_eq!(inflate_to_string(&z).unwrap(), "\u{feff}hi");
-    let z = deflate(&[b'a', 0xff, b'b', 0xc3, b'(', b'c', 0xe2, 0x82, b'd', 0xfe, b'A']);
+    let z = deflate(&[
+        b'a', 0xff, b'b', 0xc3, b'(', b'c', 0xe2, 0x82, b'd', 0xfe, b'A',
+    ]);
     assert_eq!(inflate_to_string(&z).unwrap(), "a\u{fffd}\u{2}d\u{6}A");
     assert_eq!(inflate(&[]), Err(InflateError::Incomplete));
 }

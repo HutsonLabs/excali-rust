@@ -8,5 +8,6 @@
 pub mod constants;
 pub mod document;
 pub mod element;
+pub mod encode;
 pub mod json;
 mod layout;
