@@ -28,7 +28,7 @@
 use std::collections::HashMap;
 
 use excali_scene::display::{
-    Clip, DisplayList, FillRule, ImageItem, LineCap, LineJoin, PaintState, Painter, Path,
+    Clip, Color, DisplayList, FillRule, ImageItem, LineCap, LineJoin, PaintState, Painter, Path,
     PathCommand, Rect, Rgba, Stroke, TextRun, Transform,
 };
 pub use tiny_skia;
@@ -83,10 +83,19 @@ pub fn render_scaled<I: ImageStore, T: TextRasterizer>(
     images: &I,
     text: &mut T,
 ) {
-    let base = PaintState {
-        transform: Transform::scale(scale, scale),
-        alpha: 1.0,
-    };
+    let base = PaintState::new(Transform::scale(scale, scale), 1.0);
+    list.replay_from(&mut RasterPainter::new(pixmap, images, text), base);
+}
+
+/// Paint `list` into `pixmap` from `base`: its matrix, alpha and the
+/// current styles a draw whose colour the canvas would ignore paints in.
+pub fn render_from<I: ImageStore, T: TextRasterizer>(
+    list: &DisplayList,
+    pixmap: &mut Pixmap,
+    base: PaintState,
+    images: &I,
+    text: &mut T,
+) {
     list.replay_from(&mut RasterPainter::new(pixmap, images, text), base);
 }
 
@@ -221,7 +230,7 @@ fn clip_image_rects(source: Rect, dest: Rect, width: f64, height: f64) -> Option
 }
 
 impl<I: ImageStore, T: TextRasterizer> Painter for RasterPainter<'_, I, T> {
-    fn fill(&mut self, path: &Path, c: Rgba, rule: FillRule, state: &PaintState) {
+    fn fill(&mut self, path: &Path, _: &Color, c: Rgba, rule: FillRule, state: &PaintState) {
         let (Some(c), Some(path)) = (color(c, state.alpha), skia_path(path)) else {
             return;
         };

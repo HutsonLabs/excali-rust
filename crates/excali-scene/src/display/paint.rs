@@ -1,14 +1,15 @@
 //! Colours and stroke styles, with the canvas's value rules.
 
-use excali_core::color::TinyColor;
 use excali_core::json::number_to_string;
 
 /// A CSS colour as upstream holds it: the stroke, background or constant
 /// string, dark-filtered already when the scene draws dark.
 ///
-/// The text is kept as given so the SVG writer can print it unchanged
-/// (upstream's export writes `stroke="#1e1e1e"`); raster and canvas
-/// backends receive the resolved [`Rgba`] from [`crate::display::Painter`].
+/// The text is kept as given. Upstream assigns it to `fillStyle` and
+/// `strokeStyle` verbatim, so the Canvas 2D backend does the same and the
+/// browser parses it; the SVG writer prints it unchanged (upstream's export
+/// writes `stroke="#1e1e1e"`); backends without a browser receive it
+/// resolved by [`Color::rgba`] from [`crate::display::Painter`].
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Color(String);
 
@@ -22,23 +23,14 @@ impl Color {
         &self.0
     }
 
-    /// The colour's components as tinycolor 1.6.0 reads it (upstream's own
-    /// colour parser, `excali_core::color`), or `None` when it is not a
-    /// colour, such as `""` (roughjs's `o.fill || ''`) or `"none"`. The
-    /// display list paints nothing in a value that is not a colour.
+    /// The colour as the canvas reads a `fillStyle` or `strokeStyle`
+    /// assignment of it (the CSS Color 4 parser in `display/css_color.rs`,
+    /// checked against Chrome), or `None` when the canvas ignores the
+    /// assignment, such as for `""` (roughjs's `o.fill || ''`), `"none"` or
+    /// `"blue-ish"`. An ignored assignment leaves the context's current
+    /// style, which [`crate::display::DisplayList::replay`] substitutes.
     pub fn rgba(&self) -> Option<Rgba> {
-        let tc = TinyColor::parse(&self.0);
-        if !tc.is_valid() {
-            return None;
-        }
-        let (r, g, b, a) = tc.to_rgb();
-        // to_rgb rounds each component to an integer in 0..=255.
-        Some(Rgba {
-            r: r as u8,
-            g: g as u8,
-            b: b as u8,
-            a,
-        })
+        super::css_color::parse(&self.0)
     }
 }
 
@@ -65,9 +57,17 @@ pub struct Rgba {
 }
 
 impl Rgba {
+    /// Opaque black, a fresh context's `fillStyle` and `strokeStyle`.
+    pub const BLACK: Rgba = Rgba {
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 1.0,
+    };
+
     /// `rgba(r, g, b, a)`, with the alpha printed as JavaScript prints
-    /// numbers: the string the Canvas 2D backend assigns to `fillStyle` and
-    /// `strokeStyle`.
+    /// numbers: how the Canvas 2D backend sets a resolved colour, such as a
+    /// base state's current style (`excali_canvas2d::paint_from`).
     pub fn css(&self) -> String {
         format!(
             "rgba({}, {}, {}, {})",

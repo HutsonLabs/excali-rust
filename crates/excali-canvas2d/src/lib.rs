@@ -12,8 +12,10 @@
 //! `globalAlpha`, its style properties, the path and the draw call,
 //! `restore()`. A clip is `save()`, `setTransform`, the path, `clip(rule)`,
 //! and its pop is the matching `restore()`, so clips nest as the list's
-//! groups do. Colours arrive resolved (`Rgba::css`), so the browser and the
-//! raster backend read every colour the same way.
+//! groups do. Colours are assigned as the display list holds them, the
+//! element's own string, as upstream assigns `element.strokeColor`
+//! (`renderElement.ts`), so the browser's CSS parser decides; an
+//! assignment it ignores leaves the style the context had before the draw.
 //!
 //! Targets: wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-scene`.
@@ -21,8 +23,8 @@
 mod web;
 
 use excali_scene::display::{
-    Clip, DisplayList, FillRule, ImageItem, PaintState, Painter, Path, PathCommand, Rect, Rgba,
-    Stroke, TextRun, Transform,
+    Clip, Color, DisplayList, FillRule, ImageItem, PaintState, Painter, Path, PathCommand, Rect,
+    Rgba, Stroke, TextRun, Transform,
 };
 
 pub use web::WebCanvas;
@@ -69,19 +71,32 @@ pub trait Context2d {
     fn draw_image(&mut self, id: &str, source: &Rect, dest: &Rect);
 }
 
-/// Paint `list` into `ctx` from a fresh state (identity matrix, alpha 1).
+/// Paint `list` into a fresh `ctx` (identity matrix, alpha 1, black
+/// styles).
 pub fn paint<C: Context2d>(list: &DisplayList, ctx: &mut C) {
     list.replay(&mut CanvasPainter { ctx });
 }
 
-/// Paint `list` into `ctx` scaled by `device_pixel_ratio`, as
+/// Paint `list` into a fresh `ctx` scaled by `device_pixel_ratio`, as
 /// `bootstrapCanvas` does before drawing (`renderer/helpers.ts:73-127`).
 pub fn paint_scaled<C: Context2d>(list: &DisplayList, ctx: &mut C, device_pixel_ratio: f64) {
-    let base = PaintState {
-        transform: Transform::scale(device_pixel_ratio, device_pixel_ratio),
-        alpha: 1.0,
-    };
+    let base = PaintState::new(
+        Transform::scale(device_pixel_ratio, device_pixel_ratio),
+        1.0,
+    );
     list.replay_from(&mut CanvasPainter { ctx }, base);
+}
+
+/// Paint `list` into `ctx` from `base`: inside one `save()`/`restore()`,
+/// set `fillStyle` and `strokeStyle` to the base styles, which a draw
+/// whose colour the browser ignores keeps, then paint every draw with its
+/// matrix and alpha taken from `base` down.
+pub fn paint_from<C: Context2d>(list: &DisplayList, ctx: &mut C, base: PaintState) {
+    ctx.save();
+    ctx.set_fill_style(&base.fill_style.css());
+    ctx.set_stroke_style(&base.stroke_style.css());
+    list.replay_from(&mut CanvasPainter { ctx }, base);
+    ctx.restore();
 }
 
 /// The [`Painter`] that turns each draw into context calls.
@@ -121,17 +136,17 @@ impl<C: Context2d> CanvasPainter<'_, C> {
 }
 
 impl<C: Context2d> Painter for CanvasPainter<'_, C> {
-    fn fill(&mut self, path: &Path, color: Rgba, rule: FillRule, state: &PaintState) {
+    fn fill(&mut self, path: &Path, color: &Color, _: Rgba, rule: FillRule, state: &PaintState) {
         self.begin(state);
-        self.ctx.set_fill_style(&color.css());
+        self.ctx.set_fill_style(color.as_str());
         self.trace(path);
         self.ctx.fill(rule.as_css());
         self.ctx.restore();
     }
 
-    fn stroke(&mut self, path: &Path, stroke: &Stroke, color: Rgba, state: &PaintState) {
+    fn stroke(&mut self, path: &Path, stroke: &Stroke, _: Rgba, state: &PaintState) {
         self.begin(state);
-        self.ctx.set_stroke_style(&color.css());
+        self.ctx.set_stroke_style(stroke.color.as_str());
         self.ctx.set_line_width(stroke.effective_width());
         self.ctx.set_line_cap(stroke.cap.as_css());
         self.ctx.set_line_join(stroke.join.as_css());
@@ -161,10 +176,10 @@ impl<C: Context2d> Painter for CanvasPainter<'_, C> {
         self.ctx.restore();
     }
 
-    fn text(&mut self, run: &TextRun, color: Rgba, state: &PaintState) {
+    fn text(&mut self, run: &TextRun, _: Rgba, state: &PaintState) {
         self.begin(state);
         self.ctx.set_font(&run.font.css());
-        self.ctx.set_fill_style(&color.css());
+        self.ctx.set_fill_style(run.color.as_str());
         self.ctx.set_text_align(run.align.as_css());
         self.ctx.set_direction(run.direction.as_css());
         self.ctx.fill_text(&run.text, run.x, run.y);

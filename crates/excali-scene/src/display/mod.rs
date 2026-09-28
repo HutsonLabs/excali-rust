@@ -35,7 +35,10 @@
 //! - **Transforms** compose as `ctx.transform` does
 //!   ([`Transform::concat`]): a group's matrix applies to its children
 //!   before the parent's. A group matrix with an infinite or NaN entry is
-//!   ignored, as `ctx.transform` ignores such arguments.
+//!   ignored as a whole, as `ctx.transform` ignores such arguments. The
+//!   canvas drops only the one call with the bad argument, so a producer
+//!   emits each canvas call as its own nested group (see
+//!   [`Group::transform`]).
 //! - **Opacity** is `globalAlpha`, multiplied through nested groups and
 //!   applied to each draw on its own (overlapping strokes in one element
 //!   darken where they cross, as upstream's rough strokes do). An opacity
@@ -43,9 +46,14 @@
 //!   assignment.
 //! - **Clips** are in the group's coordinate space after its transform and
 //!   intersect with the enclosing clips; they end with the group.
-//! - **Colours** are CSS strings kept verbatim ([`Color`]) and resolved with
-//!   upstream's colour parser (tinycolor); a draw whose colour does not
-//!   parse is not painted.
+//! - **Colours** are CSS strings kept verbatim ([`Color`]), as upstream
+//!   assigns them to `fillStyle` and `strokeStyle`. The Canvas 2D backend
+//!   hands the string to the browser; the others resolve it with the CSS
+//!   Color 4 parser the canvas uses ([`Color::rgba`], checked against
+//!   Chrome). An assignment the canvas ignores (`""`, `"none"`, a stored
+//!   `"blue-ish"`) leaves the current style, so the draw paints in it:
+//!   black on a fresh context, as upstream's element canvases are, or the
+//!   base state's [`PaintState::fill_style`] / [`PaintState::stroke_style`].
 //! - **Value rules** follow the canvas specification: [`Dash::new`] (odd
 //!   dash lists repeat, invalid ones draw solid), [`Stroke::effective_width`]
 //!   (a width of 0 or less draws 1), [`Path::canonical`] (implicit subpath
@@ -55,6 +63,7 @@
 //! each draw with its absolute matrix, alpha and resolved colour, so
 //! backends share one reading of these rules.
 
+mod css_color;
 mod image;
 mod paint;
 mod path;
@@ -94,7 +103,18 @@ pub enum DisplayItem {
 /// `globalAlpha`) and each frame's children (`staticScene.ts:165-189`).
 #[derive(Clone, Debug, PartialEq)]
 pub struct Group {
-    /// Multiplied into the parent's matrix (`ctx.transform`).
+    /// Multiplied into the parent's matrix (`ctx.transform`). When any
+    /// entry is infinite or NaN the whole matrix is ignored, as the canvas
+    /// ignores such a call.
+    ///
+    /// Upstream positions an element with separate calls,
+    /// `translate(cx, cy)` then `rotate(angle)` (`renderElement.ts`), and
+    /// the canvas drops only the call with the non-finite argument: an
+    /// element with a NaN angle still draws translated, unrotated. A single
+    /// group holding `translate(cx, cy) × rotate(NaN)` would drop the
+    /// translation too. Producers therefore emit one group per canvas call
+    /// (a group with the translation holding a group with the rotation), or
+    /// leave out only the non-finite factor, to keep upstream's result.
     pub transform: Transform,
     /// Multiplied into the parent's alpha; 1 leaves it unchanged.
     pub opacity: f64,
