@@ -348,6 +348,16 @@ class OwnerDecisionsOnTheSite(unittest.TestCase):
         rule = text.split("3. **Fallback rule.**", 1)[1].split("\n4. ", 1)[0]
         self.assertIn("choice of the port", rule)
 
+    def test_adr_004_verification_done(self):
+        # ex-306: every family verified at its source; the gate in
+        # scripts/gates/fonts.py checks the table row by row.
+        text = (CONTENT / "decisions" / "adr-004-fonts.md").read_text()
+        self.assertNotIn("verification pending", text)
+        table = text.split("## Verification table", 1)[1].split("\n## ", 1)[0]
+        self.assertNotIn("| pending |", table)
+        self.assertIn("ex-306", text.split("**Status.**", 1)[1].split("\n", 1)[0])
+        self.assertIn("scripts/gates/fonts.py", text)
+
     def test_adr_009_exists(self):
         self.assertTrue((CONTENT / "decisions" / "adr-009-calendar-versioning.md").exists())
 
