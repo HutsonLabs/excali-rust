@@ -18,7 +18,6 @@
 //! `@braintree/sanitize-url` 6.0.2) and [`normalized_dimensions`]
 //! (`getNormalizedDimensions`, `packages/element/src/sizeHelpers.ts:256-283`).
 
-mod js;
 mod url;
 
 #[cfg(test)]
@@ -29,6 +28,7 @@ use std::fmt;
 
 use crate::constants::DEFAULT_ELEMENT_PROPS;
 use crate::element::ElementType;
+use crate::js;
 use crate::json;
 
 /// Where restore gets what upstream draws from global state.
@@ -71,6 +71,11 @@ pub enum RestoreError {
     /// A truthy `link` that is not a string: `normalizeLink` calls
     /// `.trim()` on it (`restore.ts:491`, `url.ts:6`).
     LinkNotString,
+    /// A `width`, `height`, `x` or `y` that `getNormalizedDimensions`
+    /// compares or subtracts is an object (or an array holding one) with an
+    /// own `toString` key: `ToPrimitive` finds no callable method
+    /// (`sizeHelpers.ts:271-281`).
+    NoPrimitiveValue,
 }
 
 impl fmt::Display for RestoreError {
@@ -80,6 +85,7 @@ impl fmt::Display for RestoreError {
                 "element.boundElementIds.map is not a function"
             }
             RestoreError::LinkNotString => "link.trim is not a function",
+            RestoreError::NoPrimitiveValue => "Cannot convert object to primitive value",
         })
     }
 }
@@ -336,7 +342,7 @@ pub(crate) fn restore_encoded(
         base.set("customData", Some(custom.clone()));
     }
 
-    let dimensions = dimensions(&base);
+    let dimensions = dimensions(&base)?;
 
     let mut ret = JsObject::from_map(element);
     ret.spread(&base);
@@ -400,8 +406,9 @@ fn link(link: Option<&Value>) -> Result<Value, RestoreError> {
 
 /// `getNormalizedDimensions(base)` (`sizeHelpers.ts:256-283`) on JS values:
 /// `width < 0` and `Math.abs(width)` coerce with `ToNumber`, and so does
-/// `x - nextWidth`. Returns `{width, height, x, y}` in that order.
-fn dimensions(base: &JsObject) -> JsObject {
+/// `x - nextWidth`, and throw where that conversion does. Returns `{width,
+/// height, x, y}` in that order.
+fn dimensions(base: &JsObject) -> Result<JsObject, RestoreError> {
     let mut ret = JsObject::default();
     let field = |key: &str| base.entry(key).cloned().unwrap_or(None);
     ret.set("width", field("width"));
@@ -409,13 +416,16 @@ fn dimensions(base: &JsObject) -> JsObject {
     ret.set("x", field("x"));
     ret.set("y", field("y"));
     for (size_key, position_key) in [("width", "x"), ("height", "y")] {
-        let size = base.get(size_key).map_or(f64::NAN, js::to_number);
+        // The only TypeError ToNumber raises on a JSON value.
+        let to_number =
+            |key: &str| js::to_number(base.get(key)).map_err(|_| RestoreError::NoPrimitiveValue);
+        let size = to_number(size_key)?;
         if size < 0.0 {
             let next = size.abs();
-            let position = base.get(position_key).map_or(f64::NAN, js::to_number);
+            let position = to_number(position_key)?;
             ret.set(size_key, Some(js::number(next)));
             ret.set(position_key, Some(js::number(position - next)));
         }
     }
-    ret
+    Ok(ret)
 }

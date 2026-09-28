@@ -36,7 +36,7 @@ use crate::constants::{
     MAX_ZOOM, MIN_ZOOM, STATS_PANEL_ELEMENT_PROPERTIES, STATS_PANEL_GENERAL_STATS, STROKE_WIDTH,
 };
 use crate::element::{FontFamily, StrokeWidthKey};
-use crate::js::{self, number_value, truthy};
+use crate::js::{self, number, truthy};
 
 pub use crate::js::TypeError;
 
@@ -469,9 +469,9 @@ pub fn get_default_app_state(env: &AppStateEnv) -> AppState {
         ("currentItemEndArrowhead", json!("arrow")),
         ("currentItemFillStyle", serde_str(props.fill_style)),
         ("currentItemFontFamily", json!(FontFamily::DEFAULT.0)),
-        ("currentItemFontSize", number_value(DEFAULT_FONT_SIZE)),
-        ("currentItemOpacity", number_value(props.opacity)),
-        ("currentItemRoughness", number_value(props.roughness)),
+        ("currentItemFontSize", number(DEFAULT_FONT_SIZE)),
+        ("currentItemOpacity", number(props.opacity)),
+        ("currentItemRoughness", number(props.roughness)),
         ("currentItemStrokeVariability", json!("constant")),
         ("currentItemStartArrowhead", Value::Null),
         ("currentItemStrokeColor", json!(props.stroke_color)),
@@ -518,12 +518,12 @@ pub fn get_default_app_state(env: &AppStateEnv) -> AppState {
         ("penDetected", json!(false)),
         ("errorMessage", Value::Null),
         ("exportBackground", json!(true)),
-        ("exportScale", number_value(export_scale)),
+        ("exportScale", number(export_scale)),
         ("exportEmbedScene", json!(false)),
         ("exportWithDarkMode", json!(false)),
         ("fileHandle", Value::Null),
-        ("gridSize", number_value(DEFAULT_GRID_SIZE)),
-        ("gridStep", number_value(DEFAULT_GRID_STEP)),
+        ("gridSize", number(DEFAULT_GRID_SIZE)),
+        ("gridStep", number(DEFAULT_GRID_STEP)),
         ("gridModeEnabled", json!(false)),
         ("isBindingEnabled", json!(true)),
         ("bindingPreference", json!("enabled")),
@@ -573,7 +573,7 @@ pub fn get_default_app_state(env: &AppStateEnv) -> AppState {
         ("toast", Value::Null),
         ("viewBackgroundColor", json!(crate::constants::COLOR_WHITE)),
         ("zenModeEnabled", json!(false)),
-        ("zoom", json!({ "value": number_value(DEFAULT_ZOOM) })),
+        ("zoom", json!({ "value": number(DEFAULT_ZOOM) })),
         ("viewModeEnabled", json!(false)),
         ("showHyperlinkPopup", json!(false)),
         ("selectedLinearElement", Value::Null),
@@ -731,7 +731,7 @@ pub fn restore_app_state(
         _ => json!(false),
     };
     let active_tool = restore_active_tool(next.get("activeTool"), &defaults)?;
-    let zoom = json!({ "value": number_value(restored_zoom(supplied.get("zoom"))?) });
+    let zoom = json!({ "value": number(restored_zoom(supplied.get("zoom"))?) });
     let open_sidebar = match supplied.get("openSidebar") {
         Some(Value::String(_)) => json!({ "name": DEFAULT_SIDEBAR_NAME }),
         _ => next.get("openSidebar").cloned().unwrap_or(Value::Null),
@@ -742,7 +742,7 @@ pub fn restore_app_state(
             _ => default,
         };
         // getNormalizedGridSize / getNormalizedGridStep (scene/normalize.ts:11-17)
-        number_value(clamp(math::round(value), 1.0, 100.0))
+        number(clamp(math::round(value), 1.0, 100.0))
     };
     let grid_size = grid("gridSize", DEFAULT_GRID_SIZE);
     let grid_step = grid("gridStep", DEFAULT_GRID_STEP);
@@ -841,7 +841,7 @@ fn restore_font_top_picks(value: Option<&Value>) -> Value {
     if families.is_empty() {
         Value::Null
     } else {
-        Value::Array(families.into_iter().map(number_value).collect())
+        Value::Array(families.into_iter().map(number).collect())
     }
 }
 
@@ -954,9 +954,9 @@ fn restored_zoom(zoom: Option<&Value>) -> Result<f64, TypeError> {
         match zoom {
             Some(Value::Object(fields)) => match fields.get("value") {
                 Some(v) if !v.is_null() => v.clone(),
-                _ => number_value(DEFAULT_ZOOM),
+                _ => number(DEFAULT_ZOOM),
             },
-            _ => number_value(DEFAULT_ZOOM),
+            _ => number(DEFAULT_ZOOM),
         }
     };
     let multiplier = 10f64.powf(6.0);

@@ -18,7 +18,7 @@ use excali_math::js;
 use serde_json::{Map, Value};
 
 use crate::js::{
-    is_whitespace, number_to_string, parse_float, parse_float_value, parse_int_of_number,
+    is_whitespace_char, number_to_string, parse_float, parse_float_value, parse_int_of_number,
     string_to_number, to_string, truthy, TypeError,
 };
 
@@ -343,7 +343,7 @@ fn hsv_to_rgb(h: &Unit, s: &Unit, v: &Unit) -> (f64, f64, f64) {
 
 /// `stringInputToObject(color)` (`tinycolor.js:1065-1165`).
 fn string_input_to_object(color: &str) -> Option<Parsed> {
-    let lower = color.trim_matches(is_whitespace).to_lowercase();
+    let lower = color.trim_matches(is_whitespace_char).to_lowercase();
     let color = match named_color(&lower) {
         Some(hex) => hex,
         None if lower == "transparent" => {
@@ -475,7 +475,7 @@ fn match_units(s: &str, units: usize) -> Option<Vec<&str>> {
     let mut captures = Vec::with_capacity(units);
     for i in 0..units {
         let separator =
-            |c: char| is_whitespace(c) || c == '|' || if i == 0 { c == '(' } else { c == ',' };
+            |c: char| is_whitespace_char(c) || c == '|' || if i == 0 { c == '(' } else { c == ',' };
         let after = rest.trim_start_matches(separator);
         if after.len() == rest.len() {
             return None;
