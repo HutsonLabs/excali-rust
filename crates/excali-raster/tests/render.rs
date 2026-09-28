@@ -1212,15 +1212,21 @@ fn paths_past_a_quarter_of_the_f32_range_draw_nothing() {
             stroke: Stroke::new(Color::new("red"), 3.0),
         }
     };
-    let items = |h: f64| {
+    let thin = |path: Path, cap: LineCap, width: f64| DisplayItem::Stroke {
+        path,
+        stroke: Stroke::new(Color::new("red"), width).with_cap(cap),
+    };
+    // Hairlines of `width` in user space.
+    let items_of = |h: f64, width: f64| {
         vec![
-            hairline(line_and_quad(h), LineCap::Butt),
-            hairline(closed_with_huge_cubic(h), LineCap::Butt),
-            hairline(triangle(h), LineCap::Round),
+            thin(line_and_quad(h), LineCap::Butt, width),
+            thin(closed_with_huge_cubic(h), LineCap::Butt, width),
+            thin(triangle(h), LineCap::Round, width),
             fill(triangle(h), "red", FillRule::NonZero),
             wide(h),
         ]
     };
+    let items = |h: f64| items_of(h, 1.0);
     for (i, item) in items(8e37).into_iter().enumerate() {
         assert!(
             coverage(&draw(&list(vec![item]), 120, 120)) > 0,
@@ -1236,8 +1242,11 @@ fn paths_past_a_quarter_of_the_f32_range_draw_nothing() {
             );
         }
     }
-    // The bounds are the device path's: under a scale of 2, 5e37 is past.
-    for (i, item) in items(5e37).into_iter().enumerate() {
+    // The bounds are the device path's: under a scale of 2, 5e37 is past
+    // (the hairlines are 0.5 wide, 1 in device space, as Chrome draws
+    // them; a wider stroke's outline is the stroker's, whose points stay
+    // near the canvas).
+    for (i, item) in items_of(5e37, 0.5).into_iter().enumerate() {
         assert!(
             coverage(&draw(&list(vec![item.clone()]), 120, 120)) > 0,
             "{i}"
