@@ -11,9 +11,15 @@ use std::fmt;
 
 use excali_core::element::{Arrowhead, BoundElementType, Element, ElementKind, LocalPoint};
 use excali_math::{
-    degrees_to_radians, js, point_from, point_rotate_rads, Degrees, Global, Local, Point, Radians,
+    degrees_to_radians, js, line_segment, point_from, point_rotate_rads, Curve, Degrees, Global,
+    GlobalPoint, LineSegment, Local, Point, Radians,
 };
+use excali_rough::points_on_curve::points_on_bezier_curves;
 use excali_rough::{Drawable, Op, OpSetType};
+
+use crate::geometric_shape::{get_element_shape, GeometricShape};
+use crate::shape::ShapeError;
+use crate::utils::{deconstruct_diamond_element, deconstruct_rectanguloid_element, ElementOutline};
 
 /// `getDiamondPoints(element)` (`bounds.ts:522-535`): the diamond's
 /// vertices in element coordinates, `[topX, topY, rightX, rightY, bottomX,
@@ -689,4 +695,194 @@ pub fn get_min_max_xy_from_curve_path_ops(
         }
     }
     [min_x, min_y, max_x, max_y]
+}
+
+impl<'a> ElementsMap<'a> {
+    /// `elementsMap.values()`, in no particular order: callers only ask
+    /// whether any element matches.
+    pub fn values(&self) -> impl Iterator<Item = &'a Element> + '_ {
+        self.map.values().copied()
+    }
+}
+
+/// `pointInsideBoundsInclusive(p, bounds)` (`bounds.ts:1237-1244`).
+pub fn point_inside_bounds_inclusive(p: [f64; 2], bounds: Bounds) -> bool {
+    p[0] >= bounds[0] && p[0] <= bounds[2] && p[1] >= bounds[1] && p[1] <= bounds[3]
+}
+
+/// `boundsContainBounds(outer, inner)` (`bounds.ts:1260-1266`): every
+/// corner of `inner` inside `outer`, edges included.
+pub fn bounds_contain_bounds(outer: Bounds, inner: Bounds) -> bool {
+    [
+        [inner[0], inner[1]],
+        [inner[0], inner[3]],
+        [inner[2], inner[1]],
+        [inner[2], inner[3]],
+    ]
+    .into_iter()
+    .all(|p| point_inside_bounds_inclusive(p, outer))
+}
+
+/// `_isRectanguloidElement(element)` (`bounds.ts:422-437`).
+fn is_rectanguloid(element: &Element) -> bool {
+    match &element.kind {
+        ElementKind::Rectangle
+        | ElementKind::StickyNote(_)
+        | ElementKind::Image(_)
+        | ElementKind::Iframe
+        | ElementKind::Embeddable
+        | ElementKind::Frame(_)
+        | ElementKind::MagicFrame(_) => true,
+        ElementKind::Text(text) => text.container_id.as_deref().is_none_or(str::is_empty),
+        _ => false,
+    }
+}
+
+/// `pointsOnBezierCurves(curve, 10)` of one cubic curve.
+fn points_on_curve(c: Curve<Global>) -> Result<Vec<[f64; 2]>, ShapeError> {
+    points_on_bezier_curves(
+        &[
+            [c.0.x, c.0.y],
+            [c.1.x, c.1.y],
+            [c.2.x, c.2.y],
+            [c.3.x, c.3.y],
+        ],
+        10.0,
+        None,
+    )
+    .map_err(ShapeError::Path)
+}
+
+/// Consecutive points as segments.
+fn chain(points: &[[f64; 2]], place: impl Fn([f64; 2]) -> GlobalPoint) -> Vec<LineSegment<Global>> {
+    points
+        .windows(2)
+        .map(|w| line_segment(place(w[0]), place(w[1])))
+        .collect()
+}
+
+/// `getRotatedSides(sides, center, angle)` and `getSegmentsOnCurve(corner,
+/// center, angle)` (`bounds.ts:439-484`): an unrotated outline's sides and
+/// flattened corners, rotated about `center`, sides first.
+fn outline_segments(
+    outline: &ElementOutline,
+    center: GlobalPoint,
+    angle: Radians,
+) -> Result<Vec<LineSegment<Global>>, ShapeError> {
+    let rotate = |p: GlobalPoint| point_rotate_rads(p, center, angle);
+    let mut segments: Vec<LineSegment<Global>> = outline
+        .sides
+        .iter()
+        .map(|s| line_segment(rotate(s.0), rotate(s.1)))
+        .collect();
+    for &corner in &outline.corners {
+        let points = points_on_curve(corner)?;
+        segments.extend(chain(&points, |[x, y]| rotate(point_from(x, y))));
+    }
+    Ok(segments)
+}
+
+/// `getSegmentsOnEllipse(ellipse)` (`bounds.ts:486-509`): 90 chords
+/// between points at equal parameter steps, rotated, closed.
+fn ellipse_segments(element: &Element) -> Vec<LineSegment<Global>> {
+    let b = &element.base;
+    let center: GlobalPoint = point_from(b.x + b.width / 2.0, b.y + b.height / 2.0);
+    let a = b.width / 2.0;
+    let semi_b = b.height / 2.0;
+    let n = 90;
+    let delta_t = (PI * 2.0) / f64::from(n);
+    let points: Vec<GlobalPoint> = (0..n)
+        .map(|i| {
+            let t = f64::from(i) * delta_t;
+            let x = center.x + a * js::cos(t);
+            let y = center.y + semi_b * js::sin(t);
+            point_rotate_rads(point_from(x, y), center, Radians(b.angle.0))
+        })
+        .collect();
+    let mut segments: Vec<LineSegment<Global>> = points
+        .windows(2)
+        .map(|w| line_segment(w[0], w[1]))
+        .collect();
+    segments.push(line_segment(points[points.len() - 1], points[0]));
+    segments
+}
+
+/// `getElementLineSegments(element, elementsMap)` (`bounds.ts:299-420`):
+/// the element's outline as segments in scene coordinates, which the
+/// frame tests intersect.
+///
+/// - Lines and arrows not tested inside: each curve of the shape flattened
+///   by `pointsOnBezierCurves(curve, 10)`, joined within a curve (a line
+///   marked `polygon` joins across curves too).
+/// - Open freedraw: its polyline.
+/// - Rectangles, sticky notes, images, iframe-likes, frames and unbound
+///   text: the four sides and the four flattened corners of
+///   `deconstructRectanguloidElement`, rotated; diamonds likewise with
+///   `deconstructDiamondElement`.
+/// - Closed lines and freedraw, and text naming a container: the polygon's
+///   edges; a label of a line or arrow its box's four sides.
+/// - Ellipses: 90 chords.
+///
+/// Fails where building the shape of a line or arrow fails, or flattening
+/// a curve throws.
+pub fn get_element_line_segments(
+    element: &Element,
+    elements_map: &ElementsMap<'_>,
+) -> Result<Vec<LineSegment<Global>>, ShapeError> {
+    let shape = get_element_shape(element, elements_map)?;
+    let [x1, y1, x2, y2, cx, cy] = get_element_absolute_coords(element, elements_map, false);
+    let center: GlobalPoint = point_from(cx, cy);
+    let angle = Radians(element.base.angle.0);
+    let at = |[x, y]: [f64; 2]| -> GlobalPoint { point_from(x, y) };
+
+    let polygon = match shape {
+        GeometricShape::Polycurve(curves) => {
+            let points_on_curves = curves
+                .into_iter()
+                .map(points_on_curve)
+                .collect::<Result<Vec<_>, _>>()?;
+            let per_curve = match &element.kind {
+                ElementKind::Line(line) => !line.polygon,
+                ElementKind::Arrow(_) => true,
+                _ => false,
+            };
+            if per_curve {
+                return Ok(points_on_curves
+                    .iter()
+                    .flat_map(|points| chain(points, at))
+                    .collect());
+            }
+            let points: Vec<[f64; 2]> = points_on_curves.into_iter().flatten().collect();
+            return Ok(chain(&points, at));
+        }
+        GeometricShape::Polyline(segments) => return Ok(segments),
+        GeometricShape::Polygon(polygon) => Some(polygon),
+        GeometricShape::Ellipse(_) => None,
+    };
+    if is_rectanguloid(element) {
+        return outline_segments(&deconstruct_rectanguloid_element(element), center, angle);
+    }
+    if matches!(element.kind, ElementKind::Diamond) {
+        return outline_segments(&deconstruct_diamond_element(element), center, angle);
+    }
+    let Some(polygon) = polygon else {
+        return Ok(ellipse_segments(element));
+    };
+    if matches!(element.kind, ElementKind::Text(_)) {
+        let container = get_container_element(element, elements_map);
+        if container.is_some_and(|c| matches!(c.kind, ElementKind::Line(_) | ElementKind::Arrow(_)))
+        {
+            let p = |x: f64, y: f64| -> GlobalPoint { point_from(x, y) };
+            return Ok(vec![
+                line_segment(p(x1, y1), p(x2, y1)),
+                line_segment(p(x2, y1), p(x2, y2)),
+                line_segment(p(x2, y2), p(x1, y2)),
+                line_segment(p(x1, y2), p(x1, y1)),
+            ]);
+        }
+    }
+    Ok(polygon
+        .windows(2)
+        .map(|w| line_segment(w[0], w[1]))
+        .collect())
 }

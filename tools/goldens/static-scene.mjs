@@ -52,6 +52,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { format } from "./lib/format.mjs";
 import { installDom } from "./lib/recording-context.mjs";
@@ -249,6 +250,123 @@ const opacity = (up) => [
   up.newFrameElement({ id: "erasing-frame", x: 210, y: 90, width: 90, height: 90, seed: 46 }),
 ];
 
+/**
+ * Frame clipping (ex-403, clipElementToFrame, staticScene.ts:358-393, and
+ * shouldApplyFrameClip, frame.ts:911-972): a frame's children of every
+ * kind, clipped when they cross its edge or contain it, not when they sit
+ * inside it; grouped children outside the frame clipped by membership;
+ * children of a missing frame, elements without a frame, and a rotated
+ * magic frame whose clip stays unrotated.
+ */
+export const frameClip = (up) => {
+  const f = "clip-frame";
+  const [box, boxLabel] = bind(
+    up.newElement({ type: "rectangle", id: "fc-box", x: 250, y: 150, width: 90, height: 50, seed: 90, frameId: f }),
+    label(up, "fc-box-label", "boxed", { x: 265, y: 165, frameId: f }),
+  );
+  const [arrow, arrowLabel] = bind(
+    up.newArrowElement({ type: "arrow", id: "fc-arrow", x: 200, y: 60, seed: 91, frameId: f, points: [[0, 0], [80, -50], [160, -30]], endArrowhead: "arrow", elbowed: false }),
+    label(up, "fc-arrow-label", "arr", { frameId: f }),
+  );
+  return [
+    // bigger than the frame, behind it: contains it, clipped
+    up.newElement({ type: "rectangle", id: "fc-backdrop", x: 30, y: 30, width: 300, height: 220, seed: 70, frameId: f, backgroundColor: "#e9ecef", fillStyle: "solid" }),
+    up.newFrameElement({ id: f, x: 50, y: 40, width: 240, height: 160, seed: 71, name: "Clip" }),
+    up.newElement({ type: "rectangle", id: "fc-inside", x: 70, y: 60, width: 60, height: 40, seed: 72, frameId: f }),
+    up.newElement({ type: "rectangle", id: "fc-crossing", x: 240, y: 70, width: 90, height: 40, seed: 73, frameId: f, roundness: { type: 3 } }),
+    // inside the frame's box, rotated across its edge
+    up.newElement({ type: "rectangle", id: "fc-rotated", x: 150, y: 150, width: 120, height: 30, seed: 74, frameId: f, angle: 0.9 }),
+    up.newElement({ type: "ellipse", id: "fc-ellipse", x: 20, y: 90, width: 80, height: 50, seed: 75, frameId: f, angle: 0.3 }),
+    up.newElement({ type: "diamond", id: "fc-diamond", x: 150, y: 10, width: 70, height: 60, seed: 76, frameId: f, roundness: { type: 2 } }),
+    up.newElement({ type: "diamond", id: "fc-diamond-sharp", x: 140, y: 90, width: 40, height: 40, seed: 77, frameId: f }),
+    up.newLinearElement({ type: "line", id: "fc-line", x: 20, y: 180, seed: 78, frameId: f, points: [[0, 0], [60, -20], [90, 40]] }),
+    up.newLinearElement({ type: "line", id: "fc-line-round", x: 260, y: 20, seed: 79, frameId: f, roundness: { type: 2 }, points: [[0, 0], [40, 30], [70, -10]] }),
+    // closed lines with a background test their inside: polygon shapes
+    up.newLinearElement({ type: "line", id: "fc-loop", x: 270, y: 180, seed: 80, frameId: f, backgroundColor: "#b2f2bb", points: [[0, 0], [50, 10], [20, 45], [0, 0]] }),
+    up.newLinearElement({ type: "line", id: "fc-loop-round", x: 25, y: 20, seed: 81, frameId: f, roundness: { type: 2 }, backgroundColor: "#ffec99", points: [[0, 0], [50, 5], [30, 40], [0, 0]] }),
+    // a polygon line without a background: a polycurve joined across curves
+    { ...up.newLinearElement({ type: "line", id: "fc-polygon", x: 110, y: 185, seed: 82, frameId: f, points: [[0, 0], [40, 0], [20, 30], [0, 0]] }), polygon: true },
+    box,
+    boxLabel,
+    arrow,
+    arrowLabel,
+    up.newArrowElement({ type: "arrow", id: "fc-elbow", x: 230, y: 120, seed: 83, frameId: f, points: [[0, 0], [0, 40], [90, 40]], endArrowhead: "triangle", elbowed: true }),
+    up.newFreeDrawElement({ type: "freedraw", id: "fc-freedraw", x: 20, y: 130, seed: 84, frameId: f, points: [[0, 0], [20, -10], [45, 5], [60, 20]], simulatePressure: true }),
+    up.newFreeDrawElement({
+      type: "freedraw",
+      id: "fc-freedraw-loop",
+      x: 275,
+      y: 100,
+      seed: 85,
+      frameId: f,
+      backgroundColor: "#ffc9c9",
+      points: [[0, 0], [30, -5], [35, 25], [5, 30], [0, 0]],
+      simulatePressure: true,
+    }),
+    up.newTextElement({ id: "fc-text", x: 240, y: 45, text: "crossing text", seed: 86, frameId: f }),
+    up.newTextElement({ id: "fc-text-inside", x: 70, y: 110, text: "in", seed: 87, frameId: f }),
+    // a text naming a container that is not there: a polygon shape
+    { ...up.newTextElement({ id: "fc-text-orphan", x: 30, y: 150, text: "orphan", seed: 88, frameId: f }), containerId: "fc-missing" },
+    up.newImageElement({ type: "image", id: "fc-image", x: 260, y: 175, width: 50, height: 40, seed: 89, frameId: f, fileId: "file-png", status: "saved" }),
+    up.newIframeElement({ type: "iframe", id: "fc-iframe", x: 20, y: 180, width: 80, height: 50, seed: 92, frameId: f }),
+    up.newEmbeddableElement({ type: "embeddable", id: "fc-embed", x: 140, y: 180, width: 60, height: 40, seed: 93, frameId: f }),
+    // grouped: outside the frame, in a group with a member inside
+    up.newElement({ type: "rectangle", id: "fc-grouped-out", x: 320, y: 60, width: 30, height: 30, seed: 94, frameId: f, groupIds: ["fc-group"] }),
+    up.newElement({ type: "rectangle", id: "fc-grouped-in", x: 90, y: 120, width: 30, height: 20, seed: 95, frameId: f, groupIds: ["fc-group"] }),
+    // grouped, outside, not the frame's child
+    up.newElement({ type: "rectangle", id: "fc-grouped-free", x: 320, y: 110, width: 30, height: 30, seed: 96, groupIds: ["fc-free-group"] }),
+    up.newElement({ type: "rectangle", id: "fc-grouped-free-2", x: 100, y: 70, width: 20, height: 20, seed: 97, groupIds: ["fc-free-group"] }),
+    // no frame, crossing: never clipped
+    up.newElement({ type: "rectangle", id: "fc-no-frame", x: 20, y: 60, width: 50, height: 20, seed: 98 }),
+    // a frame that is not in the scene
+    up.newElement({ type: "rectangle", id: "fc-missing-frame", x: 100, y: 30, width: 40, height: 20, seed: 99, frameId: "fc-nowhere" }),
+    // a rotated magic frame: its clip is not rotated
+    up.newMagicFrameElement({ id: "clip-magic", x: 380, y: 60, width: 120, height: 100, seed: 100, angle: 0.4 }),
+    up.newElement({ type: "ellipse", id: "fm-crossing", x: 440, y: 120, width: 90, height: 70, seed: 101, frameId: "clip-magic", backgroundColor: "#a5d8ff", fillStyle: "hachure" }),
+    up.newElement({ type: "rectangle", id: "fm-inside", x: 400, y: 80, width: 30, height: 30, seed: 102, frameId: "clip-magic" }),
+  ];
+};
+
+/** Dragging: the highlighted frame is the target of selected elements. */
+export const frameDrag = (up) => {
+  const f = "drag-frame";
+  const frame = up.newFrameElement({ id: f, x: 40, y: 40, width: 200, height: 150, seed: 110 });
+  return [
+    frame,
+    // selected, dragged over the highlighted frame, not its child
+    up.newElement({ type: "rectangle", id: "fd-dragged", x: 200, y: 60, width: 80, height: 40, seed: 111 }),
+    // selected and dragged, inside: no clip
+    up.newElement({ type: "rectangle", id: "fd-dragged-inside", x: 60, y: 60, width: 40, height: 30, seed: 112 }),
+    // a dragged group: one member crosses the frame, the other is outside
+    up.newElement({ type: "rectangle", id: "fd-group-crossing", x: 210, y: 130, width: 60, height: 30, seed: 113, groupIds: ["fd-group"] }),
+    up.newElement({ type: "rectangle", id: "fd-group-out", x: 270, y: 200, width: 30, height: 30, seed: 114, groupIds: ["fd-group"] }),
+    // a dragged group far from the frame: not in it
+    up.newElement({ type: "rectangle", id: "fd-far-a", x: 300, y: 20, width: 30, height: 30, seed: 115, groupIds: ["fd-far"], frameId: f }),
+    up.newElement({ type: "rectangle", id: "fd-far-b", x: 340, y: 20, width: 30, height: 30, seed: 116, groupIds: ["fd-far"] }),
+    // a dragged group holding a frame: never in another frame
+    up.newFrameElement({ id: "fd-grouped-frame", x: 300, y: 220, width: 60, height: 40, seed: 117, groupIds: ["fd-with-frame"] }),
+    up.newElement({ type: "rectangle", id: "fd-with-frame-out", x: 250, y: 100, width: 10, height: 10, seed: 118, groupIds: ["fd-with-frame"] }),
+    // not selected: its own frame
+    up.newElement({ type: "rectangle", id: "fd-idle", x: 20, y: 170, width: 60, height: 40, seed: 119, frameId: f }),
+    // selected with its frame: its own frame
+    up.newFrameElement({ id: "fd-other", x: 60, y: 230, width: 100, height: 50, seed: 120 }),
+    up.newElement({ type: "rectangle", id: "fd-with-its-frame", x: 140, y: 250, width: 60, height: 20, seed: 121, frameId: "fd-other" }),
+  ];
+};
+
+export const DRAG_SELECTION = {
+  "fd-dragged": true,
+  "fd-dragged-inside": true,
+  "fd-group-crossing": true,
+  "fd-group-out": true,
+  "fd-far-a": true,
+  "fd-far-b": true,
+  "fd-grouped-frame": true,
+  "fd-with-frame-out": true,
+  "fd-other": true,
+  "fd-with-its-frame": true,
+};
+
 const APP_STATE = {
   zoom: { value: 1 },
   scrollX: 0,
@@ -374,6 +492,84 @@ const scenes = (up) => [
     },
   }),
   // pending flowchart nodes: after the embeddables, at the erasing opacity
+  // frame clipping (ex-403)
+  scene("frame-clip", { width: 560, height: 320, elements: frameClip(up) }),
+  scene("frame-clip-zoomed-dpr-2", {
+    width: 900,
+    height: 600,
+    scale: 2,
+    elements: frameClip(up),
+    appState: { zoom: { value: 1.5 }, scrollX: 7.3, scrollY: -3.6 },
+  }),
+  scene("frame-clip-zoom-0.5", { width: 560, height: 320, elements: frameClip(up), appState: { zoom: { value: 0.5 }, scrollX: 40, scrollY: 30 } }),
+  scene("frame-clip-exporting", { width: 560, height: 320, elements: frameClip(up), appState: { scrollX: 0.25 }, renderConfig: { isExporting: true, renderGrid: false } }),
+  scene("frame-clip-dark", {
+    width: 560,
+    height: 320,
+    elements: frameClip(up),
+    appState: { theme: "dark" },
+    renderConfig: { theme: "dark", canvasBackgroundColor: "#121212", renderGrid: false },
+  }),
+  scene("frame-clip-off", {
+    width: 560,
+    height: 320,
+    elements: frameClip(up),
+    appState: { frameRendering: { enabled: true, clip: false, name: true, outline: true } },
+    renderConfig: { renderGrid: false },
+  }),
+  scene("frame-clip-disabled", {
+    width: 560,
+    height: 320,
+    elements: frameClip(up),
+    appState: { frameRendering: { enabled: false, clip: true, name: true, outline: true } },
+    renderConfig: { renderGrid: false },
+  }),
+  // a translated child is clipped even inside its frame; a translated
+  // frame clips all its children, at its new place
+  scene("frame-clip-offsets", {
+    width: 560,
+    height: 320,
+    elements: frameClip(up),
+    renderConfig: {
+      renderGrid: false,
+      elementRenderOverrides: {
+        "fc-inside": { offset: { x: 5, y: 3 } },
+        "fc-text-inside": { offset: { x: 0, y: 0 } },
+        "clip-magic": { offset: { x: -20, y: 10 } },
+        "fc-box": { offset: { x: 10, y: 0 } },
+      },
+    },
+  }),
+  scene("frame-drag", {
+    width: 400,
+    height: 300,
+    elements: frameDrag(up),
+    appState: { selectedElementIds: DRAG_SELECTION, selectedElementsAreBeingDragged: true, frameToHighlight: frameDrag(up)[0] },
+    renderConfig: { renderGrid: false },
+  }),
+  scene("frame-drag-editing-group", {
+    width: 400,
+    height: 300,
+    elements: frameDrag(up),
+    appState: { selectedElementIds: DRAG_SELECTION, selectedElementsAreBeingDragged: true, frameToHighlight: frameDrag(up)[0], editingGroupId: "fd-far" },
+    renderConfig: { renderGrid: false },
+  }),
+  // selected but not dragged: each element's own frame
+  scene("frame-selected", {
+    width: 400,
+    height: 300,
+    elements: frameDrag(up),
+    appState: { selectedElementIds: DRAG_SELECTION, frameToHighlight: frameDrag(up)[0] },
+    renderConfig: { renderGrid: false },
+  }),
+  // a highlighted frame with nothing dragged: no child of it clipped by it
+  scene("frame-highlight-only", {
+    width: 400,
+    height: 300,
+    elements: frameDrag(up),
+    appState: { frameToHighlight: frameDrag(up)[0] },
+    renderConfig: { renderGrid: false },
+  }),
   scene("pending-flowchart", {
     elements: [
       up.newEmbeddableElement({ type: "embeddable", id: "flow-embed", x: 200, y: 10, width: 80, height: 60, seed: 60 }),
@@ -511,4 +707,5 @@ const main = async () => {
   process.stdout.write(`wrote ${relative(process.cwd(), path) || path} from upstream ${upstream.commit.slice(0, 7)}\n`);
 };
 
-await main();
+// frame-clip.mjs imports the frame scenes: run only as a script
+if (resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) await main();

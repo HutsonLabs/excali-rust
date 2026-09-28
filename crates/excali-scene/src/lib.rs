@@ -8,6 +8,10 @@
 //!   the boxes of elements (`getElementAbsoluteCoords`, `getElementBounds`,
 //!   `getCommonBounds`); [`linear_element`]: the boxes of lines and arrows
 //!   and where an arrow's label sits.
+//! - [`frame`]: frame membership and the clip of a frame's children
+//!   (`frame.ts`, `clipElementToFrame`), over the outlines of
+//!   [`bounds::get_element_line_segments`] and [`geometric_shape`]
+//!   (`packages/utils/src/shape.ts`, `getElementShape`).
 //! - [`export`]: what `exportToSvg` computes from the elements (frame
 //!   labels, canvas size, embedded scene, frame clips, fonts, background)
 //!   as the [`display::SvgDocument`] `excali-svg` writes.
@@ -36,7 +40,9 @@ pub mod canvas_export;
 pub mod display;
 pub mod elbow_arrow;
 pub mod export;
+pub mod frame;
 pub mod freedraw;
+pub mod geometric_shape;
 pub mod heading;
 pub mod linear_element;
 pub mod render_element;

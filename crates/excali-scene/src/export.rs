@@ -35,6 +35,7 @@ use excali_text::font_metadata::{get_font_string, get_line_height_in_px};
 
 use crate::bounds::{get_common_bounds, get_element_absolute_coords, ElementsMap};
 use crate::display::{FontFaceSource, FrameClip, SvgDocument, SvgPayload};
+use crate::frame::is_frame_like;
 
 /// `DEFAULT_EXPORT_PADDING` (`common/src/constants.ts:402`), in pixels.
 pub const DEFAULT_EXPORT_PADDING: f64 = 10.0;
@@ -240,14 +241,6 @@ fn truncate_text(
         }
     }
     (text, max_width)
-}
-
-/// `isFrameLikeElement`: frames and magic frames.
-fn is_frame_like(element: &Element) -> bool {
-    matches!(
-        element.kind,
-        ElementKind::Frame(_) | ElementKind::MagicFrame(_)
-    )
 }
 
 /// `getFrameLikeElements(elements)` (`frame.ts:255-261`).

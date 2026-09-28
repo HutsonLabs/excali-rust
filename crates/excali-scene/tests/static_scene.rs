@@ -19,7 +19,7 @@ use std::collections::{HashMap, HashSet};
 use excali_core::color::apply_dark_mode_filter;
 use excali_core::element::Element;
 use excali_scene::bounds::ElementsMap;
-use excali_scene::display::DisplayList;
+use excali_scene::display::{DisplayList, Path, Transform};
 use excali_scene::export::FrameRendering;
 use excali_scene::render_element::{is_rtl, ElementRenderOverride};
 use excali_scene::shape::Theme;
@@ -34,7 +34,7 @@ use serde_json::{Map, Value};
 #[path = "support/draws.rs"]
 mod draws;
 
-use draws::{compare, Draw, Recorder};
+use draws::{compare, matrix, path, same_matrix, Draw, Recorder};
 
 fn fixture() -> Value {
     serde_json::from_str(include_str!("fixtures/static-scene.json")).unwrap()
@@ -104,6 +104,14 @@ fn app_state(value: &Value) -> StaticCanvasAppState {
         selected_element_ids: ids(&value["selectedElementIds"]),
         hovered_element_ids: ids(&value["hoveredElementIds"]),
         open_dialog: value["openDialog"]["name"].as_str().map(str::to_owned),
+        frame_to_highlight: match &value["frameToHighlight"] {
+            Value::Null => None,
+            frame => Some(Element::from_map(frame.as_object().unwrap().clone()).unwrap()),
+        },
+        selected_elements_are_being_dragged: value["selectedElementsAreBeingDragged"]
+            .as_bool()
+            .unwrap(),
+        editing_group_id: value["editingGroupId"].as_str().map(str::to_owned),
     }
 }
 
@@ -233,8 +241,78 @@ fn the_fixture_covers_the_order_of_work() {
         "links",
         "pending-flowchart",
         "opacity",
+        "frame-clip",
+        "frame-clip-zoomed-dpr-2",
+        "frame-clip-exporting",
+        "frame-clip-off",
+        "frame-clip-disabled",
+        "frame-clip-offsets",
+        "frame-drag",
+        "frame-selected",
     ] {
         assert!(names.iter().any(|n| n == name), "no scene {name}");
+    }
+}
+
+/// The clips of a scene's draws: `(clip path, matrix)` in order.
+fn clips(scene: &Value) -> Vec<(Path, Transform)> {
+    scene["events"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|e| e["op"] == "clip")
+        .map(|e| (path(&e["path"]), matrix(&e["m"])))
+        .collect()
+}
+
+#[test]
+fn frame_children_are_clipped_to_a_round_rect_of_radius_8_over_zoom() {
+    // staticScene.ts:165-189: roundRect(0, 0, w, h, FRAME_STYLE.radius /
+    // zoom) at the frame's corner plus the scroll, under the zoom and the
+    // device pixel ratio
+    let all = scenes();
+    let scene = |name: &str| all.iter().find(|s| s["name"] == name).unwrap().clone();
+    let frame_clips = |name: &str, radius: f64| {
+        clips(&scene(name))
+            .into_iter()
+            .filter(|(p, _)| *p == Path::round_rect(0.0, 0.0, 240.0, 160.0, radius))
+            .count()
+    };
+    assert!(frame_clips("frame-clip", 8.0) > 15);
+    assert!(frame_clips("frame-clip-zoomed-dpr-2", 8.0 / 1.5) > 15);
+    assert!(frame_clips("frame-clip-zoom-0.5", 16.0) > 15);
+    // clipping off, or frames off: no frame clips at all
+    assert_eq!(frame_clips("frame-clip-off", 8.0), 0);
+    assert_eq!(frame_clips("frame-clip-disabled", 8.0), 0);
+    let (_, m) = clips(&scene("frame-clip-zoomed-dpr-2"))
+        .into_iter()
+        .find(|(p, _)| *p == Path::round_rect(0.0, 0.0, 240.0, 160.0, 8.0 / 1.5))
+        .unwrap();
+    // scale(2) · scale(1.5) · translate(50 + scrollX, 40 + scrollY), the
+    // scroll (7.3, -3.6) snapped to device pixels: round(7.3 × 3) / 3 and
+    // round(-3.6 × 3) / 3
+    let (sx, sy) = snap_scroll_to_device_pixels(7.3, -3.6, 1.5, 2.0);
+    assert_eq!((sx, sy), (22.0 / 3.0, -11.0 / 3.0));
+    assert!(same_matrix(
+        &m,
+        &Transform::new(3.0, 0.0, 0.0, 3.0, 3.0 * (50.0 + sx), 3.0 * (40.0 + sy))
+    ));
+    // the port draws the same clips: every_scene_draws_what_upstream_draws
+    let doc = fixture();
+    let host = doc["origin"]
+        .as_str()
+        .unwrap()
+        .trim_start_matches("https://");
+    for name in ["frame-clip", "frame-drag", "frame-clip-offsets"] {
+        let s = scene(name);
+        let mut recorder = Recorder::default();
+        render(&s, host).replay(&mut recorder);
+        let ported = recorder
+            .0
+            .iter()
+            .filter(|d| matches!(d, Draw::Clip { .. }))
+            .count();
+        assert_eq!(ported, clips(&s).len(), "{name}: clips");
     }
 }
 
@@ -509,4 +587,71 @@ fn a_bound_text_that_cannot_draw_leaves_its_container_and_drops_its_icon() {
     assert_eq!(icon.len(), plain.len() + 4);
     assert!(matches!(icon[plain.len()], Draw::Clip { .. }));
     assert!(matches!(icon[plain.len() + 2], Draw::Image { .. }));
+}
+
+fn framed(json: &str, id: &str, x: f64, frame: Option<&str>, bound: Option<&str>) -> Element {
+    let mut raw: Map<String, Value> = serde_json::from_str(json).unwrap();
+    raw.insert("id".into(), id.into());
+    raw.insert("x".into(), x.into());
+    raw.insert("frameId".into(), frame.map_or(Value::Null, Value::from));
+    if let Some(id) = bound {
+        raw.insert(
+            "boundElements".into(),
+            serde_json::json!([{ "type": "text", "id": id }]),
+        );
+    }
+    Element::from_map(raw).unwrap()
+}
+
+#[test]
+fn a_clipped_element_whose_label_cannot_draw_does_not_clip_what_follows() {
+    // Upstream (staticScene.ts:397-452) calls context.save(), then
+    // clipElementToFrame, then renderElement for the element and its bound
+    // text inside one try; when the label throws, context.restore() is
+    // never reached and the frame clip stays on for every later element.
+    // The port keeps the clip to the failing element's own items and
+    // draws what follows unclipped (rendering-fidelity.md, "differences,
+    // by design").
+    let mut frame: Map<String, Value> = serde_json::from_str(RECTANGLE).unwrap();
+    frame.insert("id".into(), "f".into());
+    frame.insert("type".into(), "frame".into());
+    frame.insert("name".into(), Value::Null);
+    frame.insert("width".into(), 100.0.into());
+    frame.insert("height".into(), 100.0.into());
+    let frame = Element::from_map(frame).unwrap();
+    let scene = |bound: Option<&str>| {
+        let mut all = vec![
+            frame.clone(),
+            // a child crossing the frame's right edge: clipped
+            framed(RECTANGLE, "c", 95.0, Some("f"), bound),
+            // outside the frame, not in it: never clipped
+            framed(RECTANGLE, "b", 300.0, None, None),
+        ];
+        if bound.is_some() {
+            all.push(element(STICKY_NOTE, "sticky", 20.0));
+        }
+        draws(&all)
+    };
+    let failing = scene(Some("sticky"));
+    // the failing label changes nothing: same draws as with no label
+    assert_eq!(format!("{failing:?}"), format!("{:?}", scene(None)));
+    // one frame clip, closed before the element after it
+    let clip = failing
+        .iter()
+        .position(|d| matches!(d, Draw::Clip { .. }))
+        .unwrap();
+    let unclip = failing
+        .iter()
+        .position(|d| matches!(d, Draw::Unclip))
+        .unwrap();
+    assert!(clip < unclip);
+    assert_eq!(
+        failing
+            .iter()
+            .filter(|d| matches!(d, Draw::Clip { .. }))
+            .count(),
+        1
+    );
+    assert!(matches!(failing[unclip + 1], Draw::Stroke { .. }));
+    assert_eq!(failing.len(), unclip + 2, "b is drawn last, unclipped");
 }

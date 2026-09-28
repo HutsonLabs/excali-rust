@@ -123,12 +123,12 @@ fn num(v: &Value) -> f64 {
     v.as_f64().unwrap()
 }
 
-fn matrix(value: &Value) -> Transform {
+pub fn matrix(value: &Value) -> Transform {
     let v: Vec<f64> = value.as_array().unwrap().iter().map(num).collect();
     Transform::new(v[0], v[1], v[2], v[3], v[4], v[5])
 }
 
-fn same_matrix(a: &Transform, b: &Transform) -> bool {
+pub fn same_matrix(a: &Transform, b: &Transform) -> bool {
     close(a.a, b.a)
         && close(a.b, b.b)
         && close(a.c, b.c)
@@ -140,7 +140,7 @@ fn same_matrix(a: &Transform, b: &Transform) -> bool {
 /// The recorded calls since `beginPath()` as a [`Path`]: `rect` and
 /// `roundRect` add what those canvas methods add, a Path2D's SVG data is
 /// read as the Path2D constructor reads it.
-fn path(value: &Value) -> Path {
+pub fn path(value: &Value) -> Path {
     let mut p = Path::new();
     for command in value.as_array().unwrap() {
         let c = command.as_array().unwrap();

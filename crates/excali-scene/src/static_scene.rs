@@ -28,10 +28,28 @@
 //! icon, as upstream's `try`/`catch` skips an element that throws; when
 //! only its bound text (or placeholder label) fails, the element stays and
 //! the rest is skipped.
+//! In steps 5 and 6 an element whose target frame clips it is drawn
+//! inside that frame's clip ([`crate::frame`], `clipElementToFrame`,
+//! `:358-393`): with its bound text, placeholder label and (for iframes and
+//! embeddables) link icon, inside the same `save()`/`restore()`. The group
+//! cache of those decisions (`inFrameGroupsMap`) lasts the whole scene. An
+//! element whose clip cannot be decided (its outline cannot be built) is
+//! skipped like one that cannot be drawn.
+//!
+//! One difference, by design, where drawing fails: upstream's `try` holds
+//! the `context.save()`, the frame clip and the drawing, and the
+//! `context.restore()` after them (`:397-452`, `:455-505`), so an element
+//! or label that throws after its frame clip is applied leaves the save
+//! and the clip in place, and every later element of the scene is drawn
+//! inside that frame's clip (with whatever transform the throw left).
+//! The port does not reproduce that leak: the failing element's clip
+//! holds only what it drew, and the elements after it are drawn as they
+//! would be had it drawn (`crates/excali-scene/tests/static_scene.rs`,
+//! `a_clipped_element_whose_label_cannot_draw_does_not_clip_what_follows`;
+//! `site/content/architecture/rendering-fidelity.md`).
 //! Upstream also collects the groups of selected elements over the
 //! highlighted frame (`:328-346`) and uses them nowhere; the port leaves
-//! that out. The frame clip of step 5 and 6 (`clipElementToFrame`,
-//! `:358-393`) is ex-403's. Visibility culling happens before this function
+//! that out. Visibility culling happens before this function
 //! (`Renderer.getRenderableElements`): the caller passes the visible
 //! elements.
 
@@ -44,13 +62,16 @@ use excali_math::js;
 use excali_text::text_measurements::TextMetricsProvider;
 
 use crate::bounds::ElementsMap;
-use crate::display::{Color, Dash, DisplayItem, DisplayList, Group, Path, Rect, Stroke, Transform};
+use crate::display::{
+    Clip, Color, Dash, DisplayItem, DisplayList, Group, Path, Rect, Stroke, Transform,
+};
 use crate::export::FrameRendering;
+use crate::frame::{frame_clip, get_target_frame, should_apply_frame_clip, CheckedGroups};
 use crate::render_element::{
     create_placeholder_embeddable_label, render_element, render_link_icon,
     resolve_element_render_state, with_transform, ElementRenderOverride, ElementRenderState,
 };
-use crate::shape::{EmbedsValidationStatus, Theme};
+use crate::shape::{EmbedsValidationStatus, ShapeError, Theme};
 
 /// `GridLineColor[THEME.LIGHT].bold` (`staticScene.ts:57-66`).
 pub const GRID_LINE_COLOR_BOLD: &str = "#dddddd";
@@ -93,6 +114,11 @@ pub struct StaticCanvasAppState {
     pub hovered_element_ids: HashSet<String>,
     /// `openDialog?.name`.
     pub open_dialog: Option<String>,
+    /// The frame selected elements are being dragged over, which becomes
+    /// their clip (`getTargetFrame`, `frame.ts:790-815`).
+    pub frame_to_highlight: Option<Element>,
+    pub selected_elements_are_being_dragged: bool,
+    pub editing_group_id: Option<String>,
 }
 
 impl Default for StaticCanvasAppState {
@@ -111,6 +137,9 @@ impl Default for StaticCanvasAppState {
             selected_element_ids: HashSet::new(),
             hovered_element_ids: HashSet::new(),
             open_dialog: None,
+            frame_to_highlight: None,
+            selected_elements_are_being_dragged: false,
+            editing_group_id: None,
         }
     }
 }
@@ -353,6 +382,79 @@ fn background(width: f64, height: f64, color: Option<&str>, theme: Theme) -> Opt
     })
 }
 
+/// `getRenderElementWithPositionOverride(element, offset)`
+/// (`renderElement.ts:134-149`): the element moved by the offset, itself
+/// when there is none.
+fn with_position_override(element: &Element, offset: [f64; 2]) -> std::borrow::Cow<'_, Element> {
+    if offset[0] == 0.0 && offset[1] == 0.0 {
+        return std::borrow::Cow::Borrowed(element);
+    }
+    let mut moved = element.clone();
+    moved.base.x += offset[0];
+    moved.base.y += offset[1];
+    std::borrow::Cow::Owned(moved)
+}
+
+/// `clipElementToFrame(element, renderState)` (`staticScene.ts:358-393`):
+/// the frame clip to draw the element under, if any. Frames must render
+/// and clip, and the element must name a frame (or a frame be
+/// highlighted); its target frame, moved by the frame's render offset,
+/// clips it when the element belongs to it and either is translated, or
+/// when [`should_apply_frame_clip`] says so for the element at its drawn
+/// position.
+fn clip_element_to_frame(
+    element: &Element,
+    render_state: &ElementRenderState,
+    scene: &StaticScene<'_>,
+    app_state: &StaticCanvasAppState,
+    in_frame_groups: &mut CheckedGroups,
+) -> Result<Option<(Transform, Clip, Transform)>, ShapeError> {
+    let frame_id = element.base.frame_id.as_deref().filter(|id| !id.is_empty());
+    let highlighted = app_state
+        .frame_to_highlight
+        .as_ref()
+        .is_some_and(|f| !f.base.id.is_empty());
+    let fr = app_state.frame_rendering;
+    if !(frame_id.is_some() || highlighted) || !fr.enabled || !fr.clip {
+        return Ok(None);
+    }
+    let Some(target_frame) = get_target_frame(element, scene.elements_map, app_state) else {
+        return Ok(None);
+    };
+    let frame_state = resolve_element_render_state(
+        target_frame,
+        scene.elements_map,
+        scene.render_config,
+        scene.all_elements_map,
+    );
+    let frame = with_position_override(target_frame, frame_state.offset);
+    let is_translated =
+        |state: &ElementRenderState| state.offset[0] != 0.0 || state.offset[1] != 0.0;
+    let clip = (frame_id == Some(frame.base.id.as_str())
+        && (is_translated(render_state) || is_translated(&frame_state)))
+        || should_apply_frame_clip(
+            &with_position_override(element, render_state.offset),
+            &frame,
+            app_state,
+            scene.elements_map,
+            Some(in_frame_groups),
+        )?;
+    Ok(clip.then(|| frame_clip(&frame, app_state)))
+}
+
+/// `items` inside the frame clip `clip` (translate, clip, translate
+/// back), or as they are.
+fn clipped(clip: Option<(Transform, Clip, Transform)>, items: Vec<DisplayItem>) -> DisplayItem {
+    match clip {
+        Some((to_frame, clip, back)) => DisplayItem::Group(Group {
+            transform: to_frame,
+            clip: Some(clip),
+            ..Group::new(vec![with_transform(back, items)])
+        }),
+        None => DisplayItem::Group(Group::new(items)),
+    }
+}
+
 /// `renderStaticScene(renderConfig)` (`staticScene.ts:274-545`): the
 /// static canvas as a display list to replay from a fresh context, in the
 /// order of work described in the module documentation.
@@ -415,6 +517,7 @@ pub fn render_static_scene(scene: &StaticScene<'_>) -> DisplayList {
     };
     let is_iframe_like =
         |e: &Element| matches!(e.kind, ElementKind::Iframe | ElementKind::Embeddable);
+    let mut in_frame_groups = CheckedGroups::new();
 
     // Paint visible elements
     for &element in scene.visible_elements.iter().filter(|e| !is_iframe_like(e)) {
@@ -430,6 +533,11 @@ pub fn render_static_scene(scene: &StaticScene<'_>) -> DisplayList {
         }
         let bound_text = crate::bounds::get_bound_text_element(element, elements_map);
         let state = resolve_element_render_state(element, elements_map, config, all_elements_map);
+        let Ok(clip) =
+            clip_element_to_frame(element, &state, scene, app_state, &mut in_frame_groups)
+        else {
+            continue;
+        };
         let Ok(item) = render(element, Some(state)) else {
             continue;
         };
@@ -439,18 +547,23 @@ pub fn render_static_scene(scene: &StaticScene<'_>) -> DisplayList {
             // cannot be drawn the container stays drawn and the icon is
             // skipped, as upstream's throw leaves them
             let Ok(item) = render(text, None) else {
-                scene_items.push(DisplayItem::Group(Group::new(items)));
+                scene_items.push(clipped(clip, items));
                 continue;
             };
             items.push(item);
         }
-        scene_items.push(DisplayItem::Group(Group::new(items)));
+        scene_items.push(clipped(clip, items));
         scene_items.extend(link_icon(element, &state));
     }
 
     // render embeddables on top
     for &element in scene.visible_elements.iter().filter(|e| is_iframe_like(e)) {
         let state = resolve_element_render_state(element, elements_map, config, all_elements_map);
+        let Ok(clip) =
+            clip_element_to_frame(element, &state, scene, app_state, &mut in_frame_groups)
+        else {
+            continue;
+        };
         let Ok(item) = render(element, Some(state)) else {
             continue;
         };
@@ -462,13 +575,13 @@ pub fn render_static_scene(scene: &StaticScene<'_>) -> DisplayList {
         if (is_exporting || unvalidated_embed) && truthy(b.width) && truthy(b.height) {
             let label = create_placeholder_embeddable_label(element, scene.text_metrics);
             let Ok(item) = render(&label, None) else {
-                scene_items.push(DisplayItem::Group(Group::new(items)));
+                scene_items.push(clipped(clip, items));
                 continue;
             };
             items.push(item);
         }
         items.extend(link_icon(element, &state));
-        scene_items.push(DisplayItem::Group(Group::new(items)));
+        scene_items.push(clipped(clip, items));
     }
 
     // render pending nodes for flowcharts
