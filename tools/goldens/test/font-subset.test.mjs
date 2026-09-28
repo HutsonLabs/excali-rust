@@ -12,6 +12,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, test } from "node:test";
 
+import pako from "pako";
+
+import { wasmModules } from "../font-subset.mjs";
+
 import { REPO_ROOT, TOOL_DIR, upstreamDir } from "./helpers.mjs";
 
 const GENERATOR = join(TOOL_DIR, "font-subset.mjs");
@@ -107,4 +111,18 @@ test("the scenes the size of real drawings are there, in every inlined family", 
     assert.equal(new Set(d.flatMap((x) => x.codePoints)).size, 95, n);
   }
   assert.ok(scene("cjk-paragraph").declarations.filter((d) => d.family === "Xiaolai").length > 20);
+});
+
+test("the wasm gzip sizes are pako's, the same on every machine", () => {
+  // node:zlib is Chromium's zlib, whose level-9 output differs between x64
+  // and arm64; pako is zlib's deflate in plain JavaScript.
+  assert.doesNotMatch(readFileSync(GENERATOR, "utf8"), /from "node:zlib"/);
+  const modules = wasmModules(upstreamDir());
+  for (const [name, m] of Object.entries(committed().wasm)) {
+    const source = readFileSync(join(upstreamDir(), m.file), "utf8");
+    const bytes = Buffer.from(source.match(/`([A-Za-z0-9+/=]+)`/)[1], "base64");
+    assert.equal(m.bytes, bytes.length, name);
+    assert.equal(m.gzip, pako.gzip(bytes, { level: 9 }).length, name);
+    assert.deepEqual(modules[name], m, name);
+  }
 });

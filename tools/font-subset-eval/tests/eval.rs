@@ -462,3 +462,31 @@ fn adr_010_quotes_the_tables() {
         assert!(adr.contains(&line), "ADR-010 does not quote:\n{line}");
     }
 }
+
+// ---------------------------------------------------------------------------
+// The binary
+
+/// CI asks for the browser cases under target/browser/, which a fresh
+/// checkout does not have: --browser makes the directory.
+#[test]
+fn browser_cases_are_written_into_a_directory_that_does_not_exist_yet() {
+    let dir = std::env::temp_dir().join(format!("font-subset-eval-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    let file = dir.join("browser").join("cases.json");
+    let out = std::process::Command::new(env!("CARGO_BIN_EXE_font-subset-eval"))
+        .arg("--root")
+        .arg(root())
+        .arg("--browser")
+        .arg(&file)
+        .output()
+        .expect("runs");
+    let written = std::fs::read_to_string(&file);
+    let _ = std::fs::remove_dir_all(&dir);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let cases: serde_json::Value = serde_json::from_str(&written.expect("cases.json")).unwrap();
+    assert!(cases.is_array() || cases.is_object());
+}

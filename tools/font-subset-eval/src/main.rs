@@ -55,6 +55,9 @@ fn main() -> ExitCode {
     if let Some(file) = browser {
         // Fonts and runs for browser/render.mjs; not committed.
         let cases = browser_cases(&root);
+        if let Some(dir) = file.parent().filter(|d| !d.as_os_str().is_empty()) {
+            std::fs::create_dir_all(dir).expect("create the browser cases directory");
+        }
         std::fs::write(&file, serde_json::to_string(&cases).expect("json"))
             .expect("write the browser cases");
         println!("wrote {}", file.display());

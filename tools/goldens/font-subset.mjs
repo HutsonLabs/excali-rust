@@ -28,7 +28,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { gzipSync } from "node:zlib";
+
+import pako from "pako";
 
 import { SCENES as ASSET_SCENES } from "./font-assets.mjs";
 import { format } from "./lib/format.mjs";
@@ -226,6 +227,9 @@ const subsetScenes = async (upstream, fontFace, scenes) => {
  * The wasm modules upstream's subsetting loads (subset-shared.chunk.ts:47-48),
  * inlined as base64 in subset/harfbuzz/harfbuzz-wasm.ts and
  * subset/woff2/woff2-wasm.ts: their bytes, raw and gzipped at level 9.
+ * Gzipped with pako (zlib's deflate in plain JavaScript), not node:zlib:
+ * Node bundles Chromium's zlib, whose level-9 output differs between x64 and
+ * arm64, so the sizes would depend on the machine that ran this.
  */
 export const wasmModules = (dir) =>
   Object.fromEntries(
@@ -238,7 +242,7 @@ export const wasmModules = (dir) =>
       if (!base64) throw new Error(`no base64 module in ${file}`);
       const bytes = Buffer.from(base64[1], "base64");
       if (bytes.subarray(0, 4).toString("latin1") !== "\0asm") throw new Error(`${file} is not a wasm module`);
-      return [name, { file, bytes: bytes.length, gzip: gzipSync(bytes, { level: 9 }).length }];
+      return [name, { file, bytes: bytes.length, gzip: pako.gzip(bytes, { level: 9 }).length }];
     }),
   );
 
