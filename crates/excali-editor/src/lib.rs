@@ -11,8 +11,12 @@
 //!   centre, outline distance, side headings, fixed points).
 //! - [`restore_env`]: [`restore_env::RoutingEnv`], the restore environment
 //!   that answers `restoreElements`' elbow arrow re-route with the router.
+//! - [`tools`]: the tool registry (`TOOLS`, `findShapeByKey`), the active
+//!   tool, the tool lock and pen mode (`components/Tools.tsx`,
+//!   `setActiveTool`, `toggleLock`, `togglePenMode`).
 
 mod binary_heap;
 pub mod elbow_arrow;
 pub mod geometry;
 pub mod restore_env;
+pub mod tools;

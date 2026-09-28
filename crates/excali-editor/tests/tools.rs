@@ -19,11 +19,11 @@
 
 use excali_core::element::StrokeVariability;
 use excali_editor::tools::{
-    find_shape_by_key, get_tool_letter, get_tool_shortcut, is_selection_like_tool,
-    is_toggle_tool, tool_config, update_active_tool, ActiveTool, ActiveToolUpdate, ArrowType,
-    CursorEffect, Interaction, KeyHintKind, PointerType, SelectionTool, SetActiveToolOptions,
-    ShortcutLabels, Tool, ToolKeyAction, ToolKeyContext, ToolKeyEvent, ToolKeyOutcome,
-    ToolOptions, ToolRefusal, ToolRequest, ToolState, ToolType, TOGGLE_TOOLS, TOOLS,
+    find_shape_by_key, get_tool_letter, get_tool_shortcut, is_selection_like_tool, is_toggle_tool,
+    tool_config, update_active_tool, ActiveTool, ActiveToolUpdate, ArrowType, CursorEffect,
+    Interaction, KeyHintKind, PointerType, SelectionTool, SetActiveToolOptions, ShortcutLabels,
+    Tool, ToolKeyAction, ToolKeyContext, ToolKeyEvent, ToolKeyOutcome, ToolOptions, ToolRefusal,
+    ToolRequest, ToolState, ToolType, TOGGLE_TOOLS, TOOLS,
 };
 use serde_json::json;
 
@@ -34,32 +34,112 @@ use serde_json::json;
 /// Every `TOOLS` entry in upstream's key order: type, icon export, letter
 /// keys, shift, numeric key, fillable (`None` = not set), toggle.
 #[allow(clippy::type_complexity)]
-const EXPECTED: &[(
-    &str,
-    &str,
-    &[&str],
-    bool,
-    Option<&str>,
-    Option<bool>,
-    bool,
-)] = &[
+const EXPECTED: &[(&str, &str, &[&str], bool, Option<&str>, Option<bool>, bool)] = &[
     ("hand", "handIcon", &["h"], false, None, None, true),
-    ("selection", "SelectionIcon", &["v"], false, Some("1"), Some(true), false),
-    ("rectangle", "RectangleIcon", &["r"], false, Some("2"), Some(true), false),
-    ("diamond", "DiamondIcon", &["d"], false, Some("3"), Some(true), false),
-    ("ellipse", "EllipseIcon", &["o"], false, Some("4"), Some(true), false),
-    ("arrow", "ArrowIcon", &["a"], false, Some("5"), Some(true), false),
-    ("line", "LineIcon", &["l"], false, Some("6"), Some(true), false),
-    ("freedraw", "FreedrawIcon", &["p", "x"], false, Some("7"), None, false),
+    (
+        "selection",
+        "SelectionIcon",
+        &["v"],
+        false,
+        Some("1"),
+        Some(true),
+        false,
+    ),
+    (
+        "rectangle",
+        "RectangleIcon",
+        &["r"],
+        false,
+        Some("2"),
+        Some(true),
+        false,
+    ),
+    (
+        "diamond",
+        "DiamondIcon",
+        &["d"],
+        false,
+        Some("3"),
+        Some(true),
+        false,
+    ),
+    (
+        "ellipse",
+        "EllipseIcon",
+        &["o"],
+        false,
+        Some("4"),
+        Some(true),
+        false,
+    ),
+    (
+        "arrow",
+        "ArrowIcon",
+        &["a"],
+        false,
+        Some("5"),
+        Some(true),
+        false,
+    ),
+    (
+        "line",
+        "LineIcon",
+        &["l"],
+        false,
+        Some("6"),
+        Some(true),
+        false,
+    ),
+    (
+        "freedraw",
+        "FreedrawIcon",
+        &["p", "x"],
+        false,
+        Some("7"),
+        None,
+        false,
+    ),
     ("text", "TextIcon", &["t"], false, Some("8"), None, false),
-    ("stickynote", "stickyNoteToolIcon", &["n"], false, None, None, false),
+    (
+        "stickynote",
+        "stickyNoteToolIcon",
+        &["n"],
+        false,
+        None,
+        None,
+        false,
+    ),
     ("image", "ImageIcon", &[], false, Some("9"), None, false),
     ("eraser", "EraserIcon", &["e"], false, Some("0"), None, true),
     ("frame", "frameToolIcon", &["f"], false, None, None, false),
-    ("autoshape", "drawShapeToolIcon", &["x"], true, None, Some(false), false),
+    (
+        "autoshape",
+        "drawShapeToolIcon",
+        &["x"],
+        true,
+        None,
+        Some(false),
+        false,
+    ),
     ("embeddable", "EmbedIcon", &[], false, None, None, false),
-    ("laser", "laserPointerToolIcon", &["k"], false, None, None, false),
-    ("bucketfill", "bucketFillIcon", &["b"], false, None, None, false),
+    (
+        "laser",
+        "laserPointerToolIcon",
+        &["k"],
+        false,
+        None,
+        None,
+        false,
+    ),
+    (
+        "bucketfill",
+        "bucketFillIcon",
+        &["b"],
+        false,
+        None,
+        None,
+        false,
+    ),
     ("lasso", "LassoIcon", &[], false, None, Some(false), false),
 ];
 
@@ -84,7 +164,10 @@ fn tools_table_matches_upstream_in_order() {
 fn magicframe_is_a_tool_type_without_a_registry_entry() {
     assert_eq!(ToolType::ALL.len(), 19);
     assert_eq!(tool_config(ToolType::Magicframe), None);
-    assert_eq!(ToolType::from_name("magicframe"), Some(ToolType::Magicframe));
+    assert_eq!(
+        ToolType::from_name("magicframe"),
+        Some(ToolType::Magicframe)
+    );
     for ty in ToolType::ALL {
         assert_eq!(ToolType::from_name(ty.as_str()), Some(ty));
     }
@@ -138,13 +221,25 @@ fn fillable_reads_as_truthy() {
 #[test]
 fn tool_letters_are_capitalised_first_letter_keys() {
     let en = ShortcutLabels::EN;
-    assert_eq!(get_tool_letter(ToolType::Selection, &en).as_deref(), Some("V"));
-    assert_eq!(get_tool_letter(ToolType::Rectangle, &en).as_deref(), Some("R"));
+    assert_eq!(
+        get_tool_letter(ToolType::Selection, &en).as_deref(),
+        Some("V")
+    );
+    assert_eq!(
+        get_tool_letter(ToolType::Rectangle, &en).as_deref(),
+        Some("R")
+    );
     assert_eq!(get_tool_letter(ToolType::Text, &en).as_deref(), Some("T"));
-    assert_eq!(get_tool_letter(ToolType::Stickynote, &en).as_deref(), Some("N"));
+    assert_eq!(
+        get_tool_letter(ToolType::Stickynote, &en).as_deref(),
+        Some("N")
+    );
     assert_eq!(get_tool_letter(ToolType::Eraser, &en).as_deref(), Some("E"));
     // the first of several letter keys is the one shown
-    assert_eq!(get_tool_letter(ToolType::Freedraw, &en).as_deref(), Some("P"));
+    assert_eq!(
+        get_tool_letter(ToolType::Freedraw, &en).as_deref(),
+        Some("P")
+    );
     // shift-bound: getShortcutKey("Shift+X")
     assert_eq!(
         get_tool_letter(ToolType::Autoshape, &en).as_deref(),
@@ -372,7 +467,10 @@ fn sets_the_active_tool_type() {
     assert_eq!(state.active_tool.tool, builtin(ToolType::Rectangle));
     // drawing reverts to the preferred selection tool unless locked
     assert!(!state.is_tool_locked());
-    assert_eq!(state.tool_after_finalize().tool, builtin(ToolType::Selection));
+    assert_eq!(
+        state.tool_after_finalize().tool,
+        builtin(ToolType::Selection)
+    );
 }
 
 #[test]
@@ -456,22 +554,47 @@ fn selection_and_lasso_keep_the_selection() {
 #[test]
 fn per_tool_side_effects() {
     let mut state = ToolState::default();
-    assert_eq!(set(&mut state, ToolType::Hand).unwrap().cursor, CursorEffect::Grab);
+    assert_eq!(
+        set(&mut state, ToolType::Hand).unwrap().cursor,
+        CursorEffect::Grab
+    );
     let switch = set(&mut state, ToolType::Image).unwrap();
     assert!(switch.open_image_picker);
-    assert!(set(&mut state, ToolType::Freedraw).unwrap().schedule_capture);
+    assert!(
+        set(&mut state, ToolType::Freedraw)
+            .unwrap()
+            .schedule_capture
+    );
     // linear tools keep the suggested binding
-    assert!(!set(&mut state, ToolType::Arrow).unwrap().clear_suggested_binding);
-    assert!(!set(&mut state, ToolType::Line).unwrap().clear_suggested_binding);
+    assert!(
+        !set(&mut state, ToolType::Arrow)
+            .unwrap()
+            .clear_suggested_binding
+    );
+    assert!(
+        !set(&mut state, ToolType::Line)
+            .unwrap()
+            .clear_suggested_binding
+    );
 
     // the tool cursor is left alone while space-panning, the grab cursor is not
     state.space_held = true;
-    assert_eq!(set(&mut state, ToolType::Diamond).unwrap().cursor, CursorEffect::Unchanged);
-    assert_eq!(set(&mut state, ToolType::Hand).unwrap().cursor, CursorEffect::Grab);
+    assert_eq!(
+        set(&mut state, ToolType::Diamond).unwrap().cursor,
+        CursorEffect::Unchanged
+    );
+    assert_eq!(
+        set(&mut state, ToolType::Hand).unwrap().cursor,
+        CursorEffect::Grab
+    );
 
     state.space_held = false;
     state.pending_draw_shape = true;
-    assert!(set(&mut state, ToolType::Selection).unwrap().finalize_pending_gesture);
+    assert!(
+        set(&mut state, ToolType::Selection)
+            .unwrap()
+            .finalize_pending_gesture
+    );
 }
 
 #[test]
@@ -864,7 +987,10 @@ fn modifier_keys_and_in_progress_gestures_block_tool_keys() {
         gesture_in_progress: true,
         ..ToolKeyContext::default()
     };
-    assert_eq!(state.handle_tool_key(key("r"), &busy), ToolKeyOutcome::NotHandled);
+    assert_eq!(
+        state.handle_tool_key(key("r"), &busy),
+        ToolKeyOutcome::NotHandled
+    );
     let host_view_mode = ToolKeyContext {
         prevent_tool_switching: true,
         ..ToolKeyContext::default()
@@ -970,7 +1096,10 @@ fn q_toggles_the_tool_lock() {
     );
     assert!(state.active_tool.locked);
     // Q is not CapsLock-insensitive upstream (`event.key === KEYS.Q`)
-    assert_eq!(state.handle_tool_key(key("Q"), &ctx), ToolKeyOutcome::NotHandled);
+    assert_eq!(
+        state.handle_tool_key(key("Q"), &ctx),
+        ToolKeyOutcome::NotHandled
+    );
     state.force_tool(Some(builtin(ToolType::Rectangle)));
     assert_eq!(
         state.handle_tool_key(key("q"), &ctx),
@@ -986,14 +1115,20 @@ fn view_mode_allows_only_laser_and_hand() {
         view_mode_enabled: true,
         ..ToolKeyContext::default()
     };
-    assert_eq!(state.handle_tool_key(key("r"), &ctx), ToolKeyOutcome::Ignored);
+    assert_eq!(
+        state.handle_tool_key(key("r"), &ctx),
+        ToolKeyOutcome::Ignored
+    );
     assert_eq!(state.active_tool.tool, builtin(ToolType::Selection));
     assert!(switched(&state.handle_tool_key(key("k"), &ctx)));
     assert_eq!(state.active_tool.tool, builtin(ToolType::Laser));
     assert!(switched(&state.handle_tool_key(key("h"), &ctx)));
     assert_eq!(state.active_tool.tool, builtin(ToolType::Hand));
     // a key with no tool is ignored too (the view-mode `return` runs first)
-    assert_eq!(state.handle_tool_key(key("q"), &ctx), ToolKeyOutcome::Ignored);
+    assert_eq!(
+        state.handle_tool_key(key("q"), &ctx),
+        ToolKeyOutcome::Ignored
+    );
 
     // Escape in view mode returns to selection
     match state.handle_tool_key(key("Escape"), &ctx) {
