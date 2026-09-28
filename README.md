@@ -17,8 +17,9 @@ A Rust port of the Excalidraw editor: no React, Tauri-ready, `.excalidraw` compa
 | `scripts/gates/workspace.py` | The crate-graph gate: workspace members and dependency direction must match the architecture page; `wasm-build.sh` builds the wasm32 crates. |
 | `scripts/tasks/seed.py` | Upserts `plan/tasks.json` into beads and refreshes the export and the progress page. |
 | `scripts/tasks/render-progress.py` | Renders the export into `site/content/plan/progress.md`. |
+| `tools/roughr-eval/` | The ex-206 spike behind ADR-003: the `roughr` crate replayed on the rough.js goldens (`report.json`, `report-fork.json`); outside the workspace, checked by the `roughr-eval` CI job. |
 | `.githooks/` | `pre-commit`, `commit-msg`, `pre-push` (activated by bootstrap). |
-| `.github/workflows/` | `gates.yml` (authorship gate on PRs), `rust.yml` (fmt, clippy `-D warnings`, test, crate-graph gate, wasm32 build, MSRV) and `pages.yml` (site build and deploy). |
+| `.github/workflows/` | `gates.yml` (authorship gate on PRs), `rust.yml` (fmt, clippy `-D warnings`, test, crate-graph gate, wasm32 build, MSRV, goldens, roughr evaluation) and `pages.yml` (site build and deploy). |
 
 ## Start
 

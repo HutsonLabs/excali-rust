@@ -3,8 +3,8 @@
 # model (ex-115), the crate-graph gate (the workspace must
 # match site/content/architecture/overview.md), the calendar-version gate
 # (ADR-009), the wasm32 build of every
-# crate that targets it (ADR-008), an MSRV check, and the golden harness on
-# arm64 (ex-217).
+# crate that targets it (ADR-008), an MSRV check, the golden harness on
+# arm64 (ex-217), and the roughr evaluation behind ADR-003 (ex-206).
 #
 # The toolchain comes from rust-toolchain.toml; rustup installs it (with
 # rustfmt, clippy and the wasm32 target) on the first cargo call.
@@ -73,6 +73,31 @@ jobs:
         run: >-
           cargo test --workspace --locked --features goldens
           --test golden_harness --test goldens_manifest --test goldens
+  # ex-206: the roughr evaluation behind ADR-003 (tools/roughr-eval, a
+  # stand-alone package outside the workspace). Its tests fail if
+  # report.json differs from a fresh run over goldens/ or ADR-003 does not
+  # quote it; fork.py --check rebuilds roughr with rough.js's generator
+  # patched in (park-miller.patch) and fails if report-fork.json is stale.
+  # arm64, like the goldens.
+  roughr-eval:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tools/roughr-eval
+      - name: fmt
+        run: cargo fmt --manifest-path tools/roughr-eval/Cargo.toml --check
+      - name: clippy
+        run: cargo clippy --manifest-path tools/roughr-eval/Cargo.toml --all-targets --locked -- -D warnings
+      - name: tests (report.json current, ADR-003 quotes it)
+        run: cargo test --manifest-path tools/roughr-eval/Cargo.toml --locked
+      - name: report.json current
+        run: cargo run --release --locked --manifest-path tools/roughr-eval/Cargo.toml -- --check
+      - name: report-fork.json current (roughr with rough.js's generator)
+        run: python3 tools/roughr-eval/fork.py --check
   msrv:
     runs-on: ubuntu-latest
     steps:

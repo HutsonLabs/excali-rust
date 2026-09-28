@@ -1,0 +1,56 @@
+--- a/src/core.rs
++++ b/src/core.rs
+@@ -2,8 +2,6 @@
+ use euclid::Trig;
+ use num_traits::{Float, FromPrimitive};
+ use palette::Srgba;
+-use rand::rngs::StdRng;
+-use rand::{random, Rng, SeedableRng};
+ 
+ /// How the fill color of a closed shape is sketched. Set it with
+ /// [`OptionsBuilder::fill_style`]; it only has an effect when
+@@ -307,7 +305,7 @@
+     ///
+     /// Default: `None`.
+     #[builder(default = "None")]
+-    pub randomizer: Option<StdRng>,
++    pub randomizer: Option<ParkMiller>,
+ }
+ 
+ impl Default for Options {
+@@ -348,19 +346,11 @@
+ 
+ impl Options {
+     pub fn random(&mut self) -> f64 {
+-        match &mut self.randomizer {
+-            Some(r) => r.gen(),
+-            None => match self.seed {
+-                Some(s) => {
+-                    let rnd = self.randomizer.insert(StdRng::seed_from_u64(s));
+-                    rnd.gen()
+-                }
+-                None => {
+-                    let rnd = self.randomizer.insert(StdRng::seed_from_u64(random()));
+-                    rnd.gen()
+-                }
+-            },
+-        }
++        // ex-206 counterfactual: rough.js's generator in place of StdRng.
++        let seed = self.seed.unwrap_or(0) as i32;
++        let r = self.randomizer.get_or_insert(ParkMiller { seed });
++        r.seed = 48271i32.wrapping_mul(r.seed);
++        ((2147483647i32 & r.seed) as f64) / 2147483648.0
+     }
+ 
+     pub fn set_hachure_angle(&mut self, angle: Option<f32>) -> &mut Self {
+@@ -422,3 +412,10 @@
+ pub fn _cc<U: Float + FromPrimitive>(inp: f64) -> U {
+     U::from(inp).expect("can not parse from f64")
+ }
++
++/// rough.js 4.6.4's `Random` (`bin/math.js`): a Park-Miller generator,
++/// `((2^31 - 1) & (seed = Math.imul(48271, seed))) / 2^31`.
++#[derive(Clone, Debug)]
++pub struct ParkMiller {
++    pub seed: i32,
++}

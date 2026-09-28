@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-206 · Spike: evaluate the roughr crate (0.14.0) against the goldens
+
+`tools/roughr-eval` runs roughr 0.14.0 against all 1346 rough.js goldens. It matches 101 of them at two decimals (7.5 %), or 501 (37.2 %) with rough.js's Park-Miller generator patched in. Each mismatch is attributed to one of ten named divergences, so ADR-003 is accepted as a port. A CI job keeps both reports and the ADR tables current. PR: [#40](https://github.com/HutsonLabs/excali-rust/pull/40).
+
 ## 2026-09-28 · ex-109 · Library import model: URL allow-list and #addLibrary token parsing
 
 `excali_core::library_url` ports validateLibraryUrl and #addLibrary token parsing, including the legacy query form and the import steps. `excali_core::link` ports normalizeLink and toValidURL. Both parse through `excali_core::whatwg_url`, which reads URLs the way Node 26's `new URL` does. For hosts outside ASCII it uses a port of ada 4.0.0's IDNA that runs over ada's own tables. It matches Node on 127 host cases, on every code point and on 20,000 seeded random URLs, and a CI job checks the fixtures. PR: [#39](https://github.com/HutsonLabs/excali-rust/pull/39).
