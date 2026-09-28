@@ -42,7 +42,11 @@ pub const DEFAULT_EXPORT_PADDING: f64 = 10.0;
 /// `FRAME_STYLE` (`common/src/constants.ts:206-220`): what export reads of
 /// it.
 pub mod frame_style {
-    /// `radius`: the clip path's corner radius.
+    /// `strokeColor`: the outline's colour (`renderElement.ts:1033-1036`).
+    pub const STROKE_COLOR: &str = "#bbb";
+    /// `strokeWidth`: the outline's width at zoom 1.
+    pub const STROKE_WIDTH: f64 = 2.0;
+    /// `radius`: the clip path's and the outline's corner radius.
     pub const RADIUS: f64 = 8.0;
     /// `nameOffsetY`: the gap between a frame's name and its top edge.
     pub const NAME_OFFSET_Y: f64 = 3.0;

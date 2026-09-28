@@ -363,6 +363,13 @@ fn check_arrows(file: &str) -> usize {
 }
 
 #[test]
+fn elbow_arrows_with_their_heads_match_upstream() {
+    // eight drawn elbow arrows, the path and two head shapes each; the one
+    // past the extreme-coordinate guard has none
+    assert_eq!(check_arrows("elements-elbow-arrow.json"), 24);
+}
+
+#[test]
 fn arrows_with_their_heads_match_upstream() {
     // 34 arrows, most with the default end head (an arrow: two lines)
     assert_eq!(check_arrows("elements-arrow.json"), 102);

@@ -301,7 +301,10 @@ jobs:
   # svg-export.mjs --check for excali-scene's export-bounds.json and
   # excali-svg's svg-export.json (ex-406), upstream's own exportToSvg under
   # jsdom 22.1.0 (the document before the elements, element bounds, frame
-  # labels and canvas size) on scenes of every element kind.
+  # labels and canvas size) on scenes of every element kind, and
+  # static-scene.mjs --check for excali-scene's static-scene.json (ex-402),
+  # upstream's own renderStaticScene on a recording 2D context (every draw
+  # of the background, grid, elements, link icons and pending nodes).
   # Runs on arm64: V8's float results for some shapes differ in the last bits
   # between x64 and arm64, and the committed goldens are the arm64 output
   # (macOS and Linux arm64 agree byte for byte).
@@ -354,3 +357,5 @@ jobs:
         run: node tools/goldens/elbow-routing-fixtures.mjs --check
       - name: excali-scene export bounds and excali-svg document fixtures match upstream's exportToSvg
         run: node tools/goldens/svg-export.mjs --check
+      - name: excali-scene static scene fixture matches upstream's renderStaticScene
+        run: node tools/goldens/static-scene.mjs --check

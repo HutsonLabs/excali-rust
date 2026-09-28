@@ -64,10 +64,22 @@ From `packages/element/src/shape.ts:195-260` (research: rendering section 1):
 | Freedraw path | `M p0 Q p_i mid(p_i,p_i+1) … L p0 Z`, numbers trimmed to 2 decimals |
 | Text | `lineHeightPx = fontSize × lineHeight`; `verticalOffset = em×ascender + (lineHeightPx − em×ascender + em×descender)/2` with `em = fontSize/unitsPerEm` |
 | Frame | stroke `#bbb`, width `2/zoom`, radius `8/zoom`; name 14 px Helvetica, colour `#999999` light / `#7a7a7a` dark |
-| Grid | bold `#dddddd`, regular `#e5e5e5` (dark: filtered); regular lines hidden when `gridSize × zoom < 10` |
+| Grid | bold `#dddddd`, regular `#e5e5e5` (dark: filtered); regular lines hidden when `gridSize × zoom < 10`; regular lines dashed `[w × 3, 1/zoom + (w + 1/zoom)]`; bold lines up to 4 CSS px, regular 1, snapped to whole device pixels once a device pixel wide |
 | Opacity | `frameOpacity × elementOpacity / 10000`; erase preview ×0.2 |
 | Bitmap cache padding | freedraw `sw × 12`; text `fontSize / 2`; arrow 40 (20 without head); else 20; caps area 16,777,216 and side 32,767 |
 | Dark mode | colours through `invert(93%) hue-rotate(180deg)` computed numerically |
+
+## Static scene
+
+`excali_scene::static_scene::render_static_scene` is upstream's `renderStaticScene` (`packages/excalidraw/renderer/staticScene.ts`) as a display list, in upstream's order of work: the scroll snapped to whole device pixels (not when exporting), the device pixel ratio and the background (`bootstrapCanvas`: the view background through the dark filter, white when the canvas rejects the colour, none for `transparent`), the zoom, the grid, then every element that is not an iframe or embeddable with its bound text right after it (a label listed before its container waits for it) and its link icon, then the iframes and embeddables with their placeholder labels, then the pending flowchart nodes. An element whose drawing fails is skipped with its label and icon, as upstream's `try`/`catch` skips it. `excali_scene::render_element` is `renderElement`: alpha from the frame and the element (overrides first, ×0.2 while erasing, ×0.3 behind the element link selector), the render offset, frame outlines, rough.js shapes with round caps and joins, freedraw outlines filled as `new Path2D(d)` (`display::Path::from_svg_path_data`), text per line, images with their crop, flip, rounded clip and dark filter, and the image placeholders; upstream's built-in images (placeholders, link icons) are named by id with their exact data URLs (`render_element::builtin_image`).
+
+`tools/goldens/static-scene.mjs` runs upstream's `renderStaticScene` under jsdom on a recording 2D context and keeps every fill, stroke, clip, text and image in order with its path, matrix, alpha and styles: 34 scenes of grids at zooms around the cutoff and at device pixel ratios 1, 1.5 and 2, backgrounds (transparent, none, rejected, dark), every element kind in the editor, exporting, dark and zoomed, link icons, opacity and overrides, the element link selector and pending flowchart nodes. `crates/excali-scene/tests/static_scene.rs` replays the port's list and matches all of them draw for draw (matrices and numbers to 1e-9, colours as the canvas resolves them).
+
+Three differences, by design:
+
+- **Vectors in the editor.** Upstream draws each element once into a bitmap of its own and blits it in the editor (`generateElementWithCanvas`, `drawElementFromCanvas`); the port draws vectors, as upstream does when exporting. The difference is the bitmap's resampling and its placement on whole device pixels (at most half a device pixel). The golden generator patches upstream to its export path for the same reason, and says so.
+- **Link icon canvas.** Upstream keeps each link icon's canvas while the zoom is unchanged, background included; the port draws it afresh, through the same mapping and clip.
+- **Not here.** Sticky notes are ex-703's and the frame clip of frame children (`clipElementToFrame`) is ex-403's; until then the static scene leaves both out.
 
 ## Export structure
 

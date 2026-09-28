@@ -77,6 +77,7 @@ mod image;
 mod number;
 mod paint;
 mod path;
+mod path_data;
 mod replay;
 mod text;
 mod transform;

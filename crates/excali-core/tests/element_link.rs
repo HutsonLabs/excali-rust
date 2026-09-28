@@ -10,19 +10,51 @@ use excali_core::link::{is_element_link, ELEMENT_LINK_KEY};
 fn element_links() {
     assert_eq!(ELEMENT_LINK_KEY, "element");
     let cases = [
-        ("https://excalidraw.com/?element=abc", "excalidraw.com", true),
+        (
+            "https://excalidraw.com/?element=abc",
+            "excalidraw.com",
+            true,
+        ),
         // the fragment is not the query
-        ("https://excalidraw.com/#json=1&element=abc", "excalidraw.com", false),
+        (
+            "https://excalidraw.com/#json=1&element=abc",
+            "excalidraw.com",
+            false,
+        ),
         ("https://example.com/?element=abc", "excalidraw.com", false),
-        ("https://excalidraw.com/?elements=abc", "excalidraw.com", false),
-        ("https://excalidraw.com/?a=1&element", "excalidraw.com", true),
+        (
+            "https://excalidraw.com/?elements=abc",
+            "excalidraw.com",
+            false,
+        ),
+        (
+            "https://excalidraw.com/?a=1&element",
+            "excalidraw.com",
+            true,
+        ),
         // names are percent-decoded, `+` is a space
-        ("https://excalidraw.com/?el%65ment=x", "excalidraw.com", true),
-        ("https://excalidraw.com/?element+=x", "excalidraw.com", false),
-        ("https://excalidraw.com/?+element=x", "excalidraw.com", false),
+        (
+            "https://excalidraw.com/?el%65ment=x",
+            "excalidraw.com",
+            true,
+        ),
+        (
+            "https://excalidraw.com/?element+=x",
+            "excalidraw.com",
+            false,
+        ),
+        (
+            "https://excalidraw.com/?+element=x",
+            "excalidraw.com",
+            false,
+        ),
         // hosts are lower-cased, default ports dropped, others kept
         ("https://EXCALIDRAW.com/?element=x", "excalidraw.com", true),
-        ("https://excalidraw.com:443/?element=x", "excalidraw.com", true),
+        (
+            "https://excalidraw.com:443/?element=x",
+            "excalidraw.com",
+            true,
+        ),
         ("http://localhost:3000/?element=x", "localhost:3000", true),
         ("http://localhost:3000/?element=x", "localhost", false),
         // not a URL

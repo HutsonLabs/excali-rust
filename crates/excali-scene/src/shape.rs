@@ -408,21 +408,36 @@ fn linear_body(
     Ok((body, options))
 }
 
-/// The shapes `_generateElementShape` builds for a line or a non-elbow
-/// arrow (`shape.ts:890-975`): the body ([`generate_linear_shape`]) first,
-/// then for an arrow the start head's shapes and the end head's
-/// ([`get_arrowhead_shapes`]). Lines never get heads, whatever their
-/// `startArrowhead` and `endArrowhead` say.
+/// The shapes `_generateElementShape` builds for a line or an arrow
+/// (`shape.ts:890-975`): the body first, then for an arrow the start
+/// head's shapes and the end head's ([`get_arrowhead_shapes`]). Lines never
+/// get heads, whatever their `startArrowhead` and `endArrowhead` say.
 ///
-/// Errors as [`generate_linear_shape`] does, and with
-/// [`ShapeError::Arrowhead`] where `getArrowheadPoints` would throw.
+/// The body is [`generate_linear_shape`]'s, or for an elbow arrow
+/// [`generate_elbow_arrow_shape`]'s; an elbow arrow too far out to draw has
+/// no body and so no heads either (`getArrowheadPoints` finds no curve).
+/// The heads start from `generateRoughOptions(element, false, isDarkMode)`
+/// for every arrow, elbowed or not.
+///
+/// Errors as those builders do, and with [`ShapeError::Arrowhead`] where
+/// `getArrowheadPoints` would throw.
 pub fn generate_linear_element_shapes(
     element: &Element,
     generator: &RoughGenerator,
     config: &RenderConfig<'_>,
 ) -> Result<Vec<Drawable>, ShapeError> {
-    let (body, options) = linear_body(element, generator, config)?;
-    let mut shape = vec![body];
+    let (mut shape, options) = match &element.kind {
+        ElementKind::Arrow(arrow) if arrow.elbowed => {
+            let options = generate_rough_options(element, false, config.theme == Theme::Dark)?
+                .to_rough(generator.default_options());
+            let body = generate_elbow_arrow_shape(element, generator, config)?;
+            (body.into_iter().collect::<Vec<_>>(), options)
+        }
+        _ => {
+            let (body, options) = linear_body(element, generator, config)?;
+            (vec![body], options)
+        }
+    };
 
     // add lines only in arrow
     if let ElementKind::Arrow(arrow) = &element.kind {

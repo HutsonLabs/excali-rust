@@ -126,9 +126,15 @@ fn smooth_curves_reflect_the_previous_control_point() {
 fn errors_keep_what_came_before() {
     assert_eq!(cmds("L1 1"), []);
     assert_eq!(cmds("M0 0 L1"), [MoveTo(0.0, 0.0)]);
-    assert_eq!(cmds("M0 0 L1 1 X 2 2"), [MoveTo(0.0, 0.0), LineTo(1.0, 1.0)]);
+    assert_eq!(
+        cmds("M0 0 L1 1 X 2 2"),
+        [MoveTo(0.0, 0.0), LineTo(1.0, 1.0)]
+    );
     // parameters after Z
-    assert_eq!(cmds("M0 0 L1 1 Z 2 2"), [MoveTo(0.0, 0.0), LineTo(1.0, 1.0), Close]);
+    assert_eq!(
+        cmds("M0 0 L1 1 Z 2 2"),
+        [MoveTo(0.0, 0.0), LineTo(1.0, 1.0), Close]
+    );
     // two commas
     assert_eq!(cmds("M0,,0"), []);
     // a bad arc flag
@@ -150,11 +156,16 @@ fn arcs() {
     ));
     // the other sweep goes through (10, 10)
     let other = cmds("M0 0 a 10 10 0 0 0 20 0");
-    assert!(matches!(other[1], CubicTo(_, _, _, _, x, y) if (x - 10.0).abs() < 1e-9 && (y - 10.0).abs() < 1e-9));
+    assert!(
+        matches!(other[1], CubicTo(_, _, _, _, x, y) if (x - 10.0).abs() < 1e-9 && (y - 10.0).abs() < 1e-9)
+    );
     // radii too small are scaled up; a zero radius is a line; an arc to
     // the current point adds nothing
     assert_eq!(cmds("M0 0 A 1 1 0 0 1 20 0").len(), 3);
-    assert_eq!(cmds("M0 0 A 0 5 0 0 1 20 0"), [MoveTo(0.0, 0.0), LineTo(20.0, 0.0)]);
+    assert_eq!(
+        cmds("M0 0 A 0 5 0 0 1 20 0"),
+        [MoveTo(0.0, 0.0), LineTo(20.0, 0.0)]
+    );
     assert_eq!(cmds("M0 0 A 5 5 0 0 1 0 0"), [MoveTo(0.0, 0.0)]);
     // flags may run into the next number
     assert_eq!(cmds("M0 0 A5 5 0 0120 0").len(), 3);

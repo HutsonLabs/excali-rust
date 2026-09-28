@@ -19,6 +19,20 @@ use crate::whatwg_url;
 /// What [`sanitize_url`] and [`to_valid_url`] return for a link they reject.
 pub const BLANK_URL: &str = "about:blank";
 
+/// `ELEMENT_LINK_KEY` (`packages/common/src/constants.ts:595`): the query
+/// parameter naming the element a link points at.
+pub const ELEMENT_LINK_KEY: &str = "element";
+
+/// `isElementLink(url)` (`packages/element/src/elementLink.ts:82-92`):
+/// whether `url` is a link to an element of a scene on this page, that is,
+/// a URL `new URL` parses whose query has an [`ELEMENT_LINK_KEY`] parameter
+/// and whose `host` is `location_host` (upstream's `window.location.host`,
+/// such as `excalidraw.com` or `localhost:3000`).
+pub fn is_element_link(url: &str, location_host: &str) -> bool {
+    whatwg_url::parse(url)
+        .is_some_and(|u| u.search_params_has(ELEMENT_LINK_KEY) && u.host() == location_host)
+}
+
 /// `escapeDoubleQuotes` (`packages/common/src/utils.ts:1134-1136`): every
 /// `"` as `&quot;`.
 pub fn escape_double_quotes(s: &str) -> String {
