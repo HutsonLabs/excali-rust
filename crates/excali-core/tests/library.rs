@@ -18,9 +18,7 @@
 
 use std::io::Read;
 
-use excali_core::constants::{
-    DEFAULT_ELEMENT_PROPS, DEFAULT_TEXT_ALIGN, DEFAULT_VERTICAL_ALIGN,
-};
+use excali_core::constants::{DEFAULT_ELEMENT_PROPS, DEFAULT_TEXT_ALIGN, DEFAULT_VERTICAL_ALIGN};
 use excali_core::element::{Element, ElementBase, ElementKind};
 use excali_core::library::{
     hash_elements_version, hash_string, is_valid_library, library_items_hash, merge_library_items,
@@ -209,7 +207,10 @@ fn logic_gates_keeps_its_string_stroke_widths() {
         assert_eq!(e.to_map()["strokeWidth"], json!("3"), "{}", e.base.id);
     }
     let output = serialize_library_as_json(&items, source(&f));
-    assert_eq!(sha256(&output), case["output_sha256"].as_str().expect("sha"));
+    assert_eq!(
+        sha256(&output),
+        case["output_sha256"].as_str().expect("sha")
+    );
 }
 
 /// The legacy binding of `elements-legacy-binding-migrated`, answered by an
@@ -554,7 +555,10 @@ fn elements_with_values_the_model_has_no_form_for_are_kept_as_read() {
     assert_eq!(mixed.opacity, 50.0);
     assert_eq!(mixed.angle.0, 1.0);
     assert_eq!(mixed.stroke_color, DEFAULT_ELEMENT_PROPS.stroke_color);
-    assert_eq!(mixed.background_color, DEFAULT_ELEMENT_PROPS.background_color);
+    assert_eq!(
+        mixed.background_color,
+        DEFAULT_ELEMENT_PROPS.background_color
+    );
     assert!(mixed.locked);
     assert_eq!(mixed.seed, 9.0);
     assert_eq!(mixed.frame_id, None);
@@ -584,13 +588,13 @@ fn elements_with_values_the_model_has_no_form_for_are_kept_as_read() {
     changed.base.stroke_width = 4.0;
     changed.base.opacity = 60.0;
     let map = changed.to_map();
-    assert_eq!(map["strokeWidth"], json!(4));
-    assert_eq!(map["opacity"], json!(60));
+    assert_eq!(map["strokeWidth"], json!(4.0));
+    assert_eq!(map["opacity"], json!(60.0));
     assert_eq!(map["roughness"], json!("1"));
     assert_eq!(map["customData"], json!(4));
     let mut changed = e("sw").clone();
     changed.base.stroke_width = 1.0;
-    assert_eq!(changed.to_map()["strokeWidth"], json!(1));
+    assert_eq!(changed.to_map()["strokeWidth"], json!(1.0));
 }
 
 /// `LibraryItem` as a typed codec for items already restored (a

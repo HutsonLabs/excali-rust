@@ -116,11 +116,6 @@ const REASONS: &[(&str, &str)] = &[
         "legacy obsidian-excalidraw attribute of text elements, deleted (restore.ts:532-534)",
     ),
     (
-        "elements_dropped.typed model cannot read it",
-        "never expected: upstream loads every element restore gives, whatever its values \
-         (restore.ts:451-491 keeps a value of another JSON type, such as strokeWidth \"3\")",
-    ),
-    (
         "elements_dropped.deleted",
         "a library item keeps its non-deleted elements only (restore.ts:1374-1379)",
     ),
@@ -317,6 +312,10 @@ fn dropped_because(element: &Value, targets: &ElementsMap) -> Option<&'static st
         Ok(None) => return Some("unknown type"),
         Ok(Some(restored)) => restored,
     };
+    // Upstream loads every element restore gives, whatever its values
+    // (restore.ts:451-491 keeps a value of another JSON type, such as
+    // strokeWidth "3"), so this loss has no entry in REASONS and fails the
+    // test (ex-117).
     match Element::from_restored(restored) {
         Err(_) => Some("typed model cannot read it"),
         Ok(e) if e.base.is_deleted => Some("deleted"),
