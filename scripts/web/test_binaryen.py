@@ -156,6 +156,43 @@ class EnsureTest(unittest.TestCase):
         with self.pin(digest):
             with self.assertRaisesRegex(binaryen.BinaryenError, "reports version 120"):
                 self.ensure()
+            # Nothing is installed, so the next ensure cannot take the cached
+            # branch: it downloads again and is refused again.
+            self.assertEqual(list(self.tools.iterdir()), [])
+            with self.assertRaisesRegex(binaryen.BinaryenError, "reports version 120"):
+                self.ensure()
+            self.assertEqual(list(self.tools.iterdir()), [])
+
+    def install_cached(self, version: str) -> Path:
+        """A wasm-opt already in .tools/ (a previous run or a CI cache restore)."""
+        cached = self.tools / "binaryen-version_133" / "bin" / "wasm-opt"
+        cached.parent.mkdir(parents=True)
+        cached.write_text(FAKE_WASM_OPT.format(v=version))
+        cached.chmod(0o755)
+        return cached
+
+    def test_cached_wrong_version_is_replaced_by_a_verified_download(self):
+        cached = self.install_cached("120")
+        digest = fake_release(self.release, "arm64-macos")
+        with self.pin(digest):
+            path = self.ensure()
+        self.assertEqual(path, cached)
+        self.assertEqual(binaryen.version_of(str(path)), "133")
+        self.assertTrue(any("reports version 120" in m for m in self.logs))
+        self.assertTrue(any("sha256 verified" in m for m in self.logs))
+
+    def test_cached_wrong_version_with_no_good_download_is_refused(self):
+        self.install_cached("120")
+        digest = fake_release(self.release, "arm64-macos", version="121")
+        with self.pin(digest):
+            with self.assertRaisesRegex(binaryen.BinaryenError, "reports version 121"):
+                self.ensure()
+        self.assertEqual(list(self.tools.iterdir()), [])
+
+    def test_cached_pinned_version_is_used_without_download(self):
+        cached = self.install_cached("133")
+        self.assertEqual(self.ensure(), cached)
+        self.assertEqual(self.logs, [])
 
     def test_path_escape_in_tarball_is_refused(self):
         digest = fake_release(

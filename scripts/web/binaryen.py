@@ -7,8 +7,11 @@ pinned like Zola's (scripts/site/zola.sh): `ensure` downloads the release
 tarball for this host into .tools/, verifies its SHA-256 against the digest
 recorded below (a download with no pinned digest is refused), unpacks
 bin/wasm-opt and lib/ (the macOS binary links lib/libbinaryen.dylib), and
-prints the path of wasm-opt. A wasm-opt of exactly the pinned version already
-on PATH is used as is.
+checks that the unpacked wasm-opt reports the pinned version before moving it
+into place, and prints the path of wasm-opt. A wasm-opt of exactly the pinned
+version already on PATH, or already installed in .tools/ (a previous run or a
+CI cache restore), is used as is; an installed one of any other version is
+removed and downloaded again.
 
     python3 scripts/web/binaryen.py ensure          path of wasm-opt
     python3 scripts/web/binaryen.py platform        this host's asset name
@@ -134,7 +137,13 @@ def ensure(log=lambda msg: print(msg, file=sys.stderr)) -> Path:
     dest = install_dir(tools)
     wasm_opt = dest / "bin" / "wasm-opt"
     if wasm_opt.is_file() and os.access(wasm_opt, os.X_OK):
-        return wasm_opt
+        # A previous run or a CI cache restore; trust it only at the pin.
+        have = version_of(str(wasm_opt))
+        if have == VERSION:
+            return wasm_opt
+        log(f"binaryen: {wasm_opt} reports version {have}, expected {VERSION}; reinstalling")
+    if dest.exists():
+        shutil.rmtree(dest)
     name = platform_name()
     want = pinned_digest(name)
     base = os.environ.get("BINARYEN_BASE_URL", BASE_URL)
@@ -169,15 +178,16 @@ def ensure(log=lambda msg: print(msg, file=sys.stderr)) -> Path:
             else:
                 tar.extractall(unpacked, members=members)
         extracted = unpacked / f"binaryen-{TAG}"
-        (extracted / "bin" / "wasm-opt").chmod(0o755)
-        if dest.exists():
-            shutil.rmtree(dest)
+        candidate = extracted / "bin" / "wasm-opt"
+        candidate.chmod(0o755)
+        # Check the version before the install, so a wrong binary never
+        # reaches dest (where the cached branch above would find it).
+        have = version_of(str(candidate))
+        if have != VERSION:
+            raise BinaryenError(f"{url}: wasm-opt reports version {have}, expected {VERSION}")
         extracted.rename(dest)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
-    have = version_of(str(wasm_opt))
-    if have != VERSION:
-        raise BinaryenError(f"{wasm_opt} reports version {have}, expected {VERSION}")
     return wasm_opt
 
 
