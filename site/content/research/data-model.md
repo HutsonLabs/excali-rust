@@ -452,6 +452,7 @@ Legacy fields handled here:
   - A missing `payload-version` means v1: the base64 decodes to UTF-8 text rather than a byte string.
   - It then accepts either the encoded wrapper or raw scene JSON.
 - Files are saved as `.excalidraw.svg` (`data/index.ts:150`).
+- In this repository (ex-112): `excali_core::svg_payload::{encode_svg_base64_payload, decode_svg_base64_payload}`, with `btoa` / `atob` in `excali_core::encode`. `crates/excali-core/tests/svg_payload.rs` decodes both SVG fixtures and reproduces the payload in upstream's two export snapshots byte for byte.
 - Detection on load: `packages/excalidraw/data/blob.ts:32-80`. Extension-to-MIME mapping: `blob.ts:82-104`, `520-543`.
 
 **Clipboard** (`packages/excalidraw/clipboard.ts`):

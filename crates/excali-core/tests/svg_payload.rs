@@ -130,7 +130,8 @@ fn assert_writer_reproduces(snapshot_file: &str, name: &str, element_text: &str)
     let payload = decode_svg_base64_payload(&expected).expect("snapshot decodes");
     let scene = scene(&payload);
     assert_eq!(scene["type"], "excalidraw");
-    assert_eq!(scene["source"], "https://excalidraw.com");
+    // `source` is `window.location.origin`: jsdom's in upstream's tests.
+    assert_eq!(scene["source"], "http://localhost:3000");
     let texts: Vec<&str> = scene["elements"]
         .as_array()
         .unwrap()
@@ -205,11 +206,20 @@ fn encoding_and_decoding_a_scene_round_trips() {
 
 #[test]
 fn writer_handles_every_code_point_class() {
-    for text in ["", "a", "é中😀\u{0}\u{7f}\u{80}\u{ff}\u{fffd}", "\"\\\n\t</metadata>&<!-- -->"] {
+    for text in [
+        "",
+        "a",
+        "é中😀\u{0}\u{7f}\u{80}\u{ff}\u{fffd}",
+        "\"\\\n\t</metadata>&<!-- -->",
+    ] {
         let written = encode_svg_base64_payload(text);
         // Base64 needs no escaping inside a text node.
         let b = embedded_base64(&written);
-        assert!(b.bytes().all(|c| c.is_ascii_alphanumeric() || b"+/=".contains(&c)), "{b}");
+        assert!(
+            b.bytes()
+                .all(|c| c.is_ascii_alphanumeric() || b"+/=".contains(&c)),
+            "{b}"
+        );
         assert_eq!(decode_svg_base64_payload(&written).unwrap(), text);
     }
 }
@@ -266,16 +276,20 @@ fn the_regex_trims_whitespace_and_takes_the_first_payload() {
     let raw = br#"{"type":"excalidraw","n":1}"#;
     let other = br#"{"type":"excalidraw","n":2}"#;
     // `\s*` on both sides, including newlines and Unicode spaces.
-    let svg = metadata(None, &format!("\n\t \u{a0}\u{feff}{}\u{3000}\r\n  ", b64(raw)));
+    let svg = metadata(
+        None,
+        &format!("\n\t \u{a0}\u{feff}{}\u{3000}\r\n  ", b64(raw)),
+    );
     assert_eq!(decode_svg_base64_payload(&svg).unwrap().as_bytes(), raw);
     // The first start/end pair wins.
-    let svg = format!("{}{}", metadata(None, &b64(raw)), metadata(None, &b64(other)));
+    let svg = format!(
+        "{}{}",
+        metadata(None, &b64(raw)),
+        metadata(None, &b64(other))
+    );
     assert_eq!(decode_svg_base64_payload(&svg).unwrap().as_bytes(), raw);
     // A start whose payload cannot match (line break) gives way to a later one.
-    let svg = format!(
-        "<!-- payload-start -->ab\ncd{}",
-        metadata(None, &b64(raw))
-    );
+    let svg = format!("<!-- payload-start -->ab\ncd{}", metadata(None, &b64(raw)));
     assert_eq!(decode_svg_base64_payload(&svg).unwrap().as_bytes(), raw);
     // Lazy `.+?`: the capture stops at the first end comment.
     let svg = format!(
@@ -302,8 +316,14 @@ fn the_version_selects_utf8_or_byte_string() {
     let text = "{\"type\":\"excalidraw\",\"t\":\"é😀\"}";
     let utf8 = b64(text.as_bytes());
     // v1 (absent, or "1"): UTF-8.
-    assert_eq!(decode_svg_base64_payload(&metadata(None, &utf8)).unwrap(), text);
-    assert_eq!(decode_svg_base64_payload(&metadata(Some("1"), &utf8)).unwrap(), text);
+    assert_eq!(
+        decode_svg_base64_payload(&metadata(None, &utf8)).unwrap(),
+        text
+    );
+    assert_eq!(
+        decode_svg_base64_payload(&metadata(Some("1"), &utf8)).unwrap(),
+        text
+    );
     // Any other version: a byte string, so UTF-8 bytes come back one char
     // each (mojibake), exactly as upstream's atob gives them to JSON.parse.
     let mojibake = to_byte_string(text.as_bytes());
@@ -323,7 +343,10 @@ fn the_version_selects_utf8_or_byte_string() {
         assert_eq!(decode_svg_base64_payload(&svg).unwrap(), text, "{bad:?}");
     }
     // The first matching version comment anywhere in the document counts.
-    let svg = format!("<!-- payload-version:x --><!-- payload-version:1 -->{}", metadata(Some("2"), &utf8));
+    let svg = format!(
+        "<!-- payload-version:x --><!-- payload-version:1 -->{}",
+        metadata(Some("2"), &utf8)
+    );
     assert_eq!(decode_svg_base64_payload(&svg).unwrap(), text);
 }
 
@@ -377,11 +400,18 @@ fn encoded_wrappers_are_decoded() {
 fn anything_else_fails() {
     let failed = |json: &str, version: Option<&str>| {
         let r = decode_svg_base64_payload(&metadata(version, &b64(json.as_bytes())));
-        assert!(matches!(r, Err(SvgPayloadError::Failed(_))), "{json}: {r:?}");
+        assert!(
+            matches!(r, Err(SvgPayloadError::Failed(_))),
+            "{json}: {r:?}"
+        );
         assert_eq!(r.unwrap_err().to_string(), "FAILED");
     };
-    // Not JSON.
-    failed("", None);
+    // Not JSON (an empty payload has no base64 to capture: INVALID).
+    assert_eq!(
+        decode_svg_base64_payload(&metadata(None, "")),
+        Err(SvgPayloadError::Invalid)
+    );
+    failed(" ", None);
     failed("{", Some("2"));
     failed("excalidraw", None);
     // `in` on a primitive throws; objects without `encoded` must be scenes.
@@ -400,13 +430,22 @@ fn anything_else_fails() {
         failed(json, Some("2"));
     }
     // A wrapper decode rejects.
-    failed(r#"{"encoding":"base64","compressed":false,"encoded":""}"#, None);
+    failed(
+        r#"{"encoding":"base64","compressed":false,"encoded":""}"#,
+        None,
+    );
     failed(r#"{"compressed":false,"encoded":""}"#, None);
-    failed(r#"{"encoding":"bstring","compressed":true,"encoded":"xyz"}"#, None);
+    failed(
+        r#"{"encoding":"bstring","compressed":true,"encoded":"xyz"}"#,
+        None,
+    );
     // Not base64 at all.
     for base64 in ["e30", "e30=e30=", "e3!0", "é30=", "e30==="] {
         let r = decode_svg_base64_payload(&metadata(Some("2"), base64));
-        assert!(matches!(r, Err(SvgPayloadError::Failed(_))), "{base64}: {r:?}");
+        assert!(
+            matches!(r, Err(SvgPayloadError::Failed(_))),
+            "{base64}: {r:?}"
+        );
     }
 }
 
@@ -459,7 +498,18 @@ fn atob_is_forgiving_base64_decode() {
     assert_eq!(atob(" Zm\t9v\nYg\u{c}==\r").unwrap(), "foob");
     // Leftover bits need not be zero.
     assert_eq!(atob("Zh==").unwrap(), "f");
-    for bad in ["Z", "Zg=", "Zg===", "Z===", "=Zg=", "Zm=9", "Zm9v!", "Zm9\u{b}v", "Zm9\u{a0}v", "Zm-_"] {
+    for bad in [
+        "Z",
+        "Zg=",
+        "Zg===",
+        "Z===",
+        "=Zg=",
+        "Zm=9",
+        "Zm9v!",
+        "Zm9\u{b}v",
+        "Zm9\u{a0}v",
+        "Zm-_",
+    ] {
         assert_eq!(atob(bad), Err(InvalidCharacterError), "{bad:?}");
     }
 }
@@ -467,11 +517,41 @@ fn atob_is_forgiving_base64_decode() {
 #[test]
 fn string_to_base64_and_back_follow_encode_ts() {
     // Not a byte string: UTF-8 first.
-    assert_eq!(string_to_base64("é😀", false).unwrap(), b64("é😀".as_bytes()));
-    assert_eq!(base64_to_string(&b64("é😀".as_bytes()), false).unwrap(), "é😀");
+    assert_eq!(
+        string_to_base64("é😀", false).unwrap(),
+        b64("é😀".as_bytes())
+    );
+    assert_eq!(
+        base64_to_string(&b64("é😀".as_bytes()), false).unwrap(),
+        "é😀"
+    );
     // A byte string: as is.
     assert_eq!(string_to_base64("\u{e9}", true).unwrap(), "6Q==");
     assert_eq!(base64_to_string("6Q==", true).unwrap(), "\u{e9}");
     assert_eq!(string_to_base64("😀", true), Err(InvalidCharacterError));
     assert_eq!(base64_to_string("6", true), Err(InvalidCharacterError));
+}
+
+#[test]
+fn btoa_and_atob_agree_with_standard_base64_at_every_padding() {
+    let mut x = 0x2545_f491_4f6c_dd1du64;
+    for len in 0..200 {
+        let bytes: Vec<u8> = (0..len)
+            .map(|_| {
+                x ^= x << 13;
+                x ^= x >> 7;
+                x ^= x << 17;
+                x as u8
+            })
+            .collect();
+        let expected = b64(&bytes);
+        let bstring = to_byte_string(&bytes);
+        assert_eq!(btoa(&bstring).unwrap(), expected, "len {len}");
+        assert_eq!(atob(&expected).unwrap(), bstring, "len {len}");
+        assert_eq!(
+            atob(expected.trim_end_matches('=')).unwrap(),
+            bstring,
+            "len {len}"
+        );
+    }
 }

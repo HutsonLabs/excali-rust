@@ -13,8 +13,10 @@
 //! name (`encode.ts:99-121`, `:123-144`); [`deflate`] and [`inflate`] /
 //! [`inflate_to_string`] are ports of pako 2.0.3's compressor and
 //! decompressor, so bytes, text and error messages are pako's. The
-//! byte-string helpers are `encode.ts:14-39`.
+//! byte-string helpers are `encode.ts:14-39`; [`btoa`], [`atob`],
+//! [`string_to_base64`] and [`base64_to_string`] are `encode.ts:49-58`.
 
+mod base64;
 mod bstring;
 mod checksum;
 mod deflate;
@@ -24,6 +26,7 @@ mod inftrees;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
+pub use base64::{atob, base64_to_string, btoa, string_to_base64, InvalidCharacterError};
 pub use bstring::{byte_string_to_bytes, byte_string_to_string, to_byte_string};
 pub use deflate::deflate;
 pub use inflate::{inflate, inflate_to_string, inflate_to_utf16, InflateError};
