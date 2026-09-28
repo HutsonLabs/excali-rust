@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-m1 · Milestone check (second run): M1 not yet reached
+
+The M1 check ran again on `main` at 46d9d4e, after ex-g101 merged. 851 workspace tests pass, the fixture corpus verifies, and all twelve goldens checks are current, including the D1 document round trip. Every scene-bearing upstream fixture and all 232 catalogue libraries round-trip byte for byte against upstream. D1 is still not met because two known losses remain. The 24 logic-gates lines with a string `strokeWidth` are dropped (ex-117). 1245 legacy arrow bindings are cleared instead of migrated (ex-116, blocked by ex-507 and ex-510). The check found no other gap, so it added no new tasks.
+
 ## 2026-09-28 · ex-212 · Arrowheads: all fourteen kinds with sizes, angles and roughness rules
 
 `excali_scene::bounds` now has `get_arrowhead_size`, `get_arrowhead_angle` and `get_arrowhead_points`, and `excali_scene::shape` has `get_arrowhead_shapes` for all fourteen kinds. `generate_linear_element_shapes` draws the arrow body and then its start and end heads. Line heads cap roughness at 1 and are drawn solid unless the arrow is dotted. Circle heads cap roughness at 0.5. Outline heads fill with the canvas background, dark-filtered on a dark canvas. A missing `endArrowhead` key still defaults to an arrow. All 102 shapes in `elements-arrow.json` and all 442 in `elements-arrowheads.json` match upstream. PR: [#48](https://github.com/HutsonLabs/excali-rust/pull/48).
