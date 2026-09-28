@@ -1,0 +1,14 @@
+{
+  "name": "excali-rust-site-smoke",
+  "private": true,
+  "description": "Playwright smoke test for the review site and mockups (ex-006).",
+  "type": "module",
+  "scripts": {
+    "test": "npm run test:unit && npm run test:smoke",
+    "test:unit": "node --test unit/*.test.mjs",
+    "test:smoke": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}

@@ -4,15 +4,15 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 05:41 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 05:58 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**132 issues** · 5 closed (4%) · 0 in progress · 0 blocked · 127 open
+**132 issues** · 6 closed (5%) · 0 in progress · 0 blocked · 125 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
 ## ex-e0 · Phase 0: Foundations
 
-<span class="status open">open</span> 5/9 children closed
+<span class="status open">open</span> 6/9 children closed
 
 Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo workspace and CI. Everything later phases depend on to be reproducible.
 
@@ -23,10 +23,10 @@ Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo work
 | `ex-003` | Fixture corpus with manifest (upstream test fixtures + 232 public libraries) | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-004` | Golden generator: node script producing rough.js 4.6.4 path output for fixture elements | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-005` | Enable GitHub Pages source = GitHub Actions and confirm first deploy | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-006` | Playwright smoke test for the site and mockups | task | P3 | <span class="status open">open</span> | yes |  |
+| `ex-006` | Playwright smoke test for the site and mockups | task | P3 | <span class="status closed">closed</span> |  |  |
 | `ex-007` | scripts/site/zola.sh works on macOS (bash 3.2, shasum) with the aarch64-apple-darwin digest pinned | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-008` | Record the owner decisions of 2026-09-27 (calendar versioning, agent-closed milestones, fonts, strictly a port) | task | P0 | <span class="status open">open</span> | yes |  |
-| `ex-m0` | M0: site live, gates enforced, workspace green | milestone | P2 | <span class="status open">open</span> |  | `ex-004`, `ex-006`, `ex-008` |
+| `ex-m0` | M0: site live, gates enforced, workspace green | milestone | P2 | <span class="status open">open</span> |  | `ex-004`, `ex-008` |
 
 ## ex-e1 · Phase 1: Core model and file format (excali-core)
 
@@ -208,7 +208,7 @@ First calendar release v26.9.1 (ADR-009): ES module + WASM tarball as a GitHub r
 
 | id | title | type | P | status | ready | blocked by |
 |---|---|---|---|---|---|---|
-| `ex-801` | Publish crates to crates.io under excali-* | task | P1 | <span class="status open">open</span> |  | `ex-712` |
+| `ex-801` | Publish crates to crates.io under excali-* | task | P1 | <span class="status deferred">deferred</span> |  | `ex-712` |
 | `ex-802` | Release tarball of the ES module and WASM as a GitHub release asset | task | P1 | <span class="status open">open</span> |  | `ex-712` |
 | `ex-803` | Integration guide walked by an agent in a fresh clone | task | P2 | <span class="status open">open</span> |  | `ex-607` |
 | `ex-804` | Tag v26.9.1 and publish the GitHub release | task | P2 | <span class="status open">open</span> |  | `ex-802`, `ex-803` |
