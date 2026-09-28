@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-409 · excali-cli: validate, render (png), export (svg), lib (list/merge), with exit codes
+
+The `excali` command line now validates scenes and libraries (including scenes embedded in PNG and SVG), renders PNG with text from the vendored fonts, exports SVG with subset fonts, and lists and merges libraries as upstream's `mergeLibraryItems` does, with exit codes 0-4. A canvas beyond the browser limits is refused with "Error: Canvas too big" instead of crashing. PR: [#78](https://github.com/HutsonLabs/excali-rust/pull/78).
+
 ## 2026-09-28 · ex-506 · Editor state machine: tools registry (keys, fillable, toggle), active tool, tool lock, pen mode
 
 The editor now has upstream's tool registry: the TOOLS table with its letter and number keys, a caps-lock insensitive `find_shape_by_key`, and the fillable and toggle flags. `ToolState` holds the active tool, tool lock and pen mode, applies forced tools, and resets an unsupported tool to selection while interaction is off, in the order upstream's componentDidUpdate uses. PR: [#77](https://github.com/HutsonLabs/excali-rust/pull/77).

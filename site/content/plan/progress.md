@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 22:59 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 23:40 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**141 issues** · 69 closed (49%) · 0 in progress · 0 blocked · 71 open
+**141 issues** · 70 closed (50%) · 0 in progress · 0 blocked · 70 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -110,7 +110,7 @@ Font metadata, measurement from font files, wrapping port, bound-text sizing, la
 
 ## ex-e4 · Phase 4: Headless rendering and export
 
-<span class="status open">open</span> 7/11 children closed
+<span class="status open">open</span> 8/11 children closed
 
 tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
@@ -124,9 +124,9 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 | `ex-406` | SVG writer: document structure (source comment, metadata, defs clipPaths, font style block, background rect) | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-407` | SVG elements: rough paths, freedraw, text per line, images as symbol/use, arrow-label masks | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-408` | Spike: font subsetting for SVG export (allsorts, hb-subset, or ship full woff2) | spike | P2 | <span class="status closed">closed</span> |  |  |
-| `ex-409` | excali-cli: validate, render (png), export (svg), lib (list/merge), with exit codes | task | P1 | <span class="status open">open</span> | yes |  |
-| `ex-410` | Corpus render: every catalogue library item renders to PNG without panic | task | P1 | <span class="status open">open</span> |  | `ex-409` |
-| `ex-m4` | M4: SVG/PNG export parity | milestone | P2 | <span class="status open">open</span> |  | `ex-407`, `ex-409`, `ex-410` |
+| `ex-409` | excali-cli: validate, render (png), export (svg), lib (list/merge), with exit codes | task | P1 | <span class="status closed">closed</span> |  |  |
+| `ex-410` | Corpus render: every catalogue library item renders to PNG without panic | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-m4` | M4: SVG/PNG export parity | milestone | P2 | <span class="status open">open</span> |  | `ex-407`, `ex-410` |
 
 ## ex-e5 · Phase 5: Web runtime and editor
 
@@ -182,7 +182,7 @@ Vendored module in term.hut with CRUD and library import; tauri-plugin-excali wi
 | `ex-602` | term.hut: save through fs_write_text with dirty state and conflict handling | task | P0 | <span class="status open">open</span> |  | `ex-601` |
 | `ex-603` | term.hut: New drawing and delete flows in the tree | task | P1 | <span class="status open">open</span> |  | `ex-602` |
 | `ex-604` | term.hut: Import library from URL or file with the allow-list | task | P1 | <span class="status open">open</span> |  | `ex-601` |
-| `ex-605` | tauri-plugin-excali: dialogs, headless export, allow-listed library fetch, capability file | task | P0 | <span class="status open">open</span> |  | `ex-409`, `ex-530` |
+| `ex-605` | tauri-plugin-excali: dialogs, headless export, allow-listed library fetch, capability file | task | P0 | <span class="status open">open</span> |  | `ex-530` |
 | `ex-606` | Example Tauri app embedding the editor | task | P1 | <span class="status open">open</span> |  | `ex-605` |
 | `ex-607` | Integration docs: CSP, capabilities, module loading without a bundler | task | P2 | <span class="status open">open</span> |  | `ex-605` |
 | `ex-m6` | M6: term.hut CRUD and library import end to end | milestone | P2 | <span class="status open">open</span> |  | `ex-601`, `ex-602`, `ex-603`, `ex-604`, `ex-605`, `ex-606` … |

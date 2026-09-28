@@ -660,6 +660,134 @@ impl FontStore {
             .map(|(run, face)| face.map_or(0.0, |(_, face)| face.shaped_width(run, spec.size)))
             .sum()
     }
+
+    /// The glyph outlines `fillText(text, 0, 0)` fills for a single line
+    /// in the CSS font string `font`: the runs [`FontStore::line_width`]
+    /// measures, each shaped on its face, the glyphs' outlines scaled to
+    /// the font size and laid along the alphabetic baseline from x = 0,
+    /// y growing downwards as on a canvas. With `rtl` (the canvas's
+    /// `direction`) the runs are laid out from the right end: the last run
+    /// first. A run's own glyph order is the shaper's, which puts a
+    /// right-to-left script right to left. `width` is the line's advance,
+    /// equal to [`FontStore::line_width`].
+    pub fn shape_line(&self, text: &str, font: &str, rtl: bool) -> ShapedLine {
+        let spec = Self::spec(font);
+        let candidates = self.candidates(&spec);
+        let mut runs = self.runs(text, &candidates);
+        if rtl {
+            runs.reverse();
+        }
+        let mut line = ShapedLine {
+            width: 0.0,
+            outline: Vec::new(),
+        };
+        for (run, face) in runs {
+            if let Some((_, face)) = face {
+                line.width += face.outline_run(run, spec.size, line.width, &mut line.outline);
+            }
+        }
+        line
+    }
+}
+
+/// One step of a glyph outline, in CSS pixels from the start of the line's
+/// alphabetic baseline, y growing downwards: the path a canvas fills with
+/// the non-zero rule.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum OutlineSegment {
+    MoveTo(f64, f64),
+    LineTo(f64, f64),
+    /// Control point, end point.
+    QuadTo(f64, f64, f64, f64),
+    /// Two control points, end point.
+    CurveTo(f64, f64, f64, f64, f64, f64),
+    Close,
+}
+
+/// A line shaped for drawing ([`FontStore::shape_line`]).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ShapedLine {
+    /// The advance width in CSS pixels.
+    pub width: f64,
+    /// The outlines of every glyph, in drawing order.
+    pub outline: Vec<OutlineSegment>,
+}
+
+/// Collects one glyph's outline in font units, placed at an origin and
+/// scaled to pixels.
+struct OutlineSink<'a> {
+    out: &'a mut Vec<OutlineSegment>,
+    scale: f64,
+    x: f64,
+    y: f64,
+}
+
+impl OutlineSink<'_> {
+    fn point(&self, x: f32, y: f32) -> (f64, f64) {
+        (
+            self.x + f64::from(x) * self.scale,
+            self.y - f64::from(y) * self.scale,
+        )
+    }
+}
+
+impl ttf_parser::OutlineBuilder for OutlineSink<'_> {
+    fn move_to(&mut self, x: f32, y: f32) {
+        let (x, y) = self.point(x, y);
+        self.out.push(OutlineSegment::MoveTo(x, y));
+    }
+
+    fn line_to(&mut self, x: f32, y: f32) {
+        let (x, y) = self.point(x, y);
+        self.out.push(OutlineSegment::LineTo(x, y));
+    }
+
+    fn quad_to(&mut self, x1: f32, y1: f32, x: f32, y: f32) {
+        let (x1, y1) = self.point(x1, y1);
+        let (x, y) = self.point(x, y);
+        self.out.push(OutlineSegment::QuadTo(x1, y1, x, y));
+    }
+
+    fn curve_to(&mut self, x1: f32, y1: f32, x2: f32, y2: f32, x: f32, y: f32) {
+        let (x1, y1) = self.point(x1, y1);
+        let (x2, y2) = self.point(x2, y2);
+        let (x, y) = self.point(x, y);
+        self.out.push(OutlineSegment::CurveTo(x1, y1, x2, y2, x, y));
+    }
+
+    fn close(&mut self) {
+        self.out.push(OutlineSegment::Close);
+    }
+}
+
+impl Face {
+    /// Shape `text` at `size` px and append its glyph outlines to `out`,
+    /// starting at `x` on the baseline; the run's advance width.
+    fn outline_run(&self, text: &str, size: f64, x: f64, out: &mut Vec<OutlineSegment>) -> f64 {
+        let mut buffer = rustybuzz::UnicodeBuffer::new();
+        buffer.push_str(text);
+        buffer.guess_segment_properties();
+        let plan = self.plan(&buffer);
+        let face = &self.parsed.get().0;
+        let glyphs = rustybuzz::shape_with_plan(face, &plan, buffer);
+        let scale = size / self.units_per_em;
+        let mut pen: i64 = 0;
+        let mut rise: i64 = 0;
+        for (info, pos) in glyphs.glyph_infos().iter().zip(glyphs.glyph_positions()) {
+            let mut sink = OutlineSink {
+                out: &mut *out,
+                scale,
+                x: x + (pen + i64::from(pos.x_offset)) as f64 * scale,
+                y: -((rise + i64::from(pos.y_offset)) as f64) * scale,
+            };
+            // Glyph ids from shaping fit the face's u16 glyph ids.
+            let id = ttf_parser::GlyphId(u16::try_from(info.glyph_id).unwrap_or(0));
+            face.outline_glyph(id, &mut sink);
+            pen += i64::from(pos.x_advance);
+            rise += i64::from(pos.y_advance);
+        }
+        pen as f64 * scale
+    }
 }
 
 fn same_face(a: Drawn<'_>, b: Drawn<'_>) -> bool {

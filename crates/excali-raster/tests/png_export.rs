@@ -216,6 +216,27 @@ fn a_canvas_with_no_pixels_has_no_blob() {
 }
 
 #[test]
+fn a_canvas_beyond_the_browser_limits_has_no_blob() {
+    // A side over 32767 px or an area over 268,435,456 px: no canvas a
+    // browser would encode, so no pixmap is allocated and the export fails
+    // as toBlob does, with CANVAS_POSSIBLY_TOO_BIG.
+    for (w, h) in [
+        (32_768, 1),
+        (1, 32_768),
+        (16_385, 16_384),
+        (u32::MAX, u32::MAX),
+    ] {
+        assert_eq!(
+            export_png(&square(w, h, None), &Images::new(), &mut NoText),
+            Err(PngExportError::CanvasTooBig),
+            "{w}x{h}"
+        );
+    }
+    let png = export_png(&square(32_767, 1, None), &Images::new(), &mut NoText).unwrap();
+    assert_eq!(pixel(&png, 0, 0), [255, 0, 0, 255]);
+}
+
+#[test]
 fn the_payload_chunk_holds_keyword_and_text_as_latin1() {
     let payload = PngPayload {
         keyword: "application/vnd.excalidraw+json".to_owned(),

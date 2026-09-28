@@ -28,6 +28,7 @@ A Rust port of the Excalidraw editor: no React, Tauri-ready, `.excalidraw` compa
 bd ready                      # tasks with no open blockers
 ./scripts/site/zola.sh serve  # http://127.0.0.1:1111
 cargo test --workspace        # the Rust suite
+cargo run -p excali-cli -- --help  # the excali CLI: validate, render, export, lib
 ```
 
 Working rules are on the site under Plan → Agent workflow. In one line: pick from `bd ready`, claim, branch per issue, cite evidence in the PR, pass the gates, close the issue in the merge commit.
