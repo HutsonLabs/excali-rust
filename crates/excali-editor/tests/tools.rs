@@ -821,8 +821,78 @@ fn forcing_a_non_activatable_tool_resolves_to_selection_until_activatable() {
         laser: true,
         custom: false,
     };
-    state.sync_forced_tool();
+    state.sync_options();
     assert_eq!(state.active_tool.tool, builtin(ToolType::Laser));
+}
+
+/// `tool.test.tsx:303-331` "composes with interaction.enabled.tools
+/// (presenter → viewer)": the viewer's forced selection applies although
+/// selection itself is unsupported while inert, through `componentDidUpdate`'s
+/// non-interactive reset (`App.tsx:3486-3499`).
+#[test]
+fn forced_tools_compose_with_interaction_enabled_tools_presenter_to_viewer() {
+    let presenter = Interaction::Restricted {
+        laser: true,
+        custom: false,
+    };
+    let mut state = ToolState {
+        options: ToolOptions {
+            interaction: presenter,
+            ..ToolOptions::default()
+        },
+        ..ToolState::default()
+    };
+    // presenter: forced laser while otherwise non-interactive
+    state.force_tool(Some(builtin(ToolType::Laser)));
+    assert_eq!(state.active_tool.tool, builtin(ToolType::Laser));
+    assert!(!state.is_interaction_enabled());
+    assert!(state.is_tool_supported(&builtin(ToolType::Laser)));
+
+    // viewer: fully inert, tool resolves to the default selection
+    state.options.interaction = Interaction::Disabled;
+    state.force_tool(Some(builtin(ToolType::Selection)));
+    assert_eq!(state.active_tool.tool, builtin(ToolType::Selection));
+
+    // back to presenter
+    state.options.interaction = presenter;
+    state.force_tool(Some(builtin(ToolType::Laser)));
+    assert_eq!(state.active_tool.tool, builtin(ToolType::Laser));
+}
+
+/// `App.tsx:3486-3499`: while non-interactive, an unsupported active tool
+/// resets to selection through `updateActiveTool`, with no forced tool.
+#[test]
+fn a_stale_tool_resets_to_selection_when_interaction_is_disabled() {
+    let mut state = ToolState::default();
+    set(&mut state, ToolType::Rectangle).unwrap();
+    state.options.interaction = Interaction::Disabled;
+    state.sync_options();
+    assert_eq!(state.active_tool.tool, builtin(ToolType::Selection));
+
+    // restricted to the laser: the rectangle is stale too, the laser is not
+    let mut state = ToolState::default();
+    set(&mut state, ToolType::Rectangle).unwrap();
+    state.options.interaction = Interaction::Restricted {
+        laser: true,
+        custom: false,
+    };
+    state.sync_options();
+    assert_eq!(state.active_tool.tool, builtin(ToolType::Selection));
+
+    let mut state = ToolState::default();
+    set(&mut state, ToolType::Laser).unwrap();
+    state.options.interaction = Interaction::Restricted {
+        laser: true,
+        custom: false,
+    };
+    state.sync_options();
+    assert_eq!(state.active_tool.tool, builtin(ToolType::Laser));
+
+    // interactive: nothing to reset
+    let mut state = ToolState::default();
+    set(&mut state, ToolType::Rectangle).unwrap();
+    state.sync_options();
+    assert_eq!(state.active_tool.tool, builtin(ToolType::Rectangle));
 }
 
 // ---------------------------------------------------------------------------
