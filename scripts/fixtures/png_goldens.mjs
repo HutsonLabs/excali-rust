@@ -336,6 +336,9 @@ const LENGTH_VALUES = [
   0, 2, -0.9, -1, 0.5, 1e300, true, false, null, "0", "3", " -0.5 ", "-1", "abc", "",
   "  ", "0x0", "0x1", "0b0", "0o7", "Infinity", "-Infinity", "1e-400", "\u00a0 0 \n", "+0", "-0", ".0", "0.",
   "1_0", "00", [], [0], [1], [[]], ["-0.5"], [1, 2], {}, { length: 1 },
+  // ToPrimitive throws on an own toString key; valueOf never gives a
+  // primitive, so { valueOf } reads as "[object Object]".
+  { toString: 1 }, [{ toString: 1 }], { valueOf: 1 },
 ];
 const ENCODED_VALUES = [
   ["null", null], ["number", 5], ["zero", 0], ["true", true], ["false", false],
