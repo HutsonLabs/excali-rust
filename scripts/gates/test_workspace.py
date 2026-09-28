@@ -163,6 +163,63 @@ class Check(unittest.TestCase):
             [],
         )
 
+    def _scan(self, text):
+        return workspace.scan_sources({"excali-core": {"src/lib.rs": text}})
+
+    def assertFlagged(self, text):
+        problems = self._scan(text)
+        self.assertEqual(len(problems), 1, (text, problems))
+        self.assertIn("std::fs", problems[0])
+
+    def test_std_fs_in_a_grouped_import_is_reported(self):
+        self.assertFlagged('use std::{fs, io}; fn f(){ let _ = fs::read("x"); }')
+
+    def test_grouped_import_forms_are_reported(self):
+        for text in (
+            "use std::{io, fs};",
+            "use std::{io, fs::File};",
+            "use std::{fs as f};",
+            "use std::{io::{self, Read}, fs};",
+            "use std::{{fs}};",
+            "use ::std::{\n    io,\n    fs,\n};",
+            "use std :: { io , fs :: read } ;",
+            "use std::{/* io */ fs};",
+            "use std::r#fs;",
+            "fn f() { let _ = ::std::fs::read(\"x\"); }",
+        ):
+            with self.subTest(text=text):
+                self.assertFlagged(text)
+
+    def test_std_fs_after_a_string_holding_slashes_is_reported(self):
+        self.assertFlagged('let u = "http://x"; let d = std::fs::read("y");')
+
+    def test_std_fs_after_other_literals_is_reported(self):
+        for text in (
+            'let a = "/*"; let d = std::fs::read("y");',
+            'let a = r#"http://x "quoted" /*"#; let d = std::fs::read("y");',
+            'let a = br"//"; let d = std::fs::read("y");',
+            "let q = '\"'; let d = std::fs::read(\"y\");",
+            "let q = '\\''; let d = std::fs::read(\"y\");",
+            "fn f<'a>(x: &'a str) {} fn g() { std::fs::read(\"y\"); }",
+            'let s = "escaped \\" quote //"; std::fs::read("y");',
+        ):
+            with self.subTest(text=text):
+                self.assertFlagged(text)
+
+    def test_std_fs_inside_literals_and_comments_is_ignored(self):
+        for text in (
+            'let s = "std::fs";',
+            'let s = "use std::{fs}";',
+            'let s = r#"std::fs "inner" std::{fs}"#;',
+            'let s = b"std::fs";',
+            "/* outer /* nested std::fs */ still comment std::fs */",
+            "/// doc: std::fs::read\n//! std::{fs}\n",
+            "use std::{io, fmt}; mod fs {} use self::fs as _f; use crate::fs::x;",
+            "use other::fs; use std::io::{fs};",
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(self._scan(text), [])
+
 
 class Repository(unittest.TestCase):
     """The real repository satisfies its own architecture page."""
