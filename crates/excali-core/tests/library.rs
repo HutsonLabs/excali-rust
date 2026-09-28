@@ -18,6 +18,9 @@
 
 use std::io::Read;
 
+use excali_core::constants::{
+    DEFAULT_ELEMENT_PROPS, DEFAULT_TEXT_ALIGN, DEFAULT_VERTICAL_ALIGN,
+};
 use excali_core::element::{Element, ElementBase, ElementKind};
 use excali_core::library::{
     hash_elements_version, hash_string, is_valid_library, library_items_hash, merge_library_items,
@@ -125,10 +128,9 @@ fn parse_matches_upstream() {
 /// 51 of them hold arrow bindings saved before bindings had a `mode`
 /// (1,245 binding ends), which upstream migrates with element geometry;
 /// `TestEnv` has none (ex-116), so those are compared with upstream's
-/// output when the migration fails. One more, `aarondiel/logic-gates`,
-/// holds 24 lines whose `strokeWidth` is the string `"3"`: restore keeps
-/// it, the typed model reads numbers only, and those lines are dropped (see
-/// `excali_core::library`; tracked as ex-117).
+/// output when the migration fails. `aarondiel/logic-gates` holds 24 lines
+/// whose `strokeWidth` is the string `"3"`: restore keeps it, and so does
+/// the typed model, which writes it back as read (ex-117).
 #[test]
 fn catalogue_matches_upstream() {
     let f = fixture();
@@ -143,10 +145,6 @@ fn catalogue_matches_upstream() {
             parse(&text, LibraryItemStatus::Published).unwrap_or_else(|e| panic!("{id}: {e}"));
         let output = serialize_library_as_json(&items, source(&f));
         versions[case["version"].as_u64().expect("version") as usize] += 1;
-        if id == "aarondiel/logic-gates" {
-            assert_logic_gates_lines_dropped(&text, &items);
-            continue;
-        }
         assert_eq!(
             items.len() as u64,
             case["items"].as_u64().expect("items"),
@@ -166,9 +164,11 @@ fn catalogue_matches_upstream() {
     assert_eq!((with_geometry, ends), (51, 1245));
 }
 
-/// `aarondiel/logic-gates`: every element but the lines with a string
-/// `strokeWidth` is kept, and the file holds no legacy binding.
-fn assert_logic_gates_lines_dropped(text: &str, items: &[LibraryItem]) {
+/// `aarondiel/logic-gates`: the 24 lines whose `strokeWidth` is the string
+/// `"3"` are kept with every other element, read as width 3 and written back
+/// as `"3"`, and the file hashes to upstream's output.
+#[test]
+fn logic_gates_keeps_its_string_stroke_widths() {
     let f = fixture();
     let case = f["catalogue"]
         .as_array()
@@ -177,25 +177,39 @@ fn assert_logic_gates_lines_dropped(text: &str, items: &[LibraryItem]) {
         .find(|c| c["id"] == "aarondiel/logic-gates")
         .expect("case");
     assert!(case.get("geometry").is_none());
+    let text = repo_file(case["file"].as_str().expect("file"));
+    let items = parse(&text, LibraryItemStatus::Published).expect("parses");
     assert_eq!(case["items"], json!(items.len()));
-    let raw: Value = serde_json::from_str(text).expect("json");
-    let mut string_widths = 0;
-    let mut kept_ids = Vec::new();
+
+    let raw: Value = serde_json::from_str(&text).expect("json");
+    let mut raw_ids = Vec::new();
+    let mut string_widths = Vec::new();
     for item in raw["libraryItems"].as_array().expect("libraryItems") {
         for e in item["elements"].as_array().expect("elements") {
-            if e["strokeWidth"].is_string() {
-                string_widths += 1;
-            } else if e["isDeleted"] != json!(true) {
-                kept_ids.push(e["id"].as_str().expect("id").to_owned());
+            if e["isDeleted"] == json!(true) {
+                continue;
             }
+            let id = e["id"].as_str().expect("id").to_owned();
+            if e["strokeWidth"].is_string() {
+                assert_eq!(e["type"], "line");
+                string_widths.push(id.clone());
+            }
+            raw_ids.push(id);
         }
     }
-    assert_eq!(string_widths, 24);
-    let ids: Vec<String> = items
+    assert_eq!(string_widths.len(), 24);
+    let elements: Vec<&Element> = items.iter().flat_map(|i| &i.elements).collect();
+    let ids: Vec<&str> = elements.iter().map(|e| e.base.id.as_str()).collect();
+    assert_eq!(ids, raw_ids);
+    for e in elements
         .iter()
-        .flat_map(|i| i.elements.iter().map(|e| e.base.id.clone()))
-        .collect();
-    assert_eq!(ids, kept_ids);
+        .filter(|e| string_widths.contains(&e.base.id))
+    {
+        assert_eq!(e.base.stroke_width, 3.0, "{}", e.base.id);
+        assert_eq!(e.to_map()["strokeWidth"], json!("3"), "{}", e.base.id);
+    }
+    let output = serialize_library_as_json(&items, source(&f));
+    assert_eq!(sha256(&output), case["output_sha256"].as_str().expect("sha"));
 }
 
 /// The legacy binding of `elements-legacy-binding-migrated`, answered by an
@@ -491,35 +505,92 @@ fn restore_items_from_a_value() {
     );
 }
 
-/// Stricter than upstream, as the typed model must be: an element whose
-/// restored form [`Element::from_map`] cannot read (a `fillStyle` no
-/// version of Excalidraw writes) is dropped with the elements
-/// `restoreElement` rejects, where upstream keeps the object as it is
-/// (ex-117).
+/// A known field holding a value of another JSON type than the model's
+/// (`strokeWidth: "3"`, `fillStyle: "sparkles"`, `locked: "no"`, ...) keeps
+/// its element, as upstream's restore keeps the value
+/// (`restore.ts:451-491`): the model reads a typed view of it, and the
+/// value is written back as read until the field is changed. Upstream's
+/// bytes are the golden's `elements-odd-field-values-kept`.
 #[test]
-fn elements_the_typed_model_cannot_read_are_dropped() {
-    let text = json!({
-        "type": "excalidrawlib",
-        "version": 2,
-        "libraryItems": [
-            {"id": "i", "status": "published", "created": 1, "elements": [
-                {"type": "rectangle", "id": "odd", "fillStyle": "sparkles"},
-                {"type": "rectangle", "id": "ok"}
-            ]},
-            {"id": "j", "status": "published", "created": 1, "elements": [
-                {"type": "rectangle", "id": "odd", "fillStyle": "sparkles"}
-            ]}
-        ]
-    })
-    .to_string();
-    let items = parse(&text, LibraryItemStatus::Unpublished).expect("parses");
-    assert_eq!(ids(&items), ["i"]);
+fn elements_with_values_the_model_has_no_form_for_are_kept_as_read() {
+    let f = fixture();
+    let case = f["parse"]
+        .as_array()
+        .expect("parse")
+        .iter()
+        .find(|c| c["id"] == "elements-odd-field-values-kept")
+        .expect("case");
+    let items = parse(
+        case["input"].as_str().expect("input"),
+        LibraryItemStatus::Unpublished,
+    )
+    .expect("parses");
+    assert_eq!(ids(&items), ["i", "j"]);
+    assert_eq!(
+        serialize_library_as_json(&items, source(&f)),
+        case["output"].as_str().expect("output")
+    );
     let element_ids: Vec<&str> = items[0]
         .elements
         .iter()
         .map(|e| e.base.id.as_str())
         .collect();
-    assert_eq!(element_ids, ["ok"]);
+    assert_eq!(element_ids, ["sw", "fs", "mixed", "ln", "t", "f"]);
+
+    // The typed view: `Number(value)` for a number field, truthiness for a
+    // boolean, null where the field may be null, else a new element's value.
+    let e = |id: &str| {
+        items
+            .iter()
+            .flat_map(|i| &i.elements)
+            .find(|e| e.base.id == id)
+            .expect(id)
+    };
+    assert_eq!(e("sw").base.stroke_width, 3.0);
+    assert_eq!(e("fs").base.fill_style, DEFAULT_ELEMENT_PROPS.fill_style);
+    let mixed = &e("mixed").base;
+    assert_eq!(mixed.stroke_style, DEFAULT_ELEMENT_PROPS.stroke_style);
+    assert_eq!(mixed.roughness, 1.0);
+    assert_eq!(mixed.opacity, 50.0);
+    assert_eq!(mixed.angle.0, 1.0);
+    assert_eq!(mixed.stroke_color, DEFAULT_ELEMENT_PROPS.stroke_color);
+    assert_eq!(mixed.background_color, DEFAULT_ELEMENT_PROPS.background_color);
+    assert!(mixed.locked);
+    assert_eq!(mixed.seed, 9.0);
+    assert_eq!(mixed.frame_id, None);
+    assert!(mixed.group_ids.is_empty());
+    assert_eq!(mixed.roundness, None);
+    assert_eq!(mixed.bound_elements, None);
+    assert_eq!(mixed.custom_data, None);
+    assert_eq!(mixed.created, None);
+    assert_eq!(mixed.updated, 0.0);
+    assert_eq!(e("ln").base.stroke_width, 3.0);
+    let ElementKind::Text(text) = &e("t").kind else {
+        panic!("text")
+    };
+    assert_eq!(text.font_family.0, 1);
+    assert_eq!(text.text_align, DEFAULT_TEXT_ALIGN);
+    assert_eq!(text.vertical_align, DEFAULT_VERTICAL_ALIGN);
+    assert_eq!(text.container_id, None);
+    assert_eq!(text.line_height, 1.25);
+    assert!(text.auto_resize);
+    let ElementKind::Freedraw(freedraw) = &e("f").kind else {
+        panic!("freedraw")
+    };
+    assert!(freedraw.simulate_pressure);
+
+    // A changed field is written from the model; the others stay as read.
+    let mut changed = e("mixed").clone();
+    changed.base.stroke_width = 4.0;
+    changed.base.opacity = 60.0;
+    let map = changed.to_map();
+    assert_eq!(map["strokeWidth"], json!(4));
+    assert_eq!(map["opacity"], json!(60));
+    assert_eq!(map["roughness"], json!("1"));
+    assert_eq!(map["customData"], json!(4));
+    let mut changed = e("sw").clone();
+    changed.base.stroke_width = 1.0;
+    assert_eq!(changed.to_map()["strokeWidth"], json!(1));
 }
 
 /// `LibraryItem` as a typed codec for items already restored (a

@@ -1220,6 +1220,115 @@ fn a_type_field_mismatch_is_rejected() {
     }
 }
 
+/// `Element::from_restored`: what upstream's restore gives may hold, in a
+/// known field, a value of another JSON type than upstream's types give it
+/// (`restore.ts:451-491` copies any truthy or non-nullish value, so
+/// `strokeWidth: "3"` survives `restore.ts:459`). The strict codec rejects
+/// the object; `from_restored` keeps it with a typed view of each such
+/// value, written back as read until the field is changed (ex-117).
+#[test]
+fn restored_values_of_another_type_are_kept_as_read() {
+    let raw = with(
+        base_json("odd", "line"),
+        json!({
+            "strokeWidth": "3",
+            "fillStyle": "dots",
+            "strokeStyle": "wavy",
+            "opacity": "",
+            "angle": "0.5",
+            "locked": 0,
+            "groupIds": "g",
+            "frameId": 3,
+            "boundElements": [{"id": "a", "type": "line"}],
+            "customData": [1],
+            "created": "yesterday",
+            "updated": {},
+            "points": [[0, 0], [10, "10"]],
+            "startBinding": null,
+            "endBinding": null,
+            "startArrowhead": "dot",
+            "endArrowhead": 5,
+            "polygon": "yes",
+            "unknown": "kept"
+        }),
+    );
+    let Value::Object(raw) = raw else {
+        unreachable!()
+    };
+    // The strict codec reads upstream's types only.
+    assert!(Element::from_map(raw.clone()).is_err());
+
+    let el = Element::from_restored(raw.clone()).expect("restored element reads");
+    assert_eq!(el.element_type(), ElementType::Line);
+    // Numbers: `Number(value)` when finite ("" is 0), else null where the
+    // field may be null, else a new element's value.
+    assert_eq!(el.base.stroke_width, 3.0);
+    assert_eq!(el.base.opacity, 0.0);
+    assert_eq!(el.base.angle, Radians(0.5));
+    assert_eq!(el.base.created, None);
+    assert_eq!(el.base.updated, 0.0);
+    // Booleans: truthiness, as upstream's checks read them.
+    assert!(!el.base.locked);
+    // Anything else: null where the field may be null, else a new
+    // element's value.
+    assert_eq!(el.base.fill_style, DEFAULT_ELEMENT_PROPS.fill_style);
+    assert_eq!(el.base.stroke_style, DEFAULT_ELEMENT_PROPS.stroke_style);
+    assert!(el.base.group_ids.is_empty());
+    assert_eq!(el.base.frame_id, None);
+    assert_eq!(el.base.bound_elements, None);
+    assert_eq!(el.base.custom_data, None);
+    let ElementKind::Line(line) = &el.kind else {
+        panic!("line")
+    };
+    assert!(line.polygon);
+    assert!(line.linear.points.is_empty());
+    assert_eq!(line.linear.start_arrowhead, None);
+    assert_eq!(line.linear.end_arrowhead, None);
+    assert_eq!(el.extra["unknown"], json!("kept"));
+
+    // Written back exactly as read, key order included.
+    let back = el.to_map();
+    assert_eq!(back, raw);
+    assert!(back.keys().eq(raw.keys()));
+    assert_eq!(Element::from_restored(back).expect("again"), el);
+
+    // A changed field is written from the model, in place.
+    let mut changed = el.clone();
+    changed.base.stroke_width = 4.0;
+    changed.base.fill_style = FillStyle::Zigzag;
+    if let ElementKind::Line(line) = &mut changed.kind {
+        line.linear.points = vec![[0.0, 0.0], [5.0, 5.0]];
+    }
+    let map = changed.to_map();
+    assert_eq!(map["strokeWidth"], json!(4.0));
+    assert_eq!(map["fillStyle"], json!("zigzag"));
+    assert_eq!(map["points"], json!([[0.0, 0.0], [5.0, 5.0]]));
+    assert_eq!(map["strokeStyle"], json!("wavy"));
+    assert!(map.keys().eq(raw.keys()));
+
+    // A readable object reads as the strict codec reads it.
+    let Value::Object(plain) = with(
+        base_json("r", "rectangle"),
+        json!({"customData": null, "later": 1}),
+    ) else {
+        unreachable!()
+    };
+    let strict = Element::from_map(plain.clone()).expect("strict");
+    let lenient = Element::from_restored(plain.clone()).expect("lenient");
+    assert_eq!(lenient, strict);
+    assert_eq!(lenient.to_map(), plain);
+
+    // No type to read: still an error.
+    for ty in [json!("draw"), json!("hexagon"), json!(1)] {
+        let mut map = base_json("u", "rectangle");
+        map.insert("type".into(), ty.clone());
+        assert!(Element::from_restored(map).is_err(), "{ty}");
+    }
+    let mut untyped = base_json("u", "rectangle");
+    untyped.shift_remove("type");
+    assert!(Element::from_restored(untyped).is_err());
+}
+
 // ---------------------------------------------------------------------------
 // Iframe customData (types.ts:120-136)
 
