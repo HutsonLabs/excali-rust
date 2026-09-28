@@ -29,6 +29,11 @@ ADR = ROOT / "site" / "content" / "decisions" / "adr-004-fonts.md"
 # licence is "subject to the license agreement under which you accepted the
 # Liberation font software" (GPLv2 with the font exception), not OFL/MIT/Apache.
 LIBERATION_105_SHA256 = "006a2b28cbbeeaec937d1b367d0949f5f48ef4b2e7b4e1d8dc7a799d2d639be8"
+# sha256 of LiberationSans-Regular.ttf in liberation-fonts-ttf-2.1.5.tar.gz
+# (OFL 1.1), the build ADR-004 vendors instead.
+LIBERATION_215_SHA256 = "76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8"
+# Stand-in bytes for the recorded 2.1.5 build in the synthetic ADR below.
+LIB_215_BYTES = b"\x02font"
 
 OFL_TEXT = (
     "Copyright 2014 The Nunito Project Authors\n\n"
@@ -56,7 +61,13 @@ GOOD_ADR = """
 | Family | Not vendored | sha256 | Fallback | Fallback licence |
 |---|---|---|---|---|
 | Liberation Sans | upstream `fonts/Liberation/LiberationSans-Regular.woff2` (1.05) | `{sha}` | Liberation Sans 2.1.5 | SIL OFL 1.1 |
-""".replace("{sha}", "ab" * 32)
+
+## Vendored builds
+
+| Family | File | sha256 | Derived from |
+|---|---|---|---|
+| Liberation Sans | `LiberationSans-Regular.ttf` 2.1.5 | `{lib}` | liberation-fonts 2.1.5 |
+""".replace("{sha}", "ab" * 32).replace("{lib}", hashlib.sha256(LIB_215_BYTES).hexdigest())
 
 
 def write(path: Path, data: bytes | str) -> Path:
@@ -88,6 +99,12 @@ class ParseTest(unittest.TestCase):
         self.assertEqual(gaps[0].family, "Liberation Sans")
         self.assertEqual(gaps[0].sha256, "ab" * 32)
         self.assertEqual(gaps[0].fallback_licence, "SIL OFL 1.1")
+
+    def test_builds_parse(self):
+        builds = fonts.builds(GOOD_ADR)
+        self.assertEqual(len(builds), 1)
+        self.assertEqual(builds[0].family, "Liberation Sans")
+        self.assertEqual(builds[0].sha256, hashlib.sha256(LIB_215_BYTES).hexdigest())
 
     def test_missing_table_is_an_error(self):
         errs = fonts.check_adr("# nothing here\n", required=())
@@ -129,13 +146,28 @@ class CheckAdrTest(unittest.TestCase):
 
     def test_pending_family_listed_as_gap_is_fine(self):
         bad = GOOD_ADR.replace("| Nunito | 6 | SIL OFL 1.1 |", "| Nunito | 6 | pending |")
-        bad += "| Nunito | all files | | host `sans-serif` (nothing shipped) | n/a |\n"
+        bad = bad.replace(
+            "| SIL OFL 1.1 |\n\n## Vendored builds",
+            "| SIL OFL 1.1 |\n| Nunito | all files | | host `sans-serif` (nothing shipped) | n/a |\n\n## Vendored builds",
+        )
         self.assertEqual(fonts.check_adr(bad, required=self.REQ), [])
 
     def test_gap_fallback_licence_must_be_allowed(self):
         bad = GOOD_ADR.replace("| Liberation Sans 2.1.5 | SIL OFL 1.1 |", "| Arial | proprietary |")
         errs = fonts.check_adr(bad, required=self.REQ)
         self.assertTrue(any("fallback" in e and "proprietary" in e for e in errs), errs)
+
+    def test_confirmed_family_with_a_file_gap_needs_a_vendored_build(self):
+        # Liberation Sans is confirmed but one build is a gap: without a
+        # recorded build the gate cannot tell a licensed file from the gap.
+        bad = GOOD_ADR.split("## Vendored builds")[0]
+        errs = fonts.check_adr(bad, required=self.REQ)
+        self.assertTrue(any("Liberation Sans" in e and "Vendored builds" in e for e in errs), errs)
+
+    def test_vendored_build_sha256_must_be_hex(self):
+        bad = GOOD_ADR.replace(hashlib.sha256(LIB_215_BYTES).hexdigest(), "nope")
+        errs = fonts.check_adr(bad, required=self.REQ)
+        self.assertTrue(any("Liberation Sans" in e and "sha256" in e for e in errs), errs)
 
     def test_gap_sha256_must_be_hex(self):
         bad = GOOD_ADR.replace("ab" * 32, "not-a-hash")
@@ -159,7 +191,7 @@ class CheckTreeTest(unittest.TestCase):
         write(self.root / "assets/fonts/Nunito/OFL.txt", OFL_TEXT)
         write(self.root / "assets/fonts/ComicShanns/ComicShanns-Regular-1.woff2", b"\x01font")
         write(self.root / "assets/fonts/ComicShanns/LICENSE.md", MIT_TEXT)
-        write(self.root / "assets/fonts/Liberation/LiberationSans-Regular.ttf", b"\x02font")
+        write(self.root / "assets/fonts/Liberation/LiberationSans-Regular.ttf", LIB_215_BYTES)
         write(self.root / "assets/fonts/Liberation/LICENSE", OFL_TEXT)
         self.assertEqual(fonts.check_tree(self.root, GOOD_ADR), [])
 
@@ -193,6 +225,55 @@ class CheckTreeTest(unittest.TestCase):
         write(self.root / "assets/fonts/Liberation/LICENSE", OFL_TEXT)
         errs = fonts.check_tree(self.root, adr)
         self.assertTrue(any("LiberationSans-Regular.woff2" in e and "Licence gaps" in e for e in errs), errs)
+
+    def test_reencoded_gap_build_is_rejected(self):
+        # The 1.05 file converted to ttf, re-subset or re-compressed has a new
+        # hash, sits under Liberation/ (a confirmed family) with an OFL.txt:
+        # it is still not a recorded Liberation Sans build, so it fails.
+        write(self.root / "assets/fonts/Liberation/LiberationSans-Regular.ttf", b"liberation 1.05 as ttf")
+        write(self.root / "assets/fonts/Liberation/OFL.txt", OFL_TEXT)
+        errs = fonts.check_tree(self.root, GOOD_ADR)
+        self.assertTrue(
+            any("LiberationSans-Regular.ttf" in e and "Vendored builds" in e for e in errs), errs
+        )
+
+    def test_recorded_build_of_a_gap_family_is_clean(self):
+        write(self.root / "assets/fonts/Liberation/LiberationSans-Regular.woff2", LIB_215_BYTES)
+        write(self.root / "assets/fonts/Liberation/OFL.txt", OFL_TEXT)
+        self.assertEqual(fonts.check_tree(self.root, GOOD_ADR), [])
+
+    def test_family_without_file_gap_needs_no_recorded_build(self):
+        write(self.root / "assets/fonts/Nunito/Nunito-Regular-any-bytes.woff2", b"any subset")
+        write(self.root / "assets/fonts/Nunito/OFL.txt", OFL_TEXT)
+        self.assertEqual(fonts.check_tree(self.root, GOOD_ADR), [])
+
+    def test_unlisted_prefix_directory_is_rejected(self):
+        # Directories map to families through an explicit table of upstream's
+        # directory names; a prefix or a family's display name is not enough.
+        for d in ("L", "Lib", "C", "A", "N", "Nun", "Comic", "Cascadia Code", "Liberation Sans", "nunito"):
+            with self.subTest(directory=d):
+                with tempfile.TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    write(root / "assets/fonts" / d / "Font.woff2", b"\x00font")
+                    write(root / "assets/fonts" / d / "OFL.txt", OFL_TEXT)
+                    errs = fonts.check_tree(root, GOOD_ADR)
+                    self.assertTrue(any("Font.woff2" in e and "no family" in e for e in errs), errs)
+
+    def test_upstream_directory_names_map_to_families(self):
+        self.assertEqual(fonts.DIRECTORY_FAMILIES, {
+            "Virgil": "Virgil",
+            "Helvetica": "Helvetica",
+            "Cascadia": "Cascadia Code",
+            "Excalifont": "Excalifont",
+            "Nunito": "Nunito",
+            "Lilita": "Lilita One",
+            "ComicShanns": "Comic Shanns",
+            "Liberation": "Liberation Sans",
+            "Assistant": "Assistant",
+            "Xiaolai": "Xiaolai",
+            "Emoji": "Segoe UI Emoji",
+        })
+        self.assertEqual(set(fonts.DIRECTORY_FAMILIES.values()), set(fonts.UPSTREAM_FAMILIES))
 
     def test_ignored_directories(self):
         for d in (".git", "target", ".tools", "node_modules", ".hidden"):
@@ -253,6 +334,30 @@ class RepositoryTest(unittest.TestCase):
                 self.assertTrue(f.source.startswith("https://"), f.name)
                 self.assertNotIn("excalidraw/excalidraw/", f.source, f.name)
 
+    def test_cascadia_row_quotes_both_parts_of_name_id_13(self):
+        # CascadiaCode-Regular.woff2 at the pin: name ID 13 opens with
+        # Microsoft's product-font notice ("Any other use is prohibited") and
+        # continues with the OFL-based grant and conditions 1-5. The row must
+        # quote both and say why the first does not stop redistribution.
+        row = next(ln for ln in self.text.splitlines() if ln.startswith("| Cascadia Code |"))
+        for needle in (
+            "Microsoft supplied font",
+            "You may only (i) embed this font",
+            "(ii) temporarily download this font to a printer",
+            "Any other use is prohibited.",
+            "The following license, based on the SIL Open Font license (https://scripts.sil.org/OFL), applies to this font",
+            "to use, study, copy, merge, embed, modify, redistribute, and sell",
+            "conditions 1-5",
+            "does not stop redistribution",
+            "LICENSE at tag v2005.15",
+        ):
+            self.assertIn(needle, row)
+        self.assertNotIn("names no licence of its own", row)
+
+    def test_liberation_215_is_the_recorded_build(self):
+        got = {(b.family, b.sha256) for b in fonts.builds(self.text)}
+        self.assertEqual(got, {("Liberation Sans", LIBERATION_215_SHA256)})
+
     def test_liberation_105_is_a_gap_with_its_hash(self):
         gaps = {g.family: g for g in fonts.gaps(self.text)}
         self.assertIn("Liberation Sans", gaps)
@@ -278,6 +383,14 @@ class VerifyUpstreamTest(unittest.TestCase):
         self.up = Path(self.tmp.name)
         self.data = b"liberation 1.05 bytes"
         write(self.up / "packages/excalidraw/fonts/Liberation/LiberationSans-Regular.woff2", self.data)
+        for d in fonts.DIRECTORY_FAMILIES:
+            (self.up / "packages/excalidraw/fonts" / d).mkdir(parents=True, exist_ok=True)
+
+    def test_every_mapped_directory_exists_upstream(self):
+        adr = self.ADR.replace("{sha}", hashlib.sha256(self.data).hexdigest())
+        (self.up / "packages/excalidraw/fonts/Lilita").rmdir()
+        errs = fonts.verify_upstream(self.up, adr)
+        self.assertTrue(any("Lilita" in e and "directory" in e for e in errs), errs)
 
     def tearDown(self):
         self.tmp.cleanup()
