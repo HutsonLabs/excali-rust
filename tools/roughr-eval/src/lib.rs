@@ -367,6 +367,10 @@ pub fn first_difference(expected: &Value, actual: &[Set], p: Precision) -> Optio
             for (di, (ev, av)) in edata.iter().zip(&ao.data).enumerate() {
                 let ev = ev.as_f64().unwrap_or(f64::NAN);
                 if !p.accepts(ev, *av) {
+                    // roughr's values come through the platform's libm, whose
+                    // last bit differs between macOS and Linux; ten decimals
+                    // keep report.json the same on both.
+                    let av = to_fixed(*av, 10);
                     return Some(format!(
                         "value: set {si} ({kind}) op {oi} ({ek}) data[{di}] expected {ev} actual {av}"
                     ));
