@@ -281,6 +281,24 @@
    "labels": []
   },
   {
+   "id": "ex-g001",
+   "epic": "ex-e0",
+   "title": "Attribution gate self-test in CI: a planted attribution line must fail the gate",
+   "priority": 0,
+   "blocked_by": [],
+   "crates": [],
+   "acceptance": "scripts/gates/test_attribution.py builds a scratch git repo in a temp dir and plants, one at a time: a tool-attribution line in a tracked file, a Co-Authored-By trailer in a commit message (commit-tree, no hooks involved), a zero-width character, and a non-human author; each case asserts `attribution.py files --all` or `attribution.py history` exits non-zero with the rule id, and a clean control case exits 0. The gates workflow runs it on every PR and on main, and the M0 note links a green run in which the planted cases were rejected. Nothing planted is ever committed to or pushed from this repository.",
+   "evidence": [
+    "site/content/plan/phases.md Milestone M0 and ex-m0 acceptance: \"CI rejects a planted attribution line\"",
+    ".github/workflows/gates.yml: the attribution job runs the gate on the repo's own clean tree and history only; no job plants a violation (read 2026-09-28)",
+    "scripts/gates/: no test for attribution.py exists (test_version.py and test_workspace.py only; read 2026-09-28)",
+    "Local run 2026-09-28 in a fresh clone: attribution.py files --all exit 1 on a planted tool-attribution line (R2, R4); attribution.py history exit 1 on a commit-tree commit with a Co-Authored-By trailer (R1, R3, R4)"
+   ],
+   "description": "M0 check of 2026-09-28: the gate script rejects planted lines when run locally, but no CI run has ever shown a rejection, so the criterion is unproven in CI. Add the self-test and wire it into gates.yml.",
+   "type": "task",
+   "labels": []
+  },
+  {
    "id": "ex-101",
    "epic": "ex-e1",
    "title": "Element model: enums, structs and shared base fields",
