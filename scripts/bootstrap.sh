@@ -6,8 +6,10 @@
 #   2. hooks path     -> .githooks (authorship gate + beads export)
 #   3. beads (bd)     -> task tracker, metrics off, JSONL export on
 #   4. zola           -> pinned static-site generator for site/
+#   5. upstream       -> excalidraw at the pinned commit in .tools/upstream
 #
-# Overrides: EXCALI_GIT_NAME, EXCALI_GIT_EMAIL, EXCALI_SKIP_ZOLA=1
+# Overrides: EXCALI_GIT_NAME, EXCALI_GIT_EMAIL, EXCALI_SKIP_ZOLA=1,
+#            EXCALI_SKIP_UPSTREAM=1
 set -euo pipefail
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
@@ -53,6 +55,11 @@ fi
 step "zola"
 if [ -z "${EXCALI_SKIP_ZOLA:-}" ]; then
   "$root/scripts/site/zola.sh" ensure
+fi
+
+step "upstream"
+if [ -z "${EXCALI_SKIP_UPSTREAM:-}" ]; then
+  "$root/scripts/upstream/checkout.sh" | sed 's/^/   /'
 fi
 
 step "gate self-check"

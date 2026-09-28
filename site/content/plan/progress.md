@@ -4,28 +4,28 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 04:30 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 04:36 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**131 issues** · 1 closed (1%) · 0 in progress · 0 blocked · 130 open
+**131 issues** · 2 closed (2%) · 0 in progress · 0 blocked · 129 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
 ## ex-e0 · Phase 0: Foundations
 
-<span class="status open">open</span> 1/8 children closed
+<span class="status open">open</span> 2/8 children closed
 
 Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo workspace and CI. Everything later phases depend on to be reproducible.
 
 | id | title | type | P | status | ready | blocked by |
 |---|---|---|---|---|---|---|
 | `ex-001` | Cargo workspace skeleton and CI (fmt, clippy -D warnings, test) | task | P0 | <span class="status open">open</span> | yes |  |
-| `ex-002` | Upstream pin script: check out excalidraw at the pinned commit into .tools/upstream | task | P0 | <span class="status open">open</span> | yes |  |
-| `ex-003` | Fixture corpus with manifest (upstream test fixtures + 232 public libraries) | task | P0 | <span class="status open">open</span> |  | `ex-002` |
-| `ex-004` | Golden generator: node script producing rough.js 4.6.4 path output for fixture elements | task | P0 | <span class="status open">open</span> |  | `ex-002` |
+| `ex-002` | Upstream pin script: check out excalidraw at the pinned commit into .tools/upstream | task | P0 | <span class="status closed">closed</span> |  |  |
+| `ex-003` | Fixture corpus with manifest (upstream test fixtures + 232 public libraries) | task | P0 | <span class="status open">open</span> | yes |  |
+| `ex-004` | Golden generator: node script producing rough.js 4.6.4 path output for fixture elements | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-005` | Enable GitHub Pages source = GitHub Actions and confirm first deploy | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-006` | Playwright smoke test for the site and mockups | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-007` | scripts/site/zola.sh works on macOS (bash 3.2, shasum) with the aarch64-apple-darwin digest pinned | task | P0 | <span class="status open">open</span> | yes |  |
-| `ex-m0` | M0: site live, gates enforced, workspace green | milestone | P2 | <span class="status open">open</span> |  | `ex-001`, `ex-002`, `ex-003`, `ex-004`, `ex-006`, `ex-007` |
+| `ex-m0` | M0: site live, gates enforced, workspace green | milestone | P2 | <span class="status open">open</span> |  | `ex-001`, `ex-003`, `ex-004`, `ex-006`, `ex-007` |
 
 ## ex-e1 · Phase 1: Core model and file format (excali-core)
 
@@ -93,7 +93,7 @@ Font metadata, measurement from font files, wrapping port, bound-text sizing, la
 | `ex-303` | Wrapping port (textWrapping.ts) with upstream tests | task | P0 | <span class="status open">open</span> |  | `ex-302` |
 | `ex-304` | Bound-text sizing: padding 5, ellipse and diamond insets, arrow label width | task | P1 | <span class="status open">open</span> |  | `ex-303` |
 | `ex-305` | Text element sizing on edit: autoResize, originalText/text, anchor growth by align | task | P1 | <span class="status open">open</span> |  | `ex-303` |
-| `ex-306` | Verify and record the licence of every font family before vendoring | decision | P0 | <span class="status open">open</span> |  | `ex-002` |
+| `ex-306` | Verify and record the licence of every font family before vendoring | decision | P0 | <span class="status open">open</span> | yes |  |
 | `ex-307` | Font asset pipeline: range-split woff2 manifest and lazy loading | task | P1 | <span class="status open">open</span> |  | `ex-306` |
 | `ex-308` | Corpus test: stored vs measured text widths across fixtures and libraries | task | P1 | <span class="status open">open</span> |  | `ex-003`, `ex-302` |
 | `ex-m3` | M3: text measurement and wrapping parity | milestone | P2 | <span class="status open">open</span> |  | `ex-301`, `ex-302`, `ex-303`, `ex-304`, `ex-305`, `ex-306` … |
@@ -142,7 +142,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-514` | Actions registry as data: the 99 action names with predicates and key tests | task | P0 | <span class="status open">open</span> |  | `ex-506` |
 | `ex-515` | Keyboard handling: App.onKeyDown table, arrow nudges, tool letters, modifiers | task | P0 | <span class="status open">open</span> |  | `ex-514` |
 | `ex-516` | excali-ui DOM builder and primitives: Island, Stack, Button, ToolIcon, RadioGroup, Range, TextField, Popover, Dialog, Tooltip | task | P0 | <span class="status open">open</span> |  | `ex-501` |
-| `ex-517` | Icons module generated from upstream icons.tsx (MIT) with tabler 24/20 presets | task | P1 | <span class="status open">open</span> |  | `ex-002` |
+| `ex-517` | Icons module generated from upstream icons.tsx (MIT) with tabler 24/20 presets | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-518` | Shapes toolbar (desktop order) and extra-tools dropdown | task | P0 | <span class="status open">open</span> |  | `ex-506`, `ex-516`, `ex-517` |
 | `ex-519` | Styles panel, full mode: all sixteen groups with visibility predicates | task | P0 | <span class="status open">open</span> |  | `ex-514`, `ex-516` |
 | `ex-520` | Main menu with default items and preferences submenu | task | P1 | <span class="status open">open</span> |  | `ex-516` |
