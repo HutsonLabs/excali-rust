@@ -10,11 +10,24 @@ publish = false
 
 [dependencies]
 excali-math = { path = "../excali-math" }
+# The golden harness (ex-217, feature `goldens`) and nothing else: the
+# library proper never reads JSON or hashes anything.
+serde_json = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
 
-# serde_json reads goldens/*.json in the parity tests and never reaches the
-# library.
+# `goldens`: `excali_rough::goldens`, the harness every parity test compares
+# with (drawable to golden JSON, op-by-op numeric diff, manifest check).
+# Off by default, so the library and its wasm32 build stay excali-math only.
+[features]
+goldens = ["dep:serde_json", "dep:sha2"]
+
+# The parity tests always build with the harness: this crate as its own
+# dev-dependency turns `goldens` on for `cargo test`, so a plain
+# `cargo test --workspace` runs every golden and none is skipped.
 [dev-dependencies]
+excali-rough = { path = ".", features = ["goldens"] }
 serde_json = { workspace = true }
+sha2 = { workspace = true }
 
 [lints]
 workspace = true
