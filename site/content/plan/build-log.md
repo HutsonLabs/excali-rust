@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-115 · JSON Schema generation for .excalidraw and .excalidrawlib (schemars)
+
+`excali_core::schema` generates draft 2020-12 JSON Schemas for `.excalidraw` and `.excalidrawlib` from the Rust model. The site publishes them at `/schema/excalidraw.schema.json` and `/schema/excalidrawlib.schema.json`, and the file-format page links both. Required, optional and nullable keys follow upstream's `types.ts`. On 593 elements from upstream's restore output, the schema accepts exactly the elements the codec reads. All 232 catalogue libraries are valid, and a CI step fails if the published files drift from the model. PR: [#36](https://github.com/HutsonLabs/excali-rust/pull/36).
+
 ## 2026-09-28 · ex-114 · Corpus test: 232 catalogue libraries round-trip
 
 All 232 catalogue libraries in the manifest are parsed, written and parsed again, and both writes match upstream's output and reload digests byte for byte. Legacy-binding libraries are compared on their without-geometry digests until ex-116 lands, and aarondiel/logic-gates waits on ex-117. A third load must leave the file unchanged. A checked-in loss report lists every legacy key dropped, binding cleared, id replaced and polygon added, and ties each one to its upstream rule. PR: [#35](https://github.com/HutsonLabs/excali-rust/pull/35).

@@ -254,6 +254,76 @@ pub fn clear_app_state_for_local_storage(app_state: &Map<String, Value>) -> Map<
     clear_app_state_for_storage(app_state, StorageType::Browser)
 }
 
+/// The `appState` of a `.excalidraw` file: the [`EXPORTED_KEYS`] typed as
+/// upstream's `AppState` has them (`packages/excalidraw/types.ts:465, 518-520,
+/// 565`). Each key is present when the state it was saved from had it.
+///
+/// This is the typed view of what [`clean_app_state_for_export`] keeps, and
+/// what the published JSON Schema describes (`crate::schema`). Other keys
+/// (from older writers) are allowed in a file and dropped on load.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
+#[schemars(
+    description = "The `appState` of a `.excalidraw` file: the five keys `cleanAppStateForExport` keeps (`appState.ts:153-291`), typed as upstream's `AppState` has them (`packages/excalidraw/types.ts:465, 518-520, 565`). Each is present when the state it was saved from had it. Other keys (from older writers) are allowed and dropped on load."
+)]
+pub struct ExportedAppState {
+    /// Grid cell size in px (`DEFAULT_GRID_SIZE` 20); restore rounds and
+    /// clamps it to 1..100.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "f64")]
+    pub grid_size: Option<f64>,
+    /// Major grid line every this many cells (`DEFAULT_GRID_STEP` 5);
+    /// restore rounds and clamps it to 1..100.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "f64")]
+    pub grid_step: Option<f64>,
+    /// Whether the grid is shown and snapped to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "bool")]
+    pub grid_mode_enabled: Option<bool>,
+    /// Canvas colour, e.g. `#ffffff`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "String")]
+    pub view_background_color: Option<String>,
+    /// `{ [groupId]: true }`: groups whose multi-selection is locked.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "locked_multi_selections"
+    )]
+    #[schemars(schema_with = "locked_multi_selections_schema")]
+    pub locked_multi_selections: Option<Map<String, Value>>,
+}
+
+/// A `lockedMultiSelections` object whose every value is `true`.
+fn locked_multi_selections<'de, D: Deserializer<'de>>(
+    d: D,
+) -> Result<Option<Map<String, Value>>, D::Error> {
+    let map = Map::<String, Value>::deserialize(d)?;
+    match map.iter().find(|(_, v)| **v != Value::Bool(true)) {
+        Some((group, _)) => Err(serde::de::Error::custom(format_args!(
+            "lockedMultiSelections[{group:?}] must be true"
+        ))),
+        None => Ok(Some(map)),
+    }
+}
+
+fn locked_multi_selections_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+    schemars::json_schema!({
+        "description": "`{ [groupId: string]: true }` (packages/excalidraw/types.ts:565): groups whose multi-selection is locked.",
+        "type": "object",
+        "additionalProperties": { "const": true },
+    })
+}
+
+impl ExportedAppState {
+    /// The exported keys of a file's `appState`, typed; `Err` when one of
+    /// them has another type than upstream's `AppState` gives it.
+    pub fn from_map(app_state: &Map<String, Value>) -> Result<ExportedAppState, serde_json::Error> {
+        ExportedAppState::deserialize(Value::Object(clean_app_state_for_export(app_state)))
+    }
+}
+
 /// `cleanAppStateForExport` (`appState.ts:321-323`): what `serializeAsJSON`
 /// writes as a file's `appState`, i.e. the [`EXPORTED_KEYS`] present.
 pub fn clean_app_state_for_export(app_state: &Map<String, Value>) -> Map<String, Value> {

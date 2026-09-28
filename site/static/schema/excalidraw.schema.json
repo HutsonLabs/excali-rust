@@ -1,0 +1,1086 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hutsonlabs.github.io/excali-rust/schema/excalidraw.schema.json",
+  "title": "Excalidraw scene (.excalidraw)",
+  "description": "A scene as Excalidraw's serializeAsJSON writes it (packages/excalidraw/data/json.ts:52-75) and as excali-rust reads and writes it. Generated from the excali-core model; upstream publishes no schema. Keys not listed are allowed and kept. Files from older writers may use legacy fields that restore migrates; those are not described here.",
+  "type": "object",
+  "properties": {
+    "type": {
+      "description": "`EXPORT_DATA_TYPES.excalidraw` (packages/common/src/constants.ts:345).",
+      "const": "excalidraw"
+    },
+    "version": {
+      "description": "`VERSIONS.excalidraw` (packages/common/src/constants.ts:416-419): 2 when written.",
+      "type": "number"
+    },
+    "source": {
+      "description": "The writer's origin (`EXCALIDRAW_EXPORT_SOURCE`, packages/common/src/constants.ts:351-352).",
+      "type": "string"
+    },
+    "elements": {
+      "description": "The scene's elements in z-order, deleted ones (`isDeleted: true`) included.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Element"
+      }
+    },
+    "appState": {
+      "$ref": "#/$defs/ExportedAppState"
+    },
+    "files": {
+      "description": "`BinaryFiles` (packages/excalidraw/types.ts:146): file id to file, for the image elements that reference one.",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/BinaryFileData"
+      }
+    }
+  },
+  "required": [
+    "type",
+    "version",
+    "source",
+    "elements",
+    "appState"
+  ],
+  "$defs": {
+    "Element": {
+      "description": "An element (`ExcalidrawElement`, packages/element/src/types.ts:223-234): the fields every element has (`_ExcalidrawElementBase`, types.ts:40-87) and, chosen by `type`, the fields of its type (types.ts:89-437). Keys not listed here are allowed and kept.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/ElementType"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "allOf": [
+        {
+          "$ref": "#/$defs/ElementBase"
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "stickynote"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/StickyNoteFields"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "image"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/ImageFields"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "frame"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/FrameFields"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "magicframe"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/FrameFields"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "text"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/TextFields"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "line"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/LineFields"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "arrow"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/ArrowFields"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "freedraw"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/FreedrawFields"
+          }
+        }
+      ]
+    },
+    "ElementBase": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "x": {
+          "type": "number",
+          "format": "double"
+        },
+        "y": {
+          "type": "number",
+          "format": "double"
+        },
+        "strokeColor": {
+          "type": "string"
+        },
+        "backgroundColor": {
+          "type": "string"
+        },
+        "fillStyle": {
+          "$ref": "#/$defs/FillStyle"
+        },
+        "strokeWidth": {
+          "type": "number",
+          "format": "double"
+        },
+        "strokeStyle": {
+          "$ref": "#/$defs/StrokeStyle"
+        },
+        "roundness": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Roundness"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "roughness": {
+          "type": "number",
+          "format": "double"
+        },
+        "opacity": {
+          "type": "number",
+          "format": "double"
+        },
+        "width": {
+          "type": "number",
+          "format": "double"
+        },
+        "height": {
+          "type": "number",
+          "format": "double"
+        },
+        "angle": {
+          "$ref": "#/$defs/Radians"
+        },
+        "seed": {
+          "type": "number",
+          "format": "double",
+          "description": "Random integer seeding the rough.js shape so it is stable across renders."
+        },
+        "version": {
+          "type": "number",
+          "format": "double",
+          "description": "Incremented on every change; used to reconcile collaborators."
+        },
+        "versionNonce": {
+          "type": "number",
+          "format": "double",
+          "description": "Random integer regenerated on every change; breaks `version` ties."
+        },
+        "index": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FractionalIndex"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fractional index; `null` for elements not yet in a scene."
+        },
+        "isDeleted": {
+          "type": "boolean"
+        },
+        "groupIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Groups the element belongs to, deepest first."
+        },
+        "frameId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "boundElements": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/BoundElement"
+          },
+          "description": "Other elements bound to this one."
+        },
+        "updated": {
+          "type": "number",
+          "format": "double",
+          "description": "Epoch milliseconds of the last update."
+        },
+        "created": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Client wall-clock creation time in epoch milliseconds; `null` if unknown."
+        },
+        "link": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "customData": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": true,
+          "description": "Host data (`customData?: Record<string, any>`), kept as is. `null` is written back as read."
+        }
+      },
+      "required": [
+        "id",
+        "x",
+        "y",
+        "strokeColor",
+        "backgroundColor",
+        "fillStyle",
+        "strokeWidth",
+        "strokeStyle",
+        "roundness",
+        "roughness",
+        "opacity",
+        "width",
+        "height",
+        "angle",
+        "seed",
+        "version",
+        "versionNonce",
+        "index",
+        "isDeleted",
+        "groupIds",
+        "frameId",
+        "boundElements",
+        "updated",
+        "created",
+        "link",
+        "locked"
+      ],
+      "description": "The fields every element has (`_ExcalidrawElementBase`, `types.ts:40-87`), in declaration order, which is also the order they serialise in."
+    },
+    "FillStyle": {
+      "type": "string",
+      "enum": [
+        "hachure",
+        "cross-hatch",
+        "solid",
+        "zigzag"
+      ],
+      "description": "`FillStyle`, `types.ts:19`."
+    },
+    "StrokeStyle": {
+      "type": "string",
+      "enum": [
+        "solid",
+        "dashed",
+        "dotted"
+      ],
+      "description": "`StrokeStyle`, `types.ts:28`."
+    },
+    "Roundness": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/RoundnessType"
+        },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "description": "`roundness: null | { type: RoundnessType; value?: number }` (`types.ts:49`)."
+    },
+    "RoundnessType": {
+      "description": "`ROUNDNESS` (packages/common/src/constants.ts:447-464): 1 legacy, 2 proportional radius (lines, arrows, diamonds, sticky notes), 3 adaptive radius (rectangles, embeddables, iframes, images).",
+      "enum": [
+        1,
+        2,
+        3
+      ]
+    },
+    "Radians": {
+      "type": "number",
+      "format": "double",
+      "description": "An angle in radians (`Radians`, `packages/math/src/types.ts:9`)."
+    },
+    "FractionalIndex": {
+      "type": "string",
+      "description": "A fractional index key (`FractionalIndex`, `types.ts:33`): base-62 digits compared as plain strings."
+    },
+    "BoundElement": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/BoundElementType"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "description": "Another element bound to this one (`BoundElement`, `types.ts:35-38`)."
+    },
+    "BoundElementType": {
+      "type": "string",
+      "enum": [
+        "arrow",
+        "text"
+      ],
+      "description": "`BoundElement.type`, `types.ts:35-38`."
+    },
+    "StickyNoteFields": {
+      "type": "object",
+      "properties": {
+        "baseHeight": {
+          "type": "number",
+          "format": "double",
+          "description": "The height the user set; `height` grows above it to fit the label and never shrinks below it."
+        }
+      },
+      "required": [
+        "baseHeight"
+      ],
+      "description": "Sticky note fields (`ExcalidrawStickyNoteElement`, `types.ts:97-105`)."
+    },
+    "ImageFields": {
+      "type": "object",
+      "properties": {
+        "fileId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FileId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/ImageStatus",
+          "description": "Whether the file is persisted."
+        },
+        "scale": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "X and Y scale factors in -1..1, used for flipping."
+        },
+        "crop": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageCrop"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "scale",
+        "crop"
+      ],
+      "description": "Image fields (`ExcalidrawImageElement`, `types.ts:161-171`)."
+    },
+    "FileId": {
+      "type": "string",
+      "description": "Id of a binary file in the scene's `files` map (`FileId`, `types.ts:439`): the SHA-1 hex of the file bytes, or a 40-character nanoid."
+    },
+    "ImageStatus": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "saved",
+        "error"
+      ],
+      "description": "Status of an image's file (`types.ts:166`)."
+    },
+    "ImageCrop": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number",
+          "format": "double"
+        },
+        "y": {
+          "type": "number",
+          "format": "double"
+        },
+        "width": {
+          "type": "number",
+          "format": "double"
+        },
+        "height": {
+          "type": "number",
+          "format": "double"
+        },
+        "naturalWidth": {
+          "type": "number",
+          "format": "double"
+        },
+        "naturalHeight": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height",
+        "naturalWidth",
+        "naturalHeight"
+      ],
+      "description": "Crop rectangle of an image (`ImageCrop`, `types.ts:152-159`)."
+    },
+    "FrameFields": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "Frame and magic frame fields (`types.ts:178-186`).",
+      "required": [
+        "name"
+      ]
+    },
+    "TextFields": {
+      "type": "object",
+      "properties": {
+        "fontSize": {
+          "type": "number",
+          "format": "double"
+        },
+        "fontFamily": {
+          "$ref": "#/$defs/FontFamily"
+        },
+        "baseFontSize": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "The font size the user picked; only sticky note labels have one."
+        },
+        "text": {
+          "type": "string",
+          "description": "The text as rendered, wrapped."
+        },
+        "textAlign": {
+          "$ref": "#/$defs/TextAlign"
+        },
+        "verticalAlign": {
+          "$ref": "#/$defs/VerticalAlign"
+        },
+        "containerId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "originalText": {
+          "type": "string",
+          "description": "The text as typed, unwrapped."
+        },
+        "autoResize": {
+          "type": "boolean",
+          "description": "`true`: the width fits the text; `false`: the text wraps to the width."
+        },
+        "lineHeight": {
+          "type": "number",
+          "format": "double",
+          "description": "Unitless line height."
+        },
+        "labelPosition": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double",
+          "description": "Position of a label on an arrow, as an arc-length ratio in 0..1 along the arrow's path; absent or null for other text."
+        }
+      },
+      "required": [
+        "fontSize",
+        "fontFamily",
+        "baseFontSize",
+        "text",
+        "textAlign",
+        "verticalAlign",
+        "containerId",
+        "originalText",
+        "autoResize",
+        "lineHeight"
+      ],
+      "description": "Text fields (`ExcalidrawTextElement`, `types.ts:253-291`)."
+    },
+    "FontFamily": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0,
+      "description": "A font family id (`FontFamilyValues`, `constants.ts:140-151`), written as its number. Ids without a name (4, or a host's custom font) are kept."
+    },
+    "TextAlign": {
+      "type": "string",
+      "enum": [
+        "left",
+        "center",
+        "right"
+      ],
+      "description": "`TEXT_ALIGN`, `constants.ts:431-435`."
+    },
+    "VerticalAlign": {
+      "type": "string",
+      "enum": [
+        "top",
+        "middle",
+        "bottom"
+      ],
+      "description": "`VERTICAL_ALIGN`, `constants.ts:425-429`."
+    },
+    "LineFields": {
+      "type": "object",
+      "properties": {
+        "points": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "startBinding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FixedPointBinding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "endBinding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FixedPointBinding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "startArrowhead": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Arrowhead"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "endArrowhead": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Arrowhead"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "polygon": {
+          "type": "boolean",
+          "description": "`false` when absent: restore leaves it out for a legacy `draw` element (`restore.ts:645-650` sets it only when the type read was `line`), and upstream reads `undefined` as not closed. An absent key is written back absent until the field changes.",
+          "default": false
+        }
+      },
+      "required": [
+        "points",
+        "startBinding",
+        "endBinding",
+        "startArrowhead",
+        "endArrowhead"
+      ],
+      "description": "Line fields (`ExcalidrawLineElement`, `types.ts:379-383`)."
+    },
+    "FixedPointBinding": {
+      "type": "object",
+      "properties": {
+        "elementId": {
+          "type": "string"
+        },
+        "fixedPoint": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "The bound point as ratios of the target's width and height."
+        },
+        "mode": {
+          "$ref": "#/$defs/BindMode"
+        }
+      },
+      "required": [
+        "elementId",
+        "fixedPoint",
+        "mode"
+      ],
+      "description": "An arrow end bound to an element (`FixedPointBinding`, `types.ts:320-333`)."
+    },
+    "BindMode": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "skip"
+          ]
+        },
+        {
+          "type": "string",
+          "const": "inside",
+          "description": "The arrow may go inside the shape up to the fixed point."
+        },
+        {
+          "type": "string",
+          "const": "orbit",
+          "description": "The arrow stays outside the shape."
+        }
+      ],
+      "description": "`BindMode`, `types.ts:318`."
+    },
+    "Arrowhead": {
+      "type": "string",
+      "enum": [
+        "arrow",
+        "bar",
+        "circle",
+        "circle_outline",
+        "triangle",
+        "triangle_outline",
+        "diamond",
+        "diamond_outline",
+        "cardinality_one",
+        "cardinality_many",
+        "cardinality_one_or_many",
+        "cardinality_exactly_one",
+        "cardinality_zero_or_one",
+        "cardinality_zero_or_many"
+      ],
+      "description": "Arrowheads (`Arrowhead`, `types.ts:342-365`)."
+    },
+    "ArrowFields": {
+      "type": "object",
+      "properties": {
+        "points": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "startBinding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FixedPointBinding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "endBinding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FixedPointBinding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "startArrowhead": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Arrowhead"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "endArrowhead": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Arrowhead"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "elbowed": {
+          "type": "boolean",
+          "description": "`false` when absent: files from before elbow arrows have no key, and restore copies `element.elbowed` as it is (`restore.ts:697`), so the restored arrow has none either; upstream reads `undefined` as not elbowed. An absent key is written back absent until the field changes.",
+          "default": false
+        },
+        "fixedSegments": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/FixedSegment"
+          }
+        },
+        "startIsSpecial": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Use the third point as the second, hiding the first segment."
+        },
+        "endIsSpecial": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Use the third point from the end as the second-last, hiding the last segment."
+        }
+      },
+      "required": [
+        "points",
+        "startBinding",
+        "endBinding",
+        "startArrowhead",
+        "endArrowhead"
+      ],
+      "description": "Arrow fields (`ExcalidrawArrowElement`, `types.ts:391-395`, and `ExcalidrawElbowArrowElement`, 397-421). The elbow keys (`fixedSegments`, `startIsSpecial`, `endIsSpecial`) are written for elbow arrows and absent on others."
+    },
+    "FixedSegment": {
+      "type": "object",
+      "properties": {
+        "start": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "end": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "index": {
+          "type": "number",
+          "format": "double",
+          "description": "Index of the segment's end point in `points`."
+        }
+      },
+      "required": [
+        "start",
+        "end",
+        "index"
+      ],
+      "description": "A segment of an elbow arrow the user fixed (`FixedSegment`, `types.ts:385-389`)."
+    },
+    "FreedrawFields": {
+      "type": "object",
+      "properties": {
+        "points": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "pressures": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "simulatePressure": {
+          "type": "boolean"
+        },
+        "strokeOptions": {
+          "$ref": "#/$defs/StrokeOptions"
+        }
+      },
+      "required": [
+        "points",
+        "pressures",
+        "simulatePressure",
+        "strokeOptions"
+      ],
+      "description": "Freedraw fields (`ExcalidrawFreeDrawElement`, `types.ts:430-437`)."
+    },
+    "StrokeOptions": {
+      "type": "object",
+      "properties": {
+        "variability": {
+          "$ref": "#/$defs/StrokeVariability"
+        },
+        "streamline": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "required": [
+        "variability",
+        "streamline"
+      ],
+      "description": "Freedraw stroke options (`StrokeOptions`, `types.ts:425-428`)."
+    },
+    "StrokeVariability": {
+      "type": "string",
+      "enum": [
+        "variable",
+        "constant"
+      ],
+      "description": "Stroke variability of a freedraw (`StrokeVariability`, `types.ts:423`)."
+    },
+    "ElementType": {
+      "description": "The element type (packages/element/src/types.ts:223-234). `selection` is never persisted; legacy `draw` is restored to `line`.",
+      "enum": [
+        "selection",
+        "rectangle",
+        "stickynote",
+        "diamond",
+        "ellipse",
+        "embeddable",
+        "iframe",
+        "image",
+        "frame",
+        "magicframe",
+        "text",
+        "line",
+        "arrow",
+        "freedraw"
+      ]
+    },
+    "ExportedAppState": {
+      "type": "object",
+      "properties": {
+        "gridSize": {
+          "type": "number",
+          "format": "double",
+          "description": "Grid cell size in px (`DEFAULT_GRID_SIZE` 20); restore rounds and clamps it to 1..100."
+        },
+        "gridStep": {
+          "type": "number",
+          "format": "double",
+          "description": "Major grid line every this many cells (`DEFAULT_GRID_STEP` 5); restore rounds and clamps it to 1..100."
+        },
+        "gridModeEnabled": {
+          "type": "boolean",
+          "description": "Whether the grid is shown and snapped to."
+        },
+        "viewBackgroundColor": {
+          "type": "string",
+          "description": "Canvas colour, e.g. `#ffffff`."
+        },
+        "lockedMultiSelections": {
+          "description": "`{ [groupId]: true }`: groups whose multi-selection is locked.",
+          "type": "object",
+          "additionalProperties": {
+            "const": true
+          }
+        }
+      },
+      "description": "The `appState` of a `.excalidraw` file: the five keys `cleanAppStateForExport` keeps (`appState.ts:153-291`), typed as upstream's `AppState` has them (`packages/excalidraw/types.ts:465, 518-520, 565`). Each is present when the state it was saved from had it. Other keys (from older writers) are allowed and dropped on load."
+    },
+    "BinaryFileData": {
+      "type": "object",
+      "properties": {
+        "mimeType": {
+          "$ref": "#/$defs/FileMimeType"
+        },
+        "id": {
+          "$ref": "#/$defs/FileId",
+          "description": "The file id: the SHA-1 hex of the bytes, or a 40-character nanoid (`data/blob.ts:259-273`); also the key of the entry."
+        },
+        "dataURL": {
+          "type": "string",
+          "description": "`data:<mime>;base64,...` (`DataURL`, `getDataURL_sync`, `data/blob.ts:288-296`).",
+          "pattern": "^data:"
+        },
+        "created": {
+          "type": "number",
+          "format": "double",
+          "description": "Epoch milliseconds."
+        },
+        "lastRetrieved": {
+          "type": "number",
+          "format": "double",
+          "description": "Epoch milliseconds of the last load from storage; storage uses it to delete unused files."
+        },
+        "version": {
+          "type": "number",
+          "format": "double",
+          "description": "Version of the file, to tell whether `dataURL` changed."
+        }
+      },
+      "required": [
+        "mimeType",
+        "id",
+        "dataURL",
+        "created"
+      ],
+      "description": "A file of the `files` map (`BinaryFileData`, `packages/excalidraw/types.ts:118-142`): an image an image element refers to by `fileId`."
+    },
+    "FileMimeType": {
+      "type": "string",
+      "enum": [
+        "image/svg+xml",
+        "image/png",
+        "image/jpeg",
+        "image/gif",
+        "image/webp",
+        "image/bmp",
+        "image/x-icon",
+        "image/avif",
+        "image/jfif",
+        "application/octet-stream"
+      ],
+      "description": "`BinaryFileData[\"mimeType\"]` (`packages/excalidraw/types.ts:118-122`): an image type of `IMAGE_MIME_TYPES` or `MIME_TYPES.binary` (`packages/common/src/constants.ts:296-330`)."
+    }
+  }
+}

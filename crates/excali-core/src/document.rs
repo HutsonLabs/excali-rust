@@ -52,11 +52,13 @@
 //! keys in the order described above. [`Document::to_map`] gives the same
 //! order.
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 
+use crate::app_state::ExportedAppState;
 use crate::constants::{EXPORT_DATA_TYPE_EXCALIDRAW, VERSION_EXCALIDRAW};
-use crate::element::Element;
+use crate::element::{Element, FileId};
 use crate::json::{self, Error};
 use crate::layout::{Canonical, Layout};
 
@@ -296,5 +298,127 @@ impl<'de> Deserialize<'de> for Document {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Document, D::Error> {
         let raw = Map::<String, Value>::deserialize(d)?;
         Document::from_map(raw).map_err(serde::de::Error::custom)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Files
+
+/// `BinaryFileData["mimeType"]` (`packages/excalidraw/types.ts:118-122`): an
+/// image type of `IMAGE_MIME_TYPES` or `MIME_TYPES.binary`
+/// (`packages/common/src/constants.ts:296-330`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+pub enum FileMimeType {
+    #[serde(rename = "image/svg+xml")]
+    Svg,
+    #[serde(rename = "image/png")]
+    Png,
+    #[serde(rename = "image/jpeg")]
+    Jpeg,
+    #[serde(rename = "image/gif")]
+    Gif,
+    #[serde(rename = "image/webp")]
+    Webp,
+    #[serde(rename = "image/bmp")]
+    Bmp,
+    #[serde(rename = "image/x-icon")]
+    Icon,
+    #[serde(rename = "image/avif")]
+    Avif,
+    #[serde(rename = "image/jfif")]
+    Jfif,
+    // A future or unknown file type. (A plain comment: a doc comment would
+    // make the schema a oneOf of consts instead of one enum.)
+    #[serde(rename = "application/octet-stream")]
+    Binary,
+}
+
+/// A file of the `files` map (`BinaryFileData`,
+/// `packages/excalidraw/types.ts:118-142`). [`Document::files`] keeps the
+/// entries as read; this is their typed view.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+#[schemars(
+    description = "A file of the `files` map (`BinaryFileData`, `packages/excalidraw/types.ts:118-142`): an image an image element refers to by `fileId`."
+)]
+pub struct BinaryFileData {
+    pub mime_type: FileMimeType,
+    /// The file id: the SHA-1 hex of the bytes, or a 40-character nanoid
+    /// (`data/blob.ts:259-273`); also the key of the entry.
+    pub id: FileId,
+    /// `data:<mime>;base64,...` (`DataURL`, `getDataURL_sync`,
+    /// `data/blob.ts:288-296`).
+    #[serde(rename = "dataURL")]
+    #[schemars(pattern(r"^data:"))]
+    pub data_url: String,
+    /// Epoch milliseconds.
+    pub created: f64,
+    /// Epoch milliseconds of the last load from storage; storage uses it to
+    /// delete unused files.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "f64")]
+    pub last_retrieved: Option<f64>,
+    /// Version of the file, to tell whether `dataURL` changed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "f64")]
+    pub version: Option<f64>,
+}
+
+impl BinaryFileData {
+    /// The typed view of a `files` entry; `Err` when a key has another
+    /// type than `BinaryFileData` gives it, or `dataURL` is no data URL.
+    pub fn from_value(value: &Value) -> Result<BinaryFileData, Error> {
+        let file = BinaryFileData::deserialize(value)?;
+        if !file.data_url.starts_with("data:") {
+            return Err(serde::de::Error::custom("dataURL must be a data: URL"));
+        }
+        Ok(file)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// JSON Schema
+
+impl JsonSchema for Document {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "Document".into()
+    }
+
+    /// `ExportedDataState` (`packages/excalidraw/data/types.ts:14-21`), as
+    /// `serializeAsJSON` writes it (`data/json.ts:52-75`): `files` is
+    /// absent for a database save. Unknown keys are allowed and kept.
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        let element = generator.subschema_for::<Element>();
+        let app_state = generator.subschema_for::<ExportedAppState>();
+        let file = generator.subschema_for::<BinaryFileData>();
+        schemars::json_schema!({
+            "type": "object",
+            "properties": {
+                "type": {
+                    "description": "`EXPORT_DATA_TYPES.excalidraw` (packages/common/src/constants.ts:345).",
+                    "const": EXPORT_DATA_TYPE_EXCALIDRAW,
+                },
+                "version": {
+                    "description": "`VERSIONS.excalidraw` (packages/common/src/constants.ts:416-419): 2 when written.",
+                    "type": "number",
+                },
+                "source": {
+                    "description": "The writer's origin (`EXCALIDRAW_EXPORT_SOURCE`, packages/common/src/constants.ts:351-352).",
+                    "type": "string",
+                },
+                "elements": {
+                    "description": "The scene's elements in z-order, deleted ones (`isDeleted: true`) included.",
+                    "type": "array",
+                    "items": element,
+                },
+                "appState": app_state,
+                "files": {
+                    "description": "`BinaryFiles` (packages/excalidraw/types.ts:146): file id to file, for the image elements that reference one.",
+                    "type": "object",
+                    "additionalProperties": file,
+                },
+            },
+            "required": ["type", "version", "source", "elements", "appState"],
+        })
     }
 }

@@ -149,6 +149,72 @@ impl PartialEq for LibraryItem {
     }
 }
 
+impl schemars::JsonSchema for LibraryItemStatus {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "LibraryItemStatus".into()
+    }
+
+    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        schemars::json_schema!({
+            "description": "`LibraryItem[\"status\"]` (packages/excalidraw/types.ts:654): published items came from libraries.excalidraw.com, unpublished ones were made locally.",
+            "enum": [
+                LibraryItemStatus::Published.as_str(),
+                LibraryItemStatus::Unpublished.as_str(),
+            ],
+        })
+    }
+}
+
+/// The elements of a library item: `readonly NonDeleted<ExcalidrawElement>[]`
+/// (`packages/excalidraw/types.ts:647-655`).
+pub(crate) fn library_elements_schema(
+    generator: &mut schemars::SchemaGenerator,
+) -> schemars::Schema {
+    let element = generator.subschema_for::<Element>();
+    schemars::json_schema!({
+        "type": "array",
+        "items": {
+            "allOf": [
+                element,
+                { "properties": { "isDeleted": { "const": false } } },
+            ],
+        },
+    })
+}
+
+impl schemars::JsonSchema for LibraryItem {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "LibraryItem".into()
+    }
+
+    /// `LibraryItem` (`packages/excalidraw/types.ts:652-660`). Unknown keys
+    /// are allowed and kept.
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        let status = generator.subschema_for::<LibraryItemStatus>();
+        let mut elements = library_elements_schema(generator);
+        elements.insert(
+            "description".into(),
+            "The item's elements, none deleted.".into(),
+        );
+        schemars::json_schema!({
+            "description": "A library item (`LibraryItem`, packages/excalidraw/types.ts:652-660).",
+            "type": "object",
+            "properties": {
+                "id": { "type": "string" },
+                "status": status,
+                "elements": elements,
+                "created": {
+                    "description": "Epoch milliseconds.",
+                    "type": "number",
+                },
+                "name": { "type": "string" },
+                "error": { "type": "string" },
+            },
+            "required": REQUIRED,
+        })
+    }
+}
+
 /// `LibraryItem`'s key order (`types.ts:652-660`), which is also the order
 /// `actionAddToLibrary` builds a new item in (`actionAddToLibrary.ts:36-41`).
 const KEYS: &[&str] = &["id", "status", "elements", "created", "name", "error"];

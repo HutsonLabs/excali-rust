@@ -32,6 +32,13 @@ indexmap = "2.14.2"
 # excali-core's own zlib code is a port of pako (excali_core::encode), so its
 # bytes and error messages are upstream's.
 flate2 = "1.1.10"
+# JSON Schema for .excalidraw and .excalidrawlib, derived from the model's
+# types (excali_core::schema, ex-115). preserve_order keeps the published
+# schema's keys in declaration order.
+schemars = { version = "1.2.2", default-features = false, features = ["derive", "std", "preserve_order"] }
+# Test-only: validates files against the published schemas. No remote $ref
+# resolution, so no HTTP stack.
+jsonschema = { version = "0.58.1", default-features = false }
 # Test-only: golden digests and base64 payloads.
 sha2 = "0.11.0"
 base64 = "0.23.1"

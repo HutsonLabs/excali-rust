@@ -22,6 +22,7 @@
 //! whole-element codec, is built on these types and keeps unknown keys and
 //! upstream's key order.
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::fmt;
@@ -43,19 +44,25 @@ pub type LocalPoint = [f64; 2];
 pub type GroupId = String;
 
 /// An angle in radians (`Radians`, `packages/math/src/types.ts:9`).
-#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, Default, PartialEq, PartialOrd, Serialize, Deserialize, JsonSchema,
+)]
 #[serde(transparent)]
 pub struct Radians(pub f64);
 
 /// A fractional index key (`FractionalIndex`, `types.ts:33`): base-62 digits
 /// compared as plain strings.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema,
+)]
 #[serde(transparent)]
 pub struct FractionalIndex(pub String);
 
 /// Id of a binary file in the scene's `files` map (`FileId`, `types.ts:439`):
 /// the SHA-1 hex of the file bytes, or a 40-character nanoid.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, JsonSchema,
+)]
 #[serde(transparent)]
 pub struct FileId(pub String);
 
@@ -266,7 +273,7 @@ impl fmt::Display for ElementType {
 // Base-field enumerations
 
 /// `FillStyle`, `types.ts:19`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum FillStyle {
     Hachure,
@@ -276,7 +283,7 @@ pub enum FillStyle {
 }
 
 /// `StrokeStyle`, `types.ts:28`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum StrokeStyle {
     Solid,
@@ -340,9 +347,26 @@ impl<'de> Deserialize<'de> for RoundnessType {
     }
 }
 
+impl JsonSchema for RoundnessType {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "RoundnessType".into()
+    }
+
+    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        schemars::json_schema!({
+            "description": "`ROUNDNESS` (packages/common/src/constants.ts:447-464): 1 legacy, 2 proportional radius (lines, arrows, diamonds, sticky notes), 3 adaptive radius (rectangles, embeddables, iframes, images).",
+            "enum": [
+                RoundnessType::Legacy.value(),
+                RoundnessType::ProportionalRadius.value(),
+                RoundnessType::AdaptiveRadius.value(),
+            ],
+        })
+    }
+}
+
 /// `roundness: null | { type: RoundnessType; value?: number }`
 /// (`types.ts:49`).
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Roundness {
     #[serde(rename = "type")]
     pub kind: RoundnessType,
@@ -358,7 +382,7 @@ impl Roundness {
 }
 
 /// `BoundElement.type`, `types.ts:35-38`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum BoundElementType {
     Arrow,
@@ -366,7 +390,7 @@ pub enum BoundElementType {
 }
 
 /// Another element bound to this one (`BoundElement`, `types.ts:35-38`).
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct BoundElement {
     pub id: String,
     #[serde(rename = "type")]
@@ -379,8 +403,9 @@ pub struct BoundElement {
 /// The fields every element has (`_ExcalidrawElementBase`,
 /// `types.ts:40-87`), in declaration order, which is also the order they
 /// serialise in.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+#[schemars(transform = require_nullable_base)]
 pub struct ElementBase {
     pub id: String,
     pub x: f64,
@@ -403,7 +428,7 @@ pub struct ElementBase {
     pub version: f64,
     /// Random integer regenerated on every change; breaks `version` ties.
     pub version_nonce: f64,
-    /// Fractional index; `None` for elements not yet in a scene.
+    /// Fractional index; `null` for elements not yet in a scene.
     pub index: Option<FractionalIndex>,
     pub is_deleted: bool,
     /// Groups the element belongs to, deepest first.
@@ -413,13 +438,16 @@ pub struct ElementBase {
     pub bound_elements: Option<Vec<BoundElement>>,
     /// Epoch milliseconds of the last update.
     pub updated: f64,
-    /// Client wall-clock creation time in epoch milliseconds; `None` if
+    /// Client wall-clock creation time in epoch milliseconds; `null` if
     /// unknown.
     pub created: Option<f64>,
     pub link: Option<String>,
     pub locked: bool,
     /// `customData?: Record<string, any>`; `None` when the key is absent.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(
+        description = "Host data (`customData?: Record<string, any>`), kept as is. `null` is written back as read."
+    )]
     pub custom_data: Option<Map<String, Value>>,
 }
 
@@ -466,10 +494,88 @@ impl ElementBase {
 }
 
 // ---------------------------------------------------------------------------
+// JSON Schema: keys upstream's types require although they may be null
+
+/// Make `keys` required in an object schema, keeping `required` in
+/// property order. The model reads these keys as `Option`s (a missing key
+/// is `None`, as restore's input may lack them), but upstream's types
+/// declare them non-optional (`key: T | null`), so every file upstream
+/// writes has them, and the published schema requires them (see
+/// `crate::schema`).
+fn require_nullable(schema: &mut schemars::Schema, keys: &[&str]) {
+    let Some(object) = schema.as_object_mut() else {
+        return;
+    };
+    let required: Vec<String> = match object.get("required") {
+        Some(Value::Array(r)) => r
+            .iter()
+            .filter_map(Value::as_str)
+            .map(str::to_owned)
+            .collect(),
+        _ => Vec::new(),
+    };
+    let ordered: Vec<Value> = match object.get("properties") {
+        Some(Value::Object(properties)) => properties
+            .keys()
+            .filter(|k| required.contains(k) || keys.contains(&k.as_str()))
+            .map(|k| Value::from(k.as_str()))
+            .collect(),
+        _ => return,
+    };
+    object.insert("required".into(), Value::Array(ordered));
+}
+
+/// `_ExcalidrawElementBase`, `types.ts:49, 69, 74, 76, 83, 84`.
+fn require_nullable_base(schema: &mut schemars::Schema) {
+    require_nullable(
+        schema,
+        &[
+            "roundness",
+            "index",
+            "frameId",
+            "boundElements",
+            "created",
+            "link",
+        ],
+    );
+}
+
+/// `ExcalidrawImageElement`, `types.ts:170`. `fileId` (`types.ts:164`)
+/// stays optional: restore copies `element.fileId` as it is
+/// (`restore.ts:605-611`), so upstream writes an image restored from one
+/// without the key without it too.
+fn require_nullable_image(schema: &mut schemars::Schema) {
+    require_nullable(schema, &["crop"]);
+}
+
+/// `ExcalidrawFrameElement`, `ExcalidrawMagicFrameElement`, `types.ts:180, 185`.
+fn require_nullable_frame(schema: &mut schemars::Schema) {
+    require_nullable(schema, &["name"]);
+}
+
+/// `ExcalidrawTextElement`, `types.ts:266, 270`.
+fn require_nullable_text(schema: &mut schemars::Schema) {
+    require_nullable(schema, &["baseFontSize", "containerId"]);
+}
+
+/// `ExcalidrawLinearElement`, `types.ts:373-376`.
+fn require_nullable_linear(schema: &mut schemars::Schema) {
+    require_nullable(
+        schema,
+        &[
+            "startBinding",
+            "endBinding",
+            "startArrowhead",
+            "endArrowhead",
+        ],
+    );
+}
+
+// ---------------------------------------------------------------------------
 // Per-type fields
 
 /// Sticky note fields (`ExcalidrawStickyNoteElement`, `types.ts:97-105`).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct StickyNoteFields {
     /// The height the user set; `height` grows above it to fit the label
@@ -478,7 +584,7 @@ pub struct StickyNoteFields {
 }
 
 /// Status of an image's file (`types.ts:166`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum ImageStatus {
     Pending,
@@ -487,7 +593,7 @@ pub enum ImageStatus {
 }
 
 /// Crop rectangle of an image (`ImageCrop`, `types.ts:152-159`).
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ImageCrop {
     pub x: f64,
@@ -499,8 +605,9 @@ pub struct ImageCrop {
 }
 
 /// Image fields (`ExcalidrawImageElement`, `types.ts:161-171`).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+#[schemars(transform = require_nullable_image)]
 pub struct ImageFields {
     pub file_id: Option<FileId>,
     /// Whether the file is persisted.
@@ -524,14 +631,17 @@ impl Default for ImageFields {
 }
 
 /// Frame and magic frame fields (`types.ts:178-186`).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = require_nullable_frame)]
 pub struct FrameFields {
     pub name: Option<String>,
 }
 
 /// A font family id (`FontFamilyValues`, `constants.ts:140-151`), written as
 /// its number. Ids without a name (4, or a host's custom font) are kept.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
+)]
 #[serde(transparent)]
 pub struct FontFamily(pub u32);
 
@@ -609,7 +719,7 @@ impl Default for FontFamily {
 }
 
 /// `TEXT_ALIGN`, `constants.ts:431-435`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum TextAlign {
     #[default]
@@ -619,7 +729,7 @@ pub enum TextAlign {
 }
 
 /// `VERTICAL_ALIGN`, `constants.ts:425-429`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum VerticalAlign {
     #[default]
@@ -629,8 +739,9 @@ pub enum VerticalAlign {
 }
 
 /// Text fields (`ExcalidrawTextElement`, `types.ts:253-291`).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+#[schemars(transform = require_nullable_text)]
 pub struct TextFields {
     pub font_size: f64,
     pub font_family: FontFamily,
@@ -653,6 +764,10 @@ pub struct TextFields {
         default,
         skip_serializing_if = "Option::is_none",
         with = "double_option"
+    )]
+    #[schemars(
+        with = "Option<f64>",
+        description = "Position of a label on an arrow, as an arc-length ratio in 0..1 along the arrow's path; absent or null for other text."
     )]
     pub label_position: Option<Option<f64>>,
 }
@@ -683,7 +798,7 @@ impl TextFields {
 }
 
 /// Arrowheads (`Arrowhead`, `types.ts:342-365`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Arrowhead {
     Arrow,
@@ -756,7 +871,7 @@ impl Arrowhead {
 }
 
 /// `BindMode`, `types.ts:318`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum BindMode {
     /// The arrow may go inside the shape up to the fixed point.
@@ -767,7 +882,7 @@ pub enum BindMode {
 }
 
 /// An arrow end bound to an element (`FixedPointBinding`, `types.ts:320-333`).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FixedPointBinding {
     pub element_id: String,
@@ -778,8 +893,9 @@ pub struct FixedPointBinding {
 
 /// Fields shared by lines and arrows (`ExcalidrawLinearElement`,
 /// `types.ts:369-377`).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+#[schemars(transform = require_nullable_linear)]
 pub struct LinearFields {
     pub points: Vec<LocalPoint>,
     pub start_binding: Option<FixedPointBinding>,
@@ -803,7 +919,7 @@ impl LinearFields {
 }
 
 /// Line fields (`ExcalidrawLineElement`, `types.ts:379-383`).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct LineFields {
     #[serde(flatten)]
     pub linear: LinearFields,
@@ -817,7 +933,7 @@ pub struct LineFields {
 
 /// A segment of an elbow arrow the user fixed (`FixedSegment`,
 /// `types.ts:385-389`).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct FixedSegment {
     pub start: LocalPoint,
     pub end: LocalPoint,
@@ -830,8 +946,11 @@ pub struct FixedSegment {
 ///
 /// The elbow keys are written for elbow arrows and absent on others, so
 /// each is `None` when absent and `Some(None)` when `null`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
+#[schemars(
+    description = "Arrow fields (`ExcalidrawArrowElement`, `types.ts:391-395`, and `ExcalidrawElbowArrowElement`, 397-421). The elbow keys (`fixedSegments`, `startIsSpecial`, `endIsSpecial`) are written for elbow arrows and absent on others."
+)]
 pub struct ArrowFields {
     #[serde(flatten)]
     pub linear: LinearFields,
@@ -847,6 +966,7 @@ pub struct ArrowFields {
         skip_serializing_if = "Option::is_none",
         with = "double_option"
     )]
+    #[schemars(with = "Option<Vec<FixedSegment>>")]
     pub fixed_segments: Option<Option<Vec<FixedSegment>>>,
     /// Use the third point as the second, hiding the first segment.
     #[serde(
@@ -854,6 +974,7 @@ pub struct ArrowFields {
         skip_serializing_if = "Option::is_none",
         with = "double_option"
     )]
+    #[schemars(with = "Option<bool>")]
     pub start_is_special: Option<Option<bool>>,
     /// Use the third point from the end as the second-last, hiding the last
     /// segment.
@@ -862,6 +983,7 @@ pub struct ArrowFields {
         skip_serializing_if = "Option::is_none",
         with = "double_option"
     )]
+    #[schemars(with = "Option<bool>")]
     pub end_is_special: Option<Option<bool>>,
 }
 
@@ -882,7 +1004,7 @@ impl ArrowFields {
 }
 
 /// Stroke variability of a freedraw (`StrokeVariability`, `types.ts:423`).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum StrokeVariability {
     Variable,
@@ -890,7 +1012,7 @@ pub enum StrokeVariability {
 }
 
 /// Freedraw stroke options (`StrokeOptions`, `types.ts:425-428`).
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct StrokeOptions {
     pub variability: StrokeVariability,
     pub streamline: f64,
@@ -908,7 +1030,7 @@ impl Default for StrokeOptions {
 }
 
 /// Freedraw fields (`ExcalidrawFreeDrawElement`, `types.ts:430-437`).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FreedrawFields {
     pub points: Vec<LocalPoint>,
@@ -932,7 +1054,7 @@ impl FreedrawFields {
 
 /// Generation state of an AI iframe (`MagicGenerationData`,
 /// `types.ts:120-129`), stored in the iframe's `customData.generationData`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "status", rename_all = "lowercase")]
 pub enum MagicGenerationData {
     Pending,
@@ -1206,6 +1328,69 @@ impl<'de> Deserialize<'de> for Element {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Element, D::Error> {
         let raw = Map::<String, Value>::deserialize(d)?;
         Element::from_map(raw).map_err(serde::de::Error::custom)
+    }
+}
+
+impl JsonSchema for ElementType {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "ElementType".into()
+    }
+
+    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        let types: Vec<&str> = ElementType::ALL.iter().map(|t| t.as_str()).collect();
+        schemars::json_schema!({
+            "description": "The element type (packages/element/src/types.ts:223-234). `selection` is never persisted; legacy `draw` is restored to `line`.",
+            "enum": types,
+        })
+    }
+}
+
+impl JsonSchema for Element {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "Element".into()
+    }
+
+    /// The shared fields ([`ElementBase`]) and, chosen by `type`, the
+    /// per-type fields. Keys the model does not know are allowed; the
+    /// model keeps them.
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        let mut parts = vec![generator.subschema_for::<ElementBase>()];
+        let per_type = [
+            (
+                ElementType::StickyNote,
+                generator.subschema_for::<StickyNoteFields>(),
+            ),
+            (ElementType::Image, generator.subschema_for::<ImageFields>()),
+            (ElementType::Frame, generator.subschema_for::<FrameFields>()),
+            (
+                ElementType::MagicFrame,
+                generator.subschema_for::<FrameFields>(),
+            ),
+            (ElementType::Text, generator.subschema_for::<TextFields>()),
+            (ElementType::Line, generator.subschema_for::<LineFields>()),
+            (ElementType::Arrow, generator.subschema_for::<ArrowFields>()),
+            (
+                ElementType::Freedraw,
+                generator.subschema_for::<FreedrawFields>(),
+            ),
+        ];
+        for (ty, fields) in per_type {
+            parts.push(schemars::json_schema!({
+                "if": {
+                    "properties": { "type": { "const": ty.as_str() } },
+                    "required": ["type"],
+                },
+                "then": fields,
+            }));
+        }
+        let element_type = generator.subschema_for::<ElementType>();
+        schemars::json_schema!({
+            "description": "An element (`ExcalidrawElement`, packages/element/src/types.ts:223-234): the fields every element has (`_ExcalidrawElementBase`, types.ts:40-87) and, chosen by `type`, the fields of its type (types.ts:89-437). Keys not listed here are allowed and kept.",
+            "type": "object",
+            "properties": { "type": element_type },
+            "required": ["type"],
+            "allOf": parts,
+        })
     }
 }
 
