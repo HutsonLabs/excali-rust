@@ -4,7 +4,8 @@
 # match site/content/architecture/overview.md), the calendar-version gate
 # (ADR-009), the wasm32 build of every
 # crate that targets it (ADR-008), an MSRV check, the golden harness on
-# arm64 (ex-217), and the roughr evaluation behind ADR-003 (ex-206).
+# arm64 (ex-217), the roughr evaluation behind ADR-003 (ex-206), and the web
+# runtime's scene font loading in Chromium (ex-307).
 #
 # The toolchain comes from rust-toolchain.toml; rustup installs it (with
 # rustfmt, clippy and the wasm32 target) on the first cargo call.
@@ -54,6 +55,52 @@ jobs:
         run: python3 scripts/gates/version.py check
       - name: wasm32 build
         run: scripts/gates/wasm-build.sh
+  # ex-307: the web runtime in Chromium. scripts/web/build.sh builds
+  # excali-wasm for the browser (wasm-bindgen --target web, the CLI at the
+  # version Cargo.lock pins) with the fonts directory beside it, and
+  # tests/web checks that registering the font manifest fetches nothing and
+  # that loading a scene's fonts fetches exactly the range-split files its
+  # text needs (sceneFontFiles), for every scene of the font-assets goldens.
+  web-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: |
+          want="$(awk '/^name = "wasm-bindgen"$/ { getline; gsub(/"/, "", $3); print $3; exit }' Cargo.lock)"
+          if [ "$(wasm-bindgen --version 2>/dev/null | awk '{ print $2 }')" != "$want" ]; then
+            cargo install --locked wasm-bindgen-cli --version "$want"
+          fi
+      - name: build the web runtime
+        run: scripts/web/build.sh
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tests/web/package-lock.json
+      - name: install
+        working-directory: tests/web
+        run: npm ci
+      - name: install chromium
+        working-directory: tests/web
+        run: npx playwright install --with-deps chromium
+      - name: scene fonts load by unicode range
+        working-directory: tests/web
+        run: npx playwright test
+        env:
+          CI: "1"
+      - name: keep the report and traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-runtime-report
+          path: |
+            tests/web/playwright-report/
+            tests/web/test-results/
+          retention-days: 14
   # ex-217: the golden harness (excali_rough::goldens, cargo feature
   # `goldens`) and every parity target that compares with goldens/ through it,
   # on arm64, the architecture the goldens were generated on (the check job

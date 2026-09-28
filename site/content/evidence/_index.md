@@ -50,6 +50,7 @@ Method: every claim on this site traces to one of the rows below. Upstream sourc
 | wry / tao | 0.57.0 / 0.37.1 | 2026-09 |
 | tauri-plugin-fs / tauri-plugin-dialog | 2.6.0 / 2.8.0 | 2026-09-26 |
 | wasm-bindgen / js-sys / web-sys | 0.2.129 / 0.3.106 / 0.3.106 | 2026-09-25 |
+| wasm-bindgen-futures / wasm-bindgen-cli | 0.4.79 / 0.2.129 (crates.io API, read 2026-09-28) | 2026-09-25 |
 | wasm-pack / trunk | 0.15.0 / 0.21.14 | 2026 |
 | leptos / dioxus / yew / sycamore | 0.8.21 / 0.7.10 / 0.23.0 / 0.9.3 | 2026 |
 | egui / iced / slint / vello / wgpu | 0.36.2 / 0.14.0 / 1.18.1 / 0.10.0 / 30.0.1 | 2025–2026 |

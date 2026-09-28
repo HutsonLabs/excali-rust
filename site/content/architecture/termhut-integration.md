@@ -14,7 +14,7 @@ term.hut already opens `.excalidraw` files: `ui/src/preview.js` routes the `exca
 
 Three things, all in `ui/`:
 
-1. `ui/vendor/excali/` gains the release tarball: `excali_editor.js` (wasm-bindgen `--target web` output plus the custom-element shim), `excali_editor_bg.wasm`, `excali.css`, and `fonts/` with the range-split woff2 files and a manifest.
+1. `ui/vendor/excali/` gains the release tarball: `excali_editor.js` (wasm-bindgen `--target web` output plus the custom-element shim), `excali_editor_bg.wasm`, `excali.css`, and `fonts/` with the range-split font files, their licences and `manifest.json` (built by `scripts/web/build.sh` from `crates/excali-text/assets/fonts/`).
 2. `ui/src/preview.js` routes `excalidraw` to a new `excalidrawEditor.js` (editable) instead of `excalidrawView.js`, keeping the JSON source toggle it already has for `TEXT_BACKED` types. The old view stays as the fallback when the module fails to load.
 3. `ui/src/excalidrawEditor.js` (new, small) mounts `<excali-editor>`, wires save to `fs_write_text` with the code editor's dirty and conflict handling, and adds "Import library" to the pane header.
 
