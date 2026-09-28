@@ -87,6 +87,13 @@ jobs:
         run: python3 scripts/fonts/test_assets.py -v
       - name: vendored fonts equal the pinned upstream files
         run: python3 scripts/fonts/assets.py verify-upstream "${{ runner.temp }}/upstream"
+      # ex-302: excali-text's font face table is upstream's Fonts.init()
+      # registry (fonts/*/index.ts, fonts.css) at the pin, and every file it
+      # names is vendored under fonts/.
+      - name: font face table matches upstream's registry
+        env:
+          UPSTREAM_DIR: ${{ runner.temp }}/upstream
+        run: python3 scripts/fonts/font_faces.py check
       - name: every file equals its origin (live)
         run: python3 scripts/fixtures/corpus.py verify-remote
   # ex-110: the payload codec goldens are upstream output. Regenerate them
@@ -134,6 +141,25 @@ jobs:
           UPSTREAM_DIR: ${{ runner.temp }}/upstream
           TOOLS_DIR: ${{ runner.temp }}/tools
         run: scripts/fixtures/png-goldens.sh --check
+  # ex-302: the text-measurement fixtures. text-widths.json is re-extracted
+  # from the library corpus and font-advances.json re-read from the vendored
+  # fonts with fontTools (independent of the port's WOFF2 decoder); either
+  # failing means a committed fixture is stale. The Rust side runs in
+  # rust.yml (cargo test: excali-text's text_widths, font_store, ...).
+  text-metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: font script tests (offline)
+        run: python3 scripts/fonts/test_font_scripts.py -v
+      - name: text-width fixture matches the corpus
+        run: python3 scripts/fixtures/text_widths.py check
+      - name: fontTools in a venv (the version ADR-004's verification used)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/fonttools"
+          "$RUNNER_TEMP/fonttools/bin/pip" install fonttools==4.60.2 brotli==1.2.0
+      - name: glyph-advance fixture matches the vendored fonts
+        run: '"$RUNNER_TEMP/fonttools/bin/python" scripts/fonts/advances.py check'
   # ex-109: excali-core's ada_idna port reads ada's own IDNA table blob.
   # Take it again from the ada 4.0.0 release (the ada Node 26 bundles;
   # ada.cpp checked against its pinned SHA-256) and fail if the committed
