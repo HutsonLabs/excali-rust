@@ -21,6 +21,8 @@
 mod url;
 
 #[cfg(test)]
+mod element_tests;
+#[cfg(test)]
 mod tests;
 
 use serde_json::{json, Map, Value};

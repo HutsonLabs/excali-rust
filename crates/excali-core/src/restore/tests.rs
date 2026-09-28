@@ -9,7 +9,7 @@
 
 use serde_json::{Map, Value};
 
-use super::{restore_encoded, TestEnv};
+use super::{restore_element_encoded, restore_encoded, ElementsMap, RestoreOptions, TestEnv};
 use crate::json;
 
 const FIXTURE: &str = include_str!("../../tests/fixtures/restore-base.json");
@@ -49,14 +49,24 @@ fn upstream_fixture() {
         let extra = extra(&case);
         let extra: Vec<(&str, Option<Value>)> =
             extra.iter().map(|(k, v)| (k.as_str(), v.clone())).collect();
-        // Generic types restore as restoreElementWithProperties(element, {})
-        // (restore.ts:726-731); the fixture records restoreElement for them.
-        match case["call"].as_str() {
-            Some("base") => {}
-            Some("restoreElement") => assert!(extra.is_empty(), "{id}"),
+        let got = match case["call"].as_str() {
+            Some("base") => restore_encoded(&element, &extra, &mut TestEnv::default()),
+            // restoreElement(element, arrayToMap([element]), null) for the
+            // generic types.
+            Some("restoreElement") => {
+                assert!(extra.is_empty(), "{id}");
+                let targets = ElementsMap::from_encoded(vec![element.clone()]);
+                restore_element_encoded(
+                    &element,
+                    &targets,
+                    None,
+                    RestoreOptions::default(),
+                    &mut TestEnv::default(),
+                )
+                .map(|restored| restored.expect("a generic type restores"))
+            }
             other => panic!("{id}: unknown call {other:?}"),
-        }
-        let got = restore_encoded(&element, &extra, &mut TestEnv::default());
+        };
         match (got, case.get("result"), case.get("error")) {
             (Ok(map), Some(expected), None) => {
                 let got = json::write_parsed(&Value::Object(map));

@@ -992,7 +992,53 @@
     {"input":"#eebefa","hex":"#eebefa","transparent":false},
     {"input":"#1e1e1e","hex":"#1e1e1e","transparent":false},
     {"input":"#ffdf6b","hex":"#ffdf6b","transparent":false},
-    {"input":"#FCC2D7","hex":"#fcc2d7","transparent":false}
+    {"input":"#FCC2D7","hex":"#fcc2d7","transparent":false},
+    {"input":"  transparent\n","hex":"#00000000","transparent":true},
+    {"input":"\u00a0transparent\ufeff","hex":"#00000000","transparent":true},
+    {"input":"trans parent","hex":null,"transparent":false},
+    {"input":"transparentx","hex":null,"transparent":false},
+    {"input":"#000","hex":"#000000","transparent":false},
+    {"input":"#0001","hex":"#00000011","transparent":false},
+    {"input":"000f","hex":"#000000","transparent":false},
+    {"input":"0000","hex":"#00000000","transparent":true},
+    {"input":"#00000000","hex":"#00000000","transparent":true},
+    {"input":"00000000","hex":"#00000000","transparent":true},
+    {"input":"#000000ff","hex":"#000000","transparent":false},
+    {"input":"#abcdeg00","hex":null,"transparent":false},
+    {"input":"#00000","hex":null,"transparent":false},
+    {"input":"RGBA(0, 0, 0, 0)","hex":"#00000000","transparent":true},
+    {"input":"rgba(0,0,0,.0)","hex":"#00000000","transparent":true},
+    {"input":"rgba(0,0,0,0.)","hex":"#00000000","transparent":true},
+    {"input":"rgba(0,0,0,00)","hex":"#00000000","transparent":true},
+    {"input":"rgba(0,0,0,+0)","hex":"#00000000","transparent":true},
+    {"input":"rgba(0,0,0,1)","hex":"#000000","transparent":false},
+    {"input":"rgba(0,0,0,2)","hex":"#000000","transparent":false},
+    {"input":"rgba(0,0,0,-1)","hex":"#000000","transparent":false},
+    {"input":"rgba(0,0,0)","hex":null,"transparent":false},
+    {"input":"rgba(0,0,0,)","hex":null,"transparent":false},
+    {"input":"rgb(0,0,0,0)","hex":"#000000","transparent":false},
+    {"input":"rgb(0,0,0)","hex":"#000000","transparent":false},
+    {"input":"xrgba(1,1,1,0)y","hex":"#01010100","transparent":true},
+    {"input":"rgba(1|1|1|0)","hex":"#01010100","transparent":true},
+    {"input":"rgba((1,1,1,0","hex":"#01010100","transparent":true},
+    {"input":"rgba(1,,1,1,0)","hex":"#01010100","transparent":true},
+    {"input":"rgb(1,1,1) rgba(1,1,1,0)","hex":"#010101","transparent":false},
+    {"input":"rgba(1,1,1,0) rgb(1,1,1)","hex":"#010101","transparent":false},
+    {"input":"rgbargba(1,1,1,0)","hex":"#01010100","transparent":true},
+    {"input":"rgba(a,1,1,1) rgba(1,1,1,0)","hex":"#01010100","transparent":true},
+    {"input":"rgba(1.5.5,1,1,0)","hex":null,"transparent":false},
+    {"input":"rgba(1,1,1,0.0.5)","hex":"#01010100","transparent":true},
+    {"input":"rgba(1\u3000,1\u20281,1\ufeff0)","hex":"#010101","transparent":false},
+    {"input":"hsla(0,0,0,0)","hex":"#00000000","transparent":true},
+    {"input":"hsla(120, 50%, 50%, 0)","hex":"#40bf4000","transparent":true},
+    {"input":"hsl(1,1,1) hsla(1,1,1,0)","hex":"#ffffff","transparent":false},
+    {"input":"hsva(0,0,0,0)","hex":"#00000000","transparent":true},
+    {"input":"hsv(0,0,0) rgba(0,0,0,0)","hex":"#00000000","transparent":true},
+    {"input":"hsla(1,1,1,0) rgba(1,1,1,1)","hex":"#010101","transparent":false},
+    {"input":"rgba(1,1,1,1) hsla(1,1,1,0)","hex":"#010101","transparent":false},
+    {"input":"aqua","hex":"#00ffff","transparent":false},
+    {"input":"tostring","hex":null,"transparent":false},
+    {"input":"valueOf","hex":null,"transparent":false}
   ],
   "restore": [
     {"id":"upstream-freedraw-variability-constant","appState":{"currentItemStrokeVariability":"constant"},"localAppState":null,"result":{"changed":{}}},
@@ -3774,6 +3820,192 @@
     {"id":"sticky-background-object-a-hex-string","appState":{"currentItemStickynoteBackgroundColor":{"a":"0x0"}},"localAppState":null,"result":{"changed":{}}},
     {"id":"sticky-stroke-object-a-exponent","appState":{"currentItemStickynoteStrokeColor":{"a":"0e5"}},"localAppState":null,"result":{"changed":{}}},
     {"id":"sticky-background-object-a-exponent","appState":{"currentItemStickynoteBackgroundColor":{"a":"0e5"}},"localAppState":null,"result":{"changed":{}}},
+    {
+      "id": "sticky-stroke-empty-array",
+      "appState": {"currentItemStickynoteStrokeColor":[]},
+      "localAppState": null,
+      "result": {"changed":{"currentItemStickynoteStrokeColor":[]}}
+    },
+    {
+      "id": "sticky-background-empty-array",
+      "appState": {"currentItemStickynoteBackgroundColor":[]},
+      "localAppState": null,
+      "result": {"changed":{"currentItemStickynoteBackgroundColor":[]}}
+    },
+    {
+      "id": "sticky-stroke-array-transparent",
+      "appState": {"currentItemStickynoteStrokeColor":["transparent"]},
+      "localAppState": null,
+      "result": {"changed":{"currentItemStickynoteStrokeColor":["transparent"]}}
+    },
+    {
+      "id": "sticky-background-array-transparent",
+      "appState": {"currentItemStickynoteBackgroundColor":["transparent"]},
+      "localAppState": null,
+      "result": {"changed":{"currentItemStickynoteBackgroundColor":["transparent"]}}
+    },
+    {"id":"sticky-stroke-object-a-unit","appState":{"currentItemStickynoteStrokeColor":{"a":"0.0px"}},"localAppState":null,"result":{"changed":{}}},
+    {"id":"sticky-background-object-a-unit","appState":{"currentItemStickynoteBackgroundColor":{"a":"0.0px"}},"localAppState":null,"result":{"changed":{}}},
+    {"id":"sticky-stroke-object-a-nested-zero","appState":{"currentItemStickynoteStrokeColor":{"a":[[0]]}},"localAppState":null,"result":{"changed":{}}},
+    {"id":"sticky-background-object-a-nested-zero","appState":{"currentItemStickynoteBackgroundColor":{"a":[[0]]}},"localAppState":null,"result":{"changed":{}}},
+    {"id":"sticky-stroke-object-a-negative-zero-string","appState":{"currentItemStickynoteStrokeColor":{"a":"-0"}},"localAppState":null,"result":{"changed":{}}},
+    {
+      "id": "sticky-background-object-a-negative-zero-string",
+      "appState": {"currentItemStickynoteBackgroundColor":{"a":"-0"}},
+      "localAppState": null,
+      "result": {"changed":{}}
+    },
+    {
+      "id": "sticky-stroke-object-a-half",
+      "appState": {"currentItemStickynoteStrokeColor":{"a":0.5}},
+      "localAppState": null,
+      "result": {"changed":{"currentItemStickynoteStrokeColor":{"a":0.5}}}
+    },
+    {
+      "id": "sticky-background-object-a-half",
+      "appState": {"currentItemStickynoteBackgroundColor":{"a":0.5}},
+      "localAppState": null,
+      "result": {"changed":{"currentItemStickynoteBackgroundColor":{"a":0.5}}}
+    },
+    {
+      "id": "sticky-stroke-object-a-false",
+      "appState": {"currentItemStickynoteStrokeColor":{"a":false}},
+      "localAppState": null,
+      "result": {"changed":{"currentItemStickynoteStrokeColor":{"a":false}}}
+    },
+    {
+      "id": "sticky-background-object-a-false",
+      "appState": {"currentItemStickynoteBackgroundColor":{"a":false}},
+      "localAppState": null,
+      "result": {"changed":{"currentItemStickynoteBackgroundColor":{"a":false}}}
+    },
+    {
+      "id": "sticky-stroke-object-a-empty-string",
+      "appState": {"currentItemStickynoteStrokeColor":{"a":""}},
+      "localAppState": null,
+      "result": {"changed":{"currentItemStickynoteStrokeColor":{"a":""}}}
+    },
+    {
+      "id": "sticky-background-object-a-empty-string",
+      "appState": {"currentItemStickynoteBackgroundColor":{"a":""}},
+      "localAppState": null,
+      "result": {"changed":{"currentItemStickynoteBackgroundColor":{"a":""}}}
+    },
+    {
+      "id": "sticky-stroke-object-a-negative",
+      "appState": {"currentItemStickynoteStrokeColor":{"a":-0.5}},
+      "localAppState": null,
+      "result": {"changed":{"currentItemStickynoteStrokeColor":{"a":-0.5}}}
+    },
+    {
+      "id": "sticky-background-object-a-negative",
+      "appState": {"currentItemStickynoteBackgroundColor":{"a":-0.5}},
+      "localAppState": null,
+      "result": {"changed":{"currentItemStickynoteBackgroundColor":{"a":-0.5}}}
+    },
+    {"id":"sticky-stroke-object-a-underflow","appState":{"currentItemStickynoteStrokeColor":{"a":"1e-400"}},"localAppState":null,"result":{"changed":{}}},
+    {
+      "id": "sticky-background-object-a-underflow",
+      "appState": {"currentItemStickynoteBackgroundColor":{"a":"1e-400"}},
+      "localAppState": null,
+      "result": {"changed":{}}
+    },
+    {
+      "id": "sticky-stroke-object-rgb-zero-a-zero",
+      "appState": {"currentItemStickynoteStrokeColor":{"r":0,"g":0,"b":0,"a":0}},
+      "localAppState": null,
+      "result": {"changed":{}}
+    },
+    {
+      "id": "sticky-background-object-rgb-zero-a-zero",
+      "appState": {"currentItemStickynoteBackgroundColor":{"r":0,"g":0,"b":0,"a":0}},
+      "localAppState": null,
+      "result": {"changed":{}}
+    },
+    {
+      "id": "sticky-stroke-object-own-has-own-property-only",
+      "appState": {"currentItemStickynoteStrokeColor":{"hasOwnProperty":1}},
+      "localAppState": null,
+      "error": "TypeError: color.hasOwnProperty is not a function"
+    },
+    {
+      "id": "sticky-background-object-own-has-own-property-only",
+      "appState": {"currentItemStickynoteBackgroundColor":{"hasOwnProperty":1}},
+      "localAppState": null,
+      "error": "TypeError: color.hasOwnProperty is not a function"
+    },
+    {
+      "id": "sticky-stroke-object-r-array-to-string-key",
+      "appState": {"currentItemStickynoteStrokeColor":{"r":[{"toString":1}]}},
+      "localAppState": null,
+      "error": "TypeError: Cannot convert object to primitive value"
+    },
+    {
+      "id": "sticky-background-object-r-array-to-string-key",
+      "appState": {"currentItemStickynoteBackgroundColor":{"r":[{"toString":1}]}},
+      "localAppState": null,
+      "error": "TypeError: Cannot convert object to primitive value"
+    },
+    {
+      "id": "sticky-stroke-object-a-value-of-key",
+      "appState": {"currentItemStickynoteStrokeColor":{"a":{"valueOf":1}}},
+      "localAppState": null,
+      "result": {"changed":{"currentItemStickynoteStrokeColor":{"a":{"valueOf":1}}}}
+    },
+    {
+      "id": "sticky-background-object-a-value-of-key",
+      "appState": {"currentItemStickynoteBackgroundColor":{"a":{"valueOf":1}}},
+      "localAppState": null,
+      "result": {"changed":{"currentItemStickynoteBackgroundColor":{"a":{"valueOf":1}}}}
+    },
+    {
+      "id": "sticky-stroke-object-a-array-to-string-key",
+      "appState": {"currentItemStickynoteStrokeColor":{"a":[{"toString":1}]}},
+      "localAppState": null,
+      "error": "TypeError: Cannot convert object to primitive value"
+    },
+    {
+      "id": "sticky-background-object-a-array-to-string-key",
+      "appState": {"currentItemStickynoteBackgroundColor":{"a":[{"toString":1}]}},
+      "localAppState": null,
+      "error": "TypeError: Cannot convert object to primitive value"
+    },
+    {
+      "id": "sticky-stroke-object-b-array-to-string-key",
+      "appState": {"currentItemStickynoteStrokeColor":{"r":1,"g":1,"b":[1,{"toString":1}]}},
+      "localAppState": null,
+      "error": "TypeError: Cannot convert object to primitive value"
+    },
+    {
+      "id": "sticky-background-object-b-array-to-string-key",
+      "appState": {"currentItemStickynoteBackgroundColor":{"r":1,"g":1,"b":[1,{"toString":1}]}},
+      "localAppState": null,
+      "error": "TypeError: Cannot convert object to primitive value"
+    },
+    {
+      "id": "sticky-stroke-object-v-to-string-key",
+      "appState": {"currentItemStickynoteStrokeColor":{"r":1,"g":"a","h":1,"s":1,"v":{"toString":1}}},
+      "localAppState": null,
+      "error": "TypeError: Cannot convert object to primitive value"
+    },
+    {
+      "id": "sticky-background-object-v-to-string-key",
+      "appState": {"currentItemStickynoteBackgroundColor":{"r":1,"g":"a","h":1,"s":1,"v":{"toString":1}}},
+      "localAppState": null,
+      "error": "TypeError: Cannot convert object to primitive value"
+    },
+    {
+      "id": "sticky-stroke-object-l-to-string-key",
+      "appState": {"currentItemStickynoteStrokeColor":{"r":1,"g":"a","h":1,"s":1,"v":"x","l":{"valueOf":1,"toString":2}}},
+      "localAppState": null,
+      "error": "TypeError: Cannot convert object to primitive value"
+    },
+    {
+      "id": "sticky-background-object-l-to-string-key",
+      "appState": {"currentItemStickynoteBackgroundColor":{"r":1,"g":"a","h":1,"s":1,"v":"x","l":{"valueOf":1,"toString":2}}},
+      "localAppState": null,
+      "error": "TypeError: Cannot convert object to primitive value"
+    },
     {
       "id": "sticky-local",
       "appState": {},

@@ -160,9 +160,30 @@ gives `id0`, `id1`, ... (restarted by `reseed` before each case) and
 `getUpdatedTimestamp()` gives 1 (`packages/common/src/random.ts:16`,
 `utils.ts:552`). excali-core's `restore::TestEnv` is the same environment.
 
+It also writes `restore-element.json`, the table for the per-type rules (ex-104):
+upstream's `restoreElement` (`restore.ts:517-752`) on about 380 inputs listed in
+`lib/restore-element-cases.mjs`. The `isTransparent` table behind the sticky note
+colours (`packages/common/src/colors.ts:389-391`, tinycolor2 1.6.0) is in
+`app-state.json` below, shared with `restoreAppState`, since both read colours
+through excali-core's one tinycolor port (`color.rs`). The `upstream-*` inputs are the
+per-element inputs of upstream's `tests/data/restore.test.ts`, built the way that
+test builds them (`apiCreateElement` is `API.createElement` over upstream's own
+constructors; text is measured at 10 px per character, as in upstream's test
+environment). The others are tables over each rule: legacy `font` strings, line
+height detection, freedraw points and pressures, `draw` to `line`, arrowheads,
+point re-basing, polygons, the 75,000 px cap, bindings, `fixedSegments`, sticky
+note colours and sizes, and the inputs upstream throws on. `reseed(1)` runs before
+each case, so `versionNonce` draws start from roughjs `Random(1)`.
+
+A legacy arrow binding (no `mode`) whose target exists is migrated with element
+geometry (`restore.ts:362-418`). The case records which ends reached that branch
+in `geometry`, found by running the case again with
+`LinearElementEditor.getPointAtIndexGlobalCoordinates` (the branch's first call)
+replaced by one that throws.
+
 ```sh
-node tools/goldens/restore-fixtures.mjs           # write the fixture
-node tools/goldens/restore-fixtures.mjs --check   # exit 1 if it is stale
+node tools/goldens/restore-fixtures.mjs           # write the fixtures
+node tools/goldens/restore-fixtures.mjs --check   # exit 1 if either is stale
 ```
 
 CI runs `--check` in the `goldens` job, and `test/restore-fixtures.test.mjs`
@@ -183,7 +204,8 @@ tinycolor2 1.6.0), and records:
   `devicePixelRatio` and `import.meta.env.MODE` defined, since `exportScale`
   and `currentItemRoundness` are fixed when the module loads;
 - the keys each storage cleaner keeps, for every `APP_STATE_STORAGE_CONF` key;
-- `colorToHex` and `isTransparent` for colour strings in every notation;
+- `colorToHex` and `isTransparent` for colour strings in every notation,
+  including the alpha edge cases restoreElement's sticky note rules meet;
 - `restoreAppState(appState, localAppState)` for upstream's test cases and
   every branch of its legacy handling, each result a diff against the
   production, device-pixel-ratio-1 defaults (or the error it throws).

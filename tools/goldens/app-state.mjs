@@ -161,6 +161,19 @@ const COLORS = [
   "red", "Red", "rebeccapurple", "aliceblue", "yellowgreen", "cornflowerblue", "not-a-color",
   "NOT-A-COLOR", "", " ", "#", "constructor", "toString", "__proto__", "hasOwnProperty",
   "#a5d8ff", "rgb(165, 216, 255)", "#eebefa", "#1e1e1e", "#ffdf6b", "#FCC2D7",
+  // Alpha edge cases behind the sticky note colours restoreElement reads
+  // (ex-104, packages/element/src/newElement.ts:185-199): whitespace
+  // tinycolor trims, hex lengths, alpha spellings, and permissive matches
+  // that find the first notation anywhere in the string.
+  "  transparent\n", "\u00a0transparent\ufeff", "trans parent", "transparentx", "#000", "#0001",
+  "000f", "0000", "#00000000", "00000000", "#000000ff", "#abcdeg00", "#00000", "RGBA(0, 0, 0, 0)",
+  "rgba(0,0,0,.0)", "rgba(0,0,0,0.)", "rgba(0,0,0,00)", "rgba(0,0,0,+0)", "rgba(0,0,0,1)",
+  "rgba(0,0,0,2)", "rgba(0,0,0,-1)", "rgba(0,0,0)", "rgba(0,0,0,)", "rgb(0,0,0,0)", "rgb(0,0,0)",
+  "xrgba(1,1,1,0)y", "rgba(1|1|1|0)", "rgba((1,1,1,0", "rgba(1,,1,1,0)", "rgb(1,1,1) rgba(1,1,1,0)",
+  "rgba(1,1,1,0) rgb(1,1,1)", "rgbargba(1,1,1,0)", "rgba(a,1,1,1) rgba(1,1,1,0)", "rgba(1.5.5,1,1,0)",
+  "rgba(1,1,1,0.0.5)", "rgba(1\u3000,1\u20281,1\ufeff0)", "hsla(0,0,0,0)", "hsla(120, 50%, 50%, 0)",
+  "hsl(1,1,1) hsla(1,1,1,0)", "hsva(0,0,0,0)", "hsv(0,0,0) rgba(0,0,0,0)",
+  "hsla(1,1,1,0) rgba(1,1,1,1)", "rgba(1,1,1,1) hsla(1,1,1,0)", "aqua", "tostring", "valueOf",
 ];
 
 const colorCases = (up) =>
@@ -426,6 +439,17 @@ const restoreInputs = (up) => {
     ["object-a-nested-array", { a: [[0, 1]] }], ["object-a-null-first", { a: [null, 0] }],
     ["object-own-has-own-property", { hasOwnProperty: 1, a: 0 }],
     ["object-a-hex-string", { a: "0x0" }], ["object-a-exponent", { a: "0e5" }],
+    // Values restoreElement's sticky note rules also hand isTransparent (ex-104).
+    ["empty-array", []], ["array-transparent", ["transparent"]], ["object-a-unit", { a: "0.0px" }],
+    ["object-a-nested-zero", { a: [[0]] }], ["object-a-negative-zero-string", { a: "-0" }],
+    ["object-a-half", { a: 0.5 }], ["object-a-false", { a: false }], ["object-a-empty-string", { a: "" }],
+    ["object-a-negative", { a: -0.5 }], ["object-a-underflow", { a: "1e-400" }],
+    ["object-rgb-zero-a-zero", { r: 0, g: 0, b: 0, a: 0 }], ["object-own-has-own-property-only", { hasOwnProperty: 1 }],
+    ["object-r-array-to-string-key", { r: [{ toString: 1 }] }], ["object-a-value-of-key", { a: { valueOf: 1 } }],
+    ["object-a-array-to-string-key", { a: [{ toString: 1 }] }],
+    ["object-b-array-to-string-key", { r: 1, g: 1, b: [1, { toString: 1 }] }],
+    ["object-v-to-string-key", { r: 1, g: "a", h: 1, s: 1, v: { toString: 1 } }],
+    ["object-l-to-string-key", { r: 1, g: "a", h: 1, s: 1, v: "x", l: { valueOf: 1, toString: 2 } }],
   ];
   for (const [id, v] of stickies) {
     add(`sticky-stroke-${id}`, { currentItemStickynoteStrokeColor: v });
@@ -472,7 +496,13 @@ const build = async (upstream) => {
     colors: colorCases(up),
     restore,
   };
-  return format(fixture);
+  // Every non-ASCII code unit as a \u escape: the same JSON value, and the
+  // file stays free of the invisible code points the attribution gate
+  // rejects (U+FEFF and U+2028 are colour inputs here).
+  return format(fixture).replace(
+    /[\u0080-\uffff]/g,
+    (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`,
+  );
 };
 
 /** Runs fn with Math.random disabled: nothing here may draw. */
