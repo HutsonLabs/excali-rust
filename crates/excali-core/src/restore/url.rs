@@ -8,7 +8,7 @@
 //! gives. Strings come and go in the crate's sentinel form
 //! ([`crate::json::to_utf16`], [`crate::json::from_utf16`]).
 
-use super::js;
+use crate::js;
 use crate::json;
 
 const ABOUT_BLANK: &str = "about:blank";

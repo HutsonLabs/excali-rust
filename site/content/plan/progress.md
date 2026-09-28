@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 07:43 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 07:49 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**133 issues** · 17 closed (13%) · 0 in progress · 0 blocked · 115 open
+**133 issues** · 18 closed (14%) · 0 in progress · 0 blocked · 114 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -31,7 +31,7 @@ Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo work
 
 ## ex-e1 · Phase 1: Core model and file format (excali-core)
 
-<span class="status open">open</span> 5/16 children closed
+<span class="status open">open</span> 6/16 children closed
 
 Element types, serde with unknown-field preservation, restore/migration rules, AppState, fractional indexing, library formats, payload codecs, conformance corpus.
 
@@ -42,7 +42,7 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 | `ex-103` | Restore: base normalisation rules | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-104` | Restore: per-type rules (text, freedraw, image, line/draw, arrow, stickynote, frame) | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-105` | Restore: scene-level repairs (ids, indices, frames, bound text, bindings, sticky notes) | task | P1 | <span class="status open">open</span> |  | `ex-104` |
-| `ex-106` | AppState: exported keys, defaults and restoreAppState legacy handling | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-106` | AppState: exported keys, defaults and restoreAppState legacy handling | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-107` | Fractional indexing port (base-62 keys, generateNKeysBetween, syncInvalidIndices) | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-108` | Library formats: v1 `library` and v2 `libraryItems`, restoreLibraryItems, merge | task | P0 | <span class="status open">open</span> |  | `ex-104` |
 | `ex-109` | Library import model: URL allow-list and #addLibrary token parsing | task | P1 | <span class="status open">open</span> |  | `ex-108` |
@@ -52,7 +52,7 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 | `ex-113` | Clipboard JSON format (excalidraw/clipboard) parse and emit | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-114` | Corpus test: 232 catalogue libraries round-trip | task | P0 | <span class="status open">open</span> |  | `ex-108` |
 | `ex-115` | JSON Schema generation for .excalidraw and .excalidrawlib (schemars) | task | P3 | <span class="status open">open</span> |  | `ex-108` |
-| `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-104`, `ex-105`, `ex-106`, `ex-108`, `ex-109`, `ex-111` … |
+| `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-104`, `ex-105`, `ex-108`, `ex-109`, `ex-111`, `ex-112` … |
 
 ## ex-e2 · Phase 2: Geometry and sketch renderer
 
