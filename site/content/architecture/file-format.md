@@ -69,6 +69,26 @@ Key order and unknown keys follow upstream's object semantics (`excali_core::doc
 | Line/arrow: arrowheads normalised (`dot→circle`, `crowfoot_*→cardinality_*`); fewer than 2 points → `[[0,0],[w,h]]`; points re-based so `points[0] == [0,0]`; lines get `null` bindings; elements over 75,000 px marked deleted; arrow `endArrowhead` default `arrow`; bindings repaired with `mode` | `restore.ts:612-723` |
 | Scene: invisibly small elements deleted; duplicate ids regenerated; `syncInvalidIndices`; frame membership, container/bound-text pairs and linear bindings repaired; bound text ordered right after its container | `restore.ts:946-1138` |
 
+### `appState` on save and load
+
+`excali_core::app_state` ports `packages/excalidraw/appState.ts` and `restoreAppState` (`data/restore.ts:1175-1372`).
+
+- **Save.** `clean_app_state_for_export` keeps the keys flagged `export` in `APP_STATE_STORAGE_CONF` (`appState.ts:153-291`), in the order they were given: `gridSize`, `gridStep`, `gridModeEnabled`, `viewBackgroundColor` and `lockedMultiSelections`. The server keeps the same five. Browser storage keeps 60 keys; unknown keys are dropped everywhere.
+- **Defaults.** `get_default_app_state` is `getDefaultAppState()` in upstream's key order. Two values depend on the environment: `exportScale` is the device pixel ratio when it is 1, 2 or 3 and 1 otherwise, and `currentItemRoundness` is `"sharp"` only in upstream's test build.
+- **Load.** `restore_app_state(file, local)` takes each default key from the file, then from the local state, then from the default. `null` counts as a value, and unknown keys are dropped. Then the legacy and sanitising rules apply:
+  - legacy `isSidebarDocked` puts `defaultSidebarDockedPreference` first;
+  - a numeric `zoom` becomes `{value}`, clamped to 0.1..30 and rounded to six places;
+  - a string `openSidebar` becomes `{name: "default"}`;
+  - legacy `currentItemStrokeWidth` becomes `currentItemStrokeWidthKey`;
+  - `gridSize` and `gridStep` are rounded and clamped to 1..100;
+  - `activeTool` is limited to `AllowedExcalidrawActiveTools`;
+  - `colorTopPicks` and `fontTopPicks` are deduped and capped;
+  - transparent sticky-note colours are reset;
+  - `cursorButton` and `penDetected` come from the local state.
+- **Malformed values.** Upstream does not check the types of imported values, so the port reproduces what it computes for them. `zoom: {value: "5"}` concatenates with `Number.EPSILON` and clamps to 0.1. An object with its own `toString` key throws `TypeError: Cannot convert object to primitive value`, and `activeTool: null` throws the `Cannot read properties of null` error; `restore_app_state` returns those errors.
+- **Colours.** Deduping top picks and detecting transparent colours need `colorToHex` and `isTransparent`, both on tinycolor2 1.6.0. `excali_core::color` ports that parser: named colours; `#rgb` to `#rrggbbaa` with or without `#`; `rgb[a]`, `hsl[a]` and `hsv[a]` with optional parentheses and commas, matched anywhere in the string.
+- **Goldens.** `crates/excali-core/tests/fixtures/app-state.json` is upstream's own output, written by `tools/goldens/app-state.mjs` from the pinned checkout and re-checked in CI. It holds the defaults per environment, the kept keys per storage target, the colour cases and more than 250 `restoreAppState` cases. Those cover upstream's tests and every branch above, including the thrown errors.
+
 ### Ordering
 
 `index` is a fractional index over base-62 digits `0-9A-Za-z`, compared as plain strings. The array order is the source of truth for rendering; indices are kept in sync with it, and files without indices get fresh ones on load. The port ports the vendored implementation (`packages/fractional-indexing/src/index.ts`, 322 lines) rather than depending on a crate with different key strings.
