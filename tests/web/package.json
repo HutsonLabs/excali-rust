@@ -1,0 +1,12 @@
+{
+  "name": "excali-rust-web-runtime",
+  "private": true,
+  "description": "Playwright suite for the excali-wasm web runtime (ex-307): scene fonts load by unicode range.",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}

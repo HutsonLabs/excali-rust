@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-307 · Font asset pipeline: range-split woff2 manifest and lazy loading
+
+Every upstream font file is vendored with its licence under `crates/excali-text/assets/fonts`, and `manifest.json` maps each family and unicode range to a file. `excali_text::font_assets` ports upstream's registry, unicode-range test, `containsCJK` and scene font selection. In the browser, `registerFonts` adds the faces without fetching, and `loadSceneFonts` fetches only the range files a scene's text needs, checked in Chromium on all 30 golden scenes. PR: [#55](https://github.com/HutsonLabs/excali-rust/pull/55).
+
 ## 2026-09-28 · ex-m2 · Milestone check: M2 not yet reached
 
 The M2 check ran on `main` at f43521d, with every agent-doable phase 2 task merged. 887 workspace tests pass with the goldens feature, the 93 golden generator tests pass and all fourteen goldens `--check` steps are current. An uncommitted run of upstream's `generateElementShape` matched the port on all 432 cases of rectangle, diamond, ellipse, iframe, embeddable, line and arrow at every fill style, roughness 0, 1, 2 and seeds 1, 7, 1041657908. M2 is still not met. The committed goldens test fill styles only at roughness 1 and the fixture seed, so CI does not prove the full matrix. The check added ex-g202 to commit it with a coverage assertion. The rough.js background fill under a looped freedraw is not ported either, and the check added ex-g201 for it. PR: [#54](https://github.com/HutsonLabs/excali-rust/pull/54).

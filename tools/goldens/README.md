@@ -411,6 +411,40 @@ checks that two runs are byte-identical and that the fixture holds upstream's
 `textElement.test.ts:188-210` expectations. The Rust side
 (`crates/excali-text/tests/font_metadata.rs`) compares every offset bit for bit.
 
+## Font asset goldens
+
+`font-assets.mjs` writes `crates/excali-text/tests/fixtures/font-assets.json`
+for the font asset manifest and scene font loading (ex-307). It bundles
+upstream's `Fonts` and `ExcalidrawFontFace` (`packages/excalidraw/fonts/`)
+and `containsCJK` (`packages/element/src/textWrapping.ts:30-36`), with each
+`.woff2` import resolved to its path under `fonts/` (`loadUpstream`'s
+`fontUris` option), `FontFace` replaced by a class that records its arguments
+(with the CSS Font Loading default `unicodeRange` "U+0-10FFFF"), and
+`ExcalidrawFontFace#getContent`, which would fetch and subset the file,
+answering with the file and code points it was asked for. It records:
+
+- `registered`: `Fonts.registered` in its order, each face's file, CSS
+  format, descriptors, `unicodeRange`, and `probes`, upstream's
+  `getUnicodeRangeRegex()` tested either side of both ends of every range;
+- `cjk`: `containsCJK` on every code point, as ranges;
+- `scenes`: named element lists with `getUniqueFamilies`,
+  `getCharacters` and `getFontString(family, FONT_SIZES.sm)` over all and
+  over the non-deleted elements, and the faces
+  `generateFontFaceDeclarations` inlines, in order.
+
+```sh
+node tools/goldens/font-assets.mjs           # write the fixture
+node tools/goldens/font-assets.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and `test/font-assets.test.mjs`
+checks that two runs are byte-identical, that the registry names every font
+file in upstream's font directories once, and a few facts from upstream's
+sources. `scripts/fonts/assets.py` builds `crates/excali-text/assets/fonts/manifest.json`
+from `registered`; the Rust side (`crates/excali-text/tests/font_assets.rs`)
+checks the registry, every probe, the CJK table, the loads and the
+declarations, and `tests/web` checks the load selection in Chromium.
+
 ## Library fixtures
 
 `library-fixtures.mjs` writes `crates/excali-core/tests/fixtures/library.json`
