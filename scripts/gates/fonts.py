@@ -1,25 +1,32 @@
 #!/usr/bin/env python3
 """Font licence gate (ADR-004, task ex-306).
 
-ADR-004 (site/content/decisions/adr-004-fonts.md) holds two tables:
+ADR-004 (site/content/decisions/adr-004-fonts.md) holds three tables:
 
   ## Verification table   one row per upstream family: Family | Id | Licence |
                           Source | Checked | Evidence | Vendored from
   ## Licence gaps         files or families that are not vendored and the
                           licensed fallback each maps to: Family | Not vendored |
                           sha256 | Fallback | Fallback licence
+  ## Vendored builds      for a confirmed family with a gap on one build, the
+                          only files that may ship: Family | File | sha256 |
+                          Derived from
 
 A family counts as confirmed when its licence is SIL OFL 1.1, MIT or Apache
 2.0 with an https source URL and an ISO date. Every font file in the tree
-must belong to a confirmed family (its directory name names the family, e.g.
-`Nunito/`, `ComicShanns/`, `Liberation/`), sit next to a licence file with
-that licence's text, and not hash to a file the gaps table lists as not
-vendored.
+must sit in one of upstream's font directory names (DIRECTORY_FAMILIES, e.g.
+`Nunito/`, `ComicShanns/`, `Liberation/`), whose family must be confirmed,
+next to a licence file with that licence's text, and not hash to a file the
+gaps table lists as not vendored. When a confirmed family has a gap on one
+build (a gap row with a sha256), each of its files must hash to one of its
+Vendored builds rows, so a re-encoded, re-subset or re-compressed copy of the
+gap file cannot pass under the family's directory.
 
 Subcommands:
   check                   the ADR tables and the tree (exit 0 clean, 1 violations)
   verify-upstream DIR     each gap's upstream file under the upstream checkout
-                          DIR still hashes to the recorded sha256
+                          DIR still hashes to the recorded sha256, and every
+                          DIRECTORY_FAMILIES directory exists there
 """
 from __future__ import annotations
 
@@ -53,6 +60,23 @@ UPSTREAM_FAMILIES = (
     "Xiaolai",
     "Segoe UI Emoji",
 )
+
+# Upstream's font directories (packages/excalidraw/fonts/<dir>/ at the pin)
+# and the family each holds. A font file's directory must be one of these
+# names exactly; nothing else maps to a family.
+DIRECTORY_FAMILIES = {
+    "Virgil": "Virgil",
+    "Helvetica": "Helvetica",
+    "Cascadia": "Cascadia Code",
+    "Excalifont": "Excalifont",
+    "Nunito": "Nunito",
+    "Lilita": "Lilita One",
+    "ComicShanns": "Comic Shanns",
+    "Liberation": "Liberation Sans",
+    "Assistant": "Assistant",
+    "Xiaolai": "Xiaolai",
+    "Emoji": "Segoe UI Emoji",
+}
 
 FONT_EXTENSIONS = {".woff2", ".woff", ".ttf", ".otf"}
 LICENCE_FILES = ("OFL.txt", "OFL", "LICENSE", "LICENSE.md", "LICENSE.txt", "LICENCE", "LICENCE.md")
@@ -92,6 +116,14 @@ class Gap:
     sha256: str
     fallback: str
     fallback_licence: str
+
+
+@dataclass
+class Build:
+    family: str
+    file: str
+    sha256: str
+    derived_from: str
 
 
 def _section(text: str, heading: str) -> str | None:
@@ -160,6 +192,27 @@ def gaps(text: str) -> list[Gap]:
     return out
 
 
+def builds(text: str) -> list[Build]:
+    section = _section(text, "Vendored builds")
+    if section is None:
+        return []
+    out = []
+    for cells in _table(section):
+        cells += [""] * (4 - len(cells))
+        out.append(Build(
+            family=_plain(cells[0]),
+            file=cells[1],
+            sha256=_plain(cells[2]),
+            derived_from=cells[3],
+        ))
+    return out
+
+
+def _file_gap_families(text: str) -> set[str]:
+    """Families with a gap on one particular build (a gap row with a hash)."""
+    return {g.family for g in gaps(text) if g.sha256}
+
+
 def check_adr(text: str, required: tuple[str, ...] = UPSTREAM_FAMILIES) -> list[str]:
     errs: list[str] = []
     if _section(text, "Verification table") is None:
@@ -191,22 +244,27 @@ def check_adr(text: str, required: tuple[str, ...] = UPSTREAM_FAMILIES) -> list[
             errs.append(f"{g.family}: fallback licence '{g.fallback_licence}' is not one of {', '.join(ALLOWED)}")
         if g.sha256 and not HEX64.match(g.sha256):
             errs.append(f"{g.family}: gap sha256 '{g.sha256}' is not 64 lowercase hex digits")
+    confirmed = {f.name for f in fams if f.confirmed}
+    recorded = {b.family for b in builds(text)}
+    for name in sorted(_file_gap_families(text) & confirmed):
+        if name not in recorded:
+            errs.append(
+                f"{name}: confirmed with a gap on one build, so its shippable files must be "
+                "listed under '## Vendored builds' with their sha256"
+            )
+    for b in builds(text):
+        if not HEX64.match(b.sha256):
+            errs.append(f"{b.family}: vendored build sha256 '{b.sha256}' is not 64 lowercase hex digits")
+        if b.family not in confirmed:
+            errs.append(f"{b.family}: vendored build listed for a family whose licence is not confirmed")
     return errs
 
 
-def _norm(s: str) -> str:
-    return re.sub(r"[^a-z0-9]", "", s.lower())
-
-
 def _family_for(path: Path, fams: list[Family]) -> Family | None:
-    d = _norm(path.parent.name)
-    if not d:
+    name = DIRECTORY_FAMILIES.get(path.parent.name)
+    if name is None:
         return None
-    for f in fams:
-        n = _norm(f.name)
-        if n == d or n.startswith(d):
-            return f
-    return None
+    return next((f for f in fams if f.name == name), None)
 
 
 def font_files(root: Path) -> list[Path]:
@@ -232,11 +290,18 @@ def check_tree(root: Path, text: str) -> list[str]:
     errs: list[str] = []
     fams = families(text)
     blocked = {g.sha256: g for g in gaps(text) if HEX64.match(g.sha256)}
+    pinned = _file_gap_families(text)
+    allowed_builds: dict[str, set[str]] = {}
+    for b in builds(text):
+        allowed_builds.setdefault(b.family, set()).add(b.sha256)
     for path in font_files(root):
         rel = path.relative_to(root).as_posix()
         fam = _family_for(path, fams)
         if fam is None:
-            errs.append(f"{rel}: no family in the ADR-004 verification table matches directory '{path.parent.name}'")
+            errs.append(
+                f"{rel}: no family in the ADR-004 verification table for directory "
+                f"'{path.parent.name}' (directories must be one of {', '.join(DIRECTORY_FAMILIES)})"
+            )
             continue
         if not fam.confirmed:
             errs.append(f"{rel}: {fam.name} licence is not confirmed ('{fam.licence}'); not vendorable")
@@ -244,6 +309,12 @@ def check_tree(root: Path, text: str) -> list[str]:
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         if digest in blocked:
             errs.append(f"{rel}: listed under Licence gaps as not vendored ({blocked[digest].not_vendored})")
+            continue
+        if fam.name in pinned and digest not in allowed_builds.get(fam.name, set()):
+            errs.append(
+                f"{rel}: {fam.name} has a licence gap on one build; sha256 {digest} is not one of "
+                "its recorded Vendored builds in ADR-004"
+            )
             continue
         licence_files = [path.parent / n for n in LICENCE_FILES if (path.parent / n).is_file()]
         if not licence_files:
@@ -257,6 +328,10 @@ def check_tree(root: Path, text: str) -> list[str]:
 
 def verify_upstream(upstream: Path, text: str) -> list[str]:
     errs: list[str] = []
+    fonts_dir = upstream / "packages" / "excalidraw" / "fonts"
+    for d in DIRECTORY_FAMILIES:
+        if not (fonts_dir / d).is_dir():
+            errs.append(f"{DIRECTORY_FAMILIES[d]}: upstream font directory fonts/{d}/ is missing under {upstream}")
     for g in gaps(text):
         m = UPSTREAM_PATH.search(g.not_vendored)
         if not m:
