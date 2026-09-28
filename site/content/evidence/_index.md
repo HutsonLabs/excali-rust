@@ -63,6 +63,14 @@ Local toolchain in the build container: `cargo 1.94.1`, `rustc 1.94.1` (2026-03-
 
 Web-framework framing (secondary sources, read 2026-09-28): the Tauri README quoted above; Leptos README ("Easy to use with Trunk … or with a simple wasm-bindgen setup"); Dioxus README ("Render directly to the DOM using WebAssembly"; desktop "using Webview"); a Tauri discussion thread titled "Is there plans to integrate Dioxus and Tauri?" exists (`tauri-apps/tauri` discussion 9169), which is itself evidence that the two are not integrated by default. Two comparison articles found by search (rustify.rs, pistack.xyz) were not used: one was unreachable from the container and neither is a primary source.
 
+## Browser behaviour
+
+| Source | Established | Obtained |
+|---|---|---|
+| `packages/element/src/renderElement.ts:504-507, 637-640` and `packages/common/src/colors.ts:86-89` at the pinned commit | Element colours reach `fillStyle`/`strokeStyle` as stored; `applyDarkModeFilter` returns the string unchanged unless the theme is dark, so the browser's CSS parser decides what a colour paints | read 2026-09-28 |
+| Google Chrome 153.0.8010.53, headless (`--headless=new --dump-dom`) on macOS arm64 | 475 colour strings through a canvas `fillStyle` and `fillRect`: which assignments are ignored, the 8-bit RGBA painted, the serialised style. Recorded in `crates/excali-scene/tests/fixtures/css-colors.json` by `scripts/fixtures/css-color-goldens.sh`; `display/css_color.rs` reproduces every case except `color-mix()`, relative colours and `round()`, which are listed as gaps. Chrome clips out-of-gamut colours to sRGB, applies ProPhoto's transfer as a pure 1.8 power, rejects escapes in keywords and comments outside functions, and closes an unterminated function at the end of the string | run 2026-09-28 |
+| CSS Color Module Level 4 (`w3.org/TR/css-color-4`) | Syntax of the colour functions and the conversion matrices of its sample code; not fetched from the build machine, so every conversion is checked against the Chrome goldens above instead | from the specification text as known, checked 2026-09-28 |
+
 ## Task tracking
 
 | Source | Established | Obtained |

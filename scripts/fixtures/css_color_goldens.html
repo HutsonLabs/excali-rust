@@ -1,0 +1,165 @@
+<!doctype html>
+<!--
+  Generates crates/excali-scene/tests/fixtures/css-colors.json (ex-216).
+  Run through scripts/fixtures/css-color-goldens.sh, which loads this page in
+  headless Chrome and keeps the JSON it writes into <pre id="out">.
+
+  Upstream assigns element colours to the canvas as they are stored
+  (renderElement.ts: context.fillStyle = element.strokeColor, roughjs
+  ctx.strokeStyle = o.stroke), so the browser's CSS <color> parser decides
+  what an element's colour paints. For every case below this page records
+  what that parser did on a 1x1 sRGB canvas:
+
+  - style: fillStyle read back after assigning "#010203" and then the case;
+    it is still "#010203" when the canvas ignored the assignment;
+  - pixel: getImageData after fillRect over a transparent canvas (RGBA, 0-255);
+    for a translucent colour the RGB is premultiplied and rounded by Chrome.
+-->
+<html><body><pre id="out"></pre><script>
+const NAMED = [
+  "aliceblue","antiquewhite","aqua","aquamarine","azure","beige","bisque","black",
+  "blanchedalmond","blue","blueviolet","brown","burlywood","cadetblue","chartreuse",
+  "chocolate","coral","cornflowerblue","cornsilk","crimson","cyan","darkblue","darkcyan",
+  "darkgoldenrod","darkgray","darkgreen","darkgrey","darkkhaki","darkmagenta",
+  "darkolivegreen","darkorange","darkorchid","darkred","darksalmon","darkseagreen",
+  "darkslateblue","darkslategray","darkslategrey","darkturquoise","darkviolet","deeppink",
+  "deepskyblue","dimgray","dimgrey","dodgerblue","firebrick","floralwhite","forestgreen",
+  "fuchsia","gainsboro","ghostwhite","gold","goldenrod","gray","green","greenyellow","grey",
+  "honeydew","hotpink","indianred","indigo","ivory","khaki","lavender","lavenderblush",
+  "lawngreen","lemonchiffon","lightblue","lightcoral","lightcyan","lightgoldenrodyellow",
+  "lightgray","lightgreen","lightgrey","lightpink","lightsalmon","lightseagreen",
+  "lightskyblue","lightslategray","lightslategrey","lightsteelblue","lightyellow","lime",
+  "limegreen","linen","magenta","maroon","mediumaquamarine","mediumblue","mediumorchid",
+  "mediumpurple","mediumseagreen","mediumslateblue","mediumspringgreen","mediumturquoise",
+  "mediumvioletred","midnightblue","mintcream","mistyrose","moccasin","navajowhite","navy",
+  "oldlace","olive","olivedrab","orange","orangered","orchid","palegoldenrod","palegreen",
+  "paleturquoise","palevioletred","papayawhip","peachpuff","peru","pink","plum",
+  "powderblue","purple","rebeccapurple","red","rosybrown","royalblue","saddlebrown",
+  "salmon","sandybrown","seagreen","seashell","sienna","silver","skyblue","slateblue",
+  "slategray","slategrey","snow","springgreen","steelblue","tan","teal","thistle","tomato",
+  "turquoise","violet","wheat","white","whitesmoke","yellow","yellowgreen",
+];
+const SYSTEM = [
+  "AccentColor","AccentColorText","ActiveText","ButtonBorder","ButtonFace","ButtonText",
+  "Canvas","CanvasText","Field","FieldText","GrayText","Highlight","HighlightText",
+  "LinkText","Mark","MarkText","SelectedItem","SelectedItemText","VisitedText",
+  "ActiveBorder","ActiveCaption","AppWorkspace","Background","ButtonHighlight",
+  "ButtonShadow","CaptionText","InactiveBorder","InactiveCaption","InactiveCaptionText",
+  "InfoBackground","InfoText","Menu","MenuText","Scrollbar","ThreeDDarkShadow",
+  "ThreeDFace","ThreeDHighlight","ThreeDLightShadow","ThreeDShadow","Window",
+  "WindowFrame","WindowText",
+];
+const CASES = [
+  // Excalidraw's palette and defaults (packages/common/src/colors.ts).
+  "#1e1e1e", "#e03131", "#2f9e44", "#1971c2", "#f08c00", "#ffffff", "transparent",
+  "#ffc9c9", "#b2f2bb", "#a5d8ff", "#ffec99", "#bbb", "rgba(0, 0, 0, 0.16)",
+  // Keywords and case.
+  "RED", "Red", "rEbEcCaPuRpLe", "TRANSPARENT", "currentcolor", "currentColor",
+  "none", "", " ", "inherit", "initial", "unset", "revert", "default", "burntsienna",
+  "blue-ish", "not a colour", "red red", "red,", "red;", "red !important",
+  " red", "red ", "\tred\n", "/* c */red", "red/* c */", "r\\65 d", "\\72 ed", "r\\ed",
+  "-webkit-link", "-webkit-text", "-webkit-activelink", "-webkit-focus-ring-color",
+  // Hex.
+  "#f00", "#F00", "#f008", "#ff0000", "#FF0000", "#ff000080", "#ff000000", "#ff0000ff",
+  "#12345678", "#abc", "#abcd", "#aabbcc", "#AbCdEf", "ff0000", "f00", "#", "#f", "#ff",
+  "#fffff", "#fffffff", "#fffffffff", "#ggg", "#ff00zz", "# f00", "#f00 ", " #f00",
+  "#\\66 00", "##f00", "0xff0000",
+  // rgb() legacy.
+  "rgb(255, 0, 0)", "rgb(255,0,0)", "rgb( 255 , 0 , 0 )", "rgba(255, 0, 0)",
+  "rgba(255, 0, 0, 0.5)", "rgb(255, 0, 0, 0.5)", "rgba(255, 0, 0, 50%)",
+  "rgb(100%, 0%, 0%)", "rgb(50%, 50%, 50%)", "rgb(100%, 0, 0)", "rgb(255, 0%, 0)",
+  "rgb(300, -20, 0)", "rgb(127.5, 0, 0)", "rgb(127.4, 0, 0)", "rgb(127.6, 0, 0)",
+  "rgb(0.5, 0, 0)", "rgb(1.5, 0, 0)", "rgb(2.5, 0, 0)", "rgb(254.5, 0, 0)",
+  "rgb(50.2%, 0%, 0%)", "rgb(33.3%, 66.7%, 99.9%)",
+  "rgb(1e2, 0, 0)", "rgb(1E2, 0, 0)", "rgb(+255, 0, 0)", "rgb(.5e3, 0, 0)",
+  "rgb(255, 0, 0, 2)", "rgb(255, 0, 0, -1)", "rgba(255, 0, 0, 0.001)",
+  "rgba(255, 0, 0, 0.3)", "rgba(10, 20, 30, 0.25)", "rgba(10, 20, 30, 0.1)",
+  "rgba(10, 20, 30, 0.123456)", "rgba(255, 0, 0, 1e-1)",
+  "rgb(255, 0, 0,)", "rgb(255, 0)", "rgb(255 0 0, 0.5)", "rgb(255, 0 0)",
+  "rgb(255, 0, 0 / 0.5)", "rgb(none, 0, 0)", "rgb(255, 0, 0", "rgb (255, 0, 0)",
+  "rgb(255px, 0, 0)", "rgb(255, 0, 0) x", "RGB(255, 0, 0)", "Rgba(255, 0, 0, .5)",
+  "rgb(calc(255), 0, 0)", "rgb(calc(100% - 50%), 0%, 0%)",
+  // rgb() modern.
+  "rgb(255 0 0)", "rgb(255 0 0 / 50%)", "rgb(255 0 0 / 0.5)", "rgba(255 0 0 / .25)",
+  "rgb(100% 0% 0%)", "rgb(100% 0 0)", "rgb(255 50% 0)", "rgb(none 0 0)",
+  "rgb(255 0 0 / none)", "rgb(255 none none / 50%)", "rgb(255 0 0 /)", "rgb(255 0 0 / 0.5 / 1)",
+  "rgb(255 0)", "rgb(255 0 0 0)", "rgb(255/0/0)", "rgb(255 0 0/0.5)", "rgb(255 0 0 /50%)",
+  "rgb(255\t0\n0)", "rgb(/**/255/**/0/**/0/**/)", "rgb(255 0 0 / 150%)", "rgb(255 0 0 / -5%)",
+  "rgb(from red r g b)",
+  // hsl().
+  "hsl(0, 100%, 50%)", "hsl(120, 100%, 25%)", "hsl(120deg, 100%, 50%)",
+  "hsl(120 100% 50%)", "hsl(120 100 50)", "hsl(120, 100, 50)", "hsl(0.5turn 100% 50%)",
+  "hsl(3.14159rad 100% 50%)", "hsl(200grad 100% 50%)", "hsl(-120, 100%, 50%)",
+  "hsl(480, 100%, 50%)", "hsl(120, 100%, 50%, 0.5)", "hsla(120, 100%, 50%, 50%)",
+  "hsla(120 100% 50% / 0.5)", "hsl(120 100% 50% / 0.5)", "hsl(none 100% 50%)",
+  "hsl(120 none 50%)", "hsl(120, 150%, 50%)", "hsl(120, -10%, 50%)", "hsl(120, 100%, 150%)",
+  "hsl(30, 50%, 60%)", "hsl(210, 40%, 33%)", "hsl(15.5, 77.7%, 41.2%)", "hsl(359, 100%, 50%)",
+  "hsl(120px, 100%, 50%)", "hsl(120, 100%, 50)", "hsl(120deg 100% 50% / 25%)",
+  "HSL(120DEG, 100%, 50%)", "hsl(1e2, 100%, 50%)", "hsl(120, 100%)",
+  // hwb().
+  "hwb(0 0% 0%)", "hwb(120 0% 50%)", "hwb(120 20% 30%)", "hwb(120 60% 60%)",
+  "hwb(90deg 10% 10% / 0.5)", "hwb(none 0% 0%)", "hwb(0, 0%, 0%)", "hwb(0 0 0)",
+  "hwb(0 20 30)", "hwb(200 50% 50%)", "hwba(0 0% 0%)",
+  // lab() and lch().
+  "lab(50% 40 30)", "lab(50 40 30)", "lab(29.2345% 39.3825 20.0664)",
+  "lab(52.2345% 40.1645 59.9971 / .5)", "lab(60.2345 -5.3654 58.956)",
+  "lab(100% 0 0)", "lab(0% 0 0)", "lab(150% 0 0)", "lab(50% 50% -50%)",
+  "lab(none 0 0)", "lab(5% 10 -10)", "lab(3 1 1)", "lch(5% 10 300)", "lab(50% 200 -200)", "lab(50, 40, 30)", "lab(50 40)",
+  "lch(50% 30 120)", "lch(29.2345% 44.2 27)", "lch(52.2345% 72.2 56.2 / .5)",
+  "lch(60.2345 59.2 95.2)", "lch(50% 20% 90deg)", "lch(50% -10 90)", "lch(50% 30 none)",
+  "lch(50% 30 0.25turn)",
+  // oklab() and oklch().
+  "oklab(59.686% 0.1009 0.1192)", "oklab(0.65125 -0.0320 0.1274)",
+  "oklab(0.5 0.1 -0.1 / 0.5)", "oklab(50% 25% -25%)", "oklab(1 0 0)", "oklab(0 0 0)",
+  "oklab(0.7 0.3 0.3)",
+  "oklch(59.686% 0.15619 49.7694)", "oklch(0.65125 0.13138 104.097)",
+  "oklch(0.7 0.3 30)", "oklch(0.5 0.1 200 / 25%)", "oklch(60% 50% 120deg)",
+  "oklch(0.6 0.1 none)",
+  // color().
+  "color(srgb 1 0 0)", "color(srgb 1 0 0 / 0.5)", "color(srgb 100% 50% 0%)",
+  "color(srgb 0.2 0.4 0.6)", "color(srgb-linear 0.2 0.4 0.6)",
+  "color(display-p3 1 0 0)", "color(display-p3 0.5 0.6 0.3)",
+  "color(a98-rgb 0.5 0.6 0.3)", "color(prophoto-rgb 0.5 0.6 0.3)",
+  "color(rec2020 0.5 0.6 0.3)", "color(xyz 0.2 0.3 0.4)", "color(xyz-d65 0.2 0.3 0.4)",
+  "color(xyz-d50 0.2 0.3 0.4)", "color(srgb none 0.5 0.5)", "color(srgb 1.5 -0.5 0.5)",
+  "color(srgb 1 0 0 0)", "color(display-p3 0.1 0.9 0.2)", "color(rec2020 1 1 1)",
+  "color(xyz-d50 0.9642 1 0.8249)", "color(a98-rgb 0.01 0.02 0.03)", "color(prophoto-rgb 0.01 0.02 0.03)",
+  "color(rec2020 0.01 0.02 0.03)", "color(srgb-linear 0.001 0.002 0.003)", "COLOR(SRGB 1 0 0)", "color(foo 1 0 0)", "color(srgb, 1, 0, 0)", "color(srgb 1 0)",
+  // calc() and other math.
+  "rgb(calc(255 / 2) 0 0)", "rgb(calc(50% + 10%) 0% 0%)", "rgb(calc(100 * 2) 0 0)",
+  "rgb(calc((100 + 27) * 2) 0 0)", "rgb(calc(calc(10) + 5) 0 0)", "rgb(calc(100% - 50) 0 0)",
+  "rgb(calc(255 * 0) 0 0 / calc(0.25 * 2))", "hsl(calc(90deg * 2) 100% 50%)",
+  "hsl(calc(0.25turn + 90deg) 100% 50%)", "rgb(calc(pi * 50) 0 0)", "rgb(calc(e * 10) 0 0)",
+  "rgb(calc(infinity) 0 0)", "rgb(calc(-infinity) 0 0)", "rgb(calc(1/0) 0 0)",
+  "rgb(calc(255 - 55)0 0)", "rgb(calc(100%-50%) 0 0)", "rgb(min(255, 100) 0 0)",
+  "rgb(max(10, 20, 5) 0 0)", "rgb(clamp(0, 300, 255) 0 0)", "rgb(clamp(0%, 50%, 100%) 0% 0%)",
+  "hsl(max(90deg, 0.5turn) 100% 50%)", "rgb(min(255, 50%) 0 0)", "rgb(calc(min(100, 200) + 1) 0 0)",
+  "rgb(round(127.4) 0 0)",
+  "rgb(1. 0 0)", "rgb(255 0 0 / 50 %)", "rgb(255 0 0 /* c */)", "hsl(none, 100%, 50%)",
+  "rgb(255,0,0)/**/", "rgb(255 0 0))", "rgb(255 0 0)(", "rgb(1e 0 0)", "rgb(-1e1 0 0)",
+  "rgb(255 0 0 / 0.5", "hsl(120 100% 50%", "rgb(255 0 0 / 1e-2)",
+  "hsl(120 100% 50% / calc(50% / 2))", "lab(calc(50%) 40 30)",
+  // CSS Color 5 forms.
+  "color-mix(in srgb, red, blue)", "light-dark(red, blue)",
+  // Other colour models some parsers accept.
+  "hsv(0, 100%, 100%)", "hsva(0, 100%, 100%, 1)", "device-cmyk(0 1 1 0)",
+];
+const cases = [...CASES, ...NAMED, ...SYSTEM];
+const canvas = document.createElement("canvas");
+canvas.width = canvas.height = 1;
+const ctx = canvas.getContext("2d", { willReadFrequently: true });
+const out = cases.map((css) => {
+  ctx.clearRect(0, 0, 1, 1);
+  ctx.fillStyle = "#010203";
+  ctx.fillStyle = css;
+  const style = ctx.fillStyle;
+  ctx.fillRect(0, 0, 1, 1);
+  return { css, style, pixel: Array.from(ctx.getImageData(0, 0, 1, 1).data) };
+});
+document.getElementById("out").textContent = JSON.stringify({
+  generator: "scripts/fixtures/css-color-goldens.sh",
+  userAgent: navigator.userAgent,
+  sentinel: "#010203",
+  cases: out,
+});
+</script></body></html>

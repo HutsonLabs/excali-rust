@@ -8,5 +8,16 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
+[dependencies]
+excali-scene = { path = "../excali-scene" }
+# The rasterizer (site/content/evidence/_index.md: tiny-skia 0.12.0).
+# default-features off: PNG encoding is not needed to paint, and std and simd
+# are what the pixmaps use.
+tiny-skia = { version = "0.12.0", default-features = false, features = ["std", "simd"] }
+
+# serde_json reads `cargo metadata` in the no_element_knowledge test.
+[dev-dependencies]
+serde_json = { workspace = true }
+
 [lints]
 workspace = true

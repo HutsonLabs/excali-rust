@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-216 · Display list type: renderer-independent paths, fills, dashes, images, text runs, clips, opacity
+
+`excali_scene::display` describes a scene as a list of canvas draws (fills, strokes, images, text runs and groups with transform, opacity and clip), with canvas path, dash, colour and font rules and one `Painter` replay for every backend. RoughCanvas.draw now emits display items. `excali-raster` renders the list with tiny-skia, and `excali-canvas2d` paints it through web-sys. Tests check that neither backend knows about elements, and colour parsing matches Chrome 153 case by case. PR: [#37](https://github.com/HutsonLabs/excali-rust/pull/37).
+
 ## 2026-09-28 · ex-115 · JSON Schema generation for .excalidraw and .excalidrawlib (schemars)
 
 `excali_core::schema` generates draft 2020-12 JSON Schemas for `.excalidraw` and `.excalidrawlib` from the Rust model. The site publishes them at `/schema/excalidraw.schema.json` and `/schema/excalidrawlib.schema.json`, and the file-format page links both. Required, optional and nullable keys follow upstream's `types.ts`. On 593 elements from upstream's restore output, the schema accepts exactly the elements the codec reads. All 232 catalogue libraries are valid, and a CI step fails if the published files drift from the model. PR: [#36](https://github.com/HutsonLabs/excali-rust/pull/36).
