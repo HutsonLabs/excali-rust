@@ -73,6 +73,19 @@ test("elbow-routing.json is upstream's updateElbowArrowPoints", () => {
   for (const type of ["rectangle", "diamond", "ellipse", "text", "image", "frame", "stickynote", "iframe", "embeddable"]) {
     assert.ok(types.has(type), `no bound case with a ${type}`);
   }
-  assert.ok(cases.some((c) => c.result.startIsSpecial === true));
-  assert.ok(cases.some((c) => c.result.endIsSpecial === true));
+  assert.ok(cases.some((c) => c.result?.startIsSpecial === true));
+  assert.ok(cases.some((c) => c.result?.endIsSpecial === true));
+
+  // where upstream throws, the case records its message instead of a result
+  // (handleEndpointDrag, elbowArrow.ts:752-757)
+  const throwing = cases.filter((c) => "error" in c);
+  assert.deepEqual(
+    throwing.map((c) => [c.id, c.error, "result" in c]),
+    ["null", "false", "true"].map((flag) => [
+      `throw-drag-start-special-${flag}`,
+      `Second and third points must exist when handling endpoint drag (${flag})`,
+      false,
+    ]),
+  );
+  for (const c of cases) assert.equal(c.id.startsWith("throw-"), "error" in c, c.id);
 });

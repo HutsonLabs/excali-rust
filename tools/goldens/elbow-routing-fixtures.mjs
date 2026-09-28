@@ -10,7 +10,7 @@
 // Writes crates/excali-editor/tests/fixtures/elbow-routing.json:
 //
 //   { "description", "upstream", "cases": [ { id, arrow, elements, updates,
-//     result } ] }
+//     result | error } ] }
 //
 // - arrow: the elbow arrow passed as the first argument.
 // - elements: the scene, arrow included; the second argument is
@@ -20,6 +20,7 @@
 //   elbowArrow.ts:1084-1096 compares bindings by reference).
 // - result: JSON.parse(JSON.stringify(update)), the returned ElementUpdate
 //   (keys holding undefined are dropped, as JSON.stringify drops them).
+// - error: in place of result where upstream throws, the exception's message.
 //
 // No `options` are passed: the drag-time path (isDragging, hovered-element
 // lookup and outline snapping) belongs to binding.ts and collision.ts.
@@ -39,6 +40,8 @@
 //   endpoint drag with fixed segments (706-900), a release (282-460), a
 //   renormalisation (113-280) and a resize (1145-1147), chained from routed
 //   arrows.
+// - throw-*: scenes where upstream throws; `error` holds its message in
+//   place of `result` (see throwCases).
 // - edge-*: fewer than two points, a binding to a missing or non-bindable
 //   element, an empty scene, the no-op short circuit.
 //
@@ -612,6 +615,25 @@ const fixedCases = () => {
       },
     });
   }
+  // releasing a zero-length fixed segment between two fixed ones: the
+  // restored sub-route starts where it ends (see throwCases)
+  cases.push({
+    id: "fixed-release-zero-length",
+    build: (up) => {
+      const points = [[0, 0], [100, 0], [100, 0], [100, 100], [200, 100]];
+      const segments = [
+        { index: 1, start: [0, 0], end: [100, 0] },
+        { index: 2, start: [100, 0], end: [100, 0] },
+        { index: 3, start: [100, 0], end: [100, 100] },
+      ];
+      const arrow = elbow(up, "arrow", 10, 20, points, { fixedSegments: segments });
+      return {
+        arrow,
+        elements: [arrow],
+        updates: { fixedSegments: segments.filter((s) => s.index !== 2) },
+      };
+    },
+  });
   return cases;
 };
 
@@ -746,12 +768,65 @@ const edgeCases = () => [
   },
 ];
 
+// Where upstream throws: each case sets `throws` and records the exception's
+// message as `error` (and no `result`). Every scene passes upstream's
+// development invariants (elbowArrow.ts:926-976), so the message is the
+// throw's own.
+//
+// handleEndpointDrag, "Second and third points must exist"
+// (elbowArrow.ts:752-757): an endpoint drag on a two point arrow with a
+// fixed segment (the third point is missing), with startIsSpecial null and
+// false, and on a three point arrow whose start is special (the fourth).
+//
+// Two of the throws cannot be reached through updateElbowArrowPoints, and
+// excali-editor's unit tests cover their guards alone:
+// - handleEndpointDrag's "Second and third to last points must exist"
+//   (elbowArrow.ts:823-828): Array.prototype.at counts negative indices from
+//   the end, so indices length - 2 .. length - 4 miss only when length < 2,
+//   and the start check has already thrown for any length under 3.
+// - handleSegmentRelease's "Property 'points' is required"
+//   (elbowArrow.ts:363-367): routeElbowArrow answers null or at least two
+//   points. getDonglePosition always answers a point (1908-1922) that
+//   calculateGrid puts on the grid (1851-1878), so the path runs between the
+//   two dongles and startGlobalPoint and endGlobalPoint bracket it
+//   (1494-1501); getElbowArrowCornerPoints and
+//   removeElbowArrowShortSegments keep the first and last points. A null
+//   route becomes [] and normalizeArrowElementUpdate reads global[0][0]
+//   (2108) before the length check. fixed-release-zero-length is the nearest
+//   scene: the released segment's neighbours meet, and the restored
+//   sub-route is still two points.
+const throwCases = () =>
+  [
+    ["null", null, [[0, 0], [100, 0]]],
+    ["false", false, [[0, 0], [100, 0]]],
+    ["true", true, [[0, 0], [100, 0], [100, 80]]],
+  ].map(([name, startIsSpecial, points]) => ({
+    id: `throw-drag-start-special-${name}`,
+    throws: true,
+    build: (up) => {
+      // newArrowElement does not take startIsSpecial
+      const arrow = {
+        ...elbow(up, "arrow", 10, 20, points, {
+          fixedSegments: [{ index: 1, start: points[0], end: points[1] }],
+        }),
+        startIsSpecial,
+      };
+      const last = points[points.length - 1];
+      return {
+        arrow,
+        elements: [arrow],
+        updates: { points: [[0, 0], [last[0] + 50, last[1] + 40]] },
+      };
+    },
+  }));
+
 const buildCases = () => [
   ...upstreamCases(),
   ...unboundCases(),
   ...boundCases(),
   ...fixedCases(),
   ...edgeCases(),
+  ...throwCases(),
 ];
 
 /** The updates as passed: a binding equal to the arrow's is the arrow's own. */
@@ -774,12 +849,16 @@ const runCase = (up, c) => {
   // Recorded before the call: handleSegmentMove writes into the fixed
   // segments it is given (elbowArrow.ts:526-557).
   const updates = clone(built.updates);
-  const result = up.updateElbowArrowPoints(
-    arrow,
-    up.arrayToMap(elements),
-    asPassed(arrow, clone(updates)),
-  );
-  return { id: c.id, arrow: clone(built.arrow), elements: clone(built.elements), updates, result: clone(result) };
+  const recorded = { id: c.id, arrow: clone(built.arrow), elements: clone(built.elements), updates };
+  let result;
+  try {
+    result = up.updateElbowArrowPoints(arrow, up.arrayToMap(elements), asPassed(arrow, clone(updates)));
+  } catch (error) {
+    if (!c.throws) throw error;
+    return { ...recorded, error: error.message };
+  }
+  if (c.throws) throw new Error(`${c.id}: upstream did not throw`);
+  return { ...recorded, result: clone(result) };
 };
 
 // Every non-ASCII code unit as a \u escape (see restore-fixtures.mjs).

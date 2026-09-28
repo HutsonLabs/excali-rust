@@ -293,6 +293,60 @@ fn at_relative(points: &[P], i: isize) -> Option<P> {
     usize::try_from(i).ok().and_then(|i| points.get(i)).copied()
 }
 
+/// `${flag}` for `startIsSpecial` / `endIsSpecial` in a template literal.
+fn js_flag(v: Option<bool>) -> String {
+    v.map_or("null".to_owned(), |b| b.to_string())
+}
+
+/// `handleEndpointDrag`'s second and third points
+/// (`elbowArrow.ts:748-757`): `at(2)` and `at(3)` past a special start,
+/// `at(1)` and `at(2)` otherwise, or upstream's error when one is missing.
+fn drag_second_and_third(points: &[P], start_is_special: Option<bool>) -> Result<(P, P)> {
+    let special = start_is_special == Some(true);
+    let second = at_relative(points, if special { 2 } else { 1 });
+    let third = at_relative(points, if special { 3 } else { 2 });
+    match (second, third) {
+        (Some(second), Some(third)) => Ok((second, third)),
+        _ => Err(ElbowArrowError(format!(
+            "Second and third points must exist when handling endpoint drag ({})",
+            js_flag(start_is_special)
+        ))),
+    }
+}
+
+/// `handleEndpointDrag`'s second and third to last points
+/// (`elbowArrow.ts:817-828`), `at` counting back from the end. Unreachable
+/// through [`update_elbow_arrow_points`]: these miss only for fewer than
+/// two points, and [`drag_second_and_third`] has already failed for fewer
+/// than three.
+fn drag_second_and_third_to_last(points: &[P], end_is_special: Option<bool>) -> Result<(P, P)> {
+    let special = end_is_special == Some(true);
+    let len = points.len() as isize;
+    let second_to_last = at_relative(points, len - if special { 3 } else { 2 });
+    let third_to_last = at_relative(points, len - if special { 4 } else { 3 });
+    match (second_to_last, third_to_last) {
+        (Some(second_to_last), Some(third_to_last)) => Ok((second_to_last, third_to_last)),
+        _ => Err(ElbowArrowError(format!(
+            "Second and third to last points must exist when handling endpoint drag ({})",
+            js_flag(end_is_special)
+        ))),
+    }
+}
+
+/// `handleSegmentRelease`'s restored sub-route (`elbowArrow.ts:363-367`):
+/// its points, or upstream's error for fewer than two. Unreachable through
+/// [`update_elbow_arrow_points`]: a route is `None` (and normalising `[]`
+/// fails first on the missing point) or has both endpoints.
+fn restored_points(update: ElbowArrowUpdate) -> Result<Vec<P>> {
+    match update.points {
+        Some(points) if points.len() >= 2 => Ok(points),
+        _ => Err(ElbowArrowError(
+            "Property 'points' is required in the update returned by normalizeArrowElementUpdate()"
+                .into(),
+        )),
+    }
+}
+
 fn index_of(segments: &[FixedSegment], index: f64) -> Option<usize> {
     segments.iter().position(|s| s.index == index)
 }
@@ -693,13 +747,7 @@ fn handle_segment_release(
         Some(None),
         Some(None),
     )?;
-    let restored_points = restored.points.unwrap_or_default();
-    if restored_points.len() < 2 {
-        return Err(ElbowArrowError(
-            "Property 'points' is required in the update returned by normalizeArrowElementUpdate()"
-                .into(),
-        ));
-    }
+    let restored_points = restored_points(restored)?;
 
     let mut next_points: Vec<P> = Vec::new();
     if let Some(prev) = &prev_segment {
@@ -1032,7 +1080,6 @@ fn handle_endpoint_drag(
     let mut start_is_special: Option<bool> = fields.start_is_special.flatten();
     let mut end_is_special: Option<bool> = fields.end_is_special.flatten();
     let truthy = |v: Option<bool>| v == Some(true);
-    let js_flag = |v: Option<bool>| v.map_or("null".to_owned(), |b| b.to_string());
 
     let mut global_updated_points: Vec<P> = Vec::with_capacity(updated_points.len());
     for (i, p) in updated_points.iter().enumerate() {
@@ -1064,20 +1111,8 @@ fn handle_endpoint_drag(
 
     // The moving second point, then the start point
     {
-        let second = at_relative(
-            &global_updated_points,
-            if truthy(start_is_special) { 2 } else { 1 },
-        );
-        let third = at_relative(
-            &global_updated_points,
-            if truthy(start_is_special) { 3 } else { 2 },
-        );
-        let (Some(second_point), Some(third_point)) = (second, third) else {
-            return Err(ElbowArrowError(format!(
-                "Second and third points must exist when handling endpoint drag ({})",
-                js_flag(start_is_special)
-            )));
-        };
+        let (second_point, third_point) =
+            drag_second_and_third(&global_updated_points, start_is_special)?;
         let start_is_horizontal = heading_is_horizontal(start_heading);
         let second_is_horizontal = heading_is_horizontal(vector_to_heading([
             second_point[0] - third_point[0],
@@ -1162,21 +1197,8 @@ fn handle_endpoint_drag(
 
     // The moving second-to-last point
     {
-        let len = global_updated_points.len() as isize;
-        let second_to_last = at_relative(
-            &global_updated_points,
-            len - if truthy(end_is_special) { 3 } else { 2 },
-        );
-        let third_to_last = at_relative(
-            &global_updated_points,
-            len - if truthy(end_is_special) { 4 } else { 3 },
-        );
-        let (Some(second_to_last), Some(third_to_last)) = (second_to_last, third_to_last) else {
-            return Err(ElbowArrowError(format!(
-                "Second and third to last points must exist when handling endpoint drag ({})",
-                js_flag(end_is_special)
-            )));
-        };
+        let (second_to_last, third_to_last) =
+            drag_second_and_third_to_last(&global_updated_points, end_is_special)?;
         let end_is_horizontal = heading_is_horizontal(end_heading);
         let second_is_horizontal = heading_for_point_is_horizontal(third_to_last, second_to_last);
         if hovered_end && end_is_horizontal == second_is_horizontal {
@@ -2281,6 +2303,49 @@ fn remove_elbow_arrow_short_segments(points: Vec<P>) -> Vec<P> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The guards `update_elbow_arrow_points` cannot reach (see
+    /// tools/goldens/elbow-routing-fixtures.mjs, throwCases) answer
+    /// upstream's messages.
+    #[test]
+    fn unreachable_guards_answer_upstream_messages() {
+        let one = [[0.0, 0.0]];
+        assert_eq!(
+            drag_second_and_third_to_last(&one, None),
+            Err(ElbowArrowError(
+                "Second and third to last points must exist when handling endpoint drag (null)"
+                    .into()
+            ))
+        );
+        assert_eq!(
+            drag_second_and_third_to_last(&[], Some(true))
+                .unwrap_err()
+                .to_string(),
+            "Second and third to last points must exist when handling endpoint drag (true)"
+        );
+        // `at` counts back from the end: three points always have both
+        let three = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0]];
+        assert_eq!(
+            drag_second_and_third_to_last(&three, Some(true)),
+            Ok(([0.0, 0.0], [1.0, 1.0]))
+        );
+        assert_eq!(
+            drag_second_and_third(&three, Some(false)),
+            Ok(([1.0, 0.0], [1.0, 1.0]))
+        );
+        let message =
+            "Property 'points' is required in the update returned by normalizeArrowElementUpdate()";
+        let single =
+            normalize_arrow_element_update(&[[3.0, 4.0]], SegmentsArg::List(&[]), None, None)
+                .expect("one point normalises");
+        assert_eq!(restored_points(single).unwrap_err().to_string(), message);
+        assert_eq!(
+            restored_points(ElbowArrowUpdate::default())
+                .unwrap_err()
+                .to_string(),
+            message
+        );
+    }
 
     #[test]
     fn corner_points_keep_turns() {

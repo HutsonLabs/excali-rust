@@ -567,7 +567,7 @@ has a case.
 `crates/excali-editor/tests/fixtures/elbow-routing.json` for excali-editor's
 elbow arrow router (ex-211): upstream's `updateElbowArrowPoints(arrow,
 arrayToMap(elements), updates)` (`packages/element/src/elbowArrow.ts:907-1167`)
-with no options, on 574 scenes:
+with no options, on 578 scenes:
 
 - `upstream-*`: the scenes of `packages/element/tests/elbowArrow.test.tsx`
   ("elbow arrow routing"), built with `API.createElement`;
@@ -579,13 +579,22 @@ with no options, on 574 scenes:
   points, arrowheads and stroke widths, bound at one or both ends;
 - `fixed-*`: fixed segments moved, released, renormalised, resized and held
   while an end is dragged, chained from routed arrows and from a five-segment
-  staircase, unbound and bound on every side pairing;
+  staircase, unbound and bound on every side pairing, and a zero-length
+  segment released between two fixed ones;
 - `edge-*`: the early returns (fewer than two points, a missing or
-  non-bindable target, an empty scene, the no-op short circuit).
+  non-bindable target, an empty scene, the no-op short circuit);
+- `throw-*`: where upstream throws: an endpoint drag on a fixed-segment arrow
+  short of a third point (`handleEndpointDrag`, `elbowArrow.ts:752-757`),
+  for `startIsSpecial` null, false and true. The generator's header explains
+  why `handleEndpointDrag`'s "to last" throw and `handleSegmentRelease`'s
+  "Property 'points' is required" cannot be reached through
+  `updateElbowArrowPoints`; excali-editor unit-tests those guards alone.
 
 Each case records the arrow, the scene, the updates (taken before the call:
 `handleSegmentMove` writes into the segments it is given) and the returned
-update. Upstream runs in its test mode with `reseed(1)` before each case and
+update, or for `throw-*` the exception's message as `error` in its place. A
+`throw-*` case that stops throwing, or any other case that throws, fails
+generation. Upstream runs in its test mode with `reseed(1)` before each case and
 `Math.random` throwing; the scenes come from a Park-Miller generator seeded
 per case.
 

@@ -22,7 +22,8 @@ use excali_core::restore::{
     restore_elements, ElbowArrowRequest, RestoreElementsOptions, RestoreEnv, TestEnv,
 };
 use excali_editor::elbow_arrow::{
-    update_elbow_arrow_points, ElbowArrowUpdate, ElbowArrowUpdates, ElementsMap, BASE_PADDING,
+    update_elbow_arrow_points, ElbowArrowError, ElbowArrowUpdate, ElbowArrowUpdates, ElementsMap,
+    BASE_PADDING,
 };
 use excali_editor::restore_env::RoutingEnv;
 use serde_json::{json, Map, Value};
@@ -84,6 +85,10 @@ fn same(a: &Value, b: &Value) -> bool {
 }
 
 fn route(case: &Value) -> ElbowArrowUpdate {
+    try_route(case).unwrap_or_else(|e| panic!("{}: {e}", case["id"]))
+}
+
+fn try_route(case: &Value) -> Result<ElbowArrowUpdate, ElbowArrowError> {
     let arrow = element(&case["arrow"]);
     let elements: Vec<Element> = case["elements"]
         .as_array()
@@ -93,7 +98,6 @@ fn route(case: &Value) -> ElbowArrowUpdate {
         .collect();
     let map = ElementsMap::new(&elements);
     update_elbow_arrow_points(&arrow, &map, &updates(&case["updates"]))
-        .unwrap_or_else(|e| panic!("{}: {e}", case["id"]))
 }
 
 fn cases() -> Vec<Value> {
@@ -115,13 +119,21 @@ fn routes_match_upstream() {
     assert!(cases.len() > 500, "the fixture has {} cases", cases.len());
     let mut failures = Vec::new();
     for case in &cases {
-        let got = Value::Object(route(case).to_map());
-        if !same(&got, &case["result"]) {
+        // where upstream throws, the port answers its message
+        let got = match try_route(case) {
+            Ok(update) => json!({ "result": Value::Object(update.to_map()) }),
+            Err(error) => json!({ "error": error.to_string() }),
+        };
+        let upstream = match case.get("error") {
+            Some(error) => json!({ "error": error }),
+            None => json!({ "result": case["result"] }),
+        };
+        if !same(&got, &upstream) {
             failures.push(format!(
                 "{}:\n  got      {}\n  upstream {}",
                 case["id"].as_str().unwrap_or("?"),
                 got,
-                case["result"]
+                upstream
             ));
         }
     }
@@ -132,6 +144,87 @@ fn routes_match_upstream() {
         cases.len(),
         failures.join("\n")
     );
+}
+
+/// Where upstream throws (`handleEndpointDrag`, `elbowArrow.ts:752-757`: an
+/// endpoint drag on a fixed-segment arrow short of a third point), the
+/// router answers an `ElbowArrowError` carrying upstream's message.
+#[test]
+fn upstream_throws_are_errors_with_its_message() {
+    let throwing: Vec<Value> = cases()
+        .into_iter()
+        .filter(|c| c.get("error").is_some())
+        .collect();
+    let ids: Vec<&str> = throwing.iter().filter_map(|c| c["id"].as_str()).collect();
+    assert_eq!(
+        ids,
+        [
+            "throw-drag-start-special-null",
+            "throw-drag-start-special-false",
+            "throw-drag-start-special-true"
+        ]
+    );
+    for case in &throwing {
+        assert!(case.get("result").is_none());
+        let error = try_route(case).expect_err(case["id"].as_str().unwrap_or("?"));
+        assert_eq!(
+            error.to_string(),
+            case["error"].as_str().expect("a message")
+        );
+    }
+    assert_eq!(
+        try_route(&case("throw-drag-start-special-null")),
+        Err(ElbowArrowError(
+            "Second and third points must exist when handling endpoint drag (null)".into()
+        ))
+    );
+}
+
+/// `restoreElements` would throw with the router: `RoutingEnv` answers
+/// `None` instead (the arrow kept as restored) where the router errs, for
+/// each throwing fixture scene.
+#[test]
+fn routing_env_answers_none_where_upstream_throws() {
+    for case in cases().iter().filter(|c| c.get("error").is_some()) {
+        let arrow = object(&case["arrow"]);
+        let elements: Vec<Map<String, Value>> = case["elements"]
+            .as_array()
+            .expect("elements")
+            .iter()
+            .map(object)
+            .collect();
+        let points = case["updates"]["points"]
+            .as_array()
+            .expect("points")
+            .clone();
+        // the router itself errs on these arguments
+        assert!(try_route(case).is_err());
+        let mut env = RoutingEnv::new(TestEnv::default());
+        let answer = env.update_elbow_arrow_points(ElbowArrowRequest {
+            arrow: &arrow,
+            points: &points,
+            elements: &elements,
+        });
+        assert_eq!(answer, None, "{}", case["id"]);
+    }
+    // and answers a route where upstream routes
+    let fine = case("fixed-00-drag");
+    let mut env = RoutingEnv::new(TestEnv::default());
+    let elements: Vec<Map<String, Value>> = fine["elements"]
+        .as_array()
+        .expect("elements")
+        .iter()
+        .map(object)
+        .collect();
+    let answer = env.update_elbow_arrow_points(ElbowArrowRequest {
+        arrow: &object(&fine["arrow"]),
+        points: fine["updates"]["points"].as_array().expect("points"),
+        elements: &elements,
+    });
+    assert!(same(
+        &Value::Object(answer.expect("a route")),
+        &fine["result"]
+    ));
 }
 
 /// `elbowArrow.test.tsx` "can properly generate orthogonal arrow points":
