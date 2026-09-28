@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-106 · AppState: exported keys, defaults and restoreAppState legacy handling
+
+`excali-core` now builds upstream's default AppState and cleans it for browser, export and server storage the way `APP_STATE_STORAGE_CONF` does. Only gridSize, gridStep, gridModeEnabled, viewBackgroundColor and lockedMultiSelections are exported. `restoreAppState` migrates a numeric `zoom` and a string `openSidebar`, and tinycolor2's parser backs `colorToHex` and `isTransparent`. All of it matches goldens generated from the pinned upstream. Restore now also throws where upstream's `getNormalizedDimensions` does, for sizes that are objects with their own `toString` key. PR: [#22](https://github.com/HutsonLabs/excali-rust/pull/22).
+
 ## 2026-09-28 · ex-203 · excali-rough: Park-Miller RNG and core generator (line, rectangle, polygon, ellipse, curve, path)
 
 `excali-rough` now ports rough.js 4.6.4: the Park-Miller `Random`, the generator strokes, the renderer primitives, path-data-parser, points-on-curve and points-on-path. Random draws happen in the same order as in rough.js. OpSets equal goldens generated from the pinned roughjs at seeds 1, 7 and 1041657908 at roughness 0, 1 and 2 (228 generator cases). Bezier flattening and simplify never overflow the stack. PR: [#21](https://github.com/HutsonLabs/excali-rust/pull/21).
