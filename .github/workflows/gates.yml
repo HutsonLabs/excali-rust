@@ -198,7 +198,9 @@ jobs:
   # scene-fixtures.mjs --check does the same for excali-core's .excalidraw
   # fixtures, built by upstream's constructors and serializeAsJSON, and
   # restore-fixtures.mjs --check for restore-base.json, upstream's own
-  # restoreElementWithProperties on a table of inputs.
+  # restoreElementWithProperties on a table of inputs, and
+  # clipboard-fixtures.mjs --check for clipboard.json, upstream's own
+  # serializeAsClipboardJSON and parseClipboard.
   # Runs on arm64: V8's float results for some shapes differ in the last bits
   # between x64 and arm64, and the committed goldens are the arm64 output
   # (macOS and Linux arm64 agree byte for byte).
@@ -223,3 +225,5 @@ jobs:
         run: node tools/goldens/restore-fixtures.mjs --check
       - name: excali-core AppState goldens match the generator
         run: node tools/goldens/app-state.mjs --check
+      - name: excali-core clipboard fixtures match the generator
+        run: node tools/goldens/clipboard-fixtures.mjs --check

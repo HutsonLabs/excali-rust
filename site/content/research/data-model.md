@@ -457,7 +457,7 @@ Legacy fields handled here:
 
 **Clipboard** (`packages/excalidraw/clipboard.ts`):
 - Copy writes `JSON.stringify({type: "excalidraw/clipboard", elements, files})` (`clipboard.ts:39-43`, `143-193`). `files` holds only the files of the copied images, or is `undefined`.
-- Elements whose frame is not also being copied have `frameId` cleared.
+- `frameId` is cleared (through `mutateElement`, bumping `version`) on an element whose `frameId` resolves among the copied elements to one that is not frame-like (`clipboard.ts:150-188`). The lookup map holds only the copied elements, so a child whose frame is not copied keeps its `frameId`.
 - The JSON is written under both `application/vnd.excalidraw.clipboard+json` and `text/plain` (`clipboard.ts:195-210`).
 - Paste accepts `type` of `excalidraw`, `excalidraw/clipboard` or `excalidraw-api/clipboard` with an `elements` array (`clipboard.ts:74-88`, `523-555`).
 - PNG images are copied via a `ClipboardItem` (`clipboard.ts:557-585`).

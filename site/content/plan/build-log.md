@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-113 · Clipboard JSON format (excalidraw/clipboard) parse and emit
+
+`excali-core` now writes and reads upstream's clipboard JSON (`serializeAsClipboardJSON`, `parseClipboard`): compact output with only the copied images' files, orphaned frame children detached through a version bump with `shape` and `canvas` dropped, and paste of the `excalidraw`, `excalidraw/clipboard` and `excalidraw-api/clipboard` types with everything else returned as text. Number literals beyond the f64 range read as `null`, as `JSON.stringify(JSON.parse(...))` gives. All 26 copy cases match upstream byte for byte and all 78 paste cases match too. PR: [#25](https://github.com/HutsonLabs/excali-rust/pull/25).
+
 ## 2026-09-28 · ex-111 · PNG tEXt scene payload read/write
 
 `excali-core` now writes and reads the scene payload that upstream embeds in a PNG `tEXt` chunk (`encodePngMetadata`, `decodePngMetadata`, `getTEXtChunk`), with ports of png-chunks-extract, png-chunks-encode and png-chunk-text. `test_embedded_v1.png` and `smiley_embedded_v2.png` decode to their elements, written bytes equal upstream's byte for byte, truncated and corrupted chunks fail as upstream does, and upstream decodes every PNG the port writes. PR: [#24](https://github.com/HutsonLabs/excali-rust/pull/24).

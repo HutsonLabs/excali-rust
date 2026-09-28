@@ -35,10 +35,20 @@
 //! value changes. So no public field, `extra` map or serde output ever holds
 //! a sentinel, and a string built in Rust is written as it is.
 //!
+//! A number literal beyond the f64 range (`1e400`, `-1E+400`, 400 digits)
+//! is `Infinity` or `-Infinity` to `JSON.parse`, and `JSON.stringify`
+//! writes both as `null`. A [`Value`] cannot hold a non-finite number, so
+//! [`parse`] reads such a literal as `null`: every writer here then gives
+//! upstream's output, and a document or paste that holds one parses as it
+//! does upstream instead of failing. What differs is a reader that tells
+//! `Infinity` from `null`: restore's `x: element.x ?? 0` keeps `Infinity`
+//! upstream and gives `0` here, and `isFiniteNumber` checks see `null`
+//! either way.
+//!
 //! The typed codec ([`crate::document::Document`]) builds on this module.
 
 use serde::Serialize;
-use serde_json::ser::{Formatter, PrettyFormatter};
+use serde_json::ser::{CompactFormatter, Formatter, PrettyFormatter};
 use serde_json::{Map, Value};
 use std::borrow::Cow;
 use std::io::{self, Write};
@@ -64,13 +74,106 @@ pub fn round_trip(text: &str) -> Result<String, Error> {
 }
 
 /// `JSON.parse(text)` as a [`Value`]: keys in JS property order, lone
-/// surrogates carried as sentinel pairs (see the module docs). Only
-/// [`write_parsed`] turns the sentinels back into escapes.
+/// surrogates carried as sentinel pairs, a number beyond the f64 range as
+/// `null` (see the module docs). Only [`write_parsed`] turns the sentinels
+/// back into escapes.
 pub(crate) fn parse(text: &str) -> Result<Value, Error> {
     let encoded = encode_lone_surrogates(text);
-    let mut value: Value = serde_json::from_str(&encoded)?;
+    let mut value: Value = match serde_json::from_str(&encoded) {
+        Ok(value) => value,
+        // serde_json rejects a literal that rounds to infinity; JSON.parse
+        // does not. Only then is the text rescanned.
+        Err(error) => match null_overflowing_numbers(&encoded) {
+            Some(nulled) => serde_json::from_str(&nulled)?,
+            None => return Err(error),
+        },
+    };
     order_keys_like_js(&mut value);
     Ok(value)
+}
+
+/// `text` with every number literal outside strings that is valid JSON
+/// number syntax and rounds to an infinite f64 replaced by `null`; `None`
+/// when there is none. Anything malformed is left for serde_json to reject.
+fn null_overflowing_numbers(text: &str) -> Option<String> {
+    let bytes = text.as_bytes();
+    let mut out = String::new();
+    let mut copied = 0;
+    let mut in_string = false;
+    let mut i = 0;
+    while i < bytes.len() {
+        let b = bytes[i];
+        if in_string {
+            match b {
+                b'\\' => i += 2,
+                b'"' => {
+                    in_string = false;
+                    i += 1;
+                }
+                _ => i += 1,
+            }
+            continue;
+        }
+        if b == b'"' {
+            in_string = true;
+            i += 1;
+            continue;
+        }
+        if b != b'-' && !b.is_ascii_digit() {
+            i += 1;
+            continue;
+        }
+        let end = i + bytes[i..]
+            .iter()
+            .take_while(|c| c.is_ascii_digit() || matches!(c, b'-' | b'+' | b'.' | b'e' | b'E'))
+            .count();
+        let token = &text[i..end];
+        if is_json_number(token) && token.parse::<f64>().is_ok_and(f64::is_infinite) {
+            out.push_str(&text[copied..i]);
+            out.push_str("null");
+            copied = end;
+        }
+        i = end;
+    }
+    if copied == 0 {
+        return None;
+    }
+    out.push_str(&text[copied..]);
+    Some(out)
+}
+
+/// `token` matches the JSON number grammar (RFC 8259 section 6):
+/// `-? (0 | [1-9][0-9]*) (. [0-9]+)? ([eE] [+-]? [0-9]+)?`.
+fn is_json_number(token: &str) -> bool {
+    let digits = |s: &[u8]| s.iter().take_while(|c| c.is_ascii_digit()).count();
+    let mut s = token.as_bytes();
+    if let [b'-', rest @ ..] = s {
+        s = rest;
+    }
+    let int = digits(s);
+    if int == 0 || (int > 1 && s[0] == b'0') {
+        return false;
+    }
+    s = &s[int..];
+    if let [b'.', rest @ ..] = s {
+        let frac = digits(rest);
+        if frac == 0 {
+            return false;
+        }
+        s = &rest[frac..];
+    }
+    if let [b'e' | b'E', rest @ ..] = s {
+        let rest = match rest {
+            [b'+' | b'-', r @ ..] => r,
+            r => r,
+        };
+        let exp = digits(rest);
+        if exp == 0 {
+            return false;
+        }
+        s = &rest[exp..];
+    }
+    s.is_empty()
 }
 
 /// [`to_string_pretty`] for a value in the sentinel form (from [`parse`] or
@@ -98,20 +201,36 @@ pub(crate) fn same(a: &Value, b: &Value) -> bool {
     }
 }
 
+/// [`to_string_pretty`] without indentation: `JSON.stringify(value)`.
+pub fn to_string_compact(value: &Value) -> String {
+    write_with(value, false, false)
+}
+
+/// [`write_parsed`] without indentation: `JSON.stringify(value)` for a value
+/// in the sentinel form.
+pub(crate) fn write_parsed_compact(value: &Value) -> String {
+    write_with(value, true, false)
+}
+
 fn write(value: &Value, decode_sentinels: bool) -> String {
+    write_with(value, decode_sentinels, true)
+}
+
+fn write_with(value: &Value, decode_sentinels: bool, pretty: bool) -> String {
     if has_array_index_key(value) {
         let mut ordered = value.clone();
         order_keys_like_js(&mut ordered);
-        return write_ordered(&ordered, decode_sentinels);
+        return write_ordered(&ordered, decode_sentinels, pretty);
     }
-    write_ordered(value, decode_sentinels)
+    write_ordered(value, decode_sentinels, pretty)
 }
 
-/// [`write`] for a value whose objects are already in JS property order.
-fn write_ordered(value: &Value, decode_sentinels: bool) -> String {
+/// [`write_with`] for a value whose objects are already in JS property
+/// order.
+fn write_ordered(value: &Value, decode_sentinels: bool, pretty: bool) -> String {
     let mut out = Vec::new();
     let formatter = JsFormatter {
-        pretty: PrettyFormatter::with_indent(b"  "),
+        pretty: pretty.then(|| PrettyFormatter::with_indent(b"  ")),
         decode_sentinels,
     };
     let mut ser = serde_json::Serializer::with_formatter(&mut out, formatter);
@@ -214,7 +333,8 @@ fn shortest_digits(x: f64) -> (String, i64) {
 /// `PrettyFormatter` with a two-space indent, ECMAScript number output and,
 /// for [`round_trip`], lone-surrogate sentinel decoding.
 struct JsFormatter {
-    pretty: PrettyFormatter<'static>,
+    /// `None` writes compactly, as `JSON.stringify(value)` does.
+    pretty: Option<PrettyFormatter<'static>>,
     decode_sentinels: bool,
 }
 
@@ -294,39 +414,66 @@ impl Formatter for JsFormatter {
     }
 
     fn begin_array<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
-        self.pretty.begin_array(w)
+        match &mut self.pretty {
+            Some(pretty) => pretty.begin_array(w),
+            None => CompactFormatter.begin_array(w),
+        }
     }
 
     fn end_array<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
-        self.pretty.end_array(w)
+        match &mut self.pretty {
+            Some(pretty) => pretty.end_array(w),
+            None => CompactFormatter.end_array(w),
+        }
     }
 
     fn begin_array_value<W: ?Sized + Write>(&mut self, w: &mut W, first: bool) -> io::Result<()> {
-        self.pretty.begin_array_value(w, first)
+        match &mut self.pretty {
+            Some(pretty) => pretty.begin_array_value(w, first),
+            None => CompactFormatter.begin_array_value(w, first),
+        }
     }
 
     fn end_array_value<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
-        self.pretty.end_array_value(w)
+        match &mut self.pretty {
+            Some(pretty) => pretty.end_array_value(w),
+            None => CompactFormatter.end_array_value(w),
+        }
     }
 
     fn begin_object<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
-        self.pretty.begin_object(w)
+        match &mut self.pretty {
+            Some(pretty) => pretty.begin_object(w),
+            None => CompactFormatter.begin_object(w),
+        }
     }
 
     fn end_object<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
-        self.pretty.end_object(w)
+        match &mut self.pretty {
+            Some(pretty) => pretty.end_object(w),
+            None => CompactFormatter.end_object(w),
+        }
     }
 
     fn begin_object_key<W: ?Sized + Write>(&mut self, w: &mut W, first: bool) -> io::Result<()> {
-        self.pretty.begin_object_key(w, first)
+        match &mut self.pretty {
+            Some(pretty) => pretty.begin_object_key(w, first),
+            None => CompactFormatter.begin_object_key(w, first),
+        }
     }
 
     fn begin_object_value<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
-        self.pretty.begin_object_value(w)
+        match &mut self.pretty {
+            Some(pretty) => pretty.begin_object_value(w),
+            None => CompactFormatter.begin_object_value(w),
+        }
     }
 
     fn end_object_value<W: ?Sized + Write>(&mut self, w: &mut W) -> io::Result<()> {
-        self.pretty.end_object_value(w)
+        match &mut self.pretty {
+            Some(pretty) => pretty.end_object_value(w),
+            None => CompactFormatter.end_object_value(w),
+        }
     }
 }
 
@@ -662,6 +809,19 @@ mod tests {
     }
 
     #[test]
+    fn compact_output_is_json_stringify_without_indent() {
+        // JSON.stringify(JSON.parse('{"b":[1.50,{}],"2":-0,"a":1e21,"s":"\ud83d"}'))
+        // === '{"2":0,"b":[1.5,{}],"a":1e+21,"s":"\\ud83d"}'
+        let parsed = parse(r#"{"b":[1.50,{}],"2":-0,"a":1e21,"s":"\ud83d"}"#).unwrap();
+        assert_eq!(
+            write_parsed_compact(&parsed),
+            r#"{"2":0,"b":[1.5,{}],"a":1e+21,"s":"\ud83d"}"#
+        );
+        let value: Value = serde_json::json!({"x": [1, 2.5], "7": "y"});
+        assert_eq!(to_string_compact(&value), r#"{"7":"y","x":[1,2.5]}"#);
+    }
+
+    #[test]
     fn nested_arrays_indent_two_spaces_per_level() {
         // JSON.stringify({p: [[0, 0], [10, 5]]}, null, 2)
         assert_eq!(
@@ -732,6 +892,34 @@ mod tests {
                 .unwrap(),
             "{\n  \"p\": [\n    1,\n    0,\n    0.000001,\n    1.5e-7,\n    1e+21,\n    1.2345678901234569e+23\n  ]\n}"
         );
+    }
+
+    // JSON.stringify(JSON.parse(text)) in Node 22 for each input.
+    #[test]
+    fn numbers_beyond_f64_range_are_written_as_null_like_node() {
+        let digits = format!("1{}", "0".repeat(400));
+        let text = format!(
+            r#"{{"a":1e400,"b":-1E+400,"c":[{digits},-0.5e309],"d":1e-400,"e":1.7976931348623157e308,"s":"1e400 \" 1e400"}}"#
+        );
+        assert_eq!(
+            write_parsed_compact(&parse(&text).unwrap()),
+            r#"{"a":null,"b":null,"c":[null,null],"d":0,"e":1.7976931348623157e+308,"s":"1e400 \" 1e400"}"#
+        );
+        assert_eq!(round_trip("1e999").unwrap(), "null");
+    }
+
+    #[test]
+    fn overflowing_literal_with_invalid_syntax_is_still_an_error() {
+        for text in [
+            "[01e400]",
+            "[1e400.5]",
+            "[1.e400]",
+            "[1e400",
+            "[+1e400]",
+            "[1e400 1]",
+        ] {
+            assert!(parse(text).is_err(), "{text}");
+        }
     }
 
     #[test]
