@@ -156,6 +156,45 @@ class AdvancesRangeTest(unittest.TestCase):
         self.assertFalse(advances.in_range([(1, 3)], 4))
 
 
+class TextWidthPairsTest(unittest.TestCase):
+    """scripts/fixtures/text_widths.py: the fixture's pairs and the recorded
+    exclusions together cover the corpus (ex-302 review)."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        spec = importlib.util.spec_from_file_location(
+            "text_widths", HERE.parent / "fixtures" / "text_widths.py")
+        cls.tw = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.tw)
+        cls.corpus = cls.tw.corpus_pairs(cls.tw.manifest())
+
+    def test_pairs_and_exclusions_cover_the_corpus(self) -> None:
+        self.assertEqual(len(self.corpus), 51)
+        self.assertEqual(sum(self.corpus.values()), 1866)
+        self.assertEqual((len(self.tw.PAIRS), len(self.tw.EXCLUDED)), (37, 14))
+        self.tw.check_partition(self.corpus)
+
+    def test_baseline_totals_per_family(self) -> None:
+        # The docstring's table: eligible texts per fontFamily.
+        totals: dict[int, int] = {}
+        for (_, family), n in self.corpus.items():
+            totals[family] = totals.get(family, 0) + n
+        self.assertEqual(totals, {1: 1243, 3: 35, 5: 198, 6: 348, 7: 3, 8: 39})
+
+    def test_an_unlisted_pair_fails(self) -> None:
+        corpus = dict(self.corpus)
+        corpus[("someone/new.excalidrawlib", 1)] = 4
+        with self.assertRaises(SystemExit):
+            self.tw.check_partition(corpus)
+
+    def test_a_changed_excluded_count_fails(self) -> None:
+        corpus = dict(self.corpus)
+        key = next(iter(self.tw.EXCLUDED))
+        corpus[key] += 1
+        with self.assertRaises(SystemExit):
+            self.tw.check_partition(corpus)
+
+
 if __name__ == "__main__":
     os.chdir(HERE)
     unittest.main()

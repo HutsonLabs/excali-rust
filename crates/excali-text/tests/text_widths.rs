@@ -4,9 +4,12 @@
 //! Fixture: `tests/fixtures/text-widths.json`, 991 text elements of the
 //! ex-003 library corpus with the `width` and `height` the browser measured
 //! (`measureText`, `packages/element/src/textMeasurements.ts:12-27`),
-//! extracted by `scripts/fixtures/text_widths.py` (which documents the
-//! selection). Each is measured as upstream does: `measureText(text,
-//! getFontString(element), lineHeight)`.
+//! extracted by `scripts/fixtures/text_widths.py`. The fixture was chosen by
+//! the outcome: a (library, fontFamily) pair is in it only if every one of
+//! its eligible texts measured within 0.5 px. The script records the 14
+//! excluded pairs and the whole-corpus baseline, and ex-308 owns the
+//! whole-corpus gate. Each text is measured as upstream does:
+//! `measureText(text, getFontString(element), lineHeight)`.
 
 mod common;
 

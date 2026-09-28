@@ -14,11 +14,32 @@ false (so `width` is the measured width, not a width the user wrapped to), and
 its `fontFamily` is one the port vendors (1 Virgil, 3 Cascadia, 5 Excalifont,
 6 Nunito, 7 Lilita One, 8 Comic Shanns, 9 Liberation Sans, 10 Assistant).
 The fixture takes every eligible text of the (library, fontFamily) pairs in
-PAIRS. Those are the pairs whose texts were measured with the font builds the
-port vendors, in a browser that shapes with kerning; the corpus also holds
-widths from older font builds, texts widened by hand after measuring
-(exactly +1, +2 or +3 px) and generated libraries, and the per-family
-deviation over the whole corpus is ex-308's report.
+PAIRS. The pairs were selected on the outcome: a pair was kept only if every
+one of its eligible texts measured within 0.5 px with the port's FontStore
+(the vendored fonts, shaped with rustybuzz). Nothing independent of that
+measurement establishes that these texts were measured with the font builds
+the port vendors, or in a browser that shapes with kerning; the fixture shows
+that the port reproduces these widths, not that it reproduces the corpus.
+
+The whole-corpus baseline, measured on 2026-09-28 with the same eligibility
+rule (1866 eligible texts in 51 (library, fontFamily) pairs):
+
+  fontFamily        within 0.5 px   max |deviation|
+  1 Virgil           1149 / 1243     116.7 px
+  3 Cascadia           34 / 35         0.58
+  5 Excalifont        181 / 198        2.20
+  6 Nunito             46 / 348       47.5
+  7 Lilita One          2 / 3          0.89
+  8 Comic Shanns       38 / 39         0.52
+
+37 of the 51 pairs pass in full and are PAIRS; the other 14 are EXCLUDED
+below, each with its pass count. Of the 416 texts outside 0.5 px, 363 measure
+narrower than their stored width (39 of them by an exact 1, 2, 3 or 5 px,
+consistent with widths edited by hand or kept from an older font build) and
+53 wider, all 53 in the Nunito texts of datavizfairy/dashboard-charts, a
+generated library. The whole-corpus gate and its per-family report are
+ex-308's; `check` fails if PAIRS and EXCLUDED stop covering every pair with
+eligible texts or an excluded pair's text count changes.
 
   text_widths.py write   regenerate crates/excali-text/tests/fixtures/text-widths.json
   text_widths.py check   exit 1 if the committed fixture differs from the corpus
@@ -77,6 +98,26 @@ PAIRS = (
     ("moochin/simple-characters.excalidrawlib", 8),
 )
 
+# (library, fontFamily) -> (texts within 0.5 px, eligible texts, max
+# |deviation| in px): the pairs left out of the fixture because at least one
+# eligible text measured outside 0.5 px (FontStore, 2026-09-28).
+EXCLUDED = {
+    ("childishgirl/aws-architecture-icons.excalidrawlib", 1): (222, 262, 3.00),
+    ("erlina/data-processing.excalidrawlib", 1): (8, 9, 2.59),
+    ("gabrielamacakova/halloween-elements.excalidrawlib", 1): (2, 6, 0.73),
+    ("hartmut-co-uk/kafka-streams-topology-design.excalidrawlib", 1): (57, 65, 2.13),
+    ("infamousjoeg/cyberark.excalidrawlib", 1): (11, 25, 2.30),
+    ("pratheeshpm/basic-system-design.excalidrawlib", 1): (34, 47, 116.74),
+    ("stojanovic/aws-serverless-icons-v2.excalidrawlib", 1): (10, 24, 1.46),
+    ("childishgirl/aws-architecture-icons.excalidrawlib", 3): (6, 7, 0.58),
+    ("childishgirl/aws-architecture-icons.excalidrawlib", 5): (0, 1, 1.00),
+    ("hartmut-co-uk/kafka-streams-topology-design.excalidrawlib", 5): (27, 31, 1.02),
+    ("martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib", 5): (31, 43, 2.20),
+    ("datavizfairy/dashboard-charts.excalidrawlib", 6): (38, 340, 47.51),
+    ("devdaejungyoon/github-actions.excalidrawlib", 7): (1, 2, 0.89),
+    ("hartmut-co-uk/kafka-streams-topology-design.excalidrawlib", 8): (12, 13, 0.52),
+}
+
 
 def manifest() -> dict[str, dict]:
     data = json.loads((FIXTURES / "manifest.json").read_text())
@@ -107,8 +148,49 @@ def eligible(e: dict) -> bool:
     )
 
 
+def corpus_pairs(files: dict[str, dict]) -> dict[tuple[str, int], int]:
+    """Every (library, fontFamily) pair of the corpus with eligible texts,
+    and how many."""
+    pairs: dict[tuple[str, int], int] = {}
+    for origin, entry in sorted(files.items()):
+        if not origin.endswith(".excalidrawlib"):
+            continue
+        library = origin[len("libraries/"):]
+        for _, e in elements(read_library(entry)):
+            if isinstance(e, dict) and eligible(e):
+                key = (library, e["fontFamily"])
+                pairs[key] = pairs.get(key, 0) + 1
+    return pairs
+
+
+def check_partition(corpus: dict[tuple[str, int], int]) -> None:
+    """PAIRS and EXCLUDED together are every pair with eligible texts, once,
+    and each excluded pair still has the number of texts recorded."""
+    kept = set(PAIRS)
+    excluded = set(EXCLUDED)
+    problems = []
+    if len(kept) != len(PAIRS):
+        problems.append("PAIRS lists a pair twice")
+    if kept & excluded:
+        problems.append(f"in both PAIRS and EXCLUDED: {sorted(kept & excluded)}")
+    missing = set(corpus) - kept - excluded
+    if missing:
+        problems.append(f"pairs with eligible texts in neither PAIRS nor EXCLUDED: {sorted(missing)}")
+    gone = (kept | excluded) - set(corpus)
+    if gone:
+        problems.append(f"pairs without eligible texts: {sorted(gone)}")
+    for key, (passed, total, _) in EXCLUDED.items():
+        if key in corpus and corpus[key] != total:
+            problems.append(f"{key}: {corpus[key]} eligible texts, EXCLUDED records {total}")
+        if not 0 <= passed < total:
+            problems.append(f"{key}: an excluded pair must have a failing text ({passed}/{total})")
+    if problems:
+        raise SystemExit("\n".join(problems))
+
+
 def build() -> dict:
     files = manifest()
+    check_partition(corpus_pairs(files))
     cases = []
     for library, family in PAIRS:
         entry = files.get(f"libraries/{library}")
