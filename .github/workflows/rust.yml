@@ -190,10 +190,9 @@ jobs:
   # Its tests fail if report.json differs from a fresh run over
   # upstream-subsets.json (upstream's own subsets, checked by the goldens
   # job) or ADR-010 does not quote it and the decision its rule gives;
-  # wasm.sh --check rebuilds every candidate for wasm32-unknown-unknown;
-  # render.mjs --check draws every subset in Chromium next to its original
-  # face. The upstream checkout supplies the one face the port does not
-  # vendor (Liberation Sans 1.05, ADR-004) for upstream's side.
+  # wasm.sh --check rebuilds every candidate for wasm32-unknown-unknown.
+  # The upstream checkout supplies the one face the port does not vendor
+  # (Liberation Sans 1.05, ADR-004) for upstream's side.
   font-subset-eval:
     runs-on: ubuntu-latest
     steps:
@@ -215,6 +214,22 @@ jobs:
         run: cargo run --release --locked --manifest-path tools/font-subset-eval/Cargo.toml -- --check
       - name: wasm.json current (each candidate built for wasm32-unknown-unknown)
         run: tools/font-subset-eval/wasm.sh --check
+  # ex-408: render.mjs --check draws every subset in Chromium next to its
+  # original face. It runs on macOS, where browser.json and ADR-010's
+  # Chromium column were measured: pixel equality depends on the platform's
+  # rasterizer, and on Linux upstream's own subsets draw 67 of the 279 runs
+  # differently from the original face, as hb-subset's and skera's do.
+  font-subset-browser:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tools/font-subset-eval
+      - name: upstream checkout at the pin
+        run: scripts/upstream/checkout.sh
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -224,7 +239,7 @@ jobs:
         working-directory: tools/font-subset-eval/browser
         run: |
           npm ci --no-audit --no-fund
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
       - name: browser.json current (every subset drawn in Chromium next to its original)
         run: |
           cargo run --release --locked --manifest-path tools/font-subset-eval/Cargo.toml -- \

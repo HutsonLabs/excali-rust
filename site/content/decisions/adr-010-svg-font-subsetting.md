@@ -67,6 +67,8 @@ Upstream is measured the same way against its own original face. Its 153 subsets
 
 The Chromium check covers the 121 faces of the 44 browser scenes, with each subsetter paired with `ttf2woff2`. Both encoders decode to the same font, and `woofwoof` cannot be used in wasm anyway. Upstream's subset and every candidate that keeps the cmap are rejected by Chromium's sanitizer for the same 3 faces. Each of those faces was asked only for characters it does not draw, and its subset holds just `.notdef` and the space (`browser.json` `rejected`).
 
+The Chromium numbers are measured on macOS, where CI checks them (the `font-subset-browser` job on `macos-latest`). Pixel equality depends on the platform's rasterizer. In Chromium 153 on Linux (the ubuntu-latest run of PR #70, 2026-09-28), upstream's own subsets draw 212 of the 279 runs like the original face, and so do the `hb-subset` and `skera` subsets. `allsorts` draws 207. So on Linux the port's subsets are exactly as faithful as upstream's.
+
 Per scene, in bytes:
 
 | scene | faces | upstream | whole files | `skera+ttf2woff2` |

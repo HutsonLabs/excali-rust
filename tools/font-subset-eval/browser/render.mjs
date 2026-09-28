@@ -16,7 +16,10 @@
 // scene's text in the face is then drawn on a canvas at 64 px in either
 // font; the run is equal when the pixels are identical and measureText
 // gives the same width. The counts go to browser.json. They compare two
-// fonts inside one browser, so they do not depend on the Chromium build.
+// fonts inside one browser, but pixel equality depends on the platform's
+// rasterizer: browser.json is measured on macOS (CI runs this on
+// macos-latest). On Linux, upstream's own subsets draw 67 of the 279 runs
+// differently from the original face, and hb-subset's and skera's the same.
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
