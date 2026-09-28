@@ -21,7 +21,9 @@
 use std::path::PathBuf;
 
 use base64::Engine;
-use excali_raster::decode::{decode_data_url, parse_data_url, DecodeError, DecodedImage, ImageFiles};
+use excali_raster::decode::{
+    decode_data_url, parse_data_url, DecodeError, DecodedImage, ImageFiles,
+};
 use excali_raster::tiny_skia::Pixmap;
 use excali_raster::{Image, ImageStore};
 
@@ -124,12 +126,21 @@ fn percent_encoded_data_urls() {
     assert_eq!(parse_data_url("data:,%zz%4").unwrap().body, b"%zz%4");
     // No type: text/plain.
     assert_eq!(parse_data_url("data:,x").unwrap().mime_type, "text/plain");
-    assert_eq!(parse_data_url("data:;charset=utf-8,x").unwrap().mime_type, "text/plain");
+    assert_eq!(
+        parse_data_url("data:;charset=utf-8,x").unwrap().mime_type,
+        "text/plain"
+    );
 }
 
 #[test]
 fn not_data_urls() {
-    for bad in ["", "data:", "data:image/png;base64", "http://x/y.png", "blob:x"] {
+    for bad in [
+        "",
+        "data:",
+        "data:image/png;base64",
+        "http://x/y.png",
+        "blob:x",
+    ] {
         assert!(
             matches!(parse_data_url(bad), Err(DecodeError::DataUrl(_))),
             "{bad:?}"
@@ -157,10 +168,11 @@ fn png_decodes_to_its_pixels() {
             }
         }
     }
-    // Stored premultiplied, as the canvas keeps bitmaps.
+    // Stored premultiplied, as the canvas keeps bitmaps: (40, 200, 0) at
+    // alpha 55.
     let c = p.pixel(0, 15).unwrap();
     assert_eq!(c.alpha(), 55);
-    assert_eq!(c.red(), ((230.0 * 55.0) / 255.0_f64).round() as u8);
+    assert_eq!((c.red(), c.green(), c.blue()), (9, 43, 0));
 }
 
 #[test]
@@ -171,27 +183,41 @@ fn lossless_formats_agree_with_the_png() {
             assert_eq!(straight(&png, x, y), source_pixel(x, y, false));
         }
     }
-    for (mime, name) in [
-        ("image/bmp", "opaque.bmp"),
-        ("image/gif", "opaque.gif"),
-        ("image/webp", "lossless.webp"),
-    ] {
+    for (mime, name) in [("image/bmp", "opaque.bmp"), ("image/webp", "lossless.webp")] {
         let p = bitmap(decode_data_url(&data_url(mime, name)).unwrap());
         assert_eq!(max_difference(&p, &png), 0, "{name}");
     }
+    // The GIF went through sips's 256-colour quantizer: close, and opaque.
+    let gif = bitmap(decode_data_url(&data_url("image/gif", "opaque.gif")).unwrap());
+    assert!(max_difference(&gif, &png) <= 4);
+    assert!(gif.pixels().iter().all(|c| c.alpha() == 255));
+}
+
+fn mean_difference(a: &Pixmap, b: &Pixmap) -> f64 {
+    let sum: u64 = a
+        .data()
+        .iter()
+        .zip(b.data())
+        .map(|(x, y)| u64::from(x.abs_diff(*y)))
+        .sum();
+    sum as f64 / a.data().len() as f64
 }
 
 #[test]
 fn lossy_formats_come_close_to_the_png() {
     let png = bitmap(decode_data_url(&data_url("image/png", "opaque.png")).unwrap());
-    for (mime, name, bound) in [
-        ("image/jpeg", "opaque.jpg", 64),
-        ("image/webp", "lossy.webp", 64),
-    ] {
+    // Chroma subsampling blurs the quadrants' hard edges; on average the
+    // pixels are near. (Parity with Chrome's own decoders is the raster
+    // fixture images-decoded.)
+    for (mime, name) in [("image/jpeg", "opaque.jpg"), ("image/webp", "lossy.webp")] {
         let p = bitmap(decode_data_url(&data_url(mime, name)).unwrap());
-        let d = max_difference(&p, &png);
-        assert!(d <= bound, "{name}: {d}");
-        assert!(p.pixels().iter().all(|c| c.alpha() == 255), "{name} is opaque");
+        assert_eq!((p.width(), p.height()), (24, 16));
+        let d = mean_difference(&p, &png);
+        assert!(d <= 12.0, "{name}: {d}");
+        assert!(
+            p.pixels().iter().all(|c| c.alpha() == 255),
+            "{name} is opaque"
+        );
     }
 }
 
@@ -200,7 +226,12 @@ fn the_declared_type_does_not_pick_the_raster_decoder() {
     // Chrome sniffs raster formats from their signatures; image/jpeg on a
     // PNG, or image/jfif, still decodes.
     let png = bitmap(decode_data_url(&data_url("image/png", "quad.png")).unwrap());
-    for mime in ["image/jpeg", "image/jfif", "application/octet-stream", "text/plain"] {
+    for mime in [
+        "image/jpeg",
+        "image/jfif",
+        "application/octet-stream",
+        "text/plain",
+    ] {
         let p = bitmap(decode_data_url(&data_url(mime, "quad.png")).unwrap());
         assert_eq!(p.data(), png.data(), "{mime}");
     }
@@ -272,7 +303,10 @@ fn svg_is_kept_as_a_vector() {
         })
         .collect();
     let url = format!("data:image/svg+xml;charset=utf-8,{encoded}");
-    assert!(matches!(decode_data_url(&url).unwrap(), DecodedImage::Svg(_)));
+    assert!(matches!(
+        decode_data_url(&url).unwrap(),
+        DecodedImage::Svg(_)
+    ));
     assert!(matches!(
         decode_data_url("data:image/svg+xml,%3Cnot-svg"),
         Err(DecodeError::Image(_))
@@ -299,7 +333,10 @@ fn image_files_hold_what_loaded() {
     assert!(files.image("absent").is_none());
     assert_eq!(files.mime_type("svg"), Some("image/svg+xml"));
     assert!(matches!(files.error("broken"), Some(DecodeError::Image(_))));
-    assert!(matches!(files.error("binary"), Some(DecodeError::NotAnImage)));
+    assert!(matches!(
+        files.error("binary"),
+        Some(DecodeError::NotAnImage)
+    ));
     assert!(files.error("png").is_none());
     let mut loaded: Vec<&str> = files.loaded().collect();
     loaded.sort_unstable();

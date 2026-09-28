@@ -2,13 +2,15 @@
 
 use std::collections::HashMap;
 
-use excali_scene::display::{Rect, Transform};
+use excali_scene::display::{BuiltinImage, Rect, Transform};
 use web_sys::{CanvasRenderingContext2d, CanvasWindingRule, HtmlImageElement};
 
 use crate::Context2d;
 
 /// A browser 2D context and the images the display list names, keyed by
-/// id (upstream's `imageCache`, keyed by `fileId`).
+/// id (upstream's `imageCache`, keyed by `fileId`). [`WebCanvas::new`]
+/// starts the map with the built-in images ([`BuiltinImage`]: upstream's
+/// placeholders), which load as upstream's own do, from SVG data URLs.
 ///
 /// Canvas methods that throw do so only for arguments the canvas rejects
 /// without drawing (`arc` with a negative radius, `drawImage` of a broken
@@ -22,11 +24,38 @@ pub struct WebCanvas {
 
 impl WebCanvas {
     pub fn new(context: CanvasRenderingContext2d) -> Self {
-        Self {
-            context,
-            images: HashMap::new(),
+        let mut images = HashMap::new();
+        for builtin in BuiltinImage::ALL {
+            // Outside a document (a worker) there is no Image(): the
+            // placeholders are then not drawn, as before they load.
+            if let Ok(image) = HtmlImageElement::new() {
+                image.set_src(&sized_data_url(builtin));
+                images.insert(builtin.id().to_owned(), image);
+            }
+        }
+        Self { context, images }
+    }
+}
+
+/// The built-in image's data URL with `width` and `height` set to its
+/// `viewBox` (the same drawing): an `<img>` of an SVG without them has no
+/// natural size to answer [`Context2d::image_size`] with.
+fn sized_data_url(image: BuiltinImage) -> String {
+    let side = image.view_box();
+    let svg = image.svg().replacen(
+        "<svg ",
+        &format!("<svg width=\"{side}\" height=\"{side}\" "),
+        1,
+    );
+    let mut url = String::from("data:image/svg+xml,");
+    for b in svg.bytes() {
+        if b.is_ascii_alphanumeric() || b"-_.!~*'()".contains(&b) {
+            url.push(char::from(b));
+        } else {
+            url.push_str(&format!("%{b:02X}"));
         }
     }
+    url
 }
 
 fn winding(rule: &str) -> CanvasWindingRule {
@@ -122,6 +151,11 @@ impl Context2d for WebCanvas {
 
     fn fill(&mut self, rule: &str) {
         self.context.fill_with_canvas_winding_rule(winding(rule));
+    }
+
+    fn fill_rect(&mut self, rect: &Rect) {
+        self.context
+            .fill_rect(rect.x, rect.y, rect.width, rect.height);
     }
 
     fn stroke(&mut self) {

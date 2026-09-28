@@ -1,6 +1,6 @@
 //! The walk every backend shares: groups flattened into absolute state.
 
-use super::image::ImageItem;
+use super::image::{ImageItem, Rect};
 use super::paint::{Color, Rgba, Stroke};
 use super::path::{FillRule, Path};
 use super::text::TextRun;
@@ -67,6 +67,14 @@ impl Default for PaintState {
 pub trait Painter {
     /// Fill `path` with the item's `color`, resolved as `rgba`, under `rule`.
     fn fill(&mut self, path: &Path, color: &Color, rgba: Rgba, rule: FillRule, state: &PaintState);
+    /// `fillRect`: fill `rect` with the item's `color`, resolved as `rgba`.
+    /// By default the rectangle's path is filled (`rect()` then `fill()`),
+    /// which is the same area; a backend that draws rectangles as the
+    /// canvas's `fillRect` does overrides it.
+    fn fill_rect(&mut self, rect: &Rect, color: &Color, rgba: Rgba, state: &PaintState) {
+        let path = Path::rect(rect.x, rect.y, rect.width, rect.height);
+        self.fill(&path, color, rgba, FillRule::NonZero, state);
+    }
     /// Stroke `path` with `stroke` (`stroke.color` resolved as `rgba`).
     fn stroke(&mut self, path: &Path, stroke: &Stroke, rgba: Rgba, state: &PaintState);
     /// Draw a bitmap.
@@ -105,6 +113,10 @@ fn replay_items(items: &[DisplayItem], painter: &mut impl Painter, state: &Paint
             DisplayItem::Fill { path, color, rule } => {
                 let rgba = color.rgba().unwrap_or(state.fill_style);
                 painter.fill(path, color, rgba, *rule, state);
+            }
+            DisplayItem::FillRect { rect, color } => {
+                let rgba = color.rgba().unwrap_or(state.fill_style);
+                painter.fill_rect(rect, color, rgba, state);
             }
             DisplayItem::Stroke { path, stroke } => {
                 let rgba = stroke.color.rgba().unwrap_or(state.stroke_style);

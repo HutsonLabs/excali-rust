@@ -119,6 +119,15 @@ impl Context2d for Recording {
     fn fill(&mut self, rule: &str) {
         self.log.push(format!("fill({rule})"));
     }
+    fn fill_rect(&mut self, r: &Rect) {
+        self.log.push(format!(
+            "fillRect({},{},{},{})",
+            n(r.x),
+            n(r.y),
+            n(r.width),
+            n(r.height)
+        ));
+    }
     fn stroke(&mut self) {
         self.log.push("stroke".into());
     }
@@ -198,6 +207,26 @@ fn fill_is_one_isolated_fill_call() {
             "closePath",
             "moveTo(0,0)",
             "fill(evenodd)",
+            "restore",
+        ]
+    );
+}
+
+#[test]
+fn fill_rect_is_one_isolated_fill_rect_call() {
+    // drawImagePlaceholder (renderElement.ts:361-385): fillStyle, fillRect.
+    let log = one(DisplayItem::FillRect {
+        rect: Rect::new(0.0, 0.0, 120.0, 80.5),
+        color: Color::new("#E7E7E7"),
+    });
+    assert_eq!(
+        log,
+        [
+            "save",
+            ID,
+            "globalAlpha=1",
+            "fillStyle=#E7E7E7",
+            "fillRect(0,0,120,80.5)",
             "restore",
         ]
     );

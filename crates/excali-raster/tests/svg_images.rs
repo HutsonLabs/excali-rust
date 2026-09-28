@@ -64,7 +64,10 @@ fn scaled_up_svg_stays_sharp() {
     // 10x10 into 80x80: the colour edge at x = 40 is a hard edge, where a
     // scaled bitmap would blend red and blue across the pixels around it.
     let p = draw(
-        vec![DisplayItem::Image(ImageItem::new("svg", Rect::new(0.0, 0.0, 80.0, 80.0)))],
+        vec![DisplayItem::Image(ImageItem::new(
+            "svg",
+            Rect::new(0.0, 0.0, 80.0, 80.0),
+        ))],
         80,
         80,
     );
@@ -136,6 +139,25 @@ fn transforms_alpha_clips_and_the_filter_apply() {
     let p = draw(vec![DisplayItem::Image(dark)], 20, 20);
     let (r, g, b) = ImageFilter::DarkTheme.apply_rgb(255, 0, 0);
     assert_eq!(px(&p, 2, 10), (r, g, b, 255));
+}
+
+#[test]
+fn later_shapes_paint_over_earlier_ones() {
+    let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><circle cx="5" cy="5" r="4" fill="#ff0000" fill-opacity="0.8"/><path d="M0 5 L10 5" stroke="#00ff00" stroke-width="2"/></svg>"##;
+    let url = format!("data:image/svg+xml,{}", svg.replace('#', "%23"));
+    let files = ImageFiles::decode([("svg", "image/svg+xml", url.as_str())]);
+    let mut pixmap = Pixmap::new(20, 20).unwrap();
+    let list: DisplayList = [DisplayItem::Image(ImageItem::new(
+        "svg",
+        Rect::new(0.0, 0.0, 20.0, 20.0),
+    ))]
+    .into_iter()
+    .collect();
+    render(&list, &mut pixmap, &files, &mut NoText);
+    // The stroke along y = 10 is on top of the circle.
+    assert_eq!(px(&pixmap, 10, 10), (0, 255, 0, 255));
+    // Elsewhere the circle at 80%.
+    assert_eq!(px(&pixmap, 10, 5), (204, 0, 0, 204));
 }
 
 #[test]

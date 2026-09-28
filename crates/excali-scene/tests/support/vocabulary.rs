@@ -3,9 +3,7 @@
 //! write the port's output as raster fixtures (`raster_fixture.rs`,
 //! `image_elements.rs`), and the comparison they check the files with.
 
-use excali_scene::display::{
-    Color, DisplayItem, FillRule, ImageFilter, Path, PathCommand, Rect,
-};
+use excali_scene::display::{Color, DisplayItem, FillRule, ImageFilter, Path, PathCommand, Rect};
 use serde_json::{json, Value};
 
 pub fn path_json(p: &Path) -> Value {
@@ -50,6 +48,9 @@ pub fn item_json(item: &DisplayItem) -> Value {
             }
             v["path"] = path_json(path);
             v
+        }
+        DisplayItem::FillRect { rect, color } => {
+            json!({"type": "fillRect", "color": color_json(color), "rect": rect_json(rect)})
         }
         DisplayItem::Stroke { path, stroke } => {
             let mut v = json!({

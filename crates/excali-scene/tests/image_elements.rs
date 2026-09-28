@@ -13,10 +13,10 @@
 //! `globalAlpha`, `fillStyle`, `filter`, clip stack) into the draws they
 //! make, and the port's display list is replayed into the same form. The
 //! draws must agree one for one: the placeholder box and colour, the
-//! placeholder icon as the paths of upstream's placeholder SVG (the file
-//! records its source) mapped onto the icon rectangle, each `drawImage`'s
-//! file, source and destination rectangles and filter, the rounded clip,
-//! and every matrix and alpha.
+//! placeholder as the built-in image holding upstream's placeholder SVG
+//! (the file records its source), each `drawImage`'s image, source and
+//! destination rectangles and filter, the rounded clip, and every matrix
+//! and alpha.
 //!
 //! The raster fixture `image-elements.json` (excali-raster) is the port's
 //! display list for all the cases with upstream's recorded calls beside it:
@@ -31,10 +31,9 @@ use std::path::PathBuf;
 
 use excali_core::document::FileMimeType;
 use excali_core::element::Element;
-use excali_rough::path_data::{absolutize, normalize, parse_path};
 use excali_scene::display::{
-    Clip, Color, DisplayItem, DisplayList, FillRule, ImageFilter, ImageItem, PaintState, Painter,
-    Path, Rect, Rgba, Stroke, TextRun, Transform,
+    BuiltinImage, Clip, Color, DisplayItem, DisplayList, FillRule, ImageFilter, ImageItem,
+    PaintState, Painter, Path, Rect, Rgba, Stroke, TextRun, Transform,
 };
 use excali_scene::image::{
     draw_image_element, placeholder_icon_size, render_image_element, ImageCacheEntry, Placeholder,
@@ -80,7 +79,10 @@ fn cache(g: &Value, case: &Value) -> HashMap<String, ImageCacheEntry> {
         serde_json::from_value(g["files"][file_id]["mimeType"].clone()).unwrap();
     match case["cache"].as_str().unwrap() {
         "loaded" => {
-            cache.insert(file_id.to_owned(), ImageCacheEntry::Ready { mime_type: mime });
+            cache.insert(
+                file_id.to_owned(),
+                ImageCacheEntry::Ready { mime_type: mime },
+            );
         }
         "pending" => {
             cache.insert(file_id.to_owned(), ImageCacheEntry::Loading);
@@ -108,6 +110,10 @@ fn render(g: &Value, case: &Value) -> DisplayItem {
 /// One draw with the state it is made in.
 #[derive(Clone, Debug)]
 enum Draw {
+    FillRect {
+        rect: Rect,
+        color: String,
+    },
     Fill {
         path: Path,
         color: String,
@@ -129,38 +135,13 @@ struct Drawn {
     clips: Vec<(Path, Transform)>,
 }
 
-/// The paths of an SVG's `<path>` elements: `d` and the `transform`
-/// matrix, if any.
-fn svg_paths(svg: &str) -> Vec<(String, Transform)> {
-    let mut out = Vec::new();
-    for part in svg.split("<path").skip(1) {
-        let tag = &part[..part.find('>').unwrap()];
-        let attr = |name: &str| {
-            let key = format!(" {name}=\"");
-            tag.find(&key).map(|i| {
-                let rest = &tag[i + key.len()..];
-                rest[..rest.find('"').unwrap()].to_owned()
-            })
-        };
-        let d = attr("d").expect("a path has d");
-        let transform = match attr("transform") {
-            None => Transform::IDENTITY,
-            Some(t) => {
-                let inner = t
-                    .strip_prefix("matrix(")
-                    .and_then(|t| t.strip_suffix(')'))
-                    .unwrap_or_else(|| panic!("only matrix() transforms: {t}"));
-                let m: Vec<f64> = inner
-                    .split([' ', ','])
-                    .filter(|s| !s.is_empty())
-                    .map(|s| s.parse().unwrap())
-                    .collect();
-                Transform::new(m[0], m[1], m[2], m[3], m[4], m[5])
-            }
-        };
-        out.push((d, transform));
+/// The golden's placeholder kind as the port's built-in image.
+fn placeholder_image(kind: &str) -> BuiltinImage {
+    match kind {
+        "image" => BuiltinImage::ImagePlaceholder,
+        "error" => BuiltinImage::ImageErrorPlaceholder,
+        other => panic!("unknown placeholder {other}"),
     }
-    out
 }
 
 fn svg_view_box(svg: &str) -> f64 {
@@ -172,30 +153,6 @@ fn svg_view_box(svg: &str) -> f64 {
     assert_eq!((v[0], v[1]), (0.0, 0.0));
     assert_eq!(v[2], v[3], "a square placeholder");
     v[2]
-}
-
-/// SVG path data as the canvas path it describes, through rough.js's path
-/// parser (`M`, `L`, `C` and `Z`).
-fn svg_path(d: &str) -> Path {
-    let mut p = Path::new();
-    for s in normalize(&absolutize(&parse_path(d).unwrap())) {
-        match s.key {
-            'M' => {
-                p.move_to(s.data[0], s.data[1]);
-            }
-            'L' => {
-                p.line_to(s.data[0], s.data[1]);
-            }
-            'C' => {
-                p.cubic_to(s.data[0], s.data[1], s.data[2], s.data[3], s.data[4], s.data[5]);
-            }
-            'Z' => {
-                p.close();
-            }
-            other => panic!("normalize left {other}"),
-        }
-    }
-    p
 }
 
 #[derive(Clone)]
@@ -240,10 +197,9 @@ fn upstream_draws(g: &Value, case: &Value) -> Vec<Drawn> {
             }
             "clip" => s.clips.push(path.clone().expect("a path to clip to")),
             "fillRect" => out.push(Drawn {
-                draw: Draw::Fill {
-                    path: Path::rect(n(1), n(2), n(3), n(4)),
+                draw: Draw::FillRect {
+                    rect: Rect::new(n(1), n(2), n(3), n(4)),
                     color: s.fill_style.clone(),
-                    rule: FillRule::NonZero,
                 },
                 matrix: s.matrix,
                 alpha: s.alpha,
@@ -253,7 +209,11 @@ fn upstream_draws(g: &Value, case: &Value) -> Vec<Drawn> {
                 let image = &call[1];
                 let args: Vec<f64> = call[2..].iter().map(num).collect();
                 if let Some(file) = image["file"].as_str() {
-                    assert_eq!(args.len(), 8, "drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)");
+                    assert_eq!(
+                        args.len(),
+                        8,
+                        "drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)"
+                    );
                     out.push(Drawn {
                         draw: Draw::Image {
                             id: file.to_owned(),
@@ -266,28 +226,23 @@ fn upstream_draws(g: &Value, case: &Value) -> Vec<Drawn> {
                         clips: s.clips.clone(),
                     });
                 } else {
-                    // The placeholder SVG drawn into (dx, dy, dw, dh): its
-                    // viewBox scaled onto the rectangle, each path in #888.
+                    // drawImage(placeholder, dx, dy, dw, dh): the whole SVG,
+                    // its viewBox the natural size, onto the rectangle.
                     assert_eq!(args.len(), 4, "drawImage(img, dx, dy, dw, dh)");
                     let kind = image["placeholder"].as_str().unwrap();
-                    let svg = g["placeholders"][kind].as_str().unwrap();
-                    let vb = svg_view_box(svg);
-                    let onto = s
-                        .matrix
-                        .concat(&Transform::translate(args[0], args[1]))
-                        .concat(&Transform::scale(args[2] / vb, args[3] / vb));
-                    for (d, t) in svg_paths(svg) {
-                        out.push(Drawn {
-                            draw: Draw::Fill {
-                                path: svg_path(&d),
-                                color: "#888".to_owned(),
-                                rule: FillRule::NonZero,
-                            },
-                            matrix: onto.concat(&t),
-                            alpha: s.alpha,
-                            clips: s.clips.clone(),
-                        });
-                    }
+                    let builtin = placeholder_image(kind);
+                    let vb = svg_view_box(g["placeholders"][kind].as_str().unwrap());
+                    out.push(Drawn {
+                        draw: Draw::Image {
+                            id: builtin.id().to_owned(),
+                            source: Rect::new(0.0, 0.0, vb, vb),
+                            dest: Rect::new(args[0], args[1], args[2], args[3]),
+                            filter: s.filter.clone(),
+                        },
+                        matrix: s.matrix,
+                        alpha: s.alpha,
+                        clips: s.clips.clone(),
+                    });
                 }
             }
             other => panic!("unexpected call {other}"),
@@ -312,6 +267,17 @@ impl Painter for Recorder {
                 path: path.clone(),
                 color: color.as_str().to_owned(),
                 rule,
+            },
+            matrix: state.transform,
+            alpha: state.alpha,
+            clips: self.clips.clone(),
+        });
+    }
+    fn fill_rect(&mut self, rect: &Rect, color: &Color, _: Rgba, state: &PaintState) {
+        self.draws.push(Drawn {
+            draw: Draw::FillRect {
+                rect: *rect,
+                color: color.as_str().to_owned(),
             },
             matrix: state.transform,
             alpha: state.alpha,
@@ -348,13 +314,19 @@ impl Painter for Recorder {
     }
 }
 
+/// The natural size of every image the cases draw: the files', and the
+/// built-in placeholders' viewBox.
 fn naturals(g: &Value) -> HashMap<String, (f64, f64)> {
-    g["files"]
-        .as_object()
-        .unwrap()
-        .iter()
-        .map(|(id, f)| (id.clone(), (num(&f["naturalWidth"]), num(&f["naturalHeight"]))))
-        .collect()
+    let files = g["files"].as_object().unwrap().iter().map(|(id, f)| {
+        (
+            id.clone(),
+            (num(&f["naturalWidth"]), num(&f["naturalHeight"])),
+        )
+    });
+    let builtins = BuiltinImage::ALL
+        .into_iter()
+        .map(|b| (b.id().to_owned(), (b.view_box(), b.view_box())));
+    files.chain(builtins).collect()
 }
 
 fn port_draws(g: &Value, case: &Value) -> Vec<Drawn> {
@@ -400,6 +372,13 @@ fn compare(id: &str, expected: &[Drawn], actual: &[Drawn]) -> Result<(), String>
         let at = format!("{id} draw {i}");
         let same_draw = match (&e.draw, &a.draw) {
             (
+                Draw::FillRect { rect, color },
+                Draw::FillRect {
+                    rect: r2,
+                    color: c2,
+                },
+            ) => same_rect(rect, r2) && color == c2,
+            (
                 Draw::Fill { path, color, rule },
                 Draw::Fill {
                     path: p2,
@@ -433,8 +412,7 @@ fn compare(id: &str, expected: &[Drawn], actual: &[Drawn]) -> Result<(), String>
             return Err(format!("{at}: alpha {} != {}", e.alpha, a.alpha));
         }
         if e.clips.len() != a.clips.len()
-            || e
-                .clips
+            || e.clips
                 .iter()
                 .zip(&a.clips)
                 .any(|((p, t), (p2, t2))| p != p2 || !same_matrix(t, t2))
@@ -463,25 +441,39 @@ fn every_case_draws_what_upstream_draws() {
 #[test]
 fn the_placeholders_are_upstreams_svgs() {
     let g = golden();
-    assert_eq!(Placeholder::Image.svg(), g["placeholders"]["image"].as_str().unwrap());
-    assert_eq!(Placeholder::Error.svg(), g["placeholders"]["error"].as_str().unwrap());
-    assert_eq!(Placeholder::Image.view_box(), 512.0);
-    assert_eq!(Placeholder::Error.view_box(), 668.0);
-    // The icon in viewBox units: each path of the SVG in #888.
-    for p in [Placeholder::Image, Placeholder::Error] {
-        let mut recorder = Recorder::default();
-        DisplayList::from_iter(p.icon()).replay(&mut recorder);
-        let expected = svg_paths(p.svg());
-        assert_eq!(recorder.draws.len(), expected.len());
-        for (draw, (d, t)) in recorder.draws.iter().zip(&expected) {
-            let Draw::Fill { path, color, rule } = &draw.draw else {
-                panic!("the icon is fills")
-            };
-            assert_eq!(path, &svg_path(d));
-            assert_eq!((color.as_str(), *rule), ("#888", FillRule::NonZero));
-            assert!(same_matrix(&draw.matrix, t));
+    for (kind, p) in [("image", Placeholder::Image), ("error", Placeholder::Error)] {
+        let svg = g["placeholders"][kind].as_str().unwrap();
+        assert_eq!(p.svg(), svg);
+        assert_eq!(p.image(), placeholder_image(kind));
+        assert_eq!(p.image().view_box(), svg_view_box(svg));
+        assert_eq!(BuiltinImage::from_id(p.image().id()), Some(p.image()));
+        // Upstream's src: data:image/svg+xml, then encodeURIComponent(svg).
+        let url = p.image().data_url();
+        let body = url.strip_prefix("data:image/svg+xml,").unwrap();
+        assert!(!body.contains(['<', '>', '"', ' ', '#']));
+        assert_eq!(percent_decode(body), svg);
+    }
+    assert_eq!(BuiltinImage::from_id("png"), None);
+    assert_eq!(
+        Placeholder::for_status(excali_core::element::ImageStatus::Error),
+        Placeholder::Error
+    );
+}
+
+fn percent_decode(s: &str) -> String {
+    let bytes = s.as_bytes();
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' {
+            out.push(u8::from_str_radix(&s[i + 1..i + 3], 16).unwrap());
+            i += 3;
+        } else {
+            out.push(bytes[i]);
+            i += 1;
         }
     }
+    String::from_utf8(out).unwrap()
 }
 
 /// `drawImagePlaceholder` (`renderElement.ts:361-385`): the icon is
@@ -537,7 +529,12 @@ fn the_placement_holds_the_element_drawing() {
 #[test]
 fn only_dark_svg_images_are_filtered() {
     let g = golden();
-    let png = g["cases"].as_array().unwrap().iter().find(|c| c["id"] == "png").unwrap();
+    let png = g["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|c| c["id"] == "png")
+        .unwrap();
     let mut el: Element = element(png);
     let file = match &el.kind {
         excali_core::element::ElementKind::Image(f) => f.file_id.clone().unwrap().0,
@@ -551,19 +548,139 @@ fn only_dark_svg_images_are_filtered() {
             other => panic!("one image: {other:?}"),
         }
     };
-    assert_eq!(filter(FileMimeType::Svg, Theme::Dark), Some(ImageFilter::DarkTheme));
+    assert_eq!(
+        filter(FileMimeType::Svg, Theme::Dark),
+        Some(ImageFilter::DarkTheme)
+    );
     assert_eq!(filter(FileMimeType::Png, Theme::Dark), None);
     assert_eq!(filter(FileMimeType::Svg, Theme::Light), None);
 }
 
-// -- raster fixture -----------------------------------------------------------
+// -- raster fixtures ----------------------------------------------------------
 
 const FIXTURE_WIDTH: u32 = 620;
 const FIXTURE_HEIGHT: u32 = 650;
 
-fn fixture_file() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../excali-raster/tests/fixtures/display-lists/image-elements.json")
+/// The golden's cases as two raster fixtures: the placeholders and bitmap
+/// files, and the SVG files (whose curves reach the backend as usvg's
+/// cubics where Chrome draws conics, so they carry their own tolerance).
+struct Split {
+    name: &'static str,
+    description: &'static str,
+    svg_files: bool,
+}
+
+const SPLITS: [Split; 2] = [
+    Split {
+        name: "image-elements",
+        description: "Excalidraw image elements as the port draws them (excali-scene tests/image_elements.rs, from upstream's renderElement in tests/fixtures/image-elements.json): placeholders in both themes with the image and error icons (built-in SVG images) and the icon size rule, a missing file, an uninitialized element, a PNG at natural size, cropped, flipped by scale after rotation, rounded clips of every roundness, opacity and scroll. Chrome replays upstream's recorded canvas calls (canvasCalls) with its own PNG decoder and upstream's placeholder SVGs; the port renders items over the same files.",
+        svg_files: false,
+    },
+    Split {
+        name: "image-elements-svg",
+        description: "Excalidraw image elements of an SVG file as the port draws them (excali-scene tests/image_elements.rs, from upstream's renderElement in tests/fixtures/image-elements.json): scaled, in the dark theme with DARK_THEME_FILTER, and cropped inside a rounded clip. Chrome replays upstream's recorded canvas calls (canvasCalls) and renders the SVG itself; the port renders items, the SVG through usvg as vector fills and strokes.",
+        svg_files: true,
+    },
+];
+
+impl Split {
+    fn file(&self) -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!(
+            "../excali-raster/tests/fixtures/display-lists/{}.json",
+            self.name
+        ))
+    }
+
+    fn cases<'a>(&self, g: &'a Value) -> Vec<&'a Value> {
+        g["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|c| {
+                let svg = c["element"]["fileId"].as_str().is_some_and(|f| {
+                    g["files"][f]["mimeType"] == "image/svg+xml" && c["cache"] == "loaded"
+                });
+                svg == self.svg_files
+            })
+            .collect()
+    }
+
+    fn items(&self, g: &Value) -> Vec<Value> {
+        let (bg, _) = background();
+        let mut items = vec![bg];
+        for case in self.cases(g) {
+            items.push(item_json(&render(g, case)));
+        }
+        items
+    }
+
+    fn calls(&self, g: &Value) -> Vec<Value> {
+        let (_, mut calls) = background();
+        for case in self.cases(g) {
+            calls.extend(case["calls"].as_array().unwrap().iter().cloned());
+        }
+        calls
+    }
+
+    /// The files the cases draw.
+    fn images(&self, g: &Value) -> Value {
+        let used: Vec<&str> = self
+            .cases(g)
+            .iter()
+            .filter_map(|c| c["element"]["fileId"].as_str())
+            .collect();
+        Value::Object(
+            g["files"]
+                .as_object()
+                .unwrap()
+                .iter()
+                .filter(|(id, _)| used.contains(&id.as_str()))
+                .map(|(id, f)| (id.clone(), json!({"dataUrl": f["dataURL"]})))
+                .collect(),
+        )
+    }
+
+    /// The file's layout: the header keys one per line, then one call and
+    /// one item per line.
+    fn write(&self, g: &Value) {
+        let existing: Option<Value> = std::fs::read_to_string(self.file())
+            .ok()
+            .and_then(|t| serde_json::from_str(&t).ok());
+        let tolerance = existing
+            .as_ref()
+            .and_then(|v| v.get("tolerance").cloned())
+            .unwrap_or(json!({"channel": 0, "pixels": 0}));
+        let note = existing
+            .as_ref()
+            .and_then(|v| v.get("toleranceNote").cloned())
+            .unwrap_or(json!("to be measured"));
+        let header = [
+            ("description", json!(self.description)),
+            ("width", json!(FIXTURE_WIDTH)),
+            ("height", json!(FIXTURE_HEIGHT)),
+            ("tolerance", tolerance),
+            ("toleranceNote", note),
+            ("images", self.images(g)),
+            ("placeholders", g["placeholders"].clone()),
+        ];
+        let mut out = String::from("{\n");
+        for (k, v) in header {
+            out.push_str(&format!(" {}: {},\n", json!(k), v));
+        }
+        let lines = |values: Vec<Value>| {
+            values
+                .iter()
+                .map(|v| format!("  {v}"))
+                .collect::<Vec<_>>()
+                .join(",\n")
+        };
+        out.push_str(" \"canvasCalls\": [\n");
+        out.push_str(&lines(self.calls(g)));
+        out.push_str("\n ],\n \"items\": [\n");
+        out.push_str(&lines(self.items(g)));
+        out.push_str("\n ]\n}\n");
+        std::fs::write(self.file(), out).unwrap();
+    }
 }
 
 /// A white background, as both the port's items and the canvas calls.
@@ -580,89 +697,45 @@ fn background() -> (Value, Vec<Value>) {
     )
 }
 
-fn fixture_items(g: &Value) -> Vec<Value> {
-    let (bg, _) = background();
-    let mut items = vec![bg];
-    for case in g["cases"].as_array().unwrap() {
-        items.push(item_json(&render(g, case)));
-    }
-    items
-}
-
-fn fixture_calls(g: &Value) -> Vec<Value> {
-    let (_, mut calls) = background();
-    for case in g["cases"].as_array().unwrap() {
-        calls.extend(case["calls"].as_array().unwrap().iter().cloned());
-    }
-    calls
-}
-
-fn fixture_images(g: &Value) -> Value {
-    Value::Object(
-        g["files"]
-            .as_object()
-            .unwrap()
-            .iter()
-            .map(|(id, f)| (id.clone(), json!({"dataUrl": f["dataURL"]})))
-            .collect(),
-    )
-}
-
-/// The file's layout: the header keys one per line, then one item and one
-/// call per line.
-fn write_fixture(g: &Value) {
-    let header = [
-        ("description", json!("Excalidraw image elements as the port draws them (excali-scene tests/image_elements.rs, from upstream's renderElement in tests/fixtures/image-elements.json): placeholders in both themes with the image and error icons and the icon size rule, a missing file, an uninitialized element, PNG and SVG files at natural size and cropped, flipped by scale after rotation, rounded clips of every roundness, opacity, scroll and the dark filter on SVG. Chrome replays upstream's recorded canvas calls (canvasCalls) with its own decoders and placeholder SVGs; the port renders items over the same files.")),
-        ("width", json!(FIXTURE_WIDTH)),
-        ("height", json!(FIXTURE_HEIGHT)),
-    ];
-    let existing: Option<Value> = std::fs::read_to_string(fixture_file())
-        .ok()
-        .and_then(|t| serde_json::from_str(&t).ok());
-    let tolerance = existing
-        .as_ref()
-        .and_then(|v| v.get("tolerance").cloned())
-        .unwrap_or(json!({"channel": 0, "pixels": 0}));
-    let mut out = String::from("{\n");
-    for (k, v) in header {
-        out.push_str(&format!(" {}: {},\n", json!(k), v));
-    }
-    out.push_str(&format!(" \"tolerance\": {tolerance},\n"));
-    if let Some(note) = existing.as_ref().and_then(|v| v.get("toleranceNote")) {
-        out.push_str(&format!(" \"toleranceNote\": {note},\n"));
-    }
-    out.push_str(&format!(" \"images\": {},\n", fixture_images(g)));
-    out.push_str(&format!(" \"placeholders\": {},\n", g["placeholders"]));
-    let lines = |values: Vec<Value>| {
-        values
-            .iter()
-            .map(|v| format!("  {v}"))
-            .collect::<Vec<_>>()
-            .join(",\n")
-    };
-    out.push_str(" \"canvasCalls\": [\n");
-    out.push_str(&lines(fixture_calls(g)));
-    out.push_str("\n ],\n \"items\": [\n");
-    out.push_str(&lines(fixture_items(g)));
-    out.push_str("\n ]\n}\n");
-    std::fs::write(fixture_file(), out).unwrap();
-}
-
 #[test]
-fn the_raster_fixture_is_the_ports_output_beside_upstreams_calls() {
+fn the_raster_fixtures_are_the_ports_output_beside_upstreams_calls() {
     let g = golden();
-    if std::env::var_os("EXCALI_WRITE_RASTER_FIXTURE").is_some() {
-        write_fixture(&g);
+    let total: usize = SPLITS.iter().map(|s| s.cases(&g).len()).sum();
+    assert_eq!(
+        total,
+        g["cases"].as_array().unwrap().len(),
+        "every case in one fixture"
+    );
+    for split in &SPLITS {
+        assert!(!split.cases(&g).is_empty(), "{}", split.name);
+        if std::env::var_os("EXCALI_WRITE_RASTER_FIXTURE").is_some() {
+            split.write(&g);
+        }
+        let text = std::fs::read_to_string(split.file()).unwrap_or_else(|_| {
+            panic!(
+                "{}.json exists (EXCALI_WRITE_RASTER_FIXTURE=1 writes it)",
+                split.name
+            )
+        });
+        let file: Value = serde_json::from_str(&text).unwrap();
+        let stale = format!("{}.json is stale: EXCALI_WRITE_RASTER_FIXTURE=1 cargo test -p excali-scene --test image_elements, then scripts/fixtures/raster-references.sh", split.name);
+        if let Err(at) = close(&file["items"], &Value::Array(split.items(&g)), "items") {
+            panic!("{stale} ({at})");
+        }
+        assert_eq!(
+            file["canvasCalls"],
+            Value::Array(split.calls(&g)),
+            "{stale}"
+        );
+        assert_eq!(file["images"], split.images(&g), "{stale}");
+        assert_eq!(file["placeholders"], g["placeholders"], "{stale}");
+        assert_eq!(file["description"], split.description, "{stale}");
+        assert_eq!(
+            (file["width"].as_u64(), file["height"].as_u64()),
+            (
+                Some(u64::from(FIXTURE_WIDTH)),
+                Some(u64::from(FIXTURE_HEIGHT))
+            )
+        );
     }
-    let text = std::fs::read_to_string(fixture_file())
-        .expect("image-elements.json exists (EXCALI_WRITE_RASTER_FIXTURE=1 writes it)");
-    let file: Value = serde_json::from_str(&text).unwrap();
-    let stale = "image-elements.json is stale: EXCALI_WRITE_RASTER_FIXTURE=1 cargo test -p excali-scene --test image_elements, then scripts/fixtures/raster-references.sh";
-    if let Err(at) = close(&file["items"], &Value::Array(fixture_items(&g)), "items") {
-        panic!("{stale} ({at})");
-    }
-    assert_eq!(file["canvasCalls"], Value::Array(fixture_calls(&g)), "{stale}");
-    assert_eq!(file["images"], fixture_images(&g), "{stale}");
-    assert_eq!(file["placeholders"], g["placeholders"], "{stale}");
-    assert_eq!((file["width"].as_u64(), file["height"].as_u64()), (Some(620), Some(650)));
 }

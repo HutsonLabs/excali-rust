@@ -20,6 +20,7 @@
 //! | item | canvas calls |
 //! |---|---|
 //! | [`DisplayItem::Fill`] | `fillStyle`, the [`Path`], `fill(rule)` |
+//! | [`DisplayItem::FillRect`] | `fillStyle`, `fillRect(x, y, w, h)` |
 //! | [`DisplayItem::Stroke`] | `strokeStyle`, `lineWidth`, `lineCap`, `lineJoin`, `miterLimit`, `setLineDash`, `lineDashOffset`, the path, `stroke()` |
 //! | [`DisplayItem::Image`] | `imageSmoothingEnabled`, `filter`, `drawImage` with a source and destination rectangle |
 //! | [`DisplayItem::Text`] | `font`, `fillStyle`, `textAlign`, `direction`, `fillText` |
@@ -83,7 +84,7 @@ mod text;
 mod transform;
 
 pub use document::{FontFaceSource, FrameClip, SvgDocument, SvgPayload};
-pub use image::{ImageFilter, ImageItem, Rect};
+pub use image::{BuiltinImage, ImageFilter, ImageItem, Rect};
 pub use number::{number_to_string, to_fixed};
 pub use paint::{Color, Dash, LineCap, LineJoin, Rgba, Stroke};
 pub use path::{FillRule, Path, PathCommand};
@@ -100,6 +101,11 @@ pub enum DisplayItem {
         color: Color,
         rule: FillRule,
     },
+    /// `fillRect`: fill a rectangle with a colour. The canvas draws it as a
+    /// rectangle (Skia's `drawRect`), which anti-aliases its edges more
+    /// finely than the same rectangle filled as a path, so upstream's
+    /// `fillRect` calls (the image placeholder's box) stay rectangles.
+    FillRect { rect: Rect, color: Color },
     /// Stroke a path.
     Stroke { path: Path, stroke: Stroke },
     /// Draw a bitmap into a rectangle.

@@ -55,6 +55,8 @@ pub trait Context2d {
     fn close_path(&mut self);
     /// `fill(rule)`.
     fn fill(&mut self, rule: &str);
+    /// `fillRect(x, y, w, h)`.
+    fn fill_rect(&mut self, rect: &Rect);
     fn stroke(&mut self);
     /// `clip(rule)`.
     fn clip(&mut self, rule: &str);
@@ -141,6 +143,13 @@ impl<C: Context2d> Painter for CanvasPainter<'_, C> {
         self.ctx.set_fill_style(color.as_str());
         self.trace(path);
         self.ctx.fill(rule.as_css());
+        self.ctx.restore();
+    }
+
+    fn fill_rect(&mut self, rect: &Rect, color: &Color, _: Rgba, state: &PaintState) {
+        self.begin(state);
+        self.ctx.set_fill_style(color.as_str());
+        self.ctx.fill_rect(rect);
         self.ctx.restore();
     }
 

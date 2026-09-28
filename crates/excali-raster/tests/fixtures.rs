@@ -154,6 +154,10 @@ fn item(v: &Value) -> DisplayItem {
             color: Color::new(v["color"].as_str().expect("a fill has a colour")),
             rule: rule(v.get("rule")),
         },
+        "fillRect" => DisplayItem::FillRect {
+            rect: rect(&v["rect"]),
+            color: Color::new(v["color"].as_str().expect("a fillRect has a colour")),
+        },
         "stroke" => {
             let mut stroke = Stroke::new(
                 Color::new(v["color"].as_str().expect("a stroke has a colour")),
@@ -472,6 +476,16 @@ fn the_fixture_vocabulary() {
 
     let g = item(&serde_json::json!({"type": "group", "items": []}));
     assert_eq!(g, DisplayItem::Group(Group::new(vec![])));
+
+    let r =
+        item(&serde_json::json!({"type": "fillRect", "color": "#E7E7E7", "rect": [0, 1.5, 2, 3]}));
+    assert_eq!(
+        r,
+        DisplayItem::FillRect {
+            rect: Rect::new(0.0, 1.5, 2.0, 3.0),
+            color: Color::new("#E7E7E7"),
+        }
+    );
 
     let DecodedImage::Bitmap(img) =
         image(&serde_json::json!({"width": 1, "height": 1, "rgba": [255, 0, 0, 128]}))
