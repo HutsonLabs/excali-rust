@@ -2,7 +2,8 @@
 //! implementation of the WHATWG URL Standard), with the places where it
 //! answers differently from `new URL` in Node 26 (ada), the engine the
 //! fixtures are recorded with, put right. Each is pinned by
-//! `tools/goldens/library-url-fixtures.mjs`:
+//! `tools/goldens/library-url-fixtures.mjs` or
+//! `tools/goldens/url-host-fixtures.mjs`:
 //!
 //! - `file:` URLs. The crate drops the empty path segments right after the
 //!   host (`file://h//x` and `file://h/\x` have the pathname `/x`, the
@@ -27,16 +28,17 @@
 //!   standard's `/`), and it leaves `^` as it is where the standard's path
 //!   percent-encode set has `%5E`. These pathnames are parsed here too, by
 //!   the path start and path states ([`hierarchical_path`]).
-//!
-//! One difference is left, and it only ever rejects: a host with a code
-//! point outside ASCII (after percent-decoding) that the crate's UTS 46
-//! processing rejects is not a URL here. ada accepts some of these: where
-//! the mapping (which drops a soft hyphen, for one) leaves an `xn--` label
-//! whose Punycode decodes to a label ada's checks let through and the
-//! crate's validity criteria do not, such as one starting with a combining
-//! mark (`ws:\u{ad}XN--A_xn--LOCALHOSTxn--ls8h`, hostname
-//! `xn--a_xn--localhostxn--ls8h` in Node 26). The allow-list turns such a
-//! URL down where upstream could accept it.
+//! - Hosts outside ASCII (after percent-decoding) in special URLs. ada's
+//!   IDNA is not the crate's UTS 46: its combining-mark and bidi tables are
+//!   Unicode 13 while its mapping is IDNA 17, it applies the Bidi rule per
+//!   right-to-left label, and more (see [`crate::ada_idna`]). So
+//!   `https://\u{1AD3}/` is `xn--trf` and `https://a\u{10D50}/` is
+//!   `xn--a-ho6i` in Node, which the crate rejects, and
+//!   `https://\u{5D0}\u{1AD3}/` is not a URL, which the crate accepts. Such a
+//!   domain is converted here by the port of ada's `to_ascii` and its
+//!   result put in the URL in its place before the crate parses it
+//!   ([`non_ascii_domain`]). `tools/goldens/url-host-fixtures.mjs` pins
+//!   this against Node over every code point and seeded random URLs.
 
 use url::{ParseError, Url};
 
@@ -72,8 +74,19 @@ impl JsUrl {
 
 /// `new URL(input)`: `None` where it throws `TypeError: Invalid URL`.
 pub(crate) fn parse(input: &str) -> Option<JsUrl> {
-    let input = preprocess(input);
+    let mut input = preprocess(input);
     let (scheme, rest) = scheme_and_rest(&input)?;
+    if is_special(&scheme) {
+        if let Some((start, end)) = host_span(&scheme, &input, rest) {
+            // A domain outside ASCII: ada's IDNA gives its ASCII form, which
+            // then stands in the URL for it, so everything after (IPv4,
+            // `localhost` in `file:`) is what ada does with that result.
+            if !percent_decode(&input[start..end]).is_ascii() {
+                let ascii = non_ascii_domain(&input[start..end])?;
+                input.replace_range(start..end, &ascii);
+            }
+        }
+    }
     match Url::parse(&input) {
         Ok(url) => {
             if authority_fails(&scheme, &input[rest..]) {
@@ -252,6 +265,19 @@ fn ascii_domain(raw: &str) -> Option<String> {
         return None;
     }
     Some(domain)
+}
+
+/// ada's `unicode::to_ascii` for a domain outside ASCII once
+/// percent-decoded: UTF-8 (strictly; ada's decoder refuses what Rust's
+/// does), then [`ada_idna::to_ascii`](crate::ada_idna::to_ascii); `None`
+/// for an empty result or one with a forbidden domain code point.
+fn non_ascii_domain(raw: &str) -> Option<String> {
+    let domain = String::from_utf8(percent_decode(raw)).ok()?;
+    let ascii = crate::ada_idna::to_ascii(&domain)?;
+    if ascii.is_empty() || ascii.chars().any(is_forbidden_domain_code_point) {
+        return None;
+    }
+    Some(ascii)
 }
 
 fn percent_decode(s: &str) -> Vec<u8> {

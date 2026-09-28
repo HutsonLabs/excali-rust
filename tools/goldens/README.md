@@ -454,3 +454,34 @@ node tools/goldens/library-url-fixtures.mjs --check   # exit 1 if it is stale
 
 CI runs `--check` in the `goldens` job, and
 `test/library-url-fixtures.test.mjs` checks that two runs are byte-identical.
+
+## URL host fixtures
+
+`url-host-fixtures.mjs` writes `crates/excali-core/tests/fixtures/url-hosts.json`
+for excali-core's `whatwg_url` (ex-109): what `new URL` gives in Node for
+special URLs whose host is outside ASCII, where the domain goes through ada's
+IDNA (`ada::idna::to_ascii`), which the port carries as `excali_core::ada_idna`.
+It records:
+
+- `cases`: hostname and pathname, or `error`, for hosts that show where ada
+  differs from UTS 46 with Unicode 17 data (combining marks and right-to-left
+  letters from Unicode 14 to 17, the Bidi rule per label, ContextJ, NFC,
+  mapping, percent escapes, `xn--` labels, IPv4 after mapping, `file:`);
+- `sweep`: a CRC-32 per 4,096 code points of the hostnames of
+  `https://{c}/` and `https://a{c}/` for every code point from U+0080;
+- `random`: CRC-32s over 20,000 URLs from a seeded Park-Miller generator
+  whose tokens and schemes are in the fixture, so the Rust test rebuilds the
+  same inputs.
+
+It needs no upstream checkout. The output depends on the Node release, so the
+generator refuses any but `.node-version` (26.10.0, ada 4.0.0).
+
+```sh
+node tools/goldens/url-host-fixtures.mjs           # write the fixture
+node tools/goldens/url-host-fixtures.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and `test/url-host-fixtures.test.mjs`
+checks that two runs are byte-identical. ada's table blob itself is taken
+from the ada 4.0.0 release by `scripts/fixtures/ada-idna-tables.py`
+(`--check` runs in the `ada-idna-tables` job of `gates.yml`).

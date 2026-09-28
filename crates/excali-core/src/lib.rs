@@ -5,6 +5,7 @@
 //! Targets: native, wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-math`.
 
+mod ada_idna;
 pub mod app_state;
 pub mod clipboard;
 pub mod color;

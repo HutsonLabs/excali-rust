@@ -109,6 +109,20 @@ jobs:
           UPSTREAM_DIR: ${{ runner.temp }}/upstream
           TOOLS_DIR: ${{ runner.temp }}/tools
         run: scripts/fixtures/png-goldens.sh --check
+  # ex-109: excali-core's ada_idna port reads ada's own IDNA table blob.
+  # Take it again from the ada 4.0.0 release (the ada Node 26 bundles;
+  # ada.cpp checked against its pinned SHA-256) and fail if the committed
+  # tables.zlib or layout.rs differ.
+  ada-idna-tables:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: table script tests (offline)
+        run: python3 scripts/fixtures/test_ada_idna_tables.py -v
+      - name: committed tables match ada 4.0.0
+        env:
+          TOOLS_DIR: ${{ runner.temp }}/tools
+        run: python3 scripts/fixtures/ada-idna-tables.py --check
   # scripts/upstream/checkout.sh: the offline suite pins its behaviour
   # (fixture remotes over file://); the live step proves the real pin still
   # resolves on GitHub, lands clean, and a second run is a no-op.
