@@ -588,6 +588,31 @@
    "labels": []
   },
   {
+   "id": "ex-116",
+   "epic": "ex-e1",
+   "title": "Restore: legacy arrow binding migration (bindings without mode) through RestoreEnv::migrate_legacy_binding",
+   "priority": 0,
+   "blocked_by": [
+    "ex-104",
+    "ex-507",
+    "ex-510"
+   ],
+   "crates": [
+    "excali-core",
+    "excali-editor"
+   ],
+   "acceptance": "An arrow binding saved without mode whose target exists is kept with upstream's mode and fixedPoint, not dropped: excali-editor implements RestoreEnv::migrate_legacy_binding (LinearElementEditor.getPointAtIndexGlobalCoordinates, isPointInElement, projectFixedPointOntoDiagonal, calculateFixedPointForNonElbowArrowBinding at DEFAULT_ZOOM), and every restore-element.json case with a geometry field matches upstream's restoreElement result with the default environment (no fixture answer injected).",
+   "evidence": [
+    "packages/excalidraw/data/restore.ts:347-418 (binding schema v1 to v2 migration) at the pinned commit",
+    "packages/element/src/collision.ts:829 (isPointInElement), packages/element/src/utils.ts:810 (projectFixedPointOntoDiagonal), packages/element/src/binding.ts:2196 (calculateFixedPointForNonElbowArrowBinding)",
+    "crates/excali-core/src/restore/element.rs (RestoreEnv::migrate_legacy_binding; the default answer None drops the binding)",
+    "site/content/decisions/adr-008-crate-boundaries.md (tracked exceptions)"
+   ],
+   "description": "ex-104 ports restoreElement in excali-core, but the legacy binding migration needs shapes, bounds and hit testing that live in excali-editor above excali-core. Restore asks RestoreEnv::migrate_legacy_binding; its default answer (None) drops the binding, so legacy files lose arrow bindings on load until this lands. M1 cannot close while that data loss remains.",
+   "type": "task",
+   "labels": []
+  },
+  {
    "id": "ex-201",
    "epic": "ex-e2",
    "title": "excali-math: points, vectors, segments, angles, ranges, rectangles, polygons",
