@@ -159,6 +159,18 @@ pub(crate) fn add_number(value: &Value, number: f64) -> Result<f64, TypeError> {
     Ok(string_to_number(&(primitive + &number_to_string(number))))
 }
 
+/// `value + n` for a JSON value, as a value: a string, array or object
+/// concatenates with `n`'s string form (so `"10" + 1` is `"101"`), anything
+/// else adds. [`add_number`] is the same sum when a number is wanted next.
+pub(crate) fn plus_number(value: &Value, n: f64) -> Result<Value, TypeError> {
+    Ok(match value {
+        Value::Null => number(n),
+        Value::Bool(b) => number(f64::from(u8::from(*b)) + n),
+        Value::Number(x) => number(x.as_f64().unwrap_or(f64::NAN) + n),
+        other => Value::String(to_string(Some(other))? + &number_to_string(n)),
+    })
+}
+
 /// `WhiteSpace` and `LineTerminator` (sections 12.2, 12.3) for a code
 /// point or UTF-16 code unit: JS's `\s` and what `String.prototype.trim`,
 /// `parseFloat` and `Number(string)` skip. Unlike Rust's
@@ -332,6 +344,26 @@ pub(crate) fn as_number(value: Option<&Value>) -> Option<f64> {
 /// `isFiniteNumber(value)` (`packages/math/src/utils.ts:28-30`).
 pub(crate) fn is_finite_number(value: Option<&Value>) -> bool {
     as_number(value).is_some_and(f64::is_finite)
+}
+
+/// `value` when [`is_finite_number`] holds for it.
+pub(crate) fn finite_number(value: Option<&Value>) -> Option<f64> {
+    as_number(value).filter(|x| x.is_finite())
+}
+
+/// `a === b` for JSON values, `None` being `undefined`: numbers by value
+/// (NaN unequal to itself), other primitives by type and value, and an
+/// object or array never equal (JS compares those by identity, and two
+/// parsed values are never the same object).
+pub(crate) fn strictly_equal(a: Option<&Value>, b: Option<&Value>) -> bool {
+    match (a, b) {
+        (None, None) => true,
+        (Some(Value::Number(x)), Some(Value::Number(y))) => x.as_f64() == y.as_f64(),
+        (Some(Value::Array(_) | Value::Object(_)), _)
+        | (_, Some(Value::Array(_) | Value::Object(_))) => false,
+        (Some(a), Some(b)) => a == b,
+        _ => false,
+    }
 }
 
 /// A number result as a JSON value: integral values as integers (what
@@ -533,5 +565,37 @@ mod tests {
         }
         assert_eq!(parse_float("\u{feff}\u{3000}2"), 2.0);
         assert!(parse_float("\u{85}2").is_nan());
+    }
+
+    #[test]
+    fn plus_number_concatenates_or_adds_like_js() {
+        let cases = [
+            (json!(1), json!(2)),
+            (json!("10"), json!("101")),
+            (json!(true), json!(2)),
+            (json!(null), json!(1)),
+            (json!([1, 2]), json!("1,21")),
+            (json!({}), json!("[object Object]1")),
+            (json!(1e308), json!(1e308)),
+        ];
+        for (value, want) in cases {
+            assert_eq!(plus_number(&value, 1.0).unwrap(), want, "{value} + 1");
+        }
+        assert_eq!(plus_number(&json!(1e308), 1e308).unwrap(), Value::Null);
+        assert!(plus_number(&json!({"toString": 1}), 1.0).is_err());
+    }
+
+    #[test]
+    fn strict_equality_and_finite_numbers() {
+        assert!(strictly_equal(None, None));
+        assert!(strictly_equal(Some(&json!(1)), Some(&json!(1.0))));
+        assert!(strictly_equal(Some(&json!("a")), Some(&json!("a"))));
+        assert!(!strictly_equal(Some(&json!(1)), Some(&json!("1"))));
+        assert!(!strictly_equal(Some(&json!(null)), None));
+        assert!(!strictly_equal(Some(&json!([])), Some(&json!([]))));
+        assert!(!strictly_equal(Some(&json!({})), Some(&json!({}))));
+        assert_eq!(finite_number(Some(&json!(2.5))), Some(2.5));
+        assert_eq!(finite_number(Some(&json!("2"))), None);
+        assert_eq!(finite_number(None), None);
     }
 }
