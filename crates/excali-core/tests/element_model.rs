@@ -1278,6 +1278,11 @@ fn types_where(pred: impl Fn(ElementType) -> bool) -> Vec<&'static str> {
 fn type_groupings_match_upstream() {
     assert_eq!(types_where(ElementType::is_linear), ["line", "arrow"]);
     assert_eq!(types_where(ElementType::is_binding), ["arrow"]);
+    // canChangeRoundness, comparisons.ts:57-64.
+    assert_eq!(
+        types_where(ElementType::can_change_roundness),
+        ["rectangle", "stickynote", "diamond", "embeddable", "iframe", "image", "line"]
+    );
     assert_eq!(
         types_where(ElementType::is_bindable),
         [
