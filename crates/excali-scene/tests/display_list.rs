@@ -941,9 +941,10 @@ mod replay {
 
     #[test]
     fn the_current_style_comes_from_the_base_state_through_groups() {
-        // bootstrapCanvas leaves fillStyle = viewBackgroundColor after
-        // painting the background; a list replayed from such a state paints
-        // an ignored fill in it, and an ignored stroke in the stroke style.
+        // A caller whose context already holds styles (bootstrapCanvas
+        // leaves none: it paints the background inside save()/restore())
+        // replays from a base state carrying them; an ignored fill paints in
+        // its fill style, and an ignored stroke in its stroke style.
         let fill_style = Rgba {
             r: 255,
             g: 255,
@@ -1130,18 +1131,15 @@ mod boundaries {
         for entry in std::fs::read_dir(dir).expect("src/display exists") {
             let path = entry.unwrap().path();
             let code = code_without_comments(&std::fs::read_to_string(&path).unwrap());
+            let is_mod = path.file_name().is_some_and(|n| n == "mod.rs");
             sources += 1;
             for p in paths(&code) {
-                let segments: Vec<&str> = p.split("::").collect();
-                for s in &segments {
+                for s in p.split("::") {
                     assert!(!s.contains("Element"), "{} names {s}", path.display());
                 }
-                let allowed = match segments[0] {
-                    "excali_core" => matches!(segments.get(1), Some(&"color" | &"json")),
-                    "crate" => segments.get(1).is_none_or(|m| *m == "display"),
-                    s => !s.starts_with("excali_"),
-                };
-                assert!(allowed, "{} uses {p}", path.display());
+            }
+            for r in roots(&code, is_root) {
+                assert!(allowed(&r, is_mod), "{} uses {r}", path.display());
             }
         }
         assert!(sources > 1);
@@ -1156,6 +1154,61 @@ mod boundaries {
             paths(&code),
             ["use", "excali_core::element::TextElement", "let", "x", "1"]
         );
+    }
+
+    #[test]
+    fn the_path_check_sees_groups_and_parents() {
+        let code = "use crate::{shape::X}; use crate::display::Path; use super::super::shape;\n\
+                    use super::{paint::Color}; use self::super::y; pub(crate) fn f(&self) {}\n\
+                    use excali_core::{element::E}; use excali_core :: color; use excali_math::P;";
+        let found = roots(code, is_root);
+        assert_eq!(
+            found,
+            [
+                "crate::{",
+                "crate::display",
+                "super::super",
+                "super::shape",
+                "super::{",
+                "self::super",
+                "super::y",
+                "crate)",
+                "self)",
+                "excali_core::{",
+                "excali_core::color",
+                "excali_math::P",
+            ]
+        );
+        let in_submodule: Vec<bool> = found.iter().map(|r| allowed(r, false)).collect();
+        assert_eq!(
+            in_submodule,
+            [false, true, false, true, true, false, true, true, true, false, true, false]
+        );
+        let in_mod_rs: Vec<bool> = found.iter().map(|r| allowed(r, true)).collect();
+        assert_eq!(
+            in_mod_rs,
+            [false, true, false, false, false, false, false, true, true, false, true, false]
+        );
+    }
+
+    /// The roots the display module's path check follows.
+    fn is_root(word: &str) -> bool {
+        matches!(word, "crate" | "super" | "self") || word.starts_with("excali_")
+    }
+
+    /// Whether a display source may take the path `root` (see [`roots`])
+    /// leads to. `super` from `mod.rs` is the crate root, and from a
+    /// submodule `super::super` is.
+    fn allowed(root: &str, is_mod: bool) -> bool {
+        match root.split_once("::") {
+            Some(("excali_core", m)) => matches!(m, "color" | "json"),
+            Some(("crate", m)) => m == "display",
+            Some(("super" | "self", "super")) => false,
+            Some(("super", _)) => !is_mod,
+            Some(("self", _)) => true,
+            Some(_) => false,
+            None => root.starts_with("self") || matches!(root, "crate)" | "super)"),
+        }
     }
 
     /// The code of a Rust source with `//` and `/* */` comments removed (doc
@@ -1191,5 +1244,41 @@ mod boundaries {
             .filter(|p| !p.is_empty())
             .map(str::to_owned)
             .collect()
+    }
+
+    /// Where every path that starts at a root `is_root` accepts leads: `root::next`
+    /// with the segment after the first `::` (`{` for a group, `*` for a glob),
+    /// `root)` for a visibility such as `pub(crate)`, or `root` alone (a bare or
+    /// renamed import). Every occurrence counts, so a root inside a group
+    /// (`use a::{super::x}`) or after a leading `::` is seen, and `super::super`
+    /// shows as such.
+    fn roots(code: &str, is_root: impl Fn(&str) -> bool) -> Vec<String> {
+        let ident = |c: char| c.is_alphanumeric() || c == '_';
+        let mut out = Vec::new();
+        let mut rest = code;
+        while let Some(start) = rest.find(ident) {
+            let len = rest[start..]
+                .find(|c: char| !ident(c))
+                .unwrap_or(rest.len() - start);
+            let word = &rest[start..start + len];
+            rest = &rest[start + len..];
+            if !is_root(word) {
+                continue;
+            }
+            let after = rest.trim_start();
+            out.push(match after.strip_prefix("::").map(str::trim_start) {
+                Some(next) => {
+                    let n = next.find(|c: char| !ident(c)).unwrap_or(next.len());
+                    let segment = match n {
+                        0 => next.chars().next().map_or(String::new(), String::from),
+                        _ => next[..n].to_owned(),
+                    };
+                    format!("{word}::{segment}")
+                }
+                None if after.starts_with(')') => format!("{word})"),
+                None => word.to_owned(),
+            });
+        }
+        out
     }
 }

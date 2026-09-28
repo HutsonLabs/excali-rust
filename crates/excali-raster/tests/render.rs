@@ -650,14 +650,9 @@ fn no_element_knowledge() {
                     path.display()
                 );
             }
-            if segments[0].starts_with("excali_") {
-                assert!(
-                    segments[0] == "excali_scene"
-                        && segments.get(1).is_none_or(|m| *m == "display"),
-                    "{} uses {p}",
-                    path.display()
-                );
-            }
+        }
+        for r in roots(&code, |w| w.starts_with("excali_")) {
+            assert_eq!(r, "excali_scene::display", "{} uses {r}", path.display());
         }
     }
     assert!(sources > 0);
@@ -671,6 +666,24 @@ fn the_element_check_sees_code_and_skips_comments() {
     assert_eq!(
         paths(&code),
         ["use", "excali_core::element::TextElement", "let", "x", "1"]
+    );
+}
+
+#[test]
+fn the_path_check_sees_groups_globs_and_renames() {
+    let code = "use excali_scene::display::{Path}; use excali_scene::{shape::ShapeCache};\n\
+                use excali_scene :: * ; use excali_scene as s; use ::excali_scene::shape;\n\
+                use excali_core::x; pub(crate) fn f() {}";
+    assert_eq!(
+        roots(code, |w| w.starts_with("excali_")),
+        [
+            "excali_scene::display",
+            "excali_scene::{",
+            "excali_scene::*",
+            "excali_scene",
+            "excali_scene::shape",
+            "excali_core::x",
+        ]
     );
 }
 
@@ -707,4 +720,40 @@ fn paths(code: &str) -> Vec<String> {
         .filter(|p| !p.is_empty())
         .map(str::to_owned)
         .collect()
+}
+
+/// Where every path that starts at a root `is_root` accepts leads: `root::next`
+/// with the segment after the first `::` (`{` for a group, `*` for a glob),
+/// `root)` for a visibility such as `pub(crate)`, or `root` alone (a bare or
+/// renamed import). Every occurrence counts, so a root inside a group
+/// (`use a::{super::x}`) or after a leading `::` is seen, and `super::super`
+/// shows as such.
+fn roots(code: &str, is_root: impl Fn(&str) -> bool) -> Vec<String> {
+    let ident = |c: char| c.is_alphanumeric() || c == '_';
+    let mut out = Vec::new();
+    let mut rest = code;
+    while let Some(start) = rest.find(ident) {
+        let len = rest[start..]
+            .find(|c: char| !ident(c))
+            .unwrap_or(rest.len() - start);
+        let word = &rest[start..start + len];
+        rest = &rest[start + len..];
+        if !is_root(word) {
+            continue;
+        }
+        let after = rest.trim_start();
+        out.push(match after.strip_prefix("::").map(str::trim_start) {
+            Some(next) => {
+                let n = next.find(|c: char| !ident(c)).unwrap_or(next.len());
+                let segment = match n {
+                    0 => next.chars().next().map_or(String::new(), String::from),
+                    _ => next[..n].to_owned(),
+                };
+                format!("{word}::{segment}")
+            }
+            None if after.starts_with(')') => format!("{word})"),
+            None => word.to_owned(),
+        });
+    }
+    out
 }
