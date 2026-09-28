@@ -25,3 +25,4 @@ pub mod png;
 pub mod restore;
 pub mod schema;
 pub mod svg_payload;
+mod whatwg_url;

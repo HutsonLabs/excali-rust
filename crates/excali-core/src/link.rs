@@ -13,9 +13,8 @@
 //! cannot hold) becomes U+FFFD. That is also what the URL parser does with
 //! one, so the URL a caller goes on to use is the same.
 
-use url::Url;
-
 use crate::js;
+use crate::whatwg_url;
 
 /// What [`sanitize_url`] and [`to_valid_url`] return for a link they reject.
 pub const BLANK_URL: &str = "about:blank";
@@ -47,7 +46,7 @@ pub fn to_valid_url(link: &str, origin: &str) -> String {
     if link.starts_with('/') {
         return format!("{origin}{link}");
     }
-    if Url::parse(&link).is_err() {
+    if whatwg_url::parse(&link).is_none() {
         return BLANK_URL.to_owned();
     }
     link

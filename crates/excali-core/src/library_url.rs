@@ -28,15 +28,17 @@
 //! unescaped, so their dots match any character (`excalidraw-com` passes)
 //! and other regular expression syntax in a caller's entry takes effect or
 //! throws; `crate::js_regexp` gives the same answers and V8's errors.
-//! URLs are parsed by the `url` crate, an implementation of the WHATWG URL
-//! Standard that `new URL` follows.
+//! URLs are parsed as `new URL` parses them: by the `url` crate, an
+//! implementation of the WHATWG URL Standard, with the places where it
+//! differs from `new URL` put right (`crate::whatwg_url`).
 
 use std::fmt;
 
-use url::{form_urlencoded, Url};
+use url::form_urlencoded;
 
 use crate::js_regexp::RegExp;
 use crate::link::to_valid_url;
+use crate::whatwg_url::{self, JsUrl};
 
 /// `ALLOWED_LIBRARY_URLS` (`packages/excalidraw/data/library.ts:54-58`):
 /// excalidraw.com (libraries.excalidraw.com serves the catalogue) and the
@@ -172,8 +174,8 @@ pub fn validate_library_url_with(
 }
 
 /// `new URL(url)`.
-fn parse_url(url: &str) -> Result<Url, LibraryUrlError> {
-    Url::parse(url).map_err(|_| LibraryUrlError::InvalidUrl)
+fn parse_url(url: &str) -> Result<JsUrl, LibraryUrlError> {
+    whatwg_url::parse(url).ok_or(LibraryUrlError::InvalidUrl)
 }
 
 /// `new RegExp(source)`.
@@ -190,31 +192,15 @@ fn entry_allows(entry: &str, library_url: &str) -> Result<bool, LibraryUrlError>
         .unwrap_or(entry);
     let allowed_url = parse_url(&format!("https://{bare}"))?;
     let url = parse_url(library_url)?;
-    let host = regexp(&format!(
-        r"(^|\.){}$",
-        allowed_url.host_str().unwrap_or_default()
-    ))?;
-    if !host.test(url.host_str().unwrap_or_default()) {
+    let host = regexp(&format!(r"(^|\.){}$", allowed_url.hostname()))?;
+    if !host.test(url.hostname()) {
         return Ok(false);
     }
     let path = regexp(&format!(
         "^{}(/+|$)",
-        pathname(&allowed_url).trim_end_matches('/')
+        allowed_url.pathname().trim_end_matches('/')
     ))?;
-    Ok(path.test(&pathname(&url)))
-}
-
-/// `url.pathname`. The URL Standard's path percent-encode set has U+005E
-/// (`^`), which `new URL` in Node 26 (ada) encodes as `%5E` and the `url`
-/// crate (2.5.8) leaves as it is; a path that is not opaque gets it here.
-/// It matters to the allow-list: `example.com/[^a-c]` is the class
-/// `[%5Ea-c]` upstream, not a negated one.
-fn pathname(url: &Url) -> String {
-    if url.cannot_be_a_base() {
-        url.path().to_owned()
-    } else {
-        url.path().replace('^', "%5E")
-    }
+    Ok(path.test(url.pathname()))
 }
 
 /// What [`parse_library_tokens`] reads from the address: the library URL
@@ -286,7 +272,7 @@ pub fn parse_library_tokens(search: &str, hash: &str) -> Option<LibraryUrlTokens
 
 /// `location.search` and `location.hash` of `url`: `?query` and
 /// `#fragment`, or empty when either is absent or empty.
-fn search_and_hash(url: &Url) -> (String, String) {
+fn search_and_hash(url: &JsUrl) -> (String, String) {
     let part = |prefix: char, value: Option<&str>| match value {
         Some(value) if !value.is_empty() => format!("{prefix}{value}"),
         _ => String::new(),
@@ -297,7 +283,7 @@ fn search_and_hash(url: &Url) -> (String, String) {
 /// [`parse_library_tokens`] for the address `href` (`location.href`);
 /// `None` also when `href` is not a URL.
 pub fn parse_library_tokens_from_url(href: &str) -> Option<LibraryUrlTokens> {
-    let url = Url::parse(href).ok()?;
+    let url = whatwg_url::parse(href)?;
     let (search, hash) = search_and_hash(&url);
     parse_library_tokens(&search, &hash)
 }
