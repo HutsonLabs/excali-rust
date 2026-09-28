@@ -86,6 +86,19 @@ ttf2woff2 = { version = "=0.13.3", default-features = false }
 sha2 = "0.11.0"
 base64 = "0.23.1"
 
+# The web runtime's release build (scripts/web/build.sh, ex-501): the size
+# budget on site/content/plan/phases.md is measured on this profile's output
+# after wasm-opt -Oz. opt-level "z", fat LTO and one codegen unit trade build
+# time for bytes; panic = "abort" keeps unwinding tables out (wasm32 aborts
+# on panic either way). Native release builds (excali-cli) keep the default
+# release profile.
+[profile.web-release]
+inherits = "release"
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
 rust_2018_idioms = { level = "deny", priority = -1 }

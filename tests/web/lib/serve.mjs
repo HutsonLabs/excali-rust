@@ -3,7 +3,7 @@
 // and the test page in tests/web/page at "/". Every response is no-store,
 // so each test's font requests reach the network log.
 //
-//   node lib/serve.mjs [--port N] [--root DIR]     default root: target/web
+//   node lib/serve.mjs [--port N] [--root DIR]     default root: dist
 import { createServer } from "node:http";
 import { readFileSync, statSync } from "node:fs";
 import { dirname, extname, join, resolve, sep } from "node:path";
@@ -62,7 +62,7 @@ export function createWebServer(rootDir) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
   let port = 4174;
-  let root = join(REPO_ROOT, "target", "web");
+  let root = join(REPO_ROOT, "dist");
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--port") port = Number(args[++i]);
     else if (args[i] === "--root") root = resolve(args[++i]);

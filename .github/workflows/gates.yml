@@ -41,6 +41,17 @@ jobs:
       # (ex-008) as recorded in the plan and on the process pages.
       - name: task graph and seed tests
         run: python3 scripts/tasks/test_plan.py -v
+      # ex-501: the web build pipeline (stub toolchain: order, flags, dist/
+      # outputs, the budget failing the build), the gzip size gate reading
+      # its budgets from site/content/plan/phases.md, and the pinned
+      # binaryen download (offline, file:// release). The real build and
+      # budget run in rust.yml, job web-runtime.
+      - name: web build pipeline tests
+        run: python3 scripts/web/test_build.py -v
+      - name: wasm size gate tests
+        run: python3 scripts/gates/test_wasm_size.py -v
+      - name: pinned binaryen tests
+        run: python3 scripts/web/test_binaryen.py -v
       # ex-306 / ADR-004: every family's licence recorded with source URL and
       # date; a font file is vendored only for a confirmed family, with its
       # licence text beside it, and never a file listed under Licence gaps.

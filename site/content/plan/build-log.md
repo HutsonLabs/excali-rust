@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-501 · WASM build pipeline: wasm-bindgen --target web, wasm-opt, size check in CI
+
+`scripts/web/build.sh` now builds the editor for the browser: the `web-release` profile, `wasm-bindgen --target web`, then `wasm-opt -Oz` from binaryen 133, pinned and SHA-256 verified. It writes `dist/excali_editor.js` and `dist/excali_editor_bg.wasm`. CI runs the build on every pull request and fails when a gzip size goes over its budget in phases.md. The module is 213,439 bytes gzip against a 1,500,000 budget. PR: [#76](https://github.com/HutsonLabs/excali-rust/pull/76).
+
 ## 2026-09-28 · ex-403 · Frames: clipping with radius 8/zoom, stroke #bbb, names as Helvetica text on export
 
 The static scene now clips each frame's children to the frame. The clip is a rounded rectangle of radius 8 / zoom at the frame's corner, as upstream's `frameClip` and `clipElementToFrame` draw it. Each child's bound text, placeholder label and link icon are clipped with it. The `frame.ts` predicates that decide the target frame are ported and held to upstream's results, including while dragging over a highlighted frame and while editing a group. PNG export carries these through as well. PR: [#75](https://github.com/HutsonLabs/excali-rust/pull/75).
