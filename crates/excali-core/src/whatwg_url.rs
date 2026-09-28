@@ -494,6 +494,69 @@ mod tests {
     }
 
     #[test]
+    fn drive_letters_are_ordinary_segments_outside_file_urls() {
+        assert_eq!(
+            parts("https://excalidraw.com/C:/.."),
+            some("excalidraw.com", "/")
+        );
+        assert_eq!(
+            parts("https://excalidraw.com/c|/%2e%2e/"),
+            some("excalidraw.com", "/")
+        );
+        assert_eq!(parts("http://h/C:/.."), some("h", "/"));
+        assert_eq!(parts("ws://h/c|/../x"), some("h", "/x"));
+        assert_eq!(parts("wss://h/./C:/../"), some("h", "/"));
+        assert_eq!(parts("x://h/c|/.."), some("h", "/"));
+        assert_eq!(parts("x:/C:/.."), some("", "/"));
+        assert_eq!(parts("x:/c|/.."), some("", "/"));
+        assert_eq!(parts("ftp:,\u{df}\\c|/%2E%2e/"), some("xn--,-qfa", "/"));
+        assert_eq!(parts("https://h/c|/x"), some("h", "/c|/x"));
+        assert_eq!(parts("x://h/C|/x"), some("h", "/C|/x"));
+        assert_eq!(parts("https://h/C:"), some("h", "/C:"));
+        assert_eq!(parts("http://h/c|"), some("h", "/c|"));
+        assert_eq!(
+            parts("https://raw.githubusercontent.com/C:/../excalidraw/x"),
+            some("raw.githubusercontent.com", "/excalidraw/x")
+        );
+    }
+
+    #[test]
+    fn paths_outside_file_urls_follow_the_path_state() {
+        assert_eq!(parts("x://h"), some("h", ""));
+        assert_eq!(parts("x://h?q"), some("h", ""));
+        assert_eq!(parts("x://h#f"), some("h", ""));
+        assert_eq!(parts("x://h/"), some("h", "/"));
+        assert_eq!(parts("x:/"), some("", "/"));
+        assert_eq!(parts("x:"), some("", ""));
+        assert_eq!(parts("https://h"), some("h", "/"));
+        assert_eq!(parts("https://h?q"), some("h", "/"));
+        assert_eq!(parts("https:h\\\\a\\\\..\\\\b"), some("h", "//a//b"));
+        assert_eq!(parts("x://h/a\\..\\b"), some("h", "/a\\..\\b"));
+        assert_eq!(parts("x:/.//p"), some("", "//p"));
+        assert_eq!(parts("x:/..//p"), some("", "//p"));
+        assert_eq!(parts("x:/a/../.."), some("", "/"));
+        assert_eq!(parts("https://h/a/./b/%2E/c/.%2e"), some("h", "/a/b/"));
+        assert_eq!(
+            parts("x://h/ ^`{}\u{e9}|\"<>"),
+            some("h", "/%20%5E%60%7B%7D%C3%A9|%22%3C%3E")
+        );
+    }
+
+    /// The known difference (see the module documentation): Node 26 gives
+    /// the hostname `xn--a_xn--localhostxn--ls8h` for both; the port only
+    /// takes the one that is ASCII as written.
+    #[test]
+    fn non_ascii_hosts_the_crate_rejects_are_not_urls() {
+        assert_eq!(
+            parts("https://xn--a_xn--localhostxn--ls8h/"),
+            some("xn--a_xn--localhostxn--ls8h", "/")
+        );
+        assert_eq!(parts("ws:\u{ad}XN--A_xn--LOCALHOSTxn--ls8h"), None);
+        assert_eq!(parts("https://xn--ls8h\u{ad}/"), some("xn--ls8h", "/"));
+        assert_eq!(parts("https://xn--zz\u{ad}/"), None);
+    }
+
+    #[test]
     fn caret_in_a_path_is_encoded() {
         assert_eq!(parts("https://h/^"), some("h", "/%5E"));
         assert_eq!(parts("x:^"), some("", "^"));

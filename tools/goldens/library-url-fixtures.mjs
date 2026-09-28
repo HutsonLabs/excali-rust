@@ -190,6 +190,19 @@ const validateCases = () => [
   // a non-special URL with credentials and no host is not a URL
   { id: "credentials-no-host", url: "x://@" },
   { id: "credentials-no-host-user", url: "web+a://u@" },
+  // Windows drive letters are ordinary path segments outside file: URLs, so
+  // `..` removes them (the `url` crate keeps them)
+  { id: "drive-letter-dot-dot-github", url: "https://raw.githubusercontent.com/C:/../excalidraw/excalidraw-libraries/x.excalidrawlib" },
+  { id: "drive-letter-pipe-dot-dot-github", url: "https://raw.githubusercontent.com/excalidraw/c|/../excalidraw-libraries/x" },
+  { id: "drive-letter-dot-dot-excalidraw", url: "https://excalidraw.com/C:/.." },
+  { id: "drive-letter-encoded-dot-dot", url: "https://excalidraw.com/c|/%2e%2e/" },
+  { id: "drive-letter-dot-dot-http", url: "http://libraries.excalidraw.com/C:/../x" },
+  { id: "drive-letter-dot-dot-ws", url: "ws://excalidraw.com/c|/../x" },
+  { id: "drive-letter-dot-dot-ftp-backslash", url: "ftp:excalidraw.com\\c|\\%2E%2e\\x" },
+  { id: "drive-letter-dot-dot-non-special", url: "web+lib://excalidraw.com/c|/../x" },
+  { id: "drive-letter-kept", url: "https://excalidraw.com/C:/x" },
+  { id: "list-drive-letter-dot-dot", url: "https://example.com/C:/../libs/a", allowList: ["example.com/libs"] },
+  { id: "list-drive-letter-not-removed-without-dot-dot", url: "https://example.com/C:/libs/a", allowList: ["example.com/libs"] },
 
   // a caller's own allow-list
   { id: "list-host", url: "https://example.com/a", allowList: ["example.com"] },
@@ -375,6 +388,9 @@ const normalizeLinkCases = () =>
     "mailto:a@example.com",
     "example.com",
     "\u00e9t\u00e9:x",
+    "https://excalidraw.com/C:/..",
+    "https://excalidraw.com/c|/%2e%2e/",
+    "x://h/c|/../x",
   ].map((input, i) => ({ id: `normalize-${String(i).padStart(2, "0")}`, input }));
 
 const toValidUrlCases = () => {
@@ -417,6 +433,11 @@ const toValidUrlCases = () => {
     "file://h/\\x",
     "x://h:1\\x",
     "x://h:1a",
+    "https://excalidraw.com/C:/..",
+    "https://excalidraw.com/c|/%2e%2e/",
+    "ws://h/c|/../x",
+    "x://h/c|/..",
+    "/C:/../x",
   ];
   const origins = [ORIGIN, "http://localhost:3000"];
   const cases = [];
@@ -462,6 +483,8 @@ const importCases = () => [
   { id: "credentials-user-no-host", input: "web+a://u@" },
   { id: "xn-subdomain", input: "https%3A%2F%2Fxn--.excalidraw.com%2Fa" },
   { id: "xn-host", input: "https://xn--/excalidraw/excalidraw-libraries/a" },
+  { id: "drive-letter-dot-dot", input: "https://raw.githubusercontent.com/C:/../excalidraw/excalidraw-libraries/a" },
+  { id: "drive-letter-dot-dot-encoded", input: "https%3A%2F%2Fexcalidraw.com%2Fc%7C%2F%2e%2e%2Fa" },
   { id: "file-backslash-after-host", input: "file://raw.githubusercontent.com/%5Cexcalidraw/excalidraw-libraries/a" },
 ];
 

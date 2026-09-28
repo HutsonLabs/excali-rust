@@ -478,6 +478,68 @@
       "errorType": "TypeError"
     },
     {
+      "id": "drive-letter-dot-dot-github",
+      "url": "https://raw.githubusercontent.com/C:/../excalidraw/excalidraw-libraries/x.excalidrawlib",
+      "ok": true
+    },
+    {
+      "id": "drive-letter-pipe-dot-dot-github",
+      "url": "https://raw.githubusercontent.com/excalidraw/c|/../excalidraw-libraries/x",
+      "ok": true
+    },
+    {
+      "id": "drive-letter-dot-dot-excalidraw",
+      "url": "https://excalidraw.com/C:/..",
+      "ok": true
+    },
+    {
+      "id": "drive-letter-encoded-dot-dot",
+      "url": "https://excalidraw.com/c|/%2e%2e/",
+      "ok": true
+    },
+    {
+      "id": "drive-letter-dot-dot-http",
+      "url": "http://libraries.excalidraw.com/C:/../x",
+      "ok": true
+    },
+    {
+      "id": "drive-letter-dot-dot-ws",
+      "url": "ws://excalidraw.com/c|/../x",
+      "ok": true
+    },
+    {
+      "id": "drive-letter-dot-dot-ftp-backslash",
+      "url": "ftp:excalidraw.com\\c|\\%2E%2e\\x",
+      "ok": true
+    },
+    {
+      "id": "drive-letter-dot-dot-non-special",
+      "url": "web+lib://excalidraw.com/c|/../x",
+      "ok": true
+    },
+    {
+      "id": "drive-letter-kept",
+      "url": "https://excalidraw.com/C:/x",
+      "ok": true
+    },
+    {
+      "id": "list-drive-letter-dot-dot",
+      "url": "https://example.com/C:/../libs/a",
+      "allowList": [
+        "example.com/libs"
+      ],
+      "ok": true
+    },
+    {
+      "id": "list-drive-letter-not-removed-without-dot-dot",
+      "url": "https://example.com/C:/libs/a",
+      "allowList": [
+        "example.com/libs"
+      ],
+      "error": "Invalid or disallowed library URL: \"https://example.com/C:/libs/a\"",
+      "errorType": "Error"
+    },
+    {
       "id": "list-host",
       "url": "https://example.com/a",
       "allowList": [
@@ -1750,6 +1812,21 @@
       "id": "normalize-62",
       "input": "\u00e9t\u00e9:x",
       "output": "\u00e9t\u00e9:x"
+    },
+    {
+      "id": "normalize-63",
+      "input": "https://excalidraw.com/C:/..",
+      "output": "https://excalidraw.com/C:/.."
+    },
+    {
+      "id": "normalize-64",
+      "input": "https://excalidraw.com/c|/%2e%2e/",
+      "output": "https://excalidraw.com/c|/%2e%2e/"
+    },
+    {
+      "id": "normalize-65",
+      "input": "x://h/c|/../x",
+      "output": "x://h/c|/../x"
     }
   ],
   "toValidURL": [
@@ -1998,6 +2075,42 @@
       "input": "x://h:1a",
       "origin": "https://excalidraw.com",
       "output": "about:blank"
+    },
+    {
+      "id": "to-valid-url-38",
+      "input": "https://excalidraw.com/C:/..",
+      "origin": "https://excalidraw.com",
+      "output": "https://excalidraw.com/C:/.."
+    },
+    {
+      "id": "to-valid-url-39",
+      "input": "https://excalidraw.com/c|/%2e%2e/",
+      "origin": "https://excalidraw.com",
+      "output": "https://excalidraw.com/c|/%2e%2e/"
+    },
+    {
+      "id": "to-valid-url-40",
+      "input": "ws://h/c|/../x",
+      "origin": "https://excalidraw.com",
+      "output": "ws://h/c|/../x"
+    },
+    {
+      "id": "to-valid-url-41",
+      "input": "x://h/c|/..",
+      "origin": "https://excalidraw.com",
+      "output": "x://h/c|/.."
+    },
+    {
+      "id": "to-valid-url-42",
+      "input": "/C:/../x",
+      "origin": "https://excalidraw.com",
+      "output": "https://excalidraw.com/C:/../x"
+    },
+    {
+      "id": "to-valid-url-42-localhost",
+      "input": "/C:/../x",
+      "origin": "http://localhost:3000",
+      "output": "http://localhost:3000/C:/../x"
     }
   ],
   "import": [
@@ -2213,6 +2326,18 @@
       "origin": "https://excalidraw.com",
       "error": "Invalid or disallowed library URL: \"https://xn--/excalidraw/excalidraw-libraries/a\"",
       "errorType": "Error"
+    },
+    {
+      "id": "drive-letter-dot-dot",
+      "input": "https://raw.githubusercontent.com/C:/../excalidraw/excalidraw-libraries/a",
+      "origin": "https://excalidraw.com",
+      "url": "https://raw.githubusercontent.com/C:/../excalidraw/excalidraw-libraries/a"
+    },
+    {
+      "id": "drive-letter-dot-dot-encoded",
+      "input": "https%3A%2F%2Fexcalidraw.com%2Fc%7C%2F%2e%2e%2Fa",
+      "origin": "https://excalidraw.com",
+      "url": "https://excalidraw.com/c|/../a"
     },
     {
       "id": "file-backslash-after-host",
