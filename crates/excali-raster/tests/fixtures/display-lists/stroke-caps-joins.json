@@ -1,0 +1,18 @@
+{
+ "description": "lineCap butt, round and square on thick lines, lineJoin miter, round and bevel on polylines, a sharp angle past the miter limit (beveled), a raised limit, and miterLimit 0 drawing the default 10",
+ "width": 96,
+ "height": 96,
+ "tolerance": {"channel": 8, "pixels": 0},
+ "toleranceNote": "Every draw goes through ports of Chrome's own pipeline (Skia's analytic anti-aliasing, edge builder and clipper, stroker, dasher and AntiFillRect, Blink's arc handling), so what remains is rounding in blending, coverage and sampling: against Chrome 153 no pixel here is more than 1 level off. 8 leaves room for another Chrome build that rounds differently.",
+ "items": [
+  {"type": "stroke", "color": "#1e1e1e", "width": 8, "cap": "butt", "path": [["M", 12, 8], ["L", 84, 8]]},
+  {"type": "stroke", "color": "#1e1e1e", "width": 8, "cap": "round", "path": [["M", 12, 20], ["L", 84, 20]]},
+  {"type": "stroke", "color": "#1e1e1e", "width": 8, "cap": "square", "path": [["M", 12, 32], ["L", 84, 32]]},
+  {"type": "stroke", "color": "#1971c2", "width": 6, "join": "miter", "path": [["M", 4, 60], ["L", 16, 42], ["L", 28, 60]]},
+  {"type": "stroke", "color": "#1971c2", "width": 6, "join": "round", "path": [["M", 36, 60], ["L", 48, 42], ["L", 60, 60]]},
+  {"type": "stroke", "color": "#1971c2", "width": 6, "join": "bevel", "path": [["M", 68, 60], ["L", 80, 42], ["L", 92, 60]]},
+  {"type": "stroke", "color": "#e03131", "width": 4, "join": "miter", "path": [["M", 4, 92], ["L", 30, 70], ["L", 8, 88]]},
+  {"type": "stroke", "color": "#e03131", "width": 4, "join": "miter", "miterLimit": 30, "path": [["M", 36, 92], ["L", 60, 74], ["L", 40, 88]]},
+  {"type": "stroke", "color": "#e03131", "width": 4, "join": "miter", "miterLimit": 0, "cap": "round", "path": [["M", 66, 92], ["L", 78, 72], ["L", 90, 92], ["Z"]]}
+ ]
+}

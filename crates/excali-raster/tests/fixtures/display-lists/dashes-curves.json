@@ -1,0 +1,13 @@
+{
+ "description": "Dashes along curves: a dashed circle and ellipse-like Bezier loop, a dotted quadratic, and a dash pattern continuing across subpaths and through joins, as Excalidraw's dashed and dotted ellipses, arrows and freedraw outlines draw",
+ "width": 96,
+ "height": 96,
+ "tolerance": {"channel": 8, "pixels": 0},
+ "toleranceNote": "Every draw goes through ports of Chrome's own pipeline (Skia's analytic anti-aliasing, edge builder and clipper, stroker, dasher and AntiFillRect, Blink's arc handling), so what remains is rounding in blending, coverage and sampling: against Chrome 153 no pixel here is more than 3 levels off. 8 leaves room for another Chrome build that rounds differently.",
+ "items": [
+  {"type": "stroke", "color": "#1e1e1e", "width": 2, "cap": "round", "join": "round", "dash": [8, 10], "path": [["A", 24, 24, 18, 0, 6.283185307179586]]},
+  {"type": "stroke", "color": "#1971c2", "width": 2, "cap": "round", "join": "round", "dash": [1.5, 8], "path": [["M", 52, 24], ["C", 52, 8, 92, 8, 92, 24], ["C", 92, 40, 52, 40, 52, 24], ["Z"]]},
+  {"type": "stroke", "color": "#e03131", "width": 1, "dash": [8, 9], "path": [["M", 4, 60], ["Q", 30, 30, 50, 60], ["Q", 70, 90, 92, 56]]},
+  {"type": "stroke", "color": "#2f9e44", "width": 4, "cap": "round", "join": "round", "dash": [8, 12], "path": [["M", 6, 90], ["L", 30, 72], ["M", 40, 90], ["L", 60, 72], ["L", 90, 90]]}
+ ]
+}

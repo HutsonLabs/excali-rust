@@ -1,0 +1,25 @@
+{
+ "description": "Colour strings as elements store them, parsed as the canvas parses fillStyle and strokeStyle: short and long hex with alpha, named, rgb/rgba/hsl in both syntaxes, transparent, and strings the canvas ignores (empty, none, blue-ish) painting in the fresh context's black",
+ "width": 96,
+ "height": 64,
+ "tolerance": {"channel": 8, "pixels": 0},
+ "toleranceNote": "Every draw goes through ports of Chrome's own pipeline (Skia's analytic anti-aliasing, edge builder and clipper, stroker, dasher and AntiFillRect, Blink's arc handling), so what remains is rounding in blending, coverage and sampling: against Chrome 153 no pixel here is more than 1 level off. 8 leaves room for another Chrome build that rounds differently.",
+ "items": [
+  {"type": "fill", "color": "#ffec99", "path": [["rect", 0, 0, 96, 64]]},
+  {"type": "fill", "color": "#f00", "path": [["rect", 4, 4, 12, 12]]},
+  {"type": "fill", "color": "#1971c280", "path": [["rect", 10, 10, 12, 12]]},
+  {"type": "fill", "color": "#0f08", "path": [["rect", 16, 4, 12, 12]]},
+  {"type": "fill", "color": "rebeccapurple", "path": [["rect", 32, 4, 12, 12]]},
+  {"type": "fill", "color": "rgb(255 0 0 / 50%)", "path": [["rect", 48, 4, 12, 12]]},
+  {"type": "fill", "color": "rgba(0, 0, 255, 0.3)", "path": [["rect", 64, 4, 12, 12]]},
+  {"type": "fill", "color": "hsl(120deg 60% 40%)", "path": [["rect", 80, 4, 12, 12]]},
+  {"type": "fill", "color": "hsla(200, 100%, 50%, 0.25)", "path": [["rect", 4, 28, 12, 12]]},
+  {"type": "fill", "color": "transparent", "path": [["rect", 20, 28, 12, 12]]},
+  {"type": "fill", "color": "", "path": [["rect", 36, 28, 12, 12]]},
+  {"type": "fill", "color": "none", "path": [["rect", 52, 28, 12, 12]]},
+  {"type": "fill", "color": "blue-ish", "path": [["rect", 68, 28, 12, 12]]},
+  {"type": "stroke", "color": "", "width": 2, "path": [["M", 4, 50], ["L", 44, 50]]},
+  {"type": "stroke", "color": "oklch(62% 0.2 30)", "width": 4, "path": [["M", 4, 58], ["L", 44, 58]]},
+  {"type": "stroke", "color": "#e0313199", "width": 6, "path": [["M", 52, 54], ["L", 92, 54]]}
+ ]
+}

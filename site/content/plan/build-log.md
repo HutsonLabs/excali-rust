@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-401 · excali-raster: display list to tiny-skia (paths, fills, dashes, opacity, clips)
+
+`excali-raster` draws display lists with tiny-skia and matches Chrome's canvas. The 19 fixture display lists are compared with references drawn by headless Chrome 153, each within its own tolerance; they cover fills, curves, arcs, dashes, opacity, clips, transforms, images and the device pixel ratio. Where tiny-skia's pixels differ from Chrome's, the crate uses ports of Skia m153 instead: analytic anti-aliasing, the stroker and dasher, and the hairline walk. Huge or non-finite coordinates draw what Chrome draws, and a new CI job checks the port against the runner's Chrome. PR: [#60](https://github.com/HutsonLabs/excali-rust/pull/60).
+
 ## 2026-09-28 · ex-g202 · M2 golden matrix: every element type x fill style x roughness 0/1/2 x seeds 1/7/1041657908 in the goldens and CI
 
 `goldens/elements-matrix.json` records upstream's `generateElementShape` for 684 cases: 19 element variants, from sharp and rounded boxes to curved lines, arrows with a filled head, looped freedraw and the shapeless types, at hachure, cross-hatch, zigzag and solid fills, roughness 0, 1 and 2 and seeds 1, 7 and 1041657908. The port matches every case, and CI now asserts the matrix has no missing cell on both the Rust and node sides. PR: [#59](https://github.com/HutsonLabs/excali-rust/pull/59).

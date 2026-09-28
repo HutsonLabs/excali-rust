@@ -1,0 +1,20 @@
+{
+ "description": "Clips that leave nothing: an empty clip path, a clip outside the canvas, and a clip path whose only calls are dropped for NaN arguments hide their children; the siblings around them draw",
+ "width": 64,
+ "height": 64,
+ "tolerance": {"channel": 8, "pixels": 0},
+ "toleranceNote": "Every draw goes through ports of Chrome's own pipeline (Skia's analytic anti-aliasing, edge builder and clipper, stroker, dasher and AntiFillRect, Blink's arc handling), so what remains is rounding in blending, coverage and sampling: against Chrome 153 no pixel here is more than 0 levels off. 8 leaves room for another Chrome build that rounds differently.",
+ "items": [
+  {"type": "fill", "color": "#a5d8ff", "path": [["rect", 0, 0, 64, 20]]},
+  {"type": "group", "clip": {"path": []}, "items": [
+   {"type": "fill", "color": "#e03131", "path": [["rect", 0, 0, 64, 64]]}
+  ]},
+  {"type": "group", "clip": {"path": [["rect", 100, 100, 20, 20]]}, "items": [
+   {"type": "fill", "color": "#2f9e44", "path": [["rect", 0, 0, 64, 64]]}
+  ]},
+  {"type": "group", "clip": {"path": [["M", "NaN", 0], ["L", 64, "NaN"]]}, "items": [
+   {"type": "fill", "color": "#9c36b5", "path": [["rect", 0, 0, 64, 64]]}
+  ]},
+  {"type": "fill", "color": "#1971c2", "path": [["rect", 8, 30, 48, 26]]}
+ ]
+}

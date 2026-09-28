@@ -1,0 +1,18 @@
+{
+ "description": "Whole dashed strokes of a cubic from (0.5, 0.5) to (150, 150) whose control points are 1e20 or 1e30, each in its own 200x200 cell: more than SkDashPath's 1,000,000 dashes, so each is drawn undashed. Round-capped at width 4 the stroker finds the cubic in line (its maximum curvature solves to NaN, which SkTPin takes to 0) and draws a line to the end; as hairlines of width 1 and 0.5 Skia draws the cubic as 512 lines whose points are finite but past what tiny-skia's finiteness test takes",
+ "width": 600,
+ "height": 200,
+ "tolerance": {"channel": 8, "pixels": 0},
+ "toleranceNote": "The stroke goes through the ports of Skia's dasher and stroker and the hairlines through the port of Skia's hairline subdivision into tiny-skia's hairliner (Skia's), so what remains is rounding in blending and coverage. 8 leaves room for another Chrome build that rounds differently.",
+ "items": [
+  {"type": "group", "clip": {"path": [["rect", 0, 0, 200, 200]]}, "items": [
+   {"type": "stroke", "color": "#1971c2", "width": 4, "cap": "round", "dash": [5, 5], "path": [["M", 0.5, 0.5], ["C", 1e20, -1e20, -1e20, 1e20, 150, 150]]}
+  ]},
+  {"type": "group", "clip": {"path": [["rect", 0, 0, 200, 200]]}, "transform": [1, 0, 0, 1, 200, 0], "items": [
+   {"type": "stroke", "color": "#1e1e1e", "width": 1, "dash": [5, 5], "path": [["M", 0.5, 0.5], ["C", 1e20, -1e20, -1e20, 1e20, 150, 150]]}
+  ]},
+  {"type": "group", "clip": {"path": [["rect", 0, 0, 200, 200]]}, "transform": [1, 0, 0, 1, 400, 0], "items": [
+   {"type": "stroke", "color": "#2f9e44", "width": 0.5, "dash": [5, 5], "path": [["M", 0.5, 0.5], ["C", 1e30, -1e30, -1e30, 1e30, 150, 150]]}
+  ]}
+ ]
+}

@@ -133,9 +133,13 @@ impl Path {
 
     /// The path `rect(x, y, w, h)` builds: a closed subpath through the four
     /// corners, then a new subpath at `(x, y)` (HTML canvas, "The rect(x, y,
-    /// w, h) method").
+    /// w, h) method"). An infinite or NaN argument adds nothing: the method
+    /// returns first.
     pub fn rect(x: f64, y: f64, w: f64, h: f64) -> Self {
         let mut p = Path::new();
+        if ![x, y, w, h].iter().all(|v| v.is_finite()) {
+            return p;
+        }
         p.move_to(x, y)
             .line_to(x + w, y)
             .line_to(x + w, y + h)
@@ -199,11 +203,28 @@ impl Path {
     ///   subpath's first point, which is written as an explicit `MoveTo`;
     /// - an arc draws a line from the current point to its start (or moves
     ///   there when there is no subpath), then its sweep as cubic Béziers of
-    ///   at most a quarter turn each. The sweep is the whole circle when it
-    ///   reaches 2π in the arc's direction, and otherwise the angle from
+    ///   at most a quarter turn each. The sweep is Chrome's (Blink's
+    ///   `CanvasPath::arc`, `AdjustEndAngle`): the whole circle when it
+    ///   reaches 2π in the arc's direction, or when the angles differ but
+    ///   meet modulo 2π going that way (`arc(x, y, r, 0, 2π, true)` is a
+    ///   circle), none when they are equal, and otherwise the angle from
     ///   start to end going that way. A zero radius adds a line to the
     ///   centre.
     pub fn canonical(&self) -> Path {
+        self.canonical_impl(false)
+    }
+
+    /// [`Path::canonical`] with each arc kept as one `Arc` command after the
+    /// line (or move) to its start, its sweep resolved: `end` is `start +
+    /// sweep` and `anticlockwise` is `sweep < 0`, so a backend with its own
+    /// arc geometry draws from `start` to `end` as given. A zero radius or
+    /// sweep leaves only the line. The raster backend builds Skia's conics
+    /// from these, as Chrome does.
+    pub fn canonical_arcs(&self) -> Path {
+        self.canonical_impl(true)
+    }
+
+    fn canonical_impl(&self, keep_arcs: bool) -> Path {
         let mut out = Path::new();
         // The first point of the current subpath, and the current point.
         let mut start: Option<(f64, f64)> = None;
@@ -294,6 +315,20 @@ impl Path {
                     if radius == 0.0 || sweep == 0.0 {
                         continue;
                     }
+                    let end = a0 + sweep;
+                    let (s, c) = end.sin_cos();
+                    if keep_arcs {
+                        out.commands.push(PathCommand::Arc {
+                            cx,
+                            cy,
+                            radius,
+                            start: a0,
+                            end,
+                            anticlockwise: sweep < 0.0,
+                        });
+                        current = Some((cx + radius * c, cy + radius * s));
+                        continue;
+                    }
                     let segments = (sweep.abs() / FRAC_PI_2).ceil().max(1.0) as usize;
                     let step = sweep / segments as f64;
                     let k = 4.0 / 3.0 * (step / 4.0).tan() * radius;
@@ -311,7 +346,6 @@ impl Path {
                         out.cubic_to(x0 - k * s0, y0 + k * c0, x1 + k * s1, y1 - k * c1, x1, y1);
                         angle = next;
                     }
-                    let (s, c) = (a0 + sweep).sin_cos();
                     current = Some((cx + radius * c, cy + radius * s));
                 }
                 PathCommand::Close => {
@@ -327,22 +361,29 @@ impl Path {
     }
 }
 
-/// The signed sweep of `arc(…, start, end, anticlockwise)`: positive
-/// clockwise, negative anticlockwise, `±2π` for a whole circle.
+/// The signed sweep of `arc(…, start, end, anticlockwise)` as Chrome draws
+/// it: positive clockwise, negative anticlockwise, `±2π` for a whole
+/// circle. Blink's `CanvasPath::arc` draws no sweep for equal angles, moves
+/// `start` into `[0, 2π)` with `end` shifted alike (`CanonicalizeAngle`),
+/// and then (`AdjustEndAngle`) takes the whole circle when the angles are
+/// 2π or more apart in the arc's direction, the angle going that way when
+/// they are in the other order (a whole turn when that angle is a multiple
+/// of 2π), and the difference otherwise.
 fn arc_sweep(start: f64, end: f64, anticlockwise: bool) -> f64 {
-    if !anticlockwise {
-        let d = end - start;
-        if d >= TAU {
-            TAU
-        } else {
-            d.rem_euclid(TAU)
-        }
+    if start == end {
+        return 0.0;
+    }
+    let s = start.rem_euclid(TAU);
+    let e = end + (s - start);
+    if !anticlockwise && e - s >= TAU {
+        TAU
+    } else if anticlockwise && s - e >= TAU {
+        -TAU
+    } else if !anticlockwise && s > e {
+        TAU - (s - e) % TAU
+    } else if anticlockwise && s < e {
+        -(TAU - (e - s) % TAU)
     } else {
-        let d = start - end;
-        if d >= TAU {
-            -TAU
-        } else {
-            -d.rem_euclid(TAU)
-        }
+        e - s
     }
 }

@@ -1,0 +1,28 @@
+{
+ "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+ "fixtures": {
+  "arcs": "84c435571683cdebaf3e82e0062a99ff9a3cd8ac44fcdf9ee8fff739915ee1b8",
+  "clips": "cd7fa6c4d6b0a378ac76593623e78f25acb6f2c3643b51070ad73f979e1dccef",
+  "clips-empty": "974bab7efb4ff08184469b24293deac91c04a1a2b1038b65f342c9aea0bc3598",
+  "colors": "a55874501fc805dac1ad0ad3d4f1cd58a1050e78c0fb54471a52a0b6777f8a87",
+  "dashes": "809ceccc44800529157796d5c8e605e14ac85017d39156f98f8a5ce43c384729",
+  "dashes-curves": "b80d69265e20549e09e71571a35c9fc3b2d770b3dab572f7168749291871d62b",
+  "extremes": "0afbbe6da2b7945cdd8b02d9a55815e745bd0687d4923b84390d86fc03f14508",
+  "extremes-curves": "130a02f2339d5524223eca57712734f9ac0f703bdb63eafa48065a5eaaaaba76",
+  "fill-basic": "69bcbfedc5347aa3a9e853d5f7f705e57f0fd469e3e74749fdc20c64dff07200",
+  "fill-curves": "d48bfaf02bd3ef2ebddc0b38e0593f3786ba9d42ebad26bf2ee9c4684fb67f3b",
+  "fill-rules": "0b5f617d4ec56ee63768b22692f56fee68272337bf58e0ff3485329a4983cb8c",
+  "hairline-skips": "50cd86684e1cbeea1b12e8b3391d1741b7a3fcec17ff5b4091648b4ad650075f",
+  "images": "c9914a9b0e6d73de163a7187a75e13822bfea358747ca2c630df1229f9e847ae",
+  "images-alpha": "42ec21761f71f72187551cefe5396a9da914e0203a712c01cddebfed774d8293",
+  "images-dark": "a709db04b31ba3ddaa5e85a9227ff16b2333c9f3a9df229555effe62f3151f77",
+  "opacity": "c05956ba9b83088e686866ac16d2de69494c4a499caca7679aec332b8e7c411e",
+  "path-rules": "862a3394d8b3ef901a6939e11890b1bbd3bc104bb7f50a982f71140b2e13d4a5",
+  "round-rect": "553931342c1c7175610d364698a5dab7e965115c03362bb2bb95c13b1a89ac40",
+  "scaled": "722be74c0a58565f8253510ba437f8737e70497449a0967a538f28ba0041ca7f",
+  "sketch": "42f9d390662cfb880de01ae33cc7f6bd27f064fed64963231a68618bda029dbd",
+  "stroke-caps-joins": "904eb491f2ca45b88649340b3b5edb4566b52bf5cb152c0b33cb1d1e292ab112",
+  "stroke-widths": "94fe852d7d9606237d4dd0d720a7df12ab2a1b90add80b634d1a3fe7c3ee3eea",
+  "transforms": "2575594bc9e1636bc26c7832131f575cde8dc855aa4585df01963d56d4c57e98"
+ }
+}

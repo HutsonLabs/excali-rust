@@ -1,0 +1,137 @@
+<!doctype html>
+<!--
+  Draws crates/excali-raster/tests/fixtures/display-lists/*.json on a real
+  CanvasRenderingContext2D (ex-401). Run through
+  scripts/fixtures/raster-references.sh, which puts the fixtures in place of
+  the FIXTURES marker below, loads the page in headless Chrome and keeps the
+  PNG each canvas becomes.
+
+  Upstream renders by calling the Canvas 2D API (renderElement.ts,
+  staticScene.ts), so a real canvas is the specification the tiny-skia
+  backend is compared with. This page is an independent reading of the
+  display list: every call goes to the canvas as the list describes it, and
+  the browser applies its own rules (paths through the native rect,
+  roundRect and arc, dash lists through setLineDash, colours through
+  fillStyle, matrices through transform, opacity through globalAlpha).
+  Nothing here reuses the port's code.
+
+  Fixture vocabulary (tests/fixtures/README.md in excali-raster):
+  numbers may be "NaN", "Infinity" or "-Infinity".
+-->
+<html><body><pre id="out"></pre><script>
+const FIXTURES = /*FIXTURES*/null;
+
+const num = (v) => (typeof v === "string" ? Number(v) : v);
+
+// A path call the canvas throws on (arc and roundRect with a negative
+// radius) does nothing, as the port drops it; the rest of the path goes on.
+function trace(ctx, path) {
+  ctx.beginPath();
+  for (const call of path) {
+    const [op, ...args] = call;
+    const n = args.map(num);
+    try {
+      switch (op) {
+        case "M": ctx.moveTo(n[0], n[1]); break;
+        case "L": ctx.lineTo(n[0], n[1]); break;
+        case "Q": ctx.quadraticCurveTo(n[0], n[1], n[2], n[3]); break;
+        case "C": ctx.bezierCurveTo(n[0], n[1], n[2], n[3], n[4], n[5]); break;
+        case "A": ctx.arc(n[0], n[1], n[2], n[3], n[4], args[5] === true); break;
+        case "Z": ctx.closePath(); break;
+        case "rect": ctx.rect(n[0], n[1], n[2], n[3]); break;
+        case "roundRect": ctx.roundRect(n[0], n[1], n[2], n[3], n[4]); break;
+        default: throw new Error(`unknown path call ${op}`);
+      }
+    } catch (e) {
+      if (!(e instanceof DOMException || e instanceof RangeError)) throw e;
+    }
+  }
+}
+
+function draw(ctx, item, images) {
+  switch (item.type) {
+    case "fill":
+      ctx.save();
+      ctx.fillStyle = item.color;
+      trace(ctx, item.path);
+      ctx.fill(item.rule || "nonzero");
+      ctx.restore();
+      break;
+    case "stroke":
+      ctx.save();
+      ctx.strokeStyle = item.color;
+      if ("width" in item) ctx.lineWidth = num(item.width);
+      if ("cap" in item) ctx.lineCap = item.cap;
+      if ("join" in item) ctx.lineJoin = item.join;
+      if ("miterLimit" in item) ctx.miterLimit = num(item.miterLimit);
+      if ("dash" in item) ctx.setLineDash(item.dash.map(num));
+      if ("dashOffset" in item) ctx.lineDashOffset = num(item.dashOffset);
+      trace(ctx, item.path);
+      ctx.stroke();
+      ctx.restore();
+      break;
+    case "image": {
+      const img = images[item.id];
+      if (!img) break;
+      ctx.save();
+      ctx.imageSmoothingEnabled = item.smoothing !== false;
+      if (item.filter === "dark") ctx.filter = "invert(93%) hue-rotate(180deg)";
+      else if (item.filter) throw new Error(`unknown filter ${item.filter}`);
+      const d = item.dest.map(num);
+      if (item.source) {
+        const s = item.source.map(num);
+        ctx.drawImage(img, s[0], s[1], s[2], s[3], d[0], d[1], d[2], d[3]);
+      } else {
+        ctx.drawImage(img, d[0], d[1], d[2], d[3]);
+      }
+      ctx.restore();
+      break;
+    }
+    case "group":
+      ctx.save();
+      if (item.transform) {
+        const t = item.transform.map(num);
+        ctx.transform(t[0], t[1], t[2], t[3], t[4], t[5]);
+      }
+      if ("opacity" in item) ctx.globalAlpha = ctx.globalAlpha * num(item.opacity);
+      if (item.clip) {
+        trace(ctx, item.clip.path);
+        ctx.clip(item.clip.rule || "nonzero");
+      }
+      for (const child of item.items) draw(ctx, child, images);
+      ctx.restore();
+      break;
+    default:
+      throw new Error(`unknown item type ${item.type}`);
+  }
+}
+
+function bitmap(spec) {
+  const c = document.createElement("canvas");
+  c.width = spec.width;
+  c.height = spec.height;
+  const data = new ImageData(new Uint8ClampedArray(spec.rgba), spec.width, spec.height);
+  c.getContext("2d").putImageData(data, 0, 0);
+  return c;
+}
+
+const out = { userAgent: navigator.userAgent, png: {}, errors: {} };
+for (const [name, fixture] of Object.entries(FIXTURES)) {
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = fixture.width;
+    canvas.height = fixture.height;
+    const ctx = canvas.getContext("2d", { colorSpace: "srgb" });
+    const images = {};
+    for (const [id, spec] of Object.entries(fixture.images || {})) images[id] = bitmap(spec);
+    // bootstrapCanvas (renderer/helpers.ts:73-127): context.scale(scale, scale).
+    const scale = "scale" in fixture ? num(fixture.scale) : 1;
+    ctx.scale(scale, scale);
+    for (const item of fixture.items) draw(ctx, item, images);
+    out.png[name] = canvas.toDataURL("image/png");
+  } catch (e) {
+    out.errors[name] = String(e && e.stack || e);
+  }
+}
+document.getElementById("out").textContent = JSON.stringify(out);
+</script></body></html>

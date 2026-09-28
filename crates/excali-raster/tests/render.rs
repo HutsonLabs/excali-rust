@@ -869,3 +869,393 @@ fn roots(code: &str, is_root: impl Fn(&str) -> bool) -> Vec<String> {
     }
     out
 }
+
+fn coverage(p: &Pixmap) -> usize {
+    p.pixels().iter().filter(|c| c.alpha() > 0).count()
+}
+
+fn huge_triangle() -> Path {
+    let mut p = Path::new();
+    p.move_to(-1e30, -1e30)
+        .line_to(1e30, 5.0)
+        .line_to(5.0, 1e30)
+        .close();
+    p
+}
+
+#[test]
+fn huge_finite_coordinates_draw_without_overflow() {
+    // Bounds past the i32 range: Skia's safeRoundOut pins them to
+    // +-(2^31 - 1) >> 2 before any width or height is taken. Chrome 153
+    // covers the whole 200x200 canvas with the triangle.
+    let p = draw(
+        &list(vec![fill(huge_triangle(), "red", FillRule::NonZero)]),
+        200,
+        200,
+    );
+    assert_eq!(coverage(&p), 200 * 200);
+
+    let stroke = |path: Path, width: f64| DisplayItem::Stroke {
+        path,
+        stroke: Stroke::new(Color::new("red"), width),
+    };
+    draw(&list(vec![stroke(huge_triangle(), 3.0)]), 200, 200);
+
+    let mut curve = Path::new();
+    curve
+        .move_to(0.0, 0.0)
+        .cubic_to(1e20, 0.0, -1e20, 200.0, 200.0, 200.0);
+    draw(&list(vec![fill(curve, "red", FillRule::NonZero)]), 200, 200);
+
+    let mut quad = Path::new();
+    quad.move_to(0.5, 0.5).quad_to(1e15, 1e15, 199.0, 0.5);
+    let p = draw(&list(vec![stroke(quad, 5.0)]), 200, 200);
+    // The curve leaves (0.5, 0.5) along the diagonal.
+    assert_ne!(px(&p, 20, 20), CLEAR);
+
+    // A dashed, round-capped cubic with control points past 1e20: past
+    // SkDashPath's 1,000,000 dashes, so it is stroked undashed, and the
+    // stroker's CheckCubicLinear finds the cubic in line with a maximum
+    // curvature that solves to NaN, which SkTPin takes to 0: a line to the
+    // end. Chrome 153 draws the line from (0.5, 0.5) to (150, 150) (the
+    // extremes fixture), where a NaN point in the outline once reached
+    // f64::clamp.
+    for huge in [1e20, 1e30] {
+        let p = draw(
+            &list(vec![dashed_huge_cubic(huge, 4.0, LineCap::Round)]),
+            200,
+            200,
+        );
+        assert_eq!(px(&p, 20, 20), RED, "{huge}");
+        assert_eq!(px(&p, 140, 140), RED, "{huge}");
+        assert_eq!(px(&p, 20, 5), CLEAR, "{huge}");
+        assert_eq!(px(&p, 170, 170), CLEAR, "{huge}");
+    }
+}
+
+fn dashed_huge_cubic(huge: f64, width: f64, cap: LineCap) -> DisplayItem {
+    let mut curve = Path::new();
+    curve
+        .move_to(0.5, 0.5)
+        .cubic_to(huge, -huge, -huge, huge, 150.0, 150.0);
+    DisplayItem::Stroke {
+        path: curve,
+        stroke: Stroke::new(Color::new("red"), width)
+            .with_cap(cap)
+            .with_dash(Dash::new(&[5.0, 5.0], 0.0)),
+    }
+}
+
+#[test]
+fn dashed_hairlines_of_huge_cubics_draw_as_skia_does() {
+    // Undashed (too many dashes), the hairline's cubic has coordinates
+    // whose products overflow f32: tiny-skia's hairliner takes that for a
+    // non-finite point (a debug assertion, and the cubic dropped), where
+    // Skia draws it as 512 lines. Chrome 153 covers the pixel at the start
+    // (the extremes fixture), and the lines through the middle of the
+    // curve cross the canvas along x + y = 150.
+    for huge in [1e20, 1e30] {
+        for width in [0.5, 1.0] {
+            let item = dashed_huge_cubic(huge, width, LineCap::Butt);
+            let p = draw(&list(vec![item]), 200, 200);
+            assert_ne!(px(&p, 0, 0), CLEAR, "{huge} {width}");
+            assert_eq!(px(&p, 20, 20), CLEAR, "{huge} {width}");
+            assert_eq!(px(&p, 20, 100), CLEAR, "{huge} {width}");
+        }
+    }
+}
+
+#[test]
+fn too_many_dashes_stroke_undashed() {
+    // SkDashPath gives up past 1,000,000 dashes and the stroke is drawn
+    // without its dash. Chrome 153 paints 200 pixels for this hairline.
+    let mut line = Path::new();
+    line.move_to(0.0, 0.0).line_to(1e6, 1e6);
+    let dashed = |width: f64, cap: LineCap| {
+        list(vec![DisplayItem::Stroke {
+            path: line.clone(),
+            stroke: Stroke::new(Color::new("red"), width)
+                .with_cap(cap)
+                .with_dash(Dash::new(&[0.0001, 0.0001], 0.0)),
+        }])
+    };
+    assert_eq!(coverage(&draw(&dashed(1.0, LineCap::Butt), 200, 200)), 200);
+    let round = draw(&dashed(3.0, LineCap::Round), 200, 200);
+    assert_eq!(px(&round, 100, 100), RED);
+    // A butt-capped line has become a fill of the line (SpecialLineRec)
+    // before the dasher gives up, which covers nothing.
+    assert_eq!(coverage(&draw(&dashed(3.0, LineCap::Butt), 200, 200)), 0);
+}
+
+#[test]
+fn huge_coordinates_in_every_shape_and_stroke_draw_without_panicking() {
+    // Every finite coordinate from 1e10 to 3e38 in lines, quadratics,
+    // cubics, arcs, rectangles, round rectangles and clip paths, filled,
+    // stroked (butt, round), as hairlines (0.5, 1), each undashed and
+    // dashed. Chrome draws them all; the port must not panic (in debug,
+    // tiny-skia's assertions included).
+    let shapes = |h: f64| -> Vec<Path> {
+        let mut line = Path::new();
+        line.move_to(0.5, 0.5).line_to(h, h);
+        let mut triangle = Path::new();
+        triangle
+            .move_to(-h, -h)
+            .line_to(h, 5.0)
+            .line_to(5.0, h)
+            .close();
+        let mut quad = Path::new();
+        quad.move_to(0.5, 0.5).quad_to(h, -h, 50.0, 60.0);
+        let mut cubic = Path::new();
+        cubic.move_to(0.5, 0.5).cubic_to(h, -h, -h, h, 50.0, 60.0);
+        let mut far_cubic = Path::new();
+        far_cubic
+            .move_to(h, 0.0)
+            .cubic_to(0.0, h, -h, 0.0, 30.0, 30.0);
+        let mut arc = Path::new();
+        arc.arc(10.0, 10.0, h, 0.0, 1.5, false);
+        let mut far_arc = Path::new();
+        far_arc.arc(h, -h, h, 0.0, 3.0, true);
+        vec![
+            line,
+            triangle,
+            quad,
+            cubic,
+            far_cubic,
+            arc,
+            far_arc,
+            Path::rect(-h, -h, 2.0 * h, 2.0 * h),
+            Path::round_rect(-h, -h, 2.0 * h, 2.0 * h, 10.0),
+            Path::round_rect(0.0, 0.0, 40.0, 40.0, h),
+        ]
+    };
+    let styles = |path: &Path, dash: bool| -> Vec<DisplayItem> {
+        let stroke = |width: f64, cap: LineCap| {
+            let mut s = Stroke::new(Color::new("red"), width).with_cap(cap);
+            if dash {
+                s = s.with_dash(Dash::new(&[5.0, 5.0], 0.0));
+            }
+            DisplayItem::Stroke {
+                path: path.clone(),
+                stroke: s,
+            }
+        };
+        vec![
+            fill(path.clone(), "red", FillRule::NonZero),
+            fill(path.clone(), "red", FillRule::EvenOdd),
+            stroke(3.0, LineCap::Butt),
+            stroke(4.0, LineCap::Round),
+            stroke(3.0, LineCap::Square),
+            stroke(0.5, LineCap::Butt),
+            stroke(1.0, LineCap::Butt),
+            stroke(1.0, LineCap::Round),
+        ]
+    };
+    let transforms = [Transform::scale(2.0, 2.0), Transform::scale(0.25, 3.0)];
+    for h in [1e10, 1e15, 1e20, 1e25, 1e30, 1e35, 3e38] {
+        for path in shapes(h) {
+            for dash in [false, true] {
+                for item in styles(&path, dash) {
+                    draw(&list(vec![item.clone()]), 64, 64);
+                    for t in transforms {
+                        let scaled = group(t, 1.0, None, vec![item.clone()]);
+                        draw(&list(vec![scaled]), 64, 64);
+                    }
+                    let clip = Clip {
+                        path: path.clone(),
+                        rule: FillRule::NonZero,
+                    };
+                    let inner = fill(Path::rect(0.0, 0.0, 64.0, 64.0), "red", FillRule::NonZero);
+                    draw(
+                        &list(vec![group(
+                            Transform::IDENTITY,
+                            1.0,
+                            Some(clip),
+                            vec![inner, item],
+                        )]),
+                        64,
+                        64,
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn huge_hairline_curves_are_cut_in_device_space() {
+    // Skia cuts a hairline's curves into lines after the matrix: half the
+    // cubic scaled by 2 at width 0.5 (coverage 1) is the whole cubic at
+    // width 1, pixel for pixel.
+    let cubic = |scale: f64| {
+        let mut p = Path::new();
+        p.move_to(0.5 / scale, 0.5 / scale).cubic_to(
+            1e20 / scale,
+            -1e20 / scale,
+            -1e20 / scale,
+            1e20 / scale,
+            150.0 / scale,
+            150.0 / scale,
+        );
+        p
+    };
+    let stroke = |path: Path, width: f64| DisplayItem::Stroke {
+        path,
+        stroke: Stroke::new(Color::new("red"), width),
+    };
+    let whole = draw(&list(vec![stroke(cubic(1.0), 1.0)]), 200, 200);
+    let scaled = draw(
+        &list(vec![group(
+            Transform::scale(2.0, 2.0),
+            1.0,
+            None,
+            vec![stroke(cubic(2.0), 0.5)],
+        )]),
+        200,
+        200,
+    );
+    assert!(coverage(&whole) > 0);
+    assert_eq!(whole.data(), scaled.data());
+}
+
+fn hairline(path: Path, cap: LineCap) -> DisplayItem {
+    DisplayItem::Stroke {
+        path,
+        stroke: Stroke::new(Color::new("red"), 1.0).with_cap(cap),
+    }
+}
+
+/// A closed contour whose first segment is a cubic with control points at
+/// +-`h`: from (10, 10) to (100, 10), then down to (100, 100) and closed
+/// back to (10, 10).
+fn closed_with_huge_cubic(h: f64) -> Path {
+    let mut p = Path::new();
+    p.move_to(10.0, 10.0)
+        .cubic_to(h, h, -h, h, 100.0, 10.0)
+        .line_to(100.0, 100.0)
+        .close();
+    p
+}
+
+#[test]
+fn a_skipped_hairline_curve_leaves_the_rest_of_its_contour() {
+    // Skia's hair_cubic draws a cubic only when every point it evaluates
+    // is finite; at +-8e37 the coefficients overflow and the cubic alone is
+    // skipped. The line after it and the closing line to the contour's
+    // first point still draw (Chrome 153: the hairline-skips fixture), and
+    // a closed contour takes no caps, so round is the same as butt.
+    let butt = draw(
+        &list(vec![hairline(closed_with_huge_cubic(8e37), LineCap::Butt)]),
+        120,
+        120,
+    );
+    for cap in [LineCap::Butt, LineCap::Round, LineCap::Square] {
+        let p = draw(
+            &list(vec![hairline(closed_with_huge_cubic(8e37), cap)]),
+            120,
+            120,
+        );
+        assert_ne!(px(&p, 100, 50), CLEAR, "the line after the cubic, {cap:?}");
+        assert_ne!(px(&p, 40, 40), CLEAR, "the closing line, {cap:?}");
+        assert_ne!(px(&p, 70, 70), CLEAR, "the closing line, {cap:?}");
+        assert_eq!(px(&p, 50, 30), CLEAR, "no cubic, {cap:?}");
+        assert_eq!(p.data(), butt.data(), "{cap:?}");
+    }
+}
+
+#[test]
+fn hairline_segments_beside_a_skipped_curve_take_no_cap() {
+    // Round caps extend a hairline only at a contour's start and end
+    // (extend_pts: the previous verb a move, the next a move, a close or
+    // none). Beside the skipped cubic the neighbouring verb is the cubic,
+    // so the lines end flush at x = 50 and x = 70, as Chrome draws them.
+    let mut p = Path::new();
+    p.move_to(10.0, 50.5)
+        .line_to(50.0, 50.5)
+        .cubic_to(8e37, 8e37, -8e37, 8e37, 70.0, 50.5)
+        .line_to(110.0, 50.5);
+    let round = draw(&list(vec![hairline(p, LineCap::Round)]), 120, 120);
+    assert_ne!(px(&round, 9, 50), CLEAR, "the start's cap");
+    assert_ne!(px(&round, 110, 50), CLEAR, "the end's cap");
+    assert_eq!(px(&round, 50, 50), CLEAR, "no cap before the cubic");
+    assert_eq!(px(&round, 69, 50), CLEAR, "no cap after the cubic");
+    assert_eq!(px(&round, 30, 50), RED);
+    assert_eq!(px(&round, 90, 50), RED);
+}
+
+#[test]
+fn paths_past_a_quarter_of_the_f32_range_draw_nothing() {
+    // SkDraw::drawDevPath returns before drawing when the device path's
+    // bounds pass SK_ScalarMax / 4 (SkPathPriv::TooBigForMath): Chrome 153
+    // draws a line to 8.5070587e37 (2^126) and nothing past it, for fills,
+    // strokes and hairlines alike, whatever else the path holds.
+    let line_and_quad = |h: f64| {
+        let mut p = Path::new();
+        p.move_to(10.0, 10.0)
+            .line_to(100.0, 100.0)
+            .move_to(0.0, 110.0)
+            .quad_to(h, h, 50.0, 110.0);
+        p
+    };
+    let triangle = |h: f64| {
+        let mut p = Path::new();
+        p.move_to(10.0, 10.0)
+            .line_to(h, 10.0)
+            .line_to(10.0, 100.0)
+            .close();
+        p
+    };
+    let wide = |h: f64| {
+        let mut p = Path::new();
+        p.move_to(10.0, 60.0).line_to(h, 60.0);
+        DisplayItem::Stroke {
+            path: p,
+            stroke: Stroke::new(Color::new("red"), 3.0),
+        }
+    };
+    let thin = |path: Path, cap: LineCap, width: f64| DisplayItem::Stroke {
+        path,
+        stroke: Stroke::new(Color::new("red"), width).with_cap(cap),
+    };
+    // Hairlines of `width` in user space.
+    let items_of = |h: f64, width: f64| {
+        vec![
+            thin(line_and_quad(h), LineCap::Butt, width),
+            thin(closed_with_huge_cubic(h), LineCap::Butt, width),
+            thin(triangle(h), LineCap::Round, width),
+            fill(triangle(h), "red", FillRule::NonZero),
+            wide(h),
+        ]
+    };
+    let items = |h: f64| items_of(h, 1.0);
+    for (i, item) in items(8e37).into_iter().enumerate() {
+        assert!(
+            coverage(&draw(&list(vec![item]), 120, 120)) > 0,
+            "{i} at 8e37"
+        );
+    }
+    for h in [8.6e37, 1e38, 3e38] {
+        for (i, item) in items(h).into_iter().enumerate() {
+            assert_eq!(
+                coverage(&draw(&list(vec![item]), 120, 120)),
+                0,
+                "{i} at {h}"
+            );
+        }
+    }
+    // The bounds are the device path's: under a scale of 2, 5e37 is past
+    // (the hairlines are 0.5 wide, 1 in device space, as Chrome draws
+    // them; a wider stroke's outline is the stroker's, whose points stay
+    // near the canvas).
+    for (i, item) in items_of(5e37, 0.5).into_iter().enumerate() {
+        assert!(
+            coverage(&draw(&list(vec![item.clone()]), 120, 120)) > 0,
+            "{i}"
+        );
+        let scaled = group(Transform::scale(2.0, 2.0), 1.0, None, vec![item]);
+        assert_eq!(
+            coverage(&draw(&list(vec![scaled]), 120, 120)),
+            0,
+            "{i} scaled"
+        );
+    }
+}

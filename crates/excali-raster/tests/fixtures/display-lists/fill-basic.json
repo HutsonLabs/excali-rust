@@ -1,0 +1,16 @@
+{
+ "description": "Solid fills: rectangles on whole and half pixels, a sub-pixel sliver, a triangle and a diagonal quad in Excalidraw's palette, source-over in list order",
+ "width": 64,
+ "height": 64,
+ "tolerance": {"channel": 8, "pixels": 0},
+ "toleranceNote": "Every draw goes through ports of Chrome's own pipeline (Skia's analytic anti-aliasing, edge builder and clipper, stroker, dasher and AntiFillRect, Blink's arc handling), so what remains is rounding in blending, coverage and sampling: against Chrome 153 no pixel here is more than 2 levels off. 8 leaves room for another Chrome build that rounds differently.",
+ "items": [
+  {"type": "fill", "color": "#a5d8ff", "path": [["rect", 0, 0, 64, 64]]},
+  {"type": "fill", "color": "#1e1e1e", "path": [["rect", 4, 4, 20, 12]]},
+  {"type": "fill", "color": "#e03131", "path": [["rect", 28.5, 4.5, 20, 12]]},
+  {"type": "fill", "color": "#2f9e44", "path": [["rect", 52.25, 4.75, 8.5, 12.3]]},
+  {"type": "fill", "color": "#1971c2", "path": [["rect", 4, 20.4, 56, 0.3]]},
+  {"type": "fill", "color": "#f08c00", "path": [["M", 8, 60], ["L", 30, 26], ["L", 40, 58], ["Z"]]},
+  {"type": "fill", "color": "#9c36b5", "path": [["M", 44, 30], ["L", 60, 36.5], ["L", 55.3, 61.2], ["L", 38.7, 50], ["Z"]]}
+ ]
+}

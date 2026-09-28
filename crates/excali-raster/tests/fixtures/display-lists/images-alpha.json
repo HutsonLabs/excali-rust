@@ -1,0 +1,22 @@
+{
+ "description": "drawImage of a bitmap with translucent pixels (straight alpha, as ImageData holds it) at natural size over a background and over transparency, scaled up without smoothing, and clipped by a rounded rectangle as upstream clips rounded images",
+ "width": 64,
+ "height": 64,
+ "tolerance": {"channel": 8, "pixels": 0},
+ "toleranceNote": "Every draw goes through ports of Chrome's own pipeline (Skia's analytic anti-aliasing, edge builder and clipper, stroker, dasher and AntiFillRect, Blink's arc handling), so what remains is rounding in blending, coverage and sampling: against Chrome 153 no pixel here is more than 1 level off. 8 leaves room for another Chrome build that rounds differently.",
+ "images": {
+  "ramp": {"width": 8, "height": 8, "rgba": [30, 200, 120, 16, 55, 200, 120, 46, 80, 200, 120, 76, 105, 200, 120, 106, 130, 200, 120, 136, 155, 200, 120, 166, 180, 200, 120, 196, 205, 200, 120, 226, 30, 180, 120, 20, 55, 180, 120, 50, 80, 180, 120, 80, 105, 180, 120, 110, 130, 180, 120, 140, 155, 180, 120, 170, 180, 180, 120, 200, 205, 180, 120, 230, 30, 160, 120, 24, 55, 160, 120, 54, 80, 160, 120, 84, 105, 160, 120, 114, 130, 160, 120, 144, 155, 160, 120, 174, 180, 160, 120, 204, 205, 160, 120, 234, 30, 140, 120, 28, 55, 140, 120, 58, 80, 140, 120, 88, 105, 140, 120, 118, 130, 140, 120, 148, 155, 140, 120, 178, 180, 140, 120, 208, 205, 140, 120, 238, 30, 120, 120, 32, 55, 120, 120, 62, 80, 120, 120, 92, 105, 120, 120, 122, 130, 120, 120, 152, 155, 120, 120, 182, 180, 120, 120, 212, 205, 120, 120, 242, 30, 100, 120, 36, 55, 100, 120, 66, 80, 100, 120, 96, 105, 100, 120, 126, 130, 100, 120, 156, 155, 100, 120, 186, 180, 100, 120, 216, 205, 100, 120, 246, 30, 80, 120, 40, 55, 80, 120, 70, 80, 80, 120, 100, 105, 80, 120, 130, 130, 80, 120, 160, 155, 80, 120, 190, 180, 80, 120, 220, 205, 80, 120, 250, 30, 60, 120, 44, 55, 60, 120, 74, 80, 60, 120, 104, 105, 60, 120, 134, 130, 60, 120, 164, 155, 60, 120, 194, 180, 60, 120, 224, 205, 60, 120, 254]}
+ },
+ "items": [
+  {"type": "fill", "color": "#1e1e1e", "path": [["rect", 0, 0, 32, 64]]},
+  {"type": "image", "id": "ramp", "smoothing": false, "dest": [4, 4, 8, 8]},
+  {"type": "image", "id": "ramp", "smoothing": false, "dest": [36, 4, 8, 8]},
+  {"type": "image", "id": "ramp", "smoothing": false, "dest": [4, 16, 24, 24]},
+  {"type": "group", "clip": {"path": [["roundRect", 36, 16, 24, 24, 6]]}, "items": [
+   {"type": "image", "id": "ramp", "smoothing": false, "dest": [36, 16, 24, 24]}
+  ]},
+  {"type": "group", "opacity": 0.6, "items": [
+   {"type": "image", "id": "ramp", "smoothing": false, "dest": [16, 44, 32, 16]}
+  ]}
+ ]
+}

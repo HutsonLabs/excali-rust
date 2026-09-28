@@ -1,0 +1,19 @@
+{
+ "description": "roundRect(): the radius upstream clips rounded images and frames with, filled and stroked, zero, large enough to be scaled down, on negative widths and heights, and a negative radius that draws nothing",
+ "width": 96,
+ "height": 96,
+ "tolerance": {"channel": 8, "pixels": 0},
+ "toleranceNote": "Every draw goes through ports of Chrome's own pipeline (Skia's analytic anti-aliasing, edge builder and clipper, stroker, dasher and AntiFillRect, Blink's arc handling), so what remains is rounding in blending, coverage and sampling: against Chrome 153 no pixel here is more than 3 levels off. 8 leaves room for another Chrome build that rounds differently.",
+ "items": [
+  {"type": "fill", "color": "#a5d8ff", "path": [["roundRect", 4, 4, 40, 26, 8]]},
+  {"type": "stroke", "color": "#1971c2", "width": 2, "path": [["roundRect", 4, 4, 40, 26, 8]]},
+  {"type": "fill", "color": "#ffc9c9", "path": [["roundRect", 52, 4, 40, 26, 0]]},
+  {"type": "stroke", "color": "#e03131", "width": 1, "path": [["roundRect", 52.5, 4.5, 39, 25, 0]]},
+  {"type": "fill", "color": "#b2f2bb", "path": [["roundRect", 4, 36, 40, 20, 40]]},
+  {"type": "stroke", "color": "#2f9e44", "width": 1.5, "path": [["roundRect", 4, 36, 40, 20, 40]]},
+  {"type": "fill", "color": "#ffec99", "path": [["roundRect", 92, 60, -40, -24, 6]]},
+  {"type": "stroke", "color": "#f08c00", "width": 3, "join": "round", "path": [["roundRect", 44, 90, -40, -24, 12.5]]},
+  {"type": "fill", "color": "#1e1e1e", "path": [["roundRect", 52, 66, 40, 24, -3]]},
+  {"type": "stroke", "color": "#9c36b5", "width": 2, "path": [["roundRect", 56, 70, 32, 16, 3]]}
+ ]
+}

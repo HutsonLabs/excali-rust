@@ -1,0 +1,33 @@
+{
+ "description": "Paths with coordinates near the top of the f32 range, each in its own 120x120 cell. Top row, hairlines (width 1) under Skia's limit: a line and a separate quadratic with its control point at 8e37 (every point it evaluates is finite, so both draw); a closed contour whose first segment is a cubic with control points at +-8e37, which Skia's hair_cubic skips because a point it evaluates overflows (SkScan_Hairline.cpp: a curve draws only when every point is finite), so the line after it and the closing line to the contour's first point still draw; the same contour round-capped (the segments of a closed contour take no cap); and a round-capped open polyline broken by that cubic, whose lines take a cap only at the contour's start and end (beside the break the neighbouring verb is the cubic, not a move). Bottom row, past Skia's limit: SkDraw::drawDevPath draws nothing when the device path's bounds pass a quarter of the f32 range (SkPathPriv::TooBigForMath), so a hairline line with a quadratic at 3e38, a hairline closed contour with a cubic at +-3e38, a filled triangle with a vertex at 1e38 and a width-3 line to 1e38 leave their cells empty.",
+ "width": 480,
+ "height": 240,
+ "tolerance": {"channel": 8, "pixels": 0},
+ "toleranceNote": "The hairlines overflow tiny-skia's finiteness test, so they go through the port of Skia's hair_path (hairline.rs) into tiny-skia's line hairliner (Skia's), and what remains is rounding in blending and coverage. 8 leaves room for another Chrome build that rounds differently.",
+ "items": [
+  {"type": "group", "clip": {"path": [["rect", 0, 0, 120, 120]]}, "items": [
+   {"type": "stroke", "color": "#1e1e1e", "width": 1, "path": [["M", 10, 10], ["L", 100, 100], ["M", 0, 110], ["Q", 8e37, 8e37, 50, 110]]}
+  ]},
+  {"type": "group", "clip": {"path": [["rect", 0, 0, 120, 120]]}, "transform": [1, 0, 0, 1, 120, 0], "items": [
+   {"type": "stroke", "color": "#1971c2", "width": 1, "path": [["M", 10, 10], ["C", 8e37, 8e37, -8e37, 8e37, 100, 10], ["L", 100, 100], ["Z"]]}
+  ]},
+  {"type": "group", "clip": {"path": [["rect", 0, 0, 120, 120]]}, "transform": [1, 0, 0, 1, 240, 0], "items": [
+   {"type": "stroke", "color": "#2f9e44", "width": 1, "cap": "round", "path": [["M", 10, 10], ["C", 8e37, 8e37, -8e37, 8e37, 100, 10], ["L", 100, 100], ["Z"]]}
+  ]},
+  {"type": "group", "clip": {"path": [["rect", 0, 0, 120, 120]]}, "transform": [1, 0, 0, 1, 360, 0], "items": [
+   {"type": "stroke", "color": "#e03131", "width": 1, "cap": "round", "path": [["M", 10, 50.5], ["L", 50, 50.5], ["C", 8e37, 8e37, -8e37, 8e37, 70, 50.5], ["L", 110, 50.5]]}
+  ]},
+  {"type": "group", "clip": {"path": [["rect", 0, 0, 120, 120]]}, "transform": [1, 0, 0, 1, 0, 120], "items": [
+   {"type": "stroke", "color": "#1e1e1e", "width": 1, "path": [["M", 10, 10], ["L", 100, 100], ["M", 0, 110], ["Q", 3e38, 3e38, 50, 110]]}
+  ]},
+  {"type": "group", "clip": {"path": [["rect", 0, 0, 120, 120]]}, "transform": [1, 0, 0, 1, 120, 120], "items": [
+   {"type": "stroke", "color": "#1971c2", "width": 1, "path": [["M", 10, 10], ["C", 3e38, 3e38, -3e38, 3e38, 100, 10], ["L", 100, 100], ["Z"]]}
+  ]},
+  {"type": "group", "clip": {"path": [["rect", 0, 0, 120, 120]]}, "transform": [1, 0, 0, 1, 240, 120], "items": [
+   {"type": "fill", "color": "#2f9e44", "path": [["M", 10, 10], ["L", 1e38, 10], ["L", 10, 100], ["Z"]]}
+  ]},
+  {"type": "group", "clip": {"path": [["rect", 0, 0, 120, 120]]}, "transform": [1, 0, 0, 1, 360, 120], "items": [
+   {"type": "stroke", "color": "#e03131", "width": 3, "path": [["M", 10, 60], ["L", 1e38, 60]]}
+  ]}
+ ]
+}

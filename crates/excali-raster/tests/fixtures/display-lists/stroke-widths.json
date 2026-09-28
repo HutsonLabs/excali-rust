@@ -1,0 +1,25 @@
+{
+ "description": "Stroke widths: hairline to thick on horizontal, vertical and diagonal lines at whole and half pixel positions, and lineWidth 0, negative and NaN drawing the default 1",
+ "width": 96,
+ "height": 96,
+ "tolerance": {"channel": 8, "pixels": 0},
+ "toleranceNote": "Every draw goes through ports of Chrome's own pipeline (Skia's analytic anti-aliasing, edge builder and clipper, stroker, dasher and AntiFillRect, Blink's arc handling), so what remains is rounding in blending, coverage and sampling: against Chrome 153 no pixel here is more than 2 levels off. 8 leaves room for another Chrome build that rounds differently.",
+ "items": [
+  {"type": "stroke", "color": "#1e1e1e", "width": 0.25, "path": [["M", 4, 4], ["L", 92, 4]]},
+  {"type": "stroke", "color": "#1e1e1e", "width": 0.5, "path": [["M", 4, 8.5], ["L", 92, 8.5]]},
+  {"type": "stroke", "color": "#1e1e1e", "width": 1, "path": [["M", 4, 12], ["L", 92, 12]]},
+  {"type": "stroke", "color": "#1e1e1e", "width": 1, "path": [["M", 4, 15.5], ["L", 92, 15.5]]},
+  {"type": "stroke", "color": "#1e1e1e", "width": 1.5, "path": [["M", 4, 20], ["L", 92, 20]]},
+  {"type": "stroke", "color": "#1e1e1e", "width": 2, "path": [["M", 4, 25], ["L", 92, 25]]},
+  {"type": "stroke", "color": "#1e1e1e", "width": 4, "path": [["M", 4, 32.3], ["L", 92, 32.3]]},
+  {"type": "stroke", "color": "#e03131", "width": 1, "path": [["M", 8, 40], ["L", 8, 92]]},
+  {"type": "stroke", "color": "#e03131", "width": 2.5, "path": [["M", 16.5, 40], ["L", 16.5, 92]]},
+  {"type": "stroke", "color": "#e03131", "width": 8, "path": [["M", 28, 40], ["L", 28, 92]]},
+  {"type": "stroke", "color": "#1971c2", "width": 1, "path": [["M", 40, 40], ["L", 92, 60]]},
+  {"type": "stroke", "color": "#1971c2", "width": 3, "path": [["M", 40, 50], ["L", 92, 92]]},
+  {"type": "stroke", "color": "#1971c2", "width": 0.75, "path": [["M", 40, 92], ["L", 92, 66]]},
+  {"type": "stroke", "color": "#2f9e44", "width": 0, "path": [["M", 40, 44], ["L", 60, 88]]},
+  {"type": "stroke", "color": "#2f9e44", "width": -3, "path": [["M", 50, 44], ["L", 70, 88]]},
+  {"type": "stroke", "color": "#2f9e44", "width": "NaN", "path": [["M", 60, 44], ["L", 80, 88]]}
+ ]
+}
