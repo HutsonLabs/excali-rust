@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 08:46 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 08:56 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**134 issues** · 25 closed (19%) · 0 in progress · 0 blocked · 108 open
+**135 issues** · 26 closed (19%) · 0 in progress · 0 blocked · 108 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -31,7 +31,7 @@ Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo work
 
 ## ex-e1 · Phase 1: Core model and file format (excali-core)
 
-<span class="status open">open</span> 10/17 children closed
+<span class="status open">open</span> 10/18 children closed
 
 Element types, serde with unknown-field preservation, restore/migration rules, AppState, fractional indexing, library formats, payload codecs, conformance corpus.
 
@@ -53,11 +53,12 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 | `ex-114` | Corpus test: 232 catalogue libraries round-trip | task | P0 | <span class="status open">open</span> |  | `ex-108` |
 | `ex-115` | JSON Schema generation for .excalidraw and .excalidrawlib (schemars) | task | P3 | <span class="status open">open</span> |  | `ex-108` |
 | `ex-116` | Restore: legacy arrow binding migration (bindings without mode) through RestoreEnv::migrate_legacy_binding | task | P0 | <span class="status open">open</span> |  | `ex-507`, `ex-510` |
-| `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-105`, `ex-108`, `ex-109`, `ex-114`, `ex-115`, `ex-116` |
+| `ex-117` | Typed element model: keep field values of a type the model has no form for (string strokeWidth) as upstream's restore does | task | P0 | <span class="status open">open</span> |  | `ex-108` |
+| `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-105`, `ex-108`, `ex-109`, `ex-114`, `ex-115`, `ex-116` … |
 
 ## ex-e2 · Phase 2: Geometry and sketch renderer
 
-<span class="status open">open</span> 5/19 children closed
+<span class="status open">open</span> 6/19 children closed
 
 excali-math, excali-rough (rough.js 4.6.4 semantics), excali-freehand, the display list, and golden tests against upstream output.
 
@@ -70,7 +71,7 @@ excali-math, excali-rough (rough.js 4.6.4 semantics), excali-freehand, the displ
 | `ex-205` | excali-rough: dashes, multi-stroke, curve fitting, preserveVertices | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-206` | Spike: evaluate the roughr crate (0.14.0) against the goldens | spike | P1 | <span class="status open">open</span> | yes |  |
 | `ex-207` | Option mapping: generateRoughOptions and adjustRoughness with all constants | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-208` | Shape construction: rectangle (adaptive radius path), diamond (rounded C corners), ellipse (curveFitting 1), iframe defaults | task | P0 | <span class="status open">open</span> | yes |  |
+| `ex-208` | Shape construction: rectangle (adaptive radius path), diamond (rounded C corners), ellipse (curveFitting 1), iframe defaults | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-209` | Shape construction: line and arrow (sharp, curved, polygon), loop fill | task | P1 | <span class="status open">open</span> |  | `ex-202` |
 | `ex-210` | Elbow arrow path from fixed points (radius 16) and validation | task | P1 | <span class="status open">open</span> |  | `ex-209` |
 | `ex-211` | Elbow arrow routing: A* over the non-uniform grid | task | P2 | <span class="status open">open</span> |  | `ex-210` |
@@ -81,7 +82,7 @@ excali-math, excali-rough (rough.js 4.6.4 semantics), excali-freehand, the displ
 | `ex-216` | Display list type: renderer-independent paths, fills, dashes, images, text runs, clips, opacity | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-217` | Golden harness in CI (cargo test feature `goldens`) | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-218` | Dark-mode colour filter maths (invert 93% hue-rotate 180deg) and reverse | task | P2 | <span class="status open">open</span> | yes |  |
-| `ex-m2` | M2: golden parity with rough.js for all shapes | milestone | P2 | <span class="status open">open</span> |  | `ex-202`, `ex-205`, `ex-206`, `ex-208`, `ex-209`, `ex-210` … |
+| `ex-m2` | M2: golden parity with rough.js for all shapes | milestone | P2 | <span class="status open">open</span> |  | `ex-202`, `ex-205`, `ex-206`, `ex-209`, `ex-210`, `ex-211` … |
 
 ## ex-e3 · Phase 3: Text and fonts (excali-text)
 
@@ -135,7 +136,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-504` | Per-element bitmap cache with padding rules, size caps and pixel snapping | task | P1 | <span class="status open">open</span> |  | `ex-503` |
 | `ex-505` | Viewport: zoom limits, wheel formula, scroll, coordinate transforms, zoom-to-fit | task | P0 | <span class="status open">open</span> |  | `ex-503` |
 | `ex-506` | Editor state machine: tools registry (keys, fillable, toggle), active tool, tool lock, pen mode | task | P0 | <span class="status open">open</span> | yes |  |
-| `ex-507` | Hit testing (collision.ts): thresholds, inside/outline rules, per-shape intersections | task | P0 | <span class="status open">open</span> |  | `ex-208` |
+| `ex-507` | Hit testing (collision.ts): thresholds, inside/outline rules, per-shape intersections | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-508` | Selection and transform handles: sizes by pointer type, resize, rotate, aspect lock, centre resize | task | P0 | <span class="status open">open</span> |  | `ex-507` |
 | `ex-509` | Snapping: point and gap snaps at 8/zoom, snap lines rendering | task | P1 | <span class="status open">open</span> |  | `ex-508` |
 | `ex-510` | Arrow binding: gap 5+sw/2, max distance 15..30 by zoom, fixed points, modes inside/orbit/skip, highlight | task | P0 | <span class="status open">open</span> |  | `ex-105`, `ex-508` |
