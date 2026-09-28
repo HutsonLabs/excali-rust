@@ -43,6 +43,16 @@ schemars = { version = "1.2.2", default-features = false, features = ["derive", 
 # Test-only: validates files against the published schemas. No remote $ref
 # resolution, so no HTTP stack.
 jsonschema = { version = "0.58.1", default-features = false }
+# Text measurement from font files (excali_text::font_store, ex-302, ADR-007):
+# ttf-parser reads the sfnt tables (cmap, head), rustybuzz shapes each run as
+# HarfBuzz does in the browser, wuff decompresses the vendored WOFF2 (and
+# WOFF) files in pure Rust so the wasm32 build needs no C code, and
+# unicode-properties gives the general category that keeps combining marks
+# on their base's face (the version and feature rustybuzz already uses).
+ttf-parser = "0.25.1"
+rustybuzz = "0.20.1"
+wuff = "0.2.9"
+unicode-properties = { version = "0.1.4", default-features = false, features = ["general-category"] }
 # Test-only: golden digests and base64 payloads.
 sha2 = "0.11.0"
 base64 = "0.23.1"

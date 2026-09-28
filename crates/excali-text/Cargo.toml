@@ -10,8 +10,12 @@ publish = false
 
 [dependencies]
 excali-core = { path = "../excali-core" }
+rustybuzz = { workspace = true }
+ttf-parser = { workspace = true }
+unicode-properties = { workspace = true }
+wuff = { workspace = true }
 
-# serde_json reads tests/fixtures/font-metadata.json in the parity tests.
+# serde_json reads the JSON fixtures under tests/fixtures in the parity tests.
 [dev-dependencies]
 serde_json = { workspace = true }
 
