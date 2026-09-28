@@ -419,3 +419,69 @@ node tools/goldens/library-fixtures.mjs --check   # exit 1 if it is stale
 
 CI runs `--check` in the `goldens` job, and `test/library-fixtures.test.mjs`
 checks that two runs are byte-identical.
+
+## Library URL fixtures
+
+`library-url-fixtures.mjs` writes
+`crates/excali-core/tests/fixtures/library-url.json` for excali-core's
+import-from-URL port (ex-109, `excali_core::library_url` and
+`excali_core::link`). It bundles upstream's `validateLibraryUrl` and
+`parseLibraryTokensFromUrl` (`packages/excalidraw/data/library.ts:497-543`),
+the module-private allow-list `ALLOWED_LIBRARY_URLS` (`library.ts:54-58`,
+exported for the generator), and `toValidURL` and `normalizeLink`
+(`packages/common/src/url.ts:5-37`, with `@braintree/sanitize-url` 6.0.2
+from `package-lock.json`). It records:
+
+- `validate`: `validateLibraryUrl(url)` with the default allow-list, or with a
+  case's own `allowList`: `ok`, or the thrown message and constructor
+  (`Error`, `TypeError` for `new URL`, `SyntaxError` for an entry that is not
+  a valid regular expression);
+- `tokens`: `parseLibraryTokensFromUrl()` with `window.location` at `href`
+  (its `search` and `hash` are recorded too);
+- `normalizeLink` and `toValidURL` (with `location.origin` set) on tables of
+  links: `javascript:`/`data:`/`vbscript:` in every disguise the sanitizer
+  handles, character references, control characters, relative links;
+- `import`: `decodeURIComponent`, `toValidURL` and `validateLibraryUrl` in the
+  order `importLibraryFromURL` calls them (`library.ts:726-731`).
+
+`library.ts` is loaded with the same stubs and jotai shim as the library
+fixtures. The functions are pure apart from `location`.
+
+```sh
+node tools/goldens/library-url-fixtures.mjs           # write the fixture
+node tools/goldens/library-url-fixtures.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and
+`test/library-url-fixtures.test.mjs` checks that two runs are byte-identical.
+
+## URL host fixtures
+
+`url-host-fixtures.mjs` writes `crates/excali-core/tests/fixtures/url-hosts.json`
+for excali-core's `whatwg_url` (ex-109): what `new URL` gives in Node for
+special URLs whose host is outside ASCII, where the domain goes through ada's
+IDNA (`ada::idna::to_ascii`), which the port carries as `excali_core::ada_idna`.
+It records:
+
+- `cases`: hostname and pathname, or `error`, for hosts that show where ada
+  differs from UTS 46 with Unicode 17 data (combining marks and right-to-left
+  letters from Unicode 14 to 17, the Bidi rule per label, ContextJ, NFC,
+  mapping, percent escapes, `xn--` labels, IPv4 after mapping, `file:`);
+- `sweep`: a CRC-32 per 4,096 code points of the hostnames of
+  `https://{c}/` and `https://a{c}/` for every code point from U+0080;
+- `random`: CRC-32s over 20,000 URLs from a seeded Park-Miller generator
+  whose tokens and schemes are in the fixture, so the Rust test rebuilds the
+  same inputs.
+
+It needs no upstream checkout. The output depends on the Node release, so the
+generator refuses any but `.node-version` (26.10.0, ada 4.0.0).
+
+```sh
+node tools/goldens/url-host-fixtures.mjs           # write the fixture
+node tools/goldens/url-host-fixtures.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and `test/url-host-fixtures.test.mjs`
+checks that two runs are byte-identical. ada's table blob itself is taken
+from the ada 4.0.0 release by `scripts/fixtures/ada-idna-tables.py`
+(`--check` runs in the `ada-idna-tables` job of `gates.yml`).

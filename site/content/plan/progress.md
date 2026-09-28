@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 10:55 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 11:08 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**135 issues** · 34 closed (25%) · 0 in progress · 0 blocked · 100 open
+**135 issues** · 35 closed (26%) · 0 in progress · 0 blocked · 99 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -31,7 +31,7 @@ Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo work
 
 ## ex-e1 · Phase 1: Core model and file format (excali-core)
 
-<span class="status open">open</span> 14/18 children closed
+<span class="status open">open</span> 15/18 children closed
 
 Element types, serde with unknown-field preservation, restore/migration rules, AppState, fractional indexing, library formats, payload codecs, conformance corpus.
 
@@ -45,7 +45,7 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 | `ex-106` | AppState: exported keys, defaults and restoreAppState legacy handling | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-107` | Fractional indexing port (base-62 keys, generateNKeysBetween, syncInvalidIndices) | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-108` | Library formats: v1 `library` and v2 `libraryItems`, restoreLibraryItems, merge | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-109` | Library import model: URL allow-list and #addLibrary token parsing | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-109` | Library import model: URL allow-list and #addLibrary token parsing | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-110` | Payload codec: byte-string encoding and zlib compression (encode/decode) | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-111` | PNG tEXt scene payload read/write | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-112` | SVG metadata scene payload read/write | task | P1 | <span class="status closed">closed</span> |  |  |
@@ -54,7 +54,7 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 | `ex-115` | JSON Schema generation for .excalidraw and .excalidrawlib (schemars) | task | P3 | <span class="status closed">closed</span> |  |  |
 | `ex-116` | Restore: legacy arrow binding migration (bindings without mode) through RestoreEnv::migrate_legacy_binding | task | P0 | <span class="status open">open</span> |  | `ex-507`, `ex-510` |
 | `ex-117` | Typed element model: keep field values of a type the model has no form for (string strokeWidth) as upstream's restore does | task | P0 | <span class="status open">open</span> | yes |  |
-| `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-109`, `ex-116`, `ex-117` |
+| `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-116`, `ex-117` |
 
 ## ex-e2 · Phase 2: Geometry and sketch renderer
 
@@ -175,7 +175,7 @@ Vendored module in term.hut with CRUD and library import; tauri-plugin-excali wi
 | `ex-601` | term.hut: vendor the module and route .excalidraw to the editor in preview.js | task | P0 | <span class="status open">open</span> |  | `ex-530` |
 | `ex-602` | term.hut: save through fs_write_text with dirty state and conflict handling | task | P0 | <span class="status open">open</span> |  | `ex-601` |
 | `ex-603` | term.hut: New drawing and delete flows in the tree | task | P1 | <span class="status open">open</span> |  | `ex-602` |
-| `ex-604` | term.hut: Import library from URL or file with the allow-list | task | P1 | <span class="status open">open</span> |  | `ex-109`, `ex-601` |
+| `ex-604` | term.hut: Import library from URL or file with the allow-list | task | P1 | <span class="status open">open</span> |  | `ex-601` |
 | `ex-605` | tauri-plugin-excali: dialogs, headless export, allow-listed library fetch, capability file | task | P0 | <span class="status open">open</span> |  | `ex-409`, `ex-530` |
 | `ex-606` | Example Tauri app embedding the editor | task | P1 | <span class="status open">open</span> |  | `ex-605` |
 | `ex-607` | Integration docs: CSP, capabilities, module loading without a bundler | task | P2 | <span class="status open">open</span> |  | `ex-605` |

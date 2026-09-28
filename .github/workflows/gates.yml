@@ -109,6 +109,20 @@ jobs:
           UPSTREAM_DIR: ${{ runner.temp }}/upstream
           TOOLS_DIR: ${{ runner.temp }}/tools
         run: scripts/fixtures/png-goldens.sh --check
+  # ex-109: excali-core's ada_idna port reads ada's own IDNA table blob.
+  # Take it again from the ada 4.0.0 release (the ada Node 26 bundles;
+  # ada.cpp checked against its pinned SHA-256) and fail if the committed
+  # tables.zlib or layout.rs differ.
+  ada-idna-tables:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: table script tests (offline)
+        run: python3 scripts/fixtures/test_ada_idna_tables.py -v
+      - name: committed tables match ada 4.0.0
+        env:
+          TOOLS_DIR: ${{ runner.temp }}/tools
+        run: python3 scripts/fixtures/ada-idna-tables.py --check
   # scripts/upstream/checkout.sh: the offline suite pins its behaviour
   # (fixture remotes over file://); the live step proves the real pin still
   # resolves on GitHub, lands clean, and a second run is a no-op.
@@ -207,7 +221,12 @@ jobs:
   # rough-options.json, upstream's own generateRoughOptions and
   # applyDarkModeFilter, and library-fixtures.mjs --check for
   # library.json, upstream's own parseLibraryJSON,
-  # serializeLibraryAsJSON, mergeLibraryItems and getLibraryItemsHash.
+  # serializeLibraryAsJSON, mergeLibraryItems and getLibraryItemsHash, and
+  # library-url-fixtures.mjs --check for library-url.json, upstream's own
+  # validateLibraryUrl, parseLibraryTokensFromUrl, normalizeLink and
+  # toValidURL, and url-host-fixtures.mjs --check for url-hosts.json, Node's
+  # own new URL (ada's IDNA) on hosts outside ASCII: cases, every code point
+  # and seeded random URLs.
   # Runs on arm64: V8's float results for some shapes differ in the last bits
   # between x64 and arm64, and the committed goldens are the arm64 output
   # (macOS and Linux arm64 agree byte for byte).
@@ -240,3 +259,7 @@ jobs:
         run: node tools/goldens/rough-options.mjs --check
       - name: excali-core library fixtures match the generator
         run: node tools/goldens/library-fixtures.mjs --check
+      - name: excali-core library URL fixtures match the generator
+        run: node tools/goldens/library-url-fixtures.mjs --check
+      - name: excali-core URL host fixtures match Node's new URL (ada IDNA)
+        run: node tools/goldens/url-host-fixtures.mjs --check
