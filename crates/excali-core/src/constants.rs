@@ -17,6 +17,11 @@ pub const COLOR_TRANSPARENT: &str = "transparent";
 /// `COLOR_PALETTE.white`, `colors.ts:196`.
 pub const COLOR_WHITE: &str = "#ffffff";
 
+/// How close (px at zoom 1) a line's last point must come to its first for
+/// the line to be a closed loop (`LINE_CONFIRM_THRESHOLD`,
+/// `constants.ts:30`).
+pub const LINE_CONFIRM_THRESHOLD: f64 = 8.0;
+
 /// Font size presets (`FONT_SIZES`, `constants.ts:122-127`).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FontSizes {

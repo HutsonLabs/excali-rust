@@ -136,6 +136,22 @@ impl ElementType {
         matches!(self, ElementType::Line | ElementType::Arrow)
     }
 
+    /// Its roundness can be edited (`canChangeRoundness`,
+    /// `comparisons.ts:57-64`). Ellipses, arrows, freedraw, text and frames
+    /// cannot, whatever their `roundness` field holds.
+    pub const fn can_change_roundness(self) -> bool {
+        matches!(
+            self,
+            ElementType::Rectangle
+                | ElementType::Iframe
+                | ElementType::Embeddable
+                | ElementType::Line
+                | ElementType::Diamond
+                | ElementType::StickyNote
+                | ElementType::Image
+        )
+    }
+
     /// Can bind to other elements: `arrow` only (`isBindingElementType`,
     /// `typeChecks.ts:178-182`).
     pub const fn is_binding(self) -> bool {

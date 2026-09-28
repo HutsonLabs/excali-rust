@@ -10,8 +10,8 @@
 
 use excali_core::element::{
     ArrowFields, Element, ElementBase, ElementKind, FillStyle, FrameFields, FreedrawFields,
-    ImageFields, LineFields, LinearFields, LocalPoint, Roundness, RoundnessType,
-    StickyNoteFields, StrokeStyle, TextFields,
+    ImageFields, LineFields, LinearFields, LocalPoint, Roundness, RoundnessType, StickyNoteFields,
+    StrokeStyle, TextFields,
 };
 use excali_scene::rough_options::{
     adjust_roughness, dash_array_dashed, dash_array_dotted, generate_rough_options, RoughOptions,
@@ -174,8 +174,13 @@ fn stroke_goes_through_the_dark_mode_filter() {
 fn vertices_are_preserved_for_continuous_paths_or_below_cartoonist() {
     // shape.ts:224-225: ROUGHNESS.cartoonist is 2
     let mut el = rect();
-    for (roughness, preserved) in [(0.0, true), (1.0, true), (1.99, true), (2.0, false), (3.0, false)]
-    {
+    for (roughness, preserved) in [
+        (0.0, true),
+        (1.0, true),
+        (1.99, true),
+        (2.0, false),
+        (3.0, false),
+    ] {
         el.base.roughness = roughness;
         let o = generate_rough_options(&el, false, false).unwrap();
         assert_eq!(o.preserve_vertices, preserved, "roughness {roughness}");
@@ -270,7 +275,7 @@ fn lines_and_freedraw_fill_only_loops() {
         let mut open = make(&OPEN);
         open.base.background_color = "#b2f2bb".into();
         let o = options(&open);
-        assert_eq!((o.fill_style, o.fill), (None, None));
+        assert_eq!((o.fill_style, &o.fill), (None, &None));
         assert!(!o.keys().contains(&"fill"));
     }
 }
@@ -355,8 +360,14 @@ fn adjust_roughness_keeps_it_for_rounded_elements_of_15px() {
     // minSize >= 15 && roundness && canChangeRoundness (shape.ts:183-185)
     let mut round = rect();
     round.base.roundness = Some(Roundness::new(RoundnessType::AdaptiveRadius));
-    assert_eq!(adjust_roughness(&sized(round.clone(), 15.0, 15.0, 2.0)), 2.0);
-    assert_eq!(adjust_roughness(&sized(round.clone(), 14.99, 15.0, 2.0)), 1.0);
+    assert_eq!(
+        adjust_roughness(&sized(round.clone(), 15.0, 15.0, 2.0)),
+        2.0
+    );
+    assert_eq!(
+        adjust_roughness(&sized(round.clone(), 14.99, 15.0, 2.0)),
+        1.0
+    );
     assert_eq!(adjust_roughness(&sized(rect(), 15.0, 15.0, 2.0)), 1.0);
     // an ellipse cannot change roundness, whatever its roundness field says
     let mut ellipse = element(ElementKind::Ellipse, 0.0, 0.0);
@@ -371,7 +382,10 @@ fn adjust_roughness_keeps_it_for_long_linear_elements() {
     assert_eq!(adjust_roughness(&sized(arrow(&OPEN), 50.0, 0.0, 2.0)), 2.0);
     assert_eq!(adjust_roughness(&sized(arrow(&OPEN), 49.99, 0.0, 2.0)), 1.0);
     // freedraw is not linear
-    assert_eq!(adjust_roughness(&sized(freedraw(&OPEN), 50.0, 0.0, 2.0)), 1.0);
+    assert_eq!(
+        adjust_roughness(&sized(freedraw(&OPEN), 50.0, 0.0, 2.0)),
+        1.0
+    );
 }
 
 #[test]
@@ -437,7 +451,10 @@ fn to_json(o: &RoughOptions) -> Map<String, Value> {
     let mut m = Map::new();
     m.insert("seed".into(), num(o.seed));
     if let Some(dash) = o.stroke_line_dash {
-        m.insert("strokeLineDash".into(), dash.iter().copied().map(num).collect());
+        m.insert(
+            "strokeLineDash".into(),
+            dash.iter().copied().map(num).collect(),
+        );
     }
     m.insert("disableMultiStroke".into(), o.disable_multi_stroke.into());
     m.insert("strokeWidth".into(), num(o.stroke_width));
@@ -467,7 +484,9 @@ fn same(a: &Value, b: &Value) -> bool {
         }
         (Value::Object(x), Value::Object(y)) => {
             x.len() == y.len()
-                && x.iter().zip(y).all(|((ka, a), (kb, b))| ka == kb && same(a, b))
+                && x.iter()
+                    .zip(y)
+                    .all(|((ka, a), (kb, b))| ka == kb && same(a, b))
         }
         _ => a == b,
     }

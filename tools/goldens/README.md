@@ -247,3 +247,33 @@ node tools/goldens/clipboard-fixtures.mjs --check   # exit 1 if it is stale
 
 CI runs `--check` in the `goldens` job, and `test/clipboard-fixtures.test.mjs`
 checks that two runs are byte-identical.
+
+## Rough option goldens
+
+`rough-options.mjs` writes `crates/excali-scene/tests/fixtures/rough-options.json`
+for excali-scene's option mapping (ex-207). It bundles upstream's
+`generateRoughOptions` (`packages/element/src/shape.ts:195-260`, which calls
+the module-private `adjustRoughness` at `:172-193`) and `applyDarkModeFilter`
+(`packages/common/src/colors.ts:86-125`), and records:
+
+- `options`: `generateRoughOptions(element, continuousPath, isDarkMode)` for
+  every row of the option table in `site/content/research/rendering.md`
+  section 1 (seed, dashes, stroke widths, roughness, stroke colours light and
+  dark, fill per type, `curveFitting`, line and freedraw loops, arrows) and
+  the error for the types it throws on. Each case keeps the returned object's
+  own keys, so a key set to `undefined` is recorded too;
+- `adjustRoughness`: the returned roughness over a grid of sizes around every
+  threshold of `adjustRoughness`, for sharp, rounded, linear and freedraw
+  elements, and roughness values around the 2.5 cap;
+- `darkMode`: `applyDarkModeFilter(color)` for colours in every notation.
+
+Each element is `{...base, ...typeFields[type], ...overrides}`, with `base`
+and `typeFields` in the fixture, so the Rust test builds the same object.
+
+```sh
+node tools/goldens/rough-options.mjs           # write the fixture
+node tools/goldens/rough-options.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and `test/rough-options.test.mjs`
+checks that two runs are byte-identical.
