@@ -1,0 +1,21 @@
+# ex-206 spike: runs the roughr crate against the rough.js 4.6.4 goldens
+# (goldens/random.json and goldens/rough-*.json) and writes report.json, the
+# numbers quoted on ADR-003 (site/content/decisions/adr-003-sketch-renderer.md).
+#
+# Not a workspace member: roughr is evaluated here, not depended on. The
+# product crates stay free of it (ADR-008 and the crate-graph gate), and the
+# empty [workspace] table keeps this package out of the root workspace.
+[package]
+name = "roughr-eval"
+description = "Spike: roughr 0.14.0 against the rough.js 4.6.4 goldens (ex-206)."
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[workspace]
+
+[dependencies]
+# Pinned exactly: the ADR-003 numbers are for this release.
+roughr = "=0.14.0"
+serde_json = { version = "1.0.151", features = ["preserve_order", "float_roundtrip"] }
