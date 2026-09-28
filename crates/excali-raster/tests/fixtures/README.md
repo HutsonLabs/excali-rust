@@ -19,7 +19,8 @@ specification.
 calls the canvas directly and shares no code with the port) and writes the
 references; `--check` draws them with the local Chrome into a temporary
 directory and runs the Rust comparison against those (the `raster-chrome` CI
-job). `tests/fixtures.rs` renders each list with `excali_raster::render_scaled`
+job, on macOS arm64 like the references; it keeps those images as the
+`raster-diff` artifact when a fixture fails). `tests/fixtures.rs` renders each list with `excali_raster::render_scaled`
 and compares it with `excali_raster::diff` under the fixture's tolerance: at
 most `pixels` pixels may differ by more than `channel` levels in a
 premultiplied channel. A failing fixture writes the rendered image and a diff
