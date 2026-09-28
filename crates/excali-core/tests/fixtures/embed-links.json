@@ -1,0 +1,121 @@
+{
+  "description": "Upstream getEmbedLink (packages/element/src/embeddable.ts:171-400) at the pinned commit (tools/goldens/svg-export.mjs), which exportToSvg asks for an embeddable's iframe source: per link, the link, type and intrinsic size it returns (null for none).",
+  "upstream": "438d89861f53d8a90ad566113ecac1b83761098f",
+  "links": [
+    {
+      "link": "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=1m30s",
+      "result": {"link":"https://www.youtube.com/embed/dQw4w9WgXcQ?enablejsapi=1&start=90","type":"video","intrinsicSize":{"w":560,"h":315}}
+    },
+    {
+      "link": "https://youtube.com/watch?v=abc&t=1h2m3s",
+      "result": {"link":"https://www.youtube.com/embed/abc?enablejsapi=1&start=3723","type":"video","intrinsicSize":{"w":560,"h":315}}
+    },
+    {
+      "link": "https://youtube.com/watch?v=abc&t=&start=7",
+      "result": {"link":"https://www.youtube.com/embed/abc?enablejsapi=1&start=7","type":"video","intrinsicSize":{"w":560,"h":315}}
+    },
+    {
+      "link": "https://youtube.com/watch?v=abc&t=2x",
+      "result": {"link":"https://www.youtube.com/embed/abc?enablejsapi=1","type":"video","intrinsicSize":{"w":560,"h":315}}
+    },
+    {
+      "link": "youtube.com/shorts/xyz_12-3?start=42",
+      "result": {"link":"https://www.youtube.com/embed/xyz_12-3?enablejsapi=1&start=42","type":"video","intrinsicSize":{"w":315,"h":560}}
+    },
+    {
+      "link": "https://youtube.com/playlist?list=PL123",
+      "result": {"link":"https://www.youtube.com/embed/videoseries?list=PL123&enablejsapi=1","type":"video","intrinsicSize":{"w":560,"h":315}}
+    },
+    {
+      "link": "https://youtube.com/embed/videoseries?list=PL1",
+      "result": {"link":"https://www.youtube.com/embed/videoseries?enablejsapi=1","type":"video","intrinsicSize":{"w":560,"h":315}}
+    },
+    {
+      "link": "https://www.youtube.com/embed/abc",
+      "result": {"link":"https://www.youtube.com/embed/abc?enablejsapi=1","type":"video","intrinsicSize":{"w":560,"h":315}}
+    },
+    {
+      "link": "https://www.youtube.com/live/abc?t=10",
+      "result": {"link":"https://www.youtube.com/embed/abc?enablejsapi=1&start=10","type":"video","intrinsicSize":{"w":560,"h":315}}
+    },
+    {
+      "link": "https://youtu.be/abc?t=5",
+      "result": {"link":"https://www.youtube.com/embed/abc?enablejsapi=1&start=5","type":"video","intrinsicSize":{"w":560,"h":315}}
+    },
+    {"link":"http://youtu.be/abc","result":{"link":"https://www.youtube.com/embed/abc?enablejsapi=1","type":"video","intrinsicSize":{"w":560,"h":315}}},
+    {
+      "link": "https://youtube.com/watch?x=1",
+      "result": {"link":"https://www.youtube.com/embed/watch?enablejsapi=1","type":"video","intrinsicSize":{"w":560,"h":315}}
+    },
+    {"link":"https://youtube.com/","result":{"link":"https://youtube.com/","type":"generic","intrinsicSize":{"w":560,"h":840}}},
+    {"link":"https://vimeo.com/12345","result":{"link":"https://player.vimeo.com/video/12345?api=1","type":"video","intrinsicSize":{"w":560,"h":315}}},
+    {"link":"https://vimeo.com/video/42?h=abc","result":{"link":"https://player.vimeo.com/video/42?api=1","type":"video","intrinsicSize":{"w":560,"h":315}}},
+    {
+      "link": "https://www.player.vimeo.com/video/7?x=1",
+      "result": {"link":"https://player.vimeo.com/video/7?api=1","type":"video","intrinsicSize":{"w":560,"h":315}}
+    },
+    {
+      "link": "https://vimeo.com/channels/staffpicks/1",
+      "result": {"link":"https://player.vimeo.com/video/channels/staffpicks/1?api=1","type":"video","intrinsicSize":{"w":560,"h":315}}
+    },
+    {"link":"https://vimeo.com/abc def","result":{"link":"https://vimeo.com/abc def","type":"generic","intrinsicSize":{"w":560,"h":840}}},
+    {
+      "link": "https://drive.google.com/file/d/abc_DEF-123/view?resourcekey=key-1&t=90",
+      "result": {"link":"https://drive.google.com/file/d/abc_DEF-123/preview?resourcekey=key-1&t=90","type":"video","intrinsicSize":{"w":560,"h":315}}
+    },
+    {"link":"drive.google.com/open?id=X1","result":{"link":"https://drive.google.com/file/d/X1/preview","type":"video","intrinsicSize":{"w":560,"h":315}}},
+    {
+      "link": "https://www.drive.google.com/uc?export=download&id=Y2&t=1m",
+      "result": {"link":"https://drive.google.com/file/d/Y2/preview?t=60","type":"video","intrinsicSize":{"w":560,"h":315}}
+    },
+    {
+      "link": "https://drive.google.com/file/d/bad.id/view",
+      "result": {"link":"https://drive.google.com/file/d/bad.id/view","type":"generic","intrinsicSize":{"w":560,"h":840}}
+    },
+    {
+      "link": "https://drive.google.com/file/d/ok/view?resourcekey=bad key",
+      "result": {"link":"https://drive.google.com/file/d/ok/preview","type":"video","intrinsicSize":{"w":560,"h":315}}
+    },
+    {"link":"https://drive.google.com/other","result":{"link":"https://drive.google.com/other","type":"generic","intrinsicSize":{"w":560,"h":840}}},
+    {
+      "link": "https://www.figma.com/file/abc?node-id=1:2",
+      "result": {
+        "link": "https://www.figma.com/embed?embed_host=share&url=https%3A%2F%2Fwww.figma.com%2Ffile%2Fabc%3Fnode-id%3D1%3A2",
+        "type": "generic",
+        "intrinsicSize": {"w":550,"h":550}
+      }
+    },
+    {
+      "link": "https://figma.com/proto/x y",
+      "result": {"link":"https://www.figma.com/embed?embed_host=share&url=https%3A%2F%2Ffigma.com%2Fproto%2Fx%20y","type":"generic","intrinsicSize":{"w":550,"h":550}}
+    },
+    {"link":"https://www.val.town/v/user.fn","result":{"link":"https://www.val.town/embed/user.fn","type":"generic","intrinsicSize":{"w":560,"h":840}}},
+    {"link":"https://val.town/v/user.fn","result":{"link":"https://embedal.town/v/user.fn","type":"generic","intrinsicSize":{"w":560,"h":840}}},
+    {"link":"https://www.val.town/embed/user.fn?x=1","result":{"link":"https://www.val.town/embed/user.fn","type":"generic","intrinsicSize":{"w":560,"h":840}}},
+    {"link":"https://val.town/v/1user.fn","result":{"link":"https://val.town/v/1user.fn","type":"generic","intrinsicSize":{"w":560,"h":840}}},
+    {
+      "link": "https://forms.microsoft.com/r/abc",
+      "result": {"link":"https://forms.microsoft.com/r/abc?embed=true","type":"generic","intrinsicSize":{"w":560,"h":840}}
+    },
+    {
+      "link": "https://forms.microsoft.com/r/abc?x=1",
+      "result": {"link":"https://forms.microsoft.com/r/abc?x=1&embed=true","type":"generic","intrinsicSize":{"w":560,"h":840}}
+    },
+    {"link":"forms.microsoft.com/r/abc?embed=true","result":{"link":"forms.microsoft.com/r/abc?embed=true","type":"generic","intrinsicSize":{"w":560,"h":840}}},
+    {"link":"https://twitter.com/excalidraw/status/1234567890","result":{"link":null,"type":"document","intrinsicSize":{"w":480,"h":480}}},
+    {"link":"https://x.com/a/status/1?s=20","result":{"link":null,"type":"document","intrinsicSize":{"w":480,"h":480}}},
+    {"link":"see x.com/a/status/1 please","result":{"link":null,"type":"document","intrinsicSize":{"w":480,"h":480}}},
+    {"link":"https://www.reddit.com/r/excalidraw/comments/abc123/some_title/","result":{"link":null,"type":"document","intrinsicSize":{"w":480,"h":480}}},
+    {"link":"https://reddit.com/r/a/comments/b/c?utm=1#frag","result":{"link":null,"type":"document","intrinsicSize":{"w":480,"h":480}}},
+    {
+      "link": "https://reddit.com/r/a/comments/b/c/d",
+      "result": {"link":"https://reddit.com/r/a/comments/b/c/d","type":"generic","intrinsicSize":{"w":560,"h":840}}
+    },
+    {"link":"https://gist.github.com/user/0123abcd","result":{"link":null,"type":"document","intrinsicSize":{"w":550,"h":720}}},
+    {"link":"https://gist.github.com/user","result":{"link":"https://gist.github.com/user","type":"generic","intrinsicSize":{"w":560,"h":840}}},
+    {"link":"https://example.com/page?x=1","result":{"link":"https://example.com/page?x=1","type":"generic","intrinsicSize":{"w":560,"h":840}}},
+    {"link":"https://stackblitz.com/edit/x","result":{"link":"https://stackblitz.com/edit/x","type":"generic","intrinsicSize":{"w":560,"h":840}}},
+    {"link":"about:blank","result":{"link":"about:blank","type":"generic","intrinsicSize":{"w":560,"h":840}}},
+    {"link":"https://excalidraw.com/relative","result":{"link":"https://excalidraw.com/relative","type":"generic","intrinsicSize":{"w":560,"h":840}}}
+  ]
+}

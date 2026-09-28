@@ -342,10 +342,12 @@ jobs:
   # elbow-routing-fixtures.mjs --check for excali-editor's
   # elbow-routing.json (ex-211), upstream's own updateElbowArrowPoints on
   # seeded tables of unbound, bound and fixed-segment elbow arrows, and
-  # svg-export.mjs --check for excali-scene's export-bounds.json and
-  # excali-svg's svg-export.json (ex-406), upstream's own exportToSvg under
-  # jsdom 22.1.0 (the document before the elements, element bounds, frame
-  # labels and canvas size) on scenes of every element kind, and
+  # svg-export.mjs --check for excali-scene's export-bounds.json,
+  # excali-svg's svg-export.json (ex-406, ex-407) and excali-core's
+  # embed-links.json, upstream's own exportToSvg under jsdom 22.1.0 in test
+  # mode (the document before the elements, the whole document, element
+  # bounds, frame labels and canvas size) on scenes of every element kind,
+  # and its getEmbedLink on links of every rule, and
   # static-scene.mjs --check for excali-scene's static-scene.json (ex-402),
   # upstream's own renderStaticScene on a recording 2D context (every draw
   # of the background, grid, elements, link icons, pending nodes and frame
@@ -416,7 +418,7 @@ jobs:
         run: node tools/goldens/document-fixtures.mjs --check
       - name: excali-editor elbow routing fixture matches upstream's updateElbowArrowPoints
         run: node tools/goldens/elbow-routing-fixtures.mjs --check
-      - name: excali-scene export bounds and excali-svg document fixtures match upstream's exportToSvg
+      - name: excali-scene export bounds, excali-svg document and excali-core embed link fixtures match upstream's exportToSvg and getEmbedLink
         run: node tools/goldens/svg-export.mjs --check
       - name: excali-scene static scene fixture matches upstream's renderStaticScene
         run: node tools/goldens/static-scene.mjs --check

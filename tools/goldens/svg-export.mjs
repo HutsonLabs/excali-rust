@@ -8,7 +8,7 @@
 //   node tools/goldens/svg-export.mjs --check    exit 1 if they are stale
 //   node tools/goldens/svg-export.mjs --out DIR  write (or --check) DIR
 //
-// Writes two files:
+// Writes three files:
 //
 // - crates/excali-scene/tests/fixtures/export-bounds.json: per scene, the
 //   elements, what upstream's getElementAbsoluteCoords and getElementBounds
@@ -19,6 +19,9 @@
 //   prepareElementsForRender adds (addFrameLabelsAsTextElements and
 //   truncateText, :64-139, 156-183), and getCanvasSize (:566-576) of the
 //   root elements with the padding.
+// - crates/excali-core/tests/fixtures/embed-links.json: what upstream's
+//   getEmbedLink (packages/element/src/embeddable.ts:171-400) returns for
+//   links of every kind, which renderElementToSvg reads for embeddables.
 // - crates/excali-svg/tests/fixtures/svg-export.json: per scene, the
 //   arguments exportToSvg was called with, the document shell it built
 //   before rendering the elements (ex-406: the root element with its
@@ -59,8 +62,10 @@ import { loadUpstream, REPO_ROOT, verifyUpstream } from "./lib/upstream.mjs";
 
 export const SCENE_DIR = join(REPO_ROOT, "crates", "excali-scene", "tests", "fixtures");
 export const SVG_DIR = join(REPO_ROOT, "crates", "excali-svg", "tests", "fixtures");
+export const CORE_DIR = join(REPO_ROOT, "crates", "excali-core", "tests", "fixtures");
 export const BOUNDS_FILE = "export-bounds.json";
 export const SVG_FILE = "svg-export.json";
+export const EMBED_LINKS_FILE = "embed-links.json";
 /** getExportSource() answers window.location.origin (common/src/utils.ts). */
 export const EXPORT_SOURCE = "https://excalidraw.com";
 export const RANDOM_SEED = 1700000000000;
@@ -95,6 +100,7 @@ export {
   prepareElementsForRender,
 } from "./packages/excalidraw/scene/export";
 export { ExcalidrawFontFace } from "./packages/excalidraw/fonts/ExcalidrawFontFace";
+export { getEmbedLink } from "./packages/element/src/embeddable";
 export * as fixtures from "./packages/excalidraw/tests/fixtures/elementFixture";
 `;
 
@@ -811,6 +817,55 @@ const refused = (up) => [
   up.newElement({ type: "rectangle", id: "after", x: 200, y: 0, width: 50, height: 50, seed: 192 }),
 ];
 
+/** Links for getEmbedLink: every rule, its edges, and what falls through. */
+const EMBED_LINKS = [
+  "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=1m30s",
+  "https://youtube.com/watch?v=abc&t=1h2m3s",
+  "https://youtube.com/watch?v=abc&t=&start=7",
+  "https://youtube.com/watch?v=abc&t=2x",
+  "youtube.com/shorts/xyz_12-3?start=42",
+  "https://youtube.com/playlist?list=PL123",
+  "https://youtube.com/embed/videoseries?list=PL1",
+  "https://www.youtube.com/embed/abc",
+  "https://www.youtube.com/live/abc?t=10",
+  "https://youtu.be/abc?t=5",
+  "http://youtu.be/abc",
+  "https://youtube.com/watch?x=1",
+  "https://youtube.com/",
+  "https://vimeo.com/12345",
+  "https://vimeo.com/video/42?h=abc",
+  "https://www.player.vimeo.com/video/7?x=1",
+  "https://vimeo.com/channels/staffpicks/1",
+  "https://vimeo.com/abc def",
+  "https://drive.google.com/file/d/abc_DEF-123/view?resourcekey=key-1&t=90",
+  "drive.google.com/open?id=X1",
+  "https://www.drive.google.com/uc?export=download&id=Y2&t=1m",
+  "https://drive.google.com/file/d/bad.id/view",
+  "https://drive.google.com/file/d/ok/view?resourcekey=bad key",
+  "https://drive.google.com/other",
+  "https://www.figma.com/file/abc?node-id=1:2",
+  "https://figma.com/proto/x y",
+  "https://www.val.town/v/user.fn",
+  "https://val.town/v/user.fn",
+  "https://www.val.town/embed/user.fn?x=1",
+  "https://val.town/v/1user.fn",
+  "https://forms.microsoft.com/r/abc",
+  "https://forms.microsoft.com/r/abc?x=1",
+  "forms.microsoft.com/r/abc?embed=true",
+  "https://twitter.com/excalidraw/status/1234567890",
+  "https://x.com/a/status/1?s=20",
+  "see x.com/a/status/1 please",
+  "https://www.reddit.com/r/excalidraw/comments/abc123/some_title/",
+  "https://reddit.com/r/a/comments/b/c?utm=1#frag",
+  "https://reddit.com/r/a/comments/b/c/d",
+  "https://gist.github.com/user/0123abcd",
+  "https://gist.github.com/user",
+  "https://example.com/page?x=1",
+  "https://stackblitz.com/edit/x",
+  "about:blank",
+  "https://excalidraw.com/relative",
+];
+
 /**
  * Scenes: exportToSvg's arguments. `opts.exportingFrame` names the frame by
  * id (the element itself is passed).
@@ -1202,9 +1257,18 @@ const build = async (upstream) => {
       upstream: upstream.commit,
       scenes: boundsScenes,
     }),
+    [EMBED_LINKS_FILE]: format({
+      description:
+        "Upstream getEmbedLink (packages/element/src/embeddable.ts:171-400) at the pinned commit (tools/goldens/svg-export.mjs), which exportToSvg asks for an embeddable's iframe source: per link, the link, type and intrinsic size it returns (null for none).",
+      upstream: upstream.commit,
+      links: EMBED_LINKS.map((link) => {
+        const r = up.getEmbedLink(link);
+        return { link, result: r ? { link: r.link ?? null, type: r.type, intrinsicSize: r.intrinsicSize } : null };
+      }),
+    }),
     [SVG_FILE]: format({
       description:
-        "Upstream exportToSvg (packages/excalidraw/scene/export.ts:293-508) at the pinned commit under jsdom 22.1.0 (tools/goldens/svg-export.mjs): the arguments and the document shell (svgRoot.outerHTML without the element nodes). getExportSource() is `source`; a font face's content is font:<its last url, upstream's asset fallback>#<characters>; text measures 10 px per UTF-16 code unit.",
+        "Upstream exportToSvg (packages/excalidraw/scene/export.ts:293-508) at the pinned commit under jsdom 22.1.0 in test mode (tools/goldens/svg-export.mjs): the arguments, the document shell (svgRoot.outerHTML before the elements are rendered) and the whole document. getExportSource() is `source`; a font face's content is font:<its last url, upstream's asset fallback>#<characters>; text measures 10 px per UTF-16 code unit.",
       upstream: upstream.commit,
       source: EXPORT_SOURCE,
       scenes: svgScenes,
@@ -1236,7 +1300,7 @@ const main = async () => {
   }
   const out = await deterministic(() => build(upstream));
   const targets = Object.entries(out).map(([file, text]) => {
-    const dir = args.out ?? (file === BOUNDS_FILE ? SCENE_DIR : SVG_DIR);
+    const dir = args.out ?? { [BOUNDS_FILE]: SCENE_DIR, [SVG_FILE]: SVG_DIR, [EMBED_LINKS_FILE]: CORE_DIR }[file];
     return { path: join(dir, file), text };
   });
   if (args.check) {

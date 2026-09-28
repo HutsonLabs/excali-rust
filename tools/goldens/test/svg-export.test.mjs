@@ -1,7 +1,8 @@
-// excali-scene's export bounds and excali-svg's document shells (ex-406) are
-// upstream's output: tools/goldens/svg-export.mjs regenerates them from the
-// pinned checkout, byte-stable across runs, --check fails when a committed
-// file differs, and the shells agree with upstream's own vitest snapshot of
+// excali-scene's export bounds, excali-svg's documents (the shells of ex-406,
+// the whole documents of ex-407) and excali-core's embed links are upstream's
+// output: tools/goldens/svg-export.mjs regenerates them from the pinned
+// checkout, byte-stable across runs, --check fails when a committed file
+// differs, and the documents agree with upstream's own vitest snapshot of
 // exportToSvg (packages/excalidraw/tests/scene/__snapshots__/export.test.ts.snap).
 
 import assert from "node:assert/strict";
@@ -17,8 +18,10 @@ import { REPO_ROOT, TOOL_DIR, upstreamDir } from "./helpers.mjs";
 const GENERATOR = join(TOOL_DIR, "svg-export.mjs");
 const BOUNDS = "export-bounds.json";
 const SVG = "svg-export.json";
+const EMBED_LINKS = "embed-links.json";
 const COMMITTED = {
   [BOUNDS]: join(REPO_ROOT, "crates", "excali-scene", "tests", "fixtures", BOUNDS),
+  [EMBED_LINKS]: join(REPO_ROOT, "crates", "excali-core", "tests", "fixtures", EMBED_LINKS),
   [SVG]: join(REPO_ROOT, "crates", "excali-svg", "tests", "fixtures", SVG),
 };
 
@@ -64,7 +67,7 @@ test("two runs are byte-identical and equal to the committed fixtures", () => {
     const r = run(["--out", out]);
     assert.equal(r.status, 0, r.stderr);
   }
-  for (const file of [BOUNDS, SVG]) {
+  for (const file of [BOUNDS, SVG, EMBED_LINKS]) {
     const first = readFileSync(join(outs[0], file));
     assert.ok(first.equals(readFileSync(join(outs[1], file))), `${file} differs between runs`);
     assert.ok(first.equals(readFileSync(COMMITTED[file])), `stale ${file}: run node tools/goldens/svg-export.mjs`);
