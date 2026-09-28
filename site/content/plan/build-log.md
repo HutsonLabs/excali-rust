@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-109 · Library import model: URL allow-list and #addLibrary token parsing
+
+`excali_core::library_url` ports validateLibraryUrl and #addLibrary token parsing, including the legacy query form and the import steps. `excali_core::link` ports normalizeLink and toValidURL. Both parse through `excali_core::whatwg_url`, which reads URLs the way Node 26's `new URL` does. For hosts outside ASCII it uses a port of ada 4.0.0's IDNA that runs over ada's own tables. It matches Node on 127 host cases, on every code point and on 20,000 seeded random URLs, and a CI job checks the fixtures. PR: [#39](https://github.com/HutsonLabs/excali-rust/pull/39).
+
 ## 2026-09-28 · ex-205 · excali-rough: dashes, multi-stroke, curve fitting, preserveVertices
 
 Excalidraw's stroke styles go through the rough.js port as upstream does: dashed [8, 8+sw] and dotted [1.5, 6+sw] dashes are carried for the renderer, disableMultiStroke keeps a single pass, and preserveVertices and curveFitting follow rough.js. `goldens/rough-strokes.json` checks 630 cases (solid, dashed and dotted strokes x width x roughness x seed x generator call) against upstream output, and each element type yields the same ops as upstream. PR: [#38](https://github.com/HutsonLabs/excali-rust/pull/38).
