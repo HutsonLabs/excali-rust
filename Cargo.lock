@@ -377,9 +377,12 @@ name = "excali-raster"
 version = "26.9.1"
 dependencies = [
  "base64",
+ "excali-core",
  "excali-scene",
+ "excali-text",
  "image",
  "resvg",
+ "png",
  "serde_json",
  "sha2",
  "tiny-skia",

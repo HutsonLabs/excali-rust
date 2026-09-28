@@ -621,19 +621,24 @@ fn text_goes_to_the_rasterizer_with_resolved_state() {
     assert_eq!(px(&p, 1, 2), RED);
 }
 
-/// ADR-008: backends know nothing about elements. This crate's only
-/// workspace dependency is `excali-scene` (by package name, as `cargo
-/// metadata` resolves it, so a renamed dependency is seen), it reaches into that crate only
-/// through `excali_scene::display`, and no identifier in its code names an
-/// element (`HtmlImageElement`, the browser's image type, aside).
+/// ADR-008: backends know nothing about elements. This crate's library
+/// code depends on no workspace package but `excali-scene` (by package
+/// name, as `cargo metadata` resolves it, so a renamed dependency is seen),
+/// it reaches into that crate only through `excali_scene::display`, and no
+/// identifier in its code names an element (`HtmlImageElement`, the
+/// browser's image type, aside). The tests and the `png_export` example
+/// build their scenes from elements (`excali-core`, through
+/// `excali_scene::canvas_export`, measuring text with `excali-text`), as the
+/// callers of the backend do; the list of those is fixed too.
 #[test]
 fn no_element_knowledge() {
     let manifest = concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml");
-    let internal = workspace_dependencies(std::path::Path::new(manifest));
+    let (normal, all) = workspace_dependencies(std::path::Path::new(manifest));
+    assert_eq!(normal, ["excali-scene"], "dependencies: {normal:?}");
     assert_eq!(
-        internal,
-        ["excali-scene"],
-        "workspace dependencies: {internal:?}"
+        all,
+        ["excali-core", "excali-scene", "excali-text"],
+        "all dependencies: {all:?}"
     );
     const ALLOWED: [&str; 1] = ["HtmlImageElement"];
     let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
@@ -659,12 +664,13 @@ fn no_element_knowledge() {
     assert!(sources > 0);
 }
 
-/// The workspace packages the package at `manifest` depends on (normal, dev,
-/// build and target-specific dependencies alike), by package name, from
-/// `cargo metadata --format-version 1 --no-deps`: a renamed dependency
-/// (`ec = { package = "excali-core", .. }`) is listed as the package it
-/// names, and a path dependency counts as a workspace one.
-fn workspace_dependencies(manifest: &std::path::Path) -> Vec<String> {
+/// The workspace packages the package at `manifest` depends on: its normal
+/// dependencies (target-specific ones included), and all of them (dev and
+/// build too), by package name, from `cargo metadata --format-version 1
+/// --no-deps`: a renamed dependency (`ec = { package = "excali-core", .. }`)
+/// is listed as the package it names, and a path dependency counts as a
+/// workspace one.
+fn workspace_dependencies(manifest: &std::path::Path) -> (Vec<String>, Vec<String>) {
     let out = std::process::Command::new(env!("CARGO"))
         .args([
             "metadata",
@@ -696,16 +702,23 @@ fn workspace_dependencies(manifest: &std::path::Path) -> Vec<String> {
                 .is_ok_and(|m| m == manifest)
         })
         .unwrap();
-    let mut internal: Vec<String> = this["dependencies"]
+    let internal: Vec<&serde_json::Value> = this["dependencies"]
         .as_array()
         .unwrap()
         .iter()
         .filter(|d| members.contains(&d["name"].as_str().unwrap()) || d.get("path").is_some())
-        .map(|d| d["name"].as_str().unwrap().to_string())
         .collect();
-    internal.sort();
-    internal.dedup();
-    internal
+    let names = |normal_only: bool| {
+        let mut v: Vec<String> = internal
+            .iter()
+            .filter(|d| !normal_only || d["kind"].is_null())
+            .map(|d| d["name"].as_str().unwrap().to_string())
+            .collect();
+        v.sort();
+        v.dedup();
+        v
+    };
+    (names(true), names(false))
 }
 
 /// A throwaway workspace with `excali-scene`, `excali-core` and a backend
@@ -742,7 +755,9 @@ fn fake_backend(name: &str, deps: &str) -> std::path::PathBuf {
 fn the_dependency_check_sees_renamed_packages() {
     let scene = "excali-scene = { path = \"../scene\" }\n";
     let ok = fake_backend("ok", &format!("[dependencies]\n{scene}"));
-    assert_eq!(workspace_dependencies(&ok), ["excali-scene"]);
+    let (normal, all) = workspace_dependencies(&ok);
+    assert_eq!(normal, ["excali-scene"]);
+    assert_eq!(all, ["excali-scene"]);
     for (name, deps) in [
         (
             "renamed",
@@ -762,11 +777,15 @@ fn the_dependency_check_sees_renamed_packages() {
         ),
     ] {
         let manifest = fake_backend(name, &deps);
-        assert_eq!(
-            workspace_dependencies(&manifest),
-            ["excali-core", "excali-scene"],
-            "{name}"
-        );
+        let (normal, all) = workspace_dependencies(&manifest);
+        assert_eq!(all, ["excali-core", "excali-scene"], "{name}");
+        // a dev-dependency is not the library's; a target-specific one is
+        let expected: &[&str] = if name == "dev" {
+            &["excali-scene"]
+        } else {
+            &["excali-core", "excali-scene"]
+        };
+        assert_eq!(normal, expected, "{name}");
     }
 }
 

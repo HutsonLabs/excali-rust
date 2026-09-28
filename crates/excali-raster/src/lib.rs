@@ -27,6 +27,11 @@
 //!   its resolved colour, matrix and clip (glyph outlines come from the
 //!   font files, `excali-text`).
 //!
+//! [`export_png`] paints a PNG export's `CanvasDocument` (the canvas
+//! `exportToCanvas` sizes and draws on, `excali_scene::canvas_export`) and
+//! encodes it as `canvas.toBlob()` does, with the embedded scene's `tEXt`
+//! chunk before `IEND` (`png_export.rs`).
+//!
 //! # Chrome's pixels
 //!
 //! Upstream draws with Chrome's canvas, so the backend reproduces the
@@ -61,6 +66,7 @@ pub mod decode;
 pub mod diff;
 mod edges;
 mod hairline;
+mod png_export;
 mod stroke;
 mod svg;
 
@@ -69,6 +75,7 @@ use excali_scene::display::{
     Clip, Color, DisplayList, FillRule, ImageFilter, ImageItem, LineCap, LineJoin, PaintState,
     Painter, Path, Rect, Rgba, Stroke, TextRun, Transform,
 };
+pub use png_export::{export_png, PngExportError};
 pub use resvg;
 use resvg::usvg;
 pub use tiny_skia;
