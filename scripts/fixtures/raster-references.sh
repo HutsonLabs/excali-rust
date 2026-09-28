@@ -62,6 +62,8 @@ if html.count(marker) != 1:
     sys.exit("raster references: the page has no single FIXTURES marker")
 page.write_text(html.replace(marker, json.dumps(fixtures).replace("</", "<\\/")), encoding="utf-8")
 PY
+# The drawing functions the page loads from beside it.
+cp "$here/raster_references.js" "$tmp/raster_references.js"
 
 # Software rasterisation (no GPU canvas) in sRGB, as the export path draws.
 # On Linux CI runners (Ubuntu 24.04 restricts the unprivileged user

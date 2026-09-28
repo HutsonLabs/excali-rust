@@ -82,9 +82,15 @@ pub fn path(v: &Value) -> Result<Path, String> {
             other => return Err(format!("unknown path call {other:?}")),
         };
         if args.len() < arity {
-            return Err(format!("{op} takes {arity} numbers: {}", Value::from(call.clone())));
+            return Err(format!(
+                "{op} takes {arity} numbers: {}",
+                Value::from(call.clone())
+            ));
         }
-        let n = args[..arity].iter().map(num).collect::<Result<Vec<_>, _>>()?;
+        let n = args[..arity]
+            .iter()
+            .map(num)
+            .collect::<Result<Vec<_>, _>>()?;
         match op {
             "M" => {
                 p.move_to(n[0], n[1]);

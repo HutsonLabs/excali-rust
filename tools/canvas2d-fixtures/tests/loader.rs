@@ -55,6 +55,7 @@ fn every_fixture_loads_with_its_size_and_scale() {
 #[test]
 fn every_image_a_list_draws_is_supplied_or_built_in() {
     let mut drawn_images = 0;
+    let mut unknown = Vec::new();
     for (name, text) in fixtures() {
         let v: Value = serde_json::from_str(&text).unwrap();
         let supplied: BTreeSet<String> = v
@@ -64,14 +65,17 @@ fn every_image_a_list_draws_is_supplied_or_built_in() {
             .unwrap_or_default();
         let f = load_fixture(&text).unwrap();
         for id in image_ids(&f.list) {
-            drawn_images += 1;
-            assert!(
-                supplied.contains(&id) || builtin_image_by_id(&id).is_some(),
-                "{name}: image {id:?} is neither in the fixture's images nor built in"
-            );
+            if supplied.contains(&id) || builtin_image_by_id(&id).is_some() {
+                drawn_images += 1;
+            } else {
+                unknown.push(format!("{name}: {id}"));
+            }
         }
     }
     assert!(drawn_images > 0, "some fixtures draw images");
+    // An id neither backend has draws nothing in either (images.json pins
+    // that); any other unknown id is a fixture error.
+    assert_eq!(unknown, ["images: missing"]);
 }
 
 #[test]
@@ -96,8 +100,14 @@ fn image_ids_are_collected_through_groups() {
 fn a_list_the_loader_cannot_read_is_an_error_naming_the_problem() {
     let cases = [
         ("not json", "expected ident"),
-        (r#"{"height": 2, "items": []}"#, "width is a positive integer"),
-        (r#"{"width": 2, "height": 0, "items": []}"#, "height is a positive integer"),
+        (
+            r#"{"height": 2, "items": []}"#,
+            "width is a positive integer",
+        ),
+        (
+            r#"{"width": 2, "height": 0, "items": []}"#,
+            "height is a positive integer",
+        ),
         (
             r#"{"width": 2, "height": 2, "items": [{"type": "text"}]}"#,
             r#"unknown item type "text""#,
@@ -120,7 +130,9 @@ fn a_list_the_loader_cannot_read_is_an_error_naming_the_problem() {
         ),
     ];
     for (json, message) in cases {
-        let err = load_fixture(json).err().unwrap_or_else(|| panic!("{json} loads"));
+        let err = load_fixture(json)
+            .err()
+            .unwrap_or_else(|| panic!("{json} loads"));
         assert!(err.contains(message), "{json}: {err:?} names {message:?}");
     }
 }

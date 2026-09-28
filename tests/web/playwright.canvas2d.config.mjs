@@ -9,7 +9,7 @@
 // headless Chrome does (scripts/fixtures/raster-references.sh).
 import { join } from "node:path";
 
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig } from "@playwright/test";
 
 import { REPO_ROOT } from "./lib/serve.mjs";
 
@@ -33,8 +33,10 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
+      // Not devices["Desktop Chrome"]: its user agent string names another
+      // Chrome on Windows, and the manifest records the one that drew.
       use: {
-        ...devices["Desktop Chrome"],
+        browserName: "chromium",
         launchOptions: { args: ["--disable-gpu", "--force-color-profile=srgb"] },
       },
     },

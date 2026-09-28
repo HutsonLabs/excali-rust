@@ -11,7 +11,9 @@
 //!
 //! `EXCALI_RASTER_REFERENCES=<dir>` reads the references from another
 //! directory (the generator's `--check` renders them with the Chrome on the
-//! machine and points here). On a failure the rendered pixmap and a diff
+//! machine and points here; `scripts/web/canvas2d-fixtures.sh` points it at
+//! what excali-canvas2d painted in Chromium, ex-502). The lists are read by
+//! `tests/support/display_lists.rs`, which that harness shares. On a failure the rendered pixmap and a diff
 //! image are written to `target/raster-diff/`.
 
 use std::collections::{BTreeMap, HashMap};

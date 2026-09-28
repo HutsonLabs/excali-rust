@@ -26,6 +26,16 @@ most `pixels` pixels may differ by more than `channel` levels in a
 premultiplied channel. A failing fixture writes the rendered image and a diff
 image (red over the bound, yellow within it) to `target/raster-diff/`.
 
+The lists are read by `tests/support/display_lists.rs`, which the Canvas 2D
+backend's check shares (ex-502): `scripts/web/canvas2d-fixtures.sh` paints
+every list with `excali_canvas2d` in Playwright's Chromium
+(`tools/canvas2d-fixtures`, `tests/web/canvas2d`), holds each canvas to the
+fixture's tolerance against `scripts/fixtures/raster_references.js` (the
+drawing code of `raster_references.html`) in the same page, and runs
+`tests/fixtures.rs` with `EXCALI_RASTER_REFERENCES` pointing at those
+canvases, so the tolerances bind the two backends to each other as well as
+to Chrome.
+
 Generated fixtures, each checked by the test that writes it (which fails when
 the file is stale):
 
