@@ -501,6 +501,50 @@ fn an_empty_scene_cannot_be_exported() {
 }
 
 #[test]
+fn a_canvas_too_big_cannot_be_rendered() {
+    // exportCanvas rejects with "Error: Canvas too big" when toBlob fails
+    // (data/blob.ts:237-257); a 10x10 rectangle at scale 2000 is a
+    // 60000 px square, past every browser's canvas limits
+    let dir = scratch("render-too-big");
+    let rect = json!([{
+        "type": "rectangle", "id": "r", "x": 0, "y": 0, "width": 10, "height": 10,
+        "strokeColor": "#1e1e1e", "backgroundColor": "transparent",
+        "fillStyle": "solid", "strokeWidth": 2, "roughness": 0, "opacity": 100,
+        "seed": 1, "version": 1, "versionNonce": 1
+    }]);
+    let input = scene_file(&dir, "r.excalidraw", &rect, &json!({}), &json!({}));
+    let output = dir.join("big.png");
+    for scale in ["2000", "1e6"] {
+        let out = excali(&[
+            "render".as_ref(),
+            input.as_os_str(),
+            "--scale".as_ref(),
+            scale.as_ref(),
+            "-o".as_ref(),
+            output.as_os_str(),
+        ]);
+        assert_code(&out, EXPORT);
+        assert!(
+            stderr(&out).contains("Error: Canvas too big"),
+            "{}",
+            stderr(&out)
+        );
+        assert!(!output.exists());
+    }
+    // the same scene at a scale the browser can encode renders
+    let out = excali(&[
+        "render".as_ref(),
+        input.as_os_str(),
+        "--scale".as_ref(),
+        "2".as_ref(),
+        "-o".as_ref(),
+        output.as_os_str(),
+    ]);
+    assert_code(&out, OK);
+    assert!(output.exists());
+}
+
+#[test]
 fn an_unknown_frame_cannot_be_exported() {
     let dir = scratch("render-frame");
     let input = text_scene(&dir);
