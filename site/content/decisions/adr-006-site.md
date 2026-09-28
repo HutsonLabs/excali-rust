@@ -18,4 +18,4 @@ weight = 6
 
 ## Consequences
 
-One repository setting is needed by a human (`ex-005`). Site chrome follows HutsonLabs tokens; editor mockups follow Excalidraw tokens; the two are never mixed on one page except in the term.hut embedding mockup, where that is the point.
+One repository setting is needed by a human (`ex-005`): Settings > Pages > Source: GitHub Actions. It was in place by 2026-09-28 (the Pages API reports `build_type: workflow`, and the first successful deploy served the home page). A `smoke` job in `pages.yml` runs `scripts/site/smoke.py` after every deploy, so a reverted setting or a broken deploy fails the workflow. Site chrome follows HutsonLabs tokens; editor mockups follow Excalidraw tokens; the two are never mixed on one page except in the term.hut embedding mockup, where that is the point.

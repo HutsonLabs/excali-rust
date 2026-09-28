@@ -1,6 +1,7 @@
 # Build site/ with Zola and publish to GitHub Pages through the Actions
 # deployment path (no gh-pages branch). Pages must be set to
-# "Source: GitHub Actions" in Settings > Pages.
+# "Source: GitHub Actions" in Settings > Pages (build_type: workflow; enabled,
+# first deploy confirmed 2026-09-28 by ex-005). The smoke job re-checks it.
 # zola_version here and ZOLA_VERSION in scripts/site/zola.sh are the same pin.
 name: pages
 on:
@@ -40,3 +41,14 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+  # ex-005 acceptance, re-checked on every deploy: the base_url in
+  # site/config.toml serves the home page (HTTP 200, title = site title).
+  smoke:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: unit tests for the smoke check
+        run: python3 -m unittest discover -s scripts/site -p 'test_*.py'
+      - name: deployed home page is served
+        run: python3 scripts/site/smoke.py --attempts 10 --delay 15
