@@ -8,5 +8,12 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
+[dependencies]
+excali-core = { path = "../excali-core" }
+
+# serde_json reads tests/fixtures/font-metadata.json in the parity tests.
+[dev-dependencies]
+serde_json = { workspace = true }
+
 [lints]
 workspace = true

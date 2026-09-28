@@ -221,7 +221,9 @@ jobs:
   # rough-options.json, upstream's own generateRoughOptions and
   # applyDarkModeFilter, dark-mode.mjs --check for dark-mode.json,
   # upstream's own applyDarkModeFilter, removeDarkModeFilter and rgbToHex
-  # over COLOR_PALETTE and every colour notation, and
+  # over COLOR_PALETTE and every colour notation, font-metadata.mjs --check
+  # for excali-text's font-metadata.json, upstream's own FONT_METADATA,
+  # getVerticalOffset, getLineHeight and family fallbacks, and
   # library-fixtures.mjs --check for
   # library.json, upstream's own parseLibraryJSON,
   # serializeLibraryAsJSON, mergeLibraryItems and getLibraryItemsHash, and
@@ -267,6 +269,8 @@ jobs:
         run: node tools/goldens/rough-options.mjs --check
       - name: excali-scene dark-mode filter goldens match the generator
         run: node tools/goldens/dark-mode.mjs --check
+      - name: excali-text font metadata goldens match the generator
+        run: node tools/goldens/font-metadata.mjs --check
       - name: excali-core library fixtures match the generator
         run: node tools/goldens/library-fixtures.mjs --check
       - name: excali-core library URL fixtures match the generator
