@@ -203,6 +203,19 @@ fn first_difference_names_where_and_what() {
     assert!(d.contains("set 0 (path) op 1 (bcurveTo) data[5]"), "{d}");
     assert!(d.contains("6.001") && d.contains("6"), "{d}");
 
+    // roughr's value goes through the platform's libm (sin, cos, powf), which
+    // can differ in the last bit between macOS and Linux; the report quotes it
+    // at ten decimals so report.json is the same on both.
+    let libm = set(
+        "path",
+        &[
+            ("move", &[1.0, 2.0]),
+            ("bcurveTo", &[1.0, 2.0, 3.0, 4.0, 5.0, 165.74680675874848]),
+        ],
+    );
+    let d = first_difference(&expected, &[libm], Precision::Decimals(2)).unwrap();
+    assert!(d.ends_with("expected 6.001 actual 165.7468067587"), "{d}");
+
     let short = set("path", &[("move", &[1.0, 2.0])]);
     let d = first_difference(&expected, &[short], Precision::Decimals(2)).unwrap();
     assert!(d.starts_with("op count:"), "{d}");
