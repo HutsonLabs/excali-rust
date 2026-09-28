@@ -13,7 +13,6 @@
     "elements_dropped.legacy selection element": "restoreElements filters type selection out (restore.ts:967-971)",
     "elements_dropped.not an object": "restoreElement of a primitive has no type and gives null",
     "elements_dropped.restore throws": "restoreElements drops an element restoreElement throws on (restore.ts:982-985)",
-    "elements_dropped.typed model cannot read it (ex-117)": "restore keeps a value of another JSON type (restore.ts:459 keeps strokeWidth \"3\") and upstream loads the element; the typed model reads numbers only and drops it (port gap, ex-117)",
     "elements_dropped.unknown type": "restoreElement returns null for a type it does not know (restore.ts:751)",
     "envelope_keys_dropped.library": "v1 items are written under libraryItems: serializeLibraryAsJSON writes {type, version: 2, source, libraryItems} only (json.ts:137-145)",
     "legacy_bindings_without_geometry": "a binding without mode to an existing element is migrated with element geometry (restore.ts:347-418); restore::TestEnv has none, so it is cleared, counted in bindings_cleared (port gap, ex-116)"
@@ -22,17 +21,14 @@
     "items_in": 4187,
     "items_out": 4187,
     "elements_in": 55113,
-    "elements_out": 55089,
+    "elements_out": 55113,
     "envelope_keys_dropped": {
       "library": 70
     },
     "element_keys_dropped": {
       "boundElementIds": 13305,
       "rawText": 548,
-      "strokeSharpness": 32416
-    },
-    "elements_dropped": {
-      "typed model cannot read it (ex-117)": 24
+      "strokeSharpness": 32440
     },
     "bindings_cleared": 1254,
     "legacy_bindings_without_geometry": 1245,
@@ -171,12 +167,9 @@
       "items_in": 7,
       "items_out": 7,
       "elements_in": 40,
-      "elements_out": 16,
+      "elements_out": 40,
       "element_keys_dropped": {
-        "strokeSharpness": 16
-      },
-      "elements_dropped": {
-        "typed model cannot read it (ex-117)": 24
+        "strokeSharpness": 40
       }
     },
     {

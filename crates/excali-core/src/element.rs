@@ -30,6 +30,7 @@ use std::fmt;
 use crate::constants::{
     COLOR_TRANSPARENT, DEFAULT_ELEMENT_PROPS, DEFAULT_FONT_SIZE, DEFAULT_STROKE_STREAMLINE,
 };
+use crate::js;
 use crate::json;
 use crate::layout::{Canonical, Layout};
 
@@ -1237,6 +1238,109 @@ impl Element {
         })
     }
 
+    /// Read an element restore has given (`restoreElement`,
+    /// `packages/excalidraw/data/restore.ts:514-752`), which upstream loads
+    /// whatever its values are: [`Element::from_map`], except that a known
+    /// field holding a value of another JSON type than the model's is kept.
+    ///
+    /// Restore copies most fields as they are (`restore.ts:451-491`: a
+    /// truthy or non-nullish value is kept, so `strokeWidth: "3"` survives
+    /// `restore.ts:459`, and so do `fillStyle: "sparkles"`, `locked: "no"`
+    /// or `fontFamily: "1"`). For such a value the typed field holds, in
+    /// this order, the first form the model reads:
+    ///
+    /// - for a number field, `Number(value)` when it is finite (`"3"` is 3,
+    ///   `""` 0, `true` 1), the number arithmetic upstream reads;
+    /// - for a boolean field, the value's truthiness, as upstream's checks
+    ///   (`element.locked`) read it;
+    /// - `null`, where the field may be null;
+    /// - the value an element of that type built in Rust has (the
+    ///   `DEFAULT_ELEMENT_PROPS` of [`ElementBase::new`], no points, a zero
+    ///   timestamp), or no key where the field is optional.
+    ///
+    /// The value is written back as read, in its place, until the field is
+    /// changed, as the layout writes any value it reads in a normalised
+    /// form. The view is not upstream's value: a string with no variant
+    /// (`fillStyle: "sparkles"`, which rough.js fills with hachure) reads as
+    /// a new element's value, and a nested value of another type
+    /// (`roundness: {"type": "3"}`) makes the whole field fall back. A
+    /// renderer must read the raw value from [`Element::to_map`] for such a
+    /// field (the known rendering divergence in the file format page).
+    /// An object the strict codec reads reads exactly as there. Fails
+    /// only when the `type` is not an element type.
+    pub fn from_restored(raw: Map<String, Value>) -> Result<Element, serde_json::Error> {
+        Element::from_restored_encoded(&json::escape_map(&raw))
+    }
+
+    /// [`Element::from_restored`] for an object in the sentinel form of
+    /// [`crate::json`].
+    pub(crate) fn from_restored_encoded(
+        raw: &Map<String, Value>,
+    ) -> Result<Element, serde_json::Error> {
+        let strict = match Element::from_encoded(raw) {
+            Ok(element) => return Ok(element),
+            Err(e) => e,
+        };
+        let decoded = json::decode_map(raw);
+        let Some(ty) = decoded
+            .get("type")
+            .and_then(Value::as_str)
+            .and_then(ElementType::parse)
+        else {
+            return Err(strict);
+        };
+        let canonical = canonical_keys(ty);
+        let template = template_map(ty);
+        let known = |key: &str| {
+            key != "type"
+                && (canonical.iter().any(|keys| keys.contains(&key)) || template.contains_key(key))
+        };
+        // Whether the model reads `value` for `key`, the other fields being
+        // a new element's.
+        let fits = |key: &str, value: &Value| {
+            let mut probe = template.clone();
+            probe.insert(key.to_owned(), value.clone());
+            reads(&probe)
+        };
+        let mut readable = Map::with_capacity(decoded.len());
+        for (key, value) in &decoded {
+            if !known(key) || fits(key, value) {
+                readable.insert(key.clone(), value.clone());
+                continue;
+            }
+            let form = [
+                coerce(value, template.get(key)),
+                Some(Value::Null),
+                template.get(key).cloned(),
+            ]
+            .into_iter()
+            .flatten()
+            .find(|candidate| fits(key, candidate));
+            if let Some(form) = form {
+                readable.insert(key.clone(), form);
+            }
+        }
+        // A key the type requires and the object lacks.
+        if !reads(&readable) {
+            for (key, value) in &template {
+                if !readable.contains_key(key) {
+                    readable.insert(key.clone(), value.clone());
+                }
+            }
+        }
+        let readable = Value::Object(readable);
+        let base = ElementBase::deserialize(&readable)?;
+        let kind = ElementKind::deserialize(&readable)?;
+        let typed = json::escape_map(&typed_map(&base, &kind));
+        let (layout, extra) = Layout::read(raw, &typed, canonical);
+        Ok(Element {
+            base,
+            kind,
+            extra,
+            layout,
+        })
+    }
+
     /// The JSON object serde writes for this element. A lone surrogate read
     /// from a file is U+FFFD here; only [`crate::document::Document::to_json`]
     /// writes it back as its escape. Keys are in JS property order, as
@@ -1505,6 +1609,57 @@ fn canonical_keys(ty: ElementType) -> Canonical<'static> {
         ElementType::Line => &[BASE_KEYS, LINE_KEYS],
         ElementType::Arrow => &[BASE_KEYS, ARROW_KEYS],
         ElementType::Freedraw => &[BASE_KEYS, FREEDRAW_KEYS],
+    }
+}
+
+/// Whether the typed model reads a decoded element object.
+fn reads(map: &Map<String, Value>) -> bool {
+    let value = Value::Object(map.clone());
+    ElementBase::deserialize(&value).is_ok() && ElementKind::deserialize(&value).is_ok()
+}
+
+/// The object an element of type `ty` built in Rust writes: the base of
+/// [`ElementBase::new`] with an empty id, zero position, seed and
+/// timestamp, and the per-type fields of the type's constructor with no
+/// points or text. [`Element::from_restored`] takes a field's value from
+/// it when nothing else fits.
+fn template_map(ty: ElementType) -> Map<String, Value> {
+    let kind = match ty {
+        ElementType::Selection => ElementKind::Selection,
+        ElementType::Rectangle => ElementKind::Rectangle,
+        ElementType::StickyNote => ElementKind::StickyNote(StickyNoteFields { base_height: 0.0 }),
+        ElementType::Diamond => ElementKind::Diamond,
+        ElementType::Ellipse => ElementKind::Ellipse,
+        ElementType::Embeddable => ElementKind::Embeddable,
+        ElementType::Iframe => ElementKind::Iframe,
+        ElementType::Image => ElementKind::Image(ImageFields::default()),
+        ElementType::Frame => ElementKind::Frame(FrameFields { name: None }),
+        ElementType::MagicFrame => ElementKind::MagicFrame(FrameFields { name: None }),
+        // `getLineHeight` of the default family, Excalifont
+        // (`packages/common/src/font-metadata.ts:175-181`).
+        ElementType::Text => ElementKind::Text(TextFields::new("", FontFamily::default(), 1.25)),
+        ElementType::Line => ElementKind::Line(LineFields {
+            linear: LinearFields::new(Vec::new()),
+            polygon: false,
+        }),
+        ElementType::Arrow => {
+            ElementKind::Arrow(ArrowFields::new(LinearFields::new(Vec::new()), false))
+        }
+        ElementType::Freedraw => ElementKind::Freedraw(FreedrawFields::new(Vec::new(), false)),
+    };
+    typed_map(&ElementBase::new("", 0.0, 0.0, 0.0, 0.0), &kind)
+}
+
+/// A number or boolean field's reading of a value of another type:
+/// `Number(value)` when finite, or the value's truthiness.
+fn coerce(value: &Value, template: Option<&Value>) -> Option<Value> {
+    match template? {
+        Value::Number(_) => js::to_number(Some(value))
+            .ok()
+            .filter(|x| x.is_finite())
+            .map(js::number),
+        Value::Bool(_) => Some(Value::Bool(js::truthy(Some(value)))),
+        _ => None,
     }
 }
 

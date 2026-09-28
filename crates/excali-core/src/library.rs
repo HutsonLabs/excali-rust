@@ -33,21 +33,18 @@
 //! then removed, and an item left without elements is dropped
 //! (`restoreLibraryItem`, `restore.ts:1374-1379`).
 //!
-//! Two differences, where the typed model is stricter than upstream's
-//! untyped objects, as [`crate::document`] is:
+//! Each restored object is read with [`Element::from_restored`], which keeps
+//! a field value of another JSON type than the model's and writes it back
+//! as read until the field changes, as upstream keeps the object as it is
+//! (`restore.ts:459` copies a truthy `strokeWidth` unchanged, so the 24
+//! lines of the catalogue's `aarondiel/logic-gates` with `strokeWidth: "3"`
+//! load, ex-117), and as [`LibraryItem`] keeps an odd `id` or `created`.
 //!
-//! - an element whose restored object [`Element::from_map`] cannot read (a
-//!   field of the wrong type, a `fillStyle` no version of Excalidraw writes)
-//!   is dropped with those `restoreElement` rejects, before the index sync;
-//!   upstream keeps the object as it is (`restore.ts:459` copies a truthy
-//!   `strokeWidth` unchanged, so the 24 lines of the catalogue's
-//!   `aarondiel/logic-gates` with `strokeWidth: "3"` load there and are
-//!   dropped here). Tracked as ex-117: keep such values and write them back
-//!   as read, as [`LibraryItem`] does for an odd `id` or `created`;
-//! - `arrayToMap`, the map arrows look their bound elements up in, holds the
-//!   object items of the elements array; upstream also keys a string item
-//!   under itself and other non-object items under `undefined`, which only
-//!   an arrow binding to such an "element" could see.
+//! One difference, where the typed model is stricter than upstream's
+//! untyped objects: `arrayToMap`, the map arrows look their bound elements
+//! up in, holds the object items of the elements array; upstream also keys
+//! a string item under itself and other non-object items under
+//! `undefined`, which only an arrow binding to such an "element" could see.
 //!
 //! [`LibraryItem`] is also a typed codec for items already restored (what
 //! the persistence adapter stores, `library.ts:70`): [`LibraryItem::from_map`]
@@ -583,7 +580,7 @@ fn restore_item(
 
 /// `restoreElements(elements, null)` (`restore.ts:946-1012`) without
 /// options, on sentinel-form values, with the typed model's reading of each
-/// restored element (see the module docs).
+/// restored element ([`Element::from_restored`]; see the module docs).
 fn restore_elements(
     elements: Option<&Value>,
     env: &mut dyn RestoreEnv,
@@ -633,7 +630,7 @@ fn restore_elements(
     }
     let mut typed: Vec<Element> = restored
         .iter()
-        .filter_map(|m| Element::from_encoded(m).ok())
+        .filter_map(|m| Element::from_restored_encoded(m).ok())
         .collect();
     sync_invalid_indices(&mut typed, &mut EnvStamp(env)).map_err(LibraryError::Index)?;
     Ok(typed)
