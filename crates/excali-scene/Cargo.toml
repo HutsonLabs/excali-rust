@@ -10,6 +10,7 @@ publish = false
 
 [dependencies]
 excali-core = { path = "../excali-core" }
+excali-freehand = { path = "../excali-freehand" }
 excali-math = { path = "../excali-math" }
 excali-rough = { path = "../excali-rough" }
 

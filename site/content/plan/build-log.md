@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-215 · Outline to path string with quadratic midpoints and 2-decimal trimming
+
+`excali_scene::freedraw` turns a freedraw outline into upstream's SVG path: `M p0 Q p_i mid(p_i, p_i+1) ... L p0 Z` with JS number formatting and the TO_FIXED_PRECISION trimming. All 48 recorded outlines in `elements-freedraw.json` give upstream's path byte for byte. `get_freedraw_outline_points` and `get_free_draw_svg_path` switch on stroke variability: the 32 variable-width elements match end to end, and constant width returns a typed error until ex-214 ports the laser-pointer outline. PR: [#43](https://github.com/HutsonLabs/excali-rust/pull/43).
+
 ## 2026-09-28 · ex-209 · Shape construction: line and arrow (sharp, curved, polygon), loop fill
 
 `excali_scene::shape::generate_linear_shape` builds the body of a line or non-elbow arrow the way upstream's `_generateElementShape` does. A sharp element gives `linearPath`, or `polygon` when a closed loop is filled. A round element gives `curve`, and empty points become `[0, 0]`. Elbow arrows and non-linear elements return typed errors. The line goldens and arrow bodies match upstream op by op. PR: [#42](https://github.com/HutsonLabs/excali-rust/pull/42).

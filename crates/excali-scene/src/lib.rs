@@ -4,6 +4,10 @@
 //!   list of fills, strokes, images, text runs and groups (transform,
 //!   opacity, clip) that `excali-raster`, `excali-canvas2d` and
 //!   `excali-svg` paint without knowing about elements (ADR-008).
+//! - [`freedraw`]: a freedraw outline as the SVG path upstream fills with
+//!   the stroke colour (`getSvgPathFromStroke`, two-decimal trimming), and
+//!   the element entry points `getFreedrawOutlinePoints` /
+//!   `getFreeDrawSvgPath` (constant width waits for ex-214).
 //! - [`rough_canvas`]: roughjs's `RoughCanvas.draw`, producing display items.
 //! - [`rough_options`]: `generateRoughOptions` and `adjustRoughness`.
 //!
@@ -14,6 +18,7 @@
 
 pub mod bounds;
 pub mod display;
+pub mod freedraw;
 pub mod rough_canvas;
 pub mod rough_options;
 pub mod shape;

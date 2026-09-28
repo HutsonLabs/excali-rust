@@ -54,7 +54,7 @@ on an arm64 machine only.
 | `elements-line.json`, `elements-arrow.json` | linearPath, filled polygon loops, curves | ex-209 |
 | `elements-elbow-arrow.json` | elbow paths (radius 16), extreme-coordinate guard | ex-210 |
 | `elements-arrowheads.json` | all 14 arrowheads, start and end, sw 1/2/4, curved, dashed, dotted, short, outline fills | ex-212 |
-| `elements-freedraw.json` | perfect-freehand and laser-pointer outlines, trimmed SVG path, loop fills | ex-213, ex-214 |
+| `elements-freedraw.json` | perfect-freehand and laser-pointer outlines, trimmed SVG path, loop fills | ex-213, ex-214, ex-215 |
 | `elements-iframe-like.json` | `modifyIframeLikeForRoughOptions` placeholders and defaults | ex-208 |
 | `freehand.json` | `getStrokePoints` and `getStroke` with Excalidraw's options, the library defaults, and `edge/` cases for the branches Excalidraw never reaches (taper `true`/`false`, flat caps, cap easings, one-point strokes with a taper, `{x, y, pressure}` points, missing and negative pressures, reversals, duplicates, size 0, no points) | ex-213 |
 | `math.json` | every `packages/math/src` export except `pca.ts`, called on fixed and Park-Miller-random inputs (`math.mjs`): `{ id, fn, args, result }`; the `curve.ts` cases (including the `curveLength` fixtures) are ex-202's | ex-201, ex-202 |
