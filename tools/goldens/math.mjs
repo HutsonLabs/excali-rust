@@ -124,6 +124,21 @@ export const MATH_FUNCTIONS = {
 
 const RANDOM_PER_FUNCTION = 24;
 
+/**
+ * Cases left out because upstream's own result differs in the last bit
+ * between macOS libm and glibc (Node on Apple silicon vs the
+ * ubuntu-24.04-arm CI runner): curveClosestPoint evaluates bezierEquation at
+ * a many-digit parameter, and `**` there is the platform pow. Their ids stay
+ * reserved so every other case keeps its id and input, and goldens/ stays
+ * byte-identical on both. The Rust side compares these functions within
+ * PLATFORM_TOLERANCE anyway (crates/excali-math/tests/goldens.rs).
+ */
+export const PLATFORM_DEPENDENT_CASES = new Set([
+  "curveClosestPoint/57",
+  "curveClosestPoint/68",
+  "curveClosestPoint/72",
+]);
+
 export const mathCases = () => {
   const next = rng(20260928);
   // Coordinates with a few decimals and full-precision ones, both signs.
@@ -149,7 +164,8 @@ export const mathCases = () => {
   const add = (fn, ...args) => {
     const n = counts.get(fn) ?? 0;
     counts.set(fn, n + 1);
-    cases.push({ id: `${fn}/${n}`, fn, args });
+    const id = `${fn}/${n}`;
+    if (!PLATFORM_DEPENDENT_CASES.has(id)) cases.push({ id, fn, args });
   };
   const repeat = (fn, make) => {
     for (let i = 0; i < RANDOM_PER_FUNCTION; i++) add(fn, ...make());

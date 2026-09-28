@@ -31,7 +31,10 @@ byte-identical across runs and across Node 22, 24 and 26. CI (the `goldens`
 job in `.github/workflows/gates.yml`) runs the suite and `--check` on every PR.
 
 The committed goldens are the arm64 output (Apple silicon, Linux arm64; the two
-agree byte for byte), and the CI job runs on `ubuntu-24.04-arm`. On x86_64,
+agree byte for byte), and the CI job runs on `ubuntu-24.04-arm`. A few
+math.json cases where upstream's result goes through the platform `pow` and
+macOS libm and glibc disagree in the last bit are left out
+(`PLATFORM_DEPENDENT_CASES` in `math.mjs`) so the two stay identical. On x86_64,
 V8's floating-point results for some shapes differ in the last bits, so
 `--check` and the stability test report stale files there. Regenerate goldens
 on an arm64 machine only.

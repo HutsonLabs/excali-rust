@@ -19,7 +19,7 @@
     {"name":"elements-freedraw.json","cases":48,"sha256":"b7cbd0ad0ec703629680f3037e2ff5ac0324e2e0deb2afd5deff215132b757c6"},
     {"name":"elements-iframe-like.json","cases":13,"sha256":"08ab9fadb41160189ff84f09e26371a128a152f716ee012f0afedfd36a7494d4"},
     {"name":"freehand.json","cases":51,"sha256":"5376d39d44a873434da5e01ebde06a2fab319b446887b8dfb84ae78d90a977a1"},
-    {"name":"math.json","cases":2945,"sha256":"ca3fcaf01f7cd029598c4cba5cdaa3dd1aa9bce56358a31eca502386d4b9e1d9"},
+    {"name":"math.json","cases":2942,"sha256":"6096ee4182c6f475cf4cee1dd3cdd40b8401cc8fd6748f30d5bd5c2e709f64a1"},
     {"name":"js-sort.json","cases":200,"sha256":"cdc8039d805c0cd0bb2e9352483c9b981b6dc2e418cd6814c43583c72002087c"},
     {"name":"fractional-indexing.json","cases":5165,"sha256":"398c068bd6414f829527ec74d960ffeed4026b53237fe3195e360bedb0f4c42f"},
     {"name":"fractional-index.json","cases":1274,"sha256":"563e16870b4b420c1ed8a8fbb8b665a8afc69fd06177e68d87f20178760ac3ba"}
