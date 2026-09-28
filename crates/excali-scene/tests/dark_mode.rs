@@ -124,7 +124,10 @@ fn rgb_to_hex_matches_upstream() {
         let a = args.get(3).copied().flatten();
         let got = rgb_to_hex(args[0].unwrap(), args[1].unwrap(), args[2].unwrap(), a);
         if Some(got.as_str()) != case["result"].as_str() {
-            failures.push(format!("{:?}: {got}, upstream {}", case["args"], case["result"]));
+            failures.push(format!(
+                "{:?}: {got}, upstream {}",
+                case["args"], case["result"]
+            ));
         }
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
@@ -140,7 +143,10 @@ fn upstream_colors_test_cases() {
     assert_eq!(apply_dark_mode_filter("#0000ff", true), "#cdcdff");
     assert_eq!(apply_dark_mode_filter("red", true), "#ff9090");
     assert_eq!(apply_dark_mode_filter("rgb(255, 0, 0)", true), "#ff9090");
-    assert_eq!(apply_dark_mode_filter("rgba(255, 0, 0, 0.5)", true), "#ff909080");
+    assert_eq!(
+        apply_dark_mode_filter("rgba(255, 0, 0, 0.5)", true),
+        "#ff909080"
+    );
     assert_eq!(apply_dark_mode_filter("transparent", true), "#ededed00");
     assert_eq!(apply_dark_mode_filter("#f00", true), "#ff9090");
     assert_eq!(apply_dark_mode_filter("#ff0000ff", true), "#ff9090");
@@ -148,7 +154,10 @@ fn upstream_colors_test_cases() {
     assert!(apply_dark_mode_filter("#ff000000", true).ends_with("00"));
     assert_eq!(apply_dark_mode_filter(COLOR_PALETTE.black, true), "#d3d3d3");
     assert_eq!(apply_dark_mode_filter(COLOR_PALETTE.white, true), "#121212");
-    assert_eq!(apply_dark_mode_filter(COLOR_PALETTE.transparent, true), "#ededed00");
+    assert_eq!(
+        apply_dark_mode_filter(COLOR_PALETTE.transparent, true),
+        "#ededed00"
+    );
 
     assert_eq!(remove_dark_mode_filter("#ededed"), "#000000");
     assert_eq!(remove_dark_mode_filter("#121212"), "#ffffff");

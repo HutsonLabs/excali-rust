@@ -17,6 +17,11 @@ pub const COLOR_TRANSPARENT: &str = "transparent";
 /// `COLOR_PALETTE.white`, `colors.ts:196`.
 pub const COLOR_WHITE: &str = "#ffffff";
 
+/// `DARK_THEME_FILTER`, `constants.ts:204`: the CSS filter dark mode puts
+/// on the canvas and on SVG images; [`crate::color::apply_dark_mode_filter`]
+/// computes the same filter for one colour.
+pub const DARK_THEME_FILTER: &str = "invert(93%) hue-rotate(180deg)";
+
 /// How close (px at zoom 1) a line's last point must come to its first for
 /// the line to be a closed loop (`LINE_CONFIRM_THRESHOLD`,
 /// `constants.ts:30`).
