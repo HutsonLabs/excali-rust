@@ -28,6 +28,7 @@ import {
   roughGoldens,
 } from "./fixtures.mjs";
 import { format } from "./lib/format.mjs";
+import { mathCases } from "./math.mjs";
 import { loadUpstream, readJson, REPO_ROOT, TOOL_DIR, verifyUpstream } from "./lib/upstream.mjs";
 
 const PACKAGES = ["perfect-freehand", "points-on-curve", "roughjs", "tinycolor2"];
@@ -122,6 +123,13 @@ const freehandCase = (up) => (c) => {
   };
 };
 
+const mathCase = (up) => (c) => {
+  const fn = up.math[c.fn];
+  if (typeof fn !== "function") throw new Error(`math.json: ${c.fn} is not exported by packages/math`);
+  const result = fn(...structuredClone(c.args));
+  return { ...c, result: result === undefined ? null : result };
+};
+
 const buildGoldens = (up) => {
   const files = [randomGolden(up)];
   for (const g of roughGoldens()) files.push({ ...g, cases: g.cases.map(roughCase(up)) });
@@ -131,6 +139,12 @@ const buildGoldens = (up) => {
     description:
       "perfect-freehand 1.2.0 getStrokePoints and getStroke; easing is named (easeOutSine = sin(t*pi/2), shape.ts:1241; linear = t).",
     cases: freehandCases().map(freehandCase(up)),
+  });
+  files.push({
+    name: "math.json",
+    description:
+      "packages/math/src (all but curve.ts and pca.ts): math[fn](...args) = result. Points, vectors, segments, lines, triangles, rectangles and ranges are arrays; an ellipse is { center, halfWidth, halfHeight }.",
+    cases: mathCases().map(mathCase(up)),
   });
   return files;
 };

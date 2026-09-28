@@ -35,6 +35,9 @@ version = "26.9.1"
 [[package]]
 name = "excali-math"
 version = "26.9.1"
+dependencies = [
+ "serde_json",
+]
 
 [[package]]
 name = "excali-raster"

@@ -216,4 +216,5 @@ export const ALL_FILES = [
   ...ROUGH_FILES,
   ...ELEMENT_FILES,
   "freehand.json",
+  "math.json",
 ];

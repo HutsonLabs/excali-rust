@@ -52,6 +52,7 @@ on an arm64 machine only.
 | `elements-freedraw.json` | perfect-freehand and laser-pointer outlines, trimmed SVG path, loop fills | ex-213, ex-214 |
 | `elements-iframe-like.json` | `modifyIframeLikeForRoughOptions` placeholders and defaults | ex-208 |
 | `freehand.json` | `getStrokePoints` and `getStroke` with Excalidraw's options and the library defaults | ex-213 |
+| `math.json` | every `packages/math/src` export except `curve.ts` and `pca.ts`, called on fixed and Park-Miller-random inputs (`math.mjs`): `{ id, fn, args, result }` | ex-201 |
 | `manifest.json` | upstream commit, package versions, case count and sha256 per file | ex-217 |
 
 rough.js's `dots` fill is not included. Its filler jitters every dot with

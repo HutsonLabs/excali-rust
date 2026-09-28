@@ -53,6 +53,7 @@ const ENTRY = `
 export { ShapeCache, getFreedrawOutlinePoints }
   from "./packages/element/src/shape";
 export * as elementFixtures from "./packages/excalidraw/tests/fixtures/elementFixture";
+export * as math from "./packages/math/src/index";
 export { RoughGenerator } from "roughjs/bin/generator";
 export { Random } from "roughjs/bin/math";
 export { getStroke, getStrokePoints } from "perfect-freehand";
