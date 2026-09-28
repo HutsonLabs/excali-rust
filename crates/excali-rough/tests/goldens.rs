@@ -28,7 +28,7 @@
 //! platform (upstream's own V8 on arm64 differs from x86_64 V8 and from libm
 //! in the last bit; see `tools/goldens/README.md` and
 //! `crates/excali-math/tests/goldens.rs`), so they are compared to within
-//! [`PLATFORM_TOLERANCE`]. The number of ops, their kinds and every option
+//! `PLATFORM_TOLERANCE`. The number of ops, their kinds and every option
 //! must still match exactly, so a draw taken out of order fails either way.
 //!
 //! Every other fill (solid, hachure, cross-hatch, zigzag) is compared exactly.
@@ -47,13 +47,9 @@
 
 use std::path::Path;
 
-use excali_rough::{Drawable, Op, Options, Random, RoughGenerator};
-use serde_json::{json, Map, Value};
-
-/// Relative tolerance for trigonometric cases: far below any geometric
-/// meaning, far above a few ulps of libm disagreement carried through the
-/// arithmetic.
-const PLATFORM_TOLERANCE: f64 = 1e-10;
+use excali_rough::goldens::{Report, Tolerance, PLATFORM_TOLERANCE};
+use excali_rough::{Drawable, Options, Random, RoughGenerator};
+use serde_json::Value;
 
 fn load(name: &str) -> Value {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -124,72 +120,6 @@ fn options(v: &Value) -> Options {
     o
 }
 
-/// The resolved options as rough.js holds them (`ResolvedOptions` without the
-/// randomizer): the defaults always, the optional keys when set.
-fn options_json(o: &Options) -> Value {
-    let mut m = Map::new();
-    let mut put = |k: &str, v: Value| {
-        m.insert(k.to_owned(), v);
-    };
-    put("maxRandomnessOffset", json!(o.max_randomness_offset));
-    put("roughness", json!(o.roughness));
-    put("bowing", json!(o.bowing));
-    put("stroke", json!(o.stroke));
-    put("strokeWidth", json!(o.stroke_width));
-    put("curveTightness", json!(o.curve_tightness));
-    put("curveFitting", json!(o.curve_fitting));
-    put("curveStepCount", json!(o.curve_step_count));
-    put("fillStyle", json!(o.fill_style));
-    put("fillWeight", json!(o.fill_weight));
-    put("hachureAngle", json!(o.hachure_angle));
-    put("hachureGap", json!(o.hachure_gap));
-    put("dashOffset", json!(o.dash_offset));
-    put("dashGap", json!(o.dash_gap));
-    put("zigzagOffset", json!(o.zigzag_offset));
-    put("seed", json!(o.seed));
-    put("disableMultiStroke", json!(o.disable_multi_stroke));
-    put("disableMultiStrokeFill", json!(o.disable_multi_stroke_fill));
-    put("preserveVertices", json!(o.preserve_vertices));
-    put("fillShapeRoughnessGain", json!(o.fill_shape_roughness_gain));
-    if let Some(v) = &o.fill {
-        put("fill", json!(v));
-    }
-    if let Some(v) = o.simplification {
-        put("simplification", json!(v));
-    }
-    if let Some(v) = &o.stroke_line_dash {
-        put("strokeLineDash", json!(v));
-    }
-    if let Some(v) = o.stroke_line_dash_offset {
-        put("strokeLineDashOffset", json!(v));
-    }
-    if let Some(v) = &o.fill_line_dash {
-        put("fillLineDash", json!(v));
-    }
-    if let Some(v) = o.fill_line_dash_offset {
-        put("fillLineDashOffset", json!(v));
-    }
-    if let Some(v) = o.fixed_decimal_place_digits {
-        put("fixedDecimalPlaceDigits", json!(v));
-    }
-    Value::Object(m)
-}
-
-fn op_json(op: &Op) -> Value {
-    json!({ "op": op.name(), "data": op.data() })
-}
-
-fn drawable_json(d: &Drawable) -> Value {
-    json!({
-        "shape": d.shape.as_str(),
-        "options": options_json(&d.options),
-        "sets": d.sets.iter().map(|s| json!({
-            "type": s.kind.as_str(),
-            "ops": s.ops.iter().map(op_json).collect::<Vec<_>>(),
-        })).collect::<Vec<_>>(),
-    })
-}
-
 fn call(method: &str, a: &[Value], o: &Options) -> Drawable {
     let g = RoughGenerator::new();
     let n = |i: usize| f(&a[i]);
@@ -236,77 +166,25 @@ fn uses_trig(method: &str, args: &[Value], o: &Options) -> bool {
     }
 }
 
-/// Structural equality; numbers exactly or within `tolerance` relative to
-/// the larger of 1 and the expected magnitude.
-fn same(actual: &Value, expected: &Value, tolerance: f64) -> bool {
-    match (actual, expected) {
-        (Value::Number(a), Value::Number(b)) => {
-            let (a, b) = (a.as_f64().expect("f64"), b.as_f64().expect("f64"));
-            a == b || (a - b).abs() <= tolerance * b.abs().max(1.0)
-        }
-        (Value::Array(a), Value::Array(b)) => {
-            a.len() == b.len() && a.iter().zip(b).all(|(x, y)| same(x, y, tolerance))
-        }
-        (Value::Object(a), Value::Object(b)) => {
-            a.len() == b.len()
-                && a.iter()
-                    .all(|(k, v)| b.get(k).is_some_and(|w| same(v, w, tolerance)))
-        }
-        _ => actual == expected,
-    }
-}
-
-/// The first differing path, for a readable failure.
-fn first_difference(actual: &Value, expected: &Value, tolerance: f64, at: &str) -> String {
-    match (actual, expected) {
-        (Value::Array(a), Value::Array(b)) if a.len() == b.len() => a
-            .iter()
-            .zip(b)
-            .enumerate()
-            .find(|(_, (x, y))| !same(x, y, tolerance))
-            .map(|(i, (x, y))| first_difference(x, y, tolerance, &format!("{at}[{i}]")))
-            .unwrap_or_default(),
-        (Value::Object(a), Value::Object(b)) if a.len() == b.len() => a
-            .iter()
-            .find(|(k, v)| !b.get(*k).is_some_and(|w| same(v, w, tolerance)))
-            .map(|(k, v)| first_difference(v, &b[k], tolerance, &format!("{at}.{k}")))
-            .unwrap_or_default(),
-        _ => format!("{at}: got {actual}, upstream {expected}"),
-    }
-}
-
-/// Runs every case of `file`; returns how many ran.
+/// Runs every case of `file` through the golden harness; returns how many
+/// ran. A difference panics with the case id, the set and op index and the
+/// expected and actual numbers (`excali_rough::goldens`).
 fn check_file(file: &str) -> usize {
     let doc = load(file);
     let cases = doc["cases"].as_array().expect("cases");
-    let mut ran = 0;
-    let mut failures = Vec::new();
+    let mut report = Report::new(file);
     for c in cases {
-        let id = c["id"].as_str().expect("id");
         let o = options(&c["options"]);
         let method = c["method"].as_str().expect("method");
         let args = c["args"].as_array().expect("args");
-        let actual = drawable_json(&call(method, args, &o));
         let tolerance = if uses_trig(method, args, &o) {
-            PLATFORM_TOLERANCE
+            Tolerance::Relative(PLATFORM_TOLERANCE)
         } else {
-            0.0
+            Tolerance::Exact
         };
-        if !same(&actual, &c["drawable"], tolerance) {
-            failures.push(format!(
-                "{id}: {}",
-                first_difference(&actual, &c["drawable"], tolerance, "drawable")
-            ));
-        }
-        ran += 1;
+        report.drawable(c, &c["drawable"], &call(method, args, &o), tolerance);
     }
-    assert!(
-        failures.is_empty(),
-        "{file}: {} of {ran} cases differ from rough.js 4.6.4:\n{}",
-        failures.len(),
-        failures.join("\n")
-    );
-    ran
+    report.assert_ok()
 }
 
 #[test]

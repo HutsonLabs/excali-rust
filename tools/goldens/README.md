@@ -113,6 +113,41 @@ round-trip form. Parse them exactly; in Rust, use serde_json's
 `test/upstream-snapshot.test.mjs` shows that the goldens reproduce upstream's
 `export.test.ts.snap` paths exactly at that precision.
 
+## Rust harness
+
+The Rust side compares with the goldens through one harness,
+`excali_rough::goldens` (cargo feature `goldens`; ex-217). It turns a
+`Drawable` into the golden form (`drawable_json`), walks shape, options,
+sets, ops and data, and reports every difference with where it is and by how
+much:
+
+```text
+elements-rectangle.json: 1 of 54 cases differ from upstream
+
+case rectangle/seed7-r0, element rectangle_seed7-r0, shape 0, set 0 (path), op 1 (bcurveTo) data[0]
+    expected 40.00629382208
+    actual   40.0062938220799
+    diff     -1.0658141036401503e-13 (15 ulp; tolerance exact)
+    expected op bcurveTo [40.00629382208, 0, 80.0125876441598, 0, 200, 0]
+    actual op   bcurveTo [40.0062938220799, 0, 80.0125876441598, 0, 200, 0]
+```
+
+Different op, set or shape counts, op kinds, set types, options and SVG path
+tokens (freedraw `svgPath` shapes) are reported the same way. Numbers are
+exact unless the case goes through platform trigonometry, which is compared
+within `PLATFORM_TOLERANCE` (relative 1e-10). `Manifest` checks every file
+against `manifest.json` (sha256, case count) and the upstream commit against
+`site/config.toml` (`crates/excali-rough/tests/goldens_manifest.rs`).
+
+The parity tests always build with the feature (excali-rough lists itself as
+a dev-dependency with `goldens`, excali-scene lists excali-rough with it), so
+a plain `cargo test --workspace` runs every golden. CI also runs the golden
+targets on arm64, where the goldens were generated:
+
+```sh
+cargo test --workspace --features goldens --test goldens --test golden_harness --test goldens_manifest
+```
+
 ## Adding cases
 
 Add inputs to `fixtures.mjs` (fractional indexing: `fixtures-fractional.mjs`), run `node tools/goldens/generate.mjs`, and

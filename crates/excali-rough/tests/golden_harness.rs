@@ -169,11 +169,7 @@ fn tolerance_decides_and_is_printed_with_ulps() {
     let case = element_case(golden);
 
     let mut report = Report::new("elements-rectangle.json");
-    let relative = report.element(
-        &case,
-        &[ActualShape::Rough(&d)],
-        Tolerance::Relative(1e-10),
-    );
+    let relative = report.element(&case, &[ActualShape::Rough(&d)], Tolerance::Relative(1e-10));
     assert!(relative.is_empty(), "{relative:?}");
 
     let exact = report.element(&case, &[ActualShape::Rough(&d)], Tolerance::Exact);
@@ -186,11 +182,7 @@ fn tolerance_decides_and_is_printed_with_ulps() {
     let mut golden = drawable_json(&d);
     op_data(&mut golden, 0, 1)[0] = json!(actual * (1.0 + 1e-8));
     let case = element_case(golden);
-    let far = report.element(
-        &case,
-        &[ActualShape::Rough(&d)],
-        Tolerance::Relative(1e-10),
-    );
+    let far = report.element(&case, &[ActualShape::Rough(&d)], Tolerance::Relative(1e-10));
     assert_eq!(far.len(), 1);
     assert!(
         far[0].to_string().contains("tolerance relative 1e-10"),
@@ -230,10 +222,7 @@ fn a_different_op_count_is_reported_with_both_counts() {
     let d = rectangle();
     let mut golden = drawable_json(&d);
     let n = d.sets[0].ops.len();
-    golden["sets"][0]["ops"]
-        .as_array_mut()
-        .expect("ops")
-        .pop();
+    golden["sets"][0]["ops"].as_array_mut().expect("ops").pop();
     let case = element_case(golden);
     let mut report = Report::new("elements-rectangle.json");
     let found = report.element(&case, &[ActualShape::Rough(&d)], Tolerance::Exact);
@@ -268,7 +257,10 @@ fn a_different_op_kind_is_reported_at_its_index() {
     let text = found[0].to_string();
     assert!(text.contains("op 2 (lineTo)"), "{text}");
     assert!(text.contains("expected \"lineTo\""), "{text}");
-    assert!(text.contains(&format!("actual   \"{}\"", d.sets[0].ops[2].name())), "{text}");
+    assert!(
+        text.contains(&format!("actual   \"{}\"", d.sets[0].ops[2].name())),
+        "{text}"
+    );
 }
 
 #[test]
@@ -385,14 +377,18 @@ fn svg_paths_are_compared_number_by_number() {
     assert!(report
         .element(
             &case,
-            &[ActualShape::SvgPath("M 1.00,-1.19 Q 1.00,-1.19 3.73,1.15 Z")],
+            &[ActualShape::SvgPath(
+                "M 1.00,-1.19 Q 1.00,-1.19 3.73,1.15 Z"
+            )],
             Tolerance::Exact
         )
         .is_empty());
 
     let found = report.element(
         &case,
-        &[ActualShape::SvgPath("M 1.00,-1.19 Q 1.00,-1.19 3.74,1.15 Z")],
+        &[ActualShape::SvgPath(
+            "M 1.00,-1.19 Q 1.00,-1.19 3.74,1.15 Z",
+        )],
         Tolerance::Exact,
     );
     assert_eq!(found.len(), 1, "{found:?}");
@@ -405,7 +401,9 @@ fn svg_paths_are_compared_number_by_number() {
     // a command letter that differs is a structural difference
     let found = report.element(
         &case,
-        &[ActualShape::SvgPath("M 1.00,-1.19 L 1.00,-1.19 3.73,1.15 Z")],
+        &[ActualShape::SvgPath(
+            "M 1.00,-1.19 L 1.00,-1.19 3.73,1.15 Z",
+        )],
         Tolerance::Exact,
     );
     assert_eq!(found.len(), 1, "{found:?}");

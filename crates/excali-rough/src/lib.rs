@@ -30,6 +30,8 @@
 mod core;
 mod fillers;
 mod generator;
+#[cfg(feature = "goldens")]
+pub mod goldens;
 pub mod hachure_fill;
 mod options;
 pub mod path_data;

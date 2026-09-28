@@ -13,9 +13,17 @@ excali-core = { path = "../excali-core" }
 excali-math = { path = "../excali-math" }
 excali-rough = { path = "../excali-rough" }
 
-# serde_json reads tests/fixtures/*.json in the parity tests and never
-# reaches the library.
+# `goldens`: turns on excali-rough's golden harness (ex-217), so
+# `cargo test --workspace --features goldens` names the parity gate the same
+# way in every crate. The tests below always have it.
+[features]
+goldens = ["excali-rough/goldens"]
+
+# serde_json reads tests/fixtures/*.json and goldens/*.json in the parity
+# tests, and the element goldens go through excali-rough's golden harness;
+# neither reaches the library.
 [dev-dependencies]
+excali-rough = { path = "../excali-rough", features = ["goldens"] }
 serde_json = { workspace = true }
 
 [lints]

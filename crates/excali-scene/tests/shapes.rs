@@ -11,28 +11,23 @@
 //! to the cutoff `R / 0.25`, then `R`, with `R = roundness.value ?? 32`), the
 //! diamond points (`floor(w / 2) + 1`, `floor(h / 2) + 1`), the exact SVG
 //! path strings upstream hands to rough.js, and
-//! `modifyIframeLikeForRoughOptions`. The second half runs every case of
-//! the element goldens (`goldens/elements-{rectangle,diamond,ellipse,
-//! iframe-like,upstream-fixtures}.json`, written by
-//! `tools/goldens/generate.mjs` from upstream's own
-//! `ShapeCache.generateElementShape`) and compares the drawables op by op.
+//! `modifyIframeLikeForRoughOptions`. The element goldens are compared op
+//! by op in `tests/goldens.rs`.
 
 use std::collections::HashMap;
-use std::path::Path;
 
 use excali_core::element::{
     Element, ElementBase, ElementKind, ElementType, FillStyle, LineFields, LinearFields, Roundness,
     RoundnessType,
 };
-use excali_rough::{Drawable, Op, Options, RoughGenerator, Shape};
+use excali_rough::{Drawable, Options, RoughGenerator, Shape};
 use excali_scene::bounds::get_diamond_points;
 use excali_scene::rough_options::generate_rough_options;
 use excali_scene::shape::{
     diamond_path, generate_element_shape, modify_iframe_like_for_rough_options, rectangle_path,
-    RenderConfig, ShapeError, Theme,
+    RenderConfig, ShapeError,
 };
 use excali_scene::utils::get_corner_radius;
-use serde_json::{json, Map, Value};
 
 // ---------------------------------------------------------------------------
 // Elements
@@ -389,233 +384,4 @@ fn other_types_are_not_box_shapes() {
         generate_element_shape(&el, &RoughGenerator::new(), &RenderConfig::default()),
         Err(ShapeError::NotABoxShape(ElementType::Line))
     );
-}
-
-// ---------------------------------------------------------------------------
-// Upstream's output: ShapeCache.generateElementShape
-
-/// Relative tolerance for ellipses, whose points go through `Math.cos` and
-/// `Math.sin` (see `crates/excali-rough/tests/goldens.rs`).
-const PLATFORM_TOLERANCE: f64 = 1e-10;
-
-fn load(name: &str) -> Value {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../goldens")
-        .join(name);
-    let text = std::fs::read_to_string(&path).unwrap_or_else(|e| {
-        panic!(
-            "{}: {e} (run node tools/goldens/generate.mjs)",
-            path.display()
-        )
-    });
-    serde_json::from_str(&text).expect("golden parses")
-}
-
-/// The resolved options as the goldens record them.
-fn options_json(o: &Options) -> Value {
-    let mut m = Map::new();
-    let mut put = |k: &str, v: Value| {
-        m.insert(k.to_owned(), v);
-    };
-    put("maxRandomnessOffset", json!(o.max_randomness_offset));
-    put("roughness", json!(o.roughness));
-    put("bowing", json!(o.bowing));
-    put("stroke", json!(o.stroke));
-    put("strokeWidth", json!(o.stroke_width));
-    put("curveTightness", json!(o.curve_tightness));
-    put("curveFitting", json!(o.curve_fitting));
-    put("curveStepCount", json!(o.curve_step_count));
-    put("fillStyle", json!(o.fill_style));
-    put("fillWeight", json!(o.fill_weight));
-    put("hachureAngle", json!(o.hachure_angle));
-    put("hachureGap", json!(o.hachure_gap));
-    put("dashOffset", json!(o.dash_offset));
-    put("dashGap", json!(o.dash_gap));
-    put("zigzagOffset", json!(o.zigzag_offset));
-    put("seed", json!(o.seed));
-    put("disableMultiStroke", json!(o.disable_multi_stroke));
-    put("disableMultiStrokeFill", json!(o.disable_multi_stroke_fill));
-    put("preserveVertices", json!(o.preserve_vertices));
-    put("fillShapeRoughnessGain", json!(o.fill_shape_roughness_gain));
-    if let Some(v) = &o.fill {
-        put("fill", json!(v));
-    }
-    if let Some(v) = o.simplification {
-        put("simplification", json!(v));
-    }
-    if let Some(v) = &o.stroke_line_dash {
-        put("strokeLineDash", json!(v));
-    }
-    if let Some(v) = o.stroke_line_dash_offset {
-        put("strokeLineDashOffset", json!(v));
-    }
-    if let Some(v) = &o.fill_line_dash {
-        put("fillLineDash", json!(v));
-    }
-    if let Some(v) = o.fill_line_dash_offset {
-        put("fillLineDashOffset", json!(v));
-    }
-    if let Some(v) = o.fixed_decimal_place_digits {
-        put("fixedDecimalPlaceDigits", json!(v));
-    }
-    Value::Object(m)
-}
-
-fn op_json(op: &Op) -> Value {
-    json!({ "op": op.name(), "data": op.data() })
-}
-
-fn drawable_json(d: &Drawable) -> Value {
-    json!({
-        "shape": d.shape.as_str(),
-        "options": options_json(&d.options),
-        "sets": d.sets.iter().map(|s| json!({
-            "type": s.kind.as_str(),
-            "ops": s.ops.iter().map(op_json).collect::<Vec<_>>(),
-        })).collect::<Vec<_>>(),
-    })
-}
-
-/// Structural equality; numbers exactly or within `tolerance` relative to
-/// the larger of 1 and the expected magnitude.
-fn same(actual: &Value, expected: &Value, tolerance: f64) -> bool {
-    match (actual, expected) {
-        (Value::Number(a), Value::Number(b)) => {
-            let (a, b) = (a.as_f64().expect("f64"), b.as_f64().expect("f64"));
-            a == b || (a - b).abs() <= tolerance * b.abs().max(1.0)
-        }
-        (Value::Array(a), Value::Array(b)) => {
-            a.len() == b.len() && a.iter().zip(b).all(|(x, y)| same(x, y, tolerance))
-        }
-        (Value::Object(a), Value::Object(b)) => {
-            a.len() == b.len()
-                && a.iter()
-                    .all(|(k, v)| b.get(k).is_some_and(|w| same(v, w, tolerance)))
-        }
-        _ => actual == expected,
-    }
-}
-
-/// The first differing path, for a readable failure.
-fn first_difference(actual: &Value, expected: &Value, tolerance: f64, at: &str) -> String {
-    match (actual, expected) {
-        (Value::Array(a), Value::Array(b)) if a.len() == b.len() => a
-            .iter()
-            .zip(b)
-            .enumerate()
-            .find(|(_, (x, y))| !same(x, y, tolerance))
-            .map(|(i, (x, y))| first_difference(x, y, tolerance, &format!("{at}[{i}]")))
-            .unwrap_or_default(),
-        (Value::Object(a), Value::Object(b)) if a.len() == b.len() => a
-            .iter()
-            .find(|(k, v)| !b.get(*k).is_some_and(|w| same(v, w, tolerance)))
-            .map(|(k, v)| first_difference(v, &b[k], tolerance, &format!("{at}.{k}")))
-            .unwrap_or_default(),
-        _ => format!("{at}: got {actual}, upstream {expected}"),
-    }
-}
-
-/// The render config of a golden case (`embedsValidationStatus` built from
-/// `validatedEmbeds`, as the generator builds it).
-fn render_config(v: &Value) -> (bool, String, HashMap<String, bool>, Theme) {
-    let embeds = v["validatedEmbeds"]
-        .as_array()
-        .expect("validatedEmbeds")
-        .iter()
-        .map(|id| (id.as_str().expect("id").to_owned(), true))
-        .collect();
-    let theme = match v["theme"].as_str().expect("theme") {
-        "dark" => Theme::Dark,
-        "light" => Theme::Light,
-        other => panic!("theme {other}"),
-    };
-    (
-        v["isExporting"].as_bool().expect("isExporting"),
-        v["canvasBackgroundColor"]
-            .as_str()
-            .expect("canvasBackgroundColor")
-            .to_owned(),
-        embeds,
-        theme,
-    )
-}
-
-const BOX_TYPES: [&str; 5] = ["rectangle", "iframe", "embeddable", "diamond", "ellipse"];
-
-/// Runs every rectangle, iframe, embeddable, diamond and ellipse case of
-/// `file`; returns how many ran.
-fn check_file(file: &str) -> usize {
-    let doc = load(file);
-    let generator = RoughGenerator::new();
-    let mut ran = 0;
-    let mut failures = Vec::new();
-    for c in doc["cases"].as_array().expect("cases") {
-        let id = c["id"].as_str().expect("id");
-        let raw = c["element"].as_object().expect("element").clone();
-        let ty = raw["type"].as_str().expect("type");
-        if !BOX_TYPES.contains(&ty) {
-            continue;
-        }
-        let el = Element::from_map(raw.clone()).unwrap_or_else(|e| panic!("{id}: {e}"));
-        let (is_exporting, background, embeds, theme) = render_config(&c["renderConfig"]);
-        let config = RenderConfig {
-            is_exporting,
-            canvas_background_color: &background,
-            embeds_validation_status: Some(&embeds),
-            theme,
-        };
-        let shapes = c["shapes"].as_array().expect("shapes");
-        assert_eq!(shapes.len(), 1, "{id}: one drawable");
-        assert_eq!(shapes[0]["type"], "rough", "{id}");
-        let expected = &shapes[0]["drawable"];
-        let drawable = generate_element_shape(&el, &generator, &config)
-            .unwrap_or_else(|e| panic!("{id}: {e}"));
-        let actual = drawable_json(&drawable);
-        let tolerance = if ty == "ellipse" {
-            PLATFORM_TOLERANCE
-        } else {
-            0.0
-        };
-        if !same(&actual, expected, tolerance) {
-            failures.push(format!(
-                "{id}: {}",
-                first_difference(&actual, expected, tolerance, "drawable")
-            ));
-        }
-        ran += 1;
-    }
-    assert!(
-        failures.is_empty(),
-        "{file}: {} of {ran} cases differ from upstream:\n{}",
-        failures.len(),
-        failures.join("\n")
-    );
-    ran
-}
-
-#[test]
-fn rectangles_match_upstream() {
-    assert_eq!(check_file("elements-rectangle.json"), 54);
-}
-
-#[test]
-fn diamonds_match_upstream() {
-    assert_eq!(check_file("elements-diamond.json"), 54);
-}
-
-#[test]
-fn ellipses_match_upstream() {
-    assert_eq!(check_file("elements-ellipse.json"), 41);
-}
-
-#[test]
-fn iframe_likes_match_upstream() {
-    assert_eq!(check_file("elements-iframe-like.json"), 13);
-}
-
-#[test]
-fn upstream_fixtures_match_upstream() {
-    // elementFixture.ts and the export test's variants; the text fixture
-    // has no rough shape
-    assert_eq!(check_file("elements-upstream-fixtures.json"), 9);
 }

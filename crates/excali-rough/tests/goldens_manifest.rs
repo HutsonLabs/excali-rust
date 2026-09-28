@@ -15,8 +15,7 @@ fn root() -> PathBuf {
 
 fn manifest() -> Manifest {
     let path = root().join("goldens/manifest.json");
-    let text = std::fs::read_to_string(&path)
-        .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     Manifest::parse(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
 }
 
@@ -52,7 +51,8 @@ fn every_golden_file_matches_its_manifest_entry() {
 
 #[test]
 fn the_goldens_come_from_the_pinned_upstream_commit() {
-    let config = std::fs::read_to_string(root().join("site/config.toml")).expect("site/config.toml");
+    let config =
+        std::fs::read_to_string(root().join("site/config.toml")).expect("site/config.toml");
     let pin = config
         .lines()
         .find_map(|l| l.strip_prefix("upstream_commit = \""))
