@@ -20,6 +20,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "upstream" / "checkout.sh"
 CONFIG = ROOT / "site" / "config.toml"
+# Owner decision (f), 2026-09-27: this repository is strictly a port. The
+# upstream checkout is read-only reference, so its push URL is invalid.
+DISABLED_PUSH_URL = "DISABLED-strictly-a-port"
 
 
 def config_pin() -> str:
@@ -209,6 +212,75 @@ class CheckoutTests(unittest.TestCase):
         self.assertIn("fetching all refs", r.stdout, "fallback path was not exercised")
         self.assertEqual(self.head(), pin)
 
+    # --- read-only: this is strictly a port ------------------------------
+
+    def push_url(self):
+        return git(self.dest, "remote", "get-url", "--push", "origin")
+
+    def test_fresh_checkout_disables_push(self):
+        r = self.run_script(pin=self.commits[1])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.push_url(), DISABLED_PUSH_URL)
+        # The fetch URL is untouched: only pushes are disabled.
+        self.assertEqual(git(self.dest, "remote", "get-url", "origin"), self.url)
+
+    def test_push_to_upstream_fails(self):
+        pin = self.commits[1]
+        self.assertEqual(self.run_script(pin=pin).returncode, 0)
+        git(self.dest, "switch", "-q", "-c", "attempt", env=GIT_ENV)
+        (self.dest / "file.txt").write_text("should never reach upstream\n")
+        git(self.dest, "commit", "-q", "-am", "attempt", env=GIT_ENV)
+        push = subprocess.run(
+            ["git", "push", "origin", "attempt"], cwd=self.dest, env=GIT_ENV,
+            capture_output=True, text=True,
+        )
+        self.assertNotEqual(push.returncode, 0, "a push to upstream must fail")
+        self.assertEqual(
+            git(self.remote, "branch", "--list", "attempt"), "", "nothing may land upstream"
+        )
+
+    def test_existing_checkout_at_pin_gets_push_disabled(self):
+        # A checkout made before the rule (push URL still the fetch URL) is
+        # fixed on the next run, including the no-network "already at" path.
+        pin = self.commits[1]
+        self.assertEqual(self.run_script(pin=pin).returncode, 0)
+        git(self.dest, "config", "--unset-all", "remote.origin.pushurl")
+        self.assertEqual(self.push_url(), self.url)
+        shutil.move(str(self.remote), str(self.tmp / "moved"))
+        r = self.run_script(pin=pin)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("already at", r.stdout)
+        self.assertEqual(self.push_url(), DISABLED_PUSH_URL)
+
+    def test_existing_checkout_moving_pin_gets_push_disabled(self):
+        self.assertEqual(self.run_script(pin=self.commits[0]).returncode, 0)
+        git(self.dest, "remote", "set-url", "--push", "origin", self.url)
+        r = self.run_script(pin=self.commits[2])
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.push_url(), DISABLED_PUSH_URL)
+
+    def test_verify_requires_push_disabled(self):
+        pin = self.commits[2]
+        self.assertEqual(self.run_script(pin=pin).returncode, 0)
+        git(self.dest, "remote", "set-url", "--push", "origin", self.url)
+        r = self.run_script(pin=pin, args=("--verify",))
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("push", r.stderr)
+        self.assertIn(DISABLED_PUSH_URL, r.stderr)
+        self.assertEqual(self.push_url(), self.url, "verify must not modify the checkout")
+
+    def test_verify_rejects_extra_push_urls(self):
+        pin = self.commits[2]
+        self.assertEqual(self.run_script(pin=pin).returncode, 0)
+        git(self.dest, "config", "--add", "remote.origin.pushurl", self.url)
+        r = self.run_script(pin=pin, args=("--verify",))
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("push", r.stderr)
+        # A normal run collapses them back to the single disabled value.
+        self.assertEqual(self.run_script(pin=pin).returncode, 0)
+        urls = git(self.dest, "config", "--get-all", "remote.origin.pushurl").splitlines()
+        self.assertEqual(urls, [DISABLED_PUSH_URL])
+
     # --- refusals --------------------------------------------------------
 
     def test_refuses_non_sha_pin(self):
@@ -270,6 +342,23 @@ class CheckoutTests(unittest.TestCase):
         r = self.run_script(pin=self.commits[0], args=("--bogus",))
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("usage", r.stderr.lower())
+
+
+class StrictlyAPortDocsTests(unittest.TestCase):
+    """The rule is stated where agents read it first."""
+
+    def test_agents_md_states_strictly_a_port(self):
+        text = (ROOT / "AGENTS.md").read_text()
+        self.assertIn("strictly a port", text)
+        for word in ("commits", "PRs", "issues", "comments", "excalidraw/excalidraw"):
+            self.assertIn(word, text)
+        self.assertIn(DISABLED_PUSH_URL, text)
+
+    def test_agent_workflow_states_strictly_a_port(self):
+        text = (ROOT / "site" / "content" / "plan" / "agent-workflow.md").read_text()
+        self.assertIn("Strictly a port", text)
+        self.assertIn(DISABLED_PUSH_URL, text)
+        self.assertIn("excalidraw/excalidraw", text)
 
 
 class DefaultLocationTests(unittest.TestCase):
