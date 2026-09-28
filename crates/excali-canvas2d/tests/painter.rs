@@ -1,8 +1,9 @@
 //! The Canvas 2D backend consumes the display list (ex-216): every item
 //! becomes the `CanvasRenderingContext2D` calls upstream makes for it
 //! (`packages/element/src/renderElement.ts`), each item isolated in
-//! `save()`/`restore()` with its absolute transform and alpha set first, and
-//! clips pushed as `save(); …; clip(rule)` and popped with `restore()`.
+//! `save()`/`restore()` with its absolute transform and alpha set first, its
+//! colour assigned as the element stores it, and clips pushed as
+//! `save(); …; clip(rule)` and popped with `restore()`.
 //!
 //! A recording [`Context2d`] stands in for the browser; the `web-sys`
 //! implementation forwards the same calls one to one.
@@ -13,7 +14,8 @@ use std::f64::consts::FRAC_PI_2;
 use excali_canvas2d::{paint, Context2d};
 use excali_scene::display::{
     Clip, Color, Dash, Direction, DisplayItem, DisplayList, FillRule, Font, Group, ImageFilter,
-    ImageItem, LineCap, LineJoin, Path, Rect, Stroke, TextAlign, TextRun, Transform,
+    ImageItem, LineCap, LineJoin, PaintState, Path, Rect, Rgba, Stroke, TextAlign, TextRun,
+    Transform,
 };
 
 #[derive(Default)]
@@ -187,7 +189,7 @@ fn fill_is_one_isolated_fill_call() {
             "save",
             ID,
             "globalAlpha=1",
-            "fillStyle=rgba(30, 30, 30, 1)",
+            "fillStyle=#1e1e1e",
             "beginPath",
             "moveTo(0,0)",
             "lineTo(10,0)",
@@ -221,7 +223,7 @@ fn stroke_sets_every_line_property() {
             "save",
             ID,
             "globalAlpha=1",
-            "strokeStyle=rgba(224, 49, 49, 1)",
+            "strokeStyle=#e03131",
             "lineWidth=2.5",
             "lineCap=round",
             "lineJoin=round",
@@ -325,7 +327,7 @@ fn text_is_fill_text_with_font_align_and_direction() {
             ID,
             "globalAlpha=1",
             "font=20px Excalifont, Xiaolai, Segoe UI Emoji",
-            "fillStyle=rgba(30, 30, 30, 1)",
+            "fillStyle=#1e1e1e",
             "textAlign=center",
             "direction=rtl",
             "fillText(مرحبا,50,17.5)",
@@ -395,9 +397,90 @@ fn paint_from_a_device_pixel_ratio() {
     assert_eq!(ctx.log[1], "setTransform(2,0,0,2,0,0)");
 }
 
+#[test]
+fn colours_are_assigned_verbatim_for_the_browser_to_parse() {
+    // renderElement.ts assigns element.strokeColor / backgroundColor to
+    // fillStyle and strokeStyle as stored; roughjs assigns o.stroke and
+    // o.fill || ''. The browser parses them, and ignores the ones that are
+    // not colours, keeping the style the context had.
+    for css in [
+        "rgb(255 0 0 / 50%)",
+        "hsl(120deg, 100%, 50%)",
+        "hwb(0 0% 0%)",
+        "ff0000",
+        "blue-ish",
+        "",
+    ] {
+        let fill = one(DisplayItem::Fill {
+            path: Path::rect(0.0, 0.0, 1.0, 1.0),
+            color: Color::new(css),
+            rule: FillRule::NonZero,
+        });
+        assert_eq!(fill[3], format!("fillStyle={css}"));
+        let stroke = one(DisplayItem::Stroke {
+            path: Path::rect(0.0, 0.0, 1.0, 1.0),
+            stroke: Stroke::new(Color::new(css), 1.0),
+        });
+        assert_eq!(stroke[3], format!("strokeStyle={css}"));
+        let text = one(DisplayItem::Text(TextRun::new(
+            "t",
+            0.0,
+            0.0,
+            Font::new(10.0, "Helvetica"),
+            Color::new(css),
+        )));
+        assert_eq!(text[4], format!("fillStyle={css}"));
+    }
+}
+
+#[test]
+fn paint_from_sets_the_base_styles_an_ignored_colour_keeps() {
+    // bootstrapCanvas leaves fillStyle = viewBackgroundColor; a draw whose
+    // colour the browser ignores paints in it, as the raster backend does
+    // from the same base state.
+    let mut list = DisplayList::new();
+    list.push(DisplayItem::Fill {
+        path: Path::rect(0.0, 0.0, 1.0, 1.0),
+        color: Color::new("blue-ish"),
+        rule: FillRule::NonZero,
+    });
+    let base = PaintState {
+        fill_style: Rgba {
+            r: 255,
+            g: 255,
+            b: 255,
+            a: 1.0,
+        },
+        stroke_style: Rgba {
+            r: 0,
+            g: 0,
+            b: 255,
+            a: 0.5,
+        },
+        ..PaintState::new(Transform::scale(2.0, 2.0), 1.0)
+    };
+    let mut ctx = Recording::default();
+    excali_canvas2d::paint_from(&list, &mut ctx, base);
+    assert_eq!(
+        ctx.log[..8],
+        [
+            "save",
+            "fillStyle=rgba(255, 255, 255, 1)",
+            "strokeStyle=rgba(0, 0, 255, 0.5)",
+            "save",
+            "setTransform(2,0,0,2,0,0)",
+            "globalAlpha=1",
+            "fillStyle=blue-ish",
+            "beginPath",
+        ]
+    );
+    assert_eq!(ctx.log[ctx.log.len() - 2..], ["restore", "restore"]);
+}
+
 /// ADR-008: backends know nothing about elements. This crate's only
-/// workspace dependency is `excali-scene`, and its sources name nothing
-/// from the element model.
+/// workspace dependency is `excali-scene`, it reaches into that crate only
+/// through `excali_scene::display`, and no identifier in its code names an
+/// element (`HtmlImageElement`, the browser's image type, aside).
 #[test]
 fn no_element_knowledge() {
     let manifest = include_str!("../Cargo.toml");
@@ -407,26 +490,77 @@ fn no_element_knowledge() {
         .filter_map(|l| l.split_whitespace().next())
         .collect();
     assert_eq!(internal, ["scene"], "internal dependencies: {internal:?}");
+    const ALLOWED: [&str; 1] = ["HtmlImageElement"];
     let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
+    let mut sources = 0;
     for entry in std::fs::read_dir(dir).unwrap() {
         let path = entry.unwrap().path();
-        let text = std::fs::read_to_string(&path).unwrap();
-        for forbidden in [
-            "excali_core",
-            "excali_rough",
-            "excali_freehand",
-            "excali_text",
-            "excali_scene::rough",
-            "excali_scene::utils",
-            "ElementKind",
-            "ElementType",
-            "ExcalidrawElement",
-        ] {
-            assert!(
-                !text.contains(forbidden),
-                "{} mentions {forbidden}",
-                path.display()
-            );
+        let code = code_without_comments(&std::fs::read_to_string(&path).unwrap());
+        sources += 1;
+        for p in paths(&code) {
+            let segments: Vec<&str> = p.split("::").collect();
+            for s in &segments {
+                assert!(
+                    !s.contains("Element") || ALLOWED.contains(s),
+                    "{} names {s}",
+                    path.display()
+                );
+            }
+            if segments[0].starts_with("excali_") {
+                assert!(
+                    segments[0] == "excali_scene"
+                        && segments.get(1).is_none_or(|m| *m == "display"),
+                    "{} uses {p}",
+                    path.display()
+                );
+            }
         }
     }
+    assert!(sources > 0);
+}
+
+#[test]
+fn the_element_check_sees_code_and_skips_comments() {
+    let code = code_without_comments(
+        "use excali_core::element::TextElement; // renderElement.ts\n/* ElementKind */ let x = 1;",
+    );
+    assert_eq!(
+        paths(&code),
+        ["use", "excali_core::element::TextElement", "let", "x", "1"]
+    );
+}
+
+/// The code of a Rust source with `//` and `/* */` comments removed (doc
+/// comments cite upstream files such as `renderElement.ts`).
+fn code_without_comments(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while !rest.is_empty() {
+        let line = rest.find("//");
+        let block = rest.find("/*");
+        match (line, block) {
+            (Some(l), b) if b.is_none_or(|b| l < b) => {
+                out.push_str(&rest[..l]);
+                rest = rest[l..].find('\n').map_or("", |e| &rest[l + e..]);
+            }
+            (_, Some(b)) => {
+                out.push_str(&rest[..b]);
+                rest = rest[b..].find("*/").map_or("", |e| &rest[b + e + 2..]);
+            }
+            _ => {
+                out.push_str(rest);
+                rest = "";
+            }
+        }
+    }
+    out
+}
+
+/// Every identifier and `::` path in `code`.
+fn paths(code: &str) -> Vec<String> {
+    code.split(|c: char| !(c.is_alphanumeric() || c == '_' || c == ':'))
+        .map(|p| p.trim_matches(':'))
+        .filter(|p| !p.is_empty())
+        .map(str::to_owned)
+        .collect()
 }

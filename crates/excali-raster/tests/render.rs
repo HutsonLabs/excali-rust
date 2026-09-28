@@ -7,10 +7,10 @@
 use std::collections::HashMap;
 
 use excali_raster::tiny_skia::{self, Mask, Pixmap, PremultipliedColorU8};
-use excali_raster::{render, render_scaled, TextRasterizer};
+use excali_raster::{render, render_from, render_scaled, TextRasterizer};
 use excali_scene::display::{
     Clip, Color, Dash, DisplayItem, DisplayList, FillRule, Font, Group, ImageFilter, ImageItem,
-    LineCap, Path, Rect, Stroke, TextRun, Transform,
+    LineCap, PaintState, Path, Rect, Rgba, Stroke, TextRun, Transform,
 };
 
 /// Records what the backend hands the text rasterizer, and marks the
@@ -368,17 +368,78 @@ fn an_empty_clip_hides_everything() {
 }
 
 #[test]
-fn items_without_a_colour_are_skipped() {
+fn a_colour_the_canvas_ignores_paints_in_the_current_style() {
+    // The canvas keeps the current style when a fillStyle/strokeStyle
+    // assignment does not parse; on a fresh context that is black, so an
+    // element whose strokeColor is "blue-ish" draws black upstream.
+    // "transparent" is a colour and paints nothing.
+    const BLACK: (u8, u8, u8, u8) = (0, 0, 0, 255);
     let l = list(vec![
-        fill(Path::rect(0.0, 0.0, 4.0, 4.0), "", FillRule::NonZero),
+        fill(Path::rect(0.0, 0.0, 2.0, 4.0), "", FillRule::NonZero),
+        DisplayItem::Stroke {
+            path: hline(2.0, 4.0, 1.0),
+            stroke: Stroke::new(Color::new("blue-ish"), 2.0),
+        },
         fill(
-            Path::rect(0.0, 0.0, 4.0, 4.0),
+            Path::rect(2.0, 2.0, 2.0, 2.0),
             "transparent",
             FillRule::NonZero,
         ),
     ]);
     let p = draw(&l, 4, 4);
-    assert_eq!(px(&p, 1, 1), CLEAR);
+    assert_eq!(px(&p, 1, 1), BLACK);
+    assert_eq!(px(&p, 3, 0), BLACK);
+    assert_eq!(px(&p, 3, 3), CLEAR);
+
+    // From a base state the current styles are the base's.
+    let base = PaintState {
+        fill_style: Rgba {
+            r: 0,
+            g: 0,
+            b: 255,
+            a: 1.0,
+        },
+        stroke_style: Rgba {
+            r: 0,
+            g: 255,
+            b: 0,
+            a: 1.0,
+        },
+        ..PaintState::ROOT
+    };
+    let mut p = Pixmap::new(4, 4).unwrap();
+    render_from(&l, &mut p, base, &Images::new(), &mut Texts::default());
+    assert_eq!(px(&p, 1, 1), (0, 0, 255, 255));
+    assert_eq!(px(&p, 3, 0), (0, 255, 0, 255));
+}
+
+#[test]
+fn css_color_4_colours_paint_as_on_the_canvas() {
+    // rgb() with a slash alpha is half-transparent; hsl() with a unit and
+    // hwb() are colours; a hex string without "#" is not (black).
+    let l = list(vec![
+        fill(
+            Path::rect(0.0, 0.0, 1.0, 1.0),
+            "rgb(255 0 0 / 50%)",
+            FillRule::NonZero,
+        ),
+        fill(
+            Path::rect(1.0, 0.0, 1.0, 1.0),
+            "hsl(120deg, 100%, 50%)",
+            FillRule::NonZero,
+        ),
+        fill(
+            Path::rect(2.0, 0.0, 1.0, 1.0),
+            "hwb(0 0% 0%)",
+            FillRule::NonZero,
+        ),
+        fill(Path::rect(3.0, 0.0, 1.0, 1.0), "ff0000", FillRule::NonZero),
+    ]);
+    let p = draw(&l, 4, 1);
+    assert!(near(px(&p, 0, 0), (128, 0, 0, 128)), "{:?}", px(&p, 0, 0));
+    assert_eq!(px(&p, 1, 0), (0, 255, 0, 255));
+    assert_eq!(px(&p, 2, 0), RED);
+    assert_eq!(px(&p, 3, 0), (0, 0, 0, 255));
 }
 
 /// A 2×2 image: red, green / blue, white.
@@ -561,8 +622,9 @@ fn text_goes_to_the_rasterizer_with_resolved_state() {
 }
 
 /// ADR-008: backends know nothing about elements. This crate's only
-/// workspace dependency is `excali-scene`, and its sources name nothing
-/// from the element model.
+/// workspace dependency is `excali-scene`, it reaches into that crate only
+/// through `excali_scene::display`, and no identifier in its code names an
+/// element (`HtmlImageElement`, the browser's image type, aside).
 #[test]
 fn no_element_knowledge() {
     let manifest = include_str!("../Cargo.toml");
@@ -572,26 +634,77 @@ fn no_element_knowledge() {
         .filter_map(|l| l.split_whitespace().next())
         .collect();
     assert_eq!(internal, ["scene"], "internal dependencies: {internal:?}");
+    const ALLOWED: [&str; 1] = ["HtmlImageElement"];
     let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
+    let mut sources = 0;
     for entry in std::fs::read_dir(dir).unwrap() {
         let path = entry.unwrap().path();
-        let text = std::fs::read_to_string(&path).unwrap();
-        for forbidden in [
-            "excali_core",
-            "excali_rough",
-            "excali_freehand",
-            "excali_text",
-            "excali_scene::rough",
-            "excali_scene::utils",
-            "ElementKind",
-            "ElementType",
-            "ExcalidrawElement",
-        ] {
-            assert!(
-                !text.contains(forbidden),
-                "{} mentions {forbidden}",
-                path.display()
-            );
+        let code = code_without_comments(&std::fs::read_to_string(&path).unwrap());
+        sources += 1;
+        for p in paths(&code) {
+            let segments: Vec<&str> = p.split("::").collect();
+            for s in &segments {
+                assert!(
+                    !s.contains("Element") || ALLOWED.contains(s),
+                    "{} names {s}",
+                    path.display()
+                );
+            }
+            if segments[0].starts_with("excali_") {
+                assert!(
+                    segments[0] == "excali_scene"
+                        && segments.get(1).is_none_or(|m| *m == "display"),
+                    "{} uses {p}",
+                    path.display()
+                );
+            }
         }
     }
+    assert!(sources > 0);
+}
+
+#[test]
+fn the_element_check_sees_code_and_skips_comments() {
+    let code = code_without_comments(
+        "use excali_core::element::TextElement; // renderElement.ts\n/* ElementKind */ let x = 1;",
+    );
+    assert_eq!(
+        paths(&code),
+        ["use", "excali_core::element::TextElement", "let", "x", "1"]
+    );
+}
+
+/// The code of a Rust source with `//` and `/* */` comments removed (doc
+/// comments cite upstream files such as `renderElement.ts`).
+fn code_without_comments(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while !rest.is_empty() {
+        let line = rest.find("//");
+        let block = rest.find("/*");
+        match (line, block) {
+            (Some(l), b) if b.is_none_or(|b| l < b) => {
+                out.push_str(&rest[..l]);
+                rest = rest[l..].find('\n').map_or("", |e| &rest[l + e..]);
+            }
+            (_, Some(b)) => {
+                out.push_str(&rest[..b]);
+                rest = rest[b..].find("*/").map_or("", |e| &rest[b + e + 2..]);
+            }
+            _ => {
+                out.push_str(rest);
+                rest = "";
+            }
+        }
+    }
+    out
+}
+
+/// Every identifier and `::` path in `code`.
+fn paths(code: &str) -> Vec<String> {
+    code.split(|c: char| !(c.is_alphanumeric() || c == '_' || c == ':'))
+        .map(|p| p.trim_matches(':'))
+        .filter(|p| !p.is_empty())
+        .map(str::to_owned)
+        .collect()
 }

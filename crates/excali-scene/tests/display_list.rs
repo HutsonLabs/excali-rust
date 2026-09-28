@@ -386,7 +386,10 @@ mod paint {
     }
 
     #[test]
-    fn colors_resolve_through_tinycolor() {
+    fn colors_resolve_as_the_canvas_parses_them() {
+        // Upstream assigns the stored string to fillStyle/strokeStyle, so the
+        // browser's CSS Color 4 parser decides (tests/css_colors.rs checks
+        // every case against Chrome).
         assert_eq!(
             Color::new("#1e1e1e").rgba(),
             Some(Rgba {
@@ -406,8 +409,13 @@ mod paint {
             })
         );
         assert_eq!(
-            Color::new("#ff000080").rgba().map(|c| (c.r, c.g, c.b)),
-            Some((255, 0, 0))
+            Color::new("#ff000080").rgba(),
+            Some(Rgba {
+                r: 255,
+                g: 0,
+                b: 0,
+                a: 128.0 / 255.0
+            })
         );
         assert_eq!(
             Color::new("transparent").rgba(),
@@ -422,14 +430,31 @@ mod paint {
             Color::new("hsl(120, 100%, 25%)").rgba().map(|c| c.g),
             Some(128)
         );
-        // Not colours: nothing is painted.
-        assert_eq!(Color::new("").rgba(), None);
-        assert_eq!(Color::new("none").rgba(), None);
-        assert_eq!(Color::new("not a colour").rgba(), None);
+        assert_eq!(
+            Color::new("rgb(255 0 0 / 50%)").rgba().map(|c| c.a),
+            Some(0.5)
+        );
+        assert_eq!(
+            Color::new("hwb(0 0% 0%)").rgba().map(|c| (c.r, c.g, c.b)),
+            Some((255, 0, 0))
+        );
+        // Assignments the canvas ignores.
+        for ignored in [
+            "",
+            "none",
+            "not a colour",
+            "blue-ish",
+            "ff0000",
+            "hsv(0,100%,100%)",
+        ] {
+            assert_eq!(Color::new(ignored).rgba(), None, "{ignored:?}");
+        }
     }
 
     #[test]
-    fn rgba_css_is_what_canvas2d_receives() {
+    fn rgba_css_is_how_a_resolved_colour_is_assigned() {
+        // excali_canvas2d::paint_from sets a base state's styles this way.
+        assert_eq!(Rgba::BLACK.css(), "rgba(0, 0, 0, 1)");
         assert_eq!(
             Rgba {
                 r: 30,
@@ -595,6 +620,8 @@ mod text_and_images {
 #[derive(Debug, PartialEq)]
 enum Call {
     Fill(Vec<PathCommand>, Rgba, FillRule, PaintState),
+    /// The colour string a fill carried, recorded next to its `Fill`.
+    FillCss(String),
     Stroke(Vec<PathCommand>, f64, Rgba, PaintState),
     Image(String, PaintState),
     Text(String, Rgba, PaintState),
@@ -606,9 +633,12 @@ enum Call {
 struct Recorder(Vec<Call>);
 
 impl Painter for Recorder {
-    fn fill(&mut self, path: &Path, color: Rgba, rule: FillRule, state: &PaintState) {
+    fn fill(&mut self, path: &Path, color: &Color, rgba: Rgba, rule: FillRule, state: &PaintState) {
         self.0
-            .push(Call::Fill(path.commands.clone(), color, rule, *state));
+            .push(Call::Fill(path.commands.clone(), rgba, rule, *state));
+        if color.as_str() != "#000" {
+            self.0.push(Call::FillCss(color.as_str().to_owned()));
+        }
     }
     fn stroke(&mut self, path: &Path, stroke: &Stroke, color: Rgba, state: &PaintState) {
         self.0.push(Call::Stroke(
@@ -642,15 +672,10 @@ fn replay(list: &DisplayList) -> Vec<Call> {
     r.0
 }
 
-const BLACK: Rgba = Rgba {
-    r: 0,
-    g: 0,
-    b: 0,
-    a: 1.0,
-};
+const BLACK: Rgba = Rgba::BLACK;
 
 fn state(transform: Transform, alpha: f64) -> PaintState {
-    PaintState { transform, alpha }
+    PaintState::new(transform, alpha)
 }
 
 mod replay {
@@ -854,41 +879,115 @@ mod replay {
         );
     }
 
+    fn unparseable_items() -> Vec<DisplayItem> {
+        vec![
+            DisplayItem::Fill {
+                path: Path::rect(0.0, 0.0, 1.0, 1.0),
+                color: Color::new(""),
+                rule: FillRule::NonZero,
+            },
+            DisplayItem::Stroke {
+                path: Path::rect(0.0, 0.0, 1.0, 1.0),
+                // restore.ts keeps a stored strokeColor such as this as is.
+                stroke: Stroke::new(Color::new("blue-ish"), 1.0),
+            },
+            DisplayItem::Text(TextRun::new(
+                "x",
+                0.0,
+                0.0,
+                Font::new(1.0, "a"),
+                Color::new("none"),
+            )),
+            DisplayItem::Stroke {
+                path: Path::rect(0.0, 0.0, 1.0, 1.0),
+                stroke: Stroke::new(Color::new("transparent"), 1.0),
+            },
+        ]
+    }
+
     #[test]
-    fn items_with_no_colour_are_not_painted() {
-        // A value that is not a colour paints nothing; "transparent" is a
-        // colour with alpha 0 and is passed on.
+    fn a_colour_the_canvas_ignores_paints_in_the_current_style() {
+        // The canvas ignores a fillStyle/strokeStyle assignment that does not
+        // parse and keeps the current style. Upstream draws each element on
+        // a fresh element canvas inside save()/restore(), so an element whose
+        // strokeColor is "blue-ish" draws black (#000000); "transparent" is a
+        // colour with alpha 0.
+        let list: DisplayList = unparseable_items().into_iter().collect();
+        let rect = Path::rect(0.0, 0.0, 1.0, 1.0).commands;
+        let root = PaintState::ROOT;
+        assert_eq!(root.fill_style, BLACK);
+        assert_eq!(root.stroke_style, BLACK);
+        assert_eq!(
+            replay(&list),
+            vec![
+                Call::Fill(rect.clone(), BLACK, FillRule::NonZero, root),
+                Call::FillCss(String::new()),
+                Call::Stroke(rect.clone(), 1.0, BLACK, root),
+                Call::Text("x".into(), BLACK, root),
+                Call::Stroke(
+                    rect,
+                    1.0,
+                    Rgba {
+                        r: 0,
+                        g: 0,
+                        b: 0,
+                        a: 0.0
+                    },
+                    root
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn the_current_style_comes_from_the_base_state_through_groups() {
+        // bootstrapCanvas leaves fillStyle = viewBackgroundColor after
+        // painting the background; a list replayed from such a state paints
+        // an ignored fill in it, and an ignored stroke in the stroke style.
+        let fill_style = Rgba {
+            r: 255,
+            g: 255,
+            b: 255,
+            a: 1.0,
+        };
+        let stroke_style = Rgba {
+            r: 0,
+            g: 0,
+            b: 255,
+            a: 0.5,
+        };
+        let base = PaintState {
+            fill_style,
+            stroke_style,
+            ..PaintState::new(Transform::scale(2.0, 2.0), 1.0)
+        };
         let mut list = DisplayList::new();
-        list.push(DisplayItem::Fill {
-            path: Path::rect(0.0, 0.0, 1.0, 1.0),
-            color: Color::new(""),
-            rule: FillRule::NonZero,
-        });
-        list.push(DisplayItem::Stroke {
-            path: Path::rect(0.0, 0.0, 1.0, 1.0),
-            stroke: Stroke::new(Color::new("bogus"), 1.0),
-        });
-        list.push(DisplayItem::Text(TextRun::new(
-            "x",
-            0.0,
-            0.0,
-            Font::new(1.0, "a"),
-            Color::new("none"),
-        )));
-        list.push(DisplayItem::Stroke {
-            path: Path::rect(0.0, 0.0, 1.0, 1.0),
-            stroke: Stroke::new(Color::new("transparent"), 1.0),
-        });
-        let calls = replay(&list);
-        assert_eq!(calls.len(), 1);
-        assert!(matches!(&calls[0], Call::Stroke(_, _, c, _) if c.a == 0.0));
+        list.push(DisplayItem::Group(Group {
+            transform: Transform::translate(1.0, 1.0),
+            opacity: 0.5,
+            clip: None,
+            items: unparseable_items(),
+        }));
+        let mut r = Recorder::default();
+        list.replay_from(&mut r, base);
+        let colours: Vec<Rgba> =
+            r.0.iter()
+                .filter_map(|c| match c {
+                    Call::Fill(_, c, _, s) | Call::Stroke(_, _, c, s) | Call::Text(_, c, s) => {
+                        assert_eq!((s.fill_style, s.stroke_style), (fill_style, stroke_style));
+                        Some(*c)
+                    }
+                    _ => None,
+                })
+                .collect();
+        assert_eq!(colours[..3], [fill_style, stroke_style, fill_style]);
+        assert_eq!(colours[3].a, 0.0);
     }
 
     #[test]
     fn a_transform_canvas_ignores_keeps_the_parent_matrix() {
         // transform(a, b, c, d, e, f) returns without effect when any
-        // argument is infinite or NaN (an element with a NaN angle draws
-        // unrotated upstream).
+        // argument is infinite or NaN; a group's matrix is one such call.
         for bad in [
             Transform::translate(f64::NAN, 0.0),
             Transform::rotate(f64::INFINITY),
@@ -923,6 +1022,47 @@ mod replay {
             };
             assert_eq!(s.transform, Transform::translate(3.0, 4.0), "{bad:?}");
         }
+    }
+
+    #[test]
+    fn a_nan_angle_keeps_the_translation_only_in_separate_groups() {
+        // Upstream positions an element with translate(cx, cy), then
+        // rotate(angle) (renderElement.ts), and the canvas drops only the
+        // rotate(NaN): the element draws translated, unrotated. The list
+        // gives that when the producer nests the rotation's group inside the
+        // translation's (Group::transform); one group holding the product
+        // loses the translation as well.
+        let fill = DisplayItem::Fill {
+            path: Path::rect(0.0, 0.0, 1.0, 1.0),
+            color: Color::new("#000"),
+            rule: FillRule::NonZero,
+        };
+        let nested = DisplayList::from_iter([DisplayItem::Group(Group {
+            transform: Transform::translate(30.0, 40.0),
+            opacity: 1.0,
+            clip: None,
+            items: vec![DisplayItem::Group(Group {
+                transform: Transform::rotate(f64::NAN),
+                opacity: 1.0,
+                clip: None,
+                items: vec![fill.clone()],
+            })],
+        })]);
+        let Call::Fill(_, _, _, s) = &replay(&nested)[0] else {
+            panic!()
+        };
+        assert_eq!(s.transform, Transform::translate(30.0, 40.0));
+
+        let combined = DisplayList::from_iter([DisplayItem::Group(Group {
+            transform: Transform::translate(30.0, 40.0).concat(&Transform::rotate(f64::NAN)),
+            opacity: 1.0,
+            clip: None,
+            items: vec![fill],
+        })]);
+        let Call::Fill(_, _, _, s) = &replay(&combined)[0] else {
+            panic!()
+        };
+        assert_eq!(s.transform, Transform::IDENTITY);
     }
 
     #[test]
@@ -978,35 +1118,78 @@ mod replay {
 }
 
 mod boundaries {
-    /// ADR-008: the display list carries no element knowledge. The module
-    /// that defines it must not name `excali_core`'s element model or the
-    /// sketch generators; only the colour parser comes from `excali-core`.
+    /// ADR-008: the display list carries no element knowledge. No
+    /// identifier in the module that defines it names an element, it uses
+    /// nothing of this crate outside `display`, and it reaches `excali-core`
+    /// only for the dark-mode filter maths (`excali_core::color`) and
+    /// JavaScript number printing (`excali_core::json`).
     #[test]
     fn display_module_does_not_know_elements() {
         let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/src/display");
         let mut sources = 0;
         for entry in std::fs::read_dir(dir).expect("src/display exists") {
             let path = entry.unwrap().path();
-            let text = std::fs::read_to_string(&path).unwrap();
+            let code = code_without_comments(&std::fs::read_to_string(&path).unwrap());
             sources += 1;
-            for forbidden in [
-                "excali_core::element",
-                "excali_core::document",
-                "excali_rough",
-                "excali_freehand",
-                "crate::rough",
-                "crate::utils",
-                "ElementKind",
-                "ElementType",
-                "ExcalidrawElement",
-            ] {
-                assert!(
-                    !text.contains(forbidden),
-                    "{} mentions {forbidden}",
-                    path.display()
-                );
+            for p in paths(&code) {
+                let segments: Vec<&str> = p.split("::").collect();
+                for s in &segments {
+                    assert!(!s.contains("Element"), "{} names {s}", path.display());
+                }
+                let allowed = match segments[0] {
+                    "excali_core" => matches!(segments.get(1), Some(&"color" | &"json")),
+                    "crate" => segments.get(1).is_none_or(|m| *m == "display"),
+                    s => !s.starts_with("excali_"),
+                };
+                assert!(allowed, "{} uses {p}", path.display());
             }
         }
         assert!(sources > 1);
+    }
+
+    #[test]
+    fn the_element_check_sees_code_and_skips_comments() {
+        let code = code_without_comments(
+            "use excali_core::element::TextElement; // renderElement.ts\n/* ElementKind */ let x = 1;",
+        );
+        assert_eq!(
+            paths(&code),
+            ["use", "excali_core::element::TextElement", "let", "x", "1"]
+        );
+    }
+
+    /// The code of a Rust source with `//` and `/* */` comments removed (doc
+    /// comments cite upstream files such as `renderElement.ts`).
+    fn code_without_comments(text: &str) -> String {
+        let mut out = String::with_capacity(text.len());
+        let mut rest = text;
+        while !rest.is_empty() {
+            let line = rest.find("//");
+            let block = rest.find("/*");
+            match (line, block) {
+                (Some(l), b) if b.is_none_or(|b| l < b) => {
+                    out.push_str(&rest[..l]);
+                    rest = rest[l..].find('\n').map_or("", |e| &rest[l + e..]);
+                }
+                (_, Some(b)) => {
+                    out.push_str(&rest[..b]);
+                    rest = rest[b..].find("*/").map_or("", |e| &rest[b + e + 2..]);
+                }
+                _ => {
+                    out.push_str(rest);
+                    rest = "";
+                }
+            }
+        }
+        out
+    }
+
+    /// Every identifier and `::` path in `code`.
+    fn paths(code: &str) -> Vec<String> {
+        code.split(|c: char| !(c.is_alphanumeric() || c == '_' || c == ':'))
+            .map(|p| p.trim_matches(':'))
+            .filter(|p| !p.is_empty())
+            .map(str::to_owned)
+            .collect()
     }
 }
