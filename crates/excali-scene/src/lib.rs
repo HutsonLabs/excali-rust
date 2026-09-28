@@ -5,5 +5,7 @@
 //! Targets: native, wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-core`, `excali-freehand`, `excali-rough`, `excali-text`.
 
+pub mod bounds;
 pub mod rough_options;
+pub mod shape;
 pub mod utils;

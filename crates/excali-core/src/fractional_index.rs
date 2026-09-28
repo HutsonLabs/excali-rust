@@ -21,7 +21,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 use crate::element::{BoundElementType, Element, ElementKind};
-use crate::json::js_number;
+use crate::json::number_to_string;
 use crate::order_key::{
     compare_js_strings, generate_n_keys_between, validate_order_key, OrderKeyError,
 };
@@ -89,17 +89,6 @@ fn truthy(index: Option<&str>) -> Option<&str> {
 
 fn js_lt(a: &str, b: &str) -> bool {
     compare_js_strings(a, b) == Ordering::Less
-}
-
-/// `Number.prototype.toString` for any f64.
-fn number_to_string(x: f64) -> String {
-    if x.is_nan() {
-        "NaN".to_owned()
-    } else if x.is_infinite() {
-        if x > 0.0 { "Infinity" } else { "-Infinity" }.to_owned()
-    } else {
-        js_number(x)
-    }
 }
 
 /// JS whitespace and line terminators, as `StringToNumber` trims them.

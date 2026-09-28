@@ -83,6 +83,57 @@ impl RoughOptions {
         }
         keys
     }
+
+    /// rough.js `_o(options)`: `Object.assign({}, defaults, options)`, these
+    /// options over the generator's `defaults`. A key set to `undefined`
+    /// (`strokeLineDash` for solid strokes, `fill` for a transparent
+    /// background) replaces the default with `undefined` too.
+    ///
+    /// rough.js reads the seed through `Math.imul`, so it is taken as a
+    /// 32-bit integer here (ECMA-262 `ToInt32`).
+    pub fn to_rough(&self, defaults: &excali_rough::Options) -> excali_rough::Options {
+        let mut o = defaults.clone();
+        o.seed = to_int32(self.seed);
+        o.stroke_line_dash = self.stroke_line_dash.map(|dash| dash.to_vec());
+        o.disable_multi_stroke = self.disable_multi_stroke;
+        o.stroke_width = self.stroke_width;
+        o.fill_weight = self.fill_weight;
+        o.hachure_gap = self.hachure_gap;
+        o.roughness = self.roughness;
+        o.stroke = self.stroke.clone();
+        o.preserve_vertices = self.preserve_vertices;
+        if let Some(style) = self.fill_style {
+            o.fill_style = fill_style_name(style).to_owned();
+            o.fill = self.fill.clone();
+        }
+        if let Some(curve_fitting) = self.curve_fitting {
+            o.curve_fitting = curve_fitting;
+        }
+        o
+    }
+}
+
+/// The `FillStyle` string rough.js receives (`types.ts:19`).
+fn fill_style_name(style: FillStyle) -> &'static str {
+    match style {
+        FillStyle::Hachure => "hachure",
+        FillStyle::CrossHatch => "cross-hatch",
+        FillStyle::Solid => "solid",
+        FillStyle::Zigzag => "zigzag",
+    }
+}
+
+/// ECMA-262 `ToInt32` (section 7.1.6): truncate, wrap modulo 2^32 into
+/// the signed range; NaN and infinities are 0.
+fn to_int32(x: f64) -> i32 {
+    if !x.is_finite() {
+        return 0;
+    }
+    const TWO_32: f64 = 4_294_967_296.0;
+    let m = x.trunc().rem_euclid(TWO_32);
+    let wrapped = if m >= TWO_32 / 2.0 { m - TWO_32 } else { m };
+    // `wrapped` is an integer in [-2^31, 2^31), so the cast is exact.
+    wrapped as i32
 }
 
 /// `generateRoughOptions` throws `Unimplemented type <type>` for element

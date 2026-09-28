@@ -21,8 +21,8 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use excali_core::element::{
-    Element, ElementBase, ElementKind, ElementType, FillStyle, LineFields, LinearFields,
-    Roundness, RoundnessType,
+    Element, ElementBase, ElementKind, ElementType, FillStyle, LineFields, LinearFields, Roundness,
+    RoundnessType,
 };
 use excali_rough::{Drawable, Op, Options, RoughGenerator, Shape};
 use excali_scene::bounds::get_diamond_points;
@@ -139,14 +139,8 @@ fn diamond_points_add_one_to_the_floored_halves() {
         d(101.0, 77.0),
         [51.0, 0.0, 101.0, 39.0, 51.0, 77.0, 0.0, 39.0]
     );
-    assert_eq!(
-        d(0.0, 0.0),
-        [1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0]
-    );
-    assert_eq!(
-        d(1.5, 3.9),
-        [1.0, 0.0, 1.5, 2.0, 1.0, 3.9, 0.0, 2.0]
-    );
+    assert_eq!(d(0.0, 0.0), [1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0]);
+    assert_eq!(d(1.5, 3.9), [1.0, 0.0, 1.5, 2.0, 1.0, 3.9, 0.0, 2.0]);
     // Math.floor rounds toward negative infinity
     assert_eq!(
         d(-5.0, -3.0),
@@ -249,11 +243,19 @@ fn iframes_get_default_colours() {
     assert_eq!(m.base.fill_style, el.base.fill_style);
 
     // only the transparent colour is replaced
-    let el = with_colors(element(ElementKind::Iframe, 200.0, 120.0), "#e03131", "transparent");
+    let el = with_colors(
+        element(ElementKind::Iframe, 200.0, 120.0),
+        "#e03131",
+        "transparent",
+    );
     let m = modify_iframe_like_for_rough_options(&el, true, None);
     assert_eq!(m.base.stroke_color, "#e03131");
     assert_eq!(m.base.background_color, "#f4f4f6");
-    let el = with_colors(element(ElementKind::Iframe, 200.0, 120.0), "transparent", "#a5d8ff");
+    let el = with_colors(
+        element(ElementKind::Iframe, 200.0, 120.0),
+        "transparent",
+        "#a5d8ff",
+    );
     let m = modify_iframe_like_for_rough_options(&el, true, None);
     assert_eq!(m.base.stroke_color, "#000000");
     assert_eq!(m.base.background_color, "#a5d8ff");
