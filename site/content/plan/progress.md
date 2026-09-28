@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 09:05 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 09:14 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**135 issues** · 27 closed (20%) · 0 in progress · 0 blocked · 107 open
+**135 issues** · 28 closed (21%) · 0 in progress · 0 blocked · 106 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -31,7 +31,7 @@ Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo work
 
 ## ex-e1 · Phase 1: Core model and file format (excali-core)
 
-<span class="status open">open</span> 11/18 children closed
+<span class="status open">open</span> 12/18 children closed
 
 Element types, serde with unknown-field preservation, restore/migration rules, AppState, fractional indexing, library formats, payload codecs, conformance corpus.
 
@@ -44,17 +44,17 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 | `ex-105` | Restore: scene-level repairs (ids, indices, frames, bound text, bindings, sticky notes) | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-106` | AppState: exported keys, defaults and restoreAppState legacy handling | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-107` | Fractional indexing port (base-62 keys, generateNKeysBetween, syncInvalidIndices) | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-108` | Library formats: v1 `library` and v2 `libraryItems`, restoreLibraryItems, merge | task | P0 | <span class="status open">open</span> | yes |  |
-| `ex-109` | Library import model: URL allow-list and #addLibrary token parsing | task | P1 | <span class="status open">open</span> |  | `ex-108` |
+| `ex-108` | Library formats: v1 `library` and v2 `libraryItems`, restoreLibraryItems, merge | task | P0 | <span class="status closed">closed</span> |  |  |
+| `ex-109` | Library import model: URL allow-list and #addLibrary token parsing | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-110` | Payload codec: byte-string encoding and zlib compression (encode/decode) | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-111` | PNG tEXt scene payload read/write | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-112` | SVG metadata scene payload read/write | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-113` | Clipboard JSON format (excalidraw/clipboard) parse and emit | task | P2 | <span class="status closed">closed</span> |  |  |
-| `ex-114` | Corpus test: 232 catalogue libraries round-trip | task | P0 | <span class="status open">open</span> |  | `ex-108` |
-| `ex-115` | JSON Schema generation for .excalidraw and .excalidrawlib (schemars) | task | P3 | <span class="status open">open</span> |  | `ex-108` |
+| `ex-114` | Corpus test: 232 catalogue libraries round-trip | task | P0 | <span class="status open">open</span> | yes |  |
+| `ex-115` | JSON Schema generation for .excalidraw and .excalidrawlib (schemars) | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-116` | Restore: legacy arrow binding migration (bindings without mode) through RestoreEnv::migrate_legacy_binding | task | P0 | <span class="status open">open</span> |  | `ex-507`, `ex-510` |
-| `ex-117` | Typed element model: keep field values of a type the model has no form for (string strokeWidth) as upstream's restore does | task | P0 | <span class="status open">open</span> |  | `ex-108` |
-| `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-108`, `ex-109`, `ex-114`, `ex-115`, `ex-116`, `ex-117` |
+| `ex-117` | Typed element model: keep field values of a type the model has no form for (string strokeWidth) as upstream's restore does | task | P0 | <span class="status open">open</span> | yes |  |
+| `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-109`, `ex-114`, `ex-115`, `ex-116`, `ex-117` |
 
 ## ex-e2 · Phase 2: Geometry and sketch renderer
 
@@ -155,7 +155,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-523` | Colour picker: top picks, palette 5x3, shades, hex input, eyedropper, keyboard map | task | P1 | <span class="status open">open</span> |  | `ex-516` |
 | `ex-524` | Font picker: three top picks, scene/available groups, deprecated badge, search | task | P2 | <span class="status open">open</span> |  | `ex-301`, `ex-516` |
 | `ex-525` | Context menus (canvas and element) generated from the actions registry | task | P1 | <span class="status open">open</span> |  | `ex-514`, `ex-516` |
-| `ex-526` | Library sidebar: tabs, header menu, personal/excalidraw sections, drag to canvas, add to library | task | P1 | <span class="status open">open</span> |  | `ex-108`, `ex-516` |
+| `ex-526` | Library sidebar: tabs, header menu, personal/excalidraw sections, drag to canvas, add to library | task | P1 | <span class="status open">open</span> |  | `ex-516` |
 | `ex-527` | Command palette with category order and item lists | task | P2 | <span class="status open">open</span> |  | `ex-514`, `ex-516` |
 | `ex-528` | Hints, tooltips, cursor hints, welcome screen | task | P2 | <span class="status open">open</span> |  | `ex-516` |
 | `ex-529` | Stats panel (general and element properties) | task | P3 | <span class="status open">open</span> |  | `ex-516` |

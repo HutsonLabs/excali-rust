@@ -74,7 +74,7 @@ pub struct LegacyBindingRequest<'a> {
 /// A JS `Map` key a JSON value can be (SameValueZero). Objects and arrays
 /// are keys by identity, so no id read from another element finds one.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(super) enum MapKey {
+pub(crate) enum MapKey {
     Undefined,
     Null,
     Bool(bool),
@@ -83,7 +83,7 @@ pub(super) enum MapKey {
 }
 
 impl MapKey {
-    pub(super) fn of(value: Option<&Value>) -> Option<MapKey> {
+    pub(crate) fn of(value: Option<&Value>) -> Option<MapKey> {
         Some(match value {
             None => MapKey::Undefined,
             Some(Value::Null) => MapKey::Null,

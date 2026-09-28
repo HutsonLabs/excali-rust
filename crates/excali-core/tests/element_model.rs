@@ -1419,3 +1419,36 @@ fn linear_accessors_reach_points_of_lines_arrows_and_freedraw() {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Keys restore leaves out (restore.ts:645-650, 697)
+
+#[test]
+fn absent_elbowed_and_polygon_read_as_false_and_stay_absent() {
+    let linear = json!({"points": [[0, 0], [10, 0]], "startBinding": null, "endBinding": null,
+        "startArrowhead": null, "endArrowhead": null});
+    for ty in ["arrow", "line"] {
+        let Value::Object(raw) = with(base_json("x", ty), linear.clone()) else {
+            unreachable!()
+        };
+        let element = Element::from_map(raw.clone()).expect("reads");
+        match &element.kind {
+            ElementKind::Arrow(arrow) => assert!(!arrow.elbowed),
+            ElementKind::Line(line) => assert!(!line.polygon),
+            other => panic!("{other:?}"),
+        }
+        let back = element.to_map();
+        assert!(back.keys().eq(raw.keys()), "{ty}");
+        assert!(!back.contains_key("elbowed") && !back.contains_key("polygon"));
+
+        // Changed, the field is written.
+        let mut changed = element.clone();
+        match &mut changed.kind {
+            ElementKind::Arrow(arrow) => arrow.elbowed = true,
+            ElementKind::Line(line) => line.polygon = true,
+            _ => unreachable!(),
+        }
+        let key = if ty == "arrow" { "elbowed" } else { "polygon" };
+        assert_eq!(changed.to_map()[key], json!(true));
+    }
+}

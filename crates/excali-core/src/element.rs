@@ -807,6 +807,11 @@ impl LinearFields {
 pub struct LineFields {
     #[serde(flatten)]
     pub linear: LinearFields,
+    /// `false` when absent: restore leaves it out for a legacy `draw`
+    /// element (`restore.ts:645-650` sets it only when the type read was
+    /// `line`), and upstream reads `undefined` as not closed. An absent key
+    /// is written back absent until the field changes.
+    #[serde(default)]
     pub polygon: bool,
 }
 
@@ -830,6 +835,12 @@ pub struct FixedSegment {
 pub struct ArrowFields {
     #[serde(flatten)]
     pub linear: LinearFields,
+    /// `false` when absent: files from before elbow arrows have no key, and
+    /// restore copies `element.elbowed` as it is (`restore.ts:697`), so the
+    /// restored arrow has none either; upstream reads `undefined` as not
+    /// elbowed. An absent key is written back absent until the field
+    /// changes.
+    #[serde(default)]
     pub elbowed: bool,
     #[serde(
         default,
