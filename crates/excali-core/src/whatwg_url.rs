@@ -596,16 +596,38 @@ mod tests {
         );
     }
 
-    /// The known difference (see the module documentation): Node 26 gives
-    /// the hostname `xn--a_xn--localhostxn--ls8h` for both; the port only
-    /// takes the one that is ASCII as written.
+    /// The known difference (see the module documentation): a host with a
+    /// code point from Unicode 14 to 17 that ada's validity checks let
+    /// through and the crate's UTS 46 rejects. Each `None` here is a URL
+    /// Node 26.10 accepts, with the hostname in the comment.
     #[test]
     fn non_ascii_hosts_the_crate_rejects_are_not_urls() {
+        // A combining mark starting a label, written directly.
+        assert_eq!(parts("https://\u{1AD3}/"), None); // xn--trf
+        assert_eq!(parts("file://\u{1AD3}/"), None); // xn--trf
+        assert_eq!(parts("https://\u{0C3C}/"), None); // xn--3pc
+        assert_eq!(parts("https://\u{1E6E3}/"), None); // xn--uw5h
+        assert_eq!(parts("https://\u{1AD3}.excalidraw.com/"), None); // xn--trf.excalidraw.com
+        // A right-to-left letter after a left-to-right one.
+        assert_eq!(parts("https://a\u{10D50}/"), None); // xn--a-ho6i
+        assert_eq!(parts("https://a\u{0870}/"), None); // xn--a-fld
+        // The same through an `xn--` label: the soft hyphen is dropped by
+        // the mapping, and the Punycode decodes to U+1AD3 followed by ASCII.
+        assert_eq!(parts("ws:\u{ad}XN--A_xn--LOCALHOSTxn--ls8h"), None); // xn--a_xn--localhostxn--ls8h
+
+        // Controls both accept: the ASCII form of each host, a Unicode 16
+        // letter that is left-to-right, a combining mark after a letter,
+        // and an older mark ada rejects too.
+        assert_eq!(parts("https://xn--trf/"), some("xn--trf", "/"));
+        assert_eq!(parts("https://xn--a-ho6i/"), some("xn--a-ho6i", "/"));
         assert_eq!(
             parts("https://xn--a_xn--localhostxn--ls8h/"),
             some("xn--a_xn--localhostxn--ls8h", "/")
         );
-        assert_eq!(parts("ws:\u{ad}XN--A_xn--LOCALHOSTxn--ls8h"), None);
+        assert_eq!(parts("https://a\u{1C8A}/"), some("xn--a-hzl", "/"));
+        assert_eq!(parts("https://a\u{1AD3}/"), some("xn--a-e9k", "/"));
+        assert_eq!(parts("https://\u{0301}/"), None);
+        assert_eq!(parts("https://a\u{05D0}/"), None);
         assert_eq!(parts("https://xn--ls8h\u{ad}/"), some("xn--ls8h", "/"));
         assert_eq!(parts("https://xn--zz\u{ad}/"), None);
     }
