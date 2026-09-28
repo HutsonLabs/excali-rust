@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 18:05 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 18:21 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**138 issues** · 55 closed (40%) · 0 in progress · 0 blocked · 82 open
+**138 issues** · 56 closed (41%) · 0 in progress · 0 blocked · 81 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -89,7 +89,7 @@ excali-math, excali-rough (rough.js 4.6.4 semantics), excali-freehand, the displ
 
 ## ex-e3 · Phase 3: Text and fonts (excali-text)
 
-<span class="status open">open</span> 5/9 children closed
+<span class="status open">open</span> 6/9 children closed
 
 Font metadata, measurement from font files, wrapping port, bound-text sizing, lazy font assets with verified licences.
 
@@ -98,12 +98,12 @@ Font metadata, measurement from font files, wrapping port, bound-text sizing, la
 | `ex-301` | Font metadata table and vertical offset formula | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-302` | Advance-width measurement from font files (ttf-parser, rustybuzz where shaping matters) | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-303` | Wrapping port (textWrapping.ts) with upstream tests | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-304` | Bound-text sizing: padding 5, ellipse and diamond insets, arrow label width | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-304` | Bound-text sizing: padding 5, ellipse and diamond insets, arrow label width | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-305` | Text element sizing on edit: autoResize, originalText/text, anchor growth by align | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-306` | Verify and record the licence of every font family before vendoring | decision | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-307` | Font asset pipeline: range-split woff2 manifest and lazy loading | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-308` | Corpus test: stored vs measured text widths across fixtures and libraries | task | P1 | <span class="status open">open</span> | yes |  |
-| `ex-m3` | M3: text measurement and wrapping parity | milestone | P2 | <span class="status open">open</span> |  | `ex-304`, `ex-305`, `ex-308` |
+| `ex-m3` | M3: text measurement and wrapping parity | milestone | P2 | <span class="status open">open</span> |  | `ex-305`, `ex-308` |
 
 ## ex-e4 · Phase 4: Headless rendering and export
 
@@ -194,7 +194,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 |---|---|---|---|---|---|---|
 | `ex-701` | Compact styles panel and tablet form factor | task | P1 | <span class="status open">open</span> |  | `ex-519` |
 | `ex-702` | Phone layout: mobile menu, bottom bar, mobile toolbar order | task | P1 | <span class="status open">open</span> |  | `ex-701` |
-| `ex-703` | Sticky notes: element, rendering (shadow, edge, footer), label fitting | task | P2 | <span class="status open">open</span> |  | `ex-304`, `ex-402` |
+| `ex-703` | Sticky notes: element, rendering (shadow, edge, footer), label fitting | task | P2 | <span class="status open">open</span> |  | `ex-402` |
 | `ex-704` | Bucket fill tool | task | P2 | <span class="status open">open</span> |  | `ex-507` |
 | `ex-705` | Lasso selection | task | P2 | <span class="status open">open</span> |  | `ex-507` |
 | `ex-706` | Autoshape (draw-shape) recognition | task | P3 | <span class="status open">open</span> | yes |  |

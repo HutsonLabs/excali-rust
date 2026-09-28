@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-304 · Bound-text sizing: padding 5, ellipse and diamond insets, arrow label width
+
+`excali-text` sizes text bound to a container the way upstream's textElement.ts does. That covers the padding of 5, the insets for ellipses and diamonds, the maximum width and height of the text, the container size that fits a given text, and the text's position inside its container. `refreshTextDimensions` and `getAdjustedDimensions` are ported, so restoring a scene through `TextEnv` refits container text as upstream does. Arrow labels get their box through `ArrowLabelGeometry`, which excali-editor will implement under ex-511. PR: [#63](https://github.com/HutsonLabs/excali-rust/pull/63).
+
 ## 2026-09-28 · ex-406 · SVG writer: document structure (source comment, metadata, defs clipPaths, font style block, background rect)
 
 `excali_svg::export_to_svg` writes the SVG document that upstream's `exportToSvg` builds before the elements. That covers the source comment, the embedded scene payload, a clip path per frame, frame name labels, the `@font-face` style block and the dark-mode background. The output is serialized the way `outerHTML` does, and path data uses two decimals. It matches upstream's output under jsdom for 29 scenes. When a font file is not available, a face falls back to upstream's esm.sh asset url under `dist/prod/fonts/`. PR: [#62](https://github.com/HutsonLabs/excali-rust/pull/62).
