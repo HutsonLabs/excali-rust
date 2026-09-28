@@ -44,6 +44,13 @@ pub struct Element {
 
 `ElementKind` is chosen by the JSON `type` string. Unknown `type` values are dropped on restore, as upstream does; `selection` is dropped; legacy `draw` becomes `line`.
 
+Key order and unknown keys follow upstream's object semantics (`excali_core::document::Document`, `excali_core::element::Element`):
+
+- A file read and written back without edits gives what `JSON.stringify(JSON.parse(text), null, 2)` gives. Unknown keys stay where they were, at the top level, in elements, in `appState` and in `files`. Upstream keeps them too: restore spreads the original element first (`restore.ts:500-508`).
+- A key added by an edit goes at the end of its object, the way a JS property assignment in `mutateElement` (`mutateElement.ts:80-100`) adds it.
+- A known value the typed model reads in a normalised form (`customData: null`, an unknown key inside `boundElements`) is written back as it was read until the field changes.
+- An element built by the port has its keys in the order of upstream's constructors: `id`, `type`, the base fields, `customData`, then the per-type fields (`newElement.ts:87-692`). A document built by the port uses `serializeAsJSON`'s order.
+
 ### Restore rules (must-implement)
 
 | Rule | Upstream |

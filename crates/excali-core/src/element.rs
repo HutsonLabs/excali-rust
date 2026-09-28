@@ -18,8 +18,9 @@
 //! optional upstream (`customData?`, text `labelPosition?`, the elbow-arrow
 //! keys that plain arrows lack) is an `Option` that is skipped when `None`;
 //! where such a key may also be `null` it is an `Option<Option<T>>`
-//! (`None` absent, `Some(None)` null). The whole-element codec that keeps
-//! unknown keys and upstream's key order is built on these types.
+//! (`None` absent, `Some(None)` null). [`Element`]'s own serde, the
+//! whole-element codec, is built on these types and keeps unknown keys and
+//! upstream's key order.
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
@@ -28,6 +29,7 @@ use std::fmt;
 use crate::constants::{
     COLOR_TRANSPARENT, DEFAULT_ELEMENT_PROPS, DEFAULT_FONT_SIZE, DEFAULT_STROKE_STREAMLINE,
 };
+use crate::layout::{Canonical, Layout};
 
 // ---------------------------------------------------------------------------
 // Scalars and ids
@@ -1012,11 +1014,36 @@ pub enum ArrowSubtype {
 
 /// An element: shared fields, per-type fields, and keys the model does not
 /// know, which are written back verbatim.
-#[derive(Debug, Clone, PartialEq)]
+///
+/// Serde writes an element as one JSON object the way upstream would write
+/// the same JS object with `JSON.stringify`:
+///
+/// - an element built in Rust has its keys in the order upstream's
+///   constructors create them (`newElement.ts:87-692`: `id`, `type`, the
+///   base fields, `customData`, then the per-type fields), followed by any
+///   [`extra`](Element::extra) keys in insertion order;
+/// - an element read from JSON keeps the order it was read in, unknown keys
+///   included, wherever they were; a key added later is appended, as a JS
+///   property assignment appends it (`mutateElement.ts:80-100`);
+/// - a known value the typed model reads in a normalised form (for example
+///   `customData: null`, or an unknown key inside `boundElements`) is
+///   written back as read until the field is changed.
+///
+/// An `extra` key the element's type models (say `"x"`) is not written:
+/// the typed field wins. Equality compares content, not key order.
+#[derive(Debug, Clone)]
 pub struct Element {
     pub base: ElementBase,
     pub kind: ElementKind,
+    /// Keys the element's type does not model, as read.
     pub extra: Map<String, Value>,
+    layout: Layout,
+}
+
+impl PartialEq for Element {
+    fn eq(&self, other: &Element) -> bool {
+        self.base == other.base && self.kind == other.kind && self.extra == other.extra
+    }
 }
 
 impl Element {
@@ -1026,7 +1053,35 @@ impl Element {
             base,
             kind,
             extra: Map::new(),
+            layout: Layout::default(),
         }
+    }
+
+    /// Read an element from a JSON object: typed fields, unknown keys and
+    /// the object's layout. Fails if the `type` is unknown or a field the
+    /// type requires is missing or has the wrong type; restoring untyped
+    /// input (defaults, legacy fields) is the restore module's job.
+    pub fn from_map(raw: Map<String, Value>) -> Result<Element, serde_json::Error> {
+        let raw = Value::Object(raw);
+        let base = ElementBase::deserialize(&raw)?;
+        let kind = ElementKind::deserialize(&raw)?;
+        let typed = typed_map(&base, &kind);
+        let empty = Map::new();
+        let raw = raw.as_object().unwrap_or(&empty);
+        let (layout, extra) = Layout::read(raw, &typed, canonical_keys(kind.element_type()));
+        Ok(Element {
+            base,
+            kind,
+            extra,
+            layout,
+        })
+    }
+
+    /// The JSON object serde writes for this element.
+    pub fn to_map(&self) -> Map<String, Value> {
+        let typed = typed_map(&self.base, &self.kind);
+        self.layout
+            .write(&typed, &self.extra, canonical_keys(self.element_type()))
     }
 
     /// An image element as `newImageElement` builds it
@@ -1094,6 +1149,139 @@ impl Element {
 }
 
 const GENERATION_DATA_KEY: &str = "generationData";
+
+impl Serialize for Element {
+    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        self.to_map().serialize(s)
+    }
+}
+
+impl<'de> Deserialize<'de> for Element {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Element, D::Error> {
+        let raw = Map::<String, Value>::deserialize(d)?;
+        Element::from_map(raw).map_err(serde::de::Error::custom)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Key order
+
+/// The keys `_newElementBase` creates, in its order
+/// (`newElement.ts:141-169`). `customData` is created even when undefined
+/// (which `JSON.stringify` skips), so when set it sits here, before the
+/// per-type keys.
+const BASE_KEYS: &[&str] = &[
+    "id",
+    "type",
+    "x",
+    "y",
+    "width",
+    "height",
+    "angle",
+    "strokeColor",
+    "backgroundColor",
+    "fillStyle",
+    "strokeWidth",
+    "strokeStyle",
+    "roughness",
+    "opacity",
+    "groupIds",
+    "frameId",
+    "index",
+    "roundness",
+    "seed",
+    "version",
+    "versionNonce",
+    "isDeleted",
+    "boundElements",
+    "updated",
+    "created",
+    "link",
+    "locked",
+    "customData",
+];
+
+/// `newStickyNoteElement`, `newElement.ts:230-243`.
+const STICKY_NOTE_KEYS: &[&str] = &["baseHeight"];
+/// `newImageElement`, `newElement.ts:682-691`.
+const IMAGE_KEYS: &[&str] = &["status", "fileId", "scale", "crop"];
+/// `newFrameElement` and `newMagicFrameElement`, `newElement.ts:263-295`.
+const FRAME_KEYS: &[&str] = &["name"];
+/// `newTextElement`, `newElement.ts:366-383` (`x`, `y`, `width` and
+/// `height` are reassigned there but keep their base positions).
+const TEXT_KEYS: &[&str] = &[
+    "text",
+    "fontSize",
+    "baseFontSize",
+    "fontFamily",
+    "textAlign",
+    "verticalAlign",
+    "containerId",
+    "originalText",
+    "autoResize",
+    "lineHeight",
+    "labelPosition",
+];
+/// `newLinearElement`, `newElement.ts:611-626`.
+const LINE_KEYS: &[&str] = &[
+    "points",
+    "startBinding",
+    "endBinding",
+    "startArrowhead",
+    "endArrowhead",
+    "polygon",
+];
+/// `newArrowElement`, `newElement.ts:645-670`.
+const ARROW_KEYS: &[&str] = &[
+    "points",
+    "startBinding",
+    "endBinding",
+    "startArrowhead",
+    "endArrowhead",
+    "elbowed",
+    "fixedSegments",
+    "startIsSpecial",
+    "endIsSpecial",
+];
+/// `newFreeDrawElement`, `newElement.ts:592-601`.
+const FREEDRAW_KEYS: &[&str] = &["points", "pressures", "simulatePressure", "strokeOptions"];
+
+/// Every key an element of this type may have, in the order upstream's
+/// constructor creates them.
+fn canonical_keys(ty: ElementType) -> Canonical<'static> {
+    match ty {
+        ElementType::Selection
+        | ElementType::Rectangle
+        | ElementType::Diamond
+        | ElementType::Ellipse
+        | ElementType::Embeddable
+        | ElementType::Iframe => &[BASE_KEYS],
+        ElementType::StickyNote => &[BASE_KEYS, STICKY_NOTE_KEYS],
+        ElementType::Image => &[BASE_KEYS, IMAGE_KEYS],
+        ElementType::Frame | ElementType::MagicFrame => &[BASE_KEYS, FRAME_KEYS],
+        ElementType::Text => &[BASE_KEYS, TEXT_KEYS],
+        ElementType::Line => &[BASE_KEYS, LINE_KEYS],
+        ElementType::Arrow => &[BASE_KEYS, ARROW_KEYS],
+        ElementType::Freedraw => &[BASE_KEYS, FREEDRAW_KEYS],
+    }
+}
+
+/// The keys and values the typed model writes for an element.
+fn typed_map(base: &ElementBase, kind: &ElementKind) -> Map<String, Value> {
+    let mut map = object_of(base);
+    map.extend(object_of(kind));
+    map
+}
+
+/// A struct as a JSON object. Cannot fail for the model's types: every map
+/// key is a string, and a non-finite number becomes `null`, as
+/// `JSON.stringify` writes it.
+pub(crate) fn object_of<T: Serialize>(value: &T) -> Map<String, Value> {
+    match serde_json::to_value(value) {
+        Ok(Value::Object(map)) => map,
+        _ => Map::new(),
+    }
+}
 
 // ---------------------------------------------------------------------------
 // serde helpers

@@ -25,7 +25,7 @@
 //! them on output. The sentinel never escapes this module. [`to_string_pretty`]
 //! does not decode sentinels: its input is an ordinary [`serde_json::Value`].
 //!
-//! The typed `Document` codec builds on this module.
+//! The typed codec ([`crate::document::Document`]) builds on this module.
 
 use serde::Serialize;
 use serde_json::ser::{Formatter, PrettyFormatter};
@@ -47,10 +47,42 @@ pub fn to_string_pretty(value: &Value) -> String {
 /// A file that upstream wrote therefore comes back byte-identical (minus any
 /// trailing newline an editor added), key order included.
 pub fn round_trip(text: &str) -> Result<String, Error> {
+    Ok(write(&parse(text)?, true))
+}
+
+/// `JSON.parse(text)` as a [`Value`]: keys in JS property order, lone
+/// surrogates carried as sentinel pairs (see the module docs). Only
+/// [`write_parsed`] turns the sentinels back into escapes.
+pub(crate) fn parse(text: &str) -> Result<Value, Error> {
     let encoded = encode_lone_surrogates(text);
     let mut value: Value = serde_json::from_str(&encoded)?;
     order_keys_like_js(&mut value);
-    Ok(write(&value, true))
+    Ok(value)
+}
+
+/// [`to_string_pretty`] for a value that holds strings from [`parse`]:
+/// sentinel pairs are written back as the lone surrogate escapes they stand
+/// for.
+pub(crate) fn write_parsed(value: &Value) -> String {
+    write(value, true)
+}
+
+/// True when [`to_string_pretty`] writes `a` and `b` identically: numbers
+/// compared as the f64 `JSON.parse` gives, object keys compared in order.
+pub(crate) fn same(a: &Value, b: &Value) -> bool {
+    match (a, b) {
+        (Value::Number(x), Value::Number(y)) => x.as_f64() == y.as_f64(),
+        (Value::Array(x), Value::Array(y)) => {
+            x.len() == y.len() && x.iter().zip(y).all(|(a, b)| same(a, b))
+        }
+        (Value::Object(x), Value::Object(y)) => {
+            x.len() == y.len()
+                && x.iter()
+                    .zip(y)
+                    .all(|((ka, va), (kb, vb))| ka == kb && same(va, vb))
+        }
+        _ => a == b,
+    }
 }
 
 fn write(value: &Value, decode_sentinels: bool) -> String {
@@ -218,14 +250,20 @@ impl Formatter for JsFormatter {
                 w.write_all(c.encode_utf8(&mut buf).as_bytes())?;
                 continue;
             }
+            let mut buf = [0; 4];
             match chars.next() {
                 Some(SENTINEL) | None => {
-                    let mut buf = [0; 4];
                     w.write_all(SENTINEL.encode_utf8(&mut buf).as_bytes())?;
                 }
-                Some(tag) => {
+                Some(tag) if SURROGATE_TAGS.contains(&u32::from(tag)) => {
                     let unit = u32::from(tag) - SURROGATE_TAG_BASE + 0xD800;
                     write!(w, "\\u{unit:04x}")?;
+                }
+                // Not a pair `parse` made: a string built in Rust that holds
+                // U+FDD0. Written as is.
+                Some(other) => {
+                    w.write_all(SENTINEL.encode_utf8(&mut buf).as_bytes())?;
+                    w.write_all(other.encode_utf8(&mut buf).as_bytes())?;
                 }
             }
         }
@@ -279,6 +317,8 @@ const SENTINEL_UTF8: &[u8] = "\u{FDD0}".as_bytes();
 /// Second character of a sentinel pair is this plus (unit - 0xD800), so the
 /// 2048 surrogate code units map onto U+E000..=U+E7FF.
 const SURROGATE_TAG_BASE: u32 = 0xE000;
+/// The second characters of sentinel pairs that stand for a surrogate.
+const SURROGATE_TAGS: std::ops::RangeInclusive<u32> = 0xE000..=0xE7FF;
 
 fn hex4(bytes: &[u8]) -> Option<u32> {
     let s = std::str::from_utf8(bytes.get(..4)?).ok()?;
