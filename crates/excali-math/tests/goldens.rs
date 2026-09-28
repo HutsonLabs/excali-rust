@@ -1,4 +1,4 @@
-//! Parity with upstream's own `packages/math/src`, bit for bit.
+//! Parity with upstream's own `packages/math/src`.
 //!
 //! `goldens/math.json` is written by `tools/goldens/generate.mjs`, which runs
 //! upstream's TypeScript from the pinned checkout under Node: every case is a
@@ -7,6 +7,16 @@
 //! (`tools/goldens/test/math.test.mjs` checks that against the checkout); this
 //! test checks that the Rust port returns the same doubles, compared with `==`
 //! (so `-0` equals `0`, as JSON cannot tell them apart).
+//!
+//! The one exception is the functions whose upstream result goes through
+//! `Math.sin`, `Math.cos`, `Math.atan2` or `Math.pow` ([`PLATFORM_MATH`]).
+//! Those are not the same function on every platform, upstream included: V8
+//! on arm64 (where the goldens are generated) differs in the last bit from
+//! macOS libm for about 4% of `Math.sin`/`Math.cos` arguments and 18% of
+//! `Math.atan2` arguments, and from x86_64 V8 as well (tools/goldens/README.md).
+//! Their numbers are compared to within [`PLATFORM_TOLERANCE`], relative to
+//! the magnitude of the value (absolute below 1); every other part of their
+//! results (booleans, `null`, list lengths) must still match exactly.
 
 use std::collections::BTreeSet;
 use std::path::Path;
@@ -18,8 +28,12 @@ type P = GlobalPoint;
 
 fn load() -> Vec<Value> {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../goldens/math.json");
-    let text = std::fs::read_to_string(&path)
-        .unwrap_or_else(|e| panic!("{}: {e} (run node tools/goldens/generate.mjs)", path.display()));
+    let text = std::fs::read_to_string(&path).unwrap_or_else(|e| {
+        panic!(
+            "{}: {e} (run node tools/goldens/generate.mjs)",
+            path.display()
+        )
+    });
     let doc: Value = serde_json::from_str(&text).expect("math.json parses");
     doc["cases"].as_array().expect("cases").clone()
 }
@@ -27,7 +41,8 @@ fn load() -> Vec<Value> {
 // -- arguments -----------------------------------------------------------------
 
 fn f(v: &Value) -> f64 {
-    v.as_f64().unwrap_or_else(|| panic!("number expected, got {v}"))
+    v.as_f64()
+        .unwrap_or_else(|| panic!("number expected, got {v}"))
 }
 
 fn p(v: &Value) -> P {
@@ -156,14 +171,14 @@ fn call(fun: &str, a: &[Value]) -> Value {
         "pointsEqual" => json!(points_equal(p(arg(0)), p(arg(1)))),
         "pointRotateRads" => out_p(point_rotate_rads(p(arg(0)), p(arg(1)), Radians(f(arg(2))))),
         "pointRotateDegs" => out_p(point_rotate_degs(p(arg(0)), p(arg(1)), Degrees(f(arg(2))))),
-        "pointTranslate" if has(1) => out_p(point_translate::<Global, Local>(p(arg(0)), vec2(arg(1)))),
+        "pointTranslate" if has(1) => {
+            out_p(point_translate::<Global, Local>(p(arg(0)), vec2(arg(1))))
+        }
         "pointTranslate" => out_p(point_translate::<Global, Global>(p(arg(0)), Vector::ZERO)),
         "pointCenter" => out_p(point_center(p(arg(0)), p(arg(1)))),
         "pointDistance" => json!(point_distance(p(arg(0)), p(arg(1)))),
         "pointDistanceSq" => json!(point_distance_sq(p(arg(0)), p(arg(1)))),
-        "pointScaleFromOrigin" => {
-            out_p(point_scale_from_origin(p(arg(0)), p(arg(1)), f(arg(2))))
-        }
+        "pointScaleFromOrigin" => out_p(point_scale_from_origin(p(arg(0)), p(arg(1)), f(arg(2)))),
         "isPointWithinBounds" => json!(is_point_within_bounds(p(arg(0)), p(arg(1)), p(arg(2)))),
         "isValidPoint" => json!(is_valid_point(&unknown(arg(0)))),
         // vector.ts
@@ -175,8 +190,17 @@ fn call(fun: &str, a: &[Value]) -> Value {
         "vectorFromPoint" => {
             let origin = if has(1) { p(arg(1)) } else { P::ORIGIN };
             if has(2) {
-                let default = if has(3) { vec2(arg(3)) } else { vector(0.0, 1.0) };
-                out_v(vector_from_point_with(p(arg(0)), origin, Some(f(arg(2))), default))
+                let default = if has(3) {
+                    vec2(arg(3))
+                } else {
+                    vector(0.0, 1.0)
+                };
+                out_v(vector_from_point_with(
+                    p(arg(0)),
+                    origin,
+                    Some(f(arg(2))),
+                    default,
+                ))
             } else {
                 out_v(vector_from_point(p(arg(0)), origin))
             }
@@ -206,7 +230,11 @@ fn call(fun: &str, a: &[Value]) -> Value {
         }
         "segmentsIntersectAt" => out_opt_p(segments_intersect_at(seg(arg(0)), seg(arg(1)))),
         "pointOnLineSegment" if has(2) => {
-            json!(point_on_line_segment_with(p(arg(0)), seg(arg(1)), f(arg(2))))
+            json!(point_on_line_segment_with(
+                p(arg(0)),
+                seg(arg(1)),
+                f(arg(2))
+            ))
         }
         "pointOnLineSegment" => json!(point_on_line_segment(p(arg(0)), seg(arg(1)))),
         "distanceToLineSegment" => json!(distance_to_line_segment(p(arg(0)), seg(arg(1)))),
@@ -228,7 +256,11 @@ fn call(fun: &str, a: &[Value]) -> Value {
         }
         "ellipseIncludesPoint" => json!(ellipse_includes_point(p(arg(0)), ell(arg(1)))),
         "ellipseTouchesPoint" if has(2) => {
-            json!(ellipse_touches_point_with(p(arg(0)), ell(arg(1)), f(arg(2))))
+            json!(ellipse_touches_point_with(
+                p(arg(0)),
+                ell(arg(1)),
+                f(arg(2))
+            ))
         }
         "ellipseTouchesPoint" => json!(ellipse_touches_point(p(arg(0)), ell(arg(1)))),
         "ellipseDistanceFromPoint" => json!(ellipse_distance_from_point(p(arg(0)), ell(arg(1)))),
@@ -259,9 +291,7 @@ fn call(fun: &str, a: &[Value]) -> Value {
         "polygonArea" if has(1) => json!(polygon_area_with(&points(arg(0)), f(arg(1)))),
         "polygonArea" => json!(polygon_area(&points(arg(0)))),
         "convexHull" => out_points(&convex_hull(&points(arg(0)))),
-        "simplifyConvexPolygon" => {
-            out_points(&simplify_convex_polygon(&points(arg(0)), f(arg(1))))
-        }
+        "simplifyConvexPolygon" => out_points(&simplify_convex_polygon(&points(arg(0)), f(arg(1)))),
         // range.ts
         "rangeInclusive" => out_range(range_inclusive(f(arg(0)), f(arg(1)))),
         "rangeInclusiveFromPair" => {
@@ -295,28 +325,56 @@ fn call(fun: &str, a: &[Value]) -> Value {
         // triangle.ts
         "triangleIncludesPoint" => {
             let t = arg(0);
-            json!(triangle_includes_point(Triangle(p(&t[0]), p(&t[1]), p(&t[2])), p(arg(1))))
+            json!(triangle_includes_point(
+                Triangle(p(&t[0]), p(&t[1]), p(&t[2])),
+                p(arg(1))
+            ))
         }
         other => panic!("math.json calls {other}, which the port does not cover"),
     }
 }
 
-/// Structural equality with numbers compared as doubles.
-fn same(actual: &Value, expected: &Value) -> bool {
+/// Functions whose upstream results depend on the platform's `Math.sin`,
+/// `Math.cos`, `Math.atan2` or `Math.pow` (see the module docs).
+const PLATFORM_MATH: &[&str] = &[
+    "cartesian2Polar",               // atan2 (angle.ts:25)
+    "isRightAngleRads",              // sin (angle.ts:44)
+    "pointRotateRads",               // sin, cos (point.ts:146)
+    "pointRotateDegs",               // via pointRotateRads
+    "lineSegmentRotate",             // via pointRotateRads
+    "simplifyConvexPolygon",         // atan2 (polygon.ts:162)
+    "ellipseDistanceFromPoint",      // ** 3 (ellipse.ts:113)
+    "ellipseTouchesPoint",           // via ellipseDistanceFromPoint
+    "ellipseLineIntersectionPoints", // Math.pow (ellipse.ts:218)
+];
+
+/// Relative tolerance for [`PLATFORM_MATH`] results: far below any geometric
+/// meaning, far above a few ulps of libm disagreement propagated through the
+/// arithmetic.
+const PLATFORM_TOLERANCE: f64 = 1e-10;
+
+/// Structural equality with numbers compared as doubles, exactly or within
+/// `tolerance` relative to the larger of 1 and the expected magnitude.
+fn same(actual: &Value, expected: &Value, tolerance: f64) -> bool {
     match (actual, expected) {
-        (Value::Number(a), Value::Number(b)) => a.as_f64() == b.as_f64(),
+        (Value::Number(a), Value::Number(b)) => {
+            let (a, b) = (a.as_f64().expect("f64"), b.as_f64().expect("f64"));
+            a == b || (a - b).abs() <= tolerance * b.abs().max(1.0)
+        }
         (Value::Array(a), Value::Array(b)) => {
-            a.len() == b.len() && a.iter().zip(b).all(|(x, y)| same(x, y))
+            a.len() == b.len() && a.iter().zip(b).all(|(x, y)| same(x, y, tolerance))
         }
         (Value::Object(a), Value::Object(b)) => {
-            a.len() == b.len() && a.iter().all(|(k, v)| b.get(k).is_some_and(|w| same(v, w)))
+            a.len() == b.len()
+                && a.iter()
+                    .all(|(k, v)| b.get(k).is_some_and(|w| same(v, w, tolerance)))
         }
         _ => actual == expected,
     }
 }
 
 #[test]
-fn every_case_matches_upstream_exactly() {
+fn every_case_matches_upstream() {
     let cases = load();
     assert!(cases.len() > 1000, "math.json has {} cases", cases.len());
     let mut failures = Vec::new();
@@ -324,7 +382,12 @@ fn every_case_matches_upstream_exactly() {
         let fun = c["fn"].as_str().expect("fn");
         let args = c["args"].as_array().expect("args");
         let actual = call(fun, args);
-        if !same(&actual, &c["result"]) {
+        let tolerance = if PLATFORM_MATH.contains(&fun) {
+            PLATFORM_TOLERANCE
+        } else {
+            0.0
+        };
+        if !same(&actual, &c["result"], tolerance) {
             failures.push(format!(
                 "{}: {fun}{} = {actual}, upstream {}",
                 c["id"].as_str().unwrap_or("?"),
@@ -338,37 +401,119 @@ fn every_case_matches_upstream_exactly() {
         "{} of {} cases differ from upstream:\n{}",
         failures.len(),
         cases.len(),
-        failures.iter().take(40).cloned().collect::<Vec<_>>().join("\n")
+        failures
+            .iter()
+            .take(40)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("\n")
     );
 }
 
 #[test]
 fn every_covered_function_has_cases() {
-    let seen: BTreeSet<String> =
-        load().iter().map(|c| c["fn"].as_str().expect("fn").to_owned()).collect();
+    let seen: BTreeSet<String> = load()
+        .iter()
+        .map(|c| c["fn"].as_str().expect("fn").to_owned())
+        .collect();
     // The upstream exports (tools/goldens/math.mjs MATH_FUNCTIONS, checked
     // against the checkout by tools/goldens/test/math.test.mjs).
     let expected = [
-        "average", "cartesian2Polar", "clamp", "convexHull", "degreesToRadians",
-        "distanceToLineSegment", "ellipse", "ellipseDistanceFromPoint", "ellipseIncludesPoint",
-        "ellipseLineIntersectionPoints", "ellipseSegmentInterceptPoints", "ellipseTouchesPoint",
-        "isCloseTo", "isFiniteNumber", "isLineSegment", "isPoint", "isPointWithinBounds",
-        "isRightAngleRads", "isValidPoint", "isVector", "line", "lineSegment",
-        "lineSegmentClosestParameter", "lineSegmentIntersectionPoints", "lineSegmentPointAt",
-        "lineSegmentRotate", "lineSegmentsDistance", "linesIntersectAt", "normalizeRadians",
-        "pointCenter", "pointDistance", "pointDistanceSq", "pointFrom", "pointFromArray",
-        "pointFromPair", "pointFromVector", "pointOnLineSegment", "pointRotateDegs",
-        "pointRotateRads", "pointScaleFromOrigin", "pointTranslate", "pointsEqual", "polygon",
-        "polygonArea", "polygonFromPoints", "polygonIncludesPoint",
-        "polygonIncludesPointNonZero", "polygonIsClosed", "polygonSignedArea",
-        "radiansBetweenAngles", "radiansDifference", "radiansToDegrees", "rangeIncludesValue",
-        "rangeInclusive", "rangeInclusiveFromPair", "rangeIntersection", "rangesOverlap",
-        "rectangle", "rectangleFromNumberSequence", "rectangleIntersectLineSegment",
-        "rectangleIntersectRectangle", "round", "roundToStep", "segmentsIntersectAt",
-        "simplifyConvexPolygon", "triangleIncludesPoint", "vector", "vectorAdd", "vectorCross",
-        "vectorDot", "vectorFromPoint", "vectorMagnitude", "vectorMagnitudeSq", "vectorNormal",
-        "vectorNormalize", "vectorScale", "vectorSubtract",
+        "average",
+        "cartesian2Polar",
+        "clamp",
+        "convexHull",
+        "degreesToRadians",
+        "distanceToLineSegment",
+        "ellipse",
+        "ellipseDistanceFromPoint",
+        "ellipseIncludesPoint",
+        "ellipseLineIntersectionPoints",
+        "ellipseSegmentInterceptPoints",
+        "ellipseTouchesPoint",
+        "isCloseTo",
+        "isFiniteNumber",
+        "isLineSegment",
+        "isPoint",
+        "isPointWithinBounds",
+        "isRightAngleRads",
+        "isValidPoint",
+        "isVector",
+        "line",
+        "lineSegment",
+        "lineSegmentClosestParameter",
+        "lineSegmentIntersectionPoints",
+        "lineSegmentPointAt",
+        "lineSegmentRotate",
+        "lineSegmentsDistance",
+        "linesIntersectAt",
+        "normalizeRadians",
+        "pointCenter",
+        "pointDistance",
+        "pointDistanceSq",
+        "pointFrom",
+        "pointFromArray",
+        "pointFromPair",
+        "pointFromVector",
+        "pointOnLineSegment",
+        "pointRotateDegs",
+        "pointRotateRads",
+        "pointScaleFromOrigin",
+        "pointTranslate",
+        "pointsEqual",
+        "polygon",
+        "polygonArea",
+        "polygonFromPoints",
+        "polygonIncludesPoint",
+        "polygonIncludesPointNonZero",
+        "polygonIsClosed",
+        "polygonSignedArea",
+        "radiansBetweenAngles",
+        "radiansDifference",
+        "radiansToDegrees",
+        "rangeIncludesValue",
+        "rangeInclusive",
+        "rangeInclusiveFromPair",
+        "rangeIntersection",
+        "rangesOverlap",
+        "rectangle",
+        "rectangleFromNumberSequence",
+        "rectangleIntersectLineSegment",
+        "rectangleIntersectRectangle",
+        "round",
+        "roundToStep",
+        "segmentsIntersectAt",
+        "simplifyConvexPolygon",
+        "triangleIncludesPoint",
+        "vector",
+        "vectorAdd",
+        "vectorCross",
+        "vectorDot",
+        "vectorFromPoint",
+        "vectorMagnitude",
+        "vectorMagnitudeSq",
+        "vectorNormal",
+        "vectorNormalize",
+        "vectorScale",
+        "vectorSubtract",
     ];
     let expected: BTreeSet<String> = expected.iter().map(|s| (*s).to_owned()).collect();
     assert_eq!(seen, expected);
+    for fun in PLATFORM_MATH {
+        assert!(seen.contains(*fun), "{fun}");
+    }
+}
+
+#[test]
+fn tolerance_applies_to_platform_math_only() {
+    let exact = load()
+        .iter()
+        .filter(|c| !PLATFORM_MATH.contains(&c["fn"].as_str().expect("fn")))
+        .count();
+    assert!(exact > 1500, "only {exact} cases are compared exactly");
+    assert!(same(&json!(1.0), &json!(1.0 + 1e-12), PLATFORM_TOLERANCE));
+    assert!(!same(&json!(1.0), &json!(1.0 + 1e-12), 0.0));
+    assert!(!same(&json!(1.0), &json!(1.0 + 1e-9), PLATFORM_TOLERANCE));
+    assert!(!same(&json!([1.0]), &json!([1.0, 2.0]), PLATFORM_TOLERANCE));
+    assert!(!same(&json!(true), &json!(false), PLATFORM_TOLERANCE));
 }

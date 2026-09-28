@@ -18,6 +18,6 @@
     {"name":"elements-freedraw.json","cases":48,"sha256":"b7cbd0ad0ec703629680f3037e2ff5ac0324e2e0deb2afd5deff215132b757c6"},
     {"name":"elements-iframe-like.json","cases":13,"sha256":"08ab9fadb41160189ff84f09e26371a128a152f716ee012f0afedfd36a7494d4"},
     {"name":"freehand.json","cases":29,"sha256":"1e81e22f3ac4b345a9905289cad17b1ddac6c634b38e3a3bc046326630b04938"},
-    {"name":"math.json","cases":1933,"sha256":"2622a11f3c81cecb8b9da05ff5fa01a6d1c37711561cb4efb440c60824899c9a"}
+    {"name":"math.json","cases":1932,"sha256":"06fa5918a9be9acbeb9a5039eb40922590cf1487838d4e5f0ce8a5bb77e8b6a9"}
   ]
 }

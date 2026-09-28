@@ -76,10 +76,26 @@ mod ellipse_test {
 
         // closest to the top/bottom of the outline, not to the long axis
         assert!(close_to(ellipse_distance_from_point(center, wide), 50.0, 2));
-        assert!(close_to(ellipse_distance_from_point(pt(10.0, 0.0), wide), 49.93, 1));
-        assert!(close_to(ellipse_distance_from_point(pt(-150.0, 0.0), wide), 31.62, 1));
-        assert!(close_to(ellipse_distance_from_point(pt(0.0, 10.0), wide), 40.0, 2));
-        assert!(close_to(ellipse_distance_from_point(pt(250.0, 0.0), wide), 50.0, 2));
+        assert!(close_to(
+            ellipse_distance_from_point(pt(10.0, 0.0), wide),
+            49.93,
+            1
+        ));
+        assert!(close_to(
+            ellipse_distance_from_point(pt(-150.0, 0.0), wide),
+            31.62,
+            1
+        ));
+        assert!(close_to(
+            ellipse_distance_from_point(pt(0.0, 10.0), wide),
+            40.0,
+            2
+        ));
+        assert!(close_to(
+            ellipse_distance_from_point(pt(250.0, 0.0), wide),
+            50.0,
+            2
+        ));
     }
 
     // describe("segment and ellipse")
@@ -387,7 +403,10 @@ mod range_test {
 
     #[test]
     fn should_not_intersect() {
-        assert_eq!(range_intersection(range1_4(), range_inclusive(5.0, 7.0)), None);
+        assert_eq!(
+            range_intersection(range1_4(), range_inclusive(5.0, 7.0)),
+            None
+        );
     }
 }
 
@@ -439,7 +458,9 @@ mod segment_test {
 
     #[test]
     fn should_return_false_for_wrong_length() {
-        assert!(!is_line_segment(&Unknown::Array(vec![point_value(0.0, 0.0)])));
+        assert!(!is_line_segment(&Unknown::Array(vec![point_value(
+            0.0, 0.0
+        )])));
     }
 }
 
@@ -452,7 +473,7 @@ mod vector_test {
 
     // describe("Vector")
     #[test]
-    fn is_vector() {
+    fn is_vector_checks_the_shape() {
         assert!(is_vector(&pair(5.0, 5.0)));
         assert!(is_vector(&pair(-5.0, -5.0)));
         assert!(is_vector(&pair(5.0, 0.5)));

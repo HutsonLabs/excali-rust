@@ -103,9 +103,18 @@ mod js_semantics {
         // vector.ts:34 `if (threshold && ...)`
         let p = pt(1.0, 1.0);
         let default = vector(7.0, 8.0);
-        assert_eq!(vector_from_point_with(p, p, Some(0.0), default), vector(0.0, 0.0));
-        assert_eq!(vector_from_point_with(p, p, Some(f64::NAN), default), vector(0.0, 0.0));
-        assert_eq!(vector_from_point_with(p, p, None, default), vector(0.0, 0.0));
+        assert_eq!(
+            vector_from_point_with(p, p, Some(0.0), default),
+            vector(0.0, 0.0)
+        );
+        assert_eq!(
+            vector_from_point_with(p, p, Some(f64::NAN), default),
+            vector(0.0, 0.0)
+        );
+        assert_eq!(
+            vector_from_point_with(p, p, None, default),
+            vector(0.0, 0.0)
+        );
         assert_eq!(vector_from_point_with(p, p, Some(0.5), default), default);
     }
 }
@@ -120,8 +129,15 @@ mod shape_predicates {
         assert!(!is_point(&pair(f64::NAN, 2.0)));
         assert!(!is_point(&pair(1.0, f64::NAN)));
         assert!(!is_point(&Unknown::Array(vec![num(1.0)])));
-        assert!(!is_point(&Unknown::Array(vec![num(1.0), num(2.0), num(3.0)])));
-        assert!(!is_point(&Unknown::Array(vec![num(1.0), Unknown::String("2".into())])));
+        assert!(!is_point(&Unknown::Array(vec![
+            num(1.0),
+            num(2.0),
+            num(3.0)
+        ])));
+        assert!(!is_point(&Unknown::Array(vec![
+            num(1.0),
+            Unknown::String("2".into())
+        ])));
         assert!(!is_point(&Unknown::Undefined));
         assert!(!is_point(&Unknown::Object));
     }
@@ -203,7 +219,10 @@ mod types {
 
     #[test]
     fn point_constructors() {
-        assert_eq!(point_from_coords::<Global>(Coord::new(1.0, 2.0)), pt(1.0, 2.0));
+        assert_eq!(
+            point_from_coords::<Global>(Coord::new(1.0, 2.0)),
+            pt(1.0, 2.0)
+        );
         assert_eq!(point_from_pair::<Global>([1.0, 2.0]), pt(1.0, 2.0));
         assert_eq!(point_from_array::<Global>(&[1.0, 2.0]), Some(pt(1.0, 2.0)));
         assert_eq!(point_from_array::<Global>(&[1.0]), None);
@@ -215,11 +234,19 @@ mod types {
     fn angles_convert_and_negate() {
         assert_eq!(-Radians(1.5), Radians(-1.5));
         assert_eq!(-Degrees(90.0), Degrees(-90.0));
-        assert_eq!(degrees_to_radians(Degrees(180.0)), Radians(std::f64::consts::PI));
-        assert_eq!(radians_to_degrees(Radians(std::f64::consts::PI)), Degrees(180.0));
+        assert_eq!(
+            degrees_to_radians(Degrees(180.0)),
+            Radians(std::f64::consts::PI)
+        );
+        assert_eq!(
+            radians_to_degrees(Radians(std::f64::consts::PI)),
+            Degrees(180.0)
+        );
     }
 
     #[test]
+    // upstream's literals, digit for digit
+    #[allow(clippy::excessive_precision)]
     fn constants_are_upstreams() {
         // utils.ts:1 `PRECISION = 10e-5`
         assert_eq!(PRECISION, 10e-5);
@@ -227,11 +254,23 @@ mod types {
         assert_eq!(LEGENDRE_GAUSS_N24_T_VALUES.len(), 24);
         assert_eq!(LEGENDRE_GAUSS_N24_C_VALUES.len(), 24);
         for i in (0..24).step_by(2) {
-            assert_eq!(LEGENDRE_GAUSS_N24_T_VALUES[i], -LEGENDRE_GAUSS_N24_T_VALUES[i + 1]);
-            assert_eq!(LEGENDRE_GAUSS_N24_C_VALUES[i], LEGENDRE_GAUSS_N24_C_VALUES[i + 1]);
+            assert_eq!(
+                LEGENDRE_GAUSS_N24_T_VALUES[i],
+                -LEGENDRE_GAUSS_N24_T_VALUES[i + 1]
+            );
+            assert_eq!(
+                LEGENDRE_GAUSS_N24_C_VALUES[i],
+                LEGENDRE_GAUSS_N24_C_VALUES[i + 1]
+            );
         }
-        assert_eq!(LEGENDRE_GAUSS_N24_T_VALUES[1], 0.0640568928626056260850430826247450385909);
-        assert_eq!(LEGENDRE_GAUSS_N24_C_VALUES[23], 0.0123412297999871995468056670700372915759);
+        assert_eq!(
+            LEGENDRE_GAUSS_N24_T_VALUES[1],
+            0.0640568928626056260850430826247450385909
+        );
+        assert_eq!(
+            LEGENDRE_GAUSS_N24_C_VALUES[23],
+            0.0123412297999871995468056670700372915759
+        );
         let sum: f64 = LEGENDRE_GAUSS_N24_C_VALUES.iter().sum();
         assert!((sum - 2.0).abs() < 1e-12);
     }
@@ -266,7 +305,10 @@ mod types {
     #[test]
     fn ellipse_and_ranges_expose_their_parts() {
         let e = ellipse(pt(1.0, 2.0), 3.0, 4.0);
-        assert_eq!((e.center, e.half_width, e.half_height), (pt(1.0, 2.0), 3.0, 4.0));
+        assert_eq!(
+            (e.center, e.half_width, e.half_height),
+            (pt(1.0, 2.0), 3.0, 4.0)
+        );
         let r = range_inclusive_from_pair([2.0, 3.0]);
         assert_eq!((r.0, r.1), (2.0, 3.0));
         assert!(range_includes_value(2.0, r));

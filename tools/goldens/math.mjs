@@ -124,12 +124,6 @@ export const mathCases = () => {
       return [Math.cos(a) * rr, Math.sin(a) * rr];
     });
   const cloud = (n, scale) => Array.from({ length: n }, () => pt(scale));
-  const star = (n, r1, r2) =>
-    Array.from({ length: n * 2 }, (_, i) => {
-      const a = (i / (n * 2)) * Math.PI * 2;
-      const r = i % 2 ? r2 : r1;
-      return [Math.cos(a) * r, Math.sin(a) * r];
-    });
 
   const cases = [];
   const counts = new Map();
@@ -406,8 +400,11 @@ export const mathCases = () => {
   const wobbly = [...square, [5, -0.2], [10.2, 5], [5, 10.2], [-0.2, 5]];
   add("simplifyConvexPolygon", square.slice(0, 2), 0.4);
   add("simplifyConvexPolygon", wobbly, (25 * Math.PI) / 180);
-  add("simplifyConvexPolygon", ngon(64, 100, 0), (25 * Math.PI) / 180);
-  add("simplifyConvexPolygon", star(5, 100, 40), (25 * Math.PI) / 180);
+  // No regular polygons here: their vertex turns tie up to the last bit of
+  // Math.atan2, which differs between platforms, so the sharpest-vertex start
+  // (and with it the whole result) is platform-dependent upstream too. The
+  // jittered ones keep the turns apart.
+  add("simplifyConvexPolygon", ngon(64, 100, 1), (25 * Math.PI) / 180);
   add("simplifyConvexPolygon", square, 10);
   repeat("simplifyConvexPolygon", () => [ngon(24, 80, 4), next() * 1.2]);
 
