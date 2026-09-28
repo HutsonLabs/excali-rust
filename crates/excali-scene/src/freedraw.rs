@@ -20,7 +20,7 @@ use std::fmt;
 
 use excali_core::element::{Element, ElementKind, StrokeVariability};
 use excali_core::json::number_to_string;
-use excali_freehand::variable_width_outline;
+use excali_freehand::{constant_width_outline, variable_width_outline};
 
 /// Why [`get_freedraw_outline_points`] or [`get_free_draw_svg_path`] gave
 /// no outline.
@@ -29,23 +29,12 @@ pub enum FreedrawOutlineError {
     /// The element is not a freedraw (upstream's functions take only
     /// `ExcalidrawFreeDrawElement`).
     NotFreedraw,
-    /// `strokeOptions.variability` is `"constant"`: upstream draws the
-    /// laser-pointer outline (`getConstantWidthFreedrawOutline`,
-    /// `shape.ts:1247-1268`), which is not ported yet.
-    // TODO(ex-214): port the laser pointer in excali-freehand and return
-    // its outline here (size strokeWidth * 1.4, streamline, simplify 0,
-    // pressure 1, `sizeMapping` max(0.1, pressure)).
-    ConstantWidthNotPorted,
 }
 
 impl fmt::Display for FreedrawOutlineError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             FreedrawOutlineError::NotFreedraw => f.write_str("not a freedraw element"),
-            FreedrawOutlineError::ConstantWidthNotPorted => f.write_str(
-                "constant-width freedraw (laser-pointer outline, shape.ts:1247-1277) \
-                 is not ported yet (ex-214)",
-            ),
         }
     }
 }
@@ -56,9 +45,8 @@ impl std::error::Error for FreedrawOutlineError {}
 /// polygon of a freedraw element, switching on
 /// `strokeOptions.variability`. Variable width (upstream's default for an
 /// unknown or absent value, which restore writes as `"variable"`) is
-/// [`get_variable_width_freedraw_outline`]; constant width is an explicit
-/// [`FreedrawOutlineError::ConstantWidthNotPorted`] until ex-214 lands,
-/// never a fallback to the variable outline.
+/// [`get_variable_width_freedraw_outline`]; constant width is
+/// [`get_constant_width_freedraw_outline`], the laser-pointer outline.
 pub fn get_freedraw_outline_points(
     element: &Element,
 ) -> Result<Vec<[f64; 2]>, FreedrawOutlineError> {
@@ -66,7 +54,9 @@ pub fn get_freedraw_outline_points(
         return Err(FreedrawOutlineError::NotFreedraw);
     };
     match fields.stroke_options.variability {
-        StrokeVariability::Constant => Err(FreedrawOutlineError::ConstantWidthNotPorted),
+        StrokeVariability::Constant => {
+            get_constant_width_freedraw_outline(element).ok_or(FreedrawOutlineError::NotFreedraw)
+        }
         StrokeVariability::Variable => {
             get_variable_width_freedraw_outline(element).ok_or(FreedrawOutlineError::NotFreedraw)
         }
@@ -96,6 +86,24 @@ pub fn get_variable_width_freedraw_outline(element: &Element) -> Option<Vec<[f64
         element.base.stroke_width,
         Some(fields.stroke_options.streamline),
         fields.simulate_pressure,
+    ))
+}
+
+/// `getConstantWidthFreedrawOutline(element)` (`shape.ts:1247-1268`): the
+/// laser-pointer outline of a freedraw element (size `strokeWidth * 1.4`,
+/// the element's `strokeOptions.streamline`, simplify 0, every point at
+/// pressure 1). `None` for any other element type.
+///
+/// This ignores `strokeOptions.variability`; [`get_freedraw_outline_points`]
+/// is the switch.
+pub fn get_constant_width_freedraw_outline(element: &Element) -> Option<Vec<[f64; 2]>> {
+    let ElementKind::Freedraw(fields) = &element.kind else {
+        return None;
+    };
+    Some(constant_width_outline(
+        &fields.points,
+        element.base.stroke_width,
+        Some(fields.stroke_options.streamline),
     ))
 }
 
