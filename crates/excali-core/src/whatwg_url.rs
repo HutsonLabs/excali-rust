@@ -21,8 +21,22 @@
 //!   backslash.
 //! - A space right before the `?` or `#` that ends an opaque path is `%20`
 //!   in ada's pathname.
-//! - `^` in a path: in the standard's path percent-encode set, so `%5E` in
-//!   ada's pathname; the crate leaves it as it is.
+//! - Hierarchical paths of URLs that are not `file:`. The crate applies the
+//!   Windows drive letter rules to every scheme, so `..` does not remove a
+//!   `C:` or `c|` segment (`https://h/C:/..` has the pathname `/C:/`, the
+//!   standard's `/`), and it leaves `^` as it is where the standard's path
+//!   percent-encode set has `%5E`. These pathnames are parsed here too, by
+//!   the path start and path states ([`hierarchical_path`]).
+//!
+//! One difference is left, and it only ever rejects: a host with a code
+//! point outside ASCII (after percent-decoding) that the crate's UTS 46
+//! processing rejects is not a URL here. ada accepts some of these: where
+//! the mapping (which drops a soft hyphen, for one) leaves an `xn--` label
+//! whose Punycode decodes to a label ada's checks let through and the
+//! crate's validity criteria do not, such as one starting with a combining
+//! mark (`ws:\u{ad}XN--A_xn--LOCALHOSTxn--ls8h`, hostname
+//! `xn--a_xn--localhostxn--ls8h` in Node 26). The allow-list turns such a
+//! URL down where upstream could accept it.
 
 use url::{ParseError, Url};
 
@@ -93,7 +107,7 @@ fn build(url: Url, scheme: &str, rest: &str, host: Option<String>) -> Option<JsU
         let pathname = if url.cannot_be_a_base() {
             opaque_path(&url)
         } else {
-            url.path().replace('^', "%5E")
+            hierarchical_path(scheme, rest)
         };
         (hostname, pathname)
     };
@@ -366,48 +380,88 @@ fn file_host_and_path(rest: &str) -> (Option<String>, String) {
         // file slash state, then the path state from the next code point
         i = 1;
     }
-    // path state
+    (host, path_state(&chars, i, buffer, "file"))
+}
+
+/// The pathname of a URL with a hierarchical path whose scheme is not
+/// `file` and whose text after `scheme:` is `rest` (already preprocessed):
+/// the path start and path states from the end of the authority, or from
+/// after the `/` of a non-special `scheme:/path` with no authority. The
+/// crate keeps a `C:` or `c|` segment that `..` should remove in these
+/// URLs (`https://h/C:/..` has the pathname `/`), since it applies the
+/// Windows drive letter rules to every scheme; the standard applies them to
+/// `file:` only.
+fn hierarchical_path(scheme: &str, rest: &str) -> String {
+    let special = is_special(scheme);
+    let Some(authority) = authority(scheme, rest) else {
+        // `scheme:/path`: the path or authority state saw one `/`, and the
+        // path state starts after it.
+        let chars: Vec<char> = rest.chars().skip(1).collect();
+        return path_state(&chars, 0, String::new(), scheme);
+    };
+    let start = authority.as_ptr() as usize - rest.as_ptr() as usize + authority.len();
+    let chars: Vec<char> = rest[start..].chars().collect();
+    let mut i = 0;
+    // path start state
+    match chars.first() {
+        Some(&c) if is_slash(c, special) => i = 1,
+        None | Some('?' | '#') if !special => return String::new(),
+        _ => {}
+    }
+    path_state(&chars, i, String::new(), scheme)
+}
+
+/// The standard's path state from `chars[i]` with `buffer` so far, to the
+/// end of the path; the pathname. `\\` is a slash in a special URL, and the
+/// Windows drive letter rules are for `file:` only.
+fn path_state(chars: &[char], mut i: usize, mut buffer: String, scheme: &str) -> String {
+    let special = is_special(scheme);
+    let file = scheme == "file";
     let mut path: Vec<String> = Vec::new();
     loop {
         let c = chars.get(i).copied();
         match c {
-            None | Some('/' | '\\' | '?' | '#') => {
-                let at_slash = matches!(c, Some('/' | '\\'));
-                if is_double_dot(&buffer) {
-                    let keep = path.len() == 1 && is_normalized_windows_drive_letter(&path[0]);
-                    if !keep {
-                        path.pop();
-                    }
-                    if !at_slash {
-                        path.push(String::new());
-                    }
-                } else if is_single_dot(&buffer) {
-                    if !at_slash {
-                        path.push(String::new());
+            None | Some('?' | '#') | Some('/') => {}
+            Some('\\') if special => {}
+            Some(c) => {
+                if in_path_percent_encode_set(c) {
+                    let mut utf8 = [0; 4];
+                    for byte in c.encode_utf8(&mut utf8).bytes() {
+                        buffer.push_str(&format!("%{byte:02X}"));
                     }
                 } else {
-                    if path.is_empty() && is_windows_drive_letter(&buffer) {
-                        buffer.replace_range(1..2, ":");
-                    }
-                    path.push(std::mem::take(&mut buffer));
+                    buffer.push(c);
                 }
-                buffer.clear();
-                if !at_slash {
-                    break;
-                }
+                i += 1;
+                continue;
             }
-            Some(c) if in_path_percent_encode_set(c) => {
-                let mut utf8 = [0; 4];
-                for byte in c.encode_utf8(&mut utf8).bytes() {
-                    buffer.push_str(&format!("%{byte:02X}"));
-                }
+        }
+        let at_slash = matches!(c, Some('/' | '\\'));
+        if is_double_dot(&buffer) {
+            let keep = file && path.len() == 1 && is_normalized_windows_drive_letter(&path[0]);
+            if !keep {
+                path.pop();
             }
-            Some(c) => buffer.push(c),
+            if !at_slash {
+                path.push(String::new());
+            }
+        } else if is_single_dot(&buffer) {
+            if !at_slash {
+                path.push(String::new());
+            }
+        } else {
+            if file && path.is_empty() && is_windows_drive_letter(&buffer) {
+                buffer.replace_range(1..2, ":");
+            }
+            path.push(std::mem::take(&mut buffer));
+        }
+        buffer.clear();
+        if !at_slash {
+            break;
         }
         i += 1;
     }
-    let pathname = path.iter().map(|segment| format!("/{segment}")).collect();
-    (host, pathname)
+    path.iter().map(|segment| format!("/{segment}")).collect()
 }
 
 #[cfg(test)]
