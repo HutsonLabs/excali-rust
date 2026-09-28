@@ -28,6 +28,8 @@ import {
   roughGoldens,
 } from "./fixtures.mjs";
 import { format } from "./lib/format.mjs";
+import { jsSortCases, jsSortResult } from "./jssort.mjs";
+import { mathCases } from "./math.mjs";
 import { loadUpstream, readJson, REPO_ROOT, TOOL_DIR, verifyUpstream } from "./lib/upstream.mjs";
 
 const PACKAGES = ["perfect-freehand", "points-on-curve", "roughjs", "tinycolor2"];
@@ -122,6 +124,13 @@ const freehandCase = (up) => (c) => {
   };
 };
 
+const mathCase = (up) => (c) => {
+  const fn = up.math[c.fn];
+  if (typeof fn !== "function") throw new Error(`math.json: ${c.fn} is not exported by packages/math`);
+  const result = fn(...structuredClone(c.args));
+  return { ...c, result: result === undefined ? null : result };
+};
+
 const buildGoldens = (up) => {
   const files = [randomGolden(up)];
   for (const g of roughGoldens()) files.push({ ...g, cases: g.cases.map(roughCase(up)) });
@@ -131,6 +140,18 @@ const buildGoldens = (up) => {
     description:
       "perfect-freehand 1.2.0 getStrokePoints and getStroke; easing is named (easeOutSine = sin(t*pi/2), shape.ts:1241; linear = t).",
     cases: freehandCases().map(freehandCase(up)),
+  });
+  files.push({
+    name: "math.json",
+    description:
+      "packages/math/src (all but curve.ts and pca.ts): math[fn](...args) = result. Points, vectors, segments, lines, triangles, rectangles and ranges are arrays; an ellipse is { center, halfWidth, halfHeight }.",
+    cases: mathCases().map(mathCase(up)),
+  });
+  files.push({
+    name: "js-sort.json",
+    description:
+      "Array.prototype.sort (V8 TimSort) with a comparator that can answer NaN: kind sort is [0..n).sort((i, j) => values[i] - values[j]); kind convexHull is packages/math/src/polygon.ts convexHull(points) as indices into points. Non-finite inputs are the strings NaN, Infinity, -Infinity.",
+    cases: jsSortCases().map((c) => ({ ...c, result: jsSortResult(up, c) })),
   });
   return files;
 };
