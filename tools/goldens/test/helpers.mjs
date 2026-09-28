@@ -209,7 +209,7 @@ export const ELEMENT_FILES = [
   "elements-iframe-like.json",
 ];
 
-export const ROUGH_FILES = ["rough-primitives.json", "rough-fills.json", "rough-options.json"];
+export const ROUGH_FILES = ["rough-primitives.json", "rough-generator.json", "rough-fills.json", "rough-options.json"];
 
 export const ALL_FILES = [
   "random.json",

@@ -8,5 +8,13 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
+[dependencies]
+excali-math = { path = "../excali-math" }
+
+# serde_json reads goldens/*.json in the parity tests and never reaches the
+# library.
+[dev-dependencies]
+serde_json = { workspace = true }
+
 [lints]
 workspace = true
