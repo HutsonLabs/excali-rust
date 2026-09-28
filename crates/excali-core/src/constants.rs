@@ -147,3 +147,36 @@ pub const EXPORT_DATA_TYPE_EXCALIDRAW_LIBRARY: &str = "excalidrawlib";
 pub const VERSION_EXCALIDRAW: f64 = 2.0;
 /// `VERSIONS.excalidrawLibrary`, `constants.ts:418`.
 pub const VERSION_EXCALIDRAW_LIBRARY: f64 = 2.0;
+
+/// The default sticky-note background (`DEFAULT_STICKY_NOTE_BG`,
+/// `colors.ts:268`).
+pub const DEFAULT_STICKY_NOTE_BG: &str = "#ffdf6b";
+/// Slots in the colour-picker top-picks strip (`COLOR_TOP_PICKS_SLOTS`,
+/// `colors.ts:236`).
+pub const COLOR_TOP_PICKS_SLOTS: usize = 5;
+/// Slots in the font-picker top-picks strip (`FONT_TOP_PICKS_SLOTS`,
+/// `constants.ts:273`).
+pub const FONT_TOP_PICKS_SLOTS: usize = 3;
+
+/// `DEFAULT_GRID_SIZE`, `constants.ts:293`.
+pub const DEFAULT_GRID_SIZE: f64 = 20.0;
+/// `DEFAULT_GRID_STEP`, `constants.ts:294`.
+pub const DEFAULT_GRID_STEP: f64 = 5.0;
+
+/// `MIN_ZOOM`, `constants.ts:363`.
+pub const MIN_ZOOM: f64 = 0.1;
+/// `MAX_ZOOM`, `constants.ts:364`.
+pub const MAX_ZOOM: f64 = 30.0;
+/// `DEFAULT_ZOOM.value`, `constants.ts:366-368`.
+pub const DEFAULT_ZOOM: f64 = 1.0;
+
+/// `EXPORT_SCALES`, `constants.ts:401`.
+pub const EXPORT_SCALES: [f64; 3] = [1.0, 2.0, 3.0];
+
+/// `DEFAULT_SIDEBAR.name`, `constants.ts:537-540`.
+pub const DEFAULT_SIDEBAR_NAME: &str = "default";
+
+/// `STATS_PANELS.generalStats`, `constants.ts:584`.
+pub const STATS_PANEL_GENERAL_STATS: u32 = 1;
+/// `STATS_PANELS.elementProperties`, `constants.ts:584`.
+pub const STATS_PANEL_ELEMENT_PROPERTIES: u32 = 2;

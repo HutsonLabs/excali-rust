@@ -20,9 +20,9 @@
 
 use excali_core::app_state::{
     clean_app_state_for_export, clear_app_state_for_database, clear_app_state_for_local_storage,
-    clear_app_state_for_storage, get_default_app_state, is_allowed_active_tool,
-    restore_app_state, storage_conf, AppState, AppStateEnv, StorageType, ALLOWED_ACTIVE_TOOLS,
-    APP_STATE_STORAGE_CONF, EXPORTED_KEYS,
+    clear_app_state_for_storage, get_default_app_state, is_allowed_active_tool, restore_app_state,
+    storage_conf, AppState, AppStateEnv, StorageType, ALLOWED_ACTIVE_TOOLS, APP_STATE_STORAGE_CONF,
+    EXPORTED_KEYS,
 };
 use excali_core::document::Document;
 use excali_core::json::to_string_pretty;
@@ -39,7 +39,10 @@ fn fixture() -> Map<String, Value> {
 }
 
 fn cases(name: &str) -> Vec<Value> {
-    fixture()[name].as_array().expect("an array of cases").clone()
+    fixture()[name]
+        .as_array()
+        .expect("an array of cases")
+        .clone()
 }
 
 fn object(value: &Value) -> Option<&Map<String, Value>> {
@@ -152,7 +155,11 @@ fn export_scale_is_the_device_pixel_ratio_only_when_it_is_an_export_scale() {
             test_env: false,
         };
         let state = get_default_app_state(&env);
-        assert_eq!(state.get("exportScale").and_then(Value::as_f64), Some(scale), "dpr {dpr}");
+        assert_eq!(
+            state.get("exportScale").and_then(Value::as_f64),
+            Some(scale),
+            "dpr {dpr}"
+        );
     }
 }
 
@@ -172,11 +179,19 @@ fn only_the_five_grid_background_and_lock_keys_are_exported() {
         ]
     );
     let mut full = defaults_map();
-    for (key, value) in [("offsetTop", 1), ("offsetLeft", 2), ("width", 3), ("height", 4)] {
+    for (key, value) in [
+        ("offsetTop", 1),
+        ("offsetLeft", 2),
+        ("width", 3),
+        ("height", 4),
+    ] {
         full.insert(key.into(), json!(value));
     }
     let exported = clean_app_state_for_export(&full);
-    assert_eq!(exported.keys().collect::<Vec<_>>(), EXPORTED_KEYS.iter().collect::<Vec<_>>());
+    assert_eq!(
+        exported.keys().collect::<Vec<_>>(),
+        EXPORTED_KEYS.iter().collect::<Vec<_>>()
+    );
     assert_eq!(
         Value::Object(exported),
         json!({
@@ -189,7 +204,9 @@ fn only_the_five_grid_background_and_lock_keys_are_exported() {
     );
     // The same five are kept for the server (appState.ts:153-291).
     assert_eq!(
-        clear_app_state_for_database(&full).keys().collect::<Vec<_>>(),
+        clear_app_state_for_database(&full)
+            .keys()
+            .collect::<Vec<_>>(),
         EXPORTED_KEYS.iter().collect::<Vec<_>>()
     );
 }
@@ -200,9 +217,21 @@ fn storage_cleaners_keep_what_upstream_keeps() {
         let id = case["id"].as_str().unwrap();
         let input = case["input"].as_object().unwrap();
         let keys = |m: Map<String, Value>| Value::from(m.keys().cloned().collect::<Vec<_>>());
-        assert_eq!(keys(clear_app_state_for_local_storage(input)), case["browser"], "{id} browser");
-        assert_eq!(keys(clean_app_state_for_export(input)), case["export"], "{id} export");
-        assert_eq!(keys(clear_app_state_for_database(input)), case["server"], "{id} server");
+        assert_eq!(
+            keys(clear_app_state_for_local_storage(input)),
+            case["browser"],
+            "{id} browser"
+        );
+        assert_eq!(
+            keys(clean_app_state_for_export(input)),
+            case["export"],
+            "{id} export"
+        );
+        assert_eq!(
+            keys(clear_app_state_for_database(input)),
+            case["server"],
+            "{id} server"
+        );
         assert_eq!(
             keys(clear_app_state_for_storage(input, StorageType::Export)),
             case["export"],
@@ -284,7 +313,11 @@ fn restore_matches_upstream_for_every_case() {
     let mut failures = Vec::new();
     for case in cases("restore") {
         let id = case["id"].as_str().unwrap();
-        let result = restore_app_state(object(&case["appState"]), object(&case["localAppState"]), &env());
+        let result = restore_app_state(
+            object(&case["appState"]),
+            object(&case["localAppState"]),
+            &env(),
+        );
         match (result, case.get("result"), case.get("error")) {
             (Ok(state), Some(diff), None) => {
                 let expected = apply_diff(&base, diff.as_object().unwrap());
@@ -297,7 +330,7 @@ fn restore_matches_upstream_for_every_case() {
                 }
             }
             (Err(error), None, Some(message)) => {
-                if Value::from(error.to_string()) != *message {
+                if message.as_str() != Some(error.to_string().as_str()) {
                     failures.push(format!("{id}: error {error}, expected {message}"));
                 }
             }
@@ -321,7 +354,7 @@ fn restore_matches_upstream_for_every_case() {
 fn changed_keys(state: &Map<String, Value>, base: &Map<String, Value>) -> Map<String, Value> {
     state
         .iter()
-        .filter(|(k, v)| base.get(*k).map(|b| to_string_pretty(b)) != Some(to_string_pretty(v)))
+        .filter(|(k, v)| base.get(*k).map(to_string_pretty) != Some(to_string_pretty(v)))
         .map(|(k, v)| (k.clone(), v.clone()))
         .collect()
 }
@@ -348,27 +381,46 @@ fn numeric_zoom_is_migrated() {
     let restored = restore(json!({"zoom": null}), Value::Object(defaults_map()));
     assert_eq!(restored.get("zoom"), Some(&json!({"value": 1})));
     // getNormalizedZoom clamps to [MIN_ZOOM, MAX_ZOOM] and rounds to 6 places.
-    assert_eq!(restore(json!({"zoom": 0.01}), Value::Null).zoom(), Some(0.1));
+    assert_eq!(
+        restore(json!({"zoom": 0.01}), Value::Null).zoom(),
+        Some(0.1)
+    );
     assert_eq!(restore(json!({"zoom": 99}), Value::Null).zoom(), Some(30.0));
-    assert_eq!(restore(json!({"zoom": 1.23456789}), Value::Null).zoom(), Some(1.234568));
+    assert_eq!(
+        restore(json!({"zoom": 1.23456789}), Value::Null).zoom(),
+        Some(1.234568)
+    );
 }
 
 #[test]
 fn string_open_sidebar_is_migrated() {
     // restore.test.ts "should handle appState.openSidebar legacy values"
-    assert_eq!(restore(json!({}), Value::Null).get("openSidebar"), Some(&Value::Null));
+    assert_eq!(
+        restore(json!({}), Value::Null).get("openSidebar"),
+        Some(&Value::Null)
+    );
     for legacy in ["library", "xxx", ""] {
         let restored = restore(json!({ "openSidebar": legacy }), Value::Null);
-        assert_eq!(restored.get("openSidebar"), Some(&json!({"name": "default"})), "{legacy:?}");
-        assert_eq!(restored.open_sidebar(), json!({"name": "default"}).as_object());
+        assert_eq!(
+            restored.get("openSidebar"),
+            Some(&json!({"name": "default"})),
+            "{legacy:?}"
+        );
+        assert_eq!(
+            restored.open_sidebar(),
+            json!({"name": "default"}).as_object()
+        );
     }
     assert_eq!(
         restore(json!({"openSidebar": {"name": "library"}}), Value::Null).get("openSidebar"),
         Some(&json!({"name": "library"}))
     );
     assert_eq!(
-        restore(json!({"openSidebar": {"name": "default", "tab": "ola"}}), Value::Null)
-            .get("openSidebar"),
+        restore(
+            json!({"openSidebar": {"name": "default", "tab": "ola"}}),
+            Value::Null
+        )
+        .get("openSidebar"),
         Some(&json!({"name": "default", "tab": "ola"}))
     );
 }
@@ -418,13 +470,19 @@ fn legacy_keys_are_migrated() {
     imported.remove("currentItemStrokeWidthKey");
     imported.insert("currentItemStrokeWidth".into(), json!(4));
     let restored = restore(Value::Object(imported), Value::Null);
-    assert_eq!(restored.get("currentItemStrokeWidthKey"), Some(&json!("bold")));
+    assert_eq!(
+        restored.get("currentItemStrokeWidthKey"),
+        Some(&json!("bold"))
+    );
     assert_eq!(restored.get("currentItemStrokeWidth"), None);
 
     // isSidebarDocked (data/types.ts:30-33) names defaultSidebarDockedPreference,
     // which restore.ts:1265-1275 migrates first: it leads the key order.
     let restored = restore(json!({"isSidebarDocked": true}), Value::Null);
-    assert_eq!(restored.as_map().keys().next().map(String::as_str), Some("defaultSidebarDockedPreference"));
+    assert_eq!(
+        restored.as_map().keys().next().map(String::as_str),
+        Some("defaultSidebarDockedPreference")
+    );
     assert_eq!(restored.get("isSidebarDocked"), None);
 }
 
@@ -432,19 +490,37 @@ fn legacy_keys_are_migrated() {
 fn active_tool_is_limited_to_allowed_tools() {
     // "when imported data state has a not allowed Excalidraw Element Types"
     let mut imported = defaults_map();
-    imported.insert("activeTool".into(), json!("not allowed Excalidraw Element Types"));
+    imported.insert(
+        "activeTool".into(),
+        json!("not allowed Excalidraw Element Types"),
+    );
     let restored = restore(Value::Object(imported), Value::Object(defaults_map()));
-    assert_eq!(restored.get("activeTool").unwrap()["type"], json!("selection"));
+    assert_eq!(
+        restored.get("activeTool").unwrap()["type"],
+        json!("selection")
+    );
     let restored = restore(json!({"activeTool": {"type": "eraser"}}), Value::Null);
-    assert_eq!(restored.get("activeTool").unwrap()["type"], json!("selection"));
-    let restored = restore(json!({"activeTool": {"type": "custom", "customType": "x"}}), Value::Null);
+    assert_eq!(
+        restored.get("activeTool").unwrap()["type"],
+        json!("selection")
+    );
+    let restored = restore(
+        json!({"activeTool": {"type": "custom", "customType": "x"}}),
+        Value::Null,
+    );
     assert_eq!(
         restored.get("activeTool"),
-        Some(&json!({"type": "custom", "customType": "x", "locked": false, "fromSelection": false, "lastActiveTool": null}))
+        Some(
+            &json!({"type": "custom", "customType": "x", "locked": false, "fromSelection": false, "lastActiveTool": null})
+        )
     );
     // A null activeTool throws in upstream (reading `.type`).
-    let error = restore_app_state(json!({"activeTool": null}).as_object(), None, &env()).unwrap_err();
-    assert_eq!(error.to_string(), "TypeError: Cannot read properties of null (reading 'type')");
+    let error =
+        restore_app_state(json!({"activeTool": null}).as_object(), None, &env()).unwrap_err();
+    assert_eq!(
+        error.to_string(),
+        "TypeError: Cannot read properties of null (reading 'type')"
+    );
 }
 
 #[test]
@@ -458,8 +534,14 @@ fn sticky_note_colours_and_top_picks_are_sanitised() {
         }),
         Value::Null,
     );
-    assert_eq!(restored.get("currentItemStickynoteBackgroundColor"), Some(&json!("#ffdf6b")));
-    assert_eq!(restored.get("currentItemStickynoteStrokeColor"), Some(&json!("#1e1e1e")));
+    assert_eq!(
+        restored.get("currentItemStickynoteBackgroundColor"),
+        Some(&json!("#ffdf6b"))
+    );
+    assert_eq!(
+        restored.get("currentItemStickynoteStrokeColor"),
+        Some(&json!("#1e1e1e"))
+    );
     let picks = restored.get("colorTopPicks").unwrap();
     assert_eq!(picks["stickyNoteBackground"], json!(["#fcc2d7", "#b2f2bb"]));
     assert_eq!(picks["stickyNoteStroke"], Value::Null);
@@ -476,7 +558,10 @@ fn color_top_picks_dedupe_and_cap() {
         Value::Null,
     );
     let picks = restored.get("colorTopPicks").unwrap();
-    assert_eq!(picks["elementBackground"], json!(["#FFF", "#a5d8ff", "#eebefa", "transparent"]));
+    assert_eq!(
+        picks["elementBackground"],
+        json!(["#FFF", "#a5d8ff", "#eebefa", "transparent"])
+    );
     assert_eq!(picks["elementStroke"], Value::Null);
 
     let many: Vec<String> = (0..20).map(|i| format!("#0000{i:02}")).collect();
@@ -493,7 +578,10 @@ fn color_top_picks_dedupe_and_cap() {
 fn font_top_picks_dedupe_and_cap() {
     // fontTopPicks.test.ts: Lilita One 7, "7", 7, unused 4, private
     // Assistant 10, fallback Xiaolai 100, deprecated Virgil 1.
-    let restored = restore(json!({"fontTopPicks": [7, "7", 7, 4, 10, 100, 1]}), Value::Null);
+    let restored = restore(
+        json!({"fontTopPicks": [7, "7", 7, 4, 10, 100, 1]}),
+        Value::Null,
+    );
     assert_eq!(restored.get("fontTopPicks"), Some(&json!([7, 1])));
     let restored = restore(json!({"fontTopPicks": [6, 5, 7, 8, 1]}), Value::Null);
     assert_eq!(restored.get("fontTopPicks"), Some(&json!([6, 5, 7])));
@@ -505,7 +593,10 @@ fn font_top_picks_dedupe_and_cap() {
 
 #[test]
 fn grid_size_and_step_are_normalised_from_the_file_only() {
-    let restored = restore(json!({"gridSize": 33.5, "gridStep": 0}), json!({"gridSize": 50}));
+    let restored = restore(
+        json!({"gridSize": 33.5, "gridStep": 0}),
+        json!({"gridSize": 50}),
+    );
     assert_eq!(restored.grid_size(), Some(34.0));
     assert_eq!(restored.grid_step(), Some(1.0));
     let restored = restore(json!({"gridSize": "30", "gridStep": 150}), Value::Null);

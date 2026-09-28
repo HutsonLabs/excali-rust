@@ -297,7 +297,8 @@ const restoreInputs = (up) => {
     ["value-large", { value: 100 }], ["value-string-junk", { value: "abc" }],
     ["value-string-space", { value: " 3 " }], ["value-to-string-key", { value: { toString: 1 } }],
     ["value-value-of-key", { value: { valueOf: 1 } }], ["value-nested-array", { value: [[1, 2], null] }],
-    ["tiny", 1e-7],
+    ["tiny", 1e-7], ["value-hex-string", { value: "0x10" }], ["value-exponent-string", { value: "2e" }],
+    ["value-nested-object-array", { value: [{}] }],
   ];
   for (const [id, zoom] of zooms) add(`zoom-${id}`, { zoom });
   add("zoom-local-ignored", {}, { zoom: { value: 3 } });
@@ -423,6 +424,8 @@ const restoreInputs = (up) => {
     ["object-a-to-string-key", { a: { toString: 0 } }], ["object-r-to-string-key", { r: { toString: 0 }, a: 0 }],
     ["object-h-to-string-key", { r: "x", h: { toString: 0 }, a: 0 }],
     ["object-a-nested-array", { a: [[0, 1]] }], ["object-a-null-first", { a: [null, 0] }],
+    ["object-own-has-own-property", { hasOwnProperty: 1, a: 0 }],
+    ["object-a-hex-string", { a: "0x0" }], ["object-a-exponent", { a: "0e5" }],
   ];
   for (const [id, v] of stickies) {
     add(`sticky-stroke-${id}`, { currentItemStickynoteStrokeColor: v });

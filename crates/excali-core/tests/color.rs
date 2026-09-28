@@ -21,11 +21,17 @@ fn color_to_hex_and_is_transparent_match_upstream() {
         let input = case["input"].as_str().unwrap();
         let hex = color_to_hex(input);
         if hex.as_deref() != case["hex"].as_str() {
-            failures.push(format!("colorToHex({input:?}) = {hex:?}, upstream {}", case["hex"]));
+            failures.push(format!(
+                "colorToHex({input:?}) = {hex:?}, upstream {}",
+                case["hex"]
+            ));
         }
         let transparent = is_transparent(input);
         if Value::Bool(transparent) != case["transparent"] {
-            failures.push(format!("isTransparent({input:?}) = {transparent}, upstream {}", case["transparent"]));
+            failures.push(format!(
+                "isTransparent({input:?}) = {transparent}, upstream {}",
+                case["transparent"]
+            ));
         }
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
@@ -53,7 +59,10 @@ fn tinycolor_parses_the_css_notations() {
 #[test]
 fn hex_keeps_alpha_only_below_one() {
     assert_eq!(color_to_hex("rgba(0,0,0,1)").as_deref(), Some("#000000"));
-    assert_eq!(color_to_hex("rgba(0,0,0,0.5)").as_deref(), Some("#00000080"));
+    assert_eq!(
+        color_to_hex("rgba(0,0,0,0.5)").as_deref(),
+        Some("#00000080")
+    );
     assert_eq!(color_to_hex("transparent").as_deref(), Some("#00000000"));
     assert_eq!(color_to_hex("rgba(0,0,0,2)").as_deref(), Some("#000000"));
     assert_eq!(color_to_hex("nope"), None);

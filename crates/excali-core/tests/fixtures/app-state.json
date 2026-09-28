@@ -3183,6 +3183,9 @@
     {"id":"zoom-value-value-of-key","appState":{"zoom":{"value":{"valueOf":1}}},"localAppState":null,"result":{"changed":{"zoom":{"value":null}}}},
     {"id":"zoom-value-nested-array","appState":{"zoom":{"value":[[1,2],null]}},"localAppState":null,"result":{"changed":{"zoom":{"value":null}}}},
     {"id":"zoom-tiny","appState":{"zoom":1e-7},"localAppState":null,"result":{"changed":{"zoom":{"value":0.1}}}},
+    {"id":"zoom-value-hex-string","appState":{"zoom":{"value":"0x10"}},"localAppState":null,"result":{"changed":{"zoom":{"value":null}}}},
+    {"id":"zoom-value-exponent-string","appState":{"zoom":{"value":"2e"}},"localAppState":null,"result":{"changed":{"zoom":{"value":null}}}},
+    {"id":"zoom-value-nested-object-array","appState":{"zoom":{"value":[{}]}},"localAppState":null,"result":{"changed":{"zoom":{"value":null}}}},
     {"id":"zoom-local-ignored","appState":{},"localAppState":{"zoom":{"value":3}},"result":{"changed":{}}},
     {"id":"open-sidebar-empty-string","appState":{"openSidebar":""},"localAppState":null,"result":{"changed":{"openSidebar":{"name":"default"}}}},
     {"id":"open-sidebar-null","appState":{"openSidebar":null},"localAppState":{"openSidebar":{"name":"local"}},"result":{"changed":{}}},
@@ -3755,6 +3758,22 @@
       "localAppState": null,
       "result": {"changed":{"currentItemStickynoteBackgroundColor":{"a":[null,0]}}}
     },
+    {
+      "id": "sticky-stroke-object-own-has-own-property",
+      "appState": {"currentItemStickynoteStrokeColor":{"hasOwnProperty":1,"a":0}},
+      "localAppState": null,
+      "error": "TypeError: color.hasOwnProperty is not a function"
+    },
+    {
+      "id": "sticky-background-object-own-has-own-property",
+      "appState": {"currentItemStickynoteBackgroundColor":{"hasOwnProperty":1,"a":0}},
+      "localAppState": null,
+      "error": "TypeError: color.hasOwnProperty is not a function"
+    },
+    {"id":"sticky-stroke-object-a-hex-string","appState":{"currentItemStickynoteStrokeColor":{"a":"0x0"}},"localAppState":null,"result":{"changed":{}}},
+    {"id":"sticky-background-object-a-hex-string","appState":{"currentItemStickynoteBackgroundColor":{"a":"0x0"}},"localAppState":null,"result":{"changed":{}}},
+    {"id":"sticky-stroke-object-a-exponent","appState":{"currentItemStickynoteStrokeColor":{"a":"0e5"}},"localAppState":null,"result":{"changed":{}}},
+    {"id":"sticky-background-object-a-exponent","appState":{"currentItemStickynoteBackgroundColor":{"a":"0e5"}},"localAppState":null,"result":{"changed":{}}},
     {
       "id": "sticky-local",
       "appState": {},
