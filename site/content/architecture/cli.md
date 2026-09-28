@@ -47,7 +47,7 @@ A file's own export settings are not read: upstream does not restore `exportBack
 | 1 | A file is not what the command reads: not a scene or library (`Error: invalid file`), an image without a scene (`Image doesn't contain scene`), an image whose scene cannot be read (`Error: cannot restore image`), not a library (`Invalid library`), or a library whose items do not restore. |
 | 2 | Usage error: unknown command or option, a bad value, a missing argument. |
 | 3 | A file could not be read or written, or the font directory is missing. |
-| 4 | The scene loaded but cannot be exported: no elements (`Cannot export empty canvas.`), a canvas too big to encode (`Error: Canvas too big`), or no frame with the id given. |
+| 4 | The scene loaded but cannot be exported: no elements (`Cannot export empty canvas.`), a canvas too big to encode (`Error: Canvas too big`: a side over 32767 px or more than 268,435,456 px, the limits browsers put on a canvas), or no frame with the id given. |
 
 Messages go to standard error, prefixed `excali:` and naming the file; the quoted parts are upstream's messages.
 
