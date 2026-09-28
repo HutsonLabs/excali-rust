@@ -11,6 +11,9 @@
 //!   pointer for constant width).
 //! - [`rough_canvas`]: roughjs's `RoughCanvas.draw`, producing display items.
 //! - [`rough_options`]: `generateRoughOptions` and `adjustRoughness`.
+//! - [`shape`]: the rough.js shapes of boxes, lines and arrows;
+//!   [`elbow_arrow`] and [`heading`]: the elbow arrow path and
+//!   `validateElbowPoints`.
 //!
 //! Upstream counterpart: `packages/element/src/shape.ts`, `renderElement.ts`, `packages/excalidraw/renderer/staticScene.ts`.
 //!
@@ -19,7 +22,9 @@
 
 pub mod bounds;
 pub mod display;
+pub mod elbow_arrow;
 pub mod freedraw;
+pub mod heading;
 pub mod rough_canvas;
 pub mod rough_options;
 pub mod shape;
