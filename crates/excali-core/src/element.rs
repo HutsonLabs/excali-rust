@@ -25,7 +25,9 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::fmt;
 
-use crate::constants::{DEFAULT_ELEMENT_PROPS, DEFAULT_FONT_SIZE, DEFAULT_STROKE_STREAMLINE};
+use crate::constants::{
+    COLOR_TRANSPARENT, DEFAULT_ELEMENT_PROPS, DEFAULT_FONT_SIZE, DEFAULT_STROKE_STREAMLINE,
+};
 
 // ---------------------------------------------------------------------------
 // Scalars and ids
@@ -1027,6 +1029,14 @@ impl Element {
         }
     }
 
+    /// An image element as `newImageElement` builds it
+    /// (`newElement.ts:673-692`): the base with `strokeColor` forced to
+    /// `"transparent"`, whatever the base carried, and the image fields.
+    pub fn new_image(mut base: ElementBase, fields: ImageFields) -> Element {
+        base.stroke_color = COLOR_TRANSPARENT.to_owned();
+        Element::new(base, ElementKind::Image(fields))
+    }
+
     /// The element type.
     pub const fn element_type(&self) -> ElementType {
         self.kind.element_type()
@@ -1034,10 +1044,11 @@ impl Element {
 
     /// Can be a binding target (`isBindableElement`,
     /// `typeChecks.ts:184-202`): a bindable type, and for text, only
-    /// without a container.
+    /// without a container (`None` or `""`, which is falsy upstream).
     pub fn is_bindable(&self) -> bool {
         match &self.kind {
-            ElementKind::Text(t) => t.container_id.is_none(),
+            // `!element.containerId`: an empty string is falsy upstream.
+            ElementKind::Text(t) => t.container_id.as_deref().is_none_or(str::is_empty),
             kind => kind.element_type().is_bindable(),
         }
     }
