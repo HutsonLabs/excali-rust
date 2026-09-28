@@ -418,6 +418,25 @@ const dimensionCases = () => [
   { id: "negative-width-two-element-array", call: "base", element: full({ width: [-3, 1] }) },
   { id: "string-width-not-negative", call: "base", element: full({ width: "abc" }) },
   { id: "object-width", call: "base", element: full({ width: { w: -1 } }) },
+  // ToPrimitive on a parsed object: an own `toString` key is not callable,
+  // so no method gives a primitive and the comparison throws.
+  { id: "object-width-own-toString-throws", call: "base", element: full({ width: { toString: 1 } }) },
+  { id: "object-width-own-valueOf", call: "base", element: full({ width: { valueOf: -1 } }) },
+  {
+    id: "negative-width-array-own-toString-throws",
+    call: "base",
+    element: full({ width: [{ toString: 1 }] }),
+  },
+  {
+    id: "negative-width-object-x-own-toString-throws",
+    call: "base",
+    element: full({ x: { toString: 1 }, width: -40 }),
+  },
+  {
+    id: "object-x-own-toString-width-not-negative",
+    call: "base",
+    element: full({ x: { toString: 1 }, width: 40 }),
+  },
   { id: "negative-zero-width", call: "base", element: full({ width: -0 }) },
   { id: "tiny-negative", call: "base", element: full({ x: 1e21, width: -5e-7 }) },
   {
