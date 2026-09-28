@@ -279,7 +279,11 @@ jobs:
   # unicode-range test, containsCJK, scene font loads and
   # generateFontFaceDeclarations, text-wrapping.mjs --check for excali-text's
   # text-wrapping.json (ex-303), upstream's own parseTokens and
-  # getWrappedTextLines under two line-width providers, and
+  # getWrappedTextLines under two line-width providers,
+  # text-element-sizing.mjs --check for excali-text's
+  # text-element-sizing.json (ex-305), upstream's own newTextElement,
+  # refreshTextDimensions, getBoundTextMaxWidth and actionTextAutoResize on
+  # tables of edits and typing sessions, and
   # library-fixtures.mjs --check for
   # library.json, upstream's own parseLibraryJSON,
   # serializeLibraryAsJSON, mergeLibraryItems and getLibraryItemsHash, and
@@ -335,6 +339,8 @@ jobs:
         run: node tools/goldens/font-assets.mjs --check
       - name: excali-text text wrapping goldens match upstream's parseTokens and getWrappedTextLines
         run: node tools/goldens/text-wrapping.mjs --check
+      - name: excali-text text element sizing goldens match upstream's newTextElement, refreshTextDimensions and actionTextAutoResize
+        run: node tools/goldens/text-element-sizing.mjs --check
       - name: excali-core library fixtures match the generator
         run: node tools/goldens/library-fixtures.mjs --check
       - name: excali-core library URL fixtures match the generator
