@@ -842,9 +842,17 @@ struct Clipper {
     out: Vec<PathEdge>,
 }
 
+/// `pin_unsorted` (SkEdgeClipper.cpp), with its comparisons: a NaN passes
+/// through rather than panicking as `f64::clamp` would.
 fn pin_unsorted(v: f64, a: f64, b: f64) -> f64 {
     let (lo, hi) = if b < a { (b, a) } else { (a, b) };
-    v.clamp(lo, hi)
+    if v < lo {
+        lo
+    } else if v > hi {
+        hi
+    } else {
+        v
+    }
 }
 
 const NEARLY_ZERO: f64 = 1.0 / 4096.0;
@@ -2769,6 +2777,11 @@ pub(crate) struct Fill {
 }
 
 fn float_bounds(pts: &[(f32, f32)]) -> Option<[f32; 4]> {
+    // As SkRect::setBoundsCheck: any non-finite point (f32::min and max
+    // would skip a NaN) makes the bounds, and the path, non-finite.
+    if pts.iter().any(|p| !(p.0.is_finite() && p.1.is_finite())) {
+        return None;
+    }
     let mut it = pts.iter();
     let first = it.next()?;
     let (mut l, mut t, mut r, mut b) = (first.0, first.1, first.0, first.1);
@@ -2778,10 +2791,7 @@ fn float_bounds(pts: &[(f32, f32)]) -> Option<[f32; 4]> {
         r = r.max(p.0);
         b = b.max(p.1);
     }
-    [l, t, r, b]
-        .iter()
-        .all(|v| v.is_finite())
-        .then_some([l, t, r, b])
+    Some([l, t, r, b])
 }
 
 /// `SkRect::roundOut`, saturated to i32.
@@ -3189,6 +3199,28 @@ pub(crate) fn fill_rect(rect: [f32; 4], clip: IRect) -> Option<Fill> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn float_bounds_reject_any_non_finite_point() {
+        // SkRect::setBoundsCheck: f32::min and max skip a NaN, the bounds
+        // must not.
+        assert_eq!(
+            float_bounds(&[(0.0, 0.0), (f32::NAN, 1.0), (2.0, 3.0)]),
+            None
+        );
+        assert_eq!(float_bounds(&[(0.0, 0.0), (1.0, f32::INFINITY)]), None);
+        assert_eq!(
+            float_bounds(&[(0.0, 4.0), (2.0, 3.0)]),
+            Some([0.0, 3.0, 2.0, 4.0])
+        );
+    }
+
+    #[test]
+    fn pin_unsorted_passes_nan_through() {
+        assert!(pin_unsorted(f64::NAN, 0.0, 1.0).is_nan());
+        assert_eq!(pin_unsorted(0.5, f64::NAN, 0.5), 0.5);
+        assert_eq!(pin_unsorted(3.0, 2.0, 1.0), 2.0);
+    }
 
     #[test]
     fn safe_round_out_keeps_huge_bounds_measurable() {

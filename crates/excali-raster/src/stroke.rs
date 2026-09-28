@@ -212,7 +212,7 @@ fn eval_cubic_tangent(c: [V; 4], t: f32) -> V {
 }
 
 /// `SkChopCubicAt(src, dst[7], t)`.
-fn chop_cubic_at(c: [V; 4], t: f32) -> [V; 7] {
+pub(crate) fn chop_cubic_at(c: [V; 4], t: f32) -> [V; 7] {
     if t == 1.0 {
         return [c[0], c[1], c[2], c[3], c[3], c[3], c[3]];
     }
@@ -236,6 +236,17 @@ fn find_cubic_inflections(c: [V; 4]) -> Vec<f32> {
     find_unit_quad_roots(bx * cy - by * cx, ax * cy - ay * cx, ax * by - ay * bx)
 }
 
+/// `SkTPin`: `std::max(lo, std::min(x, hi))`, which takes a NaN to `lo`
+/// (`f32::clamp` would keep it).
+pub(crate) fn sk_pin(x: f32, lo: f32, hi: f32) -> f32 {
+    let m = if hi < x { hi } else { x };
+    if lo < m {
+        m
+    } else {
+        lo
+    }
+}
+
 fn formulate_f1_dot_f2(src: [f32; 4]) -> [f32; 4] {
     let a = src[1] - src[0];
     let b = src[2] - 2.0 * src[1] + src[0];
@@ -255,13 +266,21 @@ fn solve_cubic_poly(coeff: [f32; 4]) -> Vec<f32> {
     let r2_minus_q3 = r * r - q3;
     let adiv3 = a / 3.0;
     if r2_minus_q3 < 0.0 {
-        let theta = (r / q3.sqrt()).clamp(-1.0, 1.0).acos();
+        let theta = sk_pin(r / q3.sqrt(), -1.0, 1.0).acos();
         let neg2_root_q = -2.0 * q.sqrt();
         let pi = std::f32::consts::PI;
         let mut t = [
-            (neg2_root_q * (theta / 3.0).cos() - adiv3).clamp(0.0, 1.0),
-            (neg2_root_q * ((theta + 2.0 * pi) / 3.0).cos() - adiv3).clamp(0.0, 1.0),
-            (neg2_root_q * ((theta - 2.0 * pi) / 3.0).cos() - adiv3).clamp(0.0, 1.0),
+            sk_pin(neg2_root_q * (theta / 3.0).cos() - adiv3, 0.0, 1.0),
+            sk_pin(
+                neg2_root_q * ((theta + 2.0 * pi) / 3.0).cos() - adiv3,
+                0.0,
+                1.0,
+            ),
+            sk_pin(
+                neg2_root_q * ((theta - 2.0 * pi) / 3.0).cos() - adiv3,
+                0.0,
+                1.0,
+            ),
         ];
         // bubble_sort then collaps_duplicates.
         t.sort_by(f32::total_cmp);
@@ -281,12 +300,12 @@ fn solve_cubic_poly(coeff: [f32; 4]) -> Vec<f32> {
         if a2 != 0.0 {
             a2 += q / a2;
         }
-        vec![(a2 - adiv3).clamp(0.0, 1.0)]
+        vec![sk_pin(a2 - adiv3, 0.0, 1.0)]
     }
 }
 
 /// `SkFindCubicMaxCurvature`.
-fn find_cubic_max_curvature(c: [V; 4]) -> Vec<f32> {
+pub(crate) fn find_cubic_max_curvature(c: [V; 4]) -> Vec<f32> {
     let x = formulate_f1_dot_f2([c[0].0, c[1].0, c[2].0, c[3].0]);
     let y = formulate_f1_dot_f2([c[0].1, c[1].1, c[2].1, c[3].1]);
     solve_cubic_poly([x[0] + y[0], x[1] + y[1], x[2] + y[2], x[3] + y[3]])
@@ -2113,6 +2132,42 @@ pub(crate) fn stroke_path(src: &[Seg], style: &StrokeStyle) -> Vec<Seg> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn sk_pin_takes_nan_to_the_low_limit() {
+        assert_eq!(sk_pin(f32::NAN, 0.0, 1.0), 0.0);
+        assert_eq!(sk_pin(f32::NAN, -1.0, 1.0), -1.0);
+        assert_eq!(sk_pin(2.0, 0.0, 1.0), 1.0);
+        assert_eq!(sk_pin(-2.0, 0.0, 1.0), 0.0);
+        assert_eq!(sk_pin(0.25, 0.0, 1.0), 0.25);
+    }
+
+    #[test]
+    fn a_huge_cubic_in_line_strokes_as_a_line_to_its_end() {
+        // Its maximum curvature solves to NaN, which SkTPin takes to 0:
+        // CheckCubicLinear finds no reduction points (kLine), so the
+        // stroker draws a line to the end, as Chrome does.
+        for huge in [1e20f32, 1e30] {
+            let c = [(0.5, 0.5), (huge, -huge), (-huge, huge), (150.0, 150.0)];
+            assert_eq!(find_cubic_max_curvature(c), vec![0.0]);
+            let (reduction, points, _) = check_cubic_linear(c);
+            assert!(reduction == Reduction::Line && points.is_empty());
+            let src = [
+                Seg::Move((0.5, 0.5)),
+                Seg::Cubic(
+                    (f64::from(huge), -f64::from(huge)),
+                    (-f64::from(huge), f64::from(huge)),
+                    (150.0, 150.0),
+                ),
+            ];
+            let out = stroke_path(&src, &style(4.0, Cap::Round, Join::Miter));
+            assert!(out.iter().all(|s| match *s {
+                Seg::Move(p) | Seg::Line(p) => p.0.is_finite() && p.1.is_finite(),
+                Seg::Conic(c, p, _) => [c, p].iter().all(|q| q.0.abs() < 200.0),
+                _ => true,
+            }));
+        }
+    }
 
     fn style(width: f32, cap: Cap, join: Join) -> StrokeStyle {
         StrokeStyle {

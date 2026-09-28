@@ -49,6 +49,7 @@ mod aaa;
 mod dash;
 pub mod diff;
 mod edges;
+mod hairline;
 mod stroke;
 
 use excali_scene::display::{
@@ -286,14 +287,44 @@ fn write_coverage(mask: &mut Mask, fill: &aaa::Fill, clip: Option<&Mask>, width:
 /// `stroke_path` ports): both axes of the stroke's width map to at most one
 /// device pixel.
 fn is_hairline(width: f32, ts: tiny_skia::Transform) -> bool {
+    let (len0, len1) = hairline_lengths(width, ts);
+    len0 <= 1.0 && len1 <= 1.0
+}
+
+/// The fast lengths of the width mapped by the matrix
+/// (`SkDrawTreatAsHairline`).
+fn hairline_lengths(width: f32, ts: tiny_skia::Transform) -> (f32, f32) {
     let fast_len = |x: f32, y: f32| {
         let (x, y) = (x.abs(), y.abs());
         let (big, small) = if x < y { (y, x) } else { (x, y) };
         big + small / 2.0
     };
-    let len0 = fast_len(ts.sx * width, ts.ky * width);
-    let len1 = fast_len(ts.kx * width, ts.sy * width);
-    len0 <= 1.0 && len1 <= 1.0
+    (
+        fast_len(ts.sx * width, ts.ky * width),
+        fast_len(ts.kx * width, ts.sy * width),
+    )
+}
+
+/// The coverage tiny-skia scales a thin stroke's hairline by: the mean of
+/// the two lengths. Under the identity a width of this coverage has the
+/// same coverage.
+fn hairline_coverage(width: f32, ts: tiny_skia::Transform) -> f32 {
+    let (len0, len1) = hairline_lengths(width, ts);
+    (len0 + len1) * 0.5
+}
+
+fn seg_points(segs: &[edges::Seg]) -> Vec<(f32, f32)> {
+    let f = |p: edges::P| (p.0 as f32, p.1 as f32);
+    let mut out = Vec::new();
+    for s in segs {
+        match *s {
+            edges::Seg::Move(p) | edges::Seg::Line(p) => out.push(f(p)),
+            edges::Seg::Quad(a, p) | edges::Seg::Conic(a, p, _) => out.extend([f(a), f(p)]),
+            edges::Seg::Cubic(a, b, p) => out.extend([f(a), f(b), f(p)]),
+            edges::Seg::Close => {}
+        }
+    }
+    out
 }
 
 fn transform(t: &Transform) -> tiny_skia::Transform {
@@ -356,9 +387,12 @@ fn solid_paint(c: tiny_skia::Color) -> Paint<'static> {
 }
 
 /// A path's segments as a tiny-skia path (the one tiny-skia's hairliner
-/// takes), or `None` when it has no geometry. Arcs
-/// are Skia's conics, as quadratics within 1/4 unit.
-fn skia_path(segs: &[edges::Seg]) -> Option<tiny_skia::Path> {
+/// takes), or `None` when it has no geometry or any point is not finite
+/// (SkDraw drops a path that is not finite, `SkPath::isFinite`). Arcs
+/// are Skia's conics, as quadratics within 1/4 unit. With `flatten` (a
+/// device-space path), curves past what tiny-skia's hairliner takes are
+/// Skia's hairline lines instead (hairline.rs).
+fn skia_path(segs: &[edges::Seg], flatten: bool) -> Option<tiny_skia::Path> {
     let mut pb = tiny_skia::PathBuilder::new();
     let mut last = (0.0, 0.0);
     let f = |p: edges::P| (p.0 as f32, p.1 as f32);
@@ -373,23 +407,56 @@ fn skia_path(segs: &[edges::Seg]) -> Option<tiny_skia::Path> {
                 last = p;
             }
             edges::Seg::Quad(c, p) => {
-                pb.quad_to(f(c).0, f(c).1, f(p).0, f(p).1);
+                hair_quad(&mut pb, [f(last), f(c), f(p)], flatten);
                 last = p;
             }
             edges::Seg::Conic(c, p, w) => {
-                for (_, c, q) in edges::conic_quads(last, c, p, w) {
-                    pb.quad_to(f(c).0, f(c).1, f(q).0, f(q).1);
+                for (s, c, q) in edges::conic_quads(last, c, p, w) {
+                    hair_quad(&mut pb, [f(s), f(c), f(q)], flatten);
                 }
                 last = p;
             }
             edges::Seg::Cubic(a, b, p) => {
-                pb.cubic_to(f(a).0, f(a).1, f(b).0, f(b).1, f(p).0, f(p).1);
+                let c = [f(last), f(a), f(b), f(p)];
+                if flatten && hairline::overflows(&c) {
+                    hair_pieces(&mut pb, hairline::cubic(c));
+                } else {
+                    pb.cubic_to(c[1].0, c[1].1, c[2].0, c[2].1, c[3].0, c[3].1);
+                }
                 last = p;
             }
             edges::Seg::Close => pb.close(),
         }
     }
-    pb.finish()
+    let path = pb.finish()?;
+    path.points()
+        .iter()
+        .all(|p| p.x.is_finite() && p.y.is_finite())
+        .then_some(path)
+}
+
+/// A quadratic for tiny-skia's hairliner, or, when its coordinates are
+/// past what tiny-skia's finiteness test takes, the lines Skia draws it
+/// with (hairline.rs).
+fn hair_quad(pb: &mut tiny_skia::PathBuilder, q: [(f32, f32); 3], flatten: bool) {
+    if flatten && hairline::overflows(&q) {
+        hair_pieces(pb, hairline::quad(q));
+    } else {
+        pb.quad_to(q[1].0, q[1].1, q[2].0, q[2].1);
+    }
+}
+
+fn hair_pieces(pb: &mut tiny_skia::PathBuilder, pieces: Vec<hairline::Piece>) {
+    for piece in pieces {
+        match piece {
+            hairline::Piece::Lines(pts) => {
+                for p in pts {
+                    pb.line_to(p.0, p.1);
+                }
+            }
+            hairline::Piece::Skip(p) => pb.move_to(p.0, p.1),
+        }
+    }
 }
 
 fn skia_stroke(stroke: &Stroke) -> tiny_skia::Stroke {
@@ -497,7 +564,26 @@ impl<I: ImageStore, T: TextRasterizer> Painter for RasterPainter<'_, I, T> {
         if hairline {
             // Skia's anti-aliased hairline with the alpha scaled by the
             // width, as the browser draws it; tiny-skia ports it.
-            let Some(path) = skia_path(&src) else {
+            let device = edges::transform_segs(&src, &state.transform);
+            let (path, sk, ts) = if hairline::overflows(&seg_points(&device)) {
+                // Curves past what tiny-skia's hairliner takes are cut into
+                // Skia's lines in device space (hairline.rs), as Skia cuts
+                // them. Drawn untransformed, a width of tiny-skia's
+                // coverage (the mean of the fast lengths of the width under
+                // the matrix) keeps the alpha it scales the paint by.
+                let sk = tiny_skia::Stroke {
+                    width: hairline_coverage(sk.width, ts),
+                    ..sk
+                };
+                (
+                    skia_path(&device, true),
+                    sk,
+                    tiny_skia::Transform::identity(),
+                )
+            } else {
+                (skia_path(&src, false), sk, ts)
+            };
+            let Some(path) = path else {
                 return;
             };
             let clip = self.clips.last().map(|c| &c.mask);
