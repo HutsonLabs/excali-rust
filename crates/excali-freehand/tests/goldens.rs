@@ -27,9 +27,9 @@
 use std::path::Path;
 
 use excali_freehand::{
-    constant_width_outline, ease_out_sine, get_stroke, get_stroke_outline_points, get_stroke_points,
-    variable_width_options, variable_width_outline, CapOptions, InputPoint, StrokeOptions,
-    StrokePoint, Taper, DEFAULT_STROKE_STREAMLINE,
+    constant_width_outline, ease_out_sine, get_stroke, get_stroke_outline_points,
+    get_stroke_points, variable_width_options, variable_width_outline, CapOptions, InputPoint,
+    StrokeOptions, StrokePoint, Taper, DEFAULT_STROKE_STREAMLINE,
 };
 use serde_json::Value;
 

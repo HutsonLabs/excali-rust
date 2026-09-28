@@ -130,7 +130,11 @@ fn check_outline<const N: usize>(id: &str, got: &[[f64; N]], want: &[[f64; N]]) 
 #[test]
 fn laser_pointer_goldens() {
     let cases = load("laser-pointer.json");
-    assert!(cases.len() >= 50, "laser-pointer.json has {} cases", cases.len());
+    assert!(
+        cases.len() >= 50,
+        "laser-pointer.json has {} cases",
+        cases.len()
+    );
     let (mut outlines, mut errors) = (0, 0);
     for c in &cases {
         let id = c["id"].as_str().expect("id");
@@ -156,7 +160,11 @@ fn laser_pointer_goldens() {
         match (error, c.get("error")) {
             (Some((at, e)), Some(want)) => {
                 assert_eq!(at, want["at"], "{id}: error at");
-                assert_eq!(e.to_string(), want["message"].as_str().expect("message"), "{id}");
+                assert_eq!(
+                    e.to_string(),
+                    want["message"].as_str().expect("message"),
+                    "{id}"
+                );
                 assert_eq!(e, LaserPointerError::NotImplemented, "{id}");
                 errors += 1;
             }
@@ -175,7 +183,10 @@ fn laser_pointer_goldens() {
             ),
         }
     }
-    assert!(outlines >= 50 && errors == 2, "{outlines} outlines, {errors} errors");
+    assert!(
+        outlines >= 50 && errors == 2,
+        "{outlines} outlines, {errors} errors"
+    );
 }
 
 /// `LaserPointer.defaults` and `LaserPointer.constants` (`state.ts:29-43`).
@@ -279,7 +290,11 @@ fn douglas_peucker_is_upstreams() {
     assert_eq!(douglas_peucker(&line, 0.0), line);
     assert_eq!(douglas_peucker(&line[..2], 5.0), line[..2].to_vec());
     assert_eq!(douglas_peucker(&line, 0.6), vec![line[0], line[2]]);
-    assert_eq!(douglas_peucker(&line, 0.5), line, "a distance equal to epsilon keeps the point");
+    assert_eq!(
+        douglas_peucker(&line, 0.5),
+        line,
+        "a distance equal to epsilon keeps the point"
+    );
     let bump: Vec<LaserPoint> = vec![
         [0.0, 0.0, 0.0],
         [1.0, 0.05, 0.0],
@@ -287,10 +302,7 @@ fn douglas_peucker_is_upstreams() {
         [3.0, 0.05, 0.0],
         [4.0, 0.0, 0.0],
     ];
-    assert_eq!(
-        douglas_peucker(&bump, 1.0),
-        vec![bump[0], bump[2], bump[4]]
-    );
+    assert_eq!(douglas_peucker(&bump, 1.0), vec![bump[0], bump[2], bump[4]]);
 }
 
 /// `addPoint` drops a point with the same x and y as the last one kept, and
