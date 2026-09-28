@@ -777,3 +777,142 @@ fn numbers_are_written_as_javascript_does() {
     assert!(text.contains("\"height\": 1.5e-7,"));
     assert!(text.contains("\"updated\": 1700000000000,"));
 }
+
+// ---------------------------------------------------------------------------
+// Integer-like keys: a JS object enumerates array-index keys ("0" to
+// "4294967294") first, ascending, then the other keys in insertion order
+// (ECMA-262 OrdinaryOwnPropertyKeys), so JSON.stringify writes them first
+// whatever order they were assigned in.
+
+/// The keys of the JSON object that starts at `from` in `text`, one level
+/// deep, in the order written (two-space indent, as `to_json` writes).
+fn keys_at(text: &str, from: &str, indent: usize) -> Vec<String> {
+    let start = text
+        .find(from)
+        .unwrap_or_else(|| panic!("{from} not in {text}"));
+    let prefix = format!("\n{}\"", " ".repeat(indent));
+    let close = format!("\n{}}}", " ".repeat(indent - 2));
+    let body = &text[start..];
+    let body = &body[..body.find(&close).unwrap_or(body.len())];
+    body.split(&prefix)
+        .skip(1)
+        .map(|rest| rest[..rest.find('"').unwrap()].to_owned())
+        .collect()
+}
+
+#[test]
+fn a_rust_built_document_writes_integer_like_keys_first_like_js() {
+    // JSON.stringify({type: "excalidraw", version: 2, source: "s",
+    //   elements: [], appState: {b: 1, "1": 2},
+    //   files: {zz: 1, "10": 2, "2": 3}, "7": 1}, null, 2) in node:
+    let expected = "{\n  \"7\": 1,\n  \"type\": \"excalidraw\",\n  \"version\": 2,\n  \"source\": \"s\",\n  \"elements\": [],\n  \"appState\": {\n    \"1\": 2,\n    \"b\": 1\n  },\n  \"files\": {\n    \"2\": 3,\n    \"10\": 2,\n    \"zz\": 1\n  }\n}";
+    let mut doc = Document::new(
+        "s",
+        Vec::new(),
+        object(json!({"b": 1, "1": 2})),
+        Some(object(json!({"zz": 1, "10": 2, "2": 3}))),
+    );
+    doc.extra.insert("7".into(), json!(1));
+    assert_eq!(doc.to_json(), expected);
+    // serde sees the same order.
+    let serialized = serde_json::to_string(&doc).unwrap();
+    assert!(serialized.starts_with("{\"7\":1,\"type\":"), "{serialized}");
+}
+
+#[test]
+fn a_rust_built_element_writes_integer_like_keys_first_like_js() {
+    let mut element = text_element("t", "hi");
+    element.extra.insert("q".into(), json!(1));
+    element.extra.insert("3".into(), json!(2));
+    element.extra.insert("4294967295".into(), json!(3)); // not an index
+    element.base.custom_data = Some(object(json!({"k": 1, "0": 2, "01": 3})));
+    let doc = Document::new("s", vec![element], Map::new(), None);
+    let written = doc.to_json();
+    assert_eq!(written, json::round_trip(&written).unwrap());
+    let keys = keys_at(&written, "\"elements\"", 6);
+    assert_eq!(keys.first().map(String::as_str), Some("3"), "{written}");
+    assert_eq!(keys[1], "id");
+    assert_eq!(&keys[keys.len() - 2..], ["q", "4294967295"]);
+    assert_eq!(
+        keys_at(&written, "\"customData\"", 8),
+        ["0", "k", "01"],
+        "{written}"
+    );
+}
+
+#[test]
+fn integer_like_keys_added_to_a_read_document_are_written_first_like_js() {
+    let text = "{\n  \"type\": \"excalidraw\",\n  \"version\": 2,\n  \"source\": \"s\",\n  \"elements\": [],\n  \"appState\": {\n    \"b\": 1\n  },\n  \"files\": {\n    \"zz\": {\n      \"id\": \"zz\"\n    }\n  },\n  \"future\": true\n}";
+    let mut doc = Document::from_json(text).unwrap();
+    assert_eq!(doc.to_json(), text);
+    doc.extra.insert("5".into(), json!(1));
+    let app_state = doc.app_state.as_mut().unwrap();
+    app_state.insert("5".into(), json!(2));
+    app_state.insert("0".into(), json!(3));
+    app_state.insert("nested".into(), json!({"y": 1, "9": 2}));
+    doc.files
+        .as_mut()
+        .unwrap()
+        .insert("42".into(), json!({"id": "42"}));
+    // The same edits on JSON.parse(text) in node, then
+    // JSON.stringify(data, null, 2):
+    let expected = "{\n  \"5\": 1,\n  \"type\": \"excalidraw\",\n  \"version\": 2,\n  \"source\": \"s\",\n  \"elements\": [],\n  \"appState\": {\n    \"0\": 3,\n    \"5\": 2,\n    \"b\": 1,\n    \"nested\": {\n      \"9\": 2,\n      \"y\": 1\n    }\n  },\n  \"files\": {\n    \"42\": {\n      \"id\": \"42\"\n    },\n    \"zz\": {\n      \"id\": \"zz\"\n    }\n  },\n  \"future\": true\n}";
+    assert_eq!(doc.to_json(), expected);
+}
+
+#[test]
+fn integer_like_keys_added_to_a_read_element_are_written_first_like_js() {
+    let mut doc = Document::from_json(UNKNOWN_KEYS).unwrap();
+    let elements = doc.elements.as_mut().unwrap();
+    elements[0].extra.insert("5".into(), json!(true));
+    elements[0].base.custom_data = Some(object(json!({"k": 1, "2": 2})));
+    elements[1].extra.insert("12".into(), json!(1));
+    elements[1].extra.insert("3".into(), json!(2));
+    let written = doc.to_json();
+    assert_eq!(written, json::round_trip(&written).unwrap());
+    let first = keys_at(&written, "\"elements\"", 6);
+    assert_eq!(first.first().map(String::as_str), Some("5"), "{written}");
+    assert_eq!(keys_at(&written, "\"customData\"", 8), ["2", "k"]);
+    assert!(
+        written.contains("{\n      \"3\": 2,\n      \"12\": 1,\n      \"id\": \"t1\","),
+        "{written}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Lone surrogates in appState and files are kept per key
+
+#[test]
+fn editing_app_state_or_files_keeps_lone_surrogates_in_untouched_keys() {
+    let text = "{\n  \"type\": \"excalidraw\",\n  \"elements\": [],\n  \"appState\": {\n    \"a\": \"\\ud800\",\n    \"b\": 1,\n    \"c\": {\n      \"d\": \"\\udc00\"\n    }\n  },\n  \"files\": {\n    \"f\": {\n      \"x\": \"\\udbff\"\n    },\n    \"g\": 1\n  }\n}";
+    let mut doc = Document::from_json(text).unwrap();
+    assert_eq!(doc.to_json(), text);
+    assert_eq!(doc.app_state.as_ref().unwrap()["a"], json!("\u{FFFD}"));
+    let app_state = doc.app_state.as_mut().unwrap();
+    app_state.insert("b".into(), json!(2));
+    app_state.shift_remove("c");
+    app_state.insert("e".into(), json!("new"));
+    let files = doc.files.as_mut().unwrap();
+    files.insert("g".into(), json!(2));
+    files.insert("h".into(), json!(3));
+    // The same edits on JSON.parse(text) in node, then
+    // JSON.stringify(data, null, 2): "a" and "f" are untouched.
+    let expected = "{\n  \"type\": \"excalidraw\",\n  \"elements\": [],\n  \"appState\": {\n    \"a\": \"\\ud800\",\n    \"b\": 2,\n    \"e\": \"new\"\n  },\n  \"files\": {\n    \"f\": {\n      \"x\": \"\\udbff\"\n    },\n    \"g\": 2,\n    \"h\": 3\n  }\n}";
+    assert_eq!(doc.to_json(), expected);
+
+    // A key whose value changes is written from the model.
+    doc.app_state
+        .as_mut()
+        .unwrap()
+        .insert("a".into(), json!("z"));
+    assert!(doc.to_json().contains("\"a\": \"z\","));
+}
+
+#[test]
+fn app_state_keys_named_with_lone_surrogates_keep_their_names() {
+    let text = "{\n  \"type\": \"excalidraw\",\n  \"elements\": [],\n  \"appState\": {\n    \"\\ud800\": 1,\n    \"b\": 1\n  }\n}";
+    let mut doc = Document::from_json(text).unwrap();
+    assert_eq!(doc.app_state.as_ref().unwrap()["\u{FFFD}"], json!(1));
+    doc.app_state.as_mut().unwrap().insert("b".into(), json!(2));
+    assert_eq!(doc.to_json(), text.replace("\"b\": 1", "\"b\": 2"));
+}
