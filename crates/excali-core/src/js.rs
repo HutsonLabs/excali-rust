@@ -370,7 +370,7 @@ pub(crate) fn less_than(a: Option<&Value>, b: Option<&Value>) -> Result<bool, Ty
     };
     let (x, y) = (to_primitive(a)?, to_primitive(b)?);
     if let (Some(Value::String(x)), Some(Value::String(y))) = (&x, &y) {
-        return Ok(json::to_utf16(x) < json::to_utf16(y));
+        return Ok(crate::json::to_utf16(x) < crate::json::to_utf16(y));
     }
     Ok(to_number(x.as_ref())? < to_number(y.as_ref())?)
 }
