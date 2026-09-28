@@ -56,6 +56,7 @@ on an arm64 machine only.
 | `elements-arrowheads.json` | all 14 arrowheads, start and end, sw 1/2/4, curved, dashed, dotted, short, outline fills | ex-212 |
 | `elements-freedraw.json` | perfect-freehand and laser-pointer outlines, trimmed SVG path, loop fills | ex-213, ex-214, ex-215 |
 | `elements-iframe-like.json` | `modifyIframeLikeForRoughOptions` placeholders and defaults | ex-208 |
+| `elements-matrix.json` | the M2 matrix: every element type with a background colour at every fill style × roughness 0, 1, 2 × seeds 1, 7, 1041657908 (rectangle sharp and roundness 3, diamond sharp and roundness 2, ellipse, iframe, embeddable, line loop sharp and curved, polygon line, arrow sharp and curved with a filled triangle head, freedraw loop variable and constant width; text, image, frame, magicframe and stickynote record no shape); `crates/excali-scene/tests/element_matrix.rs` fails on any missing cell | ex-g202 |
 | `freehand.json` | `getStrokePoints` and `getStroke` with Excalidraw's options, the library defaults, and `edge/` cases for the branches Excalidraw never reaches (taper `true`/`false`, flat caps, cap easings, one-point strokes with a taper, `{x, y, pressure}` points, missing and negative pressures, reversals, duplicates, size 0, no points) | ex-213 |
 | `laser-pointer.json` | the vendored `@excalidraw/laser-pointer` (`packages/laser-pointer/src`): `excalidraw/` cases with `getConstantWidthFreedrawOutline`'s options (size `sw * 1.4`, simplify 0, `sizeMapping` `max(0.1, pressure)`, pressure 1) for the freedraw fixture points, and `edge/` cases for the rest of the library (defaults, `output`/`input`/`tail` simplify phases and the tail's `Not implemented yet` throw, corners at both speeds, zero sizes, `keepHead`, size overrides, one and two points, duplicates, no points); `sizeMapping` is named (`SIZE_MAPPINGS` in `fixtures.mjs`) | ex-214 |
 | `math.json` | every `packages/math/src` export except `pca.ts`, called on fixed and Park-Miller-random inputs (`math.mjs`): `{ id, fn, args, result }`; the `curve.ts` cases (including the `curveLength` fixtures) are ex-202's | ex-201, ex-202 |
@@ -150,7 +151,7 @@ a plain `cargo test --workspace` runs every golden. CI also runs the golden
 targets on arm64, where the goldens were generated:
 
 ```sh
-cargo test --workspace --features goldens --test goldens --test golden_harness --test goldens_manifest
+cargo test --workspace --features goldens --test goldens --test element_matrix --test golden_harness --test goldens_manifest
 ```
 
 ## Adding cases

@@ -434,6 +434,52 @@ test("freedraw goldens: outline, svg path and loop fill (ex-213/214)", () => {
   }
 });
 
+test("element matrix: every type x fill style x roughness 0/1/2 x seed 1/7/1041657908 (ex-g202)", () => {
+  const cs = cases("elements-matrix.json");
+  const fills = ["hachure", "cross-hatch", "zigzag", "solid"];
+  // the variant is read from the element, not the id
+  const variantOf = (el) => {
+    const round = el.roundness !== null;
+    if ((el.type === "rectangle" || el.type === "diamond") && round) return `${el.type}-round`;
+    if (el.type === "line") return el.polygon ? "line-polygon" : round ? "line-loop-curve" : "line-loop";
+    if (el.type === "arrow") return round ? "arrow-curve" : "arrow";
+    if (el.type === "freedraw") return `freedraw-${el.strokeOptions.variability}`;
+    return el.type;
+  };
+  const variants = [
+    "rectangle", "rectangle-round", "diamond", "diamond-round", "ellipse", "iframe", "embeddable",
+    "line-loop", "line-loop-curve", "line-polygon", "arrow", "arrow-curve",
+    "freedraw-variable", "freedraw-constant", "text", "image", "frame", "magicframe", "stickynote",
+  ];
+  const shapeless = ["text", "image", "frame", "magicframe", "stickynote"];
+  const cells = new Map();
+  for (const c of cs) {
+    const el = c.element;
+    const key = `${variantOf(el)}/${el.fillStyle}-r${el.roughness}-seed${el.seed}`;
+    assert.equal(c.id, `matrix/${key}`, `${c.id}: id names the element's cell`);
+    assert.notEqual(el.backgroundColor, "transparent", `${c.id}: background`);
+    cells.set(key, c);
+    if (shapeless.includes(el.type)) {
+      assert.deepEqual(c.shapes, [], `${c.id}: no rough shape (shape.ts:996-1006)`);
+    } else {
+      assert.ok(c.shapes.length > 0, `${c.id}: shapes`);
+    }
+    if (el.type === "freedraw") {
+      assert.equal(c.shapes.length, 2, `${c.id}: loop fill and stroke`);
+      assert.equal(c.shapes[0].drawable.options.fillStyle, el.fillStyle, `${c.id}: fill style`);
+    }
+    if (el.type === "arrow") assert.equal(el.endArrowhead, "triangle", `${c.id}: filled head`);
+  }
+  for (const v of variants) {
+    for (const f of fills) {
+      for (const r of ROUGHNESSES) {
+        for (const s of SEEDS) assert.ok(cells.has(`${v}/${f}-r${r}-seed${s}`), `${v} ${f} r${r} seed ${s}`);
+      }
+    }
+  }
+  assert.equal(cs.length, variants.length * fills.length * ROUGHNESSES.length * SEEDS.length);
+});
+
 test("iframe-like goldens follow modifyIframeLikeForRoughOptions (shape.ts:262-293)", () => {
   const cs = cases("elements-iframe-like.json");
   const opts = (c) => c.shapes[0].drawable.options;

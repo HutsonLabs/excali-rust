@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-g202 · M2 golden matrix: every element type x fill style x roughness 0/1/2 x seeds 1/7/1041657908 in the goldens and CI
+
+`goldens/elements-matrix.json` records upstream's `generateElementShape` for 684 cases: 19 element variants, from sharp and rounded boxes to curved lines, arrows with a filled head, looped freedraw and the shapeless types, at hachure, cross-hatch, zigzag and solid fills, roughness 0, 1 and 2 and seeds 1, 7 and 1041657908. The port matches every case, and CI now asserts the matrix has no missing cell on both the Rust and node sides. PR: [#59](https://github.com/HutsonLabs/excali-rust/pull/59).
+
 ## 2026-09-28 · ex-303 · Wrapping port (textWrapping.ts) with upstream tests
 
 `excali_text::text_wrapping` ports `textWrapping.ts`: `parse_tokens` splits lines with upstream's break regex evaluated in order (CJK, emoji, whitespace, hyphens), and `wrap_text` wraps them to a width with `wrap_line`, `wrap_word` and `trim_line`, using UTF-16 offsets like the browser. `textWrapping.test.ts` is ported case for case under a 10 px per character test metric, and the output matches upstream's `parseTokens`/`getWrappedTextLines` goldens. PR: [#58](https://github.com/HutsonLabs/excali-rust/pull/58).
