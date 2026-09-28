@@ -15,7 +15,7 @@
 use serde_json::{Map, Value};
 
 use super::{
-    restore_elements_encoded, SceneCall, ElbowArrowRequest, RestoreElementsOptions, RestoreEnv,
+    restore_elements_encoded, ElbowArrowRequest, RestoreElementsOptions, RestoreEnv, SceneCall,
     StickyNoteLayout, StickyNoteLayoutRequest, TestEnv, TextDimensionsRequest,
 };
 use crate::json;
@@ -82,7 +82,9 @@ impl FixtureEnv {
 }
 
 fn id_of(element: &Map<String, Value>) -> String {
-    element.get("id").map_or("undefined".to_owned(), Value::to_string)
+    element
+        .get("id")
+        .map_or("undefined".to_owned(), Value::to_string)
 }
 
 /// The id of the second argument as the fixture records it.

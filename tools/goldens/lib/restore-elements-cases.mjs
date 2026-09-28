@@ -347,6 +347,22 @@ const indexCases = () => [
     rect("d", { index: "a1" }),
   ]),
   scene("index-empty-string", [rect("a", { index: "" }), rect("b", { index: "a5" })]),
+  // a malformed key that sorts high still bounds what follows it
+  scene("index-malformed-bounds-next", [
+    rect("a", { index: "a0" }),
+    rect("b", { index: null }),
+    rect("c", { index: "zzz" }),
+    rect("d", { index: "a1" }),
+  ]),
+  // non-string indices are never valid, and compare as JS values
+  scene("index-non-strings", [
+    rect("a", { index: 5 }),
+    rect("b", { index: "a0" }),
+    rect("c", { index: ["a1"] }),
+    rect("d", { index: { k: 1 } }),
+    rect("e", { index: true }),
+    rect("f", { index: "a2" }),
+  ]),
   scene("index-version-string", [rect("a", { index: null, version: "3" })]),
   scene("index-version-missing", [without(rect("a", { index: null }), "version")]),
   scene("index-with-existing-elements", [rect("a", { index: null })], {
@@ -676,6 +692,48 @@ const errorCases = () => [
     label("t", "r"),
   ], { opts: repair }),
   scene("bound-elements-not-array-without-repair", [rect("r", { boundElements: "t" })]),
+  // the container keeps a falsy boundElements; the order pass then calls
+  // .some on it
+  scene("throws-container-bound-elements-false", [
+    rect("r", { boundElements: false }),
+    label("t", "r"),
+  ], { opts: repair }),
+  scene("container-bound-elements-null-order", [
+    rect("r", { boundElements: null }),
+    rect("s", { boundElements: 0 }),
+    label("t", "s"),
+  ]),
+  // a text with a container and a string boundElements: only the
+  // containerId branch repairs it, the order pass iterates the string
+  scene("text-with-container-string-bound-elements", [
+    label("t", "r", { boundElements: "xy" }),
+    rect("r", { boundElements: [{ type: "text", id: "t" }] }),
+  ], { opts: repair }),
+  scene("non-object-items-dropped", [5, "rect", [1, 2], true, rect("r")]),
+  // object and array ids are Set and Map keys by identity: never duplicates,
+  // never found from another element's reference (a copy)
+  scene("object-and-array-ids", [
+    rect({ k: 1 }),
+    rect({ k: 1 }),
+    rect([1]),
+    rect("r", { boundElements: [{ type: "arrow", id: { k: 1 } }], frameId: { k: 1 } }),
+  ], { opts: repair }),
+  {
+    id: "bump-versions-string-and-missing",
+    call: "bumpElementVersions",
+    elements: [
+      rect("a", { index: "a0", version: "3" }),
+      rect("b", { index: "a1", version: 3 }),
+      rect("c", { index: "a2", version: 3, versionNonce: 5 }),
+      rect("d", { index: "a3", version: 3 }),
+    ],
+    existing: [
+      rect("a", { version: 20 }),
+      rect("b", { version: "20" }),
+      rect("c", { version: 3, versionNonce: 5 }),
+      without(rect("d"), "version"),
+    ],
+  },
 ];
 
 // -- whole scenes ------------------------------------------------------------------------
