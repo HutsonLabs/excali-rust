@@ -355,7 +355,7 @@ Checkout: commit `438d898`. Paths are relative to `<checkout>`. Each claim cites
 
 | JS dependency | Rust option |
 |---|---|
-| roughjs | `roughr` (a port) or hand-port roughjs 4.6.4 |
+| roughjs | hand-port roughjs 4.6.4 (`excali-rough`); the `roughr` crate matches 7.8 % of the goldens ([ADR-003](../../decisions/adr-003-sketch-renderer/)) |
 | perfect-freehand | port it (small) |
 | points-on-curve | port it |
 | pako | port pako 2.0.3's deflate and inflate (byte-identical output, pako's error messages) |

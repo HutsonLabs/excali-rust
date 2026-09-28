@@ -10,8 +10,8 @@ use std::path::{Path, PathBuf};
 
 use roughr::core::FillStyle;
 use roughr_eval::{
-    evaluate, first_difference, recommend, roughr_options, run, to_fixed, Op, Precision, Set,
-    DIVERGENCES, FILES,
+    classify, evaluate, first_difference, recommend, report_name, roughr_is_park_miller,
+    roughr_options, run, to_fixed, Op, Precision, Set, DIVERGENCES, FILES,
 };
 use serde_json::{json, Value};
 
@@ -151,7 +151,10 @@ fn run_returns_roughr_sets_in_golden_vocabulary() {
     let sets = run("line", &[json!(0), json!(0), json!(100), json!(0)], &o).expect("runs");
     assert_eq!(sets.len(), 1);
     assert_eq!(sets[0].kind, "path");
-    assert!(sets[0].ops.iter().all(|op| ["move", "lineTo", "bcurveTo"].contains(&op.op.as_str())));
+    assert!(sets[0]
+        .ops
+        .iter()
+        .all(|op| ["move", "lineTo", "bcurveTo"].contains(&op.op.as_str())));
     assert_eq!(sets[0].ops[0].op, "move");
     let o = resolved(json!({"seed": 1, "fill": "#a5d8ff", "fillStyle": "solid"}));
     let sets = run(
@@ -173,16 +176,26 @@ fn first_difference_names_where_and_what() {
     ]}]);
     let same = set(
         "path",
-        &[("move", &[1.0, 2.0]), ("bcurveTo", &[1.0, 2.0, 3.0, 4.0, 5.0, 6.001])],
+        &[
+            ("move", &[1.0, 2.0]),
+            ("bcurveTo", &[1.0, 2.0, 3.0, 4.0, 5.0, 6.001]),
+        ],
     );
     assert_eq!(first_difference(&expected, &[same], Precision::Exact), None);
 
     let close = set(
         "path",
-        &[("move", &[1.0, 2.0]), ("bcurveTo", &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0])],
+        &[
+            ("move", &[1.0, 2.0]),
+            ("bcurveTo", &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]),
+        ],
     );
     assert_eq!(
-        first_difference(&expected, std::slice::from_ref(&close), Precision::Decimals(2)),
+        first_difference(
+            &expected,
+            std::slice::from_ref(&close),
+            Precision::Decimals(2)
+        ),
         None
     );
     let d = first_difference(&expected, &[close], Precision::Exact).expect("differs");
@@ -202,12 +215,112 @@ fn first_difference_names_where_and_what() {
     let d = first_difference(&expected, &[], Precision::Decimals(2)).unwrap();
     assert!(d.starts_with("set count:"), "{d}");
 
-    let op = set(
-        "path",
-        &[("move", &[1.0, 2.0]), ("lineTo", &[5.0, 6.0])],
-    );
+    let op = set("path", &[("move", &[1.0, 2.0]), ("lineTo", &[5.0, 6.0])]);
     let d = first_difference(&expected, &[op], Precision::Decimals(2)).unwrap();
     assert!(d.starts_with("op kind:"), "{d}");
+}
+
+fn case(method: &str, args: Value, extra: Value) -> Value {
+    json!({"id": "t", "method": method, "args": args, "options": {},
+           "drawable": {"shape": method, "options": resolved(extra), "sets": []}})
+}
+
+#[test]
+fn classify_names_the_divergence_behind_a_difference() {
+    let rect = json!([0, 0, 10, 10]);
+    assert_eq!(
+        classify(
+            &case("rectangle", rect.clone(), json!({"seed": -5})),
+            "error: seed: non-negative integer expected, got -5"
+        ),
+        ["seed-range"]
+    );
+    assert_eq!(
+        classify(
+            &case("rectangle", rect.clone(), json!({"fill": "none"})),
+            "set count: expected 2 actual 1"
+        ),
+        ["fill-sentinel"]
+    );
+    assert_eq!(
+        classify(
+            &case("rectangle", rect.clone(), json!({"fill": "red"})),
+            "value: set 0 (fillSketch) op 0 (move) data[0] expected 9.99 actual 10"
+        ),
+        ["pattern-fill"]
+    );
+    // A difference within 1e-4 is f32 arithmetic, whatever the set.
+    assert_eq!(
+        classify(
+            &case("ellipse", rect.clone(), json!({})),
+            "value: set 0 (path) op 36 (bcurveTo) data[0] expected 696.915006671141 actual 696.914992608567"
+        ),
+        ["f32"]
+    );
+    assert_eq!(
+        classify(
+            &case("ellipse", rect.clone(), json!({})),
+            "op count: set 0 (path) expected 38 actual 37"
+        ),
+        ["f32"]
+    );
+    assert_eq!(
+        classify(
+            &case("curve", json!([[[0, 0], [30, 30]]]), json!({})),
+            "value: set 0 (path) op 2 (move) data[0] expected -1.35 actual 0.63"
+        ),
+        ["curve-reseed"]
+    );
+    let d = "op count: set 0 (path) expected 8 actual 9";
+    assert_eq!(
+        classify(&case("path", json!(["M 0 0 L 9 9"]), json!({})), d),
+        ["svg-path"]
+    );
+    for s in [0.0, 0.5] {
+        assert_eq!(
+            classify(
+                &case("path", json!(["M 0 0 L 9 9"]), json!({"simplification": s})),
+                d
+            ),
+            ["path-simplification"],
+            "simplification {s}"
+        );
+    }
+    let fill = "value: set 0 (fillPath) op 0 (move) data[0] expected 0.1 actual -0.7";
+    let solid = json!({"fill": "red", "fillStyle": "solid"});
+    assert_eq!(
+        classify(&case("path", json!(["M 0 0 L 9 9 Z"]), solid.clone()), fill),
+        ["solid-fill-shape"]
+    );
+    assert_eq!(
+        classify(
+            &case("curve", json!([[[0, 0], [9, 9], [0, 9]]]), solid.clone()),
+            fill
+        ),
+        ["solid-fill-shape"]
+    );
+    assert_eq!(
+        classify(
+            &case("path", json!(["M 0 0 L 9 9 Z M 20 20 L 30 30 Z"]), solid),
+            fill
+        ),
+        ["path-draw-order"]
+    );
+    // Nothing a divergence explains: no attribution, which the report
+    // tests reject.
+    assert!(classify(
+        &case("line", rect, json!({})),
+        "set type: set 0 expected path actual fillPath"
+    )
+    .is_empty());
+}
+
+#[test]
+fn the_tests_build_roughr_as_published() {
+    // fork.py builds src/ only against park-miller.patch; these tests always
+    // see roughr 0.14.0 from crates.io.
+    assert!(!roughr_is_park_miller());
+    assert_eq!(report_name(), "report.json");
 }
 
 #[test]
@@ -231,11 +344,14 @@ fn evaluation_covers_every_rough_js_golden() {
     for f in manifest["files"].as_array().unwrap() {
         let name = f["name"].as_str().unwrap();
         if name == "random.json" || name.starts_with("rough-") {
-            assert!(FILES.contains(&name), "{name} is a rough.js golden the spike skips");
+            assert!(
+                FILES.contains(&name),
+                "{name} is a rough.js golden the spike skips"
+            );
             expected += f["cases"].as_u64().unwrap() as usize;
         }
     }
-    let report = evaluate(&root().join("goldens"));
+    let report = evaluate(&root());
     assert_eq!(report.total().cases, expected);
     assert_eq!(expected, 7 + 117 + 228 + 224 + 140);
     // Every case either matches or names its first difference.
@@ -246,7 +362,7 @@ fn evaluation_covers_every_rough_js_golden() {
 
 #[test]
 fn committed_report_is_a_fresh_run() {
-    let fresh = evaluate(&root().join("goldens")).to_json();
+    let fresh = evaluate(&root()).to_json();
     let committed: Value =
         serde_json::from_str(&read("tools/roughr-eval/report.json")).expect("report.json parses");
     assert!(
@@ -258,7 +374,7 @@ fn committed_report_is_a_fresh_run() {
 
 #[test]
 fn every_mismatch_is_attributed_to_a_listed_divergence() {
-    let report = evaluate(&root().join("goldens"));
+    let report = evaluate(&root());
     for c in report.cases.iter().filter(|c| !c.svg) {
         assert!(
             !c.divergences.is_empty(),
@@ -273,12 +389,92 @@ fn every_mismatch_is_attributed_to_a_listed_divergence() {
     }
 }
 
+fn fork_report() -> Value {
+    serde_json::from_str(&read("tools/roughr-eval/report-fork.json"))
+        .expect("report-fork.json parses (python3 tools/roughr-eval/fork.py --write)")
+}
+
+#[test]
+fn fork_report_is_roughr_with_rough_js_random() {
+    // report-fork.json is checked for freshness by `fork.py --check` in CI
+    // (it needs the patched build); here: it is the patched roughr, and
+    // the attribution it drives is consistent.
+    let fork = fork_report();
+    assert_eq!(fork["roughr"], "0.14.0 + park-miller.patch");
+    let files = fork["files"].as_array().unwrap();
+    assert_eq!(files[0]["name"], "random.json");
+    assert_eq!(files[0]["svg"], 7, "the patch reproduces Random.next()");
+    assert_eq!(files[0]["exact"], 7);
+    let fork_total = fork["total"]["cases"].as_u64().unwrap() as usize;
+    let fork_svg = fork["total"]["svg"].as_u64().unwrap() as usize;
+    let fork_mismatches: Vec<(String, String)> = fork["mismatches"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|m| {
+            assert!(
+                !m["divergences"].as_array().unwrap().is_empty(),
+                "fork mismatch {m} has no divergence"
+            );
+            assert!(!m["divergences"].as_array().unwrap().contains(&json!("rng")));
+            (
+                m["file"].as_str().unwrap().to_owned(),
+                m["id"].as_str().unwrap().to_owned(),
+            )
+        })
+        .collect();
+    assert_eq!(fork_total - fork_mismatches.len(), fork_svg);
+
+    let report = evaluate(&root());
+    assert_eq!(report.total().cases, fork_total);
+    // Swapping the generator never loses a match ...
+    for c in report.cases.iter().filter(|c| c.svg) {
+        assert!(
+            !fork_mismatches.contains(&(c.file.clone(), c.id.clone())),
+            "{} {} matches as published but not with the patch",
+            c.file,
+            c.id
+        );
+    }
+    // ... and `rng` is exactly what it gains.
+    let rng = report
+        .cases
+        .iter()
+        .filter(|c| c.divergences == ["rng"])
+        .count();
+    assert_eq!(rng, fork_svg - report.total().svg);
+    // The other divergences are the fork's remaining mismatches, case by case.
+    for c in report
+        .cases
+        .iter()
+        .filter(|c| !c.svg && c.divergences != ["rng"])
+    {
+        let m = fork["mismatches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|m| m["file"] == c.file.as_str() && m["id"] == c.id.as_str())
+            .expect("a non-rng mismatch is a fork mismatch");
+        assert_eq!(
+            m["divergences"],
+            json!(c.divergences),
+            "{} {}",
+            c.file,
+            c.id
+        );
+    }
+}
+
 #[test]
 fn adr_003_quotes_the_report() {
     let adr = read("site/content/decisions/adr-003-sketch-renderer.md");
-    let report = evaluate(&root().join("goldens"));
+    let report = evaluate(&root());
+    let fork = fork_report();
     let total = report.total();
-    assert!(adr.contains("**Status.** Accepted"), "ADR-003 is decided by ex-206");
+    assert!(
+        adr.contains("**Status.** Accepted"),
+        "ADR-003 is decided by ex-206"
+    );
     assert!(adr.contains("## Result"), "ADR-003 has the ex-206 result");
     let headline = format!(
         "{} of {} goldens ({})",
@@ -287,15 +483,39 @@ fn adr_003_quotes_the_report() {
         report.percent_svg_text()
     );
     assert!(adr.contains(&headline), "ADR-003 must say: {headline}");
-    for f in report.files() {
+    let mismatches = format!("Every one of the {} mismatches", total.cases - total.svg);
+    assert!(adr.contains(&mismatches), "ADR-003 must say: {mismatches}");
+    let empty = format!("{} of them draw nothing", report.matched_without_ops());
+    assert!(adr.contains(&empty), "ADR-003 must say: {empty}");
+    let fork_headline = format!(
+        "{} of {} goldens ({})",
+        fork["total"]["svg"],
+        fork["total"]["cases"],
+        fork["total"]["percent_svg"].as_str().unwrap()
+    );
+    assert!(
+        adr.contains(&fork_headline),
+        "ADR-003 must say: {fork_headline}"
+    );
+    for (f, ff) in report.files().iter().zip(fork["files"].as_array().unwrap()) {
+        assert_eq!(ff["name"], f.name.as_str());
         let row = format!(
-            "| `{}` | {} | {} | {} |",
-            f.name, f.cases, f.exact, f.svg
+            "| `{}` | {} | {} | {} | {} |",
+            f.name, f.cases, f.exact, f.svg, ff["svg"]
         );
         assert!(adr.contains(&row), "ADR-003 file table needs: {row}");
     }
+    let row = format!(
+        "| total | {} | {} | {} | {} |",
+        total.cases, total.exact, total.svg, fork["total"]["svg"]
+    );
+    assert!(adr.contains(&row), "ADR-003 file table needs: {row}");
     for d in DIVERGENCES {
-        let n = report.cases.iter().filter(|c| c.divergences.contains(&d.id)).count();
+        let n = report
+            .cases
+            .iter()
+            .filter(|c| c.divergences.contains(&d.id))
+            .count();
         let row = format!("| `{}` | {} |", d.id, n);
         assert!(adr.contains(&row), "ADR-003 divergence list needs: {row}");
     }
@@ -304,5 +524,8 @@ fn adr_003_quotes_the_report() {
         adr.contains(&format!("Recommendation: **{rec}**")),
         "ADR-003 must recommend {rec}"
     );
-    assert!(adr.contains("tools/roughr-eval"), "ADR-003 names the evaluation");
+    assert!(
+        adr.contains("tools/roughr-eval"),
+        "ADR-003 names the evaluation"
+    );
 }
