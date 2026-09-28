@@ -97,9 +97,13 @@ fn every_type_elements() -> Vec<Element> {
     embed_base.link = Some("https://example.com".into());
 
     // newStickyNoteElement: normalizeStickyNoteStyle sets the default
-    // sticky background (colors.ts:268) and keeps the stroke.
+    // sticky background (colors.ts:268) and keeps the stroke. It does so
+    // through newElementWith, which bumps `version` and draws a random
+    // `versionNonce` (the value this run drew).
     let mut sticky_base = sized(base("sticky", 6.0, 300.0, 0.0), 200.0, 200.0);
     sticky_base.background_color = "#ffdf6b".into();
+    sticky_base.version = 2.0;
+    sticky_base.version_nonce = 1_166_039_635.0;
 
     let text_base = sized(base("text", 9.0, 5.0, 5.0), 50.0, 25.0);
 
@@ -220,7 +224,12 @@ fn fixtures_are_what_json_stringify_writes() {
 
 #[test]
 fn every_fixture_round_trips_byte_for_byte() {
-    for text in [EVERY_TYPE, UNKNOWN_KEYS, UNKNOWN_KEYS_EDITED, EMPTY_SCENE.trim_end()] {
+    for text in [
+        EVERY_TYPE,
+        UNKNOWN_KEYS,
+        UNKNOWN_KEYS_EDITED,
+        EMPTY_SCENE.trim_end(),
+    ] {
         let doc = Document::from_json(text).expect("fixture parses");
         assert_eq!(doc.to_json(), text);
     }
@@ -330,7 +339,12 @@ fn a_key_removed_from_extra_is_not_written_and_order_holds() {
     let rect = &mut doc.elements.as_mut().unwrap()[0];
     rect.extra.shift_remove("futureMiddle");
     let value = serde_json::to_value(&*rect).unwrap();
-    let keys: Vec<&str> = value.as_object().unwrap().keys().map(String::as_str).collect();
+    let keys: Vec<&str> = value
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(String::as_str)
+        .collect();
     assert_eq!(&keys[..3], ["futureFirst", "id", "type"]);
     assert_eq!(keys[7], "angle");
     assert_eq!(keys[8], "strokeColor");
@@ -346,7 +360,12 @@ fn extra_keys_on_a_new_element_follow_the_known_keys() {
     e.extra.insert("z".into(), json!(1));
     e.extra.insert("a".into(), json!(2));
     let value = serde_json::to_value(&e).unwrap();
-    let keys: Vec<&str> = value.as_object().unwrap().keys().map(String::as_str).collect();
+    let keys: Vec<&str> = value
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(String::as_str)
+        .collect();
     assert_eq!(keys.len(), 29);
     assert_eq!(&keys[..2], ["id", "type"]);
     assert_eq!(&keys[26..], ["locked", "z", "a"]);
@@ -360,7 +379,7 @@ fn an_extra_key_that_the_model_owns_does_not_override_it() {
     );
     e.extra.insert("x".into(), json!("not a number"));
     let value = serde_json::to_value(&e).unwrap();
-    assert_eq!(value["x"], json!(5));
+    assert_eq!(value["x"], json!(5.0));
 }
 
 #[test]
@@ -465,7 +484,11 @@ fn lone_surrogates_in_element_text_survive() {
     let doc = json!({"type": "excalidraw", "elements": [value]});
     let text = json::to_string_pretty(&doc).replace("PLACEHOLDER", "a\\ud83db\\ud83d\\ude00");
     let parsed = Document::from_json(&text).unwrap();
-    assert_eq!(parsed.to_json(), text);
+    // JSON.stringify keeps the lone high surrogate as an escape and writes
+    // the valid pair as the character.
+    let written = parsed.to_json();
+    assert_eq!(written, json::round_trip(&text).unwrap());
+    assert_eq!(written.matches("\"a\\ud83db\u{1F600}\"").count(), 3);
 }
 
 #[test]
