@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-214 · excali-freehand: laser-pointer constant-width variant
+
+`excali-freehand` now has upstream's vendored laser pointer (`LaserPointer`, `douglas_peucker`, `run_length`) and `constant_width_outline` (size strokeWidth * 1.4, simplify 0, pressure 1). All 61 `laser-pointer.json` goldens match. Constant-width freedraw elements go through it in `excali_scene::freedraw`, so all 48 `elements-freedraw.json` elements, both variable and constant width, now give upstream's SVG path byte for byte. PR: [#44](https://github.com/HutsonLabs/excali-rust/pull/44).
+
 ## 2026-09-28 · ex-215 · Outline to path string with quadratic midpoints and 2-decimal trimming
 
 `excali_scene::freedraw` turns a freedraw outline into upstream's SVG path: `M p0 Q p_i mid(p_i, p_i+1) ... L p0 Z` with JS number formatting and the TO_FIXED_PRECISION trimming. All 48 recorded outlines in `elements-freedraw.json` give upstream's path byte for byte. `get_freedraw_outline_points` and `get_free_draw_svg_path` switch on stroke variability: the 32 variable-width elements match end to end, and constant width returns a typed error until ex-214 ports the laser-pointer outline. PR: [#43](https://github.com/HutsonLabs/excali-rust/pull/43).
