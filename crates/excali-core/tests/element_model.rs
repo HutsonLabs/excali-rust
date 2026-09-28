@@ -1335,6 +1335,53 @@ fn restored_values_of_another_type_are_kept_as_read() {
     assert!(Element::from_restored(untyped).is_err());
 }
 
+/// The typed view of a kept value is not what upstream draws (the known
+/// rendering divergence in the file format page): a string the model has no
+/// variant for falls back to a new element's value, and a nested value of
+/// another type makes the whole field fall back. Upstream's renderer reads
+/// the raw value (`packages/element/src/shape.ts:234`, `utils.ts:536`), which
+/// `to_map` gives back unchanged.
+#[test]
+fn the_typed_view_of_a_kept_value_is_not_upstreams_value() {
+    let Value::Object(raw) = with(
+        base_json("v", "rectangle"),
+        json!({
+            "fillStyle": "sparkles",
+            "strokeStyle": "wavy",
+            "roundness": {"type": "3"}
+        }),
+    ) else {
+        unreachable!()
+    };
+    let el = Element::from_restored(raw.clone()).expect("restored element reads");
+    // rough.js fills an unknown style with hachure; the view says solid.
+    assert_eq!(el.base.fill_style, FillStyle::Solid);
+    assert_eq!(el.base.stroke_style, StrokeStyle::Solid);
+    // Upstream sees a truthy roundness object; the view has none.
+    assert_eq!(el.base.roundness, None);
+    // The raw values are what a renderer must read.
+    let back = el.to_map();
+    assert_eq!(back["fillStyle"], json!("sparkles"));
+    assert_eq!(back["strokeStyle"], json!("wavy"));
+    assert_eq!(back["roundness"], json!({"type": "3"}));
+
+    // A nested value of another type is not converted: the whole field
+    // falls back (restore itself drops such points, `restore.ts:158-216`).
+    let Value::Object(raw) = with(
+        base_json("p", "line"),
+        json!({"points": [[10, "10"]], "startBinding": null, "endBinding": null,
+               "startArrowhead": null, "endArrowhead": null}),
+    ) else {
+        unreachable!()
+    };
+    let el = Element::from_restored(raw).expect("restored line reads");
+    let ElementKind::Line(line) = &el.kind else {
+        panic!("line")
+    };
+    assert!(line.linear.points.is_empty());
+    assert_eq!(el.to_map()["points"], json!([[10, "10"]]));
+}
+
 // ---------------------------------------------------------------------------
 // Iframe customData (types.ts:120-136)
 

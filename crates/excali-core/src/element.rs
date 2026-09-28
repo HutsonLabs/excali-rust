@@ -1260,7 +1260,13 @@ impl Element {
     ///
     /// The value is written back as read, in its place, until the field is
     /// changed, as the layout writes any value it reads in a normalised
-    /// form. An object the strict codec reads reads exactly as there. Fails
+    /// form. The view is not upstream's value: a string with no variant
+    /// (`fillStyle: "sparkles"`, which rough.js fills with hachure) reads as
+    /// a new element's value, and a nested value of another type
+    /// (`roundness: {"type": "3"}`) makes the whole field fall back. A
+    /// renderer must read the raw value from [`Element::to_map`] for such a
+    /// field (the known rendering divergence in the file format page).
+    /// An object the strict codec reads reads exactly as there. Fails
     /// only when the `type` is not an element type.
     pub fn from_restored(raw: Map<String, Value>) -> Result<Element, serde_json::Error> {
         Element::from_restored_encoded(&json::escape_map(&raw))
