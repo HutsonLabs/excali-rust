@@ -2,7 +2,8 @@
 //! embeddables, diamonds and ellipses (`_generateElementShape`,
 //! `packages/element/src/shape.ts:761-889`), with the iframe-like colour
 //! handling of `modifyIframeLikeForRoughOptions` (`shape.ts:262-293`); and
-//! the body of lines and arrows (`shape.ts:890-935`).
+//! the body of lines and arrows (`shape.ts:890-935`) and the arrowheads
+//! after it (`shape.ts:295-577, 936-975`).
 //!
 //! See `site/content/research/rendering.md` section 2.
 //!
@@ -25,21 +26,33 @@
 //!   [`elbow_arrow_path`] with corner radius
 //!   [`ELBOW_ARROW_CORNER_RADIUS`], as a continuous path; nothing when a
 //!   coordinate is beyond [`ELBOW_ARROW_MAX_COORDINATE`](crate::elbow_arrow::ELBOW_ARROW_MAX_COORDINATE).
+//! - Arrowheads ([`generate_linear_element_shapes`],
+//!   [`get_arrowhead_shapes`], `shape.ts:295-577, 936-975`): an arrow's
+//!   start and end heads are pushed after its body, placed by
+//!   [`get_arrowhead_points`](crate::bounds::get_arrowhead_points). Line
+//!   heads cap roughness at 1 and are solid (dotted arrows excepted),
+//!   circles cap it at 0.5, and outline variants fill with the canvas
+//!   background.
 
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt;
 
-use excali_core::color::is_transparent;
-use excali_core::element::{Element, ElementKind, ElementType, FillStyle, LocalPoint};
+use excali_core::color::{apply_dark_mode_filter, is_transparent};
+use excali_core::element::{
+    Arrowhead, Element, ElementKind, ElementType, FillStyle, LocalPoint, StrokeStyle,
+};
 use excali_core::json::number_to_string;
 use excali_math::js;
 use excali_rough::path_data::PathError;
-use excali_rough::{Drawable, RoughGenerator};
+use excali_rough::{Drawable, Options as RoughJsOptions, RoughGenerator};
 
-use crate::bounds::get_diamond_points;
+use crate::bounds::{
+    get_arrowhead_points, get_diamond_points, ArrowheadPoints, ArrowheadPosition,
+    InvalidArrowheadOp,
+};
 use crate::elbow_arrow::{elbow_arrow_is_drawable, elbow_arrow_path, ELBOW_ARROW_CORNER_RADIUS};
-use crate::rough_options::{generate_rough_options, UnimplementedType};
+use crate::rough_options::{dash_array_dotted, generate_rough_options, UnimplementedType};
 use crate::utils::get_corner_radius;
 
 /// `EmbedsValidationStatus` (`packages/element/src/types.ts`): whether each
@@ -103,6 +116,9 @@ pub enum ShapeError {
     Path(PathError),
     /// `generateRoughOptions` threw.
     Options(UnimplementedType),
+    /// `getArrowheadPoints` threw: the body op it reads is not a bezier
+    /// curve.
+    Arrowhead(InvalidArrowheadOp),
 }
 
 impl fmt::Display for ShapeError {
@@ -114,6 +130,7 @@ impl fmt::Display for ShapeError {
             ShapeError::NotAnElbowArrow(ty) => write!(f, "{ty} is not an elbow arrow"),
             ShapeError::Path(e) => write!(f, "path data: {e}"),
             ShapeError::Options(e) => e.fmt(f),
+            ShapeError::Arrowhead(e) => write!(f, "arrowhead: {e}"),
         }
     }
 }
@@ -123,6 +140,12 @@ impl std::error::Error for ShapeError {}
 impl From<PathError> for ShapeError {
     fn from(e: PathError) -> Self {
         ShapeError::Path(e)
+    }
+}
+
+impl From<InvalidArrowheadOp> for ShapeError {
+    fn from(e: InvalidArrowheadOp) -> Self {
+        ShapeError::Arrowhead(e)
     }
 }
 
@@ -317,7 +340,7 @@ pub fn generate_element_shape(
 /// (`shape.ts:890-935`): the first shape of the element, which upstream
 /// keeps first so the curve is easy to find ("curve is always the first
 /// element"). An arrow's heads are pushed after it by
-/// `getArrowheadShapes`.
+/// [`get_arrowhead_shapes`] ([`generate_linear_element_shapes`]).
 ///
 /// - The options are `generateRoughOptions(element, false, isDarkMode)`:
 ///   a line fills only when its points close into a loop
@@ -337,6 +360,17 @@ pub fn generate_linear_shape(
     generator: &RoughGenerator,
     config: &RenderConfig<'_>,
 ) -> Result<Drawable, ShapeError> {
+    Ok(linear_body(element, generator, config)?.0)
+}
+
+/// [`generate_linear_shape`], and the rough.js options (over the
+/// generator's defaults) the body was drawn with, which the heads start
+/// from.
+fn linear_body(
+    element: &Element,
+    generator: &RoughGenerator,
+    config: &RenderConfig<'_>,
+) -> Result<(Drawable, RoughJsOptions), ShapeError> {
     let linear = match &element.kind {
         ElementKind::Line(line) => &line.linear,
         ElementKind::Arrow(arrow) if arrow.elbowed => return Err(ShapeError::ElbowArrow),
@@ -356,12 +390,67 @@ pub fn generate_linear_shape(
         &linear.points
     };
 
-    if element.base.roundness.is_some() {
-        Ok(generator.curve(points, &options)?)
+    let body = if element.base.roundness.is_some() {
+        generator.curve(points, &options)?
     } else if options.fill.as_deref().is_some_and(|fill| !fill.is_empty()) {
-        Ok(generator.polygon(points, &options))
+        generator.polygon(points, &options)
     } else {
-        Ok(generator.linear_path(points, &options))
+        generator.linear_path(points, &options)
+    };
+    Ok((body, options))
+}
+
+/// The shapes `_generateElementShape` builds for a line or a non-elbow
+/// arrow (`shape.ts:890-975`): the body ([`generate_linear_shape`]) first,
+/// then for an arrow the start head's shapes and the end head's
+/// ([`get_arrowhead_shapes`]). Lines never get heads, whatever their
+/// `startArrowhead` and `endArrowhead` say.
+///
+/// Errors as [`generate_linear_shape`] does, and with
+/// [`ShapeError::Arrowhead`] where `getArrowheadPoints` would throw.
+pub fn generate_linear_element_shapes(
+    element: &Element,
+    generator: &RoughGenerator,
+    config: &RenderConfig<'_>,
+) -> Result<Vec<Drawable>, ShapeError> {
+    let (body, options) = linear_body(element, generator, config)?;
+    let mut shape = vec![body];
+
+    // add lines only in arrow
+    if let ElementKind::Arrow(arrow) = &element.kind {
+        // `const { startArrowhead = null, endArrowhead = "arrow" } =
+        // element`: an arrow without the key ("Hey, we have an old arrow
+        // here!") gets the default arrow head; null means none
+        let end_arrowhead = match arrow.linear.end_arrowhead {
+            None if !element.has_key("endArrowhead") => Some(Arrowhead::Arrow),
+            end => end,
+        };
+        let heads = [
+            (ArrowheadPosition::Start, arrow.linear.start_arrowhead),
+            (ArrowheadPosition::End, end_arrowhead),
+        ];
+        for (position, arrowhead) in heads {
+            if let Some(arrowhead) = arrowhead {
+                let shapes = get_arrowhead_shapes(
+                    element, &shape, position, arrowhead, generator, &options, config,
+                )?;
+                shape.extend(shapes);
+            }
+        }
+    }
+    Ok(shape)
+}
+
+// ---------------------------------------------------------------------------
+// Arrowheads (`shape.ts:295-577`)
+
+/// `options.roughness || 0`: NaN and zero read as 0.
+fn roughness_or_zero(options: &RoughJsOptions) -> f64 {
+    let r = options.roughness;
+    if r == 0.0 || r.is_nan() {
+        0.0
+    } else {
+        r
     }
 }
 
@@ -404,4 +493,263 @@ pub fn generate_elbow_arrow_shape(
         generate_rough_options(element, true, is_dark_mode)?.to_rough(generator.default_options());
     let d = elbow_arrow_path(points, ELBOW_ARROW_CORNER_RADIUS);
     Ok(Some(generator.path(&d, &options)?))
+}
+
+/// `generateArrowheadCardinalityOne` (`shape.ts:295-306`): one line across
+/// the shaft, between the two wing ends.
+fn arrowhead_cardinality_one(
+    generator: &RoughGenerator,
+    arrowhead_points: Option<ArrowheadPoints>,
+    line_options: &RoughJsOptions,
+) -> Vec<Drawable> {
+    let Some(points) = arrowhead_points else {
+        return Vec::new();
+    };
+    let [_, _, x3, y3, x4, y4, ..] = *points.as_slice() else {
+        return Vec::new();
+    };
+    vec![generator.line(x3, y3, x4, y4, line_options)]
+}
+
+/// `generateArrowheadLinesToTip` (`shape.ts:308-323`): a line from each
+/// wing end to the tip.
+fn arrowhead_lines_to_tip(
+    generator: &RoughGenerator,
+    arrowhead_points: Option<ArrowheadPoints>,
+    line_options: &RoughJsOptions,
+) -> Vec<Drawable> {
+    let Some(points) = arrowhead_points else {
+        return Vec::new();
+    };
+    let [x2, y2, x3, y3, x4, y4, ..] = *points.as_slice() else {
+        return Vec::new();
+    };
+    vec![
+        generator.line(x3, y3, x2, y2, line_options),
+        generator.line(x4, y4, x2, y2, line_options),
+    ]
+}
+
+/// `getArrowheadLineOptions(element, options)` (`shape.ts:325-343`): the
+/// arrow's options with roughness at most 1 and a solid dash, except for a
+/// dotted arrow, whose line heads use `[d0, d1 - 1]` of
+/// `getDashArrayDotted(strokeWidth - 1)` ("reduce gap to make it more
+/// legible").
+pub fn arrowhead_line_options(element: &Element, options: &RoughJsOptions) -> RoughJsOptions {
+    let mut line_options = options.clone();
+    if element.base.stroke_style == StrokeStyle::Dotted {
+        let dash = dash_array_dotted(element.base.stroke_width - 1.0);
+        line_options.stroke_line_dash = Some(vec![dash[0], dash[1] - 1.0]);
+    } else {
+        // for solid/dashed, keep solid arrow cap
+        line_options.stroke_line_dash = None;
+    }
+    line_options.roughness = js::min(1.0, roughness_or_zero(options));
+    line_options
+}
+
+/// `generateArrowheadOutlineCircle` (`shape.ts:345-369`): a solid-filled
+/// circle of `diameter * diameter_scale` stroked with the stroke colour,
+/// roughness at most 0.5, never dashed.
+fn arrowhead_outline_circle(
+    generator: &RoughGenerator,
+    options: &RoughJsOptions,
+    stroke_color: &str,
+    arrowhead_points: Option<ArrowheadPoints>,
+    fill: &str,
+    diameter_scale: f64,
+) -> Vec<Drawable> {
+    let Some(points) = arrowhead_points else {
+        return Vec::new();
+    };
+    let [x, y, diameter, ..] = *points.as_slice() else {
+        return Vec::new();
+    };
+    let mut circle_options = options.clone();
+    circle_options.fill = Some(fill.to_owned());
+    circle_options.fill_style = "solid".to_owned();
+    circle_options.stroke = stroke_color.to_owned();
+    circle_options.roughness = js::min(0.5, roughness_or_zero(options));
+    circle_options.stroke_line_dash = None;
+    vec![generator.circle(x, y, diameter * diameter_scale, &circle_options)]
+}
+
+/// The options of a solid polygon head (`shape.ts:421-431, 453-463`):
+/// filled solid with `fill`, roughness at most 1, always a solid stroke.
+fn arrowhead_polygon_options(options: &RoughJsOptions, fill: &str) -> RoughJsOptions {
+    let mut polygon_options = options.clone();
+    polygon_options.fill = Some(fill.to_owned());
+    polygon_options.fill_style = "solid".to_owned();
+    polygon_options.roughness = js::min(1.0, roughness_or_zero(options));
+    // always use solid stroke for arrowhead
+    polygon_options.stroke_line_dash = None;
+    polygon_options
+}
+
+/// `getArrowheadShapes(element, shape, position, arrowhead, generator,
+/// options, canvasBackgroundColor, isDarkMode)` (`shape.ts:371-577`): the
+/// rough.js shapes of the head of kind `arrowhead` at `position` of the
+/// linear `element`, whose shapes so far are `shape` (the body first) and
+/// whose body was drawn with `options`.
+///
+/// | kind | shapes |
+/// |---|---|
+/// | `arrow`, `bar` | two lines from the wing ends to the tip |
+/// | `circle`, `circle_outline` | a circle on the tip |
+/// | `triangle`, `triangle_outline` | the polygon tip, wing, wing, tip |
+/// | `diamond`, `diamond_outline` | the polygon tip, wing, far vertex, wing, tip |
+/// | `cardinality_one` | one line across the shaft |
+/// | `cardinality_many` | a crowfoot: two lines |
+/// | `cardinality_one_or_many` | a crowfoot, and a line across at offset -0.25 |
+/// | `cardinality_exactly_one` | lines across at offsets -0.5 and 0 |
+/// | `cardinality_zero_or_one` | a circle at offset 1.5 scaled 0.8, a line across at -0.5 |
+/// | `cardinality_zero_or_many` | a crowfoot, a circle at offset 1.5 scaled 0.8 |
+///
+/// The stroke colour and the canvas background go through the dark mode
+/// filter when the theme is dark. Filled heads (circle, triangle, diamond)
+/// fill with the stroke colour; the `_outline` kinds, and the circles of
+/// the `zero` cardinalities, fill with the canvas background. Line heads
+/// use [`arrowhead_line_options`].
+pub fn get_arrowhead_shapes(
+    element: &Element,
+    shape: &[Drawable],
+    position: ArrowheadPosition,
+    arrowhead: Arrowhead,
+    generator: &RoughGenerator,
+    options: &RoughJsOptions,
+    config: &RenderConfig<'_>,
+) -> Result<Vec<Drawable>, ShapeError> {
+    let is_dark_mode = config.theme == Theme::Dark;
+    let stroke_color = apply_dark_mode_filter(&element.base.stroke_color, is_dark_mode);
+    let background_fill_color =
+        apply_dark_mode_filter(config.canvas_background_color, is_dark_mode);
+    const CARDINALITY_ONE_OR_MANY_OFFSET: f64 = -0.25;
+    const CARDINALITY_ZERO_CIRCLE_SCALE: f64 = 0.8;
+
+    let points =
+        |kind: Arrowhead, offset: f64| get_arrowhead_points(element, shape, position, kind, offset);
+    let outline_fill = |outline: bool| {
+        if outline {
+            background_fill_color.as_str()
+        } else {
+            stroke_color.as_str()
+        }
+    };
+
+    Ok(match arrowhead {
+        Arrowhead::Circle | Arrowhead::CircleOutline => arrowhead_outline_circle(
+            generator,
+            options,
+            &stroke_color,
+            points(arrowhead, 0.0)?,
+            outline_fill(arrowhead == Arrowhead::CircleOutline),
+            1.0,
+        ),
+        Arrowhead::Triangle | Arrowhead::TriangleOutline => {
+            let Some(p) = points(arrowhead, 0.0)? else {
+                return Ok(Vec::new());
+            };
+            let [x, y, x2, y2, x3, y3, ..] = *p.as_slice() else {
+                return Ok(Vec::new());
+            };
+            let triangle_options = arrowhead_polygon_options(
+                options,
+                outline_fill(arrowhead == Arrowhead::TriangleOutline),
+            );
+            vec![generator.polygon(&[[x, y], [x2, y2], [x3, y3], [x, y]], &triangle_options)]
+        }
+        Arrowhead::Diamond | Arrowhead::DiamondOutline => {
+            let Some(p) = points(arrowhead, 0.0)? else {
+                return Ok(Vec::new());
+            };
+            let [x, y, x2, y2, x3, y3, x4, y4] = *p.as_slice() else {
+                return Ok(Vec::new());
+            };
+            let diamond_options = arrowhead_polygon_options(
+                options,
+                outline_fill(arrowhead == Arrowhead::DiamondOutline),
+            );
+            vec![generator.polygon(
+                &[[x, y], [x2, y2], [x3, y3], [x4, y4], [x, y]],
+                &diamond_options,
+            )]
+        }
+        Arrowhead::CardinalityOne => arrowhead_cardinality_one(
+            generator,
+            points(arrowhead, 0.0)?,
+            &arrowhead_line_options(element, options),
+        ),
+        Arrowhead::CardinalityMany => arrowhead_lines_to_tip(
+            generator,
+            points(arrowhead, 0.0)?,
+            &arrowhead_line_options(element, options),
+        ),
+        Arrowhead::CardinalityOneOrMany => {
+            let line_options = arrowhead_line_options(element, options);
+            let mut shapes = arrowhead_lines_to_tip(
+                generator,
+                points(Arrowhead::CardinalityMany, 0.0)?,
+                &line_options,
+            );
+            shapes.extend(arrowhead_cardinality_one(
+                generator,
+                points(Arrowhead::CardinalityOne, CARDINALITY_ONE_OR_MANY_OFFSET)?,
+                &line_options,
+            ));
+            shapes
+        }
+        Arrowhead::CardinalityExactlyOne => {
+            let line_options = arrowhead_line_options(element, options);
+            let mut shapes = arrowhead_cardinality_one(
+                generator,
+                points(Arrowhead::CardinalityOne, -0.5)?,
+                &line_options,
+            );
+            shapes.extend(arrowhead_cardinality_one(
+                generator,
+                points(Arrowhead::CardinalityOne, 0.0)?,
+                &line_options,
+            ));
+            shapes
+        }
+        Arrowhead::CardinalityZeroOrOne => {
+            let line_options = arrowhead_line_options(element, options);
+            let mut shapes = arrowhead_outline_circle(
+                generator,
+                options,
+                &stroke_color,
+                points(Arrowhead::CircleOutline, 1.5)?,
+                &background_fill_color,
+                CARDINALITY_ZERO_CIRCLE_SCALE,
+            );
+            shapes.extend(arrowhead_cardinality_one(
+                generator,
+                points(Arrowhead::CardinalityOne, -0.5)?,
+                &line_options,
+            ));
+            shapes
+        }
+        Arrowhead::CardinalityZeroOrMany => {
+            let line_options = arrowhead_line_options(element, options);
+            let mut shapes = arrowhead_lines_to_tip(
+                generator,
+                points(Arrowhead::CardinalityMany, 0.0)?,
+                &line_options,
+            );
+            shapes.extend(arrowhead_outline_circle(
+                generator,
+                options,
+                &stroke_color,
+                points(Arrowhead::CircleOutline, 1.5)?,
+                &background_fill_color,
+                CARDINALITY_ZERO_CIRCLE_SCALE,
+            ));
+            shapes
+        }
+        Arrowhead::Bar | Arrowhead::Arrow => arrowhead_lines_to_tip(
+            generator,
+            points(arrowhead, 0.0)?,
+            &arrowhead_line_options(element, options),
+        ),
+    })
 }
