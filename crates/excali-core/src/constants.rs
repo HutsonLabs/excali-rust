@@ -56,6 +56,10 @@ pub const STICKY_NOTE_FALLBACK_FONT_SIZE: f64 = 28.0;
 pub const DEFAULT_STICKY_NOTE_SIZE: f64 = 250.0;
 /// `STICKY_NOTE_MIN_SIZE`, `constants.ts:263`.
 pub const STICKY_NOTE_MIN_SIZE: f64 = 75.0;
+/// `BOUND_TEXT_PADDING`, `constants.ts:421`: the gap between a text
+/// container's edge and its bound text, and the padding
+/// `getApproxMinLineWidth` adds on each side.
+pub const BOUND_TEXT_PADDING: f64 = 5.0;
 /// `DEFAULT_TEXT_ALIGN`, `constants.ts:274`.
 pub const DEFAULT_TEXT_ALIGN: TextAlign = TextAlign::Left;
 /// `DEFAULT_VERTICAL_ALIGN`, `constants.ts:275`.

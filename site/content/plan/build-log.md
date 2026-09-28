@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-302 · Advance-width measurement from font files (ttf-parser, rustybuzz where shaping matters)
+
+`excali_text::text_measurements` ports `textMeasurements.ts`, and `FontStore` measures each line from the vendored font files. It picks a face per character through the fallback list the way the browser does and shapes each run with rustybuzz, kerning included. Each face is parsed once and its shaping plans are cached. 991 corpus texts measure within 0.5 px of their stored width. PR: [#56](https://github.com/HutsonLabs/excali-rust/pull/56).
+
 ## 2026-09-28 · ex-307 · Font asset pipeline: range-split woff2 manifest and lazy loading
 
 Every upstream font file is vendored with its licence under `crates/excali-text/assets/fonts`, and `manifest.json` maps each family and unicode range to a file. `excali_text::font_assets` ports upstream's registry, unicode-range test, `containsCJK` and scene font selection. In the browser, `registerFonts` adds the faces without fetching, and `loadSceneFonts` fetches only the range files a scene's text needs, checked in Chromium on all 30 golden scenes. PR: [#55](https://github.com/HutsonLabs/excali-rust/pull/55).
