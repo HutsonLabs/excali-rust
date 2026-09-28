@@ -46,3 +46,20 @@ jobs:
           scripts/upstream/checkout.sh
           scripts/upstream/checkout.sh | grep -q '^upstream already at '
           scripts/upstream/checkout.sh --verify
+  # scripts/site/zola.sh must run under macOS /bin/bash 3.2 (no declare -A,
+  # no sha256sum) as well as Linux bash 5; ensure downloads the real release
+  # and fails unless its SHA-256 matches the pinned digest for the runner.
+  bootstrap-and-site:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: zola.sh tests under /bin/bash
+        run: /bin/bash scripts/site/zola-test.sh /bin/bash
+      - name: bootstrap under /bin/bash (fresh clone, real zola download)
+        run: /bin/bash scripts/bootstrap.sh
+      - name: site build under /bin/bash
+        run: /bin/bash scripts/site/zola.sh build
