@@ -9,6 +9,12 @@
 //!   constant width) must give the recorded path string.
 //! - Every variable-width case must give it from the element too, through
 //!   excali-freehand's outline.
+//! - The element entry points `getFreedrawOutlinePoints` and
+//!   `getFreeDrawSvgPath` (`shape.ts:1187-1191, 1270-1277`) switch on
+//!   `strokeOptions.variability`: variable-width cases give the recorded
+//!   path, constant-width ones fail with
+//!   `FreedrawOutlineError::ConstantWidthNotPorted` until ex-214 ports the
+//!   laser pointer (no silent fallback to the variable outline).
 //! - Edge cases the fixtures do not reach (exponent notation, `-0`,
 //!   non-finite numbers, integers) are pinned to the strings upstream's code
 //!   writes in Node 26 (the vectors below).
@@ -18,7 +24,8 @@ use std::path::Path;
 use excali_core::element::{Element, ElementKind, StrokeVariability};
 use excali_core::json::number_to_string;
 use excali_scene::freedraw::{
-    get_svg_path_from_stroke, get_variable_width_freedraw_outline, trim_to_fixed_precision,
+    get_free_draw_svg_path, get_freedraw_outline_points, get_svg_path_from_stroke,
+    get_variable_width_freedraw_outline, trim_to_fixed_precision, FreedrawOutlineError,
 };
 use serde_json::Value;
 
@@ -71,25 +78,34 @@ fn recorded_outlines_give_upstream_paths() {
     assert_eq!(cases.len(), 48);
 }
 
+/// The case's element in the port's model. A legacy element without
+/// strokeOptions: upstream reads `strokeOptions?.variability` (variable) and
+/// `strokeOptions?.streamline ?? DEFAULT_STROKE_STREAMLINE`
+/// (`shape.ts:1217-1218, 1270-1277`), which is what restore writes
+/// (`restoreFreedrawStrokeOptions`, `data/restore.ts:273-287`) and the
+/// port's model requires.
+fn element(c: &Value) -> Element {
+    let id = c["id"].as_str().expect("id");
+    let mut raw = c["element"].as_object().expect("element").clone();
+    raw.entry("strokeOptions")
+        .or_insert_with(|| serde_json::json!({"variability": "variable", "streamline": 0.5}));
+    Element::from_map(raw).unwrap_or_else(|e| panic!("{id}: {e}"))
+}
+
+fn is_constant(el: &Element) -> bool {
+    let ElementKind::Freedraw(fields) = &el.kind else {
+        panic!("{}: not freedraw", el.base.id);
+    };
+    fields.stroke_options.variability == StrokeVariability::Constant
+}
+
 #[test]
 fn variable_width_elements_give_upstream_paths() {
     let mut ran = 0;
     for c in load("elements-freedraw.json") {
         let id = c["id"].as_str().expect("id");
-        let mut raw = c["element"].as_object().expect("element").clone();
-        // A legacy element without strokeOptions: upstream reads
-        // `strokeOptions?.variability` (variable) and
-        // `strokeOptions?.streamline ?? DEFAULT_STROKE_STREAMLINE`
-        // (`shape.ts:1217-1218, 1270-1277`), which is what restore writes
-        // (`restoreFreedrawStrokeOptions`, `data/restore.ts:273-287`) and
-        // the port's model requires.
-        raw.entry("strokeOptions")
-            .or_insert_with(|| serde_json::json!({"variability": "variable", "streamline": 0.5}));
-        let el = Element::from_map(raw).unwrap_or_else(|e| panic!("{id}: {e}"));
-        let ElementKind::Freedraw(fields) = &el.kind else {
-            panic!("{id}: not freedraw");
-        };
-        if fields.stroke_options.variability == StrokeVariability::Constant {
+        let el = element(&c);
+        if is_constant(&el) {
             continue; // laser-pointer geometry, ex-214
         }
         let points = get_variable_width_freedraw_outline(&el).expect("freedraw");
@@ -98,6 +114,77 @@ fn variable_width_elements_give_upstream_paths() {
         ran += 1;
     }
     assert_eq!(ran, 32);
+}
+
+/// `getFreeDrawSvgPath` / `getFreedrawOutlinePoints` (`shape.ts:1187-1191,
+/// 1270-1277`): the variability switch. Variable width gives upstream's
+/// path; constant width is ex-214's laser pointer and must fail loudly
+/// rather than fall back to the variable outline.
+#[test]
+fn element_entry_points_switch_on_variability() {
+    let (mut variable, mut constant) = (0, 0);
+    for c in load("elements-freedraw.json") {
+        let id = c["id"].as_str().expect("id");
+        let el = element(&c);
+        if is_constant(&el) {
+            assert_eq!(
+                get_freedraw_outline_points(&el),
+                Err(FreedrawOutlineError::ConstantWidthNotPorted),
+                "{id}"
+            );
+            assert_eq!(
+                get_free_draw_svg_path(&el),
+                Err(FreedrawOutlineError::ConstantWidthNotPorted),
+                "{id}"
+            );
+            constant += 1;
+        } else {
+            assert_eq!(
+                get_freedraw_outline_points(&el).as_deref(),
+                Ok(get_variable_width_freedraw_outline(&el)
+                    .expect("freedraw")
+                    .as_slice()),
+                "{id}"
+            );
+            assert_eq!(
+                get_free_draw_svg_path(&el).as_deref(),
+                Ok(expected_path(&c)),
+                "{id}"
+            );
+            variable += 1;
+        }
+    }
+    assert_eq!((variable, constant), (32, 16));
+}
+
+#[test]
+fn element_entry_points_reject_other_types() {
+    // A fixture freedraw retyped as a rectangle.
+    let c = &load("elements-freedraw.json")[0];
+    let mut raw = c["element"].as_object().expect("element").clone();
+    raw.insert("type".to_owned(), "rectangle".into());
+    for key in [
+        "points",
+        "pressures",
+        "simulatePressure",
+        "strokeOptions",
+        "lastCommittedPoint",
+    ] {
+        raw.remove(key);
+    }
+    let el = Element::from_map(raw).expect("rectangle");
+    assert!(matches!(el.kind, ElementKind::Rectangle));
+    assert_eq!(
+        get_freedraw_outline_points(&el),
+        Err(FreedrawOutlineError::NotFreedraw)
+    );
+    assert_eq!(
+        get_free_draw_svg_path(&el),
+        Err(FreedrawOutlineError::NotFreedraw)
+    );
+    assert!(FreedrawOutlineError::ConstantWidthNotPorted
+        .to_string()
+        .contains("ex-214"));
 }
 
 /// Outline coordinates go through `Math.sin`/`Math.cos`, which may differ
