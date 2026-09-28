@@ -10,14 +10,25 @@ publish = false
 
 [dependencies]
 excali-core = { path = "../excali-core" }
+icu_normalizer = { workspace = true }
+icu_properties = { workspace = true }
 rustybuzz = { workspace = true }
 ttf-parser = { workspace = true }
 unicode-properties = { workspace = true }
 wuff = { workspace = true }
 yoke = { workspace = true }
 
+# `test-util`: `text_measurements::CharCountTextMetrics`, the 10 px per
+# UTF-16 code unit metric upstream's own tests measure with. Off by default,
+# so no library build can measure with it; test targets turn it on through
+# their dev-dependencies.
+[features]
+test-util = []
+
+# This crate as its own dev-dependency turns `test-util` on for `cargo test`.
 # serde_json reads the JSON fixtures under tests/fixtures in the parity tests.
 [dev-dependencies]
+excali-text = { path = ".", features = ["test-util"] }
 serde_json = { workspace = true }
 
 [lints]

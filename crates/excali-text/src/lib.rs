@@ -11,4 +11,5 @@ mod font_faces_table;
 pub mod font_metadata;
 pub mod font_store;
 pub mod text_measurements;
+pub mod text_wrapping;
 pub mod unicode_range;

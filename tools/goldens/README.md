@@ -411,6 +411,41 @@ checks that two runs are byte-identical and that the fixture holds upstream's
 `textElement.test.ts:188-210` expectations. The Rust side
 (`crates/excali-text/tests/font_metadata.rs`) compares every offset bit for bit.
 
+## Text wrapping goldens
+
+`text-wrapping.mjs` writes `crates/excali-text/tests/fixtures/text-wrapping.json`
+for the wrapping port (ex-303). It bundles upstream's `parseTokens` and
+`getWrappedTextLines` (`packages/element/src/textWrapping.ts`) with
+`import.meta.env.MODE` set to `"test"`, as under upstream's vitest, so
+`satisfiesWordInvariant` throws if a word with whitespace ever reaches
+`wrapWord`. Widths come through upstream's own `setCustomTextMetricsProvider`
+and `charWidth` cache (`textMeasurements.ts:106-119, 179-210`), cleared before
+each call, from two providers:
+
+- `chars10`: `text.length * 10`, the metric upstream's tests measure with;
+- `varied`: per UTF-16 code unit `u`, `3 + (u * 7) % 11`, less 0.5 for each
+  adjacent pair whose sum is a multiple of 5, so a line is not the sum of its
+  characters and the cached single-character widths matter.
+
+The texts are every input of `textWrapping.test.ts`, edge cases (JS `\s`
+against Unicode `White_Space`, line terminators inside a line, emoji
+sequences, NFD input, brackets and CJK punctuation) and 60 strings from a
+seeded mulberry32 over the characters the break rules name. The fixture holds
+`parseTokens` of every hard line and, per text, provider and width,
+`getWrappedTextLines` as `[text, start, end]`. Non-visible code points are
+written as `\uXXXX` escapes so the file passes the invisible-character gate.
+
+```sh
+node tools/goldens/text-wrapping.mjs           # write the fixture
+node tools/goldens/text-wrapping.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and `test/text-wrapping.test.mjs`
+checks that two runs are byte-identical, that the fixture holds upstream's
+`textWrapping.test.ts` expectations and that it has no invisible code point.
+The Rust side (`crates/excali-text/tests/text_wrapping_goldens.rs`) compares
+every token list and every line with its offsets.
+
 ## Font asset goldens
 
 `font-assets.mjs` writes `crates/excali-text/tests/fixtures/font-assets.json`
