@@ -38,7 +38,7 @@ jobs:
         run: cargo test --workspace --locked
       # ex-308: stored against measured text widths across the whole corpus.
       # The workspace test run above already enforces it (0.5 px for
-      # Excalifont, Nunito and Comic Shanns, report up to date); this step
+      # Virgil, Excalifont, Nunito and Comic Shanns, report up to date); this step
       # prints the per-family max and mean deviation into the log.
       - name: text-width corpus report
         run: cargo test --locked -p excali-text --test text_width_corpus report_matches_the_committed_report -- --nocapture
