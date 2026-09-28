@@ -8,6 +8,8 @@ Each phase is an epic in the tracker (`ex-e0` … `ex-e8`). A milestone is reach
 
 ## Phase 0 — Foundations (`ex-e0`)
 
+**Status (2026-09-28): M0 not yet reached.** Three of the four checks pass. Pages deploys from `main` (the pages run for 25602c2 deployed to github-pages and the site returns 200). `scripts/bootstrap.sh` completes on a fresh clone under macOS `/bin/bash` 3.2. `cargo test --workspace` passes with 50 tests, alongside fmt, clippy `-D warnings`, the crate-graph, version and wasm32 gates. The Playwright smoke suite (140 tests), the fixture corpus and the goldens `--check` are green too. The check that fails is the planted-line one: the attribution gate rejects a planted line when run locally, but no CI job has ever planted one, so CI rejection is unproven. That work is gap task `ex-g001`. To verify, run `scripts/bootstrap.sh` in a fresh clone, then `cargo test --workspace --locked`, then `python3 scripts/gates/attribution.py files --all` with a planted line (exit 1), and `bd show ex-m0`.
+
 **Deliverables.** This site; the authorship gate and hooks; the beads tracker seeded with the task graph; GitHub Pages deployment; a Cargo workspace skeleton with CI running `cargo fmt --check`, `cargo clippy -D warnings` and `cargo test` on stable.
 
 **Milestone M0.** The site builds and deploys from `main`; `scripts/bootstrap.sh` works on a fresh clone; the gate rejects a planted attribution line in CI.

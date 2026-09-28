@@ -2,7 +2,7 @@
 
 A Rust port of the Excalidraw editor: no React, Tauri-ready, `.excalidraw` compatible, built to drop into [term.hut](https://github.com/HutsonLabs/term.hut) as a vendored module.
 
-**Status:** planning. The review surface is the site in `site/`, published to GitHub Pages: plan, architecture, design system, mockups, decisions, research and the evidence log. The Cargo workspace (`crates/`, one crate per layer of the architecture overview) builds and tests green; the crates are being filled in phase by phase from the tracker.
+**Status:** Phase 0 milestone M0 not yet reached (checked 2026-09-28): the site deploys from `main`, bootstrap works on a fresh clone and the workspace tests are green. CI does not yet prove that a planted attribution line is rejected (gap `ex-g001`). The review surface is the site in `site/`, published to GitHub Pages: plan, architecture, design system, mockups, decisions, research and the evidence log. The Cargo workspace (`crates/`, one crate per layer of the architecture overview) builds and tests green; the crates are being filled in phase by phase from the tracker.
 
 ## Layout
 
