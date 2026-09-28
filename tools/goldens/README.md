@@ -54,6 +54,8 @@ on an arm64 machine only.
 | `freehand.json` | `getStrokePoints` and `getStroke` with Excalidraw's options and the library defaults | ex-213 |
 | `math.json` | every `packages/math/src` export except `curve.ts` and `pca.ts`, called on fixed and Park-Miller-random inputs (`math.mjs`): `{ id, fn, args, result }` | ex-201 |
 | `js-sort.json` | V8's `Array.prototype.sort` (TimSort) permutation when the comparator answers NaN, and `convexHull` on points with NaN or infinite coordinates (`jssort.mjs`) | ex-201 |
+| `fractional-indexing.json` | vendored `fractional-indexing`: `validateOrderKey`, `generateKeyBetween` over every pair of a key pool (base 62, plus the rocicorp suite's base 10 and base 95), `generateNKeysBetween` for n = 0..40 and long runs, random insertion walks; result or thrown message | ex-107 |
+| `fractional-index.json` | `element/src/fractionalIndex.ts`: `syncInvalidIndices` and `syncMovedIndices` on every scenario of `fractionalIndex.test.ts` and 400 random lists (indices and versions after), `validateFractionalIndices` log messages, `orderByFractionalIndex` on fully indexed lists | ex-107 |
 | `manifest.json` | upstream commit, package versions, case count and sha256 per file | ex-217 |
 
 rough.js's `dots` fill is not included. Its filler jitters every dot with
@@ -88,6 +90,16 @@ Every file is `{ "description", "cases": [...] }` and every case has a unique
   "convexHull", points, result }`; `result` is indices into the input. JSON
   has no NaN or infinity, so those inputs are the strings `"NaN"`,
   `"Infinity"` and `"-Infinity"`.
+- **fractional indexing cases:** `{ id, fn, ...inputs, result | error }` for
+  `validateOrderKey` (`valid`, `error`), `generateKeyBetween` (`a`, `b`,
+  optional `digits`) and `generateNKeysBetween` (plus `n`); `walk` cases
+  insert at each of `picks` in a growing sorted list and record `keys`.
+- **fractional index cases:** `elements` are `{ id, index }` (validation
+  cases add `type`, `boundElements`, `isDeleted`, `version`, ...). Sync cases
+  record `validInput`, then `indices`, `versions` and `validOutput` (or
+  `error`); validation cases record the logged `messages`; order cases the
+  resulting id `order`. The bundle defines `import.meta.env.MODE` as
+  `"production"`, which `getUpdatedTimestamp` reads.
 
 Numbers are full-precision doubles written in ECMAScript's shortest
 round-trip form. Parse them exactly; in Rust, use serde_json's
@@ -97,7 +109,7 @@ round-trip form. Parse them exactly; in Rust, use serde_json's
 
 ## Adding cases
 
-Add inputs to `fixtures.mjs`, run `node tools/goldens/generate.mjs`, and
+Add inputs to `fixtures.mjs` (fractional indexing: `fixtures-fractional.mjs`), run `node tools/goldens/generate.mjs`, and
 commit `goldens/` together with the change. Coverage the downstream tasks rely
 on is asserted in `test/goldens.test.mjs`.
 

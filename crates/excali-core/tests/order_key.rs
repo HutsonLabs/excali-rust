@@ -109,10 +109,7 @@ fn base_10_n_keys_follow_the_vendored_character_check() {
     // letters, which are not base-10 digits (index.ts:113-114), so upstream
     // throws on the second key (or on the first bound). The goldens
     // (goldens/fractional-indexing.json) confirm upstream's output.
-    assert_eq!(
-        n_between_base_10(None, None, 5),
-        "invalid order key: a0"
-    );
+    assert_eq!(n_between_base_10(None, None, 5), "invalid order key: a0");
     assert_eq!(
         n_between_base_10(Some("a4"), None, 10),
         "invalid order key: a4"
@@ -136,10 +133,7 @@ fn generate_n_keys_between_in_base_62_matches_the_suites_shape() {
     // integers when one side is open, short keys between two bounds.
     let keys = |a, b, n| generate_n_keys_between(a, b, n).unwrap().join(" ");
     assert_eq!(keys(None, None, 5), "a0 a1 a2 a3 a4");
-    assert_eq!(
-        keys(Some("a4"), None, 10),
-        "a5 a6 a7 a8 a9 aA aB aC aD aE"
-    );
+    assert_eq!(keys(Some("a4"), None, 10), "a5 a6 a7 a8 a9 aA aB aC aD aE");
     assert_eq!(keys(None, Some("a0"), 5), "Zv Zw Zx Zy Zz");
     assert_eq!(
         keys(Some("a0"), Some("a2"), 20),

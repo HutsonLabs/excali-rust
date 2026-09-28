@@ -52,12 +52,7 @@ fn validate(elements: &[Element]) -> Result<(), InvalidFractionalIndexError> {
 }
 
 /// Upstream's `test()` helper.
-fn check(
-    input: Vec<Element>,
-    moved: Option<&[&str]>,
-    unchanged: &[&str],
-    valid_input: bool,
-) {
+fn check(input: Vec<Element>, moved: Option<&[&str]>, unchanged: &[&str], valid_input: bool) {
     if !valid_input {
         let err = validate(&input).expect_err("the input must be invalid");
         assert_eq!(err.code(), "ELEMENT_HAS_INVALID_INDEX");
@@ -83,7 +78,11 @@ fn check(
         assert_eq!(synced.base.id, element.base.id, "order changed");
         if unchanged.contains(synced.base.id.as_str()) {
             assert_eq!(synced.base.index, element.base.index, "{}", element.base.id);
-            assert_eq!(synced.base.version, element.base.version, "{}", element.base.id);
+            assert_eq!(
+                synced.base.version, element.base.version,
+                "{}",
+                element.base.id
+            );
         } else {
             assert_ne!(synced.base.index, element.base.index, "{}", element.base.id);
             assert_eq!(
@@ -310,9 +309,24 @@ const DUPLICATED: [(&str, Option<&str>); 7] = [
 
 #[test]
 fn should_generate_fractions_given_duplicated_indices() {
-    moved_sync(&DUPLICATED, &["B", "C", "D", "E", "F"], &["A", "G"], INVALID);
-    moved_sync(&DUPLICATED, &["A", "C", "D", "E", "G"], &["B", "F"], INVALID);
-    moved_sync(&DUPLICATED, &["B", "C", "D", "F", "G"], &["A", "E"], INVALID);
+    moved_sync(
+        &DUPLICATED,
+        &["B", "C", "D", "E", "F"],
+        &["A", "G"],
+        INVALID,
+    );
+    moved_sync(
+        &DUPLICATED,
+        &["A", "C", "D", "E", "G"],
+        &["B", "F"],
+        INVALID,
+    );
+    moved_sync(
+        &DUPLICATED,
+        &["B", "C", "D", "F", "G"],
+        &["A", "E"],
+        INVALID,
+    );
     // notice fallback considers first item (E) as a valid one
     invalid_sync(&DUPLICATED, &["A", "E"], INVALID);
 }
@@ -344,7 +358,14 @@ fn should_sync_all_but_last_index_given_a_growing_array_of_20k_indices() {
             last = Some(generate_key_between(last.as_deref(), None).unwrap());
             // assigning the last generated index, so sync can go down from
             // there; without jitter lastIndex is 'c4BZ' for the 20000th element
-            element(id, if i == LENGTH - 1 { last.as_deref() } else { None })
+            element(
+                id,
+                if i == LENGTH - 1 {
+                    last.as_deref()
+                } else {
+                    None
+                },
+            )
         })
         .collect();
     assert_eq!(last.as_deref(), Some("c4BZ"));
@@ -440,4 +461,80 @@ fn should_fallback_when_trying_to_generate_an_index_in_between_duplicate_indices
         &["A", "I"],
         INVALID,
     );
+}
+
+// ---------------------------------------------------------------------------
+// Beyond the upstream test file
+
+#[test]
+fn order_by_fractional_index_sorts_by_index_then_id_and_keeps_unindexed_in_place() {
+    use excali_core::fractional_index::order_by_fractional_index;
+    let ids =
+        |list: &[Element]| -> Vec<String> { list.iter().map(|e| e.base.id.clone()).collect() };
+
+    // fractionalIndex.ts:153-164: by index, ties by id (JS string order)
+    let mut list = elements(&[
+        ("b", Some("a2")),
+        ("B", Some("a1")),
+        ("a", Some("a1")),
+        ("c", Some("Zz")),
+    ]);
+    order_by_fractional_index(&mut list);
+    assert_eq!(ids(&list), ["c", "B", "a", "b"]);
+
+    // elements without an index (null or "") keep their positions
+    let mut list = elements(&[
+        ("x", Some("a3")),
+        ("n", None),
+        ("y", Some("a1")),
+        ("e", Some("")),
+        ("z", Some("a2")),
+    ]);
+    order_by_fractional_index(&mut list);
+    assert_eq!(ids(&list), ["y", "n", "z", "e", "x"]);
+}
+
+#[test]
+fn sync_keeps_versions_when_the_generated_index_equals_the_old_one() {
+    // mutateElement is a no-op for an unchanged value (mutateElement.ts:83-93)
+    let mut list = elements(&[("A", Some("a0"))]);
+    let moved: HashSet<String> = ["A".to_owned()].into();
+    let mut stamp = Stamp { calls: 0 };
+    sync_moved_indices(&mut list, &moved, &mut stamp).unwrap();
+    assert_eq!(list[0].base.index, Some(FractionalIndex("a0".into())));
+    assert_eq!(list[0].base.version, 1.0);
+    assert_eq!(stamp.calls, 0);
+}
+
+#[test]
+fn immutable_sync_leaves_the_input_alone() {
+    use excali_core::fractional_index::sync_invalid_indices_immutable;
+    let input = elements(&[("A", Some("a1")), ("B", Some("a1")), ("C", None)]);
+    let mut stamp = Stamp { calls: 0 };
+    let synced = sync_invalid_indices_immutable(&input, &mut stamp).unwrap();
+    assert_eq!(
+        input,
+        elements(&[("A", Some("a1")), ("B", Some("a1")), ("C", None)])
+    );
+    let got: Vec<Option<&str>> = synced
+        .iter()
+        .map(|e| e.base.index.as_ref().map(|i| i.0.as_str()))
+        .collect();
+    assert_eq!(got, [Some("a1"), Some("a2"), Some("a3")]);
+    assert_eq!(stamp.calls, 2);
+}
+
+#[test]
+fn validation_messages_use_upstreams_wording() {
+    let list = elements(&[("A", Some("a2")), ("B", Some("a1"))]);
+    let err = validate_fractional_indices(&list, false).unwrap_err();
+    assert_eq!(
+        err.messages,
+        [
+            "Fractional indices invariant has been compromised: \"undefined:undefined:undefined:undefined:undefined:undefined\", \"a2:A:rectangle:false:1:0\", \"a1:B:rectangle:false:1:0\"",
+            "Fractional indices invariant has been compromised: \"a2:A:rectangle:false:1:0\", \"a1:B:rectangle:false:1:0\", \"undefined:undefined:undefined:undefined:undefined:undefined\"",
+        ]
+    );
+    assert_eq!(err.to_string(), err.messages.join("\n\n"));
+    assert_eq!(err.code(), InvalidFractionalIndexError::CODE);
 }

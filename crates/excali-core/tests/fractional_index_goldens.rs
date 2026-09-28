@@ -27,8 +27,12 @@ fn golden(name: &str) -> Vec<Value> {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../goldens")
         .join(name);
-    let text = std::fs::read_to_string(&path)
-        .unwrap_or_else(|e| panic!("{}: {e} (run node tools/goldens/generate.mjs)", path.display()));
+    let text = std::fs::read_to_string(&path).unwrap_or_else(|e| {
+        panic!(
+            "{}: {e} (run node tools/goldens/generate.mjs)",
+            path.display()
+        )
+    });
     let doc: Value = serde_json::from_str(&text).expect("golden JSON");
     doc["cases"].as_array().expect("cases").clone()
 }
@@ -200,7 +204,11 @@ fn fractional_index_matches_upstream() {
                     sync_moved_indices(&mut synced, &moved, &mut Stamp)
                 };
                 if let Some(error) = case.get("error") {
-                    assert_eq!(result.unwrap_err().to_string(), error.as_str().unwrap(), "{id}");
+                    assert_eq!(
+                        result.unwrap_err().to_string(),
+                        error.as_str().unwrap(),
+                        "{id}"
+                    );
                     assert_eq!(synced, input, "{id}: nothing mutated on error");
                     continue;
                 }
