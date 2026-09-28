@@ -87,6 +87,18 @@ test("output is upstream's load and save in test mode", () => {
   const edge = new Map(edges.map((c) => [c.id, c]));
   assert.equal(edge.get("not-a-scene").error, "Error: invalid file");
   assert.deepEqual(Object.keys(JSON.parse(edge.get("files-of-live-images-only").output).files), ["42", "f2"]);
+  // files[fileId] as JS indexes an array, a string, a number and an object
+  // with an own __proto__ key (blob.ts keeps any truthy files).
+  const files = (id) => JSON.parse(edge.get(id).output).files;
+  assert.deepEqual(files("files-array"), {
+    0: { mimeType: "image/png", id: "f0", dataURL: "data:image/png;base64,AA==", created: 1 },
+    2: { mimeType: "image/png", id: "f2", dataURL: "data:image/png;base64,AA==", created: 1 },
+    length: 3,
+  });
+  assert.deepEqual(files("files-string"), { 0: "a", 1: "\ud83d", 2: "\ude00", length: 4 });
+  assert.match(edge.get("files-string").output, /"1": "\\ud83d"/);
+  assert.deepEqual(files("files-number"), {});
+  assert.deepEqual(files("files-own-proto-key"), { f1: { id: "f1" } });
 });
 
 test("--check reports a stale fixture", () => {

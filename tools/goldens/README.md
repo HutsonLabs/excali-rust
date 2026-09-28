@@ -511,7 +511,8 @@ embedded scene, `fixture_library.excalidrawlib`) it records:
 
 The library is `loadLibraryFromBlob` then `serializeLibraryAsJSON`, twice.
 `edges` holds scenes that are not upstream fixtures, one per step of loading
-and saving (files of live images only, falsy and malformed top-level values,
+and saving (files of live images only, `files` that is an array, a string, a number or
+an object with an own `__proto__` key, falsy and malformed top-level values,
 legacy `appState`, dropped and deleted elements, files the loader rejects).
 
 The whole loader is upstream's: `blob.ts`, `image.ts`, `encode.ts` and

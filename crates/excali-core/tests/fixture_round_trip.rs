@@ -533,3 +533,64 @@ fn text_that_is_not_json_is_an_invalid_file() {
     let err = load_scene_json("[]", &mut TestEnv::default(), &APP_ENV).unwrap_err();
     assert!(matches!(err, LoadSceneError::NotAScene), "{err:?}");
 }
+
+fn edge(id: &str) -> &'static Value {
+    golden()["edges"]
+        .as_array()
+        .expect("edges")
+        .iter()
+        .find(|c| c["id"] == id)
+        .unwrap_or_else(|| panic!("no edge {id}"))
+}
+
+/// `data.files || {}` keeps a truthy `files` of any type, and
+/// `filterOutDeletedFiles` indexes it as JS does: `files[fileId]` on an
+/// array or a string answers canonical index keys and `length`
+/// (upstream's bytes are the golden's `files-*` edges).
+#[test]
+fn files_that_are_not_an_object_are_indexed_as_js_indexes_them() {
+    let load = |id: &str| {
+        load_scene_json(text(edge(id), "input"), &mut TestEnv::default(), &APP_ENV).unwrap()
+    };
+
+    let array = load("files-array");
+    assert!(array.files.is_array(), "{:?}", array.files);
+    let kept = filter_out_deleted_files_of(&array.elements, &array.files);
+    assert_eq!(
+        kept.keys().collect::<Vec<_>>(),
+        ["0", "2", "length"],
+        "not 00, 3, __proto__ or constructor"
+    );
+    assert_eq!(kept["0"]["id"], "f0");
+    assert_eq!(kept["length"], 3);
+
+    // A string answers one UTF-16 code unit per index; the public form has
+    // U+FFFD for a lone surrogate, the written file its escape.
+    let string = load("files-string");
+    assert_eq!(string.files, json!("a\u{1F600}b"));
+    let kept = filter_out_deleted_files_of(&string.elements, &string.files);
+    assert_eq!(
+        kept,
+        json!({"0": "a", "1": "\u{FFFD}", "2": "\u{FFFD}", "length": 4})
+            .as_object()
+            .unwrap()
+            .clone()
+    );
+    let written = string.to_document(source()).to_json();
+    assert!(written.contains(r#""1": "\ud83d""#), "{written}");
+    assert_eq!(written, text(edge("files-string"), "output"));
+
+    assert_eq!(load("files-number").files, json!(7));
+    // files: null reads as {}.
+    assert_eq!(load("falsy-elements-and-files").files, json!({}));
+
+    // A changed `files` is what is written.
+    let mut changed = load("files-array");
+    changed.files = json!({"0": {"id": "replaced"}});
+    let doc = changed.to_document(source());
+    assert_eq!(doc.files.unwrap()["0"]["id"], "replaced");
+}
+
+fn filter_out_deleted_files_of(elements: &[Element], files: &Value) -> Map<String, Value> {
+    excali_core::document::filter_out_deleted_files(elements, files)
+}

@@ -215,7 +215,8 @@ const file = (id) => ({ mimeType: "image/png", id, dataURL: "data:image/png;base
 
 /**
  * Scenes that exercise each step of loading and saving: files kept only
- * for live image elements, missing or malformed top-level values, legacy
+ * for live image elements, `files` that is an array, a string or a number
+ * (indexed as JS indexes it), missing or malformed top-level values, legacy
  * appState values, dropped and deleted elements, and files loadFromBlob
  * rejects. Not upstream fixtures, so they are listed apart (`edges`).
  */
@@ -284,6 +285,51 @@ const edgeScenes = () => [
         { type: "unknown-type", id: "u" },
         element("kept", "rectangle", { index: "a5" }),
       ],
+    },
+  ],
+  // files[element.fileId] on a truthy `files` that is not an object:
+  // an array or a string answers canonical index keys and `length`, a
+  // number nothing but prototype functions (which JSON.stringify leaves
+  // out); assigning `__proto__` sets the prototype, never a key.
+  [
+    "files-array",
+    {
+      type: "excalidraw",
+      elements: [
+        image("zero", "0"),
+        image("one", "1"),
+        image("two", "2"),
+        image("padded", "00"),
+        image("past-end", "3"),
+        image("length", "length"),
+        image("proto", "__proto__"),
+        image("method", "constructor"),
+      ],
+      files: [file("f0"), 0, file("f2")],
+    },
+  ],
+  [
+    "files-string",
+    {
+      type: "excalidraw",
+      elements: [
+        image("zero", "0"),
+        image("high", "1"),
+        image("low", "2"),
+        image("padded", "01"),
+        image("length", "length"),
+        image("method", "charAt"),
+      ],
+      files: "a\ud83d\ude00b",
+    },
+  ],
+  ["files-number", { type: "excalidraw", elements: [image("a", "toString"), image("b", "0")], files: 7 }],
+  [
+    "files-own-proto-key",
+    {
+      type: "excalidraw",
+      elements: [image("proto", "__proto__"), image("method", "constructor"), image("own", "f1")],
+      files: JSON.parse('{"__proto__": {"id": "p"}, "constructor": 0, "f1": {"id": "f1"}}'),
     },
   ],
   ["not-a-scene", { type: "excalidrawlib", version: 2, libraryItems: [] }],
