@@ -20,12 +20,14 @@ use excali_core::element::{
     Element, ElementBase, ElementKind, FillStyle, Radians, Roundness, RoundnessType, StrokeStyle,
 };
 use excali_rough::RoughGenerator;
-use excali_scene::display::{
-    Color, DisplayItem, FillRule, Group, LineCap, LineJoin, Path, PathCommand, Transform,
-};
+use excali_scene::display::{DisplayItem, Group, LineCap, LineJoin, Transform};
 use excali_scene::rough_canvas::draw;
 use excali_scene::shape::{generate_element_shape, RenderConfig};
 use serde_json::{json, Value};
+
+#[path = "support/vocabulary.rs"]
+mod vocabulary;
+use vocabulary::{close, item_json};
 
 const SEED: f64 = 1041657908.0;
 
@@ -133,84 +135,6 @@ fn element_items(el: &Element) -> DisplayItem {
     })
 }
 
-fn path_json(p: &Path) -> Value {
-    Value::Array(
-        p.commands
-            .iter()
-            .map(|c| match *c {
-                PathCommand::MoveTo(x, y) => json!(["M", x, y]),
-                PathCommand::LineTo(x, y) => json!(["L", x, y]),
-                PathCommand::QuadTo(a, b, x, y) => json!(["Q", a, b, x, y]),
-                PathCommand::CubicTo(a, b, c, d, x, y) => json!(["C", a, b, c, d, x, y]),
-                PathCommand::Arc {
-                    cx,
-                    cy,
-                    radius,
-                    start,
-                    end,
-                    anticlockwise,
-                } => json!(["A", cx, cy, radius, start, end, anticlockwise]),
-                PathCommand::Close => json!(["Z"]),
-            })
-            .collect(),
-    )
-}
-
-fn color_json(c: &Color) -> Value {
-    Value::String(c.as_str().to_owned())
-}
-
-/// A display item in the raster fixture vocabulary
-/// (`crates/excali-raster/tests/fixtures/README.md`).
-fn item_json(item: &DisplayItem) -> Value {
-    match item {
-        DisplayItem::Fill { path, color, rule } => {
-            let mut v = json!({"type": "fill", "color": color_json(color)});
-            if *rule == FillRule::EvenOdd {
-                v["rule"] = json!("evenodd");
-            }
-            v["path"] = path_json(path);
-            v
-        }
-        DisplayItem::Stroke { path, stroke } => {
-            let mut v = json!({
-                "type": "stroke",
-                "color": color_json(&stroke.color),
-                "width": stroke.width,
-                "cap": stroke.cap.as_css(),
-                "join": stroke.join.as_css(),
-            });
-            if stroke.miter_limit != 10.0 {
-                v["miterLimit"] = json!(stroke.miter_limit);
-            }
-            if let Some(dash) = &stroke.dash {
-                v["dash"] = json!(dash.segments());
-                if dash.offset() != 0.0 {
-                    v["dashOffset"] = json!(dash.offset());
-                }
-            }
-            v["path"] = path_json(path);
-            v
-        }
-        DisplayItem::Group(g) => {
-            let t = g.transform;
-            let mut v = json!({"type": "group"});
-            if !t.is_identity() {
-                v["transform"] = json!([t.a, t.b, t.c, t.d, t.e, t.f]);
-            }
-            if g.opacity != 1.0 {
-                v["opacity"] = json!(g.opacity);
-            }
-            assert!(g.clip.is_none(), "the sketch has no clips");
-            v["items"] = Value::Array(g.items.iter().map(item_json).collect());
-            v
-        }
-        DisplayItem::Image(_) | DisplayItem::Text(_) => {
-            panic!("the sketch has no images or text")
-        }
-    }
-}
-
 fn sketch_items() -> Vec<Value> {
     let mut items = vec![json!({
         "type": "fill",
@@ -254,37 +178,6 @@ fn write_fixture(items: &[Value]) {
     out.push_str(&lines.join(",\n"));
     out.push_str("\n ]\n}\n");
     std::fs::write(fixture_file(), out).unwrap();
-}
-
-/// Whether two fixture values agree: the same structure and strings, and
-/// numbers within 16 ulps. The geometry goes through the platform's `sin`
-/// and `cos` (rough.js's ellipse, the rotation), which macOS and glibc can
-/// round differently in the last bit; the file is written on arm64 macOS.
-fn close(a: &Value, b: &Value, at: &str) -> Result<(), String> {
-    match (a, b) {
-        (Value::Number(x), Value::Number(y)) => {
-            let (x, y) = (x.as_f64().unwrap(), y.as_f64().unwrap());
-            let tolerance = 16.0 * f64::EPSILON * x.abs().max(y.abs()).max(1.0);
-            if (x - y).abs() <= tolerance {
-                Ok(())
-            } else {
-                Err(format!("{at}: {x} != {y}"))
-            }
-        }
-        (Value::Array(x), Value::Array(y)) if x.len() == y.len() => x
-            .iter()
-            .zip(y)
-            .enumerate()
-            .try_for_each(|(i, (x, y))| close(x, y, &format!("{at}[{i}]"))),
-        (Value::Object(x), Value::Object(y)) if x.len() == y.len() => {
-            x.iter().try_for_each(|(k, v)| match y.get(k) {
-                Some(w) => close(v, w, &format!("{at}.{k}")),
-                None => Err(format!("{at}.{k} missing")),
-            })
-        }
-        _ if a == b => Ok(()),
-        _ => Err(format!("{at}: {a} != {b}")),
-    }
 }
 
 #[test]

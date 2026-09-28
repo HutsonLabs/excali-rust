@@ -14,6 +14,20 @@ excali-scene = { path = "../excali-scene" }
 # default-features off: PNG encoding is not needed to paint, and std and simd
 # are what the pixmaps use.
 tiny-skia = { version = "0.12.0", default-features = false, features = ["std", "simd"] }
+# Image files from data URLs (excali_raster::decode, ex-404): the raster
+# formats Chrome's image decoders read, recognised from their bytes as
+# Chrome sniffs them (PNG, JPEG, GIF, WebP, BMP, ICO; the architecture
+# overview's `image`, 0.25.10 in the evidence table). No default features:
+# no rayon, and none of the formats a browser does not decode (TIFF, EXR,
+# QOI, ...), which a browser shows as a broken image.
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "ico"] }
+# SVG files (ex-404): parsed by usvg and drawn as vectors at the draw's
+# resolution, as Chrome draws an SVG image (resvg / usvg 0.48.1 in the
+# evidence table, on the same tiny-skia 0.12). No default features: no
+# system fonts, so a render never depends on the machine's fonts.
+resvg = { version = "0.48.1", default-features = false, features = ["raster-images", "text"] }
+# The `;base64` bodies of data URLs (forgiving base64).
+base64 = { workspace = true }
 
 # serde_json reads `cargo metadata` in the no_element_knowledge test and the
 # fixture display lists (tests/fixtures.rs); png-format reads Chrome's

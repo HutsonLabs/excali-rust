@@ -17,6 +17,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path as FsPath, PathBuf};
 
+use excali_raster::decode::{decode_data_url, DecodedImage};
 use excali_raster::diff::{compare, diff_image, Tolerance};
 use excali_raster::tiny_skia::{self, ColorU8, IntSize, Mask, Pixmap};
 use excali_raster::{render_scaled, TextRasterizer};
@@ -60,7 +61,7 @@ struct Fixture {
     height: u32,
     scale: f64,
     tolerance: Tolerance,
-    images: HashMap<String, Pixmap>,
+    images: HashMap<String, DecodedImage>,
     list: DisplayList,
 }
 
@@ -223,8 +224,17 @@ fn items(v: &Value) -> Vec<DisplayItem> {
         .collect()
 }
 
+/// An image: a data URL, decoded as the browser decodes it
+/// (`excali_raster::decode`), or unpremultiplied RGBA rows.
+fn image(v: &Value) -> DecodedImage {
+    match v.get("dataUrl").and_then(Value::as_str) {
+        Some(url) => decode_data_url(url).unwrap_or_else(|e| panic!("{e}")),
+        None => DecodedImage::Bitmap(rgba_image(v)),
+    }
+}
+
 /// An image given as unpremultiplied RGBA rows, as `ImageData` holds it.
-fn image(v: &Value) -> Pixmap {
+fn rgba_image(v: &Value) -> Pixmap {
     let w = v["width"].as_u64().unwrap() as u32;
     let h = v["height"].as_u64().unwrap() as u32;
     let rgba: Vec<u8> = v["rgba"]
@@ -463,7 +473,11 @@ fn the_fixture_vocabulary() {
     let g = item(&serde_json::json!({"type": "group", "items": []}));
     assert_eq!(g, DisplayItem::Group(Group::new(vec![])));
 
-    let img = image(&serde_json::json!({"width": 1, "height": 1, "rgba": [255, 0, 0, 128]}));
+    let DecodedImage::Bitmap(img) =
+        image(&serde_json::json!({"width": 1, "height": 1, "rgba": [255, 0, 0, 128]}))
+    else {
+        panic!("a bitmap")
+    };
     let c = img.pixel(0, 0).unwrap();
     assert_eq!((c.red(), c.green(), c.blue(), c.alpha()), (128, 0, 0, 128));
 }
