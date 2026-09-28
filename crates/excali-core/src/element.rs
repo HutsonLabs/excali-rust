@@ -1090,9 +1090,10 @@ impl Element {
 
     /// The JSON object serde writes for this element. A lone surrogate read
     /// from a file is U+FFFD here; only [`crate::document::Document::to_json`]
-    /// writes it back as its escape.
+    /// writes it back as its escape. Keys are in JS property order, as
+    /// `JSON.stringify` writes them.
     pub fn to_map(&self) -> Map<String, Value> {
-        json::decode_map(&self.to_encoded())
+        json::ordered_like_js(json::decode_map(&self.to_encoded()))
     }
 
     /// The object to write, in the sentinel form of [`crate::json`].

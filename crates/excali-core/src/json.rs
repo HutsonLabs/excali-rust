@@ -47,7 +47,9 @@ use std::io::{self, Write};
 pub type Error = serde_json::Error;
 
 /// Serialise a JSON value as `JSON.stringify(value, null, 2)` would, given a
-/// JS object with the same property order as the map.
+/// JS object with the same properties assigned in the map's order: array
+/// index keys first in ascending order (a JS object always enumerates them
+/// so), then the other keys in map order.
 pub fn to_string_pretty(value: &Value) -> String {
     write(value, false)
 }
@@ -97,6 +99,16 @@ pub(crate) fn same(a: &Value, b: &Value) -> bool {
 }
 
 fn write(value: &Value, decode_sentinels: bool) -> String {
+    if has_array_index_key(value) {
+        let mut ordered = value.clone();
+        order_keys_like_js(&mut ordered);
+        return write_ordered(&ordered, decode_sentinels);
+    }
+    write_ordered(value, decode_sentinels)
+}
+
+/// [`write`] for a value whose objects are already in JS property order.
+fn write_ordered(value: &Value, decode_sentinels: bool) -> String {
     let mut out = Vec::new();
     let formatter = JsFormatter {
         pretty: PrettyFormatter::with_indent(b"  "),
@@ -503,31 +515,6 @@ pub(crate) fn decode_map(map: &Map<String, Value>) -> Map<String, Value> {
     map_object(map, decode_str)
 }
 
-/// True when a string or key in `value` holds a lone surrogate sentinel
-/// pair, i.e. when [`escape`] of [`decode`] would not give `value` back.
-pub(crate) fn has_lone_surrogate(value: &Value) -> bool {
-    fn in_str(s: &str) -> bool {
-        let mut chars = s.chars();
-        while let Some(c) = chars.next() {
-            if c == SENTINEL {
-                match chars.next() {
-                    Some(tag) if SURROGATE_TAGS.contains(&u32::from(tag)) => return true,
-                    _ => {}
-                }
-            }
-        }
-        false
-    }
-    match value {
-        Value::String(s) => s.contains(SENTINEL) && in_str(s),
-        Value::Array(items) => items.iter().any(has_lone_surrogate),
-        Value::Object(map) => map
-            .iter()
-            .any(|(k, v)| (k.contains(SENTINEL) && in_str(k)) || has_lone_surrogate(v)),
-        _ => false,
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Key order
 
@@ -543,9 +530,34 @@ fn is_array_index(key: &str) -> bool {
     key.parse::<u64>().is_ok_and(|n| n < u64::from(u32::MAX))
 }
 
-/// Reorder every object's keys the way a JS object created by `JSON.parse`
-/// enumerates them: array indices ascending, then strings in insertion order.
-fn order_keys_like_js(value: &mut Value) {
+/// `map` with its keys, and those of every nested object, in JS property
+/// order (see [`order_keys_like_js`]).
+pub(crate) fn ordered_like_js(map: Map<String, Value>) -> Map<String, Value> {
+    let mut value = Value::Object(map);
+    order_keys_like_js(&mut value);
+    match value {
+        Value::Object(map) => map,
+        _ => Map::new(),
+    }
+}
+
+/// True when an object in `value` has an array-index key, i.e. when
+/// [`order_keys_like_js`] may change it.
+fn has_array_index_key(value: &Value) -> bool {
+    match value {
+        Value::Array(items) => items.iter().any(has_array_index_key),
+        Value::Object(map) => {
+            map.keys().any(|k| is_array_index(k)) || map.values().any(has_array_index_key)
+        }
+        _ => false,
+    }
+}
+
+/// Reorder every object's keys the way a JS object enumerates them
+/// (ECMA-262 `OrdinaryOwnPropertyKeys`): array indices ascending, then
+/// strings in insertion order. `JSON.parse` and property assignment both
+/// give that order, so it applies to every object written.
+pub(crate) fn order_keys_like_js(value: &mut Value) {
     match value {
         Value::Array(items) => items.iter_mut().for_each(order_keys_like_js),
         Value::Object(map) => {
@@ -722,6 +734,16 @@ mod tests {
     }
 
     #[test]
+    fn written_objects_put_array_index_keys_first_like_js() {
+        // JSON.stringify({b: 1, "1": 2, c: {z: 0, "10": 1, "2": 2}}, null, 2)
+        let value = serde_json::json!({"b": 1, "1": 2, "c": {"z": 0, "10": 1, "2": 2}});
+        let expected =
+            "{\n  \"1\": 2,\n  \"b\": 1,\n  \"c\": {\n    \"2\": 2,\n    \"10\": 1,\n    \"z\": 0\n  }\n}";
+        assert_eq!(to_string_pretty(&value), expected);
+        assert_eq!(write_parsed(&value), expected);
+    }
+
+    #[test]
     fn duplicate_key_keeps_first_position_and_last_value() {
         assert_eq!(
             round_trip(r#"{"a":1,"a":2,"b":3}"#).unwrap(),
@@ -741,20 +763,20 @@ mod tests {
             "\u{FFFD}",
         ] {
             assert_eq!(decode_str(&escape_str(s)), s, "{s:?}");
-            assert!(!has_lone_surrogate(&Value::from(escape_str(s).as_ref())));
+            let escaped = Value::from(escape_str(s).as_ref());
+            assert_eq!(escape(&decode(&escaped)), escaped, "{s:?}");
         }
     }
 
     #[test]
     fn parsed_sentinels_decode_to_public_strings() {
         let parsed = parse(r#"{"\ud800k":["a\ud83d","﷐\ud800","﷐"]}"#).unwrap();
-        assert!(has_lone_surrogate(&parsed));
+        assert_ne!(escape(&decode(&parsed)), parsed);
         assert_eq!(
             decode(&parsed),
             serde_json::json!({"\u{FFFD}k": ["a\u{FFFD}", "\u{FDD0}\u{FFFD}", "\u{FDD0}\u{E000}"]})
         );
         let literal = parse("[\"\u{FDD0}\u{E000}\"]").unwrap();
-        assert!(!has_lone_surrogate(&literal));
         assert_eq!(escape(&decode(&literal)), literal);
     }
 

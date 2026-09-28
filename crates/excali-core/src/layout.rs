@@ -22,6 +22,10 @@
 //!
 //! Unknown keys are kept by the owner, in its public `extra` map.
 //!
+//! [`Layout::write`] gives insertion order; the JSON writer
+//! ([`json::write_parsed`]) then puts array-index keys first, as a JS
+//! object enumerates them.
+//!
 //! Strings: the raw object and the typed map given to [`Layout::read`] and
 //! [`Layout::write`] are in the sentinel form of [`crate::json`] (the typed
 //! map through [`json::escape`]); `extra` is public, and the layout converts

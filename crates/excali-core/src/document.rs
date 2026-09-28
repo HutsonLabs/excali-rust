@@ -40,7 +40,17 @@
 //! escape while the value is unchanged (see [`crate::json`]). A
 //! [`Document`] built in Rust is written in `serializeAsJSON`'s key order.
 //!
-//! `appState` and `files` are kept as JSON objects here.
+//! `appState` and `files` are kept as JSON objects here, each with its own
+//! layout, so the escape is kept per key: changing `appState.b` leaves a
+//! lone surrogate in an untouched `appState.a` as read, as upstream's
+//! in-place edit of the parsed object does. A changed key is written from
+//! the model as a whole.
+//!
+//! Every object is written in JS property order, as `JSON.stringify` writes
+//! any object: array-index keys (`"0"` to `"4294967294"`, e.g. a file id
+//! `"42"` or an unknown key `"7"`) first in ascending order, then the other
+//! keys in the order described above. [`Document::to_map`] gives the same
+//! order.
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
@@ -69,6 +79,9 @@ pub struct Document {
     /// Top-level keys the model does not know, as read.
     pub extra: Map<String, Value>,
     layout: Layout,
+    /// Layouts of the `appState` and `files` objects as read.
+    app_state_layout: Layout,
+    files_layout: Layout,
 }
 
 impl PartialEq for Document {
@@ -140,6 +153,8 @@ impl Document {
             files,
             extra: Map::new(),
             layout: Layout::default(),
+            app_state_layout: Layout::default(),
+            files_layout: Layout::default(),
         }
     }
 
@@ -187,24 +202,18 @@ impl Document {
             ),
             _ => None,
         };
-        let object = |key: &str| match raw.get(key) {
-            Some(Value::Object(map)) => Some(json::decode_map(map)),
-            _ => None,
-        };
-        let app_state = object("appState");
-        let files = object("files");
-
-        // An object without lone surrogates is written back exactly as its
-        // typed form, so the layout only needs its shape.
-        let mut shaped = vec!["elements"];
-        for (key, typed) in [("appState", &app_state), ("files", &files)] {
-            if let (Some(_), Some(value)) = (typed, raw.get_mut(key)) {
-                if !json::has_lone_surrogate(value) {
-                    *value = Value::Object(Map::new());
-                    shaped.push(key);
-                }
+        // appState and files are laid out by their own layouts, every key an
+        // unknown one; the document's layout sees their shape, `{}`.
+        let mut object = |key: &str| match raw.get_mut(key) {
+            Some(Value::Object(map)) => {
+                let (layout, public) = Layout::read(map, &Map::new(), &[]);
+                *map = Map::new();
+                (Some(public), layout)
             }
-        }
+            _ => (None, Layout::default()),
+        };
+        let (app_state, app_state_layout) = object("appState");
+        let (files, files_layout) = object("files");
 
         let mut doc = Document {
             version,
@@ -214,8 +223,10 @@ impl Document {
             files,
             extra: Map::new(),
             layout: Layout::default(),
+            app_state_layout,
+            files_layout,
         };
-        let typed = doc.typed(&shaped);
+        let typed = doc.typed(&["elements", "appState", "files"]);
         let (layout, extra) = Layout::read(&raw, &typed, CANONICAL);
         doc.layout = layout;
         doc.extra = extra;
@@ -224,12 +235,13 @@ impl Document {
 
     /// The JSON object serde writes for this document. A lone surrogate
     /// read from a file is U+FFFD here; only [`Document::to_json`] writes it
-    /// back as its escape.
+    /// back as its escape. Keys are in JS property order.
     pub fn to_map(&self) -> Map<String, Value> {
-        json::decode_map(&self.to_encoded())
+        json::ordered_like_js(json::decode_map(&self.to_encoded()))
     }
 
-    /// The object to write, in the sentinel form of [`crate::json`].
+    /// The object to write, in the sentinel form of [`crate::json`], before
+    /// JS key ordering (which [`json::write_parsed`] applies).
     fn to_encoded(&self) -> Map<String, Value> {
         self.layout.write(&self.typed(&[]), &self.extra, CANONICAL)
     }
@@ -257,12 +269,15 @@ impl Document {
             };
             map.insert("elements".into(), Value::Array(items));
         }
-        for (key, object) in [("appState", &self.app_state), ("files", &self.files)] {
+        for (key, object, layout) in [
+            ("appState", &self.app_state, &self.app_state_layout),
+            ("files", &self.files, &self.files_layout),
+        ] {
             if let Some(object) = object {
                 let value = if shaped.contains(&key) {
                     Map::new()
                 } else {
-                    json::escape_map(object)
+                    layout.write(&Map::new(), object, &[])
                 };
                 map.insert(key.into(), Value::Object(value));
             }
