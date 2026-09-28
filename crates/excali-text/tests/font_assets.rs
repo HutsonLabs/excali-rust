@@ -15,9 +15,9 @@ use std::path::Path;
 
 use excali_core::element::{Element, ElementBase, ElementKind, FontFamily, TextFields};
 use excali_text::font_assets::{
-    contains_cjk, elements_font_loads, faces_to_load, font_face_declarations,
-    parse_unicode_range, registered_families, registered_family, registered_family_named,
-    scene_font_loads, ui_font_faces, FontFaceAsset, FontFormat, CJK_RANGES, FULL_UNICODE_RANGE,
+    contains_cjk, elements_font_loads, faces_to_load, font_face_declarations, parse_unicode_range,
+    registered_families, registered_family, registered_family_named, scene_font_loads,
+    ui_font_faces, FontFaceAsset, FontFormat, CJK_RANGES, FULL_UNICODE_RANGE,
 };
 use serde_json::Value;
 
@@ -158,8 +158,17 @@ fn families_are_found_by_id_and_by_font_face_name() {
         registered_family(FontFamily::EXCALIFONT).unwrap().family,
         "Excalifont"
     );
-    assert_eq!(registered_family(FontFamily::EXCALIFONT).unwrap().faces.len(), 7);
-    assert_eq!(registered_family(FontFamily::XIAOLAI).unwrap().faces.len(), 209);
+    assert_eq!(
+        registered_family(FontFamily::EXCALIFONT)
+            .unwrap()
+            .faces
+            .len(),
+        7
+    );
+    assert_eq!(
+        registered_family(FontFamily::XIAOLAI).unwrap().faces.len(),
+        209
+    );
     assert!(registered_family(FontFamily::HELVETICA).unwrap().local);
     assert!(registered_family(FontFamily::ASSISTANT).is_none());
     assert!(registered_family(FontFamily(42)).is_none());
@@ -181,17 +190,37 @@ fn unicode_ranges_parse_as_upstream_reads_them() {
         for face in fam.faces {
             let css = face.unicode_range_css();
             assert_eq!(css, face.unicode_range.unwrap_or(FULL_UNICODE_RANGE));
-            assert_eq!(parse_unicode_range(css).unwrap(), face.ranges, "{}", face.file);
+            assert_eq!(
+                parse_unicode_range(css).unwrap(),
+                face.ranges,
+                "{}",
+                face.file
+            );
         }
     }
     assert_eq!(
         parse_unicode_range("U+0000-00FF, U+0131,U+2000-206F").unwrap(),
         vec![(0, 0xff), (0x131, 0x131), (0x2000, 0x206f)]
     );
-    assert_eq!(parse_unicode_range("U+0-10FFFF").unwrap(), vec![(0, 0x10ffff)]);
-    assert_eq!(parse_unicode_range("u+41").unwrap_err().to_string(), "invalid unicode-range part \"u+41\"");
+    assert_eq!(
+        parse_unicode_range("U+0-10FFFF").unwrap(),
+        vec![(0, 0x10ffff)]
+    );
+    assert_eq!(
+        parse_unicode_range("u+41").unwrap_err().to_string(),
+        "invalid unicode-range part \"u+41\""
+    );
     // Forms upstream's RegExp cannot express throw there; they are errors here.
-    for bad in ["", "U+", "U+20-", "U+4??", "U+zz", "U+110000", "U+7e-20", "U+20,,U+30"] {
+    for bad in [
+        "",
+        "U+",
+        "U+20-",
+        "U+4??",
+        "U+zz",
+        "U+110000",
+        "U+7e-20",
+        "U+20,,U+30",
+    ] {
         assert!(parse_unicode_range(bad).is_err(), "{bad:?}");
     }
 }
@@ -273,8 +302,16 @@ fn font_loads_are_the_characters_upstream_asks_the_browser_for() {
             let want = s[key].as_array().unwrap();
             assert_eq!(loads.len(), want.len(), "{} {key}", s["name"]);
             for (load, w) in loads.iter().zip(want) {
-                assert_eq!(u64::from(load.font_family.0), w["fontFamily"].as_u64().unwrap());
-                assert_eq!(load.text, w["characters"].as_str().unwrap(), "{}", s["name"]);
+                assert_eq!(
+                    u64::from(load.font_family.0),
+                    w["fontFamily"].as_u64().unwrap()
+                );
+                assert_eq!(
+                    load.text,
+                    w["characters"].as_str().unwrap(),
+                    "{}",
+                    s["name"]
+                );
                 assert_eq!(load.font, w["font"].as_str().unwrap(), "{}", s["name"]);
             }
         }
@@ -293,7 +330,10 @@ fn declarations_are_upstreams_generate_font_face_declarations() {
                 (
                     d.face.family.to_owned(),
                     d.face.upstream_file.to_owned(),
-                    d.characters.chars().map(|c| u64::from(u32::from(c))).collect(),
+                    d.characters
+                        .chars()
+                        .map(|c| u64::from(u32::from(c)))
+                        .collect(),
                 )
             })
             .collect();
@@ -378,7 +418,11 @@ fn a_scene_loads_only_the_ranges_its_text_uses() {
 fn load_plan_agrees_with_upstreams_declarations_where_both_apply() {
     // For one family and text with CJK (so Xiaolai is in both), the files the
     // browser loads are the files upstream inlines into an SVG.
-    for name in ["excalifont-cjk", "excalifont-cjk-only", "excalifont-fullwidth"] {
+    for name in [
+        "excalifont-cjk",
+        "excalifont-cjk-only",
+        "excalifont-fullwidth",
+    ] {
         let elements = scene_elements(&scene(name));
         let loaded: BTreeSet<&str> = files(&faces_to_load(&scene_font_loads(&elements)))
             .into_iter()
