@@ -2,7 +2,7 @@
 //! embeddables, diamonds and ellipses (`_generateElementShape`,
 //! `packages/element/src/shape.ts:761-889`), with the iframe-like colour
 //! handling of `modifyIframeLikeForRoughOptions` (`shape.ts:262-293`); and
-//! the body of lines and non-elbow arrows (`shape.ts:890-935`).
+//! the body of lines and arrows (`shape.ts:890-935`).
 //!
 //! See `site/content/research/rendering.md` section 2.
 //!
@@ -21,6 +21,10 @@
 //!   points close into a loop, [`is_path_a_loop`](crate::utils::is_path_a_loop))
 //!   and `generator.linearPath(points)` otherwise; round ones are
 //!   `generator.curve(points)`. Empty points draw the point `[0, 0]`.
+//! - Elbow arrow ([`generate_elbow_arrow_shape`]): `generator.path` of
+//!   [`elbow_arrow_path`] with corner radius
+//!   [`ELBOW_ARROW_CORNER_RADIUS`], as a continuous path; nothing when a
+//!   coordinate is beyond [`ELBOW_ARROW_MAX_COORDINATE`](crate::elbow_arrow::ELBOW_ARROW_MAX_COORDINATE).
 
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -34,6 +38,7 @@ use excali_rough::path_data::PathError;
 use excali_rough::{Drawable, RoughGenerator};
 
 use crate::bounds::get_diamond_points;
+use crate::elbow_arrow::{elbow_arrow_is_drawable, elbow_arrow_path, ELBOW_ARROW_CORNER_RADIUS};
 use crate::rough_options::{generate_rough_options, UnimplementedType};
 use crate::utils::get_corner_radius;
 
@@ -88,8 +93,11 @@ pub enum ShapeError {
     NotALinearShape(ElementType),
     /// [`generate_linear_shape`] was given an elbow arrow, whose body is the
     /// rounded path of `generateElbowArrowShape` (`shape.ts:900-920`), not a
-    /// rough.js polyline or curve.
+    /// rough.js polyline or curve; [`generate_elbow_arrow_shape`] builds it.
     ElbowArrow,
+    /// [`generate_elbow_arrow_shape`] was given an element that is not an
+    /// elbow arrow (a plain arrow, a line, or another type).
+    NotAnElbowArrow(ElementType),
     /// rough.js rejected the path data (only reachable with non-finite
     /// sizes, which write `NaN` or `Infinity` into the path).
     Path(PathError),
@@ -103,6 +111,7 @@ impl fmt::Display for ShapeError {
             ShapeError::NotABoxShape(ty) => write!(f, "{ty} is not a box shape"),
             ShapeError::NotALinearShape(ty) => write!(f, "{ty} is not a line or an arrow"),
             ShapeError::ElbowArrow => f.write_str("an elbow arrow is not a polyline or curve"),
+            ShapeError::NotAnElbowArrow(ty) => write!(f, "{ty} is not an elbow arrow"),
             ShapeError::Path(e) => write!(f, "path data: {e}"),
             ShapeError::Options(e) => e.fmt(f),
         }
@@ -354,4 +363,45 @@ pub fn generate_linear_shape(
     } else {
         Ok(generator.linear_path(points, &options))
     }
+}
+
+/// The body `_generateElementShape` builds for an elbow arrow
+/// (`shape.ts:900-920`): `generator.path(generateElbowArrowShape(points,
+/// 16), generateRoughOptions(element, true, isDarkMode))`, a continuous
+/// path (so `preserveVertices` holds at any roughness) that never fills.
+/// Its heads are pushed after it by `getArrowheadShapes`, as for any arrow.
+///
+/// - "points array can be empty in the beginning": empty points draw the
+///   path of the single point `[0, 0]`.
+/// - `Ok(None)` when a coordinate's absolute value is above
+///   [`ELBOW_ARROW_MAX_COORDINATE`](crate::elbow_arrow::ELBOW_ARROW_MAX_COORDINATE) or NaN: upstream logs "Elbow arrow with
+///   extreme point positions detected. Arrow not rendered." and gives the
+///   element no shapes at all.
+///
+/// Errors with [`ShapeError::NotAnElbowArrow`] for anything but an elbow
+/// arrow.
+pub fn generate_elbow_arrow_shape(
+    element: &Element,
+    generator: &RoughGenerator,
+    config: &RenderConfig<'_>,
+) -> Result<Option<Drawable>, ShapeError> {
+    let linear = match &element.kind {
+        ElementKind::Arrow(arrow) if arrow.elbowed => &arrow.linear,
+        _ => return Err(ShapeError::NotAnElbowArrow(element.element_type())),
+    };
+    const ORIGIN: [LocalPoint; 1] = [[0.0, 0.0]];
+    let points: &[LocalPoint] = if linear.points.is_empty() {
+        &ORIGIN
+    } else {
+        &linear.points
+    };
+    // NOTE (mtolmacs): Temporary fix for extremely big arrow shapes
+    if !elbow_arrow_is_drawable(points) {
+        return Ok(None);
+    }
+    let is_dark_mode = config.theme == Theme::Dark;
+    let options =
+        generate_rough_options(element, true, is_dark_mode)?.to_rough(generator.default_options());
+    let d = elbow_arrow_path(points, ELBOW_ARROW_CORNER_RADIUS);
+    Ok(Some(generator.path(&d, &options)?))
 }

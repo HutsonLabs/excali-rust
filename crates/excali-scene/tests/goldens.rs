@@ -13,6 +13,11 @@
 //! (`shapes[0]`) of every arrow in `elements-{arrow,arrowheads}.json`; the
 //! arrowheads after it are ex-212's.
 //!
+//! Elbow arrows (ex-210): the body (`shapes[0]`) of every case of
+//! `goldens/elements-elbow-arrow.json`, the rounded path of
+//! `generateElbowArrowShape(points, 16)`, and no shape at all for the arrow
+//! beyond the 1e6 coordinate guard.
+//!
 //! Ellipse points go through `Math.cos` and `Math.sin`, which differ in the
 //! last bit between platforms (see `crates/excali-rough/tests/goldens.rs`),
 //! so ellipses are compared within `PLATFORM_TOLERANCE`; everything else,
@@ -25,7 +30,9 @@ use excali_core::element::Element;
 use excali_rough::goldens::{ActualShape, Report, Tolerance, PLATFORM_TOLERANCE};
 use excali_rough::{Drawable, RoughGenerator};
 use excali_scene::rough_options::generate_rough_options;
-use excali_scene::shape::{generate_element_shape, generate_linear_shape, RenderConfig, Theme};
+use excali_scene::shape::{
+    generate_elbow_arrow_shape, generate_element_shape, generate_linear_shape, RenderConfig, Theme,
+};
 use serde_json::Value;
 
 fn load(name: &str) -> Value {
@@ -257,4 +264,50 @@ fn arrowhead_case_bodies_match_upstream() {
     assert_eq!(ran, 160);
     assert_eq!(seen.values().sum::<usize>(), 160);
     assert!(seen["curve"] > 0 && seen["linearPath"] > 0);
+}
+
+// ---------------------------------------------------------------------------
+// Elbow arrows (ex-210)
+
+#[test]
+fn elbow_arrow_bodies_match_upstream() {
+    // L, S and U routes, corners shrunk by short segments, a long bold
+    // arrow, dashed, both heads, roughness 2: the path under the heads.
+    // The arrow past the extreme-coordinate guard has no shapes at all, its
+    // heads included, and the port draws no body for it.
+    let file = "elements-elbow-arrow.json";
+    let doc = load(file);
+    let mut report = Report::new(file);
+    let (mut drawn, mut skipped) = (0, 0);
+    for c in doc["cases"].as_array().expect("cases") {
+        let id = c["id"].as_str().expect("id");
+        assert_eq!(c["element"]["type"], "arrow");
+        assert_eq!(c["element"]["elbowed"], true);
+        let el = Element::from_map(c["element"].as_object().expect("element").clone())
+            .unwrap_or_else(|e| panic!("{id}: {e}"));
+        let (is_exporting, background, embeds, theme) = render_config(&c["renderConfig"]);
+        let config = RenderConfig {
+            is_exporting,
+            canvas_background_color: &background,
+            embeds_validation_status: Some(&embeds),
+            theme,
+        };
+        let body = generate_elbow_arrow_shape(&el, &RoughGenerator::new(), &config)
+            .unwrap_or_else(|e| panic!("{id}: {e}"));
+        let expected = c["shapes"].as_array().expect("shapes");
+        match body {
+            Some(body) => {
+                drawn += 1;
+                assert_eq!(expected[0]["type"], "rough", "{id}");
+                assert_eq!(expected[0]["drawable"]["shape"], "path", "{id}");
+                report.drawable(c, &expected[0]["drawable"], &body, Tolerance::Exact);
+            }
+            None => {
+                skipped += 1;
+                report.element(c, &[], Tolerance::Exact);
+            }
+        }
+    }
+    assert_eq!(report.assert_ok(), 9);
+    assert_eq!((drawn, skipped), (8, 1));
 }

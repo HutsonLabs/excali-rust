@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-210 · Elbow arrow path from fixed points (radius 16) and validation
+
+`excali_scene::shape` now draws an elbow arrow the way upstream's `_generateElementShape` does. It calls `generator.path` on `generateElbowArrowShape(points, 16)` with continuous options, and corners shrink on short segments. Empty points become `[0, 0]`, and nothing is drawn past the 1e6 coordinate guard. The `heading` helpers and `validate_elbow_points` (DEDUP_TRESHOLD 1, strict) are ported too, and all 9 elbow golden bodies match upstream op by op. PR: [#46](https://github.com/HutsonLabs/excali-rust/pull/46).
+
 ## 2026-09-28 · ex-g101 · D1 conformance: upstream diagramFixture document round-trips through Document and restore against an upstream golden
 
 `excali_core::document::load_scene_json` and `LoadedScene::to_document` port upstream's `loadFromBlob` and `serializeAsJSON`. Every scene-bearing upstream test fixture now round-trips to upstream's bytes on the first write and on the reload. That covers `diagramFixture`, `elementFixture`, the `.excalidrawlib` files and the embedded-scene PNG and SVG files. Unknown keys survive, and `files` values that are not objects are indexed the way JS indexes them. One test fails if a new scene-bearing fixture has no case, and `document-fixtures.mjs --check` keeps the golden in step with upstream in CI. PR: [#45](https://github.com/HutsonLabs/excali-rust/pull/45).
