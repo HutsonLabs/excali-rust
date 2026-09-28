@@ -44,15 +44,14 @@ fn updates(value: &Value) -> ElbowArrowUpdates {
     let map = value.as_object().expect("updates object");
     let binding = |key: &str| {
         map.get(key).map(|b| {
-            (!b.is_null()).then(|| {
-                serde_json::from_value::<FixedPointBinding>(b.clone()).expect("a binding")
-            })
+            (!b.is_null())
+                .then(|| serde_json::from_value::<FixedPointBinding>(b.clone()).expect("a binding"))
         })
     };
     ElbowArrowUpdates {
-        points: map.get("points").map(|p| {
-            serde_json::from_value::<Vec<[f64; 2]>>(p.clone()).expect("points")
-        }),
+        points: map
+            .get("points")
+            .map(|p| serde_json::from_value::<Vec<[f64; 2]>>(p.clone()).expect("points")),
         fixed_segments: map.get("fixedSegments").map(|s| {
             (!s.is_null())
                 .then(|| serde_json::from_value::<Vec<FixedSegment>>(s.clone()).expect("segments"))
@@ -201,7 +200,10 @@ fn base_padding_is_40() {
     // dynamic box, BASE_PADDING - 2 * BASE_BINDING_GAP = 30 further out
     // (1370-1379): upstream's route is [0, 0], [-42, 0], [-42, 90.99...],
     // [200, 90.99...], [200, 0], [300, 0].
-    let leftmost = points.iter().map(|p| p[0] + x).fold(f64::INFINITY, f64::min);
+    let leftmost = points
+        .iter()
+        .map(|p| p[0] + x)
+        .fold(f64::INFINITY, f64::min);
     assert_eq!(leftmost, -12.0 - (BASE_PADDING - 10.0));
     assert_eq!(points.len(), 6);
 }
@@ -288,8 +290,7 @@ fn restore_elements_with_router_matches_upstream() {
         };
         let elements = case["elements"].as_array().expect("elements").clone();
         let mut env = RoutingEnv::new(TestEnv::default());
-        let restored =
-            restore_elements(&elements, None, options, &mut env).expect("restores");
+        let restored = restore_elements(&elements, None, options, &mut env).expect("restores");
         let got = json::to_string_compact(&Value::Array(
             restored.into_iter().map(Value::Object).collect(),
         ));
@@ -309,7 +310,7 @@ fn valid_arrow_is_not_rerouted() {
     let elbow = case("fixed-stair-unbound-renormalize")["arrow"].clone();
     let mut env = RoutingEnv::new(TestEnv::default());
     let restored = restore_elements(
-        &[elbow.clone()],
+        std::slice::from_ref(&elbow),
         None,
         RestoreElementsOptions {
             repair_bindings: true,

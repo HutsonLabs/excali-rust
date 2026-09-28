@@ -282,7 +282,7 @@ const unboundCases = () => {
         const middle = shape === 4 ? [[end[0] / 2, 0], [end[0] / 2, end[1]]] : [];
         const points = [[0, 0], ...middle, [coordinate(r), coordinate(r)]];
         const arrow = elbow(up, "arrow", x, y, points, {
-          startArrowhead: r.pick([null, "arrow", "dot"]),
+          startArrowhead: r.pick([null, "arrow", "circle"]),
           endArrowhead: r.pick([null, "arrow", "triangle"]),
         });
         return {
@@ -653,7 +653,8 @@ const edgeCases = () => [
   {
     id: "edge-non-bindable-target",
     build: (up) => {
-      const line = up.newElement({ type: "freedraw", id: "line", x: 0, y: 0, width: 10, height: 10 });
+      // an arrow is not bindable (typeChecks.ts:184-202)
+      const line = up.newArrowElement({ type: "arrow", id: "line", x: 0, y: 0, points: [[0, 0], [10, 10]] });
       const arrow = {
         ...elbow(up, "arrow", 10, 20, [[0, 0], [100, 80]]),
         endBinding: binding("line", [0, 0.5001]),
@@ -770,8 +771,14 @@ const runCase = (up, c) => {
   if (!built) return null;
   const arrow = clone(built.arrow);
   const elements = clone(built.elements).map((e) => (e.id === arrow.id ? arrow : e));
+  // Recorded before the call: handleSegmentMove writes into the fixed
+  // segments it is given (elbowArrow.ts:526-557).
   const updates = clone(built.updates);
-  const result = up.updateElbowArrowPoints(arrow, up.arrayToMap(elements), asPassed(arrow, updates));
+  const result = up.updateElbowArrowPoints(
+    arrow,
+    up.arrayToMap(elements),
+    asPassed(arrow, clone(updates)),
+  );
   return { id: c.id, arrow: clone(built.arrow), elements: clone(built.elements), updates, result: clone(result) };
 };
 
