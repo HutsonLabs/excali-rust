@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-217 · Golden harness in CI (cargo test feature `goldens`)
+
+`excali_rough::goldens` compares drawables and element shapes against the upstream goldens op by op; a failing golden prints the case id, element id, shape, set, op index and kind, expected and actual numbers, the difference in ulps and the tolerance. It also checks every goldens file against the manifest's sha256 and case count, and a new CI job runs the goldens on arm64, the architecture they were generated on. PR: [#33](https://github.com/HutsonLabs/excali-rust/pull/33).
+
 ## 2026-09-28 · ex-108 · Library formats: v1 `library` and v2 `libraryItems`, restoreLibraryItems, merge
 
 `excali_core::library` now ports upstream's library data handling: `parseLibraryJSON` for v1 `library` arrays and v2 `libraryItems`, `restoreLibraryItems` with per-item element restore, and a typed `LibraryItem` codec that keeps unknown keys. `serializeLibraryAsJSON`, `mergeLibraryItems` and `getLibraryItemsHash` are ported too, and all 232 catalogue libraries match upstream goldens. Upstream keeps a string `strokeWidth` that the typed model drops; that gap is tracked as ex-117. PR: [#32](https://github.com/HutsonLabs/excali-rust/pull/32).
