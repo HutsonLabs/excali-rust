@@ -4,15 +4,15 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 06:34 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 06:35 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**132 issues** · 8 closed (6%) · 0 in progress · 0 blocked · 123 open
+**132 issues** · 9 closed (7%) · 0 in progress · 0 blocked · 122 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
 ## ex-e0 · Phase 0: Foundations
 
-<span class="status open">open</span> 7/9 children closed
+<span class="status open">open</span> 8/9 children closed
 
 Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo workspace and CI. Everything later phases depend on to be reproducible.
 
@@ -25,8 +25,8 @@ Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo work
 | `ex-005` | Enable GitHub Pages source = GitHub Actions and confirm first deploy | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-006` | Playwright smoke test for the site and mockups | task | P3 | <span class="status closed">closed</span> |  |  |
 | `ex-007` | scripts/site/zola.sh works on macOS (bash 3.2, shasum) with the aarch64-apple-darwin digest pinned | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-008` | Record the owner decisions of 2026-09-27 (calendar versioning, agent-closed milestones, fonts, strictly a port) | task | P0 | <span class="status open">open</span> | yes |  |
-| `ex-m0` | M0: site live, gates enforced, workspace green | milestone | P2 | <span class="status open">open</span> |  | `ex-008` |
+| `ex-008` | Record the owner decisions of 2026-09-27 (calendar versioning, agent-closed milestones, fonts, strictly a port) | task | P0 | <span class="status closed">closed</span> |  |  |
+| `ex-m0` | M0: site live, gates enforced, workspace green | milestone | P2 | <span class="status open">open</span> | yes |  |
 
 ## ex-e1 · Phase 1: Core model and file format (excali-core)
 
