@@ -310,17 +310,19 @@ fn negative_sizes_are_flipped_and_position_moved() {
         (0.1 - 0.2, 0.0, 0.2, 0.0)
     );
 
-    let r = restore(json!({ "type": "rectangle", "id": "r", "x": 10, "y": 20, "width": -40, "height": -30 }));
+    let r = restore(
+        json!({ "type": "rectangle", "id": "r", "x": 10, "y": 20, "width": -40, "height": -30 }),
+    );
     assert_eq!(
         (&r["x"], &r["y"], &r["width"], &r["height"]),
-        (&json!(-30.0), &json!(-10.0), &json!(40.0), &json!(30.0))
+        (&json!(-30), &json!(-10), &json!(40), &json!(30))
     );
     // Missing x: `0 - 40`.
     let r = restore(json!({ "type": "rectangle", "id": "r", "width": -40 }));
-    assert_eq!(r["x"], json!(-40.0));
+    assert_eq!(r["x"], json!(-40));
     // Values are coerced like JS: `"-40" < 0`, `"10" - 40`.
     let r = restore(json!({ "type": "rectangle", "id": "r", "x": "10", "width": "-40" }));
-    assert_eq!((&r["x"], &r["width"]), (&json!(-30.0), &json!(40.0)));
+    assert_eq!((&r["x"], &r["width"]), (&json!(-30), &json!(40)));
     // NaN is written as null, as JSON.stringify writes it.
     let r = restore(json!({ "type": "rectangle", "id": "r", "x": "ten", "width": -40 }));
     assert_eq!(r["x"], Value::Null);
@@ -329,7 +331,7 @@ fn negative_sizes_are_flipped_and_position_moved() {
         json!({ "type": "rectangle", "id": "r", "x": 10, "width": -40 }),
         &[("x", Some(json!(3)))],
     );
-    assert_eq!((&r["x"], &r["width"]), (&json!(3), &json!(40.0)));
+    assert_eq!((&r["x"], &r["width"]), (&json!(3), &json!(40)));
 }
 
 /// Unknown keys stay where they were; missing base keys are appended;
@@ -339,7 +341,11 @@ fn negative_sizes_are_flipped_and_position_moved() {
 fn key_order_follows_the_object_spread() {
     let r = restore_with(
         json!({ "future": 1, "type": "diamond", "strokeSharpness": "sharp", "id": "d", "name": "old", "gone": true }),
-        &[("name", Some(json!("new"))), ("added", Some(json!(2))), ("gone", None)],
+        &[
+            ("name", Some(json!("new"))),
+            ("added", Some(json!(2))),
+            ("gone", None),
+        ],
     );
     let k = keys(&r);
     assert_eq!(&k[..4], ["future", "type", "id", "name"]);
@@ -384,8 +390,14 @@ fn links_are_normalised_and_sanitised() {
     assert_eq!(normalize_link("/path"), "/path");
     assert_eq!(normalize_link("./a:javascript:x"), "./a:javascript:x");
     assert_eq!(normalize_link("mailto:a@b.c"), "mailto:a@b.c");
-    assert_eq!(normalize_link("https://x.test/\"q\""), "https://x.test/&quot;q&quot;");
-    assert_eq!(normalize_link("https://x.test/&#55357;&#56832;"), "https://x.test/\u{1F600}");
+    assert_eq!(
+        normalize_link("https://x.test/\"q\""),
+        "https://x.test/&quot;q&quot;"
+    );
+    assert_eq!(
+        normalize_link("https://x.test/&#55357;&#56832;"),
+        "https://x.test/\u{1F600}"
+    );
     assert_eq!(sanitize_url(""), "about:blank");
     assert_eq!(sanitize_url("\u{1}"), "about:blank");
 
@@ -405,9 +417,59 @@ fn test_env_mirrors_upstream_test_mode() {
     let mut env = TestEnv::default();
     let a = restore_element_with_properties(&obj(json!({ "type": "ellipse" })), &[], &mut env)
         .expect("restores");
-    let b = restore_element_with_properties(&obj(json!({ "type": "ellipse", "id": "k" })), &[], &mut env)
-        .expect("restores");
-    let c = restore_element_with_properties(&obj(json!({ "type": "ellipse", "id": "" })), &[], &mut env)
-        .expect("restores");
-    assert_eq!((a["id"].as_str(), b["id"].as_str(), c["id"].as_str()), (Some("id0"), Some("k"), Some("id1")));
+    let b = restore_element_with_properties(
+        &obj(json!({ "type": "ellipse", "id": "k" })),
+        &[],
+        &mut env,
+    )
+    .expect("restores");
+    let c = restore_element_with_properties(
+        &obj(json!({ "type": "ellipse", "id": "" })),
+        &[],
+        &mut env,
+    )
+    .expect("restores");
+    assert_eq!(
+        (a["id"].as_str(), b["id"].as_str(), c["id"].as_str()),
+        (Some("id0"), Some("k"), Some("id1"))
+    );
+}
+
+/// A legacy element from an old file restores into an object the typed
+/// model reads: roundness, bound elements, flipped size and the defaults
+/// land in the typed fields, unknown keys in `extra`.
+#[test]
+fn restored_legacy_element_reads_into_the_typed_model() {
+    use excali_core::element::{
+        BoundElement, BoundElementType, Element, ElementType, Roundness, RoundnessType,
+    };
+    let old = json!({
+        "id": "old", "type": "rectangle", "x": 100, "y": 200, "width": -50, "height": 80,
+        "angle": 0, "strokeColor": "#000000", "backgroundColor": "transparent",
+        "fillStyle": "hachure", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1,
+        "opacity": 100, "groupIds": [], "strokeSharpness": "round", "seed": 1968410350,
+        "version": 141, "versionNonce": 361174001, "isDeleted": false,
+        "boundElementIds": ["arrow-1"], "future": true
+    });
+    let element = Element::from_map(restore(old)).expect("typed model reads it");
+    assert_eq!(element.element_type(), ElementType::Rectangle);
+    assert_eq!(
+        element.base.roundness,
+        Some(Roundness::new(RoundnessType::Legacy))
+    );
+    assert_eq!(
+        element.base.bound_elements,
+        Some(vec![BoundElement {
+            id: "arrow-1".into(),
+            kind: BoundElementType::Arrow
+        }])
+    );
+    assert_eq!((element.base.x, element.base.width), (50.0, 50.0));
+    assert_eq!(element.base.created, None);
+    assert_eq!(element.base.updated, 1.0);
+    assert_eq!(element.base.index, None);
+    assert_eq!(element.base.link, None);
+    assert_eq!(element.extra.get("future"), Some(&json!(true)));
+    assert!(!element.extra.contains_key("strokeSharpness"));
+    assert!(!element.extra.contains_key("boundElementIds"));
 }

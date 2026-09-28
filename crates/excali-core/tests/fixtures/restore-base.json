@@ -72,6 +72,50 @@
       }
     },
     {
+      "id": "minimal-no-type-extra-type-empty",
+      "call": "base",
+      "element": {
+        "id": "n",
+        "future": 1
+      },
+      "extra": [
+        [
+          "type",
+          ""
+        ]
+      ],
+      "result": {
+        "id": "n",
+        "future": 1,
+        "type": "",
+        "version": 1,
+        "versionNonce": 0,
+        "index": null,
+        "isDeleted": false,
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "angle": 0,
+        "x": 0,
+        "y": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "width": 0,
+        "height": 0,
+        "seed": 1,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "boundElements": [],
+        "updated": 1,
+        "created": null,
+        "link": null,
+        "locked": false
+      }
+    },
+    {
       "id": "minimal-type-and-id",
       "call": "base",
       "element": {

@@ -13,3 +13,4 @@ pub mod fractional_index;
 pub mod json;
 mod layout;
 pub mod order_key;
+pub mod restore;

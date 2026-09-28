@@ -151,6 +151,14 @@ const minimal = () => [
   { id: "minimal-type-only", call: "base", element: { type: "rectangle" } },
   { id: "minimal-empty-object", call: "base", element: {} },
   {
+    // base.type is undefined (`"" || undefined`) but holds its place, so
+    // extra's "" lands there, not after the other base keys.
+    id: "minimal-no-type-extra-type-empty",
+    call: "base",
+    element: { id: "n", future: 1 },
+    extra: [["type", ""]],
+  },
+  {
     id: "minimal-type-and-id",
     call: "base",
     element: { id: "r", type: "ellipse" },
