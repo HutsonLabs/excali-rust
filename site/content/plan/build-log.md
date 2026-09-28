@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-112 · SVG metadata scene payload read/write
+
+`excali-core` now writes and reads the scene payload that upstream embeds in exported SVG metadata (`encodeSvgBase64Payload`, `decodeSvgBase64Payload`), with byte-exact `btoa` and forgiving-base64 `atob`. The v1 and v2 fixture SVGs decode to their scenes, and re-encoding the payloads in upstream's export snapshots reproduces them byte for byte, pako-compressed base64 included. INVALID and FAILED cases match upstream's blob loader. PR: [#23](https://github.com/HutsonLabs/excali-rust/pull/23).
+
 ## 2026-09-28 · ex-106 · AppState: exported keys, defaults and restoreAppState legacy handling
 
 `excali-core` now builds upstream's default AppState and cleans it for browser, export and server storage the way `APP_STATE_STORAGE_CONF` does. Only gridSize, gridStep, gridModeEnabled, viewBackgroundColor and lockedMultiSelections are exported. `restoreAppState` migrates a numeric `zoom` and a string `openSidebar`, and tinycolor2's parser backs `colorToHex` and `isTransparent`. All of it matches goldens generated from the pinned upstream. Restore now also throws where upstream's `getNormalizedDimensions` does, for sizes that are objects with their own `toString` key. PR: [#22](https://github.com/HutsonLabs/excali-rust/pull/22).
