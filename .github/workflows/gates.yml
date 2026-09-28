@@ -100,3 +100,37 @@ jobs:
         run: /bin/bash scripts/bootstrap.sh
       - name: site build under /bin/bash
         run: /bin/bash scripts/site/zola.sh build
+  # ex-006: every site page and mockup loads without console errors, failed
+  # requests or HTTP errors at 1440x900, 1024x768 and 390x844. The suite
+  # builds site/ with the pinned Zola (scripts/site/zola.sh) and serves it.
+  site-smoke:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tests/site
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tests/site/package-lock.json
+      - name: install
+        run: npm ci
+      - name: unit tests for the page inventory and static server
+        run: npm run test:unit
+      - name: install chromium
+        run: npx playwright install --with-deps chromium
+      - name: smoke every page and mockup at three viewports
+        run: npm run test:smoke
+        env:
+          CI: "1"
+      - name: keep the report and traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: site-smoke-report
+          path: |
+            tests/site/playwright-report/
+            tests/site/test-results/
+          retention-days: 14

@@ -40,9 +40,18 @@ for (const vp of VIEWPORTS) {
 
     for (const t of targets) {
       test(`${t.kind} ${t.path}`, async ({ page, baseURL }) => {
+        const url = new URL(t.path, baseURL).href;
         const problems = [];
         page.on("console", (m) => {
-          if (m.type() === "error") problems.push(`console.error: ${m.text()} (${m.location().url})`);
+          if (m.type() !== "error") return;
+          // Chromium logs the document's own 404 as a resource error. That
+          // one message is the expected outcome for the not-found target and
+          // nothing else; any other error on the 404 page still fails.
+          const own404 =
+            t.expectStatus === 404 &&
+            m.location().url === url &&
+            m.text().startsWith("Failed to load resource: the server responded with a status of 404");
+          if (!own404) problems.push(`console.error: ${m.text()} (${m.location().url})`);
         });
         page.on("pageerror", (e) => problems.push(`uncaught: ${e.message}`));
         page.on("requestfailed", (r) => {
@@ -53,7 +62,7 @@ for (const vp of VIEWPORTS) {
           if (r.status() >= 400 && !expected404) problems.push(`HTTP ${r.status()}: ${r.url()}`);
         });
 
-        const res = await page.goto(new URL(t.path, baseURL).href, { waitUntil: "load" });
+        const res = await page.goto(url, { waitUntil: "load" });
         expect(res, "navigation response").not.toBeNull();
         expect(res.status()).toBe(t.expectStatus);
         // Lazy iframes (the mockups index) and late subresources settle here.
