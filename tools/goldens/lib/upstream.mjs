@@ -202,11 +202,20 @@ const exposedModules = (upstream, exposed, patched = {}) => ({
 });
 
 /**
- * Makes each `.woff2` import under packages/excalidraw/fonts its path from
- * that directory (e.g. `Excalifont/Excalifont-Regular-<hash>.woff2`) instead
- * of an empty module, so a generator sees which file each of upstream's font
- * faces names (font-assets.mjs). Only with `fontUris: true`.
+ * Makes each `.woff2` import under packages/excalidraw/fonts the uri
+ * upstream's package build gives it instead of an empty module, so a
+ * generator sees each font face's real urls (font-assets.mjs,
+ * svg-export.mjs). scripts/buildPackage.js bundles with esbuild's `file`
+ * loader for `.woff2`, `assetNames: "[dir]/[name]"` and entry points
+ * `index.tsx` and the `*.chunk.ts` files under packages/excalidraw (so that
+ * directory is the outbase), which emits the file at
+ * `dist/prod/fonts/<Family>/<name>.woff2` and imports it as
+ * `./fonts/<Family>/<name>.woff2`; ExcalidrawFontFace.createUrls resolves
+ * that against ASSETS_FALLBACK_URL. Only with `fontUris: true`; the
+ * layout is checked against esbuild in test/font-assets.test.mjs.
  */
+export const fontUri = (fontsRelativePath) => `./fonts/${fontsRelativePath}`;
+
 const fontUris = (upstream) => ({
   name: "font-uris",
   setup(build) {
@@ -214,7 +223,7 @@ const fontUris = (upstream) => ({
     build.onLoad({ filter: /\.woff2$/ }, (args) => {
       if (!args.path.startsWith(`${fontsDir}/`)) return undefined;
       return {
-        contents: `export default ${JSON.stringify(args.path.slice(fontsDir.length + 1))};`,
+        contents: `export default ${JSON.stringify(fontUri(args.path.slice(fontsDir.length + 1)))};`,
         loader: "js",
       };
     });

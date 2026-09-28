@@ -153,8 +153,11 @@ export const probeCodePoints = (unicodeRange) =>
     return [a - 1, a, b, b + 1].filter((cp) => cp >= 0 && cp <= MAX_CODE_POINT);
   });
 
+// A face's last url is its file under ASSETS_FALLBACK_URL's fonts/ directory
+// (ExcalidrawFontFace.ts:150-170, and lib/upstream.mjs fontUri for the
+// package build's layout); `file` is its path under packages/excalidraw/fonts.
 const fileOf = (up, url) => {
-  const base = up.ExcalidrawFontFace.ASSETS_FALLBACK_URL;
+  const base = `${up.ExcalidrawFontFace.ASSETS_FALLBACK_URL}fonts/`;
   const href = url.toString();
   if (!href.startsWith(base)) throw new Error(`font url ${href} is not under ${base}`);
   return decodeURIComponent(href.slice(base.length));
@@ -174,6 +177,7 @@ const registered = (up) =>
       const { unicodeRange = null, ...descriptors } = face.fontFace.descriptors;
       return {
         file: face.urls.length ? fileOf(up, face.urls[face.urls.length - 1]) : null,
+        url: face.urls.length ? face.urls[face.urls.length - 1].toString() : null,
         format: face.urls.length ? up.ExcalidrawFontFace.getFormat(face.urls[0]) : null,
         descriptors,
         unicodeRange,

@@ -205,7 +205,7 @@ fn face(file: &str, format: &'static str) -> FontFaceSource {
         upstream_file: file.into(),
         format,
         characters: "abc".into(),
-        fallback_url: format!("https://esm.sh/@excalidraw/excalidraw/dist/prod/{file}"),
+        fallback_url: format!("https://esm.sh/@excalidraw/excalidraw/dist/prod/fonts/{file}"),
     }
 }
 
@@ -260,6 +260,6 @@ fn a_font_file_that_cannot_be_read_falls_back_to_upstreams_url() {
     let missing = face("Excalifont/missing.woff2", "woff2");
     assert_eq!(
         FontFiles::new(FONTS).content(&missing),
-        "https://esm.sh/@excalidraw/excalidraw/dist/prod/Excalifont/missing.woff2"
+        "https://esm.sh/@excalidraw/excalidraw/dist/prod/fonts/Excalifont/missing.woff2"
     );
 }

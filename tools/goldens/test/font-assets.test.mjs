@@ -7,11 +7,13 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { after, test } from "node:test";
 
 import { REPO_ROOT, TOOL_DIR } from "./helpers.mjs";
-import { upstreamDir } from "../lib/upstream.mjs";
+import { build } from "esbuild";
+
+import { fontUri, upstreamDir } from "../lib/upstream.mjs";
 
 const GENERATOR = join(TOOL_DIR, "font-assets.mjs");
 const FILE = "font-assets.json";
@@ -77,6 +79,67 @@ test("the registry is Fonts.init's, in its order, naming every upstream font fil
     .sort();
   const named = g.registered.flatMap((f) => f.faces.map((face) => face.file)).filter(Boolean).sort();
   assert.deepEqual(named, onDisk);
+});
+
+test("each face's url is where upstream's package build puts its file", async () => {
+  // scripts/buildPackage.js: esbuild with the file loader for .woff2,
+  // assetNames "[dir]/[name]" and entry points index.tsx and the *.chunk.ts
+  // files, whose common directory (esbuild's outbase) is packages/excalidraw.
+  // Bundle every family module with those options into dist/prod and check
+  // the uri each font import becomes, where the file is written, and that
+  // createUrls' resolution of it against ASSETS_FALLBACK_URL is the url the
+  // fixture records (and the harness's fontUri gives the same uri).
+  const upstream = upstreamDir();
+  const pkg = join(upstream, "packages", "excalidraw");
+  const script = readFileSync(join(upstream, "scripts", "buildPackage.js"), "utf8");
+  assert.match(script, /assetNames: "\[dir\]\/\[name\]"/);
+  assert.match(script, /"\.woff2": "file"/);
+  assert.match(script, /entryPoints: \["index\.tsx", "\*\*\/\*\.chunk\.ts"\]/);
+  assert.match(script, /getConfig\("dist\/prod"\)/);
+  // The family modules are bundled into dist/prod/index.js, so a root
+  // entry importing each of them stands in for index.tsx.
+  const families = readdirSync(join(pkg, "fonts"), { withFileTypes: true })
+    .filter((d) => d.isDirectory() && d.name !== "Assistant")
+    .map((d) => d.name);
+  const outdir = join(scratch, "package", "dist", "prod");
+  const result = await build({
+    absWorkingDir: pkg,
+    stdin: {
+      contents: families.map((f, i) => `export * as f${i} from "./fonts/${f}";`).join("\n"),
+      resolveDir: pkg,
+      sourcefile: "index.tsx",
+      loader: "ts",
+    },
+    outbase: pkg,
+    outdir,
+    bundle: true,
+    format: "esm",
+    packages: "external",
+    assetNames: "[dir]/[name]",
+    loader: { ".woff2": "file" },
+    metafile: true,
+    logLevel: "silent",
+  });
+  const g = JSON.parse(readFileSync(COMMITTED, "utf8"));
+  const urls = new Map(
+    g.registered.flatMap((f) => f.faces.filter((face) => face.file).map((face) => [face.file, face.url])),
+  );
+  let checked = 0;
+  for (const [out, meta] of Object.entries(result.metafile.outputs)) {
+    if (!out.endsWith(".js")) continue;
+    const code = readFileSync(join(pkg, out), "utf8");
+    for (const input of Object.keys(meta.inputs).filter((i) => i.endsWith(".woff2"))) {
+      const file = relative(join(pkg, "fonts"), join(pkg, input));
+      const uri = `./fonts/${file}`;
+      assert.ok(code.includes(JSON.stringify(uri)), `${out} imports ${input} as ${uri}`);
+      assert.equal(fontUri(file), uri);
+      assert.ok(readdirSync(join(outdir, "fonts", file, "..")).includes(file.split("/").pop()), uri);
+      assert.equal(new URL(uri, g.assetsFallbackUrl).href, urls.get(file), file);
+      assert.ok(urls.get(file).startsWith(`${g.assetsFallbackUrl}fonts/`), file);
+      checked += 1;
+    }
+  }
+  assert.equal(checked, urls.size);
 });
 
 test("containsCJK holds on Han, kana and Hangul and not on Latin", () => {

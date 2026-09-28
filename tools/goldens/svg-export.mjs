@@ -721,11 +721,14 @@ const build = async (upstream) => {
     fontUris: true,
   });
   up.setCustomTextMetricsProvider({ getLineWidth: (text) => text.length * 10 });
-  const base = up.ExcalidrawFontFace.ASSETS_FALLBACK_URL;
+  // getContent fetches and subsets; answer with the face's last url (its
+  // file under ASSETS_FALLBACK_URL, which getContent returns when no url can
+  // be fetched) and the characters it was asked to keep.
+  const base = `${up.ExcalidrawFontFace.ASSETS_FALLBACK_URL}fonts/`;
   up.ExcalidrawFontFace.prototype.getContent = async function getContent(codePoints) {
     const href = this.urls[this.urls.length - 1].toString();
     if (!href.startsWith(base)) throw new Error(`font url ${href} is not under ${base}`);
-    return `font:${decodeURIComponent(href.slice(base.length))}#${String.fromCodePoint(...codePoints)}`;
+    return `font:${href}#${String.fromCodePoint(...codePoints)}`;
   };
   up.reseed(RANDOM_SEED);
   const svgScenes = [];
@@ -744,7 +747,7 @@ const build = async (upstream) => {
     }),
     [SVG_FILE]: format({
       description:
-        "Upstream exportToSvg (packages/excalidraw/scene/export.ts:293-508) at the pinned commit under jsdom 22.1.0 (tools/goldens/svg-export.mjs): the arguments and the document shell (svgRoot.outerHTML without the element nodes). getExportSource() is `source`; a font face's content is font:<file>#<characters>; text measures 10 px per UTF-16 code unit.",
+        "Upstream exportToSvg (packages/excalidraw/scene/export.ts:293-508) at the pinned commit under jsdom 22.1.0 (tools/goldens/svg-export.mjs): the arguments and the document shell (svgRoot.outerHTML without the element nodes). getExportSource() is `source`; a font face's content is font:<its last url, upstream's asset fallback>#<characters>; text measures 10 px per UTF-16 code unit.",
       upstream: upstream.commit,
       source: EXPORT_SOURCE,
       scenes: svgScenes,

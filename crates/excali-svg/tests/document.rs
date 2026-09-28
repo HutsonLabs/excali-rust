@@ -7,13 +7,14 @@
 //! Fixture: `tests/fixtures/svg-export.json`, upstream's own `exportToSvg`
 //! at the pinned commit under jsdom 22.1.0 (`tools/goldens/svg-export.mjs`;
 //! its test checks the shells against upstream's vitest snapshot). A font
-//! face's content there is `font:<file>#<characters>` and text measures
+//! face's content there is `font:<url>#<characters>`, with the face's last
+//! url (its file under upstream's asset fallback), and text measures
 //! 10 px per UTF-16 code unit.
 
 use excali_core::element::Element;
 use excali_scene::display::FontFaceSource;
 use excali_scene::export::{svg_document, SvgExportAppState, SvgExportOptions, TextMetrics};
-use excali_svg::{export_to_svg, to_svg_file, FontContent, SVG_DOCUMENT_PREAMBLE};
+use excali_svg::{export_to_svg, to_svg_file, FontContent, FontFiles, SVG_DOCUMENT_PREAMBLE};
 use serde_json::{Map, Value};
 
 fn fixture() -> Value {
@@ -28,13 +29,14 @@ impl TextMetrics for TenPxPerCodeUnit {
     }
 }
 
-/// The fixture's font content: the file upstream's face names and the
-/// characters it was asked to keep.
+/// The fixture's font content: the face's last url in upstream (the url
+/// `getContent` answers when it cannot fetch the file) and the characters
+/// it was asked to keep.
 struct Marker;
 
 impl FontContent for Marker {
     fn content(&self, face: &FontFaceSource) -> String {
-        format!("font:{}#{}", face.upstream_file, face.characters)
+        format!("font:{}#{}", face.fallback_url, face.characters)
     }
 }
 
@@ -126,5 +128,36 @@ fn a_file_starts_with_the_svg_preamble() {
     assert_eq!(
         file,
         format!("{SVG_DOCUMENT_PREAMBLE}{}", root.outer_html())
+    );
+}
+
+#[test]
+fn without_the_font_files_a_face_names_upstreams_asset_url() {
+    // getContent answers the face's last url when it cannot fetch the file
+    // (ExcalidrawFontFace.ts:58-86): the file under ASSETS_FALLBACK_URL's
+    // fonts/ directory, where upstream's package build writes it
+    // (scripts/buildPackage.js, `assetNames: "[dir]/[name]"`).
+    let fixture = fixture();
+    let scene = &fixture["scenes"][0];
+    let elements = elements(scene);
+    let app_state = SvgExportAppState::from_app_state(scene["appState"].as_object().unwrap());
+    let options = SvgExportOptions {
+        source: "https://excalidraw.com",
+        exporting_frame: None,
+        skip_inlining_fonts: false,
+        text_metrics: &TenPxPerCodeUnit,
+    };
+    let missing = FontFiles::new(concat!(env!("CARGO_MANIFEST_DIR"), "/no-such-font-dir"));
+    let svg = export_to_svg(
+        &svg_document(&elements, &app_state, None, &options),
+        &missing,
+    )
+    .outer_html();
+    assert!(
+        svg.contains(
+            "src: url(https://esm.sh/@excalidraw/excalidraw/dist/prod/fonts/Excalifont/\
+             Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2);"
+        ),
+        "{svg}"
     );
 }
