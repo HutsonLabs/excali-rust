@@ -19,7 +19,7 @@ cd excali-rust
 bd ready                   # what can be started now
 ```
 
-`bootstrap.sh` is idempotent. It sets the repository-local git identity to the responsible human, points `core.hooksPath` at `.githooks`, installs `bd` if missing, turns its metrics off, rebuilds the local database from `issues.jsonl`, pins Zola, and checks out upstream at the pinned commit (`EXCALI_SKIP_UPSTREAM=1` skips it).
+`bootstrap.sh` is idempotent. It sets the repository-local git identity to the responsible human, points `core.hooksPath` at `.githooks`, installs `bd` if missing, turns its metrics off, rebuilds the local database from `issues.jsonl`, pins Zola (downloaded once per clone into the main checkout's `.tools/`, shared by every worktree, and refused unless its SHA-256 matches the digest pinned for the platform; macOS `/bin/bash` 3.2 and Linux are both supported), and checks out upstream at the pinned commit (`EXCALI_SKIP_UPSTREAM=1` skips it).
 
 ## The loop
 
