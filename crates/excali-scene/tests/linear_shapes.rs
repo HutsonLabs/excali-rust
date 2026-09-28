@@ -108,7 +108,7 @@ fn a_loop_closes_within_the_confirm_threshold_over_zoom() {
     assert!(is_path_a_loop(&past, 0.5));
     let far = [[0.0, 0.0], [100.0, 0.0], [100.0, 100.0], [0.0, 16.0]];
     assert!(is_path_a_loop(&far, 0.5));
-    assert!(!is_path_a_loop(&far, 0.49));
+    assert!(!is_path_a_loop(&far, 0.51));
 }
 
 #[test]
@@ -202,7 +202,10 @@ fn the_polygon_flag_does_not_decide_the_fill() {
     if let ElementKind::Line(l) = &mut el.kind {
         l.polygon = true;
     }
-    assert_eq!(shape(&el), generator.linear_path(&OPEN, &options(&el, false)));
+    assert_eq!(
+        shape(&el),
+        generator.linear_path(&OPEN, &options(&el, false))
+    );
 }
 
 #[test]
