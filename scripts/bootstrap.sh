@@ -35,15 +35,17 @@ echo "   core.hooksPath = $(git config core.hooksPath)"
 step "beads"
 # `command -v bd` is not enough: the npm package installs a bd.js shim whose
 # native binary comes from a postinstall script, and newer npm skips install
-# scripts that are not allow-listed. Check that bd actually runs.
+# scripts that are not allow-listed. The postinstall also skips the download
+# whenever CI is set (@beads/bd scripts/postinstall.js), so it runs with CI
+# cleared. Check that bd actually runs.
 bd_works() { command -v bd >/dev/null 2>&1 && bd version >/dev/null 2>&1; }
 if ! bd_works; then
   if command -v npm >/dev/null 2>&1; then
     npm install -g @beads/bd >/dev/null
     bd_pkg="$(npm root -g)/@beads/bd"
     if ! bd_works && [ -f "$bd_pkg/scripts/postinstall.js" ]; then
-      echo "   npm did not run the @beads/bd postinstall; running it"
-      (cd "$bd_pkg" && node scripts/postinstall.js) >/dev/null
+      echo "   @beads/bd postinstall did not fetch the binary; running it"
+      (cd "$bd_pkg" && CI='' node scripts/postinstall.js) >/dev/null
     fi
   else
     echo "   bd not found and npm unavailable; install per https://github.com/steveyegge/beads" >&2
