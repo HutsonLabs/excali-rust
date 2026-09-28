@@ -29,13 +29,23 @@
 //   (upstream then drops the binding, restore.ts:423-427): the case run
 //   again with LinearElementEditor.getPointAtIndexGlobalCoordinates, the
 //   branch's first call, throwing.
-// - catalogue cases: { id, file, version, items, output_sha256, geometry?,
-//   output_sha256_without_geometry? } for every
+// - catalogue cases: { id, file, version, items, output_sha256,
+//   reload_sha256, geometry?, output_sha256_without_geometry?,
+//   reload_sha256_without_geometry? } for every
 //   library of fixtures/libraries (fixtures/manifest.json, ex-003): the
 //   gzipped file is read, parsed as above with defaultStatus "published" (an
 //   import from libraries.excalidraw.com, library.ts:754-760), and the sha256
 //   of the serialized output recorded with the item count, and
-//   as for parse cases the output without geometry.
+//   as for parse cases the output without geometry. `reload_sha256` is the
+//   sha256 of that output parsed again the same way and serialized, checked
+//   to be a fixed point; with geometry probed, the reload of the output
+//   without it. (ex-114: a file written by upstream is not always what
+//   upstream writes after loading it. A legacy binding migrated with
+//   geometry is written {mode, elementId, fixedPoint}, restore.ts:412-416,
+//   and rebuilt on the next load as {elementId, mode, fixedPoint},
+//   restore.ts:338-342: every `geometry` library changes. A legacy `draw`
+//   element becomes a `line` without `polygon`, restore.ts:645-651, and
+//   gets `polygon: false` on the next load: 9 libraries.)
 // - merge cases: { id, local, other, output }: parseLibraryJSON of the two
 //   inputs (each after reseed(1)), mergeLibraryItems(local, other), written
 //   with serializeLibraryAsJSON.
@@ -494,6 +504,18 @@ const withoutGeometry = (up, fn) => {
 
 const sha256 = (text) => createHash("sha256").update(text, "utf8").digest("hex");
 
+/**
+ * The file upstream writes when it loads its own output again (ex-114),
+ * which must be where it settles: loading that once more writes it
+ * unchanged.
+ */
+const reload = (up, output, file) => {
+  const again = up.serializeLibraryAsJSON(parse(up, output, "published"));
+  const third = up.serializeLibraryAsJSON(parse(up, again, "published"));
+  if (third !== again) throw new Error(`${file}: upstream's second reload changed the file`);
+  return again;
+};
+
 const runCatalogue = (up, file) => {
   const input = readInput({ file });
   const items = parse(up, input, "published");
@@ -504,11 +526,14 @@ const runCatalogue = (up, file) => {
     version: JSON.parse(input).version,
     items: items.length,
     output_sha256: sha256(output),
+    reload_sha256: sha256(reload(up, output, file)),
   };
   const probe = withoutGeometry(up, () => up.serializeLibraryAsJSON(parse(up, input, "published")));
   if (probe.ends) {
     out.geometry = probe.ends;
     out.output_sha256_without_geometry = sha256(probe.result);
+    const reloaded = withoutGeometry(up, () => reload(up, probe.result, file));
+    out.reload_sha256_without_geometry = sha256(reloaded.result);
   }
   return out;
 };

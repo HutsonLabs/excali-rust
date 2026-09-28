@@ -146,7 +146,23 @@ Merge rule: two items are equal when their element `id`/`versionNonce` pairs mat
 - **Two differences from upstream.** Both come from the typed model:
   - An element whose restored object the typed model cannot read is dropped. Restore keeps such an object as it is: `restore.ts:459` copies a truthy `strokeWidth` unchanged, so upstream loads a string `"3"`. In the catalogue this happens only to the 24 lines of `aarondiel/logic-gates` whose `strokeWidth` is that string. Tracked as ex-117, which keeps such values and writes them back as read, the way `LibraryItem` keeps an odd `id` or `created`.
   - A legacy arrow binding to an existing element needs geometry, so it is dropped (ex-116, the known gap under the restore rules above). In the catalogue this affects 51 libraries with 1,245 binding ends.
-- **Goldens.** `crates/excali-core/tests/fixtures/library.json` is upstream's own output, written by `tools/goldens/library-fixtures.mjs` and re-checked in CI. It holds the parse, merge and hash tables, and for every one of the 232 catalogue libraries the hash of what upstream writes after parsing, with the legacy binding migration and without it.
+- **Goldens.** `crates/excali-core/tests/fixtures/library.json` is upstream's own output, written by `tools/goldens/library-fixtures.mjs` and re-checked in CI. It holds the parse, merge and hash tables, and for every one of the 232 catalogue libraries the hash of what upstream writes after parsing, with the legacy binding migration and without it, and the hash of what it writes after loading that output once more.
+- **Corpus round trip.** `crates/excali-core/tests/library_corpus.rs` walks the 232 libraries of `fixtures/manifest.json` (each checked against its digests). Every file parses, is written, and parses back to the same items, element for element. Both writes are upstream's bytes, except for `aarondiel/logic-gates` (ex-117). The second write is not always the first. Upstream's own output changes on reload for 59 libraries, and the file is stable after that load:
+  - All 51 libraries with legacy bindings that need geometry. The migrated binding is built as `{mode, elementId, fixedPoint}` (`restore.ts:412-416`). On the next load it has a `mode`, so it is rebuilt as `{elementId, mode, fixedPoint}` (`restore.ts:338-342`): same values, different key order. The port drops these bindings (ex-116), so its writes match upstream's `*_without_geometry` digests. ex-116 must reproduce both orders to match `output_sha256` and `reload_sha256`.
+  - 9 libraries (8 of them without legacy bindings, plus `cloud/cloud`) with a legacy `draw` element. It is restored to a `line` without `polygon` (`isLineElement` is false for `draw`, `restore.ts:645-651`), and the next load adds `polygon: false`. This is the only reload change the port makes today (115 elements).
+- **Loss report.** The same test rebuilds `crates/excali-core/tests/fixtures/library-corpus-report.json` and fails if it differs from the committed copy. For each library it lists what a load loses, and it gives the upstream rule behind each kind of loss. A loss with no listed rule fails the test. Across the catalogue (4,187 items, 55,113 elements):
+
+  | Loss | Count | Why |
+  |---|---|---|
+  | `strokeSharpness` | 32,416 elements | legacy; read into `roundness`, then deleted (`restore.ts:475-484, 511`) |
+  | `boundElementIds` | 13,305 elements | legacy; read into `boundElements`, then deleted (`restore.ts:486-488, 512`) |
+  | `rawText` | 548 text elements | legacy obsidian-excalidraw attribute, deleted (`restore.ts:532-534`) |
+  | envelope `library` | 70 v1 files | written as v2 `libraryItems` (`json.ts:137-145`) |
+  | elements | 24 lines of `aarondiel/logic-gates` | port gap ex-117 (string `strokeWidth`) |
+  | bindings cleared | 1,254 ends | 1,245 are legacy bindings needing geometry (port gap ex-116); 7 point at elements the item does not hold (`restore.ts:298-428`) and 2 are on lines, which restore gives no bindings (`restore.ts:636-638`); upstream clears those 9 too |
+  | ids replaced | 38 elements | an id repeated within an item gets a fresh one (`restore.ts:1000-1003`) |
+
+  Regenerate the report with `EXCALI_BLESS=1 cargo test -p excali-core --test library_corpus` and review the diff.
 
 Import from a URL is allowed only for `excalidraw.com` and `raw.githubusercontent.com/excalidraw/excalidraw-libraries` (suffix match on the host at a subdomain boundary, prefix match on the path). The `#addLibrary=<url>&token=<id>` hash form and the legacy `?addLibrary=` query form are both parsed.
 
