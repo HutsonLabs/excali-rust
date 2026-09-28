@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-405 · PNG export: padding 10, scale, background, embedded payload
+
+Scenes now export to PNG the way upstream's `exportToCanvas` draws them: padding 10 (0 for an exported frame), canvas size times `exportScale`, the background drawn only when `exportBackground` is set, and the utils wrapper's `maxWidthOrHeight` and `getDimensions`. The PNG is 8-bit RGBA and holds the scene in `encodePngMetadata`'s tEXt chunk. Upstream's `loadFromBlob` reads the port's PNGs back into the same scenes. PR: [#73](https://github.com/HutsonLabs/excali-rust/pull/73).
+
 ## 2026-09-28 · ex-g303 · Show the cause of the 18 pinned Excalifont and Comic Shanns width deviations against upstream at the pin
 
 Each of the 18 Excalifont and Comic Shanns texts whose stored width differs from the port now names what wrote it: an ink box of upstream's older `getLineWidth`, measured per glyph or at whole pixels. Five are reproduced exactly by upstream's code in Chrome, and Chrome shows restore keeps all 18 stored widths. A new macOS gate re-runs the measurement and checks it against the committed fixture within 0.001 px. PR: [#72](https://github.com/HutsonLabs/excali-rust/pull/72).
