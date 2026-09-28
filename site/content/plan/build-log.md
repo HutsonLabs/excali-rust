@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-305 · Text element sizing on edit: autoResize, originalText/text, anchor growth by align
+
+`excali-text` sizes text while it is created and edited the way upstream's `newElement.ts` does. `new_text_element` positions a new box from its anchor for each alignment. `RefreshedText::apply` applies a `refreshTextDimensions` result as the user types, so the text grows and wraps like it does in the editor. `text_auto_resize` unwraps text around its anchor as `actionTextAutoResize` does. More than 2400 upstream cases match. PR: [#64](https://github.com/HutsonLabs/excali-rust/pull/64).
+
 ## 2026-09-28 · ex-304 · Bound-text sizing: padding 5, ellipse and diamond insets, arrow label width
 
 `excali-text` sizes text bound to a container the way upstream's textElement.ts does. That covers the padding of 5, the insets for ellipses and diamonds, the maximum width and height of the text, the container size that fits a given text, and the text's position inside its container. `refreshTextDimensions` and `getAdjustedDimensions` are ported, so restoring a scene through `TextEnv` refits container text as upstream does. Arrow labels get their box through `ArrowLabelGeometry`, which excali-editor will implement under ex-511. PR: [#63](https://github.com/HutsonLabs/excali-rust/pull/63).
