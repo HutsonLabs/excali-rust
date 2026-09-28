@@ -16,10 +16,17 @@
 //! `restore.ts:430-515`), and the helpers it uses: [`normalize_link`] and
 //! [`sanitize_url`] (`packages/common/src/url.ts:5-11`,
 //! `@braintree/sanitize-url` 6.0.2) and [`normalized_dimensions`]
-//! (`getNormalizedDimensions`, `packages/element/src/sizeHelpers.ts:256-283`).
+//! (`getNormalizedDimensions`, `packages/element/src/sizeHelpers.ts:256-283`);
+//! and the per-type rules on top of it, [`restore_element`]
+//! (`restoreElement`, `restore.ts:517-752`), which reads sticky note
+//! colours with [`crate::color`] (`isTransparent`,
+//! `packages/common/src/colors.ts:389-391`).
 
+mod element;
 mod url;
 
+#[cfg(test)]
+mod element_tests;
 #[cfg(test)]
 mod tests;
 
@@ -31,7 +38,15 @@ use crate::element::ElementType;
 use crate::js;
 use crate::json;
 
-/// Where restore gets what upstream draws from global state.
+#[cfg(test)]
+use element::restore_element_encoded;
+pub use element::{
+    restore_element, BindingEnd, ElementsMap, LegacyBinding, LegacyBindingRequest, RestoreOptions,
+    MAX_LINEAR_PX,
+};
+
+/// Where restore gets what upstream draws from global state, and the
+/// element geometry it needs for one migration.
 pub trait RestoreEnv {
     /// `getUpdatedTimestamp()` (`packages/common/src/utils.ts:552`): epoch
     /// milliseconds, `Date.now()` upstream.
@@ -39,14 +54,66 @@ pub trait RestoreEnv {
     /// `randomId()` (`packages/common/src/random.ts:16`): a fresh element
     /// id, a 21-character nanoid upstream.
     fn random_id(&mut self) -> String;
+    /// `randomInteger()` (`packages/common/src/random.ts:9`): an integer in
+    /// `0..2^31`, `Math.floor(random.next() * 2 ** 31)` over roughjs'
+    /// `Random` upstream. Restore draws one for each `versionNonce` it
+    /// bumps.
+    fn random_integer(&mut self) -> f64;
+    /// The migration of a legacy arrow binding, one without `mode`, whose
+    /// target exists (`repairBinding`, `restore.ts:362-418`): the binding
+    /// point's global position decides `mode` (`inside` when it lies in the
+    /// target, else `orbit`) and the `fixedPoint` is computed against the
+    /// target. That needs element shapes, bounds and hit testing
+    /// (`LinearElementEditor.getPointAtIndexGlobalCoordinates`,
+    /// `isPointInElement`, `projectFixedPointOntoDiagonal`,
+    /// `calculateFixedPointForNonElbowArrowBinding`), which the crate table
+    /// of `site/content/architecture/overview.md` places in `excali-editor`
+    /// (`excali-core` may only use `excali-math`), so the environment
+    /// supplies them.
+    ///
+    /// `None` is what upstream gives when that computation throws: the
+    /// binding is dropped (`restore.ts:423-427`). The default has no
+    /// geometry and answers `None`, so until `excali-editor` implements this
+    /// (task ex-116, which milestone M1 depends on) a legacy file's arrow
+    /// bindings to existing targets are dropped on load where upstream
+    /// keeps them.
+    fn migrate_legacy_binding(
+        &mut self,
+        request: LegacyBindingRequest<'_>,
+    ) -> Option<LegacyBinding> {
+        let _ = request;
+        None
+    }
 }
 
-/// Upstream's test mode (`isTestEnv()`): ids are `id0`, `id1`, ... and the
-/// timestamp is always 1. Restoring with it gives exactly what upstream's
-/// test suite and `tools/goldens/restore-fixtures.mjs` record.
-#[derive(Debug, Clone, Default)]
+/// Upstream's test mode (`isTestEnv()`) after `reseed(seed)`
+/// (`packages/common/src/random.ts`): ids are `id0`, `id1`, ..., the
+/// timestamp is always 1, and `randomInteger()` follows roughjs'
+/// `Random(seed)` (Park-Miller, multiplier 48271). The default is
+/// `reseed(1)`, what `tools/goldens/restore-fixtures.mjs` does before each
+/// case, so restoring with it gives exactly what the fixtures record. It
+/// has no geometry for [`RestoreEnv::migrate_legacy_binding`].
+#[derive(Debug, Clone)]
 pub struct TestEnv {
     next_id: u64,
+    seed: i32,
+}
+
+impl TestEnv {
+    /// Upstream's test mode after `reseed(seed)`. Seed 0 is roughjs'
+    /// `Math.random` fallback, which has no fixed sequence; it is taken as 1.
+    pub fn with_seed(seed: i32) -> TestEnv {
+        TestEnv {
+            next_id: 0,
+            seed: if seed == 0 { 1 } else { seed },
+        }
+    }
+}
+
+impl Default for TestEnv {
+    fn default() -> TestEnv {
+        TestEnv::with_seed(1)
+    }
 }
 
 impl RestoreEnv for TestEnv {
@@ -58,6 +125,14 @@ impl RestoreEnv for TestEnv {
         let id = format!("id{}", self.next_id);
         self.next_id += 1;
         id
+    }
+
+    fn random_integer(&mut self) -> f64 {
+        // roughjs/bin/math.js: seed = Math.imul(48271, seed), then
+        // ((2 ** 31 - 1) & seed) / 2 ** 31; randomInteger floors that times
+        // 2 ** 31, which is the masked seed itself.
+        self.seed = self.seed.wrapping_mul(48271);
+        f64::from(self.seed & 0x7FFF_FFFF)
     }
 }
 
@@ -76,6 +151,22 @@ pub enum RestoreError {
     /// own `toString` key: `ToPrimitive` finds no callable method
     /// (`sizeHelpers.ts:271-281`).
     NoPrimitiveValue,
+    /// A text element's legacy `font` is `null` (`restore.ts:539-541`).
+    FontNull,
+    /// A text element's legacy `font` is neither a string nor `null`.
+    FontNotString,
+    /// A text element's line height is detected from its height and its
+    /// `text` is missing (`detectLineHeight`, `textMeasurements.ts:80-85`,
+    /// calls `.replace` on it).
+    TextUndefined,
+    /// As [`RestoreError::TextUndefined`] with `text` `null`.
+    TextNull,
+    /// As [`RestoreError::TextUndefined`] with `text` neither a string nor
+    /// `null`.
+    TextNotString,
+    /// A sticky note colour object with its own `hasOwnProperty` key, which
+    /// tinycolor calls (`isTransparent`).
+    HasOwnPropertyNotFunction,
 }
 
 impl fmt::Display for RestoreError {
@@ -86,7 +177,31 @@ impl fmt::Display for RestoreError {
             }
             RestoreError::LinkNotString => "link.trim is not a function",
             RestoreError::NoPrimitiveValue => "Cannot convert object to primitive value",
+            RestoreError::FontNull => "Cannot read properties of null (reading 'split')",
+            RestoreError::FontNotString => {
+                "element.font.split is not a function or its return value is not iterable"
+            }
+            RestoreError::TextUndefined => {
+                "Cannot read properties of undefined (reading 'replace')"
+            }
+            RestoreError::TextNull => "Cannot read properties of null (reading 'replace')",
+            RestoreError::TextNotString => "str.replace is not a function",
+            RestoreError::HasOwnPropertyNotFunction => "color.hasOwnProperty is not a function",
         })
+    }
+}
+
+impl From<js::TypeError> for RestoreError {
+    /// The `TypeError`s the shared JS conversions ([`crate::js`]) and the
+    /// tinycolor object reader ([`crate::color`]) raise on a JSON value:
+    /// `hasOwnProperty` shadowed by an own key, or else `ToPrimitive`
+    /// finding no callable method.
+    fn from(err: js::TypeError) -> RestoreError {
+        if err.0 == RestoreError::HasOwnPropertyNotFunction.to_string() {
+            RestoreError::HasOwnPropertyNotFunction
+        } else {
+            RestoreError::NoPrimitiveValue
+        }
     }
 }
 
@@ -175,7 +290,8 @@ fn normalized_axis(position: f64, size: f64) -> (f64, f64) {
     }
 }
 
-/// A [`RestoreEnv`] whose ids are put in the sentinel form.
+/// A [`RestoreEnv`] whose ids are put in the sentinel form, and whose
+/// legacy binding migration sees public values.
 struct EscapingEnv<'a>(&'a mut dyn RestoreEnv);
 
 impl RestoreEnv for EscapingEnv<'_> {
@@ -185,6 +301,30 @@ impl RestoreEnv for EscapingEnv<'_> {
 
     fn random_id(&mut self) -> String {
         json::escape_str(&self.0.random_id()).into_owned()
+    }
+
+    fn random_integer(&mut self) -> f64 {
+        self.0.random_integer()
+    }
+
+    fn migrate_legacy_binding(
+        &mut self,
+        request: LegacyBindingRequest<'_>,
+    ) -> Option<LegacyBinding> {
+        let arrow = json::decode_map(request.arrow);
+        let binding = json::decode(request.binding);
+        let bound_element = json::decode_map(request.bound_element);
+        let answer = self.0.migrate_legacy_binding(LegacyBindingRequest {
+            arrow: &arrow,
+            binding: &binding,
+            bound_element: &bound_element,
+            elements: request.elements,
+            end: request.end,
+        })?;
+        Some(LegacyBinding {
+            mode: json::escape(&answer.mode),
+            fixed_point: json::escape(&answer.fixed_point),
+        })
     }
 }
 

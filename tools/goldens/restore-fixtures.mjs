@@ -1,14 +1,16 @@
 #!/usr/bin/env node
-// Restore fixtures for excali-core's base normalisation (ex-103): upstream's
-// own restoreElementWithProperties and restoreElement
-// (packages/excalidraw/data/restore.ts:430-515, 517-752), run from the
-// pinned checkout under plain Node on a table of inputs.
+// Restore fixtures for excali-core's base normalisation (ex-103) and
+// per-type rules (ex-104): upstream's own restoreElementWithProperties and
+// restoreElement (packages/excalidraw/data/restore.ts:430-515, 517-752), run
+// from the pinned checkout under plain Node on tables of inputs.
 //
 //   node tools/goldens/restore-fixtures.mjs            write the fixtures
 //   node tools/goldens/restore-fixtures.mjs --check    exit 1 if stale
 //   node tools/goldens/restore-fixtures.mjs --out DIR  write (or --check) DIR
 //
-// Writes crates/excali-core/tests/fixtures/restore-base.json:
+// Writes crates/excali-core/tests/fixtures/restore-base.json and
+// restore-element.json (inputs in lib/restore-element-cases.mjs).
+// restore-base.json:
 //
 //   { "description", "upstream", "cases": [ { id, call, element, extra?, result | error } ] }
 //
@@ -26,6 +28,17 @@
 //   error: the message when the call throws (restoreElements then drops the
 //   element, restore.ts:977-979).
 //
+// restore-element.json: { "description", "upstream", "cases": [...] } where
+// - call "restoreElement": { id, element, targets?, existing?, opts?, result
+//   | error, geometry? }: restoreElement(element, arrayToMap(targets ??
+//   [element]), existing ? arrayToMap(existing) : null, opts). result is
+//   null when upstream returns null (a type it does not restore). geometry
+//   lists, in call order, the binding ends ("start", "end") that reached
+//   the legacy binding migration (restore.ts:362-418); it is found by
+//   running the case again with LinearElementEditor
+//   .getPointAtIndexGlobalCoordinates, that branch's first call, throwing,
+//   and is absent when no end did.
+//
 // Deterministic: upstream runs in its test mode (import.meta.env.MODE
 // "test"), where randomId() is `id${n}` and getUpdatedTimestamp() is 1
 // (packages/common/src/random.ts:16, utils.ts:552); reseed() before each
@@ -34,14 +47,39 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 
+import { buildElementCases } from "./lib/restore-element-cases.mjs";
 import { loadUpstream, REPO_ROOT, verifyUpstream } from "./lib/upstream.mjs";
 
 export const FIXTURES_DIR = join(REPO_ROOT, "crates", "excali-core", "tests", "fixtures");
 export const FIXTURE = "restore-base.json";
+export const ELEMENT_FIXTURE = "restore-element.json";
 
 const ENTRY = `
 export { restoreElement, restoreElementWithProperties } from "./packages/excalidraw/data/restore";
 export { reseed } from "./packages/common/src/random";
+export {
+  newElement,
+  newEmbeddableElement,
+  newIframeElement,
+  newStickyNoteElement,
+  newFrameElement,
+  newMagicFrameElement,
+  newTextElement,
+  newFreeDrawElement,
+  newLinearElement,
+  newArrowElement,
+  newImageElement,
+} from "./packages/element/src/newElement";
+export { isUsingAdaptiveRadius } from "./packages/element/src/typeChecks";
+export { LinearElementEditor } from "./packages/element/src/linearElementEditor";
+export { setCustomTextMetricsProvider } from "./packages/element/src/textMeasurements";
+export {
+  DEFAULT_VERTICAL_ALIGN,
+  ROUNDNESS,
+  getStrokeWidthByKey,
+  getUpdatedTimestamp,
+} from "./packages/common/src/index";
+export { getDefaultAppState } from "./packages/excalidraw/appState";
 `;
 const EXPOSE = { "packages/excalidraw/data/restore": ["restoreElementWithProperties"] };
 
@@ -631,14 +669,110 @@ const buildFixture = (up, commit) => {
     upstream: commit,
     cases: cases.map((c) => runCase(up, c)),
   };
-  // Every non-ASCII code unit as a \u escape: the same JSON value, and the
-  // file stays free of the invisible code points the attribution gate
-  // rejects (U+FEFF, U+200B, U+2028 are inputs here).
+  return asciiJson(fixture);
+};
+
+// Every non-ASCII code unit as a \u escape: the same JSON value, and the file
+// stays free of the invisible code points the attribution gate rejects
+// (U+FEFF, U+200B, U+2028 are inputs here).
+const asciiJson = (fixture) => {
   const text = JSON.stringify(fixture, null, 2).replace(
     /[\u0080-\uffff]/g,
     (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`,
   );
   return `${text}\n`;
+};
+
+// -- restore-element.json ------------------------------------------------------
+
+const clone = (value) => JSON.parse(JSON.stringify(value));
+
+/** Resolves a case's builders into JSON; each builder runs after reseed(1). */
+const resolveElementCase = (up, c) => {
+  if (c.call !== "restoreElement") return c;
+  up.reseed(1);
+  const element = clone(typeof c.element === "function" ? c.element(up) : c.element);
+  const out = { id: c.id, call: c.call, element };
+  if (c.targets) {
+    up.reseed(1);
+    out.targets = clone(c.targets(up, element));
+  }
+  if (c.existing) {
+    up.reseed(1);
+    out.existing = clone(c.existing(up, element));
+  }
+  if (c.opts) out.opts = c.opts;
+  return out;
+};
+
+const callRestoreElement = (up, c) => {
+  up.reseed(1);
+  const element = clone(c.element);
+  const targets = clone(c.targets ?? [c.element]);
+  const targetsMap = new Map(targets.map((e) => [e.id, e]));
+  const existing = c.existing ? new Map(clone(c.existing).map((e) => [e.id, e])) : null;
+  return up.restoreElement(element, targetsMap, existing, c.opts);
+};
+
+/** Runs fn with console.error silenced (upstream logs repair failures). */
+const quietly = (fn) => {
+  const log = console.error;
+  console.error = () => {};
+  try {
+    return fn();
+  } finally {
+    console.error = log;
+  }
+};
+
+/** The binding ends that reach the legacy migration (see header). */
+const geometryEnds = (up, c) => {
+  const editor = up.LinearElementEditor;
+  const original = editor.getPointAtIndexGlobalCoordinates;
+  const ends = [];
+  editor.getPointAtIndexGlobalCoordinates = (element, index) => {
+    ends.push(index === 0 ? "start" : "end");
+    throw new Error("geometry probe");
+  };
+  try {
+    quietly(() => callRestoreElement(up, c));
+  } catch {
+    // the case's own error is recorded by the normal run
+  } finally {
+    editor.getPointAtIndexGlobalCoordinates = original;
+  }
+  return ends;
+};
+
+const runElementCase = (up, c) => {
+  let recorded;
+  try {
+    const restored = quietly(() => callRestoreElement(up, c));
+    recorded = { ...c, result: restored === null ? null : clone(restored) };
+  } catch (error) {
+    recorded = { ...c, error: String(error.message) };
+  }
+  const ends = geometryEnds(up, c);
+  if (ends.length) recorded.geometry = ends;
+  return recorded;
+};
+
+const buildElementFixture = (up, commit) => {
+  const cases = buildElementCases().map((c) => resolveElementCase(up, c));
+  const ids = new Set();
+  for (const c of cases) {
+    if (ids.has(c.id)) throw new Error(`duplicate case id ${c.id}`);
+    ids.add(c.id);
+  }
+  const fixture = {
+    description:
+      "restoreElement per-type rules, packages/excalidraw/data/restore.ts, in upstream's test mode (randomId id0.., " +
+      "getUpdatedTimestamp 1, reseed(1) before each case). Generated by " +
+      "tools/goldens/restore-fixtures.mjs.",
+    upstream: commit,
+    cases: cases.map((c) => runElementCase(up, c)),
+  };
+  return asciiJson(fixture);
 };
 
 /** Runs fn with Math.random disabled (see header). */
@@ -671,23 +805,38 @@ const main = async () => {
     expose: EXPOSE,
     define: { "import.meta.env.MODE": '"test"' },
   });
-  const text = deterministic(() => buildFixture(up, upstream.commit));
-  const path = join(args.out, FIXTURE);
-  const where = relative(process.cwd(), path) || path;
+  // Node has no canvas: text is measured at 10 px per character, what
+  // upstream's test environment gives (textMeasurements.ts:140-146), which
+  // only affects the width of the text inputs API.createElement builds.
+  up.setCustomTextMetricsProvider({ getLineWidth: (text) => text.length * 10 });
+  const files = deterministic(() => [
+    [FIXTURE, buildFixture(up, upstream.commit)],
+    [ELEMENT_FIXTURE, buildElementFixture(up, upstream.commit)],
+  ]);
+  const where = (name) => {
+    const path = join(args.out, name);
+    return relative(process.cwd(), path) || path;
+  };
 
   if (args.check) {
-    if (!existsSync(path) || readFileSync(path, "utf8") !== text) {
-      process.stderr.write(`stale: ${where}\n`);
+    const stale = files.filter(([name, text]) => {
+      const path = join(args.out, name);
+      return !existsSync(path) || readFileSync(path, "utf8") !== text;
+    });
+    if (stale.length) {
+      for (const [name] of stale) process.stderr.write(`stale: ${where(name)}\n`);
       process.stderr.write("restore fixtures are out of date: run node tools/goldens/restore-fixtures.mjs\n");
       process.exit(1);
     }
-    process.stdout.write(`restore fixtures up to date: ${where}\n`);
+    for (const [name] of files) process.stdout.write(`restore fixtures up to date: ${where(name)}\n`);
     return;
   }
 
   mkdirSync(args.out, { recursive: true });
-  writeFileSync(path, text);
-  process.stdout.write(`wrote ${where} from upstream ${upstream.commit.slice(0, 7)}\n`);
+  for (const [name, text] of files) {
+    writeFileSync(join(args.out, name), text);
+    process.stdout.write(`wrote ${where(name)} from upstream ${upstream.commit.slice(0, 7)}\n`);
+  }
 };
 
 await main();

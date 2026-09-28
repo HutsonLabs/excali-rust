@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-104 · Restore: per-type rules (text, freedraw, image, line/draw, arrow, stickynote, frame)
+
+`excali-core` now restores each element type as upstream's `restoreElement` does. That covers the legacy font string and line height detection, freedraw points and stroke options, image defaults, draw to line, arrowhead renames, point re-basing, the 75000 px cap, binding repair, the fixedSegments rule, sticky notes and frame names. The port matches a fixture table generated from upstream's own `restoreElement` and the `restore.test.ts` cases. The legacy binding migration is tracked separately as ex-116. PR: [#26](https://github.com/HutsonLabs/excali-rust/pull/26).
+
 ## 2026-09-28 · ex-113 · Clipboard JSON format (excalidraw/clipboard) parse and emit
 
 `excali-core` now writes and reads upstream's clipboard JSON (`serializeAsClipboardJSON`, `parseClipboard`): compact output with only the copied images' files, orphaned frame children detached through a version bump with `shape` and `canvas` dropped, and paste of the `excalidraw`, `excalidraw/clipboard` and `excalidraw-api/clipboard` types with everything else returned as text. Number literals beyond the f64 range read as `null`, as `JSON.stringify(JSON.parse(...))` gives. All 26 copy cases match upstream byte for byte and all 78 paste cases match too. PR: [#25](https://github.com/HutsonLabs/excali-rust/pull/25).

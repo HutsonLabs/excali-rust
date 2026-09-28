@@ -67,7 +67,13 @@ Key order and unknown keys follow upstream's object semantics (`excali_core::doc
 | Freedraw: invalid points dropped, pressures aligned, non-finite pressure → 0.5; `strokeOptions` default `{variability:"variable", streamline:0.5}` | `restore.ts:592-604` |
 | Image: `status` default `pending`, `scale [1,1]`, `crop null` | `restore.ts:605-611` |
 | Line/arrow: arrowheads normalised (`dot→circle`, `crowfoot_*→cardinality_*`); fewer than 2 points → `[[0,0],[w,h]]`; points re-based so `points[0] == [0,0]`; lines get `null` bindings; elements over 75,000 px marked deleted; arrow `endArrowhead` default `arrow`; bindings repaired with `mode` | `restore.ts:612-723` |
+| Sticky note: `baseHeight ?? maxHeight ?? height`; transparent colours replaced (tinycolor alpha 0), fill solid, at least 75×75, `height >= baseHeight` | `restore.ts:732-740`, `newElement.ts:185-228` |
+| Frame: `name ?? null` | `restore.ts:741-745` |
 | Scene: invisibly small elements deleted; duplicate ids regenerated; `syncInvalidIndices`; frame membership, container/bound-text pairs and linear bindings repaired; bound text ordered right after its container | `restore.ts:946-1138` |
+
+`excali-core` implements the per-element rules as `restore::restore_element`. One step needs element geometry: an arrow binding saved before bindings had a `mode` whose target exists is migrated by testing whether the arrow's end lies inside the target and computing a `fixedPoint` against it (`restore.ts:362-418`). That uses shapes, bounds and hit testing (`binding.ts`, `collision.ts`, `linearElementEditor.ts`), which the [crate table](../overview/) places in `excali-editor` above `excali-core`, so restore asks its `RestoreEnv` (`migrate_legacy_binding`). Without an answer the binding is dropped, which is what upstream does only when that computation fails.
+
+**Known gap (tracked as ex-116).** No environment answers yet: the default `RestoreEnv` has no geometry, so a legacy arrow binding whose target exists is dropped on load, where upstream keeps it with a computed `mode` and `fixedPoint`. That loses data from real legacy files. ex-116 implements the migration in `excali-editor` once hit testing (ex-507) and binding geometry (ex-510) exist, and milestone M1 depends on it, so M1 cannot close while this gap remains. It is also listed under tracked exceptions in [ADR-008](../../decisions/adr-008-crate-boundaries/).
 
 ### `appState` on save and load
 

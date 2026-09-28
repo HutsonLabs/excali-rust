@@ -37,6 +37,15 @@ pub const FONT_SIZES: FontSizes = FontSizes {
 pub const MIN_FONT_SIZE: f64 = 1.0;
 /// `DEFAULT_FONT_SIZE`, `constants.ts:223`.
 pub const DEFAULT_FONT_SIZE: f64 = 20.0;
+/// `STICKY_NOTE_MAX_FONT_SIZE`, `constants.ts:225`: the ceiling a sticky
+/// note label's `baseFontSize` is clamped to.
+pub const STICKY_NOTE_MAX_FONT_SIZE: f64 = 512.0;
+/// `STICKY_NOTE_FALLBACK_FONT_SIZE`, `constants.ts:226`.
+pub const STICKY_NOTE_FALLBACK_FONT_SIZE: f64 = 28.0;
+/// `DEFAULT_STICKY_NOTE_SIZE`, `constants.ts:260`.
+pub const DEFAULT_STICKY_NOTE_SIZE: f64 = 250.0;
+/// `STICKY_NOTE_MIN_SIZE`, `constants.ts:263`.
+pub const STICKY_NOTE_MIN_SIZE: f64 = 75.0;
 /// `DEFAULT_TEXT_ALIGN`, `constants.ts:274`.
 pub const DEFAULT_TEXT_ALIGN: TextAlign = TextAlign::Left;
 /// `DEFAULT_VERTICAL_ALIGN`, `constants.ts:275`.

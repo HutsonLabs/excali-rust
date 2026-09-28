@@ -197,10 +197,11 @@ jobs:
   # --check step fails the PR when goldens/ no longer matches the generator.
   # scene-fixtures.mjs --check does the same for excali-core's .excalidraw
   # fixtures, built by upstream's constructors and serializeAsJSON, and
-  # restore-fixtures.mjs --check for restore-base.json, upstream's own
-  # restoreElementWithProperties on a table of inputs, and
-  # clipboard-fixtures.mjs --check for clipboard.json, upstream's own
-  # serializeAsClipboardJSON and parseClipboard.
+  # restore-fixtures.mjs --check for restore-base.json and
+  # restore-element.json, upstream's own restoreElementWithProperties and
+  # restoreElement on tables of inputs, and clipboard-fixtures.mjs --check
+  # for clipboard.json, upstream's own serializeAsClipboardJSON and
+  # parseClipboard.
   # Runs on arm64: V8's float results for some shapes differ in the last bits
   # between x64 and arm64, and the committed goldens are the arm64 output
   # (macOS and Linux arm64 agree byte for byte).
