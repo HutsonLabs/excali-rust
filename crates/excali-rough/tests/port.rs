@@ -96,6 +96,7 @@ mod options {
         assert_eq!(o.fill_line_dash, None);
         assert_eq!(o.fill_line_dash_offset, None);
         assert_eq!(o.fixed_decimal_place_digits, None);
+        assert_eq!(o.fill, None);
     }
 
     #[test]
@@ -149,7 +150,7 @@ mod generator {
         assert_eq!(g.circle(0.0, 0.0, 1.0, &o).shape.as_str(), "circle");
         assert_eq!(g.linear_path(&pts, &o).shape.as_str(), "linearPath");
         assert_eq!(g.polygon(&pts, &o).shape.as_str(), "polygon");
-        assert_eq!(g.curve(&pts, &o).shape.as_str(), "curve");
+        assert_eq!(g.curve(&pts, &o).unwrap().shape.as_str(), "curve");
         assert_eq!(
             g.arc(0.0, 0.0, 1.0, 1.0, 0.0, 1.0, false, &o)
                 .shape
@@ -179,7 +180,7 @@ mod generator {
     fn empty_curve_is_an_empty_path() {
         // rough.js reads points[0][0] and throws a TypeError; the port draws
         // nothing instead of panicking.
-        let d = RoughGenerator::new().curve(&[], &seeded(1));
+        let d = RoughGenerator::new().curve(&[], &seeded(1)).unwrap();
         assert_eq!(d.sets.len(), 1);
         assert!(d.sets[0].ops.is_empty());
     }

@@ -6,7 +6,7 @@
     {"name":"random.json","cases":7,"sha256":"1f2b8a7344a9cb53c95491551b314b606c06fdef21d34087aea605fe578bda45"},
     {"name":"rough-primitives.json","cases":117,"sha256":"47ac0740942e72e9ddb78a1c03c8deed1ce1dec4f3b9fa14c0fcbe8f15e3f6c1"},
     {"name":"rough-generator.json","cases":228,"sha256":"b06fc6361dd0876addf7db8104b34fe34abbae2cb1940246f1bc5f10119f74c4"},
-    {"name":"rough-fills.json","cases":126,"sha256":"a05da5150107627af04b3d74674f6cde139b80db9db5f23772564da3e2475383"},
+    {"name":"rough-fills.json","cases":224,"sha256":"65c3f60e5b068ed02f31fa37810f336c4bf5b6b320edd46b63dcfa020d18e20e"},
     {"name":"rough-options.json","cases":140,"sha256":"cc67321d1379e7f0d08f72f445e4e119d814da89a297c682987d3025e644c25e"},
     {"name":"elements-upstream-fixtures.json","cases":10,"sha256":"3dcf4c9d6b085426f4f350b3db0734c85d81f7211479bc210aeebd38337626eb"},
     {"name":"elements-rectangle.json","cases":54,"sha256":"8f0bddd58eb8f3e65a2472a6923ad79a7a77ddd029763855cb966ef873a0c95a"},

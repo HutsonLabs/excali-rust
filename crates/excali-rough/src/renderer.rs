@@ -1,4 +1,4 @@
-//! rough.js 4.6.4 `bin/renderer.js`: the stroke primitives.
+//! rough.js 4.6.4 `bin/renderer.js`: the stroke primitives and the fills.
 //!
 //! Every function takes the resolved options and the RNG separately. In
 //! rough.js the RNG lives on the options object (`o.randomizer`, created from
@@ -11,6 +11,8 @@
 use excali_math::js;
 
 use crate::core::{Op, OpSet};
+use crate::fillers;
+use crate::hachure_fill::PolygonList;
 use crate::path_data::{absolutize, normalize, parse_path, PathError};
 use crate::{Options, Point, Random};
 
@@ -287,6 +289,97 @@ pub fn svg_path(path: &str, o: &Options, rng: &mut Random) -> Result<OpSet, Path
         }
     }
     Ok(OpSet::path(ops))
+}
+
+/// `solidFillPolygon(polygonList, o)`: each polygon of more than two points
+/// as a `fillPath` outline, every vertex jittered by up to
+/// `maxRandomnessOffset`.
+pub fn solid_fill_polygon(polygons: &[Vec<Point>], o: &Options, rng: &mut Random) -> OpSet {
+    let mut ops = Vec::new();
+    for points in polygons {
+        // `o.maxRandomnessOffset || 0`
+        let off = or_zero(o.max_randomness_offset);
+        let len = points.len();
+        if len > 2 {
+            let x = points[0][0] + offset_opt(off, o, rng, 1.0);
+            let y = points[0][1] + offset_opt(off, o, rng, 1.0);
+            ops.push(Op::Move([x, y]));
+            for p in &points[1..] {
+                let x = p[0] + offset_opt(off, o, rng, 1.0);
+                let y = p[1] + offset_opt(off, o, rng, 1.0);
+                ops.push(Op::LineTo([x, y]));
+            }
+        }
+    }
+    OpSet::fill_path(ops)
+}
+
+/// `patternFillPolygons(polygonList, o)`: the `fillSketch` for
+/// `o.fillStyle` (any style but `solid`; an unknown name is `hachure`).
+///
+/// As in rough.js, the fillers rotate the polygons by the hachure angle and
+/// back in place, which moves the points in the last bits; `polygons` is
+/// left as rough.js leaves its argument.
+pub fn pattern_fill_polygons(polygons: &mut [Vec<Point>], o: &Options, rng: &mut Random) -> OpSet {
+    let mut list = PolygonList::new(polygons);
+    let set = pattern_fill_list(&mut list, o, rng);
+    for (i, polygon) in polygons.iter_mut().enumerate() {
+        *polygon = list.polygon(i);
+    }
+    set
+}
+
+/// [`pattern_fill_polygons`] on a [`PolygonList`].
+pub(crate) fn pattern_fill_list(list: &mut PolygonList, o: &Options, rng: &mut Random) -> OpSet {
+    fillers::fill_polygons(list, o, rng)
+}
+
+/// `patternFillArc(x, y, width, height, start, stop, o)`: the pattern fill
+/// of the pie slice, from `curveStepCount` points on the arc and the centre.
+///
+/// With `start == stop` (or a step count that is not positive) rough.js's
+/// point loop never ends; the port stops when the angle stops advancing.
+#[allow(clippy::too_many_arguments)]
+pub fn pattern_fill_arc(
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+    start: f64,
+    stop: f64,
+    o: &Options,
+    rng: &mut Random,
+) -> OpSet {
+    let cx = x;
+    let cy = y;
+    let mut rx = (width / 2.0).abs();
+    let mut ry = (height / 2.0).abs();
+    rx += offset_opt(rx * 0.01, o, rng, 1.0);
+    ry += offset_opt(ry * 0.01, o, rng, 1.0);
+    let mut strt = start;
+    let mut stp = stop;
+    while strt < 0.0 {
+        strt += PI * 2.0;
+        stp += PI * 2.0;
+    }
+    if (stp - strt) > (PI * 2.0) {
+        strt = 0.0;
+        stp = PI * 2.0;
+    }
+    let increment = (stp - strt) / o.curve_step_count;
+    let mut points: Vec<Point> = Vec::new();
+    let mut angle = strt;
+    while angle <= stp {
+        points.push([cx + rx * angle.cos(), cy + ry * angle.sin()]);
+        let next = angle + increment;
+        if next <= angle || next.is_nan() {
+            break;
+        }
+        angle = next;
+    }
+    points.push([cx + rx * stp.cos(), cy + ry * stp.sin()]);
+    points.push([cx, cy]);
+    pattern_fill_polygons(&mut [points], o, rng)
 }
 
 /// `randOffset(x, o)`: a draw in `[-x, x)` scaled by the roughness.

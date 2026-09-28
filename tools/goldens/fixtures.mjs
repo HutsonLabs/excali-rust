@@ -698,6 +698,85 @@ export const roughGoldens = () => {
     }
   }
 
+  // Fill edge cases (ex-204): the parts of the fillers, hachure-fill and the
+  // generator's fill branches the grid above does not reach.
+  const edge = (id, method, args, extra = {}) =>
+    fills.push({
+      id: `edge/${id}`,
+      method,
+      args,
+      options: { seed: FIXTURE_SEED, roughness: 1, fill: BACKGROUND, fillWeight: 1, hachureGap: 8, ...extra },
+    });
+  const STAR = [[[50, 0], [62, 35], [100, 38], [70, 60], [80, 98], [50, 75], [20, 98], [30, 60], [0, 38], [38, 35]]];
+  const TWO_TRIANGLES = "M 0 0 L 60 0 L 60 50 Z M 80 10 L 130 10 L 110 60 Z";
+  const LONE_MOVE = "M 5 5 M 0 0 L 60 0 L 60 50 Z";
+  for (const fillStyle of ROUGH_FILL_STYLES) {
+    // curve: curveToBezier + pointsOnBezierCurves (pattern), or a single
+    // merged stroke at roughness + fillShapeRoughnessGain (solid)
+    edge(`curve-${fillStyle}`, "curve", SMALL.curve, { fillStyle });
+    edge(`curve-3-${fillStyle}`, "curve", [[[0, 0], [60, 60], [120, 0]]], { fillStyle });
+    // closed arc: patternFillArc, or a single-stroke arc without rough closure
+    edge(`arc-${fillStyle}`, "arc", [100, 100, 160, 120, Math.PI / 6, Math.PI * 1.75, true], { fillStyle });
+    // several subpaths: solidFillPolygon over pointsOnPath's sets
+    edge(`path-subpaths-${fillStyle}`, "path", [TWO_TRIANGLES], { fillStyle });
+    // concave polygon: several active edge pairs per scan line
+    edge(`polygon-star-${fillStyle}`, "polygon", STAR, { fillStyle });
+    // hachure-fill skips the rotation when hachureAngle + 90 is 0; x.5 edges
+    // exercise Math.round
+    edge(`rectangle-angle-90-${fillStyle}`, "rectangle", [10.5, -20.5, 60, 41], { fillStyle, hachureAngle: -90 });
+    // hachureGap < 0: the gap is strokeWidth * 4
+    edge(`rectangle-default-gap-${fillStyle}`, "rectangle", SMALL.rectangle, { fillStyle, strokeWidth: 2, hachureGap: -1 });
+    // single fill stroke
+    edge(`ellipse-single-fill-${fillStyle}`, "ellipse", SMALL.ellipse, { fillStyle, disableMultiStrokeFill: true });
+    // roughness 0: no skipOffset draw, core ellipse points
+    edge(`ellipse-r0-${fillStyle}`, "ellipse", SMALL.ellipse, { fillStyle, roughness: 0 });
+    edge(`curve-r0-${fillStyle}`, "curve", SMALL.curve, { fillStyle, roughness: 0 });
+    // roughness 2
+    edge(`polygon-r2-${fillStyle}`, "polygon", SMALL.polygon, { fillStyle, roughness: 2 });
+    // stroke "none": the outline still draws first
+    edge(`polygon-no-stroke-${fillStyle}`, "polygon", SMALL.polygon, { fillStyle, stroke: "none" });
+  }
+  // gap below the 0.1 floor
+  edge("rectangle-tiny-gap-hachure", "rectangle", [0, 0, 2, 2], { fillStyle: "hachure", hachureGap: 0.05 });
+  edge("rectangle-tiny-gap-zigzag", "rectangle", [0, 0, 2, 2], { fillStyle: "zigzag", hachureGap: 0.05 });
+  // a two-point polygon (closed by hachure-fill) and a polygon already closed
+  edge("polygon-2-hachure", "polygon", [[[0, 0], [60, 40]]], { fillStyle: "hachure" });
+  edge("polygon-2-solid", "polygon", [[[0, 0], [60, 40]]], { fillStyle: "solid" });
+  edge("polygon-closed-hachure", "polygon", [[[0, 0], [80, 10], [40, 60], [0, 0]]], { fillStyle: "hachure" });
+  // solid fill on a one-set path goes through svgPath; fillShapeRoughnessGain 0
+  edge("path-solid-gain-0", "path", [PATHS.smallArcs], { fillStyle: "solid", fillShapeRoughnessGain: 0 });
+  edge("curve-solid-gain-0", "curve", SMALL.curve, { fillStyle: "solid", fillShapeRoughnessGain: 0 });
+  edge("path-solid-r0", "path", [PATHS.smallArcs], { fillStyle: "solid", roughness: 0 });
+  // a lone moveto: pointsOnPath gives a one-point set, simplify doubles it
+  // (the same point object twice), and the simplified stroke draws from it
+  // after the fill has rotated it in place
+  edge("path-lone-move-simplified", "path", [LONE_MOVE], { fillStyle: "hachure", simplification: 0.5 });
+  edge("path-lone-move-cross-hatch", "path", [LONE_MOVE], { fillStyle: "cross-hatch", simplification: 0.5 });
+  edge("path-move-only-solid", "path", ["M 10 10"], { fillStyle: "solid" });
+  // (at roughness 0: before any draw there is no randomizer, and at
+  // roughness >= 1 polygonHachureLines would fall back to Math.random)
+  edge("path-move-only-hachure", "path", ["M 10 10"], { fillStyle: "hachure", roughness: 0 });
+  // simplified stroke after a fill that rotated the sets in place
+  edge("path-simplified-hachure", "path", [PATHS.smallArcs], { fillStyle: "hachure", simplification: 0.5 });
+  edge("path-simplified-solid", "path", [TWO_TRIANGLES], { fillStyle: "solid", simplification: 0.5 });
+  // fill "none" still fills rectangles, polygons, ellipses and arcs (only
+  // curve and path test for it); negative seeds; angles that are not
+  // multiples of 90
+  edge("rectangle-fill-none", "rectangle", SMALL.rectangle, { fillStyle: "hachure", fill: "none" });
+  edge("rectangle-seed-negative", "rectangle", SMALL.rectangle, { fillStyle: "cross-hatch", seed: -123456 });
+  edge("ellipse-angle-17-dashed", "ellipse", SMALL.ellipse, { fillStyle: "dashed", hachureAngle: 17 });
+  edge("ellipse-angle-17-zigzag-line", "ellipse", SMALL.ellipse, { fillStyle: "zigzag-line", hachureAngle: 17 });
+  edge("polygon-zigzag-offset-3", "polygon", SMALL.polygon, { fillStyle: "zigzag-line", zigzagOffset: 3 });
+  edge("polygon-dash-6-4", "polygon", SMALL.polygon, { fillStyle: "dashed", dashOffset: 6, dashGap: 4 });
+  // an unknown fillStyle falls back to hachure (fillers/filler.js default)
+  edge("rectangle-unknown-style", "rectangle", SMALL.rectangle, { fillStyle: "sketchy" });
+  // no fill: too few curve points, an open arc, a transparent or "none" path
+  edge("nofill/curve-2", "curve", [[[0, 0], [30, 30]]], { fillStyle: "hachure" });
+  edge("nofill/arc-open", "arc", [100, 100, 160, 120, 0, Math.PI, false], { fillStyle: "solid" });
+  edge("nofill/path-transparent", "path", [PATHS.smallArcs], { fillStyle: "hachure", fill: "transparent" });
+  edge("nofill/path-none", "path", [PATHS.smallArcs], { fillStyle: "hachure", fill: "none" });
+  edge("nofill/curve-none", "curve", SMALL.curve, { fillStyle: "hachure", fill: "none" });
+
   const options = [];
   const variants = {
     disableMultiStroke: [true, false],
@@ -776,7 +855,7 @@ export const roughGoldens = () => {
     {
       name: "rough-fills.json",
       description:
-        "rough.js 4.6.4 fill styles on rectangle, polygon, ellipse and path with Excalidraw's fillWeight = sw/2 and hachureGap = sw*4, plus seeds x roughness.",
+        "rough.js 4.6.4 fill styles on rectangle, polygon, ellipse and path with Excalidraw's fillWeight = sw/2 and hachureGap = sw*4, plus seeds x roughness, and fill edge cases (curve and arc fills, subpaths, concave polygons, gaps, angles, single fill stroke, fill none/transparent).",
       cases: strip(fills),
     },
     {

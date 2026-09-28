@@ -21,20 +21,34 @@ use std::collections::hash_map::RandomState;
 use std::hash::{BuildHasher, Hasher};
 
 /// `Random` from rough.js `bin/math.js`.
+///
+/// rough.js creates an options object's randomizer on its first draw
+/// (`renderer.js` `random(ops)`), and one place tells the difference: the
+/// pattern fillers draw their skip offset from `o.randomizer?.next()`, so
+/// before any draw they fall back to `Math.random` without creating it.
+/// [`Random::has_drawn`] is that "the randomizer exists" test.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Random {
     seed: i32,
+    drawn: bool,
 }
 
 impl Random {
     /// `new Random(seed)`.
     pub fn new(seed: i32) -> Self {
-        Self { seed }
+        Self { seed, drawn: false }
+    }
+
+    /// Whether [`Random::next`] has been called: in rough.js, whether the
+    /// options object holding this sequence has a `randomizer` yet.
+    pub fn has_drawn(&self) -> bool {
+        self.drawn
     }
 
     /// `next()`: the next number in `[0, 1)`.
     #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> f64 {
+        self.drawn = true;
         if self.seed != 0 {
             self.seed = 48271i32.wrapping_mul(self.seed);
             f64::from(self.seed & 0x7fff_ffff) / 2_147_483_648.0
@@ -75,7 +89,7 @@ fn initial_state() -> (u64, u64) {
 /// `Math.random()`: a double in `[0, 1)` from xorshift128+, the generator V8
 /// uses for `Math.random` (its sequence is not reproducible in JavaScript
 /// either, so only the distribution matters).
-fn math_random() -> f64 {
+pub(crate) fn math_random() -> f64 {
     STATE.with(|state| {
         let (mut s1, s0) = state.get();
         let result = s0.wrapping_add(s1);

@@ -88,7 +88,11 @@ const randomGolden = (up) => ({
 
 const roughCase = (up) => (c) => {
   const generator = new up.RoughGenerator();
-  const result = generator[c.method](...c.args, { ...c.options });
+  // The pattern fillers rotate the polygon points in place (hachure-fill
+  // rotatePoints), so every call gets its own copy of the arguments: shared
+  // fixture arrays would otherwise drift from case to case, and the recorded
+  // args would be the drifted values rather than the input.
+  const result = generator[c.method](...structuredClone(c.args), { ...c.options });
   return { ...c, drawable: drawable(result) };
 };
 
