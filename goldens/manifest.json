@@ -19,6 +19,8 @@
     {"name":"elements-iframe-like.json","cases":13,"sha256":"08ab9fadb41160189ff84f09e26371a128a152f716ee012f0afedfd36a7494d4"},
     {"name":"freehand.json","cases":29,"sha256":"1e81e22f3ac4b345a9905289cad17b1ddac6c634b38e3a3bc046326630b04938"},
     {"name":"math.json","cases":1932,"sha256":"06fa5918a9be9acbeb9a5039eb40922590cf1487838d4e5f0ce8a5bb77e8b6a9"},
-    {"name":"js-sort.json","cases":200,"sha256":"cdc8039d805c0cd0bb2e9352483c9b981b6dc2e418cd6814c43583c72002087c"}
+    {"name":"js-sort.json","cases":200,"sha256":"cdc8039d805c0cd0bb2e9352483c9b981b6dc2e418cd6814c43583c72002087c"},
+    {"name":"fractional-indexing.json","cases":5165,"sha256":"398c068bd6414f829527ec74d960ffeed4026b53237fe3195e360bedb0f4c42f"},
+    {"name":"fractional-index.json","cases":975,"sha256":"2beb888ac2f7cbba01c622ca0d88252c85bd1f6bbb4208e4dc6e181737df37a3"}
   ]
 }
