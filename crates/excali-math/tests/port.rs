@@ -520,6 +520,7 @@ mod curves {
         let c = s_curve();
         let t = curve_closest_parameter_with(c, pt(0.0, 0.0), f64::NAN);
         assert_eq!(t * 30.0, (t * 30.0).round());
+        assert_eq!(t, 0.4666666666666667, "upstream under Node 26");
         assert_eq!(
             curve_closest_parameter_with(c, pt(0.0, 0.0), 0.5),
             t,
@@ -529,9 +530,19 @@ mod curves {
 
     #[test]
     fn a_nan_distance_never_becomes_the_minimum() {
-        // `if (d < min)` is false for NaN: step 0 is kept.
+        // `if (d < min)` is false for NaN: step 0 is kept, so the window is
+        // [0, 1/30]. `f(k - e) < f(k + e)` is false too, so every bisection
+        // step moves the lower end up.
         let c = s_curve();
-        assert_eq!(curve_closest_parameter(c, pt(f64::NAN, 0.0)), 0.0);
+        let (mut m, n, e) = (0.0, 1.0 / 30.0, 1e-3);
+        let mut k = f64::NAN;
+        while n - m > e {
+            k = (n + m) / 2.0;
+            m = k;
+        }
+        assert!(k > 0.03 && k < n);
+        assert_eq!(k, 0.032812499999999994, "upstream under Node 26");
+        assert_eq!(curve_closest_parameter(c, pt(f64::NAN, 0.0)), k);
     }
 
     #[test]
@@ -562,6 +573,22 @@ mod curves {
     }
 
     #[test]
+    fn a_nan_solution_passes_the_range_check() {
+        // A NaN control point makes the error NaN, which ends the Newton
+        // loop with t = s = NaN; `t < 0 || t > 1 || ...` is false for NaN,
+        // so upstream returns the NaN point rather than no intersection.
+        let c = curve(
+            pt(f64::NAN, 0.0),
+            pt(10.0, -50.0),
+            pt(10.0, 50.0),
+            pt(50.0, 50.0),
+        );
+        let hits = curve_intersect_line_segment(c, line_segment(pt(10.0, -60.0), pt(10.0, 60.0)));
+        assert_eq!(hits.len(), 1);
+        assert!(hits[0].x.is_nan() && hits[0].y.is_nan());
+    }
+
+    #[test]
     fn nan_parameters_propagate() {
         let c = s_curve();
         assert!(curve_length_at_parameter(c, f64::NAN).is_nan());
@@ -575,12 +602,7 @@ mod curves {
 
     #[test]
     fn length_of_a_straight_curve_is_its_chord() {
-        let c = curve(
-            pt(0.0, 0.0),
-            pt(10.0, 0.0),
-            pt(20.0, 0.0),
-            pt(30.0, 0.0),
-        );
+        let c = curve(pt(0.0, 0.0), pt(10.0, 0.0), pt(20.0, 0.0), pt(30.0, 0.0));
         assert!((curve_length(c) - 30.0).abs() < 1e-12);
         assert!((curve_length_at_parameter(c, 0.5) - 15.0).abs() < 1e-12);
         let mid = curve_point_at_length(c, 0.5);

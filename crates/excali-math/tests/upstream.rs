@@ -131,11 +131,7 @@ mod curve_test {
         );
         let p = pt(0.0, 0.0);
 
-        assert!(close_to(
-            curve_point_distance(c, p),
-            6.695873043213627,
-            2
-        ));
+        assert!(close_to(curve_point_distance(c, p), 6.695873043213627, 2));
     }
 }
 

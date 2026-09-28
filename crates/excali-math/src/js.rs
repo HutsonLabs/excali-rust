@@ -9,6 +9,8 @@
 //!   zero.
 //! - `Math.min` / `Math.max` return NaN if either argument is NaN and order
 //!   `-0` below `+0`; `f64::min` / `f64::max` ignore NaN.
+//! - `**` / `Math.pow` answer NaN for a NaN exponent and for `±1 **
+//!   ±Infinity`, where `f64::powf` answers 1.
 //! - `Array.prototype.sort(comparator)` never fails, whatever the comparator
 //!   answers (NaN included), and for an inconsistent comparator the order it
 //!   leaves is V8's TimSort's own; `slice::sort_by` may panic when the
@@ -93,6 +95,19 @@ pub fn min(a: f64, b: f64) -> f64 {
     } else {
         b
     }
+}
+
+/// `x ** y` and `Math.pow(x, y)` (ES `Number::exponentiate`): C's `pow`
+/// except that a NaN exponent always gives NaN and `±1 ** ±Infinity` is NaN
+/// (C answers 1 for both). The finite results are the platform's `pow`, the
+/// same caveat as `Math.sin` and friends: on arm64 macOS it agrees with V8
+/// on `x ** 2` and `x ** 3` (checked on 200 000 arguments while porting
+/// `bezierEquation`), and `x ** 2` is exactly `x * x` everywhere.
+pub fn pow(x: f64, y: f64) -> f64 {
+    if y.is_nan() || (y.is_infinite() && x.abs() == 1.0) {
+        return f64::NAN;
+    }
+    x.powf(y)
 }
 
 /// `array.sort(comparator)` as V8 runs it: TimSort, ported from

@@ -371,11 +371,9 @@ fn call(fun: &str, a: &[Value]) -> Value {
             out_p(curve_closest_point_with(crv(arg(0)), p(arg(1)), f(arg(2))))
         }
         "curveClosestPoint" => out_p(curve_closest_point(crv(arg(0)), p(arg(1)))),
-        "curvePointDistance" if has(2) => json!(curve_point_distance_with(
-            crv(arg(0)),
-            p(arg(1)),
-            f(arg(2))
-        )),
+        "curvePointDistance" if has(2) => {
+            json!(curve_point_distance_with(crv(arg(0)), p(arg(1)), f(arg(2))))
+        }
         "curvePointDistance" => json!(curve_point_distance(crv(arg(0)), p(arg(1)))),
         "isCurve" => json!(is_curve(&unknown(arg(0)))),
         "curveTangent" => out_v(curve_tangent(crv(arg(0)), f(arg(1)))),
@@ -387,7 +385,11 @@ fn call(fun: &str, a: &[Value]) -> Value {
                 curve_catmull_rom_quadratic_approx_points(&ps)
             };
             sets.map_or(Value::Null, |sets| {
-                Value::Array(sets.iter().map(|[a, b]| json!([out_p(*a), out_p(*b)])).collect())
+                Value::Array(
+                    sets.iter()
+                        .map(|[a, b]| json!([out_p(*a), out_p(*b)]))
+                        .collect(),
+                )
             })
         }
         "curveCatmullRomCubicApproxPoints" => {
