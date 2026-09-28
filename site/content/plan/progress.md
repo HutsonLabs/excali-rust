@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 10:12 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 10:29 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**135 issues** · 31 closed (23%) · 0 in progress · 0 blocked · 103 open
+**135 issues** · 32 closed (24%) · 0 in progress · 0 blocked · 102 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -31,7 +31,7 @@ Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo work
 
 ## ex-e1 · Phase 1: Core model and file format (excali-core)
 
-<span class="status open">open</span> 13/18 children closed
+<span class="status open">open</span> 14/18 children closed
 
 Element types, serde with unknown-field preservation, restore/migration rules, AppState, fractional indexing, library formats, payload codecs, conformance corpus.
 
@@ -51,10 +51,10 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 | `ex-112` | SVG metadata scene payload read/write | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-113` | Clipboard JSON format (excalidraw/clipboard) parse and emit | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-114` | Corpus test: 232 catalogue libraries round-trip | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-115` | JSON Schema generation for .excalidraw and .excalidrawlib (schemars) | task | P3 | <span class="status open">open</span> | yes |  |
+| `ex-115` | JSON Schema generation for .excalidraw and .excalidrawlib (schemars) | task | P3 | <span class="status closed">closed</span> |  |  |
 | `ex-116` | Restore: legacy arrow binding migration (bindings without mode) through RestoreEnv::migrate_legacy_binding | task | P0 | <span class="status open">open</span> |  | `ex-507`, `ex-510` |
 | `ex-117` | Typed element model: keep field values of a type the model has no form for (string strokeWidth) as upstream's restore does | task | P0 | <span class="status open">open</span> | yes |  |
-| `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-109`, `ex-115`, `ex-116`, `ex-117` |
+| `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-109`, `ex-116`, `ex-117` |
 
 ## ex-e2 · Phase 2: Geometry and sketch renderer
 
