@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-g101 · D1 conformance: upstream diagramFixture document round-trips through Document and restore against an upstream golden
+
+`excali_core::document::load_scene_json` and `LoadedScene::to_document` port upstream's `loadFromBlob` and `serializeAsJSON`. Every scene-bearing upstream test fixture now round-trips to upstream's bytes on the first write and on the reload. That covers `diagramFixture`, `elementFixture`, the `.excalidrawlib` files and the embedded-scene PNG and SVG files. Unknown keys survive, and `files` values that are not objects are indexed the way JS indexes them. One test fails if a new scene-bearing fixture has no case, and `document-fixtures.mjs --check` keeps the golden in step with upstream in CI. PR: [#45](https://github.com/HutsonLabs/excali-rust/pull/45).
+
 ## 2026-09-28 · ex-214 · excali-freehand: laser-pointer constant-width variant
 
 `excali-freehand` now has upstream's vendored laser pointer (`LaserPointer`, `douglas_peucker`, `run_length`) and `constant_width_outline` (size strokeWidth * 1.4, simplify 0, pressure 1). All 61 `laser-pointer.json` goldens match. Constant-width freedraw elements go through it in `excali_scene::freedraw`, so all 48 `elements-freedraw.json` elements, both variable and constant width, now give upstream's SVG path byte for byte. PR: [#44](https://github.com/HutsonLabs/excali-rust/pull/44).
