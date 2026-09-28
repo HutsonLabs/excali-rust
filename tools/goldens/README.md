@@ -741,6 +741,50 @@ node tools/goldens/elbow-routing-fixtures.mjs --check   # exit 1 if it is stale
 CI runs `--check` in the `goldens` job, and
 `test/elbow-routing-fixtures.test.mjs` checks that two runs are byte-identical.
 
+## Hit testing fixture
+
+`collision-fixtures.mjs` writes
+`crates/excali-editor/tests/fixtures/collision.json` for excali-editor's hit
+testing (ex-507): upstream's `packages/element/src/collision.ts` and
+`distance.ts` on these scenes:
+
+- `upstream-*`: the scenes of `packages/element/tests/collision.test.tsx`,
+  built with `API.createElement` (the rotated arrow as `UI.createElement`
+  draws it: round, with an arrow end head), and `newFreeDrawElement` where
+  the test calls it;
+- `random-*`: eight seeded scenes per element kind (sharp and round
+  rectangles and diamonds, ellipses, text, text in a container, arrow
+  labels, images, frames, magic frames, iframes, embeddables, sticky notes,
+  open, looped and round lines, sharp, round and elbow arrows, open and
+  looped freedraw at both variabilities), filled and transparent, rotated
+  and not, each probed at twelve points (its outline, inside, beyond) with
+  the threshold `getElementHitThreshold` gives at a random zoom, sometimes
+  with `overrideShouldTestInside` or a frame name bound. A probe records
+  `hitElementItself` (cache reset first), `distanceToElement`,
+  `isPointInElement`, `shouldTestInside`, `hitElementBoundingBox`,
+  `hitElementBoundText` and `hitElementBoundingBoxOnly`;
+- `intersect-*`: `intersectElementWithLineSegment` with offsets 0, 3 and 6.5
+  and `onlyFirst` on seeded segments through every element kind;
+- `binding-*`: `getHoveredElementForBinding` and
+  `getAllHoveredElementAtPoint` on seeded scenes of up to four bindable
+  elements (locked ones, frames with children) at zooms 0.2 to 4;
+- `inside-*`: `isBindableElementInsideOtherBindable` both ways on seeded
+  pairs.
+
+Upstream runs in its test mode with `reseed(1)` before each case.
+`Math.random` throws, except inside `getFreedrawFillPolygon`, which draws its
+curve with an unseeded `RoughGenerator` at roughness 0 (every draw is
+multiplied by the roughness, so none reaches the output).
+
+```sh
+node tools/goldens/collision-fixtures.mjs           # write the fixture
+node tools/goldens/collision-fixtures.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and
+`test/collision-fixtures.test.mjs` checks that two runs are byte-identical and
+that the fixture holds `collision.test.tsx`'s answers.
+
 ## Image element fixture
 
 `image-elements.mjs` writes `crates/excali-scene/tests/fixtures/image-elements.json`
