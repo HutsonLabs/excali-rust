@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 06:29 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 06:32 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**132 issues** · 7 closed (5%) · 0 in progress · 0 blocked · 124 open
+**132 issues** · 8 closed (6%) · 0 in progress · 0 blocked · 123 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -30,19 +30,19 @@ Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo work
 
 ## ex-e1 · Phase 1: Core model and file format (excali-core)
 
-<span class="status open">open</span> 0/16 children closed
+<span class="status open">open</span> 1/16 children closed
 
 Element types, serde with unknown-field preservation, restore/migration rules, AppState, fractional indexing, library formats, payload codecs, conformance corpus.
 
 | id | title | type | P | status | ready | blocked by |
 |---|---|---|---|---|---|---|
-| `ex-101` | Element model: enums, structs and shared base fields | task | P0 | <span class="status open">open</span> | yes |  |
-| `ex-102` | Serde with unknown-field preservation and 2-space JSON output | task | P0 | <span class="status open">open</span> |  | `ex-101` |
+| `ex-101` | Element model: enums, structs and shared base fields | task | P0 | <span class="status closed">closed</span> |  |  |
+| `ex-102` | Serde with unknown-field preservation and 2-space JSON output | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-103` | Restore: base normalisation rules | task | P0 | <span class="status open">open</span> |  | `ex-102` |
 | `ex-104` | Restore: per-type rules (text, freedraw, image, line/draw, arrow, stickynote, frame) | task | P0 | <span class="status open">open</span> |  | `ex-103` |
 | `ex-105` | Restore: scene-level repairs (ids, indices, frames, bound text, bindings, sticky notes) | task | P1 | <span class="status open">open</span> |  | `ex-104`, `ex-107` |
 | `ex-106` | AppState: exported keys, defaults and restoreAppState legacy handling | task | P1 | <span class="status open">open</span> |  | `ex-102` |
-| `ex-107` | Fractional indexing port (base-62 keys, generateNKeysBetween, syncInvalidIndices) | task | P0 | <span class="status open">open</span> |  | `ex-101` |
+| `ex-107` | Fractional indexing port (base-62 keys, generateNKeysBetween, syncInvalidIndices) | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-108` | Library formats: v1 `library` and v2 `libraryItems`, restoreLibraryItems, merge | task | P0 | <span class="status open">open</span> |  | `ex-104` |
 | `ex-109` | Library import model: URL allow-list and #addLibrary token parsing | task | P1 | <span class="status open">open</span> |  | `ex-108` |
 | `ex-110` | Payload codec: byte-string encoding and zlib compression (encode/decode) | task | P1 | <span class="status open">open</span> | yes |  |
@@ -51,7 +51,7 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 | `ex-113` | Clipboard JSON format (excalidraw/clipboard) parse and emit | task | P2 | <span class="status open">open</span> |  | `ex-102` |
 | `ex-114` | Corpus test: 232 catalogue libraries round-trip | task | P0 | <span class="status open">open</span> |  | `ex-108` |
 | `ex-115` | JSON Schema generation for .excalidraw and .excalidrawlib (schemars) | task | P3 | <span class="status open">open</span> |  | `ex-102`, `ex-108` |
-| `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-101`, `ex-102`, `ex-103`, `ex-104`, `ex-105`, `ex-106` … |
+| `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-102`, `ex-103`, `ex-104`, `ex-105`, `ex-106`, `ex-107` … |
 
 ## ex-e2 · Phase 2: Geometry and sketch renderer
 
@@ -132,14 +132,14 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-503` | Layered canvases at device-pixel scale (static, new-element, interactive) and scroll snapping | task | P0 | <span class="status open">open</span> |  | `ex-502` |
 | `ex-504` | Per-element bitmap cache with padding rules, size caps and pixel snapping | task | P1 | <span class="status open">open</span> |  | `ex-503` |
 | `ex-505` | Viewport: zoom limits, wheel formula, scroll, coordinate transforms, zoom-to-fit | task | P0 | <span class="status open">open</span> |  | `ex-503` |
-| `ex-506` | Editor state machine: tools registry (keys, fillable, toggle), active tool, tool lock, pen mode | task | P0 | <span class="status open">open</span> |  | `ex-101` |
+| `ex-506` | Editor state machine: tools registry (keys, fillable, toggle), active tool, tool lock, pen mode | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-507` | Hit testing (collision.ts): thresholds, inside/outline rules, per-shape intersections | task | P0 | <span class="status open">open</span> |  | `ex-201`, `ex-208` |
 | `ex-508` | Selection and transform handles: sizes by pointer type, resize, rotate, aspect lock, centre resize | task | P0 | <span class="status open">open</span> |  | `ex-507` |
 | `ex-509` | Snapping: point and gap snaps at 8/zoom, snap lines rendering | task | P1 | <span class="status open">open</span> |  | `ex-508` |
 | `ex-510` | Arrow binding: gap 5+sw/2, max distance 15..30 by zoom, fixed points, modes inside/orbit/skip, highlight | task | P0 | <span class="status open">open</span> |  | `ex-105`, `ex-508` |
 | `ex-511` | Linear element editor: point handles (size 10), midpoints, segment length rule, label position | task | P1 | <span class="status open">open</span> |  | `ex-509` |
 | `ex-512` | Text editing overlay: textarea with dir=auto wrap=off, transform formula, 5% height buffer | task | P0 | <span class="status open">open</span> |  | `ex-305`, `ex-503` |
-| `ex-513` | History: store snapshots, element and appState deltas, undo/redo stacks, version bumps | task | P0 | <span class="status open">open</span> |  | `ex-101` |
+| `ex-513` | History: store snapshots, element and appState deltas, undo/redo stacks, version bumps | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-514` | Actions registry as data: the 99 action names with predicates and key tests | task | P0 | <span class="status open">open</span> |  | `ex-506` |
 | `ex-515` | Keyboard handling: App.onKeyDown table, arrow nudges, tool letters, modifiers | task | P0 | <span class="status open">open</span> |  | `ex-514` |
 | `ex-516` | excali-ui DOM builder and primitives: Island, Stack, Button, ToolIcon, RadioGroup, Range, TextField, Popover, Dialog, Tooltip | task | P0 | <span class="status open">open</span> |  | `ex-501` |

@@ -5,4 +5,6 @@
 //! Targets: native, wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-math`.
 
+pub mod constants;
+pub mod element;
 pub mod json;
