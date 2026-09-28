@@ -294,7 +294,11 @@ fn font_files_inline_the_face_subset_to_the_scenes_characters() {
     for (file, format, characters) in [
         (vendored("Excalifont", ".woff2"), "woff2", "Hello, world!"),
         (vendored("Nunito", ".woff2"), "woff2", "AVATAR To Wa"),
-        (vendored("Liberation", ".ttf"), "truetype", "Liberation Sans"),
+        (
+            vendored("Liberation", ".ttf"),
+            "truetype",
+            "Liberation Sans",
+        ),
     ] {
         let mut f = face(&file, format);
         f.characters = characters.into();
@@ -305,7 +309,12 @@ fn font_files_inline_the_face_subset_to_the_scenes_characters() {
         let woff2 = decode_base64(data);
         assert_eq!(&woff2[..4], b"wOF2", "{file}");
         let whole = std::fs::read(std::path::Path::new(FONTS).join(&file)).unwrap();
-        assert!(woff2.len() * 2 < whole.len(), "{file}: {} of {}", woff2.len(), whole.len());
+        assert!(
+            woff2.len() * 2 < whole.len(),
+            "{file}: {} of {}",
+            woff2.len(),
+            whole.len()
+        );
         let subset = sfnt(&woff2);
         same_glyphs(&sfnt(&whole), &subset, characters);
         let parsed = ttf_parser::Face::parse(&subset, 0).unwrap();
@@ -323,7 +332,10 @@ fn subset_woff2_keeps_the_layout_upstream_keeps() {
     let subset = sfnt(&woff2);
     let face = ttf_parser::Face::parse(&subset, 0).unwrap();
     for tag in [b"GSUB", b"GPOS", b"GDEF"] {
-        assert!(face.raw_face().table(ttf_parser::Tag::from_bytes(tag)).is_some());
+        assert!(face
+            .raw_face()
+            .table(ttf_parser::Tag::from_bytes(tag))
+            .is_some());
     }
     // A face asked for nothing it maps still subsets (to .notdef).
     assert!(subset_woff2(&whole, "你").is_ok());
@@ -367,8 +379,16 @@ fn every_inlined_face_draws_what_upstreams_subset_draws() {
     .unwrap();
     let mut checked = 0;
     for scene in fixture["scenes"].as_array().unwrap() {
-        if !["fixture-default", "labels-excalifont", "labels-nunito", "assets-comic-shanns", "assets-cascadia", "assets-lilita", "assets-virgil"]
-            .contains(&scene["name"].as_str().unwrap())
+        if ![
+            "fixture-default",
+            "labels-excalifont",
+            "labels-nunito",
+            "assets-comic-shanns",
+            "assets-cascadia",
+            "assets-lilita",
+            "assets-virgil",
+        ]
+        .contains(&scene["name"].as_str().unwrap())
         {
             continue;
         }
@@ -383,7 +403,9 @@ fn every_inlined_face_draws_what_upstreams_subset_draws() {
             let mut f = face(file, "woff2");
             f.characters = characters.clone();
             let content = FontFiles::new(FONTS).content(&f);
-            let ours = sfnt(&decode_base64(content.strip_prefix("data:font/woff2;base64,").unwrap()));
+            let ours = sfnt(&decode_base64(
+                content.strip_prefix("data:font/woff2;base64,").unwrap(),
+            ));
             let theirs = sfnt(&decode_base64(d["woff2"].as_str().unwrap()));
             same_glyphs(&theirs, &ours, &characters);
             checked += 1;

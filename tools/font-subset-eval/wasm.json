@@ -1,0 +1,65 @@
+{
+  "description": "ex-408: tools/font-subset-eval's cdylib (src/probe.rs) built with cargo build --release --target wasm32-unknown-unknown --no-default-features --features <features> (none: the probe alone); builds, and the module's bytes raw and gzipped at level 9. Written by tools/font-subset-eval/wasm.sh.",
+  "builds": [
+    {
+      "features": "none",
+      "builds": true,
+      "bytes": 19497,
+      "gzip": 7679
+    },
+    {
+      "features": "hb-subset",
+      "builds": false,
+      "bytes": null,
+      "gzip": null
+    },
+    {
+      "features": "skera",
+      "builds": true,
+      "bytes": 1292931,
+      "gzip": 333861
+    },
+    {
+      "features": "allsorts",
+      "builds": true,
+      "bytes": 915488,
+      "gzip": 407749
+    },
+    {
+      "features": "subsetter",
+      "builds": true,
+      "bytes": 1437251,
+      "gzip": 389485
+    },
+    {
+      "features": "woofwoof",
+      "builds": false,
+      "bytes": null,
+      "gzip": null
+    },
+    {
+      "features": "ttf2woff2",
+      "builds": true,
+      "bytes": 1119010,
+      "gzip": 470140
+    },
+    {
+      "features": "skera,ttf2woff2",
+      "builds": true,
+      "bytes": 2374997,
+      "gzip": 788843
+    },
+    {
+      "features": "allsorts,ttf2woff2",
+      "builds": true,
+      "bytes": 1993537,
+      "gzip": 861398
+    },
+    {
+      "features": "subsetter,ttf2woff2",
+      "builds": true,
+      "bytes": 2516526,
+      "gzip": 842860
+    }
+  ]
+}

@@ -30,7 +30,7 @@ mod fonts;
 pub mod number;
 pub mod path;
 
-pub use fonts::{base64, FontContent, FontFiles};
+pub use fonts::{base64, subset_woff2, FontContent, FontFiles, SubsetError};
 
 use excali_scene::display::SvgDocument;
 

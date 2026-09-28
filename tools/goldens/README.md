@@ -486,6 +486,37 @@ from `registered`; the Rust side (`crates/excali-text/tests/font_assets.rs`)
 checks the registry, every probe, the CJK table, the loads and the
 declarations, and `tests/web` checks the load selection in Chromium.
 
+## Font subsetting fixture
+
+`font-subset.mjs` writes `tools/font-subset-eval/upstream-subsets.json` for
+the SVG font subsetting decision (ex-408, ADR-010). It bundles upstream's
+`Fonts` and `ExcalidrawFontFace` as `font-assets.mjs` does, but replaces only
+`ExcalidrawFontFace#fetchFont`, which reads the face's file from the checkout
+as upstream's `setupTests.ts:101-125` does. `getContent`, `subset-main` and
+`subset-shared.chunk` (woff2 decompress, harfbuzzjs 0.3.6 hb-subset with
+every layout feature, woff2 compress, upstream's inlined wasm) run unchanged,
+on the main thread since Node has no `Worker`. For each scene it records the
+text elements and every `@font-face` rule `generateFontFaceDeclarations`
+writes: the family, the face's file, the code points it kept and the woff2.
+It also records the bytes of the two wasm modules, raw and gzipped. The
+export test scenes use upstream's test `FontFace` (every face `U+0000-00FF`,
+`setupTests.ts:65-86`); the rest use each face's real range. The scenes are
+the export test's, `font-assets.mjs`'s and drawings of ordinary size.
+Non-ASCII characters are written as `\u` escapes, so U+00AD stays out of the
+file.
+
+```sh
+node tools/goldens/font-subset.mjs           # write the fixture
+node tools/goldens/font-subset.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and `test/font-subset.test.mjs`
+checks that two runs are byte-identical, that the export test scenes equal
+`tests/scene/__snapshots__/export.test.ts.snap`'s `@font-face` rules byte for
+byte, and that every rule is a woff2 smaller than its face. The Rust side is
+`tools/font-subset-eval` (its tests and `rust.yml`'s `font-subset-eval` job)
+and `crates/excali-svg/tests/writer.rs`.
+
 ## Library fixtures
 
 `library-fixtures.mjs` writes `crates/excali-core/tests/fixtures/library.json`
