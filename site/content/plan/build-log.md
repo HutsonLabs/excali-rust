@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-408 · Spike: font subsetting for SVG export (allsorts, hb-subset, or ship full woff2)
+
+SVG export now inlines each font face subset to the characters in the scene, as upstream's hb-subset path does, and falls back to the whole file only if subsetting fails. ADR-010 chose skera 0.7.0 with ttf2woff2 0.13.3 after measuring four subsetters against upstream's own subsets. skera keeps 1417/1417 code points with the same glyphs, its output is 97.6 % of upstream's bytes, 279/279 runs render pixel-identical in Chromium, and it builds for wasm32. PR: [#70](https://github.com/HutsonLabs/excali-rust/pull/70).
+
 ## 2026-09-28 · ex-g302 · Gate Cascadia and Lilita One in the whole-corpus width test
 
 The corpus width test now also holds Cascadia and Lilita One to 0.5 px. Every Cascadia and Lilita One text whose stored width is a measurement passes, except one in each family, and both are pinned with a measured explanation. The Cascadia `{}` stores its width at `Math.round(fontSize)`, as every Cascadia text in its library does, and the test recomputes that exactly. The Lilita One `Metrics` stores 3.3345 em, where the face measures 3.304 em at every size. PR: [#69](https://github.com/HutsonLabs/excali-rust/pull/69).
