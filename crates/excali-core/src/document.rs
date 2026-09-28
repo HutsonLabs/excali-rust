@@ -62,6 +62,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 
+use std::borrow::Cow;
 use std::fmt;
 
 use crate::app_state::{
@@ -322,7 +323,7 @@ impl<'de> Deserialize<'de> for Document {
 /// A scene as upstream's file loading gives it: `loadFromBlob(file, null,
 /// null)` for a `.excalidraw` file, with no local state
 /// (`packages/excalidraw/data/blob.ts:137-216`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct LoadedScene {
     /// `restoreElements(data.elements, null, {repairBindings: true,
     /// deleteInvisibleElements: true})`.
@@ -331,13 +332,27 @@ pub struct LoadedScene {
     /// ...cleanAppStateForExport(data.appState || {})}, null)`: the full
     /// state, defaults for every key the file does not export.
     pub app_state: AppState,
-    /// `data.files || {}`. A truthy `files` that is not an object has no
-    /// file upstream would find by id and reads as empty.
-    pub files: Map<String, Value>,
+    /// `data.files || {}`: the file's `files` when truthy, whatever its
+    /// type, otherwise `{}`. Upstream does not check it, and saving indexes
+    /// it as JS does ([`filter_out_deleted_files`]), so an array or a string
+    /// gives the entries a `fileId` such as `"0"` names.
+    pub files: Value,
     /// Top-level keys `serializeAsJSON` does not write, in file order.
     /// Upstream drops them; the port keeps them (see
     /// [`LoadedScene::to_document`]).
     pub extra: Map<String, Value>,
+    /// `files` as read, in the sentinel form of [`crate::json`], so a lone
+    /// surrogate in it is written back as read while `files` is unchanged.
+    files_raw: Value,
+}
+
+impl PartialEq for LoadedScene {
+    fn eq(&self, other: &LoadedScene) -> bool {
+        self.elements == other.elements
+            && self.app_state == other.app_state
+            && self.files == other.files
+            && self.extra == other.extra
+    }
 }
 
 /// Why a file is not a scene. Upstream's loader reports each of these as
@@ -413,26 +428,44 @@ impl LoadedScene {
     /// ([`filter_out_deleted_files`]). The unknown top-level keys of
     /// [`LoadedScene::extra`] are written after them; upstream drops them.
     pub fn to_document(&self, source: &str) -> Document {
+        let files = if json::decode(&self.files_raw) == self.files {
+            Cow::Borrowed(&self.files_raw)
+        } else {
+            Cow::Owned(json::escape(&self.files))
+        };
+        let kept = filter_files_encoded(&self.elements, &files);
         let mut doc = Document::new(
             source,
             self.elements.clone(),
             clean_app_state_for_export(self.app_state.as_map()),
-            Some(filter_out_deleted_files(&self.elements, &self.files)),
+            None,
         );
+        // Laid out as Document::from_encoded lays out a `files` it reads.
+        let (files_layout, files) = Layout::read(&kept, &Map::new(), &[]);
+        doc.files = Some(files);
+        doc.files_layout = files_layout;
         doc.extra = self.extra.clone();
         doc
     }
 }
 
-/// `filterOutDeletedFiles` (`json.ts:31-50`): the files that elements not
-/// deleted refer to with a truthy `fileId`, in element order.
-pub fn filter_out_deleted_files(
-    elements: &[Element],
-    files: &Map<String, Value>,
-) -> Map<String, Value> {
+/// `filterOutDeletedFiles` (`json.ts:31-50`): for each element not deleted
+/// with a truthy `fileId`, in element order, `next[fileId] =
+/// files[fileId]` when that is truthy. `files` is indexed as JS indexes
+/// it: an object by its own keys, an array or a string by canonical index
+/// keys (`"0"`, not `"00"`; a string gives one UTF-16 code unit) and
+/// `length`; anything else has no key `JSON.stringify` would write (its
+/// prototype's are functions). `__proto__` is never written: assigning it
+/// sets the prototype of `next`.
+pub fn filter_out_deleted_files(elements: &[Element], files: &Value) -> Map<String, Value> {
+    json::decode_map(&filter_files_encoded(elements, &json::escape(files)))
+}
+
+/// [`filter_out_deleted_files`] in the sentinel form.
+fn filter_files_encoded(elements: &[Element], files: &Value) -> Map<String, Value> {
     let mut next = Map::new();
     for element in elements {
-        let map = element.to_map();
+        let map = element.to_encoded();
         if truthy(map.get("isDeleted")) || !truthy(map.get("fileId")) {
             continue;
         }
@@ -440,11 +473,39 @@ pub fn filter_out_deleted_files(
         let Ok(id) = js::to_string(map.get("fileId")) else {
             continue;
         };
-        if let Some(file) = files.get(&id).filter(|f| truthy(Some(f))) {
-            next.insert(id, file.clone());
+        if id == "__proto__" {
+            continue;
+        }
+        if let Some(file) = property(files, &id).filter(|f| truthy(Some(f))) {
+            next.insert(id, file);
         }
     }
     next
+}
+
+/// `value[key]` for a parsed JSON value in the sentinel form, leaving out
+/// inherited properties (functions, and `__proto__`, which the caller
+/// skips).
+fn property(value: &Value, key: &str) -> Option<Value> {
+    let index = || {
+        json::is_array_index(key)
+            .then(|| key.parse::<usize>().ok())
+            .flatten()
+    };
+    match value {
+        Value::Object(map) => map.get(key).cloned(),
+        Value::Array(items) if key == "length" => Some(Value::from(items.len())),
+        Value::Array(items) => index().and_then(|i| items.get(i)).cloned(),
+        Value::String(s) => {
+            let units = json::to_utf16(s);
+            if key == "length" {
+                return Some(Value::from(units.len()));
+            }
+            let unit = index().and_then(|i| units.get(i))?;
+            Some(Value::String(json::from_utf16(std::slice::from_ref(unit))))
+        }
+        _ => None,
+    }
 }
 
 /// [`load_scene_json`] on a parsed object in the sentinel form.
@@ -482,9 +543,10 @@ fn load_encoded(
     let app_state =
         restore_app_state(Some(&imported), None, app_env).map_err(LoadSceneError::AppState)?;
 
-    let files = match raw.get("files") {
-        Some(Value::Object(files)) => json::decode_map(files),
-        _ => Map::new(),
+    // data.files || {}
+    let files_raw = match raw.get("files") {
+        Some(files) if truthy(Some(files)) => files.clone(),
+        _ => Value::Object(Map::new()),
     };
     let extra = raw
         .iter()
@@ -494,8 +556,9 @@ fn load_encoded(
     Ok(LoadedScene {
         elements,
         app_state,
-        files,
+        files: json::decode(&files_raw),
         extra,
+        files_raw,
     })
 }
 
