@@ -152,6 +152,44 @@ const validateCases = () => [
   { id: "invalid-port", url: "https://excalidraw.com:99999/x" },
   { id: "whitespace-around", url: "  https://excalidraw.com/x \n" },
   { id: "tab-in-host", url: "https://excali\tdraw.com/x" },
+  // file: URLs keep the empty path segments after the host (the `url` crate
+  // drops them) and their host next to a Windows drive letter
+  { id: "file-github", url: "file://raw.githubusercontent.com/excalidraw/excalidraw-libraries/x" },
+  { id: "file-github-backslash-after-host", url: "file://raw.githubusercontent.com/\\excalidraw/excalidraw-libraries/x" },
+  { id: "file-github-double-slash-after-host", url: "file://raw.githubusercontent.com//excalidraw/excalidraw-libraries/x" },
+  { id: "file-github-backslashes", url: "file:\\\\raw.githubusercontent.com\\excalidraw\\excalidraw-libraries\\x" },
+  { id: "file-github-dot-segment-after-host", url: "file://raw.githubusercontent.com/\\../excalidraw/excalidraw-libraries/x" },
+  { id: "file-excalidraw-host", url: "file://excalidraw.com/x" },
+  { id: "file-localhost", url: "file://localhost/excalidraw.com" },
+  { id: "file-drive-letter-keeps-host", url: "file://excalidraw.com/C:/x" },
+  { id: "file-drive-letter-as-host", url: "file://C:/excalidraw.com" },
+  { id: "file-one-slash", url: "file:/excalidraw.com/x" },
+  { id: "file-slash-backslash", url: "file:/\\excalidraw.com/x" },
+  // hosts with an `xn--` label that is not valid Punycode: `new URL` in Node
+  // (ada) takes an ASCII host as it is, lower-cased
+  { id: "xn-empty-label-https", url: "https://xn--/excalidraw/excalidraw-libraries/x" },
+  { id: "xn-empty-label-http", url: "http://xn--/excalidraw/excalidraw-libraries/x" },
+  { id: "xn-empty-label-ftp", url: "ftp://xn--/excalidraw/excalidraw-libraries/x" },
+  { id: "xn-empty-label-ws", url: "ws://xn--/excalidraw/excalidraw-libraries/x" },
+  { id: "xn-empty-label-file", url: "file://xn--/excalidraw/excalidraw-libraries/x" },
+  { id: "xn-empty-label-non-special", url: "web+lib://xn--/excalidraw/excalidraw-libraries/x" },
+  { id: "xn-empty-label-subdomain", url: "https://xn--.excalidraw.com/x" },
+  { id: "xn-invalid-punycode-subdomain", url: "https://XN--ZZ.libraries.excalidraw.com/x" },
+  { id: "xn-valid-punycode-subdomain", url: "https://xn--ls8h.excalidraw.com/x" },
+  { id: "xn-subdomain-credentials-port", url: "https://u:p@xn--.excalidraw.com:8443/x?q#h" },
+  { id: "xn-subdomain-no-slashes", url: "https:xn--.excalidraw.com/x" },
+  { id: "xn-subdomain-backslashes", url: "https:\\\\xn--.excalidraw.com\\x" },
+  { id: "xn-subdomain-percent-encoded", url: "https://xn--%41.excalidraw.com/x" },
+  { id: "xn-subdomain-file", url: "file://xn--.excalidraw.com/\\x" },
+  { id: "xn-subdomain-bad-port", url: "https://xn--.excalidraw.com:99999/x" },
+  { id: "xn-non-ascii-label", url: "https://xn--%C3%A4.excalidraw.com/x" },
+  { id: "xn-invalid-utf8", url: "https://xn--%FF.excalidraw.com/x" },
+  { id: "xn-forbidden-after-decoding", url: "https://xn--%2F.excalidraw.com/x" },
+  { id: "xn-ends-in-a-number", url: "https://xn--0.1.2.3/x" },
+  { id: "xn-with-unicode-label", url: "https://xn--zz.\u00e4.excalidraw.com/x" },
+  // a non-special URL with credentials and no host is not a URL
+  { id: "credentials-no-host", url: "x://@" },
+  { id: "credentials-no-host-user", url: "web+a://u@" },
 
   // a caller's own allow-list
   { id: "list-host", url: "https://example.com/a", allowList: ["example.com"] },
@@ -177,6 +215,21 @@ const validateCases = () => [
   { id: "list-ipv6-class", url: "https://10.0.0.1/a", allowList: ["[::1]"] },
   { id: "list-ipv6-itself", url: "https://[::1]/a", allowList: ["[::1]"] },
   { id: "list-idn-entry", url: "https://xn--exmple-cua.com/a", allowList: ["ex\u00e4mple.com"] },
+  { id: "list-file-backslash-after-host", url: "file://excalidraw.com/\\x", allowList: ["excalidraw.com/x"] },
+  { id: "list-file-double-slash-after-host", url: "file://excalidraw.com//x", allowList: ["excalidraw.com/x"] },
+  { id: "list-file-empty-segment-kept", url: "file://excalidraw.com/\\x", allowList: ["excalidraw.com//x"] },
+  { id: "list-file-inner-backslashes", url: "file://example.com/a/\\\\b", allowList: ["example.com/a///b"] },
+  { id: "list-file-drive-letter", url: "file://example.com/c|/x", allowList: ["example.com/c:"] },
+  { id: "list-file-drive-letter-not-shortened", url: "file://example.com/C:/../../x", allowList: ["example.com/C:/x"] },
+  { id: "list-file-encoded-dot-segments", url: "file://example.com/%2e%2E/\\x", allowList: ["example.com//x"] },
+  { id: "list-file-single-dot", url: "file://example.com/a/%2e/./b/.", allowList: ["example.com/a/b/$"] },
+  { id: "list-file-encoded-characters", url: "file://example.com/ ^`{}\u00e9\"<>/x", allowList: ["example.com/%20%5E%60%7B%7D%C3%A9%22%3C%3E"] },
+  { id: "list-file-localhost", url: "file://localhost/x", allowList: ["localhost"] },
+  { id: "list-xn-entry", url: "https://xn--.example.com/a", allowList: ["xn--.example.com"] },
+  { id: "list-xn-entry-https", url: "https://a.xn--/a", allowList: ["https://XN--"] },
+  { id: "list-opaque-path-space", url: "x:a #f", allowList: ["a*/x|a%20"] },
+  { id: "list-non-special-port-backslash", url: "x://h:1\\x", allowList: ["h"] },
+  { id: "list-xn-entry-other-url", url: "https://example.com/a", allowList: ["xn--.example.com"] },
   // the entry's host and path are regular expression sources
   { id: "regexp-plus-in-path", url: "https://example.com/aaab/x", allowList: ["example.com/a+b"] },
   { id: "regexp-plus-in-path-literal", url: "https://example.com/a+b/x", allowList: ["example.com/a+b"] },
@@ -253,6 +306,8 @@ const tokenCases = () => [
   { id: "query-empty", href: "https://excalidraw.com/?" },
   { id: "query-non-ascii", href: "https://excalidraw.com/?addLibrary=\u00e9" },
   { id: "path-not-read", href: "https://excalidraw.com/addLibrary=u" },
+  { id: "xn-host", href: "https://xn--.excalidraw.com/?addLibrary=q#addLibrary=h&token=t" },
+  { id: "file-href", href: "file://h/\\x?addLibrary=q#token=t" },
 ];
 
 const normalizeLinkCases = () =>
@@ -350,6 +405,18 @@ const toValidUrlCases = () => {
     "x:",
     "\u00e9:x",
     "&#0;/x",
+    "x://@",
+    "web+a://u@",
+    "x://u:p@",
+    "x://a@b@",
+    "x://@h",
+    "x://:80",
+    "x:///@",
+    "https://xn--/x",
+    "https://xn--%C3%A4/x",
+    "file://h/\\x",
+    "x://h:1\\x",
+    "x://h:1a",
   ];
   const origins = [ORIGIN, "http://localhost:3000"];
   const cases = [];
@@ -390,6 +457,12 @@ const importCases = () => [
   { id: "decoded-host-trick", input: "https://evil.com%23.excalidraw.com/a" },
   { id: "decoded-credentials-trick", input: "https://excalidraw.com%40evil.com/a" },
   { id: "lower-case-hex", input: "https%3a%2f%2fexcalidraw.com%2fa" },
+  { id: "credentials-no-host-blank", input: "x%3A%2F%2F%40" },
+  { id: "credentials-no-host-plain", input: "x://@" },
+  { id: "credentials-user-no-host", input: "web+a://u@" },
+  { id: "xn-subdomain", input: "https%3A%2F%2Fxn--.excalidraw.com%2Fa" },
+  { id: "xn-host", input: "https://xn--/excalidraw/excalidraw-libraries/a" },
+  { id: "file-backslash-after-host", input: "file://raw.githubusercontent.com/%5Cexcalidraw/excalidraw-libraries/a" },
 ];
 
 // -- running upstream -----------------------------------------------------------

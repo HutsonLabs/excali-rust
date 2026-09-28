@@ -294,6 +294,190 @@
       "ok": true
     },
     {
+      "id": "file-github",
+      "url": "file://raw.githubusercontent.com/excalidraw/excalidraw-libraries/x",
+      "ok": true
+    },
+    {
+      "id": "file-github-backslash-after-host",
+      "url": "file://raw.githubusercontent.com/\\excalidraw/excalidraw-libraries/x",
+      "error": "Invalid or disallowed library URL: \"file://raw.githubusercontent.com/\\excalidraw/excalidraw-libraries/x\"",
+      "errorType": "Error"
+    },
+    {
+      "id": "file-github-double-slash-after-host",
+      "url": "file://raw.githubusercontent.com//excalidraw/excalidraw-libraries/x",
+      "error": "Invalid or disallowed library URL: \"file://raw.githubusercontent.com//excalidraw/excalidraw-libraries/x\"",
+      "errorType": "Error"
+    },
+    {
+      "id": "file-github-backslashes",
+      "url": "file:\\\\raw.githubusercontent.com\\excalidraw\\excalidraw-libraries\\x",
+      "ok": true
+    },
+    {
+      "id": "file-github-dot-segment-after-host",
+      "url": "file://raw.githubusercontent.com/\\../excalidraw/excalidraw-libraries/x",
+      "ok": true
+    },
+    {
+      "id": "file-excalidraw-host",
+      "url": "file://excalidraw.com/x",
+      "ok": true
+    },
+    {
+      "id": "file-localhost",
+      "url": "file://localhost/excalidraw.com",
+      "error": "Invalid or disallowed library URL: \"file://localhost/excalidraw.com\"",
+      "errorType": "Error"
+    },
+    {
+      "id": "file-drive-letter-keeps-host",
+      "url": "file://excalidraw.com/C:/x",
+      "ok": true
+    },
+    {
+      "id": "file-drive-letter-as-host",
+      "url": "file://C:/excalidraw.com",
+      "error": "Invalid or disallowed library URL: \"file://C:/excalidraw.com\"",
+      "errorType": "Error"
+    },
+    {
+      "id": "file-one-slash",
+      "url": "file:/excalidraw.com/x",
+      "error": "Invalid or disallowed library URL: \"file:/excalidraw.com/x\"",
+      "errorType": "Error"
+    },
+    {
+      "id": "file-slash-backslash",
+      "url": "file:/\\excalidraw.com/x",
+      "ok": true
+    },
+    {
+      "id": "xn-empty-label-https",
+      "url": "https://xn--/excalidraw/excalidraw-libraries/x",
+      "error": "Invalid or disallowed library URL: \"https://xn--/excalidraw/excalidraw-libraries/x\"",
+      "errorType": "Error"
+    },
+    {
+      "id": "xn-empty-label-http",
+      "url": "http://xn--/excalidraw/excalidraw-libraries/x",
+      "error": "Invalid or disallowed library URL: \"http://xn--/excalidraw/excalidraw-libraries/x\"",
+      "errorType": "Error"
+    },
+    {
+      "id": "xn-empty-label-ftp",
+      "url": "ftp://xn--/excalidraw/excalidraw-libraries/x",
+      "error": "Invalid or disallowed library URL: \"ftp://xn--/excalidraw/excalidraw-libraries/x\"",
+      "errorType": "Error"
+    },
+    {
+      "id": "xn-empty-label-ws",
+      "url": "ws://xn--/excalidraw/excalidraw-libraries/x",
+      "error": "Invalid or disallowed library URL: \"ws://xn--/excalidraw/excalidraw-libraries/x\"",
+      "errorType": "Error"
+    },
+    {
+      "id": "xn-empty-label-file",
+      "url": "file://xn--/excalidraw/excalidraw-libraries/x",
+      "error": "Invalid or disallowed library URL: \"file://xn--/excalidraw/excalidraw-libraries/x\"",
+      "errorType": "Error"
+    },
+    {
+      "id": "xn-empty-label-non-special",
+      "url": "web+lib://xn--/excalidraw/excalidraw-libraries/x",
+      "error": "Invalid or disallowed library URL: \"web+lib://xn--/excalidraw/excalidraw-libraries/x\"",
+      "errorType": "Error"
+    },
+    {
+      "id": "xn-empty-label-subdomain",
+      "url": "https://xn--.excalidraw.com/x",
+      "ok": true
+    },
+    {
+      "id": "xn-invalid-punycode-subdomain",
+      "url": "https://XN--ZZ.libraries.excalidraw.com/x",
+      "ok": true
+    },
+    {
+      "id": "xn-valid-punycode-subdomain",
+      "url": "https://xn--ls8h.excalidraw.com/x",
+      "ok": true
+    },
+    {
+      "id": "xn-subdomain-credentials-port",
+      "url": "https://u:p@xn--.excalidraw.com:8443/x?q#h",
+      "ok": true
+    },
+    {
+      "id": "xn-subdomain-no-slashes",
+      "url": "https:xn--.excalidraw.com/x",
+      "ok": true
+    },
+    {
+      "id": "xn-subdomain-backslashes",
+      "url": "https:\\\\xn--.excalidraw.com\\x",
+      "ok": true
+    },
+    {
+      "id": "xn-subdomain-percent-encoded",
+      "url": "https://xn--%41.excalidraw.com/x",
+      "ok": true
+    },
+    {
+      "id": "xn-subdomain-file",
+      "url": "file://xn--.excalidraw.com/\\x",
+      "ok": true
+    },
+    {
+      "id": "xn-subdomain-bad-port",
+      "url": "https://xn--.excalidraw.com:99999/x",
+      "error": "Invalid URL",
+      "errorType": "TypeError"
+    },
+    {
+      "id": "xn-non-ascii-label",
+      "url": "https://xn--%C3%A4.excalidraw.com/x",
+      "error": "Invalid URL",
+      "errorType": "TypeError"
+    },
+    {
+      "id": "xn-invalid-utf8",
+      "url": "https://xn--%FF.excalidraw.com/x",
+      "error": "Invalid URL",
+      "errorType": "TypeError"
+    },
+    {
+      "id": "xn-forbidden-after-decoding",
+      "url": "https://xn--%2F.excalidraw.com/x",
+      "error": "Invalid URL",
+      "errorType": "TypeError"
+    },
+    {
+      "id": "xn-ends-in-a-number",
+      "url": "https://xn--0.1.2.3/x",
+      "error": "Invalid URL",
+      "errorType": "TypeError"
+    },
+    {
+      "id": "xn-with-unicode-label",
+      "url": "https://xn--zz.\u00e4.excalidraw.com/x",
+      "error": "Invalid URL",
+      "errorType": "TypeError"
+    },
+    {
+      "id": "credentials-no-host",
+      "url": "x://@",
+      "error": "Invalid URL",
+      "errorType": "TypeError"
+    },
+    {
+      "id": "credentials-no-host-user",
+      "url": "web+a://u@",
+      "error": "Invalid URL",
+      "errorType": "TypeError"
+    },
+    {
       "id": "list-host",
       "url": "https://example.com/a",
       "allowList": [
@@ -486,6 +670,131 @@
         "ex\u00e4mple.com"
       ],
       "ok": true
+    },
+    {
+      "id": "list-file-backslash-after-host",
+      "url": "file://excalidraw.com/\\x",
+      "allowList": [
+        "excalidraw.com/x"
+      ],
+      "error": "Invalid or disallowed library URL: \"file://excalidraw.com/\\x\"",
+      "errorType": "Error"
+    },
+    {
+      "id": "list-file-double-slash-after-host",
+      "url": "file://excalidraw.com//x",
+      "allowList": [
+        "excalidraw.com/x"
+      ],
+      "error": "Invalid or disallowed library URL: \"file://excalidraw.com//x\"",
+      "errorType": "Error"
+    },
+    {
+      "id": "list-file-empty-segment-kept",
+      "url": "file://excalidraw.com/\\x",
+      "allowList": [
+        "excalidraw.com//x"
+      ],
+      "ok": true
+    },
+    {
+      "id": "list-file-inner-backslashes",
+      "url": "file://example.com/a/\\\\b",
+      "allowList": [
+        "example.com/a///b"
+      ],
+      "ok": true
+    },
+    {
+      "id": "list-file-drive-letter",
+      "url": "file://example.com/c|/x",
+      "allowList": [
+        "example.com/c:"
+      ],
+      "ok": true
+    },
+    {
+      "id": "list-file-drive-letter-not-shortened",
+      "url": "file://example.com/C:/../../x",
+      "allowList": [
+        "example.com/C:/x"
+      ],
+      "ok": true
+    },
+    {
+      "id": "list-file-encoded-dot-segments",
+      "url": "file://example.com/%2e%2E/\\x",
+      "allowList": [
+        "example.com//x"
+      ],
+      "ok": true
+    },
+    {
+      "id": "list-file-single-dot",
+      "url": "file://example.com/a/%2e/./b/.",
+      "allowList": [
+        "example.com/a/b/$"
+      ],
+      "ok": true
+    },
+    {
+      "id": "list-file-encoded-characters",
+      "url": "file://example.com/ ^`{}\u00e9\"<>/x",
+      "allowList": [
+        "example.com/%20%5E%60%7B%7D%C3%A9%22%3C%3E"
+      ],
+      "ok": true
+    },
+    {
+      "id": "list-file-localhost",
+      "url": "file://localhost/x",
+      "allowList": [
+        "localhost"
+      ],
+      "error": "Invalid or disallowed library URL: \"file://localhost/x\"",
+      "errorType": "Error"
+    },
+    {
+      "id": "list-xn-entry",
+      "url": "https://xn--.example.com/a",
+      "allowList": [
+        "xn--.example.com"
+      ],
+      "ok": true
+    },
+    {
+      "id": "list-xn-entry-https",
+      "url": "https://a.xn--/a",
+      "allowList": [
+        "https://XN--"
+      ],
+      "ok": true
+    },
+    {
+      "id": "list-opaque-path-space",
+      "url": "x:a #f",
+      "allowList": [
+        "a*/x|a%20"
+      ],
+      "ok": true
+    },
+    {
+      "id": "list-non-special-port-backslash",
+      "url": "x://h:1\\x",
+      "allowList": [
+        "h"
+      ],
+      "error": "Invalid URL",
+      "errorType": "TypeError"
+    },
+    {
+      "id": "list-xn-entry-other-url",
+      "url": "https://example.com/a",
+      "allowList": [
+        "xn--.example.com"
+      ],
+      "error": "Invalid or disallowed library URL: \"https://example.com/a\"",
+      "errorType": "Error"
     },
     {
       "id": "regexp-plus-in-path",
@@ -1104,6 +1413,26 @@
       "search": "",
       "hash": "",
       "result": null
+    },
+    {
+      "id": "xn-host",
+      "href": "https://xn--.excalidraw.com/?addLibrary=q#addLibrary=h&token=t",
+      "search": "?addLibrary=q",
+      "hash": "#addLibrary=h&token=t",
+      "result": {
+        "libraryUrl": "h",
+        "idToken": "t"
+      }
+    },
+    {
+      "id": "file-href",
+      "href": "file://h/\\x?addLibrary=q#token=t",
+      "search": "?addLibrary=q",
+      "hash": "#token=t",
+      "result": {
+        "libraryUrl": "q",
+        "idToken": "t"
+      }
     }
   ],
   "normalizeLink": [
@@ -1597,6 +1926,78 @@
       "input": "&#0;/x",
       "origin": "https://excalidraw.com",
       "output": "https://excalidraw.com/x"
+    },
+    {
+      "id": "to-valid-url-26",
+      "input": "x://@",
+      "origin": "https://excalidraw.com",
+      "output": "about:blank"
+    },
+    {
+      "id": "to-valid-url-27",
+      "input": "web+a://u@",
+      "origin": "https://excalidraw.com",
+      "output": "about:blank"
+    },
+    {
+      "id": "to-valid-url-28",
+      "input": "x://u:p@",
+      "origin": "https://excalidraw.com",
+      "output": "about:blank"
+    },
+    {
+      "id": "to-valid-url-29",
+      "input": "x://a@b@",
+      "origin": "https://excalidraw.com",
+      "output": "about:blank"
+    },
+    {
+      "id": "to-valid-url-30",
+      "input": "x://@h",
+      "origin": "https://excalidraw.com",
+      "output": "x://@h"
+    },
+    {
+      "id": "to-valid-url-31",
+      "input": "x://:80",
+      "origin": "https://excalidraw.com",
+      "output": "about:blank"
+    },
+    {
+      "id": "to-valid-url-32",
+      "input": "x:///@",
+      "origin": "https://excalidraw.com",
+      "output": "x:///@"
+    },
+    {
+      "id": "to-valid-url-33",
+      "input": "https://xn--/x",
+      "origin": "https://excalidraw.com",
+      "output": "https://xn--/x"
+    },
+    {
+      "id": "to-valid-url-34",
+      "input": "https://xn--%C3%A4/x",
+      "origin": "https://excalidraw.com",
+      "output": "about:blank"
+    },
+    {
+      "id": "to-valid-url-35",
+      "input": "file://h/\\x",
+      "origin": "https://excalidraw.com",
+      "output": "file://h/\\x"
+    },
+    {
+      "id": "to-valid-url-36",
+      "input": "x://h:1\\x",
+      "origin": "https://excalidraw.com",
+      "output": "about:blank"
+    },
+    {
+      "id": "to-valid-url-37",
+      "input": "x://h:1a",
+      "origin": "https://excalidraw.com",
+      "output": "about:blank"
     }
   ],
   "import": [
@@ -1778,6 +2179,47 @@
       "input": "https%3a%2f%2fexcalidraw.com%2fa",
       "origin": "https://excalidraw.com",
       "url": "https://excalidraw.com/a"
+    },
+    {
+      "id": "credentials-no-host-blank",
+      "input": "x%3A%2F%2F%40",
+      "origin": "https://excalidraw.com",
+      "error": "Invalid or disallowed library URL: \"about:blank\"",
+      "errorType": "Error"
+    },
+    {
+      "id": "credentials-no-host-plain",
+      "input": "x://@",
+      "origin": "https://excalidraw.com",
+      "error": "Invalid or disallowed library URL: \"about:blank\"",
+      "errorType": "Error"
+    },
+    {
+      "id": "credentials-user-no-host",
+      "input": "web+a://u@",
+      "origin": "https://excalidraw.com",
+      "error": "Invalid or disallowed library URL: \"about:blank\"",
+      "errorType": "Error"
+    },
+    {
+      "id": "xn-subdomain",
+      "input": "https%3A%2F%2Fxn--.excalidraw.com%2Fa",
+      "origin": "https://excalidraw.com",
+      "url": "https://xn--.excalidraw.com/a"
+    },
+    {
+      "id": "xn-host",
+      "input": "https://xn--/excalidraw/excalidraw-libraries/a",
+      "origin": "https://excalidraw.com",
+      "error": "Invalid or disallowed library URL: \"https://xn--/excalidraw/excalidraw-libraries/a\"",
+      "errorType": "Error"
+    },
+    {
+      "id": "file-backslash-after-host",
+      "input": "file://raw.githubusercontent.com/%5Cexcalidraw/excalidraw-libraries/a",
+      "origin": "https://excalidraw.com",
+      "error": "Invalid or disallowed library URL: \"file://raw.githubusercontent.com/\\excalidraw/excalidraw-libraries/a\"",
+      "errorType": "Error"
     }
   ]
 }

@@ -60,6 +60,16 @@ test("output is upstream's allow-list, token parser and link sanitizer", () => {
   // the allow-list entry is a regular expression source
   assert.equal(validate.get("dot-is-any-character").ok, true);
   assert.match(validate.get("regexp-unterminated-group-host").error, /^Invalid regular expression: .*Unterminated group$/);
+  // where the url crate parses differently from new URL
+  assert.equal(validate.get("file-github-backslash-after-host").errorType, "Error");
+  assert.equal(validate.get("file-github").ok, true);
+  assert.equal(validate.get("list-file-backslash-after-host").errorType, "Error");
+  assert.equal(
+    validate.get("xn-empty-label-https").error,
+    'Invalid or disallowed library URL: "https://xn--/excalidraw/excalidraw-libraries/x"',
+  );
+  assert.equal(validate.get("xn-empty-label-subdomain").ok, true);
+  assert.equal(validate.get("credentials-no-host").errorType, "TypeError");
 
   const tokens = new Map(fixture.tokens.map((c) => [c.id, c.result]));
   assert.deepEqual(tokens.get("hash"), {
@@ -79,6 +89,7 @@ test("output is upstream's allow-list, token parser and link sanitizer", () => {
   const imports = new Map(fixture.import.map((c) => [c.id, c]));
   assert.equal(imports.get("encoded-library").url, "https://libraries.excalidraw.com/libraries/a.excalidrawlib");
   assert.equal(imports.get("malformed-percent").errorType, "URIError");
+  assert.equal(imports.get("credentials-no-host-plain").error, 'Invalid or disallowed library URL: "about:blank"');
 });
 
 test("--check reports a stale fixture", () => {

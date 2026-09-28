@@ -147,6 +147,67 @@ fn acceptance_default_allow_list() {
     );
 }
 
+/// Where the `url` crate parses differently from `new URL` (Node 26, ada),
+/// the port answers as upstream does (each case is also in the fixture).
+#[test]
+fn url_parsing_is_new_urls() {
+    let disallowed = |url: &str| {
+        Err(LibraryUrlError::Disallowed {
+            url: url.to_owned(),
+        })
+    };
+    // file: keeps the empty segment a backslash or slash leaves after the
+    // host, so the path is not the allowed prefix.
+    for url in [
+        "file://raw.githubusercontent.com/\\excalidraw/excalidraw-libraries/x",
+        "file://raw.githubusercontent.com//excalidraw/excalidraw-libraries/x",
+    ] {
+        assert_eq!(validate_library_url(url), disallowed(url), "{url}");
+    }
+    let list = ["excalidraw.com/x"];
+    let url = "file://excalidraw.com/\\x";
+    assert_eq!(
+        validate_library_url_with(url, &LibraryUrlValidator::AllowList(&list)),
+        disallowed(url)
+    );
+    assert_eq!(
+        validate_library_url("file://raw.githubusercontent.com/excalidraw/excalidraw-libraries/x"),
+        Ok(())
+    );
+    // and keeps its host next to a Windows drive letter.
+    assert_eq!(validate_library_url("file://excalidraw.com/C:/x"), Ok(()));
+
+    // An ASCII host UTS 46 turns down (`xn--`) is a host, as in ada: the URL
+    // is disallowed, not invalid, and allowed under an allowed domain.
+    for scheme in ["https", "http", "ftp", "ws", "file", "web+lib"] {
+        let url = format!("{scheme}://xn--/excalidraw/excalidraw-libraries/x");
+        let result = validate_library_url(&url);
+        assert_eq!(result, disallowed(&url), "{url}");
+        assert_eq!(result.unwrap_err().js_error_type(), "Error");
+    }
+    assert_eq!(
+        validate_library_url("https://xn--.excalidraw.com/x"),
+        Ok(())
+    );
+    assert_eq!(
+        validate_library_url("https://xn--%C3%A4.excalidraw.com/x"),
+        Err(LibraryUrlError::InvalidUrl)
+    );
+
+    // Credentials with no host: `new URL` fails, so toValidURL is
+    // about:blank and the import names it.
+    for link in ["x://@", "web+a://u@"] {
+        assert_eq!(to_valid_url(link, "https://excalidraw.com"), "about:blank");
+        assert_eq!(
+            resolve_library_url(link, "https://excalidraw.com"),
+            Err(LibraryUrlError::Disallowed {
+                url: "about:blank".to_owned()
+            }),
+            "{link}"
+        );
+    }
+}
+
 #[test]
 fn validate_library_url_with_a_predicate() {
     // library.ts:497-507: a function validator decides alone.
