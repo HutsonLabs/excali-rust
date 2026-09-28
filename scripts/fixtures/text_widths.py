@@ -110,11 +110,15 @@ EXCLUDED = {
     ("infamousjoeg/cyberark.excalidrawlib", 1): (11, 25, 2.30),
     ("pratheeshpm/basic-system-design.excalidrawlib", 1): (34, 47, 116.74),
     ("stojanovic/aws-serverless-icons-v2.excalidrawlib", 1): (10, 24, 1.46),
+    # `{}` stores its width at 14 px, Math.round of its fontSize (ex-g302,
+    # KNOWN_DEVIATIONS in crates/excali-text/tests/text_width_corpus.rs).
     ("childishgirl/aws-architecture-icons.excalidrawlib", 3): (6, 7, 0.58),
     ("childishgirl/aws-architecture-icons.excalidrawlib", 5): (0, 1, 1.00),
     ("hartmut-co-uk/kafka-streams-topology-design.excalidrawlib", 5): (27, 31, 1.02),
     ("martinberger-ch/oracle-cloud-infrastructure-icons.excalidrawlib", 5): (31, 43, 2.20),
     ("datavizfairy/dashboard-charts.excalidrawlib", 6): (38, 340, 47.51),
+    # `Metrics` stores 3.3345 em; Lilita One measures 3.304 em at every size
+    # (ex-g302, KNOWN_DEVIATIONS in text_width_corpus.rs).
     ("devdaejungyoon/github-actions.excalidrawlib", 7): (1, 2, 0.89),
     ("hartmut-co-uk/kafka-streams-topology-design.excalidrawlib", 8): (12, 13, 0.52),
 }

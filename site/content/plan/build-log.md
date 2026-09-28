@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-g302 · Gate Cascadia and Lilita One in the whole-corpus width test
+
+The corpus width test now also holds Cascadia and Lilita One to 0.5 px. Every Cascadia and Lilita One text whose stored width is a measurement passes, except one in each family, and both are pinned with a measured explanation. The Cascadia `{}` stores its width at `Math.round(fontSize)`, as every Cascadia text in its library does, and the test recomputes that exactly. The Lilita One `Metrics` stores 3.3345 em, where the face measures 3.304 em at every size. PR: [#69](https://github.com/HutsonLabs/excali-rust/pull/69).
+
 ## 2026-09-28 · ex-g301 · Gate Virgil in the whole-corpus width test: explain or fix the 94 measured Virgil texts outside 0.5 px
 
 The corpus width test now gates Virgil along with Excalifont, Nunito and Comic Shanns. Each of the 94 Virgil texts outside 0.5 px is pinned to the older upstream measurement that wrote its stored width: DOM offsetWidth before and after the +1 fix, a width scaled from an earlier font size, a padded container width, or the 2024 ink-box getLineWidth. The test recomputes each of these from the vendored fonts and requires it to equal the stored width. The same models explain 13 of the 18 older Excalifont and Comic Shanns exceptions. PR: [#68](https://github.com/HutsonLabs/excali-rust/pull/68).

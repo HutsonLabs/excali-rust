@@ -32,9 +32,9 @@
 //! count, the number within 0.5 px, and the max and mean |measured -
 //! stored| per family and class, and this test rebuilds and compares it
 //! (`EXCALI_BLESS=1` rewrites it after a deliberate change; the diff is the
-//! review). For Virgil, Excalifont, Nunito and Comic Shanns (ADR-007)
-//! every `measured` text must be within 0.5 px, and so must the family's
-//! mean; the only exceptions are the texts of [`KNOWN_DEVIATIONS`], each
+//! review). For Virgil, Cascadia, Excalifont, Nunito, Lilita One and
+//! Comic Shanns (the gated families, ADR-007) every `measured` text must be
+//! within 0.5 px, and so must the family's mean; the only exceptions are the texts of [`KNOWN_DEVIATIONS`], each
 //! pinned to its stored and measured width and to the [`Cause`] that wrote
 //! it, which the test recomputes.
 
@@ -57,9 +57,9 @@ use sha2::{Digest, Sha256};
 const TOLERANCE: f64 = 0.5;
 const REPORT: &str = "tests/fixtures/text-width-corpus-report.json";
 
-/// Virgil, Excalifont, Nunito, Comic Shanns: the families whose `measured`
-/// texts are held to [`TOLERANCE`] (ADR-007).
-const GATED_FAMILIES: [u32; 4] = [1, 5, 6, 8];
+/// Virgil, Cascadia, Excalifont, Nunito, Lilita One, Comic Shanns: the
+/// families whose `measured` texts are held to [`TOLERANCE`] (ADR-007).
+const GATED_FAMILIES: [u32; 6] = [1, 3, 5, 6, 7, 8];
 
 /// The texts of the gated families that are `measured` by class and still
 /// deviate by more than 0.5 px: `(file under fixtures/, element id, stored
@@ -88,6 +88,17 @@ const GATED_FAMILIES: [u32; 4] = [1, 5, 6, 8];
 /// and `Oracle\nAutonomous\nDatabase` exactly 1 px wider than the per-glyph
 /// ink box). That fits a width kept from an earlier state of the element
 /// better than a measuring error, but it is not shown.
+///
+/// The Cascadia `{}` of `childishgirl/aws-architecture-icons` stores its
+/// width at 14 px, `Math.round` of its font size, as every Cascadia text of
+/// that library does ([`Cause::WholePixelFontSize`],
+/// [`the_cascadia_deviation_is_a_width_measured_at_the_whole_pixel_size`]).
+/// The Lilita One `Metrics` stores 3.3345 em where the face measures
+/// 3.304 em at every size ([`Cause::KeptWidth`],
+/// [`the_lilita_one_deviation_is_no_measurement_of_its_text`]); the
+/// per-glyph ink box comes within 0.006 px of it, but not within the
+/// 0.001 px every cause is held to. Upstream's Lilita One files are
+/// unchanged since `61623bbeba`.
 ///
 /// A text that starts to measure within 0.5 px must be removed from the
 /// list, and a new deviation fails the gate.
@@ -769,6 +780,14 @@ const KNOWN_DEVIATIONS: &[(&str, &str, f64, f64, Cause)] = &[
         94.48,
         Cause::DomOffsetWidth,
     ),
+    // Cascadia (3)
+    (
+        "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
+        "osMt0yXwVUW2nOIpka3FE",
+        16.40625,
+        15.826,
+        Cause::WholePixelFontSize,
+    ),
     // Excalifont (5)
     (
         "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz",
@@ -889,6 +908,14 @@ const KNOWN_DEVIATIONS: &[(&str, &str, f64, f64, Cause)] = &[
         24.336,
         Cause::KeptWidth,
     ),
+    // Lilita One (7)
+    (
+        "libraries/devdaejungyoon/github-actions.excalidrawlib.gz",
+        "HrDCzdqG",
+        97.10844421386719,
+        96.219,
+        Cause::KeptWidth,
+    ),
     // Comic Shanns (8)
     (
         "libraries/hartmut-co-uk/kafka-streams-topology-design.excalidrawlib.gz",
@@ -956,6 +983,12 @@ enum Cause {
     /// `width: container.width - BOUND_TEXT_PADDING * 2`, `x: container.x +
     /// BOUND_TEXT_PADDING` (`src/element/textElement.ts` at `4cb6f095^`).
     ContainerWidth,
+    /// `measureText` at `Math.round(fontSize)` rather than at the element's
+    /// fractional `fontSize`, which upstream measures at (`getFontString`,
+    /// `packages/common/src/utils.ts:123-147` at the pin): the width every
+    /// Cascadia text of `childishgirl/aws-architecture-icons` stores
+    /// ([`the_cascadia_deviation_is_a_width_measured_at_the_whole_pixel_size`]).
+    WholePixelFontSize,
 }
 
 impl Cause {
@@ -969,6 +1002,7 @@ impl Cause {
             Cause::InkBox(Ink::WholePixels) => "ink_box_whole_pixels",
             Cause::InkBox(Ink::GlyphPixels) => "ink_box_glyph_pixels",
             Cause::ContainerWidth => "container_width",
+            Cause::WholePixelFontSize => "whole_pixel_font_size",
         }
     }
 
@@ -1013,6 +1047,16 @@ impl Cause {
                     t.id
                 );
                 Some(width - BOUND_TEXT_PADDING * 2.0)
+            }
+            Cause::WholePixelFontSize => {
+                let font = get_font_string(t.font_size.round(), FontFamily(t.family));
+                let store = common::store();
+                Some(
+                    lines
+                        .iter()
+                        .map(|l| store.line_width(l, &font))
+                        .fold(0.0, f64::max),
+                )
             }
         }
     }
@@ -1659,10 +1703,7 @@ fn gated_families_measure_within_half_a_pixel() {
             ));
         }
         for t in measured {
-            let known = KNOWN_DEVIATIONS
-                .iter()
-                .any(|(file, id, _, _, _)| *file == t.file && *id == t.id);
-            if t.deviation() > TOLERANCE && !known {
+            if t.deviation() > TOLERANCE && !is_known_deviation(&t.file, &t.id) {
                 failures.push(format!(
                     "{} item {} id {}: {:?} at {} px in fontFamily {family}: measured {} stored {}",
                     t.file, t.item, t.id, t.text, t.font_size, t.measured, t.stored
@@ -1848,5 +1889,125 @@ fn ink_box_is_the_advance_without_ink_and_never_narrower() {
     assert_eq!(
         ink_box_width("Table", 1, 20.0, Ink::WholePixels) - table.advance,
         3.0
+    );
+}
+
+fn is_known_deviation(file: &str, id: &str) -> bool {
+    KNOWN_DEVIATIONS
+        .iter()
+        .any(|(f, i, ..)| *f == file && *i == id)
+}
+
+/// The Cascadia texts of `childishgirl/aws-architecture-icons`: `(text,
+/// fontSize, stored width)`, all seven `measured`.
+const AWS_CASCADIA: &[(&str, f64, f64)] = &[
+    ("{}", 13.504594623307078, 16.40625),
+    ("9", 29.304209253624368, 16.9921875),
+    ("</>", 7.797997259310612, 14.0625),
+    ("</>", 14.93448697097079, 26.3671875),
+    ("</>", 16.073998572433393, 28.125),
+    ("</>", 15.975635526055072, 28.125),
+    ("</>", 12.952154230531796, 22.8515625),
+];
+
+/// The Cascadia deviation, `{}` in `childishgirl/aws-architecture-icons`,
+/// is a width measured at another font size: every Cascadia text of that
+/// library stores exactly `measureText` at `Math.round(fontSize)`, not at
+/// its fractional `fontSize` as upstream measures (`getFontString`,
+/// `packages/common/src/utils.ts:123-147`). The other six land within
+/// 0.5 px only because their sizes are nearer a whole pixel; `{}` at
+/// 13.50 px stores its 14 px width.
+#[test]
+fn the_cascadia_deviation_is_a_width_measured_at_the_whole_pixel_size() {
+    let file = "libraries/childishgirl/aws-architecture-icons.excalidrawlib.gz";
+    let texts: Vec<&Text> = corpus()
+        .texts
+        .iter()
+        .filter(|t| t.file == file && t.family == 3)
+        .collect();
+    let found: Vec<(&str, f64, f64)> = texts
+        .iter()
+        .map(|t| (t.text.as_str(), t.font_size, t.stored))
+        .collect();
+    assert_eq!(found, AWS_CASCADIA);
+    let store = common::store();
+    for t in &texts {
+        assert_eq!(t.class, Class::Measured, "{:?}", t.text);
+        let whole = get_font_string(t.font_size.round(), FontFamily(3));
+        assert_eq!(
+            store.line_width(&t.text, &whole),
+            t.stored,
+            "{:?} at {} px",
+            t.text,
+            t.font_size.round()
+        );
+    }
+    let deviating: Vec<&str> = texts
+        .iter()
+        .filter(|t| t.deviation() > TOLERANCE)
+        .map(|t| t.text.as_str())
+        .collect();
+    assert_eq!(deviating, ["{}"]);
+    let braces = texts.iter().find(|t| t.text == "{}").expect("{}");
+    assert!(
+        KNOWN_DEVIATIONS.iter().any(|(f, i, _, _, c)| *f == file
+            && *i == braces.id
+            && *c == Cause::WholePixelFontSize),
+        "{}: not in KNOWN_DEVIATIONS as whole_pixel_font_size",
+        braces.id
+    );
+}
+
+/// The Lilita One deviation, `Metrics` in `devdaejungyoon/github-actions`,
+/// is no measurement of its text in upstream's Lilita One at any size.
+/// The face is unhinted and no kerning pair applies, so `measureText` is
+/// linear in the font size: 3.304 em at every size, whole pixels included.
+/// The stored width is 3.3345 em of the stored `fontSize`, and every resize
+/// keeps `width / fontSize` (`measureFontSizeFromWidth`,
+/// `packages/element/src/resizeElements.ts:292-315`), so no earlier size
+/// gives it either. No vendored family at the stored size comes within
+/// 0.5 px.
+#[test]
+fn the_lilita_one_deviation_is_no_measurement_of_its_text() {
+    let file = "libraries/devdaejungyoon/github-actions.excalidrawlib.gz";
+    let t = find(file, "HrDCzdqG");
+    assert_eq!(
+        (t.text.as_str(), t.family, t.class),
+        ("Metrics", 7, Class::Measured)
+    );
+    let store = common::store();
+    let em = |size: f64, family: u32| {
+        store.line_width("Metrics", &get_font_string(size, FontFamily(family))) / size
+    };
+    for size in (1..=200).map(|s| f64::from(s) / 2.0).chain([t.font_size]) {
+        assert!(
+            (em(size, 7) - 3.304).abs() < 1e-12,
+            "{size} px: {} em",
+            em(size, 7)
+        );
+    }
+    let stored_em = t.stored / t.font_size;
+    assert!((stored_em - 3.3345).abs() < 1e-4, "{stored_em}");
+    assert!((stored_em - 3.304) * t.font_size > TOLERANCE);
+    for family in [1, 2, 3, 5, 6, 8, 9, 10] {
+        let width = em(t.font_size, family) * t.font_size;
+        assert!(
+            (width - t.stored).abs() > TOLERANCE,
+            "fontFamily {family}: {width}"
+        );
+    }
+    // The nearest earlier measurement is the per-glyph ink box of
+    // `getLineWidth` (`62228e0b` to `e3060dfb^`), 0.006 px off: closer than
+    // any other model, but not the 0.001 px a cause must reproduce, so the
+    // text stays `kept_width`.
+    let glyph_pixels = Cause::InkBox(Ink::GlyphPixels).width(t).expect("ink box");
+    let off = (glyph_pixels - t.stored).abs();
+    assert!(off > 0.001 && off < 0.01, "{glyph_pixels}");
+    assert!(
+        KNOWN_DEVIATIONS
+            .iter()
+            .any(|(f, i, _, _, c)| *f == file && *i == t.id && *c == Cause::KeptWidth),
+        "{}: not in KNOWN_DEVIATIONS as kept_width",
+        t.id
     );
 }
