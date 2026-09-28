@@ -93,6 +93,11 @@ pub struct StaticCanvasAppState {
     pub hovered_element_ids: HashSet<String>,
     /// `openDialog?.name`.
     pub open_dialog: Option<String>,
+    /// The frame selected elements are being dragged over, which becomes
+    /// their clip (`getTargetFrame`, `frame.ts:790-815`).
+    pub frame_to_highlight: Option<Element>,
+    pub selected_elements_are_being_dragged: bool,
+    pub editing_group_id: Option<String>,
 }
 
 impl Default for StaticCanvasAppState {
@@ -111,6 +116,9 @@ impl Default for StaticCanvasAppState {
             selected_element_ids: HashSet::new(),
             hovered_element_ids: HashSet::new(),
             open_dialog: None,
+            frame_to_highlight: None,
+            selected_elements_are_being_dragged: false,
+            editing_group_id: None,
         }
     }
 }

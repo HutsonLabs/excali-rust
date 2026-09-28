@@ -104,6 +104,14 @@ fn app_state(value: &Value) -> StaticCanvasAppState {
         selected_element_ids: ids(&value["selectedElementIds"]),
         hovered_element_ids: ids(&value["hoveredElementIds"]),
         open_dialog: value["openDialog"]["name"].as_str().map(str::to_owned),
+        frame_to_highlight: match &value["frameToHighlight"] {
+            Value::Null => None,
+            frame => Some(Element::from_map(frame.as_object().unwrap().clone()).unwrap()),
+        },
+        selected_elements_are_being_dragged: value["selectedElementsAreBeingDragged"]
+            .as_bool()
+            .unwrap(),
+        editing_group_id: value["editingGroupId"].as_str().map(str::to_owned),
     }
 }
 
@@ -233,8 +241,71 @@ fn the_fixture_covers_the_order_of_work() {
         "links",
         "pending-flowchart",
         "opacity",
+        "frame-clip",
+        "frame-clip-zoomed-dpr-2",
+        "frame-clip-exporting",
+        "frame-clip-off",
+        "frame-clip-disabled",
+        "frame-clip-offsets",
+        "frame-drag",
+        "frame-selected",
     ] {
         assert!(names.iter().any(|n| n == name), "no scene {name}");
+    }
+}
+
+/// The clips of a scene's draws: `(clip path, matrix)` in order.
+fn clips(scene: &Value) -> Vec<(Path, Transform)> {
+    scene["events"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|e| e["op"] == "clip")
+        .map(|e| (path(&e["path"]), matrix(&e["m"])))
+        .collect()
+}
+
+#[test]
+fn frame_children_are_clipped_to_a_round_rect_of_radius_8_over_zoom() {
+    // staticScene.ts:165-189: roundRect(0, 0, w, h, FRAME_STYLE.radius /
+    // zoom) at the frame's corner plus the scroll, under the zoom and the
+    // device pixel ratio
+    let all = scenes();
+    let scene = |name: &str| all.iter().find(|s| s["name"] == name).unwrap().clone();
+    let frame_clips = |name: &str, radius: f64| {
+        clips(&scene(name))
+            .into_iter()
+            .filter(|(p, _)| *p == Path::round_rect(0.0, 0.0, 240.0, 160.0, radius))
+            .count()
+    };
+    assert!(frame_clips("frame-clip", 8.0) > 15);
+    assert!(frame_clips("frame-clip-zoomed-dpr-2", 8.0 / 1.5) > 15);
+    assert!(frame_clips("frame-clip-zoom-0.5", 16.0) > 15);
+    // clipping off, or frames off: no frame clips at all
+    assert_eq!(frame_clips("frame-clip-off", 8.0), 0);
+    assert_eq!(frame_clips("frame-clip-disabled", 8.0), 0);
+    let (_, m) = clips(&scene("frame-clip-zoomed-dpr-2"))
+        .into_iter()
+        .find(|(p, _)| *p == Path::round_rect(0.0, 0.0, 240.0, 160.0, 8.0 / 1.5))
+        .unwrap();
+    // scale(2) · scale(1.5) · translate(50 + 7.3, 40 - 3.6)
+    assert!(same_matrix(
+        &m,
+        &Transform::new(3.0, 0.0, 0.0, 3.0, 3.0 * (50.0 + 7.3), 3.0 * (40.0 - 3.6))
+    ));
+    // the port draws the same clips: every_scene_draws_what_upstream_draws
+    let doc = fixture();
+    let host = doc["origin"].as_str().unwrap().trim_start_matches("https://");
+    for name in ["frame-clip", "frame-drag", "frame-clip-offsets"] {
+        let s = scene(name);
+        let mut recorder = Recorder::default();
+        render(&s, host).replay(&mut recorder);
+        let ported = recorder
+            .0
+            .iter()
+            .filter(|d| matches!(d, Draw::Clip { .. }))
+            .count();
+        assert_eq!(ported, clips(&s).len(), "{name}: clips");
     }
 }
 
