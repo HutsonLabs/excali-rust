@@ -218,6 +218,32 @@ impl<S: Space> AsRef<[Point<S>]> for Polygon<S> {
     }
 }
 
+/// A cubic Bézier curve given by its four control points: start, two
+/// handles, end (`types.ts:134`). Built by [`crate::curve`]; the points
+/// index as `c[0]`..`c[3]` like upstream's tuple.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Curve<S: Space = Global>(pub Point<S>, pub Point<S>, pub Point<S>, pub Point<S>);
+
+impl<S: Space> Curve<S> {
+    /// The control points in order.
+    pub const fn points(self) -> [Point<S>; 4] {
+        [self.0, self.1, self.2, self.3]
+    }
+}
+
+impl<S: Space> Index<usize> for Curve<S> {
+    type Output = Point<S>;
+    fn index(&self, i: usize) -> &Point<S> {
+        match i {
+            0 => &self.0,
+            1 => &self.1,
+            2 => &self.2,
+            3 => &self.3,
+            _ => panic!("index out of bounds: a curve has 4 points but the index is {i}"),
+        }
+    }
+}
+
 /// An axis-aligned ellipse given by its center and half axes (`types.ts:154`).
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Ellipse<S: Space = Global> {

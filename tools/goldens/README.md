@@ -31,7 +31,10 @@ byte-identical across runs and across Node 22, 24 and 26. CI (the `goldens`
 job in `.github/workflows/gates.yml`) runs the suite and `--check` on every PR.
 
 The committed goldens are the arm64 output (Apple silicon, Linux arm64; the two
-agree byte for byte), and the CI job runs on `ubuntu-24.04-arm`. On x86_64,
+agree byte for byte), and the CI job runs on `ubuntu-24.04-arm`. A few
+math.json cases where upstream's result goes through the platform `pow` and
+macOS libm and glibc disagree in the last bit are left out
+(`PLATFORM_DEPENDENT_CASES` in `math.mjs`) so the two stay identical. On x86_64,
 V8's floating-point results for some shapes differ in the last bits, so
 `--check` and the stability test report stale files there. Regenerate goldens
 on an arm64 machine only.
@@ -53,7 +56,7 @@ on an arm64 machine only.
 | `elements-freedraw.json` | perfect-freehand and laser-pointer outlines, trimmed SVG path, loop fills | ex-213, ex-214 |
 | `elements-iframe-like.json` | `modifyIframeLikeForRoughOptions` placeholders and defaults | ex-208 |
 | `freehand.json` | `getStrokePoints` and `getStroke` with Excalidraw's options, the library defaults, and `edge/` cases for the branches Excalidraw never reaches (taper `true`/`false`, flat caps, cap easings, one-point strokes with a taper, `{x, y, pressure}` points, missing and negative pressures, reversals, duplicates, size 0, no points) | ex-213 |
-| `math.json` | every `packages/math/src` export except `curve.ts` and `pca.ts`, called on fixed and Park-Miller-random inputs (`math.mjs`): `{ id, fn, args, result }` | ex-201 |
+| `math.json` | every `packages/math/src` export except `pca.ts`, called on fixed and Park-Miller-random inputs (`math.mjs`): `{ id, fn, args, result }`; the `curve.ts` cases (including the `curveLength` fixtures) are ex-202's | ex-201, ex-202 |
 | `js-sort.json` | V8's `Array.prototype.sort` (TimSort) permutation when the comparator answers NaN, and `convexHull` on points with NaN or infinite coordinates (`jssort.mjs`) | ex-201 |
 | `fractional-indexing.json` | vendored `fractional-indexing`: `validateOrderKey`, `generateKeyBetween` over every pair of a key pool (base 62, plus the rocicorp suite's base 10 and base 95), `generateNKeysBetween` for n = 0..40 and long runs, random insertion walks; result or thrown message | ex-107 |
 | `fractional-index.json` | `element/src/fractionalIndex.ts`: `syncInvalidIndices` and `syncMovedIndices` on every scenario of `fractionalIndex.test.ts` and 400 random lists (indices and versions after), `syncInvalidIndicesImmutable` on those scenarios and 200 random lists with duplicate ids (the returned map), `validateFractionalIndices` log messages, `orderByFractionalIndex` (V8 TimSort order, also with unindexed elements and duplicate ids) | ex-107 |

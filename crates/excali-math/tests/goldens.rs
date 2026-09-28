@@ -3,7 +3,7 @@
 //! `goldens/math.json` is written by `tools/goldens/generate.mjs`, which runs
 //! upstream's TypeScript from the pinned checkout under Node: every case is a
 //! call `math[fn](...args)` and the value upstream returned. The file covers
-//! every function the package exports except `curve.ts` and `pca.ts`
+//! every function the package exports except `pca.ts`
 //! (`tools/goldens/test/math.test.mjs` checks that against the checkout); this
 //! test checks that the Rust port returns the same doubles, compared with `==`
 //! (so `-0` equals `0`, as JSON cannot tell them apart).
@@ -77,6 +77,22 @@ fn rect(v: &Value) -> Rectangle<Global> {
     rectangle(p(&v[0]), p(&v[1]))
 }
 
+fn crv(v: &Value) -> Curve<Global> {
+    curve(p(&v[0]), p(&v[1]), p(&v[2]), p(&v[3]))
+}
+
+fn steps(v: &Value) -> u32 {
+    u32::try_from(v.as_u64().expect("integer step count")).expect("u32 step count")
+}
+
+/// `curveIntersectLineSegment`'s `{ tolerance, iterLimit }` object.
+fn intersect_options(v: &Value) -> CurveIntersectOptions {
+    CurveIntersectOptions {
+        tolerance: v.get("tolerance").map(f),
+        iter_limit: v.get("iterLimit").map(steps),
+    }
+}
+
 fn rounding(v: &Value) -> RoundingFn {
     match v.as_str() {
         Some("round") => RoundingFn::Round,
@@ -122,6 +138,10 @@ fn out_seg<S: Space>(s: LineSegment<S>) -> Value {
 
 fn out_range(r: InclusiveRange) -> Value {
     json!([r.0, r.1])
+}
+
+fn out_curve<S: Space>(c: Curve<S>) -> Value {
+    json!([out_p(c.0), out_p(c.1), out_p(c.2), out_p(c.3)])
 }
 
 fn call(fun: &str, a: &[Value]) -> Value {
@@ -330,6 +350,88 @@ fn call(fun: &str, a: &[Value]) -> Value {
                 p(arg(1))
             ))
         }
+        // curve.ts
+        "curve" => out_curve(curve(p(arg(0)), p(arg(1)), p(arg(2)), p(arg(3)))),
+        "bezierEquation" => out_p(bezier_equation(crv(arg(0)), f(arg(1)))),
+        "curveIntersectLineSegment" if has(2) => out_points(&curve_intersect_line_segment_with(
+            crv(arg(0)),
+            seg(arg(1)),
+            intersect_options(arg(2)),
+        )),
+        "curveIntersectLineSegment" => {
+            out_points(&curve_intersect_line_segment(crv(arg(0)), seg(arg(1))))
+        }
+        "curveClosestParameter" if has(2) => json!(curve_closest_parameter_with(
+            crv(arg(0)),
+            p(arg(1)),
+            f(arg(2))
+        )),
+        "curveClosestParameter" => json!(curve_closest_parameter(crv(arg(0)), p(arg(1)))),
+        "curveClosestPoint" if has(2) => {
+            out_p(curve_closest_point_with(crv(arg(0)), p(arg(1)), f(arg(2))))
+        }
+        "curveClosestPoint" => out_p(curve_closest_point(crv(arg(0)), p(arg(1)))),
+        "curvePointDistance" if has(2) => {
+            json!(curve_point_distance_with(crv(arg(0)), p(arg(1)), f(arg(2))))
+        }
+        "curvePointDistance" => json!(curve_point_distance(crv(arg(0)), p(arg(1)))),
+        "isCurve" => json!(is_curve(&unknown(arg(0)))),
+        "curveTangent" => out_v(curve_tangent(crv(arg(0)), f(arg(1)))),
+        "curveCatmullRomQuadraticApproxPoints" => {
+            let ps = points(arg(0));
+            let sets = if has(1) {
+                curve_catmull_rom_quadratic_approx_points_with(&ps, f(arg(1)))
+            } else {
+                curve_catmull_rom_quadratic_approx_points(&ps)
+            };
+            sets.map_or(Value::Null, |sets| {
+                Value::Array(
+                    sets.iter()
+                        .map(|[a, b]| json!([out_p(*a), out_p(*b)]))
+                        .collect(),
+                )
+            })
+        }
+        "curveCatmullRomCubicApproxPoints" => {
+            let ps = points(arg(0));
+            let curves = if has(1) {
+                curve_catmull_rom_cubic_approx_points_with(&ps, f(arg(1)))
+            } else {
+                curve_catmull_rom_cubic_approx_points(&ps)
+            };
+            curves.map_or(Value::Null, |curves| {
+                Value::Array(curves.into_iter().map(out_curve).collect())
+            })
+        }
+        "curveOffsetPoints" if has(2) => out_points(&curve_offset_points_with(
+            crv(arg(0)),
+            f(arg(1)),
+            steps(arg(2)),
+        )),
+        "curveOffsetPoints" => out_points(&curve_offset_points(crv(arg(0)), f(arg(1)))),
+        "offsetPointsForQuadraticBezier" if has(4) => {
+            out_points(&offset_points_for_quadratic_bezier_with(
+                p(arg(0)),
+                p(arg(1)),
+                p(arg(2)),
+                f(arg(3)),
+                steps(arg(4)),
+            ))
+        }
+        "offsetPointsForQuadraticBezier" => out_points(&offset_points_for_quadratic_bezier(
+            p(arg(0)),
+            p(arg(1)),
+            p(arg(2)),
+            f(arg(3)),
+        )),
+        "curveLength" => json!(curve_length(crv(arg(0)))),
+        "curveLengthAtParameter" => json!(curve_length_at_parameter(crv(arg(0)), f(arg(1)))),
+        "curvePointAtLength" if has(2) => out_p(curve_point_at_length_with(
+            crv(arg(0)),
+            f(arg(1)),
+            f(arg(2)),
+        )),
+        "curvePointAtLength" => out_p(curve_point_at_length(crv(arg(0)), f(arg(1)))),
         other => panic!("math.json calls {other}, which the port does not cover"),
     }
 }
@@ -346,6 +448,12 @@ const PLATFORM_MATH: &[&str] = &[
     "ellipseDistanceFromPoint",      // ** 3 (ellipse.ts:113)
     "ellipseTouchesPoint",           // via ellipseDistanceFromPoint
     "ellipseLineIntersectionPoints", // Math.pow (ellipse.ts:218)
+    "bezierEquation",                // ** 3 (curve.ts:124)
+    "curveIntersectLineSegment",     // via bezierEquation
+    "curveClosestParameter",         // via bezierEquation
+    "curveClosestPoint",             // via bezierEquation
+    "curvePointDistance",            // via bezierEquation
+    "curvePointAtLength",            // via bezierEquation
 ];
 
 /// Relative tolerance for [`PLATFORM_MATH`] results: far below any geometric
@@ -420,6 +528,21 @@ fn every_covered_function_has_cases() {
     // against the checkout by tools/goldens/test/math.test.mjs).
     let expected = [
         "average",
+        "bezierEquation",
+        "curve",
+        "curveCatmullRomCubicApproxPoints",
+        "curveCatmullRomQuadraticApproxPoints",
+        "curveClosestParameter",
+        "curveClosestPoint",
+        "curveIntersectLineSegment",
+        "curveLength",
+        "curveLengthAtParameter",
+        "curveOffsetPoints",
+        "curvePointAtLength",
+        "curvePointDistance",
+        "curveTangent",
+        "isCurve",
+        "offsetPointsForQuadraticBezier",
         "cartesian2Polar",
         "clamp",
         "convexHull",
@@ -510,10 +633,33 @@ fn tolerance_applies_to_platform_math_only() {
         .iter()
         .filter(|c| !PLATFORM_MATH.contains(&c["fn"].as_str().expect("fn")))
         .count();
-    assert!(exact > 1500, "only {exact} cases are compared exactly");
+    assert!(exact > 2000, "only {exact} cases are compared exactly");
     assert!(same(&json!(1.0), &json!(1.0 + 1e-12), PLATFORM_TOLERANCE));
     assert!(!same(&json!(1.0), &json!(1.0 + 1e-12), 0.0));
     assert!(!same(&json!(1.0), &json!(1.0 + 1e-9), PLATFORM_TOLERANCE));
     assert!(!same(&json!([1.0]), &json!([1.0, 2.0]), PLATFORM_TOLERANCE));
     assert!(!same(&json!(true), &json!(false), PLATFORM_TOLERANCE));
+}
+
+/// ex-202 acceptance: `curveLength` matches upstream on the fixtures to
+/// 1e-6. `curveLength` and `curveLengthAtParameter` only multiply, add and
+/// take square roots, so the port is also held to the bit, which is stricter.
+#[test]
+fn curve_length_fixtures_match_upstream() {
+    let cases: Vec<Value> = load()
+        .into_iter()
+        .filter(|c| c["fn"] == "curveLength" || c["fn"] == "curveLengthAtParameter")
+        .collect();
+    assert!(cases.len() > 100, "{} curve length cases", cases.len());
+    for c in &cases {
+        let args = c["args"].as_array().expect("args");
+        let expected = f(&c["result"]);
+        let actual = f(&call(c["fn"].as_str().expect("fn"), args));
+        assert!(
+            (actual - expected).abs() <= 1e-6,
+            "{}: {actual} vs upstream {expected}",
+            c["id"]
+        );
+        assert_eq!(actual, expected, "{}", c["id"]);
+    }
 }

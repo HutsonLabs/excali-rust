@@ -402,3 +402,210 @@ mod types {
         assert!(!range_includes_value(f64::NAN, r));
     }
 }
+
+mod curves {
+    use super::*;
+
+    fn s_curve() -> Curve<Global> {
+        curve(
+            pt(-50.0, -50.0),
+            pt(10.0, -50.0),
+            pt(10.0, 50.0),
+            pt(50.0, 50.0),
+        )
+    }
+
+    #[test]
+    fn pow_is_the_exponent_operator() {
+        // `**` and Math.pow (ES Number::exponentiate): a NaN exponent gives
+        // NaN, a zero exponent gives 1 even for NaN, and 1 or -1 to an
+        // infinite power is NaN where C's pow answers 1.
+        assert_eq!(js::pow(2.0, 3.0), 8.0);
+        assert_eq!(js::pow(f64::NAN, 0.0), 1.0);
+        assert!(js::pow(1.0, f64::NAN).is_nan());
+        assert!(js::pow(1.0, f64::INFINITY).is_nan());
+        assert!(js::pow(-1.0, f64::NEG_INFINITY).is_nan());
+        assert_eq!(js::pow(0.5, f64::INFINITY), 0.0);
+        let x = 0.1 + 0.2;
+        assert_eq!(js::pow(x, 2.0), x * x);
+    }
+
+    #[test]
+    fn curves_index_like_upstream_tuples() {
+        let c = s_curve();
+        assert_eq!(c[0], pt(-50.0, -50.0));
+        assert_eq!(c[3][1], 50.0);
+        assert_eq!(c.points(), [c.0, c.1, c.2, c.3]);
+        let local: Curve<Local> = curve(
+            point_from(0.0, 0.0),
+            point_from(0.0, 0.0),
+            point_from(3.0, 4.0),
+            point_from(3.0, 4.0),
+        );
+        assert_eq!(bezier_equation(local, 1.0), point_from(3.0, 4.0));
+    }
+
+    #[test]
+    #[should_panic(expected = "index out of bounds")]
+    fn a_curve_has_four_points() {
+        let _ = s_curve()[4];
+    }
+
+    #[test]
+    fn is_curve_needs_four_points() {
+        let p = |x: f64| pair(x, x);
+        assert!(is_curve(&Unknown::Array(vec![
+            p(0.0),
+            p(1.0),
+            p(2.0),
+            p(3.0)
+        ])));
+        assert!(is_curve(&Unknown::Array(vec![
+            p(0.0),
+            p(1.0),
+            p(2.0),
+            p(f64::INFINITY)
+        ])));
+        assert!(!is_curve(&Unknown::Array(vec![
+            p(0.0),
+            p(1.0),
+            p(2.0),
+            p(f64::NAN)
+        ])));
+        assert!(!is_curve(&Unknown::Array(vec![p(0.0), p(1.0), p(2.0)])));
+        assert!(!is_curve(&Unknown::Undefined));
+    }
+
+    #[test]
+    fn zero_steps_divide_zero_by_zero() {
+        // curve.ts `const t = i / steps` is 0 / 0 = NaN for i = 0.
+        let offsets = curve_offset_points_with(s_curve(), 2.0, 0);
+        assert_eq!(offsets.len(), 1);
+        assert!(offsets[0].x.is_nan() && offsets[0].y.is_nan());
+        let offsets = offset_points_for_quadratic_bezier_with(
+            pt(0.0, 0.0),
+            pt(50.0, 100.0),
+            pt(100.0, 0.0),
+            5.0,
+            0,
+        );
+        assert_eq!(offsets.len(), 1);
+        assert!(offsets[0].x.is_nan() && offsets[0].y.is_nan());
+        assert_eq!(curve_offset_points(s_curve(), 2.0).len(), 51);
+    }
+
+    #[test]
+    fn catmull_rom_needs_two_points() {
+        assert_eq!(curve_catmull_rom_cubic_approx_points::<Global>(&[]), None);
+        assert_eq!(
+            curve_catmull_rom_quadratic_approx_points(&[pt(1.0, 2.0)]),
+            None
+        );
+        let two = [pt(0.0, 0.0), pt(10.0, 0.0)];
+        assert_eq!(
+            curve_catmull_rom_cubic_approx_points(&two).map(|c| c.len()),
+            Some(1)
+        );
+        // cp = p1 + (p2 - p0) * tension / 2 with p0 = p1 at the start
+        assert_eq!(
+            curve_catmull_rom_quadratic_approx_points(&two),
+            Some(vec![[pt(2.5, 0.0), pt(10.0, 0.0)]])
+        );
+    }
+
+    #[test]
+    fn a_nan_tolerance_skips_the_bisection() {
+        // `while (n - m > e)` never runs, so `param ?? closestStep /
+        // maxSteps` falls back to the closest of the 31 samples.
+        let c = s_curve();
+        let t = curve_closest_parameter_with(c, pt(0.0, 0.0), f64::NAN);
+        assert_eq!(t * 30.0, (t * 30.0).round());
+        assert_eq!(t, 0.4666666666666667, "upstream under Node 26");
+        assert_eq!(
+            curve_closest_parameter_with(c, pt(0.0, 0.0), 0.5),
+            t,
+            "a window wider than two samples also skips it"
+        );
+    }
+
+    #[test]
+    fn a_nan_distance_never_becomes_the_minimum() {
+        // `if (d < min)` is false for NaN: step 0 is kept, so the window is
+        // [0, 1/30]. `f(k - e) < f(k + e)` is false too, so every bisection
+        // step moves the lower end up.
+        let c = s_curve();
+        let (mut m, n, e) = (0.0, 1.0 / 30.0, 1e-3);
+        let mut k = f64::NAN;
+        while n - m > e {
+            k = (n + m) / 2.0;
+            m = k;
+        }
+        assert!(k > 0.03 && k < n);
+        assert_eq!(k, 0.032812499999999994, "upstream under Node 26");
+        assert_eq!(curve_closest_parameter(c, pt(f64::NAN, 0.0)), k);
+    }
+
+    #[test]
+    fn a_nan_intersection_tolerance_accepts_the_first_guess() {
+        // `while (error >= tolerance)` is false for NaN, so the first
+        // initial guess [0.5, 0] comes back without a Newton step.
+        let c = s_curve();
+        let far = line_segment(pt(1000.0, 1000.0), pt(2000.0, 1000.0));
+        let hits = curve_intersect_line_segment_with(
+            c,
+            far,
+            CurveIntersectOptions {
+                tolerance: Some(f64::NAN),
+                iter_limit: None,
+            },
+        );
+        assert_eq!(hits, vec![bezier_equation(c, 0.5)]);
+        let none = curve_intersect_line_segment_with(
+            c,
+            line_segment(pt(10.0, -60.0), pt(10.0, 60.0)),
+            CurveIntersectOptions {
+                tolerance: None,
+                iter_limit: Some(0),
+            },
+        );
+        assert!(none.is_empty(), "iterLimit 0 fails every guess");
+        assert_eq!(CurveIntersectOptions::default().tolerance, None);
+    }
+
+    #[test]
+    fn a_nan_solution_passes_the_range_check() {
+        // A NaN control point makes the error NaN, which ends the Newton
+        // loop with t = s = NaN; `t < 0 || t > 1 || ...` is false for NaN,
+        // so upstream returns the NaN point rather than no intersection.
+        let c = curve(
+            pt(f64::NAN, 0.0),
+            pt(10.0, -50.0),
+            pt(10.0, 50.0),
+            pt(50.0, 50.0),
+        );
+        let hits = curve_intersect_line_segment(c, line_segment(pt(10.0, -60.0), pt(10.0, 60.0)));
+        assert_eq!(hits.len(), 1);
+        assert!(hits[0].x.is_nan() && hits[0].y.is_nan());
+    }
+
+    #[test]
+    fn nan_parameters_propagate() {
+        let c = s_curve();
+        assert!(curve_length_at_parameter(c, f64::NAN).is_nan());
+        let p = curve_point_at_length(c, f64::NAN);
+        assert!(p.x.is_nan() && p.y.is_nan());
+        assert_eq!(curve_length_at_parameter(c, -1.0), 0.0);
+        assert_eq!(curve_length_at_parameter(c, 2.0), curve_length(c));
+        assert_eq!(curve_point_at_length(c, -1.0), c.0);
+        assert_eq!(curve_point_at_length(c, 2.0), c.3);
+    }
+
+    #[test]
+    fn length_of_a_straight_curve_is_its_chord() {
+        let c = curve(pt(0.0, 0.0), pt(10.0, 0.0), pt(20.0, 0.0), pt(30.0, 0.0));
+        assert!((curve_length(c) - 30.0).abs() < 1e-12);
+        assert!((curve_length_at_parameter(c, 0.5) - 15.0).abs() < 1e-12);
+        let mid = curve_point_at_length(c, 0.5);
+        assert!((mid.x - 15.0).abs() < 30.0 * 1e-4 && mid.y == 0.0);
+    }
+}

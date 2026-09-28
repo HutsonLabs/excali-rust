@@ -1,12 +1,14 @@
 // Inputs for goldens/math.json: calls into upstream's packages/math/src
-// (every exported function except curve.ts and pca.ts, which are ex-202 and
-// shape recognition). Only inputs live here; every result is what upstream's
-// own function returns for them (generate.mjs).
+// (every exported function except pca.ts, which belongs to shape
+// recognition; curve.ts is ex-202, the rest ex-201). Only inputs live here;
+// every result is what upstream's own function returns for them
+// (generate.mjs).
 //
 // Each case is { id, fn, args }: the call was `math[fn](...args)`. Points,
-// vectors, segments, lines, triangles, rectangles and ranges are the plain
-// arrays upstream uses; an ellipse is upstream's { center, halfWidth,
-// halfHeight } object. Random inputs come from a fixed Park-Miller sequence
+// vectors, segments, lines, triangles, rectangles, curves and ranges are the
+// plain arrays upstream uses; an ellipse is upstream's { center, halfWidth,
+// halfHeight } object and curveIntersectLineSegment's options are its
+// { tolerance, iterLimit } object. Random inputs come from a fixed Park-Miller sequence
 // (Math.random is disabled while generating), so the file is byte-stable.
 
 /** Park-Miller minimal standard, 48271 (the same generator as rough.js). */
@@ -101,9 +103,41 @@ export const MATH_FUNCTIONS = {
     "rectangleIntersectRectangle",
   ],
   "triangle.ts": ["triangleIncludesPoint"],
+  "curve.ts": [
+    "curve",
+    "bezierEquation",
+    "curveIntersectLineSegment",
+    "curveClosestParameter",
+    "curveClosestPoint",
+    "curvePointDistance",
+    "isCurve",
+    "curveTangent",
+    "curveCatmullRomQuadraticApproxPoints",
+    "curveCatmullRomCubicApproxPoints",
+    "curveOffsetPoints",
+    "offsetPointsForQuadraticBezier",
+    "curveLength",
+    "curveLengthAtParameter",
+    "curvePointAtLength",
+  ],
 };
 
 const RANDOM_PER_FUNCTION = 24;
+
+/**
+ * Cases left out because upstream's own result differs in the last bit
+ * between macOS libm and glibc (Node on Apple silicon vs the
+ * ubuntu-24.04-arm CI runner): curveClosestPoint evaluates bezierEquation at
+ * a many-digit parameter, and `**` there is the platform pow. Their ids stay
+ * reserved so every other case keeps its id and input, and goldens/ stays
+ * byte-identical on both. The Rust side compares these functions within
+ * PLATFORM_TOLERANCE anyway (crates/excali-math/tests/goldens.rs).
+ */
+export const PLATFORM_DEPENDENT_CASES = new Set([
+  "curveClosestPoint/57",
+  "curveClosestPoint/68",
+  "curveClosestPoint/72",
+]);
 
 export const mathCases = () => {
   const next = rng(20260928);
@@ -130,7 +164,8 @@ export const mathCases = () => {
   const add = (fn, ...args) => {
     const n = counts.get(fn) ?? 0;
     counts.set(fn, n + 1);
-    cases.push({ id: `${fn}/${n}`, fn, args });
+    const id = `${fn}/${n}`;
+    if (!PLATFORM_DEPENDENT_CASES.has(id)) cases.push({ id, fn, args });
   };
   const repeat = (fn, make) => {
     for (let i = 0; i < RANDOM_PER_FUNCTION; i++) add(fn, ...make());
@@ -455,6 +490,160 @@ export const mathCases = () => {
   const tri = [[0, 0], [10, 0], [0, 10]];
   for (const p of [[1, 1], [5, 0], [0, 0], [5, 5], [6, 6], [-1, 1]]) add("triangleIncludesPoint", tri, p);
   repeat("triangleIncludesPoint", () => [[pt(80), pt(80), pt(80)], pt(80)]);
+
+  // curve.ts (ex-202). Appended last so the random inputs above keep their
+  // values. The curves of upstream's curve.test.ts come first.
+  const cv = (scale = 100) => [pt(scale), pt(scale), pt(scale), pt(scale)];
+  const unit = () => next();
+  const cRound = [[100, 0], [100, 100], [100, 100], [0, 100]];
+  const cSkew = [[100, 0], [100, 60], [60, 100], [0, 100]];
+  const cS = [[-50, -50], [10, -50], [10, 50], [50, 50]];
+  const cPrecise = [
+    [41.028864759926016, 12.226249068355052],
+    [41.028864759926016, 33.55958240168839],
+    [30.362198093259348, 44.22624906835505],
+    [9.028864759926016, 44.22624906835505],
+  ];
+  const lPrecise = [
+    [-82.30963544324186, -41.19949363038283],
+    [188.2149592542487, 134.75505940984908],
+  ];
+  const cStraight = [[0, 0], [10, 0], [20, 0], [30, 0]];
+  const cPoint = [[7, 7], [7, 7], [7, 7], [7, 7]];
+  const cLoop = [[0, 0], [100, 100], [-100, 100], [0, 0]];
+  const fixedCurves = [cRound, cSkew, cS, cPrecise, cStraight, cPoint, cLoop];
+  // A point on the curve at t, for segments that surely cross it.
+  const onCurve = (c, t) =>
+    [0, 1].map(
+      (k) =>
+        (1 - t) ** 3 * c[0][k] + 3 * (1 - t) ** 2 * t * c[1][k] + 3 * (1 - t) * t ** 2 * c[2][k] + t ** 3 * c[3][k],
+    );
+
+  add("curve", [0, 0], [1, 2], [3, 4], [5, 6]);
+  repeat("curve", () => cv());
+
+  for (const c of fixedCurves) {
+    for (const t of [0, 0.25, 0.5, 0.75, 1, -0.5, 1.5]) add("bezierEquation", c, t);
+  }
+  repeat("bezierEquation", () => [cv(), unit()]);
+  repeat("bezierEquation", () => [cv(), num(2)]);
+
+  add("curveIntersectLineSegment", cRound, [[0, 0], [200, 200]]);
+  add("curveIntersectLineSegment", cSkew, [[0, 0], [200, 200]]);
+  add("curveIntersectLineSegment", cS, [[10, -60], [10, 60]]);
+  add("curveIntersectLineSegment", cPrecise, lPrecise);
+  add("curveIntersectLineSegment", cRound, [[0, 0], [10, 10]]);
+  add("curveIntersectLineSegment", cRound, [[0, 0], [200, 200]], { tolerance: 1e-6 });
+  add("curveIntersectLineSegment", cRound, [[0, 0], [200, 200]], { iterLimit: 10 });
+  add("curveIntersectLineSegment", cRound, [[0, 0], [200, 200]], { iterLimit: 0 });
+  add("curveIntersectLineSegment", cS, [[10, -60], [10, 60]], { tolerance: 1e-4, iterLimit: 20 });
+  add("curveIntersectLineSegment", cS, [[10, -60], [10, 60]], {});
+  add("curveIntersectLineSegment", cStraight, [[5, -5], [5, 5]]);
+  add("curveIntersectLineSegment", cStraight, [[0, 1], [30, 1]]);
+  add("curveIntersectLineSegment", cPoint, [[0, 0], [10, 10]]);
+  const crossing = () => {
+    const c = cv();
+    const [x, y] = onCurve(c, unit());
+    const [dx, dy] = pt(60);
+    const s = 0.1 + unit() * 0.8;
+    return [c, [[x - dx * s, y - dy * s], [x + dx * (1 - s), y + dy * (1 - s)]]];
+  };
+  repeat("curveIntersectLineSegment", crossing);
+  repeat("curveIntersectLineSegment", () => [...crossing(), { iterLimit: 10 }]);
+  repeat("curveIntersectLineSegment", () => [...crossing(), { tolerance: 1e-3, iterLimit: 10 }]);
+  repeat("curveIntersectLineSegment", () => [cv(), seg()]);
+
+  for (const c of fixedCurves) {
+    for (const p of [[0, 0], [50, 50], [-80, 20], [200, -30]]) {
+      add("curveClosestParameter", c, p);
+      add("curveClosestPoint", c, p);
+      add("curvePointDistance", c, p);
+    }
+  }
+  for (const tolerance of [1e-3, 1e-6, 0.01, 0.5]) {
+    add("curveClosestParameter", cS, [0, 0], tolerance);
+    add("curveClosestPoint", cS, [0, 0], tolerance);
+  }
+  add("curvePointDistance", cS, [0, 0], 1e-5);
+  add("curvePointDistance", cS, [0, 0], 0.5);
+  const tolerances = [1e-2, 1e-4, 1e-6, 0.2];
+  const someTolerance = () => tolerances[Math.floor(unit() * tolerances.length)];
+  repeat("curveClosestParameter", () => [cv(), pt(150)]);
+  repeat("curveClosestParameter", () => [cv(), pt(150), someTolerance()]);
+  repeat("curveClosestPoint", () => [cv(), pt(150)]);
+  repeat("curveClosestPoint", () => [cv(), pt(150), someTolerance()]);
+  repeat("curvePointDistance", () => [cv(), pt(150)]);
+  repeat("curvePointDistance", () => [cv(), pt(150), someTolerance()]);
+
+  for (const v of [
+    ...shapes,
+    cRound,
+    cPoint,
+    [[0, 0], [1, 1], [2, 2]],
+    [[0, 0], [1, 1], [2, 2], [3, 3], [4, 4]],
+    [[0, 0], [1, 1], [2, 2], [3]],
+    [[0, 0], [1, 1], [2, 2], [3, "3"]],
+    [[0, 0], [1, 1], [2, 2], { x: 3, y: 3 }],
+  ]) {
+    add("isCurve", v);
+  }
+
+  for (const c of fixedCurves) {
+    for (const t of [0, 0.5, 1, 0.3]) add("curveTangent", c, t);
+  }
+  repeat("curveTangent", () => [cv(), unit()]);
+
+  const pointLists = [[], [[1, 2]], [[0, 0], [10, 0]], [[0, 0], [10, 0], [10, 10]], [[0, 0], [0, 0], [5, 5]]];
+  for (const ps of pointLists) {
+    add("curveCatmullRomQuadraticApproxPoints", ps);
+    add("curveCatmullRomCubicApproxPoints", ps);
+  }
+  for (const tension of [0, 1, 0.25]) {
+    add("curveCatmullRomQuadraticApproxPoints", [[0, 0], [10, 0], [10, 10], [0, 20]], tension);
+    add("curveCatmullRomCubicApproxPoints", [[0, 0], [10, 0], [10, 10], [0, 20]], tension);
+  }
+  const someCount = () => 2 + Math.floor(unit() * 8);
+  repeat("curveCatmullRomQuadraticApproxPoints", () => [cloud(someCount(), 150)]);
+  repeat("curveCatmullRomQuadraticApproxPoints", () => [cloud(someCount(), 150), unit()]);
+  repeat("curveCatmullRomCubicApproxPoints", () => [cloud(someCount(), 150)]);
+  repeat("curveCatmullRomCubicApproxPoints", () => [cloud(someCount(), 150), unit()]);
+
+  for (const c of fixedCurves) {
+    add("curveOffsetPoints", c, 5);
+    add("curveOffsetPoints", c, -3, 4);
+  }
+  add("curveOffsetPoints", cS, 2, 1);
+  repeat("curveOffsetPoints", () => [cv(), num(20)]);
+  repeat("curveOffsetPoints", () => [cv(), num(20), 1 + Math.floor(unit() * 12)]);
+
+  add("offsetPointsForQuadraticBezier", [0, 0], [50, 100], [100, 0], 5);
+  add("offsetPointsForQuadraticBezier", [0, 0], [50, 100], [100, 0], -5, 4);
+  add("offsetPointsForQuadraticBezier", [3, 3], [3, 3], [3, 3], 2, 3);
+  repeat("offsetPointsForQuadraticBezier", () => [pt(), pt(), pt(), num(20)]);
+  repeat("offsetPointsForQuadraticBezier", () => [pt(), pt(), pt(), num(20), 1 + Math.floor(unit() * 12)]);
+
+  // The curveLength fixtures (ex-202 acceptance: upstream's value to 1e-6;
+  // the Rust test compares them exactly).
+  for (const c of fixedCurves) add("curveLength", c);
+  add("curveLength", [[0, 0], [0, 0], [0, 0], [3, 4]]);
+  add("curveLength", [[0, 0], [1e5, 0], [1e5, 1e5], [0, 1e5]]);
+  add("curveLength", [[0, 0], [1e-3, 2e-3], [3e-3, -1e-3], [4e-3, 0]]);
+  repeat("curveLength", () => [cv()]);
+  repeat("curveLength", () => [cv(2000)]);
+  repeat("curveLength", () => [cv(1)]);
+
+  for (const c of fixedCurves) {
+    for (const t of [-0.1, 0, 0.3, 0.5, 1, 1.2]) add("curveLengthAtParameter", c, t);
+  }
+  repeat("curveLengthAtParameter", () => [cv(), unit()]);
+
+  for (const c of fixedCurves) {
+    for (const f of [-0.1, 0, 0.1, 0.5, 0.9, 1, 1.5]) add("curvePointAtLength", c, f);
+  }
+  add("curvePointAtLength", cS, 0.5, 100);
+  add("curvePointAtLength", cS, 0.5, 0);
+  repeat("curvePointAtLength", () => [cv(), unit()]);
+  repeat("curvePointAtLength", () => [cv(), unit(), pos(300)]);
 
   return cases;
 };

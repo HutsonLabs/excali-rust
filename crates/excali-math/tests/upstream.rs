@@ -1,5 +1,5 @@
 //! Ports of upstream's `packages/math/tests/*.test.ts` at the pinned commit
-//! (curve.test.ts and pca.test.ts belong to ex-202 and shape recognition).
+//! (pca.test.ts belongs to shape recognition).
 //! Test names and cases follow the upstream `describe`/`it` blocks one for one.
 
 use excali_math::*;
@@ -13,6 +13,126 @@ fn pt(x: f64, y: f64) -> P {
 /// Vitest's `toBeCloseTo(expected, digits = 2)`.
 fn close_to(actual: f64, expected: f64, digits: i32) -> bool {
     (actual - expected).abs() < 10f64.powi(-digits) / 2.0
+}
+
+/// `toCloselyEqualPoints(expected)` (`packages/utils/src/test-utils.ts`):
+/// every expected point has a received point at the same index with both
+/// coordinates within `Math.pow(10, precision ?? 2)`. Upstream's window is
+/// that power itself, so the default is 100 units; the curve tests below
+/// check this matcher and then the 0.01 their expected values are written to.
+fn closely_equal_points<S: Space>(received: &[Point<S>], expected: &[[f64; 2]]) -> bool {
+    let compare = 10f64.powf(2.0);
+    expected.iter().enumerate().all(|(idx, point)| {
+        let got = received
+            .get(idx)
+            .unwrap_or_else(|| panic!("no received point at {idx}"));
+        (got[0] - point[0]).abs() < compare && (got[1] - point[1]).abs() < compare
+    })
+}
+
+/// The expected points to the 0.01 the upstream test writes them with.
+fn points_to_hundredths<S: Space>(received: &[Point<S>], expected: &[[f64; 2]]) -> bool {
+    received.len() == expected.len()
+        && received
+            .iter()
+            .zip(expected)
+            .all(|(got, want)| (got.x - want[0]).abs() < 0.01 && (got.y - want[1]).abs() < 0.01)
+}
+
+mod curve_test {
+    use super::*;
+
+    fn check(received: &[P], expected: &[[f64; 2]]) {
+        assert!(closely_equal_points(received, expected), "{received:?}");
+        assert!(points_to_hundredths(received, expected), "{received:?}");
+    }
+
+    // describe("Math curve") / describe("line segment intersection")
+    #[test]
+    fn point_is_found_when_control_points_are_the_same() {
+        let c = curve(
+            pt(100.0, 0.0),
+            pt(100.0, 100.0),
+            pt(100.0, 100.0),
+            pt(0.0, 100.0),
+        );
+        let l = line_segment(pt(0.0, 0.0), pt(200.0, 200.0));
+
+        check(&curve_intersect_line_segment(c, l), &[[87.5, 87.5]]);
+    }
+
+    #[test]
+    fn point_is_found_when_control_points_arent_the_same() {
+        let c = curve(
+            pt(100.0, 0.0),
+            pt(100.0, 60.0),
+            pt(60.0, 100.0),
+            pt(0.0, 100.0),
+        );
+        let l = line_segment(pt(0.0, 0.0), pt(200.0, 200.0));
+
+        check(&curve_intersect_line_segment(c, l), &[[72.5, 72.5]]);
+    }
+
+    #[test]
+    fn points_are_found_when_curve_is_sliced_at_3_points() {
+        let c = curve(
+            pt(-50.0, -50.0),
+            pt(10.0, -50.0),
+            pt(10.0, 50.0),
+            pt(50.0, 50.0),
+        );
+        let l = line_segment(pt(10.0, -60.0), pt(10.0, 60.0));
+
+        check(&curve_intersect_line_segment(c, l), &[[9.99, 5.05]]);
+    }
+
+    #[test]
+    fn can_be_detected_where_the_determinant_is_overly_precise() {
+        let c = curve(
+            pt(41.028864759926016, 12.226249068355052),
+            pt(41.028864759926016, 33.55958240168839),
+            pt(30.362198093259348, 44.22624906835505),
+            pt(9.028864759926016, 44.22624906835505),
+        );
+        let l = line_segment(
+            pt(-82.30963544324186, -41.19949363038283),
+            pt(188.2149592542487, 134.75505940984908),
+        );
+
+        check(&curve_intersect_line_segment(c, l), &[[34.4, 34.71]]);
+    }
+
+    // describe("point closest to other")
+    #[test]
+    fn point_can_be_found() {
+        let c = curve(
+            pt(-50.0, -50.0),
+            pt(10.0, -50.0),
+            pt(10.0, 50.0),
+            pt(50.0, 50.0),
+        );
+        let p = pt(0.0, 0.0);
+
+        check(
+            &[bezier_equation(c, curve_closest_parameter_with(c, p, 1e-3))],
+            &[[5.965462100367372, -3.04104878946646]],
+        );
+    }
+
+    // describe("point shortest distance")
+    #[test]
+    fn can_be_determined() {
+        let c = curve(
+            pt(-50.0, -50.0),
+            pt(10.0, -50.0),
+            pt(10.0, 50.0),
+            pt(50.0, 50.0),
+        );
+        let p = pt(0.0, 0.0);
+
+        assert!(close_to(curve_point_distance(c, p), 6.695873043213627, 2));
+    }
 }
 
 mod ellipse_test {

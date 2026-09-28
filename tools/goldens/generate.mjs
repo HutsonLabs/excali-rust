@@ -281,7 +281,7 @@ const buildGoldens = (up) => {
   files.push({
     name: "math.json",
     description:
-      "packages/math/src (all but curve.ts and pca.ts): math[fn](...args) = result. Points, vectors, segments, lines, triangles, rectangles and ranges are arrays; an ellipse is { center, halfWidth, halfHeight }.",
+      "packages/math/src (all but pca.ts): math[fn](...args) = result, undefined written as null. Points, vectors, segments, lines, triangles, rectangles, curves and ranges are arrays; an ellipse is { center, halfWidth, halfHeight }; curveIntersectLineSegment options are { tolerance, iterLimit }.",
     cases: mathCases().map(mathCase(up)),
   });
   files.push({
