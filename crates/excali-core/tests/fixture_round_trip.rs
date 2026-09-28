@@ -82,7 +82,10 @@ fn read_repo(rel: &str) -> Vec<u8> {
 
 /// `filterOutDeletedFiles` (`json.ts:31-50`): the files that elements not
 /// deleted refer to by `fileId`, in element order.
-fn filter_out_deleted_files(elements: &[Map<String, Value>], files: &Map<String, Value>) -> Map<String, Value> {
+fn filter_out_deleted_files(
+    elements: &[Map<String, Value>],
+    files: &Map<String, Value>,
+) -> Map<String, Value> {
     let mut next = Map::new();
     for element in elements {
         if element.get("isDeleted") == Some(&Value::Bool(true)) {
@@ -173,7 +176,9 @@ fn top_level_extra(text: &str) -> Map<String, Value> {
         panic!("not an object");
     };
     map.into_iter()
-        .filter(|(k, _)| !["type", "version", "source", "elements", "appState", "files"].contains(&k.as_str()))
+        .filter(|(k, _)| {
+            !["type", "version", "source", "elements", "appState", "files"].contains(&k.as_str())
+        })
         .collect()
 }
 
@@ -189,32 +194,60 @@ fn check_scene_case(case: &Value) -> Document {
 
     let first = load_and_save(input_text).unwrap_or_else(|e| panic!("{id}: {e}"));
     let written = first.to_json();
-    assert_eq!(without_extra(&first), text(case, "output"), "{id}: first write");
-    assert_eq!(first.extra, extra, "{id}: unknown top-level keys, first write");
+    assert_eq!(
+        without_extra(&first),
+        text(case, "output"),
+        "{id}: first write"
+    );
+    assert_eq!(
+        first.extra, extra,
+        "{id}: unknown top-level keys, first write"
+    );
     if extra.is_empty() {
         assert_eq!(written, text(case, "output"), "{id}: first write");
     }
     if let Ok(input) = Document::from_json(input_text) {
         let direct = restore_and_save(&input);
-        assert_eq!(direct.to_json(), written, "{id}: Document, restore_elements, restore_app_state");
+        assert_eq!(
+            direct.to_json(),
+            written,
+            "{id}: Document, restore_elements, restore_app_state"
+        );
         let loaded = LoadedScene::from_document(&input, &mut TestEnv::default(), &APP_ENV).unwrap();
-        assert_eq!(loaded.to_document(source()).to_json(), written, "{id}: LoadedScene::from_document");
+        assert_eq!(
+            loaded.to_document(source()).to_json(),
+            written,
+            "{id}: LoadedScene::from_document"
+        );
     }
 
     let reparsed = Document::from_json(&written).unwrap_or_else(|e| panic!("{id}: {e}"));
-    assert_eq!(reparsed.elements, first.elements, "{id}: re-parsed element set");
+    assert_eq!(
+        reparsed.elements, first.elements,
+        "{id}: re-parsed element set"
+    );
     assert_eq!(reparsed, first, "{id}: re-parsed document");
 
     let second = restore_and_save(&reparsed);
-    assert_eq!(without_extra(&second), text(case, "reload"), "{id}: second write");
-    assert_eq!(second.extra, extra, "{id}: unknown top-level keys, second write");
+    assert_eq!(
+        without_extra(&second),
+        text(case, "reload"),
+        "{id}: second write"
+    );
+    assert_eq!(
+        second.extra, extra,
+        "{id}: unknown top-level keys, second write"
+    );
     assert_eq!(
         load_and_save(&written).unwrap().to_json(),
         second.to_json(),
         "{id}: loader, second write"
     );
     let again = Document::from_json(&second.to_json()).unwrap_or_else(|e| panic!("{id}: {e}"));
-    assert_eq!(again.elements, reparsed.elements, "{id}: element set after the second write");
+    assert_eq!(
+        again.elements, reparsed.elements,
+        "{id}: element set after the second write"
+    );
     first
 }
 
@@ -223,15 +256,23 @@ fn check_scene_case(case: &Value) -> Document {
 fn check_library_case(case: &Value) {
     let id = case["id"].as_str().expect("id");
     let parse = |text: &str| {
-        parse_library_json(text, LibraryItemStatus::Unpublished, &mut TestEnv::default())
-            .unwrap_or_else(|e| panic!("{id}: {e}"))
+        parse_library_json(
+            text,
+            LibraryItemStatus::Unpublished,
+            &mut TestEnv::default(),
+        )
+        .unwrap_or_else(|e| panic!("{id}: {e}"))
     };
     let items = parse(text(case, "input"));
     let written = serialize_library_as_json(&items, source());
     assert_eq!(written, text(case, "output"), "{id}: first write");
     let again = parse(&written);
     assert_eq!(again, items, "{id}: re-parsed items");
-    assert_eq!(serialize_library_as_json(&again, source()), text(case, "reload"), "{id}: second write");
+    assert_eq!(
+        serialize_library_as_json(&again, source()),
+        text(case, "reload"),
+        "{id}: second write"
+    );
 }
 
 // -- the fixture ------------------------------------------------------------------
@@ -240,7 +281,10 @@ fn check_library_case(case: &Value) {
 fn golden_comes_from_the_pinned_upstream() {
     let pin = String::from_utf8(read_repo("site/config.toml")).unwrap();
     let commit = golden()["upstream"].as_str().unwrap();
-    assert!(pin.contains(&format!("upstream_commit = \"{commit}\"")), "golden from {commit}, not the pin");
+    assert!(
+        pin.contains(&format!("upstream_commit = \"{commit}\"")),
+        "golden from {commit}, not the pin"
+    );
     assert_eq!(source(), "https://excalidraw.com");
 }
 
@@ -258,8 +302,14 @@ fn diagram_fixture_round_trips_to_upstreams_bytes() {
     // syncInvalidIndices gives a0..a2, bumping each version.
     let ids: Vec<&str> = elements.iter().map(|e| e.base.id.as_str()).collect();
     assert_eq!(ids, ["vWrqOAfkind2qcm7LDAGZ", "id0", "id1"]);
-    let types: Vec<Value> = elements.iter().map(|e| e.to_map()["type"].clone()).collect();
-    assert_eq!(types, [json!("diamond"), json!("ellipse"), json!("rectangle")]);
+    let types: Vec<Value> = elements
+        .iter()
+        .map(|e| e.to_map()["type"].clone())
+        .collect();
+    assert_eq!(
+        types,
+        [json!("diamond"), json!("ellipse"), json!("rectangle")]
+    );
     let app_state = first.app_state.as_ref().unwrap();
     assert_eq!(app_state["viewBackgroundColor"], "#ffffff");
     assert_eq!(app_state["gridModeEnabled"], false);
@@ -278,21 +328,35 @@ fn unknown_element_and_top_level_keys_survive_both_writes() {
     assert_eq!(input.extra.get("futureTopLevel"), Some(&top));
     let nested = json!({"nested": [1, 2, {"z": 1, "a": 2}]});
     assert_eq!(
-        input.elements.as_ref().unwrap()[0].extra.get("futureElementKey"),
+        input.elements.as_ref().unwrap()[0]
+            .extra
+            .get("futureElementKey"),
         Some(&nested)
     );
 
     let first = check_scene_case(c);
     for (label, written) in [
         ("first", first.to_json()),
-        ("second", restore_and_save(&Document::from_json(&first.to_json()).unwrap()).to_json()),
+        (
+            "second",
+            restore_and_save(&Document::from_json(&first.to_json()).unwrap()).to_json(),
+        ),
     ] {
         let value: Value = serde_json::from_str(&written).unwrap();
         assert_eq!(value["futureTopLevel"], top, "{label} write");
-        assert_eq!(value["elements"][0]["futureElementKey"], nested, "{label} write");
+        assert_eq!(
+            value["elements"][0]["futureElementKey"], nested,
+            "{label} write"
+        );
         let upstream: Value = serde_json::from_str(text(c, "output")).unwrap();
-        assert_eq!(upstream["elements"][0]["futureElementKey"], nested, "upstream keeps it");
-        assert!(upstream.get("futureTopLevel").is_none(), "upstream drops it");
+        assert_eq!(
+            upstream["elements"][0]["futureElementKey"], nested,
+            "upstream keeps it"
+        );
+        assert!(
+            upstream.get("futureTopLevel").is_none(),
+            "upstream drops it"
+        );
     }
 }
 
@@ -303,7 +367,11 @@ fn unknown_element_and_top_level_keys_survive_both_writes() {
 /// whose objects only upstream's generator can evaluate.
 fn embedded_scene(name: &str, bytes: &[u8]) -> Option<String> {
     if name.ends_with(".png") {
-        Some(decode_png_metadata(bytes).unwrap_or_else(|e| panic!("{name}: {e}")).expect(name))
+        Some(
+            decode_png_metadata(bytes)
+                .unwrap_or_else(|e| panic!("{name}: {e}"))
+                .expect(name),
+        )
     } else if name.ends_with(".svg") {
         let svg = std::str::from_utf8(bytes).expect("svg is UTF-8");
         Some(decode_svg_base64_payload(svg).unwrap_or_else(|e| panic!("{name}: {e}")))
@@ -340,15 +408,24 @@ fn every_scene_bearing_upstream_fixture_round_trips() {
         let bytes = read_repo(&rel);
         if !is_scene_bearing(name) {
             match name.rsplit('.').next() {
-                Some("png") => assert!(decode_png_metadata(&bytes).is_err(), "{name} carries a scene"),
+                Some("png") => assert!(
+                    decode_png_metadata(&bytes).is_err(),
+                    "{name} carries a scene"
+                ),
                 Some("svg") => assert!(
                     decode_svg_base64_payload(std::str::from_utf8(&bytes).unwrap()).is_err(),
                     "{name} carries a scene"
                 ),
                 Some("ts") => {
                     let source = String::from_utf8(bytes).unwrap();
-                    assert!(!source.contains("type: \"excalidraw"), "{name} exports a scene");
-                    assert!(!source.contains("ExcalidrawElement"), "{name} exports elements");
+                    assert!(
+                        !source.contains("type: \"excalidraw"),
+                        "{name} exports a scene"
+                    );
+                    assert!(
+                        !source.contains("ExcalidrawElement"),
+                        "{name} exports elements"
+                    );
                 }
                 _ => panic!("{name}: not a known kind of fixture; classify it"),
             }
@@ -356,7 +433,13 @@ fn every_scene_bearing_upstream_fixture_round_trips() {
         }
         let matching: Vec<&Value> = cases()
             .iter()
-            .filter(|c| c["files"].as_array().unwrap().iter().any(|f| f == rel.as_str()))
+            .filter(|c| {
+                c["files"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|f| f == rel.as_str())
+            })
             .collect();
         assert!(
             !matching.is_empty(),
@@ -366,12 +449,20 @@ fn every_scene_bearing_upstream_fixture_round_trips() {
             match c["kind"].as_str() {
                 Some("scene") => {
                     if let Some(scene) = embedded_scene(name, &bytes) {
-                        assert_eq!(scene, text(c, "input"), "{name}: the port decodes upstream's input");
+                        assert_eq!(
+                            scene,
+                            text(c, "input"),
+                            "{name}: the port decodes upstream's input"
+                        );
                     }
                     check_scene_case(c);
                 }
                 Some("library") => {
-                    assert_eq!(String::from_utf8(bytes.clone()).unwrap(), text(c, "input"), "{name}");
+                    assert_eq!(
+                        String::from_utf8(bytes.clone()).unwrap(),
+                        text(c, "input"),
+                        "{name}"
+                    );
                     check_library_case(c);
                 }
                 kind => panic!("{name}: unknown case kind {kind:?}"),
@@ -395,7 +486,12 @@ fn scene_bearing_patterns() {
     ] {
         assert!(is_scene_bearing(name), "{name}");
     }
-    for name in ["constants.ts", "deer.png", "smiley.png", "svg-image-exporting-reference.svg"] {
+    for name in [
+        "constants.ts",
+        "deer.png",
+        "smiley.png",
+        "svg-image-exporting-reference.svg",
+    ] {
         assert!(!is_scene_bearing(name), "{name}");
     }
 }
@@ -414,7 +510,11 @@ fn load_and_save_match_upstream_step_by_step() {
         let id = c["id"].as_str().unwrap();
         match load_and_save(text(c, "input")) {
             Ok(first) => {
-                assert!(c.get("error").is_none(), "{id}: upstream throws {}", c["error"]);
+                assert!(
+                    c.get("error").is_none(),
+                    "{id}: upstream throws {}",
+                    c["error"]
+                );
                 let written = first.to_json();
                 assert_eq!(written, text(c, "output"), "{id}: first write");
                 let second = load_and_save(&written).unwrap_or_else(|e| panic!("{id}: {e}"));
