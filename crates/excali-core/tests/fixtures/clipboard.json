@@ -266,6 +266,13 @@
       },
       "seed": 1024,
       "output": "{\"type\":\"excalidraw/clipboard\",\"elements\":[{\"id\":\"image\",\"type\":\"image\",\"x\":9,\"y\":10,\"width\":64,\"height\":64,\"angle\":0,\"strokeColor\":\"transparent\",\"backgroundColor\":\"transparent\",\"fillStyle\":\"solid\",\"strokeWidth\":2,\"strokeStyle\":\"solid\",\"roughness\":1,\"opacity\":100,\"groupIds\":[],\"frameId\":null,\"index\":null,\"roundness\":null,\"seed\":14,\"version\":1,\"versionNonce\":0,\"isDeleted\":false,\"boundElements\":null,\"updated\":1700000000000,\"created\":1700000000000,\"link\":null,\"locked\":false,\"status\":\"pending\",\"fileId\":\"__proto__\",\"scale\":[1,1],\"crop\":null},{\"id\":\"i2\",\"type\":\"image\",\"x\":9,\"y\":10,\"width\":64,\"height\":64,\"angle\":0,\"strokeColor\":\"transparent\",\"backgroundColor\":\"transparent\",\"fillStyle\":\"solid\",\"strokeWidth\":2,\"strokeStyle\":\"solid\",\"roughness\":1,\"opacity\":100,\"groupIds\":[],\"frameId\":null,\"index\":null,\"roundness\":null,\"seed\":14,\"version\":1,\"versionNonce\":0,\"isDeleted\":false,\"boundElements\":null,\"updated\":1700000000000,\"created\":1700000000000,\"link\":null,\"locked\":false,\"status\":\"pending\",\"fileId\":\"file1\",\"scale\":[1,1],\"crop\":null}],\"files\":{\"file1\":{\"mimeType\":\"image/png\",\"id\":\"file1\",\"dataURL\":\"data:image/png;base64,iVBORw0KGgo=\",\"created\":1700000000000,\"lastRetrieved\":1700000000000}}}"
+    },
+    {
+      "id": "shape-and-canvas-dropped-only-when-cleared",
+      "elements": "[{\"id\":\"rect\",\"type\":\"rectangle\",\"x\":0,\"y\":0,\"width\":100,\"height\":50,\"angle\":0,\"strokeColor\":\"#1e1e1e\",\"backgroundColor\":\"transparent\",\"fillStyle\":\"solid\",\"strokeWidth\":2,\"strokeStyle\":\"solid\",\"roughness\":1,\"opacity\":100,\"groupIds\":[],\"frameId\":null,\"index\":null,\"roundness\":null,\"seed\":1,\"version\":1,\"versionNonce\":0,\"isDeleted\":false,\"boundElements\":null,\"updated\":1700000000000,\"created\":1700000000000,\"link\":null,\"locked\":false,\"customData\":{\"note\":\"kept\"},\"shape\":1,\"canvas\":{\"a\":1}},{\"id\":\"diamond\",\"type\":\"diamond\",\"x\":10,\"y\":10,\"width\":40,\"height\":40,\"angle\":0,\"strokeColor\":\"#1e1e1e\",\"backgroundColor\":\"transparent\",\"fillStyle\":\"solid\",\"strokeWidth\":2,\"strokeStyle\":\"solid\",\"roughness\":1,\"opacity\":100,\"groupIds\":[],\"frameId\":\"rect\",\"index\":null,\"roundness\":null,\"seed\":2,\"version\":1,\"versionNonce\":0,\"isDeleted\":false,\"boundElements\":null,\"updated\":1700000000000,\"created\":1700000000000,\"link\":null,\"locked\":false,\"canvas\":1,\"shape\":2,\"customData\":{\"shape\":3,\"canvas\":4}},{\"id\":\"frame\",\"type\":\"frame\",\"x\":-100,\"y\":-100,\"width\":0,\"height\":0,\"angle\":0,\"strokeColor\":\"#1e1e1e\",\"backgroundColor\":\"transparent\",\"fillStyle\":\"solid\",\"strokeWidth\":2,\"strokeStyle\":\"solid\",\"roughness\":1,\"opacity\":100,\"groupIds\":[],\"frameId\":null,\"index\":null,\"roundness\":null,\"seed\":7,\"version\":1,\"versionNonce\":0,\"isDeleted\":false,\"boundElements\":null,\"updated\":1700000000000,\"created\":1700000000000,\"link\":null,\"locked\":false,\"name\":\"Frame A\",\"shape\":null},{\"id\":\"ellipse\",\"type\":\"ellipse\",\"x\":20,\"y\":20,\"width\":30,\"height\":20,\"angle\":0.5,\"strokeColor\":\"#1e1e1e\",\"backgroundColor\":\"transparent\",\"fillStyle\":\"solid\",\"strokeWidth\":2,\"strokeStyle\":\"solid\",\"roughness\":1,\"opacity\":100,\"groupIds\":[],\"frameId\":\"frame\",\"index\":null,\"roundness\":null,\"seed\":3,\"version\":1,\"versionNonce\":0,\"isDeleted\":false,\"boundElements\":null,\"updated\":1700000000000,\"created\":1700000000000,\"link\":null,\"locked\":false,\"canvas\":\"c\"},{\"id\":\"text\",\"type\":\"text\",\"x\":5,\"y\":5,\"width\":50,\"height\":25,\"angle\":0,\"strokeColor\":\"#1e1e1e\",\"backgroundColor\":\"transparent\",\"fillStyle\":\"solid\",\"strokeWidth\":2,\"strokeStyle\":\"solid\",\"roughness\":1,\"opacity\":100,\"groupIds\":[],\"frameId\":\"ellipse\",\"index\":null,\"roundness\":null,\"seed\":9,\"version\":1,\"versionNonce\":0,\"isDeleted\":false,\"boundElements\":null,\"updated\":1700000000000,\"created\":1700000000000,\"link\":null,\"locked\":false,\"text\":\"Hello\",\"fontSize\":20,\"baseFontSize\":null,\"fontFamily\":5,\"textAlign\":\"left\",\"verticalAlign\":\"top\",\"containerId\":null,\"originalText\":\"Hello\",\"autoResize\":true,\"lineHeight\":1.25,\"labelPosition\":null,\"shape\":[1],\"zAfter\":true}]",
+      "files": null,
+      "seed": 1025,
+      "output": "{\"type\":\"excalidraw/clipboard\",\"elements\":[{\"id\":\"rect\",\"type\":\"rectangle\",\"x\":0,\"y\":0,\"width\":100,\"height\":50,\"angle\":0,\"strokeColor\":\"#1e1e1e\",\"backgroundColor\":\"transparent\",\"fillStyle\":\"solid\",\"strokeWidth\":2,\"strokeStyle\":\"solid\",\"roughness\":1,\"opacity\":100,\"groupIds\":[],\"frameId\":null,\"index\":null,\"roundness\":null,\"seed\":1,\"version\":1,\"versionNonce\":0,\"isDeleted\":false,\"boundElements\":null,\"updated\":1700000000000,\"created\":1700000000000,\"link\":null,\"locked\":false,\"customData\":{\"note\":\"kept\"},\"shape\":1,\"canvas\":{\"a\":1}},{\"id\":\"diamond\",\"type\":\"diamond\",\"x\":10,\"y\":10,\"width\":40,\"height\":40,\"angle\":0,\"strokeColor\":\"#1e1e1e\",\"backgroundColor\":\"transparent\",\"fillStyle\":\"solid\",\"strokeWidth\":2,\"strokeStyle\":\"solid\",\"roughness\":1,\"opacity\":100,\"groupIds\":[],\"frameId\":null,\"index\":null,\"roundness\":null,\"seed\":2,\"version\":2,\"versionNonce\":49477775,\"isDeleted\":false,\"boundElements\":null,\"updated\":1,\"created\":1700000000000,\"link\":null,\"locked\":false,\"customData\":{\"shape\":3,\"canvas\":4}},{\"id\":\"frame\",\"type\":\"frame\",\"x\":-100,\"y\":-100,\"width\":0,\"height\":0,\"angle\":0,\"strokeColor\":\"#1e1e1e\",\"backgroundColor\":\"transparent\",\"fillStyle\":\"solid\",\"strokeWidth\":2,\"strokeStyle\":\"solid\",\"roughness\":1,\"opacity\":100,\"groupIds\":[],\"frameId\":null,\"index\":null,\"roundness\":null,\"seed\":7,\"version\":1,\"versionNonce\":0,\"isDeleted\":false,\"boundElements\":null,\"updated\":1700000000000,\"created\":1700000000000,\"link\":null,\"locked\":false,\"name\":\"Frame A\",\"shape\":null},{\"id\":\"ellipse\",\"type\":\"ellipse\",\"x\":20,\"y\":20,\"width\":30,\"height\":20,\"angle\":0.5,\"strokeColor\":\"#1e1e1e\",\"backgroundColor\":\"transparent\",\"fillStyle\":\"solid\",\"strokeWidth\":2,\"strokeStyle\":\"solid\",\"roughness\":1,\"opacity\":100,\"groupIds\":[],\"frameId\":\"frame\",\"index\":null,\"roundness\":null,\"seed\":3,\"version\":1,\"versionNonce\":0,\"isDeleted\":false,\"boundElements\":null,\"updated\":1700000000000,\"created\":1700000000000,\"link\":null,\"locked\":false,\"canvas\":\"c\"},{\"id\":\"text\",\"type\":\"text\",\"x\":5,\"y\":5,\"width\":50,\"height\":25,\"angle\":0,\"strokeColor\":\"#1e1e1e\",\"backgroundColor\":\"transparent\",\"fillStyle\":\"solid\",\"strokeWidth\":2,\"strokeStyle\":\"solid\",\"roughness\":1,\"opacity\":100,\"groupIds\":[],\"frameId\":null,\"index\":null,\"roundness\":null,\"seed\":9,\"version\":2,\"versionNonce\":339860449,\"isDeleted\":false,\"boundElements\":null,\"updated\":1,\"created\":1700000000000,\"link\":null,\"locked\":false,\"text\":\"Hello\",\"fontSize\":20,\"baseFontSize\":null,\"fontFamily\":5,\"textAlign\":\"left\",\"verticalAlign\":\"top\",\"containerId\":null,\"originalText\":\"Hello\",\"autoResize\":true,\"lineHeight\":1.25,\"labelPosition\":null,\"zAfter\":true}]}"
     }
   ],
   "parse": [
@@ -1552,6 +1559,43 @@
           }
         ],
         "programmaticAPI": false
+      }
+    },
+    {
+      "id": "number-overflow-elements",
+      "textPlain": "{\"type\":\"excalidraw\",\"elements\":[{\"x\":1e400,\"y\":-1E+400,\"n\":[10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000,-0.5e309],\"small\":1e-400,\"s\":\"1e400\"}]}",
+      "isPlainPaste": false,
+      "result": {
+        "keys": [
+          "elements",
+          "files",
+          "text",
+          "programmaticAPI"
+        ],
+        "elements": [
+          {
+            "x": null,
+            "y": null,
+            "n": [
+              null,
+              null
+            ],
+            "small": 0,
+            "s": "1e400"
+          }
+        ],
+        "programmaticAPI": false
+      }
+    },
+    {
+      "id": "number-overflow-invalid-json-is-text",
+      "textPlain": "{\"type\":\"excalidraw\",\"elements\":[01e400]}",
+      "isPlainPaste": false,
+      "result": {
+        "keys": [
+          "text"
+        ],
+        "text": "{\"type\":\"excalidraw\",\"elements\":[01e400]}"
       }
     },
     {
@@ -2852,6 +2896,44 @@
         ],
         "text": "[\n  {\n    \"1\": 4,\n    \"2\": 2,\n    \"b\": 1,\n    \"a\": 3\n  }\n]",
         "programmaticAPI": false
+      }
+    },
+    {
+      "id": "number-overflow-elements-plain-paste",
+      "textPlain": "{\"type\":\"excalidraw\",\"elements\":[{\"x\":1e400,\"y\":-1E+400,\"n\":[10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000,-0.5e309],\"small\":1e-400,\"s\":\"1e400\"}]}",
+      "isPlainPaste": true,
+      "result": {
+        "keys": [
+          "elements",
+          "files",
+          "text",
+          "programmaticAPI"
+        ],
+        "elements": [
+          {
+            "x": null,
+            "y": null,
+            "n": [
+              null,
+              null
+            ],
+            "small": 0,
+            "s": "1e400"
+          }
+        ],
+        "text": "[\n  {\n    \"x\": null,\n    \"y\": null,\n    \"n\": [\n      null,\n      null\n    ],\n    \"small\": 0,\n    \"s\": \"1e400\"\n  }\n]",
+        "programmaticAPI": false
+      }
+    },
+    {
+      "id": "number-overflow-invalid-json-is-text-plain-paste",
+      "textPlain": "{\"type\":\"excalidraw\",\"elements\":[01e400]}",
+      "isPlainPaste": true,
+      "result": {
+        "keys": [
+          "text"
+        ],
+        "text": "{\"type\":\"excalidraw\",\"elements\":[01e400]}"
       }
     }
   ]

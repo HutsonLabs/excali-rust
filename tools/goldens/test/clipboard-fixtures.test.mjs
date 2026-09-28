@@ -61,6 +61,17 @@ test("output is upstream's clipboard codec in test mode", () => {
     "alpha",
   ]);
 
+  // deepCopyElement drops own shape/canvas on the detached copy only.
+  const [kept, detached, , keptChild] = ser.get("shape-and-canvas-dropped-only-when-cleared").elements;
+  assert.deepEqual([kept.shape, kept.canvas], [1, { a: 1 }]);
+  assert.ok(!("shape" in detached) && !("canvas" in detached));
+  assert.deepEqual(detached.customData, { shape: 3, canvas: 4 });
+  assert.equal(keptChild.canvas, "c");
+  // JSON.parse reads 1e400 as Infinity: elements, written back as null.
+  assert.deepEqual(par.get("number-overflow-elements").elements[0].x, null);
+  assert.match(par.get("number-overflow-elements-plain-paste").text, /"x": null/);
+  assert.deepEqual(par.get("number-overflow-invalid-json-is-text").keys, ["text"]);
+
   assert.equal(par.get("type-excalidraw-api-clipboard").programmaticAPI, true);
   assert.equal(par.get("type-excalidraw").programmaticAPI, false);
   assert.deepEqual(par.get("type-excalidrawlib-is-text").keys, ["text"]);

@@ -236,6 +236,21 @@ const serializeCases = () => [
     elements: [el("image", { fileId: "__proto__" }), el("image", { id: "i2", fileId: "file1" })],
     files: JSON.parse(`{"__proto__":${JSON.stringify(FILE)},"file1":${JSON.stringify(FILE)}}`),
   },
+  {
+    // The detached copy comes from deepCopyElement, which skips own keys
+    // "shape" and "canvas" at depth 0 (packages/element/src/duplicate.ts:
+    // 640-646); an element written as given keeps them, and so does a
+    // nested object.
+    id: "shape-and-canvas-dropped-only-when-cleared",
+    elements: [
+      el("rect", { shape: 1, canvas: { a: 1 } }),
+      el("diamond", { frameId: "rect", canvas: 1, shape: 2, customData: { shape: 3, canvas: 4 } }),
+      el("frame", { shape: null }),
+      el("ellipse", { frameId: "frame", canvas: "c" }),
+      el("text", { frameId: "ellipse", shape: [1], zAfter: true }),
+    ],
+    files: null,
+  },
 ];
 
 const parseCases = () => {
@@ -288,6 +303,15 @@ const parseCases = () => {
       textPlain: `{"type":"excalidraw/clipboard","elements":[{"id":"t","text":"a\\ud83d","n":1.50,"big":1e21,"small":1e-7,"neg":-0}]}`,
     },
     { id: "nested-keys-js-order", textPlain: `{"type":"excalidraw","elements":[{"b":1,"2":2,"a":3,"1":4}]}` },
+    {
+      // JSON.parse reads a literal beyond the f64 range as +-Infinity, which
+      // JSON.stringify writes as null (and so does this fixture).
+      id: "number-overflow-elements",
+      textPlain:
+        `{"type":"excalidraw","elements":[{"x":1e400,"y":-1E+400,"n":[1${"0".repeat(400)},-0.5e309],` +
+        `"small":1e-400,"s":"1e400"}]}`,
+    },
+    { id: "number-overflow-invalid-json-is-text", textPlain: `{"type":"excalidraw","elements":[01e400]}` },
   ];
   // The same inputs as a plain paste (Ctrl+Shift+V): elements also come
   // back as JSON.stringify(elements, null, 2) text.
