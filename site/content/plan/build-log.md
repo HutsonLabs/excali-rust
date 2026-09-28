@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-308 · Corpus test: stored vs measured text widths across fixtures and libraries
+
+`excali-text` now measures every text of a vendored family across the whole corpus (232 libraries and the scene-bearing upstream fixtures, 6854 texts) and compares it with the width the browser stored. A per-family report of counts, max and mean deviation is committed and kept current by `cargo test`, and Excalifont, Nunito and Comic Shanns are gated at 0.5 px per text and per family mean, with 18 recorded deviations that may only shrink. PR: [#65](https://github.com/HutsonLabs/excali-rust/pull/65).
+
 ## 2026-09-28 · ex-305 · Text element sizing on edit: autoResize, originalText/text, anchor growth by align
 
 `excali-text` sizes text while it is created and edited the way upstream's `newElement.ts` does. `new_text_element` positions a new box from its anchor for each alignment. `RefreshedText::apply` applies a `refreshTextDimensions` result as the user types, so the text grows and wraps like it does in the editor. `text_auto_resize` unwraps text around its anchor as `actionTextAutoResize` does. More than 2400 upstream cases match. PR: [#64](https://github.com/HutsonLabs/excali-rust/pull/64).
