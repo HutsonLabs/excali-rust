@@ -5,7 +5,6 @@
 //! TypeError. The port does not panic there: an empty polygon is open, stays
 //! empty when closed, and has zero area.
 
-use std::cmp::Ordering;
 use std::f64::consts::PI;
 
 use crate::point::points_equal_with;
@@ -127,18 +126,6 @@ pub fn polygon_area_with<S: Space>(polygon: &[Point<S>], tolerance: f64) -> f64 
     polygon_signed_area_with(polygon, tolerance).abs()
 }
 
-/// A JavaScript `Array.prototype.sort` comparator result read as an ordering:
-/// negative, positive, or anything else (0 and NaN) as equal.
-fn js_ordering(n: f64) -> Ordering {
-    if n < 0.0 {
-        Ordering::Less
-    } else if n > 0.0 {
-        Ordering::Greater
-    } else {
-        Ordering::Equal
-    }
-}
-
 /// `convexHull(points)`: Andrew's monotone chain. The hull vertices in
 /// counter-clockwise order (y-down), without a repeated closing vertex;
 /// fewer than three points, or a degenerate hull, come back as given.
@@ -147,9 +134,19 @@ pub fn convex_hull<S: Space>(points: &[Point<S>]) -> Vec<Point<S>> {
         return points.to_vec();
     }
 
-    // Stable, like Array.prototype.sort.
+    // Array.prototype.sort semantics: stable, and no panic when NaN
+    // coordinates make the comparator inconsistent.
     let mut sorted = points.to_vec();
-    sorted.sort_by(|a, b| js_ordering(if a.x == b.x { a.y - b.y } else { a.x - b.x }));
+    crate::js::sort(
+        &mut sorted,
+        |a, b| {
+            if a.x == b.x {
+                a.y - b.y
+            } else {
+                a.x - b.x
+            }
+        },
+    );
 
     // Cross product of OA x OB. Negative means the turn O->A->B is clockwise.
     let cross = |o: Point<S>, a: Point<S>, b: Point<S>| {
