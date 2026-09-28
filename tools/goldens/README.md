@@ -199,3 +199,29 @@ node tools/goldens/app-state.mjs --check   # exit 1 if it is stale
 
 CI runs `--check` in the `goldens` job, and `test/app-state.test.mjs` checks
 that two runs are byte-identical.
+
+## Clipboard fixtures
+
+`clipboard-fixtures.mjs` writes `crates/excali-core/tests/fixtures/clipboard.json`
+for excali-core's clipboard JSON codec (ex-113). It bundles upstream's
+`serializeAsClipboardJSON`, `parseDataTransferEvent` and `parseClipboard`
+(`packages/excalidraw/clipboard.ts:143-193, 467-555`), with the browser-only
+`./data/blob` module stubbed (the string paths never call it), and records:
+
+- `serialize`: the exact string `serializeAsClipboardJSON({elements, files})`
+  returns for element arrays built from `every-type.excalidraw` with
+  `frameId`, id, `fileId` and unknown keys varied per case, after
+  `reseed(seed)`. An element whose `frameId` is cleared goes through
+  `mutateElement`, so its `versionNonce` is the next `randomInteger()` and
+  its `updated` is 1 (test mode);
+- `parse`: `parseClipboard` of a paste event holding one `text/plain` string
+  (or none), as a normal and as a plain paste: the returned keys, in order,
+  and their values.
+
+```sh
+node tools/goldens/clipboard-fixtures.mjs           # write the fixture
+node tools/goldens/clipboard-fixtures.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and `test/clipboard-fixtures.test.mjs`
+checks that two runs are byte-identical.
