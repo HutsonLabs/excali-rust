@@ -95,7 +95,15 @@ Tablet and phone layouts; compact styles panel; sticky notes, bucket fill, lasso
 
 ## Phase 8 — Release (`ex-e8`)
 
-Publish crates to crates.io under `excali-*`; publish the ES-module tarball as a GitHub release asset; write the integration guide; tag 1.0.
+The first release is **26.9.1**, numbered by calendar `YY.M.BUILD` ([ADR-009](../../decisions/adr-009-calendar-versioning/)).
+
+**Deliverables.**
+- The ES module + WASM tarball, with its SHA-256, as a GitHub release asset that term.hut's vendor script can fetch (`ex-802`).
+- The integration guide, walked by an agent step by step in a fresh clone in a temp directory, with the transcript recorded on the issue (`ex-803`).
+- Tag `v26.9.1` and the GitHub release (`gh release create v26.9.1`), created by an agent (`ex-804`).
+- Publishing the `excali-*` crates to crates.io (`ex-801`) is deferred by the owner (2026-09-27); nothing goes to crates.io, npm or any other registry, and the release does not wait on it.
+
+**Milestone M8.** `v26.9.1` is tagged and its GitHub release carries the tarball and checksum; the guide walk transcript is linked. An agent closes M8 once that check is green in CI with the evidence posted.
 
 ## Budgets
 

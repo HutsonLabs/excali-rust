@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-008 · Record the owner decisions of 2026-09-27 (calendar versioning, agent-closed milestones, fonts, strictly a port)
+
+The workspace is versioned 26.9.1 under ADR-009 (calendar YY.M.BUILD; GitHub releases only for now), and a version gate in CI checks the format, workspace inheritance, publish = false and Cargo.lock. Agents now close milestones on green CI with evidence posted and merge term.hut PRs. ADR-004 maps font families without a confirmed licence to licensed fallbacks. The upstream checkout's push URL is disabled because this is strictly a port. Phase 8 now ends with v26.9.1: ex-801 is deferred and ex-804 tags the GitHub release. PR: [#12](https://github.com/HutsonLabs/excali-rust/pull/12).
+
 ## 2026-09-28 · ex-101 · Element model: enums, structs and shared base fields
 
 `excali-core` now has the full Excalidraw element model: `ElementBase` with every `_ExcalidrawElementBase` field under upstream's JSON names, and `ElementKind` tagged on `type` for all 14 element types with their per-type fields. Supporting enums (fill and stroke styles, roundness, font families, alignment, arrowheads with legacy names, bindings, fixed segments, crop), type groupings, arrow subtypes and upstream's construction defaults and constants are in place, pinned by 29 tests. PR: [#11](https://github.com/HutsonLabs/excali-rust/pull/11).

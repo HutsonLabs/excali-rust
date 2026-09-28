@@ -10,15 +10,15 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
 name = "excali-canvas2d"
-version = "0.1.0"
+version = "26.9.1"
 
 [[package]]
 name = "excali-cli"
-version = "0.1.0"
+version = "26.9.1"
 
 [[package]]
 name = "excali-core"
-version = "0.1.0"
+version = "26.9.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -26,43 +26,43 @@ dependencies = [
 
 [[package]]
 name = "excali-editor"
-version = "0.1.0"
+version = "26.9.1"
 
 [[package]]
 name = "excali-freehand"
-version = "0.1.0"
+version = "26.9.1"
 
 [[package]]
 name = "excali-math"
-version = "0.1.0"
+version = "26.9.1"
 
 [[package]]
 name = "excali-raster"
-version = "0.1.0"
+version = "26.9.1"
 
 [[package]]
 name = "excali-rough"
-version = "0.1.0"
+version = "26.9.1"
 
 [[package]]
 name = "excali-scene"
-version = "0.1.0"
+version = "26.9.1"
 
 [[package]]
 name = "excali-svg"
-version = "0.1.0"
+version = "26.9.1"
 
 [[package]]
 name = "excali-text"
-version = "0.1.0"
+version = "26.9.1"
 
 [[package]]
 name = "excali-ui"
-version = "0.1.0"
+version = "26.9.1"
 
 [[package]]
 name = "excali-wasm"
-version = "0.1.0"
+version = "26.9.1"
 
 [[package]]
 name = "hashbrown"
@@ -167,7 +167,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-excali"
-version = "0.1.0"
+version = "26.9.1"
 
 [[package]]
 name = "unicode-ident"

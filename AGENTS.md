@@ -11,3 +11,11 @@ Read `site/content/plan/agent-workflow.md` (or the published Plan → Agent work
 7. `bd close <id> --reason "..."` in the merge commit; blocked on a human → `bd note`, label `needs-human`, `bd unclaim`.
 
 Task graph changes go in `plan/tasks.json`, then `scripts/tasks/seed.py`.
+
+## This is strictly a port
+
+No commits, pushes, PRs, issues, discussions or comments on upstream Excalidraw (`excalidraw/excalidraw`, `excalidraw-libraries` or any other excalidraw org repository). The upstream checkout under `.tools/upstream` is read-only reference: `scripts/upstream/checkout.sh` sets its push URL to `DISABLED-strictly-a-port` and `--verify` fails if that changes. Owner decision, 2026-09-27.
+
+## Releases
+
+Versions are calendar `YY.M.BUILD` (ADR-009); the first release is `26.9.1`, tag `v26.9.1`. Agents may create tags and GitHub releases (`gh release create`) with the ES module + WASM tarball. Do not publish to crates.io, npm or any other registry (`ex-801` is deferred by the owner).

@@ -62,7 +62,7 @@
    "phase": 8,
    "priority": 3,
    "title": "Phase 8: Release",
-   "description": "crates.io, release tarball, integration guide, 1.0 tag."
+   "description": "First calendar release v26.9.1 (ADR-009): ES module + WASM tarball as a GitHub release asset, integration guide walked by an agent in a fresh clone, tag and gh release. crates.io publishing (ex-801) is deferred by the owner."
   }
  ],
  "milestones": [
@@ -70,55 +70,82 @@
    "id": "ex-m0",
    "epic": "ex-e0",
    "title": "M0: site live, gates enforced, workspace green",
-   "acceptance": "Pages deploys from main; bootstrap works on a fresh clone; CI rejects a planted attribution line; cargo test passes on the empty workspace."
+   "acceptance": "Pages deploys from main; bootstrap works on a fresh clone; CI rejects a planted attribution line; cargo test passes on the empty workspace.",
+   "withdraw_labels": [
+    "needs-human"
+   ]
   },
   {
    "id": "ex-m1",
    "epic": "ex-e1",
    "title": "M1: round trip of all fixtures and 232 catalogue libraries",
-   "acceptance": "Criterion D1 on the plan overview passes in CI."
+   "acceptance": "Criterion D1 on the plan overview passes in CI.",
+   "withdraw_labels": [
+    "needs-human"
+   ]
   },
   {
    "id": "ex-m2",
    "epic": "ex-e2",
    "title": "M2: golden parity with rough.js for all shapes",
-   "acceptance": "Golden tests pass for every element type and fill style at roughness 0, 1, 2 for seeds 1, 7, 1041657908."
+   "acceptance": "Golden tests pass for every element type and fill style at roughness 0, 1, 2 for seeds 1, 7, 1041657908.",
+   "withdraw_labels": [
+    "needs-human"
+   ]
   },
   {
    "id": "ex-m3",
    "epic": "ex-e3",
    "title": "M3: text measurement and wrapping parity",
-   "acceptance": "Upstream wrapping tests pass; corpus widths within 0.5 px."
+   "acceptance": "Upstream wrapping tests pass; corpus widths within 0.5 px.",
+   "withdraw_labels": [
+    "needs-human"
+   ]
   },
   {
    "id": "ex-m4",
    "epic": "ex-e4",
    "title": "M4: SVG/PNG export parity",
-   "acceptance": "Criterion D2 passes; CLI renders all catalogue libraries."
+   "acceptance": "Criterion D2 passes; CLI renders all catalogue libraries.",
+   "withdraw_labels": [
+    "needs-human"
+   ]
   },
   {
    "id": "ex-m5",
    "epic": "ex-e5",
    "title": "M5: editor usable in a browser",
-   "acceptance": "Criterion D3 for desktop; Playwright parity suite green; WASM budget met."
+   "acceptance": "Criterion D3 for desktop; Playwright parity suite green; WASM budget met.",
+   "withdraw_labels": [
+    "needs-human"
+   ]
   },
   {
    "id": "ex-m6",
    "epic": "ex-e6",
    "title": "M6: term.hut CRUD and library import end to end",
-   "acceptance": "Criteria D4 and D5 pass."
+   "acceptance": "Criteria D4 and D5 pass.",
+   "withdraw_labels": [
+    "needs-human"
+   ]
   },
   {
    "id": "ex-m7",
    "epic": "ex-e7",
    "title": "M7: parity checklist 100% for v1 scope",
-   "acceptance": "All parity rows green; budgets met on the pinned runner."
+   "acceptance": "All parity rows green; budgets met on the pinned runner.",
+   "withdraw_labels": [
+    "needs-human"
+   ]
   },
   {
    "id": "ex-m8",
    "epic": "ex-e8",
-   "title": "M8: 1.0 released",
-   "acceptance": "Crates published, tarball attached to a release, guide reviewed."
+   "title": "M8: v26.9.1 released on GitHub",
+   "acceptance": "Tag v26.9.1 pushed; the GitHub release carries the ES module + WASM tarball and its sha256; the integration-guide walk transcript from a fresh clone is linked. crates.io is not required (ex-801 deferred by the owner).",
+   "withdraw_labels": [
+    "needs-human"
+   ]
   }
  ],
  "tasks": [
@@ -201,7 +228,8 @@
    ],
    "description": "Repository setting only a maintainer can change: Settings > Pages > Source: GitHub Actions.",
    "type": "task",
-   "labels": [
+   "labels": [],
+   "withdraw_labels": [
     "needs-human"
    ]
   },
@@ -232,6 +260,23 @@
     "site/content/decisions/adr-006-site.md"
    ],
    "description": "Replace the associative array with a case lookup, verify with sha256sum or shasum -a 256, refuse unverified downloads, share .tools across worktrees, and record the v0.22.0 digests for every unix release target. CI runs the script tests and a real ensure+build on ubuntu and macos.",
+   "type": "task",
+   "labels": []
+  },
+  {
+   "id": "ex-008",
+   "epic": "ex-e0",
+   "title": "Record the owner decisions of 2026-09-27 (calendar versioning, agent-closed milestones, fonts, strictly a port)",
+   "priority": 0,
+   "blocked_by": [],
+   "crates": [],
+   "acceptance": "ADR-009 records calendar versioning YY.M.BUILD and the workspace version is 26.9.1, enforced by scripts/gates/version.py in CI; agent-workflow Human checkpoints say agents close milestones on green CI with evidence and merge term.hut PRs after green; ADR-004 has the fallback rule for unconfirmed font licences; ex-801 deferred, ex-803 walked by an agent, ex-804 tags v26.9.1 blocked by ex-802 and ex-803; the phases page Phase 8 matches; scripts/upstream/checkout.sh disables pushes to upstream and AGENTS.md and agent-workflow.md state that this is strictly a port. Tests: scripts/tasks/test_plan.py, scripts/gates/test_version.py, scripts/upstream/test_checkout.py.",
+   "evidence": [
+    "Owner decisions (a)-(f), 2026-09-27",
+    "https://calver.org/ (YY short year, MM short month; read 2026-09-28)",
+    "semver/semver semver.md:62-63 (X.Y.Z, no leading zeroes; read 2026-09-28)"
+   ],
+   "description": "Owner decisions of 2026-09-27, binding: (a) calendar versioning YY.M.BUILD, first release 26.9.1 (tag v26.9.1); agents may tag and create GitHub releases with the ES module + WASM tarball; no crates.io, npm or other registry (ex-801 held). (b) Agents close milestones once the acceptance check passes in CI with evidence posted. (c) term.hut PRs are merged by agents after green CI. (d) Fonts: vendor only families with a confirmed OFL/MIT/Apache licence; map unconfirmed families to a licensed fallback, record the gap in ADR-004, continue. (e) ex-803 is satisfied by an agent walking the integration guide in a fresh clone in a temp dir and recording the transcript; 26.9.1 does not wait on crates.io. (f) Strictly a port: never commit, push, open PRs/issues/discussions or comment on upstream Excalidraw or any excalidraw org repo; the upstream checkout is read-only.",
    "type": "task",
    "labels": []
   },
@@ -979,13 +1024,15 @@
     "ex-002"
    ],
    "crates": [],
-   "acceptance": "ADR-004 lists each family with licence, source URL and date checked; families without a confirmed licence are not vendored.",
+   "acceptance": "ADR-004 lists each family with licence, source URL and date checked; only families with a confirmed SIL OFL 1.1, MIT or Apache 2.0 licence are vendored; every unconfirmed family is mapped to its licensed fallback under ADR-004 rule 3 and listed under Licence gaps. No human sign-off is needed.",
    "evidence": [
-    "site/content/research/ui-design-system.md section 1.3 (font files table: no LICENSE files under packages/excalidraw/fonts)"
+    "site/content/research/ui-design-system.md section 1.3 (font files table: no LICENSE files under packages/excalidraw/fonts)",
+    "Owner decision (d), 2026-09-27: map unconfirmed families to a licensed fallback, record the gap in ADR-004, and continue"
    ],
    "description": "",
    "type": "decision",
-   "labels": [
+   "labels": [],
+   "withdraw_labels": [
     "needs-human"
    ]
   },
@@ -2194,11 +2241,16 @@
     "ex-712"
    ],
    "crates": [],
-   "acceptance": "cargo publish succeeds for each crate in dependency order; versions aligned.",
-   "evidence": [],
-   "description": "",
+   "acceptance": "Held: while this issue is deferred (bd status deferred, set by scripts/tasks/seed.py) it is never claimed and nothing is published. Only after the owner lifts the hold and it is returned with bd undefer: cargo publish succeeds for each crate in dependency order; versions aligned.",
+   "evidence": [
+    "site/content/decisions/adr-009-calendar-versioning.md (registries held)"
+   ],
+   "description": "Deferred by the owner (decision of 2026-09-27): do not publish to crates.io, npm or any other registry until the owner lifts the hold. The first release (v26.9.1) ships as a GitHub release only and does not wait on this task; the crates keep publish = false and scripts/gates/version.py enforces it.",
+   "deferred": true,
    "type": "task",
-   "labels": []
+   "labels": [
+    "deferred"
+   ]
   },
   {
    "id": "ex-802",
@@ -2220,33 +2272,38 @@
   {
    "id": "ex-803",
    "epic": "ex-e8",
-   "title": "Integration guide reviewed by a human",
+   "title": "Integration guide walked by an agent in a fresh clone",
    "priority": 2,
    "blocked_by": [
     "ex-607"
    ],
    "crates": [],
-   "acceptance": "Guide walked through on a clean machine.",
-   "evidence": [],
+   "acceptance": "In a fresh clone in a temp directory (mktemp -d), an agent follows the integration guide step by step exactly as written (no steps from memory), and records the full transcript (commands and output) linked from the issue; every divergence between guide and reality is fixed in the guide and the walk repeated until clean.",
+   "evidence": [
+    "Owner decision (e), 2026-09-27: satisfied by an agent walking the guide in a fresh clone in a temp dir and recording the transcript"
+   ],
    "description": "",
    "type": "task",
-   "labels": [
+   "labels": [],
+   "withdraw_labels": [
     "needs-human"
    ]
   },
   {
    "id": "ex-804",
    "epic": "ex-e8",
-   "title": "Tag 1.0",
+   "title": "Tag v26.9.1 and publish the GitHub release",
    "priority": 2,
    "blocked_by": [
-    "ex-801",
     "ex-802",
     "ex-803"
    ],
    "crates": [],
-   "acceptance": "Tag pushed; site status updated.",
-   "evidence": [],
+   "acceptance": "scripts/gates/version.py tag prints v26.9.1 on main; the annotated tag v26.9.1 is pushed; gh release create v26.9.1 publishes the ES module + WASM tarball and its sha256 with release notes; the site status is updated. Nothing is published to crates.io, npm or any other registry.",
+   "evidence": [
+    "site/content/decisions/adr-009-calendar-versioning.md",
+    "Owner decision (a), 2026-09-27: agents may create git tags and GitHub releases"
+   ],
    "description": "",
    "type": "task",
    "labels": []

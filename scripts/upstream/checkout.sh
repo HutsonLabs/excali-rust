@@ -21,6 +21,10 @@
 # Idempotent: when the checkout is already clean at the pin it exits without
 # touching the network. It never discards local changes, never adopts a
 # directory that is not its own checkout, and verifies HEAD before exiting.
+#
+# Read-only: this repository is strictly a port (owner decision, 2026-09-27).
+# Every run sets the checkout's push URL to DISABLED-strictly-a-port so no
+# push can reach upstream, and --verify fails unless that is the only push URL.
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -39,7 +43,7 @@ case "${1:-}" in
   --verify) mode=verify ;;
   --print-pin) mode=print-pin ;;
   --print-dir) mode=print-dir ;;
-  -h | --help) sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  -h | --help) sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
   *) usage ;;
 esac
 [ $# -le 1 ] || usage
@@ -106,11 +110,30 @@ require_origin() {
   [ "$have" = "$url" ] || die "$1 origin is '$have', expected '$url'; refusing to use a foreign checkout"
 }
 
+# Strictly a port: nothing is ever pushed upstream. An invalid push URL makes
+# `git push` fail in this checkout while fetches keep using the real URL.
+disabled_push_url=DISABLED-strictly-a-port
+
+disable_push() {
+  # set-url --push replaces the first pushurl only; clear every one first so
+  # exactly one remains.
+  git -C "$1" config --unset-all remote.origin.pushurl 2>/dev/null || true
+  git -C "$1" remote set-url --push origin "$disabled_push_url"
+}
+
+require_push_disabled() {
+  local have
+  have="$(git -C "$1" config --get-all remote.origin.pushurl 2>/dev/null || true)"
+  [ "$have" = "$disabled_push_url" ] ||
+    die "$1 push URL is '$(printf '%s' "$have" | tr '\n' ' ')', expected only '$disabled_push_url' (strictly a port; run $0 to fix)"
+}
+
 # -- verify -------------------------------------------------------------------
 
 if [ "$mode" = verify ]; then
   is_own_checkout "$dest" || die "$dest is not a git checkout (run $0 first)"
   require_origin "$dest"
+  require_push_disabled "$dest"
   have="$(head_of "$dest")"
   [ "$have" = "$pin" ] || die "HEAD of $dest is '${have:-none}', expected $pin"
   require_clean "$dest"
@@ -125,6 +148,7 @@ if [ -d "$dest" ] && [ -n "$(ls -A "$dest")" ]; then
   is_own_checkout "$dest" || die "$dest exists and is not a git checkout; refusing to overwrite it"
   require_origin "$dest"
   require_clean "$dest"
+  disable_push "$dest"
   if [ "$(head_of "$dest")" = "$pin" ]; then
     echo "upstream already at $pin in $dest"
     exit 0
@@ -136,6 +160,7 @@ else
   mkdir -p "$dest"
   git -C "$dest" init -q
   git -C "$dest" remote add origin "$url"
+  disable_push "$dest"
 fi
 
 cleanup_on_failure() {
