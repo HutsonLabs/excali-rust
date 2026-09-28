@@ -74,7 +74,7 @@ pub struct LegacyBindingRequest<'a> {
 /// A JS `Map` key a JSON value can be (SameValueZero). Objects and arrays
 /// are keys by identity, so no id read from another element finds one.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum MapKey {
+pub(super) enum MapKey {
     Undefined,
     Null,
     Bool(bool),
@@ -83,7 +83,7 @@ enum MapKey {
 }
 
 impl MapKey {
-    fn of(value: Option<&Value>) -> Option<MapKey> {
+    pub(super) fn of(value: Option<&Value>) -> Option<MapKey> {
         Some(match value {
             None => MapKey::Undefined,
             Some(Value::Null) => MapKey::Null,
@@ -400,7 +400,7 @@ fn detect_line_height(el: &Map<String, Value>) -> Result<Value, RestoreError> {
 }
 
 /// `normalizeStickyNoteFontSize` (`packages/element/src/stickyNote.ts:379-384`).
-fn sticky_note_font_size(size: f64) -> f64 {
+pub(super) fn sticky_note_font_size(size: f64) -> f64 {
     if !size.is_finite() {
         return STICKY_NOTE_FALLBACK_FONT_SIZE;
     }
@@ -593,7 +593,7 @@ fn normalize_arrowhead(arrowhead: Option<&Value>) -> Value {
 }
 
 /// `value + n` for a value that may be `undefined` (NaN).
-fn plus(value: Option<&Value>, n: f64) -> Result<Value, RestoreError> {
+pub(super) fn plus(value: Option<&Value>, n: f64) -> Result<Value, RestoreError> {
     match value {
         Some(v) => Ok(js::plus_number(v, n)?),
         None => Ok(js::number(f64::NAN)),
@@ -984,7 +984,10 @@ fn new_element_with(
 
 /// `version + 1` (JS `+`), a fresh `versionNonce` and `updated` now, as
 /// `bumpVersion` and `newElementWith` do (`mutateElement.ts:174-196`).
-fn bump_version(el: &mut Map<String, Value>, env: &mut dyn RestoreEnv) -> Result<(), RestoreError> {
+pub(super) fn bump_version(
+    el: &mut Map<String, Value>,
+    env: &mut dyn RestoreEnv,
+) -> Result<(), RestoreError> {
     let version = plus(el.get("version"), 1.0)?;
     el.insert("version".to_owned(), version);
     el.insert("versionNonce".to_owned(), js::number(env.random_integer()));

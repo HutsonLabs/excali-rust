@@ -192,6 +192,39 @@ node tools/goldens/restore-fixtures.mjs --check   # exit 1 if either is stale
 CI runs `--check` in the `goldens` job, and `test/restore-fixtures.test.mjs`
 checks that two runs are byte-identical.
 
+## Scene-level restore fixture
+
+`restore-elements-fixtures.mjs` writes
+`crates/excali-core/tests/fixtures/restore-elements.json` for excali-core's
+scene-level restore (ex-105): upstream's `restoreElements` and
+`bumpElementVersions` (`packages/excalidraw/data/restore.ts:946-1173`) on the
+scenes listed in `lib/restore-elements-cases.mjs`. The `upstream-*` scenes are
+the scene-level inputs of `tests/data/restore.test.ts` ("restoreElements" and
+"repairing bindings"), built as that test builds them; the others are tables over
+each pass: duplicate ids, index repair, invisibly small elements, frames, bound
+text in both directions, linear bindings, sticky notes, bound text order, elbow
+arrow fix-ups and the inputs upstream throws on. Each case records the elements
+in order, or the message thrown. The environment is the one of
+`restore-fixtures.mjs` (test mode, `reseed(1)` before each case, text at 10 px per
+character).
+
+Three steps need geometry or text measurement that excali-core takes from its
+`RestoreEnv`: `updateElbowArrowPoints`, `refreshTextDimensions` and
+`getStickyNoteLayout`. The loader's `patch` option (`lib/upstream.mjs`) routes the
+one call of each in `restore.ts` through a probe that calls upstream's function
+and records its arguments and result in the case's `hooks`, in call order;
+nothing else in the module changes. excali-core's fixture test checks that the
+port asks for the same calls and answers them with the recorded results.
+
+```sh
+node tools/goldens/restore-elements-fixtures.mjs           # write the fixture
+node tools/goldens/restore-elements-fixtures.mjs --check   # exit 1 if stale
+```
+
+CI runs `--check` in the `goldens` job, and
+`test/restore-elements-fixtures.test.mjs` checks that two runs are
+byte-identical.
+
 ## AppState goldens
 
 `app-state.mjs` writes `crates/excali-core/tests/fixtures/app-state.json` for

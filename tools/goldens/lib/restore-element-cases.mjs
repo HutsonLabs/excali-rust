@@ -183,14 +183,14 @@ export const apiCreateElement = (up, opts = {}) => {
 
 // -- helpers --------------------------------------------------------------------
 
-const without = (object, ...keys) => {
+export const without = (object, ...keys) => {
   const copy = { ...object };
   for (const key of keys) delete copy[key];
   return copy;
 };
 
 /** A saved element of `type` with every current field, as a file holds it. */
-const saved = (type, rest = {}) => ({
+export const saved = (type, rest = {}) => ({
   id: `el-${type}`,
   type,
   x: 10,
@@ -221,7 +221,7 @@ const saved = (type, rest = {}) => ({
   ...rest,
 });
 
-const savedText = (rest = {}) =>
+export const savedText = (rest = {}) =>
   saved("text", {
     text: "hello",
     fontSize: 20,
@@ -237,7 +237,7 @@ const savedText = (rest = {}) =>
     ...rest,
   });
 
-const savedLinear = (type, rest = {}) =>
+export const savedLinear = (type, rest = {}) =>
   saved(type, {
     points: [
       [0, 0],
@@ -250,10 +250,10 @@ const savedLinear = (type, rest = {}) =>
     ...rest,
   });
 
-const savedArrow = (rest = {}) =>
+export const savedArrow = (rest = {}) =>
   savedLinear("arrow", { endArrowhead: "arrow", elbowed: false, ...rest });
 
-const savedElbow = (rest = {}) =>
+export const savedElbow = (rest = {}) =>
   savedArrow({
     elbowed: true,
     points: [
@@ -268,7 +268,7 @@ const savedElbow = (rest = {}) =>
     ...rest,
   });
 
-const savedFreedraw = (rest = {}) =>
+export const savedFreedraw = (rest = {}) =>
   saved("freedraw", {
     points: [
       [0, 0],
@@ -281,7 +281,7 @@ const savedFreedraw = (rest = {}) =>
     ...rest,
   });
 
-const savedSticky = (rest = {}) =>
+export const savedSticky = (rest = {}) =>
   saved("stickynote", {
     width: 250,
     height: 250,

@@ -20,13 +20,25 @@
 //! and the per-type rules on top of it, [`restore_element`]
 //! (`restoreElement`, `restore.ts:517-752`), which reads sticky note
 //! colours with [`crate::color`] (`isTransparent`,
-//! `packages/common/src/colors.ts:389-391`).
+//! `packages/common/src/colors.ts:389-391`); and the scene-level passes on
+//! top of that, [`restore_elements`] (`restoreElements`,
+//! `restore.ts:946-1138`: duplicate ids, invisibly small elements,
+//! fractional indices, and with `repair_bindings` frames, bound text,
+//! linear bindings, sticky notes, bound text order and elbow arrows) and
+//! [`bump_element_versions`] (`bumpElementVersions`, `restore.ts:1150-1173`).
+//!
+//! Where upstream needs code the crate table places above `excali-core`
+//! (element geometry, the elbow arrow router, text measurement), restore
+//! asks its [`RestoreEnv`].
 
 mod element;
+mod scene;
 mod url;
 
 #[cfg(test)]
 mod element_tests;
+#[cfg(test)]
+mod scene_tests;
 #[cfg(test)]
 mod tests;
 
@@ -44,6 +56,12 @@ pub use element::{
     restore_element, BindingEnd, ElementsMap, LegacyBinding, LegacyBindingRequest, RestoreOptions,
     MAX_LINEAR_PX,
 };
+pub use scene::{
+    bump_element_versions, restore_elements, ElbowArrowRequest, RestoreElementsError,
+    RestoreElementsOptions, StickyNoteLayout, StickyNoteLayoutRequest, TextDimensionsRequest,
+};
+#[cfg(test)]
+use scene::{restore_elements_encoded, SceneCall};
 
 /// Where restore gets what upstream draws from global state, and the
 /// element geometry it needs for one migration.
@@ -81,6 +99,65 @@ pub trait RestoreEnv {
         &mut self,
         request: LegacyBindingRequest<'_>,
     ) -> Option<LegacyBinding> {
+        let _ = request;
+        None
+    }
+
+    /// `refreshTextDimensions(text, container, elementsMap)`
+    /// (`packages/element/src/newElement.ts:533-...`), which
+    /// `restoreElements` calls with `refreshDimensions` (`restore.ts:1032-1045`):
+    /// the keys to assign to the text (`text`, `x`, `y`, `width`, `height`,
+    /// and `autoResize` when it starts wrapping), re-wrapped and measured
+    /// for its font and container. `None` is upstream's `undefined` (a
+    /// deleted text) and leaves the text as it is.
+    ///
+    /// Text wrapping and measurement belong to `excali-text` (crate table of
+    /// `site/content/architecture/overview.md`; `excali-core` may only use
+    /// `excali-math`), so the environment supplies them. The default has no
+    /// text measurement and answers `None`. Upstream's own callers never
+    /// pass `refreshDimensions` (file loading and the initial scene pass
+    /// only repair bindings).
+    fn refresh_text_dimensions(
+        &mut self,
+        request: TextDimensionsRequest<'_>,
+    ) -> Option<Map<String, Value>> {
+        let _ = request;
+        None
+    }
+
+    /// `getStickyNoteLayout(note, label)`
+    /// (`packages/element/src/stickyNote.ts:669-...`), which
+    /// `restoreElements` calls for each sticky note with
+    /// `refreshDimensions` (`restore.ts:931-941`): the keys to assign to
+    /// the note and to its label, the label wrapped and its font fitted.
+    /// Like [`RestoreEnv::refresh_text_dimensions`] it measures text, so
+    /// the environment supplies it; the default answers `None`, which
+    /// leaves both as they are.
+    fn sticky_note_layout(
+        &mut self,
+        request: StickyNoteLayoutRequest<'_>,
+    ) -> Option<StickyNoteLayout> {
+        let _ = request;
+        None
+    }
+
+    /// `updateElbowArrowPoints(arrow, elementsMap, {points})`
+    /// (`packages/element/src/elbowArrow.ts:907-...`), which
+    /// `restoreElements` calls with `repairBindings` for an unbound elbow
+    /// arrow whose segments are not all axis-aligned (`restore.ts:1076-1093`):
+    /// the keys to assign to the arrow (`points`, `x`, `y`, `width`,
+    /// `height`, `fixedSegments`, `startIsSpecial`, `endIsSpecial`), the
+    /// arrow re-routed between `[0, 0]` and its last point. Its `index` is
+    /// kept whatever the answer holds.
+    ///
+    /// The router (A* over a grid, task ex-211) belongs to `excali-editor`
+    /// (crate table of `site/content/architecture/overview.md`), so the
+    /// environment supplies it. The default answers `None`, which keeps the
+    /// arrow as restored.
+    fn update_elbow_arrow_points(
+        &mut self,
+        request: ElbowArrowRequest<'_>,
+    ) -> Option<Map<String, Value>> {
         let _ = request;
         None
     }
@@ -326,6 +403,58 @@ impl RestoreEnv for EscapingEnv<'_> {
             fixed_point: json::escape(&answer.fixed_point),
         })
     }
+
+    fn refresh_text_dimensions(
+        &mut self,
+        request: TextDimensionsRequest<'_>,
+    ) -> Option<Map<String, Value>> {
+        let text = json::decode_map(request.text);
+        let container = request.container.map(json::decode_map);
+        let elements = decode_all(request.elements);
+        let answer = self.0.refresh_text_dimensions(TextDimensionsRequest {
+            text: &text,
+            container: container.as_ref(),
+            elements: &elements,
+        })?;
+        Some(json::escape_map(&answer))
+    }
+
+    fn sticky_note_layout(
+        &mut self,
+        request: StickyNoteLayoutRequest<'_>,
+    ) -> Option<StickyNoteLayout> {
+        let note = json::decode_map(request.note);
+        let text = request.text.map(json::decode_map);
+        let elements = decode_all(request.elements);
+        let answer = self.0.sticky_note_layout(StickyNoteLayoutRequest {
+            note: &note,
+            text: text.as_ref(),
+            elements: &elements,
+        })?;
+        Some(StickyNoteLayout {
+            container: json::escape_map(&answer.container),
+            text: answer.text.as_ref().map(json::escape_map),
+        })
+    }
+
+    fn update_elbow_arrow_points(
+        &mut self,
+        request: ElbowArrowRequest<'_>,
+    ) -> Option<Map<String, Value>> {
+        let arrow = json::decode_map(request.arrow);
+        let points: Vec<Value> = request.points.iter().map(json::decode).collect();
+        let elements = decode_all(request.elements);
+        let answer = self.0.update_elbow_arrow_points(ElbowArrowRequest {
+            arrow: &arrow,
+            points: &points,
+            elements: &elements,
+        })?;
+        Some(json::escape_map(&answer))
+    }
+}
+
+fn decode_all(elements: &[Map<String, Value>]) -> Vec<Map<String, Value>> {
+    elements.iter().map(json::decode_map).collect()
 }
 
 /// The keys of a JS object literal with their values in property creation

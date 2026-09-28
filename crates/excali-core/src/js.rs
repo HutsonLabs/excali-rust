@@ -355,6 +355,26 @@ pub(crate) fn strictly_equal(a: Option<&Value>, b: Option<&Value>) -> bool {
     }
 }
 
+/// `a < b` (section 13.10.1, `IsLessThan` with `LeftFirst`) for JSON
+/// values, `None` being `undefined`: both operands through `ToPrimitive`
+/// with hint number (an array or object becomes its string form, which
+/// throws for an object with its own `toString` key); two strings compare
+/// by UTF-16 code unit, anything else as numbers (`NaN` compares false).
+/// `a > b` is `less_than(b, a)`.
+pub(crate) fn less_than(a: Option<&Value>, b: Option<&Value>) -> Result<bool, TypeError> {
+    let to_primitive = |v: Option<&Value>| -> Result<Option<Value>, TypeError> {
+        Ok(match v {
+            Some(Value::Array(_) | Value::Object(_)) => Some(Value::String(to_string(v)?)),
+            other => other.cloned(),
+        })
+    };
+    let (x, y) = (to_primitive(a)?, to_primitive(b)?);
+    if let (Some(Value::String(x)), Some(Value::String(y))) = (&x, &y) {
+        return Ok(crate::json::to_utf16(x) < crate::json::to_utf16(y));
+    }
+    Ok(to_number(x.as_ref())? < to_number(y.as_ref())?)
+}
+
 /// A number result as a JSON value: integral values as integers (what
 /// parsing the written number gives back), `-0` as `0`, and NaN and the
 /// infinities as `null`, which is how `JSON.stringify` writes them.
@@ -395,6 +415,25 @@ mod tests {
         );
         assert!(to_string(Some(&json!({"toString": 1}))).is_err());
         assert!(to_string(Some(&json!([{"toString": 1}]))).is_err());
+    }
+
+    #[test]
+    fn less_than_follows_ecmascript() {
+        let lt = |a: Option<Value>, b: Option<Value>| less_than(a.as_ref(), b.as_ref()).unwrap();
+        // strings by UTF-16 code unit
+        assert!(lt(Some(json!("a0")), Some(json!("a0V"))));
+        assert!(lt(Some(json!("Z")), Some(json!("a"))));
+        assert!(!lt(Some(json!("\u{ffff}")), Some(json!("\u{1f600}"))));
+        // anything else as numbers
+        assert!(lt(Some(json!("5")), Some(json!(10))));
+        assert!(!lt(Some(json!(5)), Some(json!("a0"))));
+        assert!(!lt(Some(json!("a0")), Some(json!(5))));
+        assert!(lt(Some(json!(null)), Some(json!(true))));
+        assert!(!lt(None, Some(json!(1))));
+        // arrays and objects through their string form
+        assert!(lt(Some(json!(["a1"])), Some(json!("a2"))));
+        assert!(lt(Some(json!({})), Some(json!("[object Z"))));
+        assert!(less_than(Some(&json!({"toString": 1})), Some(&json!("a"))).is_err());
     }
 
     #[test]

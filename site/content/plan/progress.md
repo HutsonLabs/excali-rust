@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-28 08:56 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-28 09:05 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**135 issues** · 26 closed (19%) · 0 in progress · 0 blocked · 108 open
+**135 issues** · 27 closed (20%) · 0 in progress · 0 blocked · 107 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -31,7 +31,7 @@ Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo work
 
 ## ex-e1 · Phase 1: Core model and file format (excali-core)
 
-<span class="status open">open</span> 10/18 children closed
+<span class="status open">open</span> 11/18 children closed
 
 Element types, serde with unknown-field preservation, restore/migration rules, AppState, fractional indexing, library formats, payload codecs, conformance corpus.
 
@@ -41,7 +41,7 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 | `ex-102` | Serde with unknown-field preservation and 2-space JSON output | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-103` | Restore: base normalisation rules | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-104` | Restore: per-type rules (text, freedraw, image, line/draw, arrow, stickynote, frame) | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-105` | Restore: scene-level repairs (ids, indices, frames, bound text, bindings, sticky notes) | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-105` | Restore: scene-level repairs (ids, indices, frames, bound text, bindings, sticky notes) | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-106` | AppState: exported keys, defaults and restoreAppState legacy handling | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-107` | Fractional indexing port (base-62 keys, generateNKeysBetween, syncInvalidIndices) | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-108` | Library formats: v1 `library` and v2 `libraryItems`, restoreLibraryItems, merge | task | P0 | <span class="status open">open</span> | yes |  |
@@ -54,7 +54,7 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 | `ex-115` | JSON Schema generation for .excalidraw and .excalidrawlib (schemars) | task | P3 | <span class="status open">open</span> |  | `ex-108` |
 | `ex-116` | Restore: legacy arrow binding migration (bindings without mode) through RestoreEnv::migrate_legacy_binding | task | P0 | <span class="status open">open</span> |  | `ex-507`, `ex-510` |
 | `ex-117` | Typed element model: keep field values of a type the model has no form for (string strokeWidth) as upstream's restore does | task | P0 | <span class="status open">open</span> |  | `ex-108` |
-| `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-105`, `ex-108`, `ex-109`, `ex-114`, `ex-115`, `ex-116` … |
+| `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-108`, `ex-109`, `ex-114`, `ex-115`, `ex-116`, `ex-117` |
 
 ## ex-e2 · Phase 2: Geometry and sketch renderer
 
@@ -111,7 +111,7 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 | id | title | type | P | status | ready | blocked by |
 |---|---|---|---|---|---|---|
 | `ex-401` | excali-raster: display list to tiny-skia (paths, fills, dashes, opacity, clips) | task | P0 | <span class="status open">open</span> |  | `ex-216` |
-| `ex-402` | Static scene assembly: background, grid, element order, bound text after container, iframes last | task | P0 | <span class="status open">open</span> |  | `ex-105`, `ex-401` |
+| `ex-402` | Static scene assembly: background, grid, element order, bound text after container, iframes last | task | P0 | <span class="status open">open</span> |  | `ex-401` |
 | `ex-403` | Frames: clipping with radius 8/zoom, stroke #bbb, names as Helvetica text on export | task | P1 | <span class="status open">open</span> |  | `ex-402` |
 | `ex-404` | Image elements: decode data URLs (image crate), crop, scale flip, rounded clip, placeholder | task | P1 | <span class="status open">open</span> |  | `ex-401` |
 | `ex-405` | PNG export: padding 10, scale, background, embedded payload | task | P0 | <span class="status open">open</span> |  | `ex-402` |
@@ -139,7 +139,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-507` | Hit testing (collision.ts): thresholds, inside/outline rules, per-shape intersections | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-508` | Selection and transform handles: sizes by pointer type, resize, rotate, aspect lock, centre resize | task | P0 | <span class="status open">open</span> |  | `ex-507` |
 | `ex-509` | Snapping: point and gap snaps at 8/zoom, snap lines rendering | task | P1 | <span class="status open">open</span> |  | `ex-508` |
-| `ex-510` | Arrow binding: gap 5+sw/2, max distance 15..30 by zoom, fixed points, modes inside/orbit/skip, highlight | task | P0 | <span class="status open">open</span> |  | `ex-105`, `ex-508` |
+| `ex-510` | Arrow binding: gap 5+sw/2, max distance 15..30 by zoom, fixed points, modes inside/orbit/skip, highlight | task | P0 | <span class="status open">open</span> |  | `ex-508` |
 | `ex-511` | Linear element editor: point handles (size 10), midpoints, segment length rule, label position | task | P1 | <span class="status open">open</span> |  | `ex-509` |
 | `ex-512` | Text editing overlay: textarea with dir=auto wrap=off, transform formula, 5% height buffer | task | P0 | <span class="status open">open</span> |  | `ex-305`, `ex-503` |
 | `ex-513` | History: store snapshots, element and appState deltas, undo/redo stacks, version bumps | task | P0 | <span class="status open">open</span> | yes |  |

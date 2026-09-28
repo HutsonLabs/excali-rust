@@ -816,7 +816,7 @@
    "crates": [
     "excali-editor"
    ],
-   "acceptance": "updateElbowArrowPoints reproduces upstream routes for the fixture set including bend penalties and BASE_PADDING 40.",
+   "acceptance": "updateElbowArrowPoints reproduces upstream routes for the fixture set including bend penalties and BASE_PADDING 40. The router answers excali-core's RestoreEnv::update_elbow_arrow_points (restoreElements' re-route of an unbound elbow arrow with a segment that is not axis-aligned, restore.ts:1076-1093), and every updateElbowArrowPoints hook recorded in crates/excali-core/tests/fixtures/restore-elements.json is reproduced from its arguments.",
    "evidence": [
     "site/content/research/rendering.md section 5 (elbow arrows)"
    ],
@@ -1031,7 +1031,7 @@
    "crates": [
     "excali-text"
    ],
-   "acceptance": "getBoundTextMaxWidth cases tested for rectangle, ellipse, diamond, arrow, sticky note.",
+   "acceptance": "getBoundTextMaxWidth cases tested for rectangle, ellipse, diamond, arrow, sticky note. refreshTextDimensions answers excali-core's RestoreEnv::refresh_text_dimensions (restoreElements with refreshDimensions, restore.ts:1032-1045), and every refreshTextDimensions hook recorded in crates/excali-core/tests/fixtures/restore-elements.json is reproduced from its arguments.",
    "evidence": [
     "site/content/research/rendering.md section 2 (bound text)"
    ],
@@ -2101,7 +2101,7 @@
    "crates": [
     "excali-scene"
    ],
-   "acceptance": "Sticky fixtures match upstream export.",
+   "acceptance": "Sticky fixtures match upstream export. getStickyNoteLayout answers excali-core's RestoreEnv::sticky_note_layout (restoreElements with refreshDimensions, restore.ts:931-941), and every getStickyNoteLayout hook recorded in crates/excali-core/tests/fixtures/restore-elements.json is reproduced from its arguments.",
    "evidence": [
     "site/content/research/rendering.md section 2 (sticky note)"
    ],

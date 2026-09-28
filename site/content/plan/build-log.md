@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-105 · Restore: scene-level repairs (ids, indices, frames, bound text, bindings, sticky notes)
+
+`excali_core::restore::restore_elements` and `bump_element_versions` now port upstream's `restoreElements` and `bumpElementVersions`: invisible and unsupported elements dropped, duplicate ids replaced, fractional indices repaired, and with `repairBindings` the frame, bound-text, container, binding, sticky-note and elbow-arrow passes in upstream's order. All 117 scenes of the upstream-generated fixture match byte for byte; routing, text measurement and sticky label fit go through new `RestoreEnv` hooks. PR: [#31](https://github.com/HutsonLabs/excali-rust/pull/31).
+
 ## 2026-09-28 · ex-208 · Shape construction: rectangle (adaptive radius path), diamond (rounded C corners), ellipse (curveFitting 1), iframe defaults
 
 `excali-scene` now builds the rough.js drawables for rectangles, iframes, embeddables, diamonds and ellipses as upstream's `_generateElementShape` does: the adaptive-radius Q path for rounded rectangles, rounded diamond corners as C curves from `getDiamondPoints`, ellipses with curveFitting 1, and the `modifyIframeLikeForRoughOptions` defaults. `getCornerRadius` matches upstream's table (proportional 0.25, adaptive 32 with cutoff), and the element goldens for all five types pass. PR: [#30](https://github.com/HutsonLabs/excali-rust/pull/30).
