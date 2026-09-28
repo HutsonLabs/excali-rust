@@ -86,8 +86,13 @@ impl DisplayList {
     }
 
     /// Replay the list into `painter` from `base`, such as the device pixel
-    /// ratio scale `bootstrapCanvas` sets (`renderer/helpers.ts:73-127`) or
-    /// the `fillStyle` it leaves after painting the background.
+    /// ratio scale `bootstrapCanvas` sets (`renderer/helpers.ts:73-127`).
+    /// That scale is all `bootstrapCanvas` contributes: it paints the
+    /// background inside `save()`/`restore()`, so it leaves no `fillStyle`
+    /// behind. Its `COLOR_WHITE` seed, which makes an invalid background
+    /// paint white, applies only to the background rectangle, and emitting
+    /// that rectangle is the producer's job. A base `fill_style` or
+    /// `stroke_style` is for a caller whose context already holds styles.
     pub fn replay_from(&self, painter: &mut impl Painter, base: PaintState) {
         replay_items(&self.items, painter, &base);
     }
