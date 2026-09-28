@@ -223,6 +223,18 @@ pub fn bump_element_versions(
         .map(|bumped| bumped.iter().map(json::decode_map).collect())
 }
 
+/// [`restore_elements`] without local elements on sentinel-form values
+/// (from [`json::parse`]), giving sentinel-form elements: what the scene
+/// loader (`crate::document::load_scene_json`) restores, so lone
+/// surrogates in a file survive restore.
+pub(crate) fn restore_elements_sentinel(
+    elements: &[Value],
+    opts: RestoreElementsOptions,
+    env: &mut dyn RestoreEnv,
+) -> Result<Vec<Map<String, Value>>, RestoreElementsError> {
+    restore_scene(elements, None, opts, &mut EscapingEnv(env))
+}
+
 /// Which upstream call [`restore_elements_encoded`] makes.
 #[cfg(test)]
 #[derive(Debug, Clone, Copy)]

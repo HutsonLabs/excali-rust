@@ -752,7 +752,7 @@ pub(crate) fn decode_map(map: &Map<String, Value>) -> Map<String, Value> {
 
 /// True when `key` is a canonical array index: the decimal form of an
 /// integer in 0..=2^32-2, as ECMAScript orders such keys first.
-fn is_array_index(key: &str) -> bool {
+pub(crate) fn is_array_index(key: &str) -> bool {
     if key.is_empty() || key.len() > 10 || !key.bytes().all(|b| b.is_ascii_digit()) {
         return false;
     }

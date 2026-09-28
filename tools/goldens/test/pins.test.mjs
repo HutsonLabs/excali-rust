@@ -88,6 +88,30 @@ test("roughjs and perfect-freehand trees are byte-identical to upstream's yarn.l
   }
 });
 
+// document-fixtures.mjs loads scenes embedded in PNG and SVG with
+// upstream's decodePngMetadata and decodeSvgBase64Payload, which read the
+// chunks and inflate with these (packages/excalidraw/package.json:105-110).
+const PAYLOAD = {
+  pako: "2.0.3",
+  "png-chunk-text": "1.0.0",
+  "png-chunks-extract": "1.0.0",
+  "png-chunks-encode": "1.0.0",
+};
+
+test("payload codec packages are upstream's tarballs", () => {
+  const upstream = yarnIntegrity();
+  for (const [name, version] of Object.entries(PAYLOAD)) {
+    assert.equal(pkg.dependencies[name], version, name);
+  }
+  for (const path of [...Object.keys(PAYLOAD), "crc-32", "sliced"]) {
+    const entry = lock.packages[`node_modules/${path}`];
+    assert.ok(entry, `lockfile has ${path}`);
+    const key = `${path}@${entry.version}`;
+    assert.ok(upstream.has(key), `upstream yarn.lock has ${key}`);
+    assert.equal(entry.integrity, upstream.get(key), `${key} integrity`);
+  }
+});
+
 test("installed modules are the pinned versions", () => {
   for (const [name, version] of Object.entries(RENDERING)) {
     const installed = readJson(join(TOOL_DIR, "node_modules", name, "package.json"));

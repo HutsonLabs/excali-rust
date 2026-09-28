@@ -51,16 +51,32 @@
 //! `"42"` or an unknown key `"7"`) first in ascending order, then the other
 //! keys in the order described above. [`Document::to_map`] gives the same
 //! order.
+//!
+//! Opening and saving a file as upstream does is [`load_scene_json`]
+//! (`loadFromBlob`: parse, check, restore) and
+//! [`LoadedScene::to_document`] (`serializeAsJSON(..., "local")`). The
+//! loader reads any scene upstream reads, since restore migrates legacy
+//! elements before they are typed.
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 
-use crate::app_state::ExportedAppState;
+use std::borrow::Cow;
+use std::fmt;
+
+use crate::app_state::{
+    clean_app_state_for_export, restore_app_state, AppState, AppStateEnv, ExportedAppState,
+    TypeError,
+};
 use crate::constants::{EXPORT_DATA_TYPE_EXCALIDRAW, VERSION_EXCALIDRAW};
 use crate::element::{Element, FileId};
+use crate::js::{self, truthy};
 use crate::json::{self, Error};
 use crate::layout::{Canonical, Layout};
+use crate::restore::{
+    restore_elements_sentinel, RestoreElementsError, RestoreElementsOptions, RestoreEnv,
+};
 
 /// A `.excalidraw` file.
 #[derive(Debug, Clone)]
@@ -299,6 +315,251 @@ impl<'de> Deserialize<'de> for Document {
         let raw = Map::<String, Value>::deserialize(d)?;
         Document::from_map(raw).map_err(serde::de::Error::custom)
     }
+}
+
+// ---------------------------------------------------------------------------
+// Loading and saving
+
+/// A scene as upstream's file loading gives it: `loadFromBlob(file, null,
+/// null)` for a `.excalidraw` file, with no local state
+/// (`packages/excalidraw/data/blob.ts:137-216`).
+#[derive(Debug, Clone)]
+pub struct LoadedScene {
+    /// `restoreElements(data.elements, null, {repairBindings: true,
+    /// deleteInvisibleElements: true})`.
+    pub elements: Vec<Element>,
+    /// `restoreAppState({theme: undefined, fileHandle: null,
+    /// ...cleanAppStateForExport(data.appState || {})}, null)`: the full
+    /// state, defaults for every key the file does not export.
+    pub app_state: AppState,
+    /// `data.files || {}`: the file's `files` when truthy, whatever its
+    /// type, otherwise `{}`. Upstream does not check it, and saving indexes
+    /// it as JS does ([`filter_out_deleted_files`]), so an array or a string
+    /// gives the entries a `fileId` such as `"0"` names.
+    pub files: Value,
+    /// Top-level keys `serializeAsJSON` does not write, in file order.
+    /// Upstream drops them; the port keeps them (see
+    /// [`LoadedScene::to_document`]).
+    pub extra: Map<String, Value>,
+    /// `files` as read, in the sentinel form of [`crate::json`], so a lone
+    /// surrogate in it is written back as read while `files` is unchanged.
+    files_raw: Value,
+}
+
+impl PartialEq for LoadedScene {
+    fn eq(&self, other: &LoadedScene) -> bool {
+        self.elements == other.elements
+            && self.app_state == other.app_state
+            && self.files == other.files
+            && self.extra == other.extra
+    }
+}
+
+/// Why a file is not a scene. Upstream's loader reports each of these as
+/// `Error: invalid file` (`blob.ts:180-193`), which is what [`Display`]
+/// gives; [`std::error::Error::source`] has the cause.
+///
+/// [`Display`]: fmt::Display
+#[derive(Debug)]
+pub enum LoadSceneError {
+    /// `JSON.parse` failed.
+    Json(Error),
+    /// `isValidExcalidrawData` (`json.ts:115-126`) does not hold.
+    NotAScene,
+    /// `restoreElements` threw as a whole (an element that throws is
+    /// dropped instead).
+    Restore(RestoreElementsError),
+    /// `restoreAppState` threw.
+    AppState(TypeError),
+    /// A restored element has no typed form: a port defect, since restore
+    /// only gives elements of known types with their fields.
+    Untyped(Error),
+}
+
+impl fmt::Display for LoadSceneError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Error: invalid file")
+    }
+}
+
+impl std::error::Error for LoadSceneError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            LoadSceneError::Json(e) | LoadSceneError::Untyped(e) => Some(e),
+            LoadSceneError::NotAScene => None,
+            LoadSceneError::Restore(e) => Some(e),
+            LoadSceneError::AppState(e) => Some(e),
+        }
+    }
+}
+
+/// Load a `.excalidraw` file as upstream's `loadFromBlob(file, null, null)`
+/// does (`blob.ts:137-216`): `JSON.parse`, `isValidExcalidrawData`, then
+/// restore. Unlike [`Document::from_json`] this reads any scene upstream
+/// reads, legacy fields and elements of unknown types included (restore
+/// migrates or drops them). `env` supplies ids, timestamps and
+/// `versionNonce`s as in restore; `app_env` the AppState defaults.
+pub fn load_scene_json(
+    text: &str,
+    env: &mut dyn RestoreEnv,
+    app_env: &AppStateEnv,
+) -> Result<LoadedScene, LoadSceneError> {
+    match json::parse(text).map_err(LoadSceneError::Json)? {
+        Value::Object(raw) => load_encoded(&raw, env, app_env),
+        _ => Err(LoadSceneError::NotAScene),
+    }
+}
+
+impl LoadedScene {
+    /// [`load_scene_json`] for a document already read, e.g. by
+    /// [`Document::from_json`].
+    pub fn from_document(
+        doc: &Document,
+        env: &mut dyn RestoreEnv,
+        app_env: &AppStateEnv,
+    ) -> Result<LoadedScene, LoadSceneError> {
+        load_encoded(&doc.to_encoded(), env, app_env)
+    }
+
+    /// The scene as `serializeAsJSON(elements, appState, files, "local")`
+    /// writes it (`json.ts:52-75`): `source` as given (upstream's
+    /// `getExportSource()`), the exported `appState`
+    /// (`cleanAppStateForExport`) and the files live elements use
+    /// ([`filter_out_deleted_files`]). The unknown top-level keys of
+    /// [`LoadedScene::extra`] are written after them; upstream drops them.
+    pub fn to_document(&self, source: &str) -> Document {
+        let files = if json::decode(&self.files_raw) == self.files {
+            Cow::Borrowed(&self.files_raw)
+        } else {
+            Cow::Owned(json::escape(&self.files))
+        };
+        let kept = filter_files_encoded(&self.elements, &files);
+        let mut doc = Document::new(
+            source,
+            self.elements.clone(),
+            clean_app_state_for_export(self.app_state.as_map()),
+            None,
+        );
+        // Laid out as Document::from_encoded lays out a `files` it reads.
+        let (files_layout, files) = Layout::read(&kept, &Map::new(), &[]);
+        doc.files = Some(files);
+        doc.files_layout = files_layout;
+        doc.extra = self.extra.clone();
+        doc
+    }
+}
+
+/// `filterOutDeletedFiles` (`json.ts:31-50`): for each element not deleted
+/// with a truthy `fileId`, in element order, `next[fileId] =
+/// files[fileId]` when that is truthy. `files` is indexed as JS indexes
+/// it: an object by its own keys, an array or a string by canonical index
+/// keys (`"0"`, not `"00"`; a string gives one UTF-16 code unit) and
+/// `length`; anything else has no key `JSON.stringify` would write (its
+/// prototype's are functions). `__proto__` is never written: assigning it
+/// sets the prototype of `next`.
+pub fn filter_out_deleted_files(elements: &[Element], files: &Value) -> Map<String, Value> {
+    json::decode_map(&filter_files_encoded(elements, &json::escape(files)))
+}
+
+/// [`filter_out_deleted_files`] in the sentinel form.
+fn filter_files_encoded(elements: &[Element], files: &Value) -> Map<String, Value> {
+    let mut next = Map::new();
+    for element in elements {
+        let map = element.to_encoded();
+        if truthy(map.get("isDeleted")) || !truthy(map.get("fileId")) {
+            continue;
+        }
+        // files[element.fileId]: the id as a property key.
+        let Ok(id) = js::to_string(map.get("fileId")) else {
+            continue;
+        };
+        if id == "__proto__" {
+            continue;
+        }
+        if let Some(file) = property(files, &id).filter(|f| truthy(Some(f))) {
+            next.insert(id, file);
+        }
+    }
+    next
+}
+
+/// `value[key]` for a parsed JSON value in the sentinel form, leaving out
+/// inherited properties (functions, and `__proto__`, which the caller
+/// skips).
+fn property(value: &Value, key: &str) -> Option<Value> {
+    let index = || {
+        json::is_array_index(key)
+            .then(|| key.parse::<usize>().ok())
+            .flatten()
+    };
+    match value {
+        Value::Object(map) => map.get(key).cloned(),
+        Value::Array(items) if key == "length" => Some(Value::from(items.len())),
+        Value::Array(items) => index().and_then(|i| items.get(i)).cloned(),
+        Value::String(s) => {
+            let units = json::to_utf16(s);
+            if key == "length" {
+                return Some(Value::from(units.len()));
+            }
+            let unit = index().and_then(|i| units.get(i))?;
+            Some(Value::String(json::from_utf16(std::slice::from_ref(unit))))
+        }
+        _ => None,
+    }
+}
+
+/// [`load_scene_json`] on a parsed object in the sentinel form.
+fn load_encoded(
+    raw: &Map<String, Value>,
+    env: &mut dyn RestoreEnv,
+    app_env: &AppStateEnv,
+) -> Result<LoadedScene, LoadSceneError> {
+    validate(raw).map_err(|_| LoadSceneError::NotAScene)?;
+    // restoreElements(undefined) restores `[]`; a truthy `elements` is an
+    // array here.
+    let items: &[Value] = match raw.get("elements") {
+        Some(Value::Array(items)) => items,
+        _ => &[],
+    };
+    let opts = RestoreElementsOptions {
+        repair_bindings: true,
+        delete_invisible_elements: true,
+        refresh_dimensions: false,
+    };
+    let elements = restore_elements_sentinel(items, opts, env)
+        .map_err(LoadSceneError::Restore)?
+        .iter()
+        .map(Element::from_encoded)
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(LoadSceneError::Untyped)?;
+
+    // cleanAppStateForExport(data.appState || {}) keeps the exported keys a
+    // value has; only an object has any.
+    let mut imported = Map::new();
+    imported.insert("fileHandle".to_owned(), Value::Null);
+    if let Some(Value::Object(app_state)) = raw.get("appState") {
+        imported.extend(clean_app_state_for_export(&json::decode_map(app_state)));
+    }
+    let app_state =
+        restore_app_state(Some(&imported), None, app_env).map_err(LoadSceneError::AppState)?;
+
+    // data.files || {}
+    let files_raw = match raw.get("files") {
+        Some(files) if truthy(Some(files)) => files.clone(),
+        _ => Value::Object(Map::new()),
+    };
+    let extra = raw
+        .iter()
+        .filter(|(key, _)| !KEYS.contains(&key.as_str()))
+        .map(|(key, value)| (json::decode_str(key).into_owned(), json::decode(value)))
+        .collect();
+    Ok(LoadedScene {
+        elements,
+        app_state,
+        files: json::decode(&files_raw),
+        extra,
+        files_raw,
+    })
 }
 
 // ---------------------------------------------------------------------------
