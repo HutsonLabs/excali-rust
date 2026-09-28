@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-404 · Image elements: decode data URLs (image crate), crop, scale flip, rounded clip, placeholder
+
+Image elements now draw as they do in upstream's `renderElement`. This covers crops, flips, rounded clips, the dark-theme filter on SVG files, and the light, dark and error placeholders. The PNG backend decodes raster and SVG data URLs, and the browser canvas backend draws the same images. Built-in placeholders and link icons use one set of `excalidraw:` ids, and the static scene fills rectangles with `fillRect` wherever upstream does. PNG output matches Chrome 153 within each fixture's tolerance. PR: [#71](https://github.com/HutsonLabs/excali-rust/pull/71).
+
 ## 2026-09-28 · ex-408 · Spike: font subsetting for SVG export (allsorts, hb-subset, or ship full woff2)
 
 SVG export now inlines each font face subset to the characters in the scene, as upstream's hb-subset path does, and falls back to the whole file only if subsetting fails. ADR-010 chose skera 0.7.0 with ttf2woff2 0.13.3 after measuring four subsetters against upstream's own subsets. skera keeps 1417/1417 code points with the same glyphs, its output is 97.6 % of upstream's bytes, 279/279 runs render pixel-identical in Chromium, and it builds for wasm32. PR: [#70](https://github.com/HutsonLabs/excali-rust/pull/70).
