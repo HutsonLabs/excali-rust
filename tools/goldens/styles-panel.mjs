@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// Styles panel goldens for excali-ui (ex-519): upstream's own
+// Styles panel goldens for excali-ui (ex-519, ex-701): upstream's own
 // getShapeActionPredicates (packages/excalidraw/components/
-// shapeActionPredicates.ts) and SelectedShapeActions, the full styles
-// panel (components/Actions.tsx:63-217), run from the pinned checkout
-// under Node.
+// shapeActionPredicates.ts), SelectedShapeActions, the full styles panel
+// (components/Actions.tsx:63-217), CompactShapeActions, the compact one
+// (:219-717), and the form factor rules (common/src/editorInterface.ts),
+// run from the pinned checkout under Node.
 //
 //   node tools/goldens/styles-panel.mjs            write the fixture
 //   node tools/goldens/styles-panel.mjs --check    exit 1 if it is stale
@@ -18,7 +19,15 @@
 //   (`app.scene.getNonDeletedElementsMap()` as `elementsMap`). The
 //   hand-written cases cover every tool and every rule of the predicates;
 //   the rest are seeded random selections.
-// - `locale`: the English strings of the legends (locales/en.json).
+// - `compact` on every case: the tree CompactShapeActions renders for it
+//   on a tablet (the case's `openPopup` opens one of its popovers);
+// - `compactWrapper`: LayerUI's section and island around the compact
+//   panel (LayerUI.tsx:249-275);
+// - `formFactor`: the breakpoints, getFormFactor, isMobileBreakpoint and
+//   isTabletBreakpoint over a grid of editor sizes, and
+//   deriveStylesPanelMode for every form factor and desktop UI mode;
+// - `locale`: the English strings of the legends and titles
+//   (locales/en.json).
 //
 // The tree: `{ tag, class?, children? }` for a DOM element, a string for
 // text, and `{ action }` where the panel calls `renderAction(action)`.
@@ -27,8 +36,14 @@
 // is ex-514's ActionManager.can_render), so the tree is the panel's
 // structure and the predicates' gates. JSX is evaluated by a stand-in
 // runtime (react/jsx-runtime shimmed below) that calls function
-// components and flattens fragments; Actions.tsx's full panel uses no
-// hooks.
+// components and flattens fragments; the hooks the compact panel calls
+// are inert (its popovers open from `appState.openPopup`). An icons.tsx
+// icon is `{ icon: name }`, `renderAction(name, data)` is
+// `{ action, data }`, event handlers are left out, and radix's Popover is
+// a stand-in: Root, Trigger and Portal render their children in place,
+// Content is `{ tag: "popover", class, attrs: { side, align, sideOffset,
+// alignOffset }, style }` (PropertiesPopover's placement) and Arrow
+// renders nothing.
 //
 // Deterministic: Math.random throws while generating, elements are built
 // with fixed ids after reseed(), `updated` is fixed, and the random cases
@@ -47,7 +62,9 @@ export const OUT_DIR = join(REPO_ROOT, "crates", "excali-ui", "tests", "fixtures
 export const OUT_FILE = "styles-panel.json";
 
 const ENTRY = `
-export { SelectedShapeActions } from "./packages/excalidraw/components/Actions";
+export { SelectedShapeActions, CompactShapeActions } from "./packages/excalidraw/components/Actions";
+export * as editorInterface from "./packages/common/src/editorInterface";
+export * as icons from "./packages/excalidraw/components/icons";
 export { getShapeActionPredicates } from "./packages/excalidraw/components/shapeActionPredicates";
 export { getDefaultAppState } from "./packages/excalidraw/appState";
 export { Section } from "./packages/excalidraw/components/Section";
@@ -81,7 +98,6 @@ const FRAGMENT = Symbol.for("excali-rust.fragment");
 // Packages the module graph of Actions.tsx (through actions/index and the
 // components it imports) reaches but the full panel never calls.
 const STUBS = [
-  "radix-ui",
   "fuzzy",
   "pica",
   "react-dom",
@@ -91,7 +107,18 @@ const STUBS = [
 
 const SHIMS = {
   // Section reads the container's id (App.tsx:593-594).
-  "packages/excalidraw/components/App": `module.exports = { useExcalidrawContainer: () => ({ id: "${CONTAINER_ID}", container: null }) };`,
+  // The compact panel's PropertiesPopover reads the editor interface.
+  "packages/excalidraw/components/App": `module.exports = {
+  useExcalidrawContainer: () => ({ id: "${CONTAINER_ID}", container: null }),
+  useEditorInterface: () => ({ formFactor: "tablet", desktopUIMode: "full", isTouchScreen: true, isLandscape: true, canFitSidebar: false }),
+};`,
+  "radix-ui": `const F = Symbol.for("excali-rust.fragment");
+const pass = ({ children }) => ({ type: F, props: { children } });
+const Content = ({ className, side, align, sideOffset, alignOffset, style, children }) => ({
+  type: "popover",
+  props: { className, side, align, sideOffset: String(sideOffset), alignOffset: String(alignOffset), style, children },
+});
+module.exports = { Popover: { Root: pass, Trigger: pass, Portal: pass, Content, Arrow: () => null } };`,
   "react/jsx-runtime": `const F = Symbol.for("excali-rust.fragment");
 const jsx = (type, props) => ({ type, props });
 module.exports = { jsx, jsxs: jsx, Fragment: F };`,
@@ -190,7 +217,8 @@ const SCENES = {
     const g2c = up.newElement({ type: "ellipse", id: "g2c", ...at(240, 800), seed: 28, groupIds: ["g2o"] });
     const x1 = { ...up.newElement({ type: "rectangle", id: "x1", ...at(240, 300), seed: 29 }), isDeleted: true };
     const l2 = up.newLinearElement({ type: "line", id: "l2", x: 360, y: 300, seed: 30, points: [[0, 0], [60, 0], [60, 60], [0, 0]], backgroundColor: "#ffec99", polygon: true });
-    return [r1, r2, e1, d1, l1, a1, a2, f1, t1, c1, ct1, a3, at1, s1, st1, s2, i1, i2, fr1, fc1, mf1, em1, if1, g1a, g1b, g2a, g2b, g2c, x1, l2];
+    const a4 = up.newArrowElement({ type: "arrow", id: "a4", x: 480, y: 300, seed: 31, points: [[0, 0], [80, 20]], elbowed: false, roundness: { type: 2 } });
+    return [r1, r2, e1, d1, l1, a1, a2, f1, t1, c1, ct1, a3, at1, s1, st1, s2, i1, i2, fr1, fc1, mf1, em1, if1, g1a, g1b, g2a, g2b, g2c, x1, l2, a4];
   },
 };
 
@@ -310,8 +338,42 @@ const handCases = () => {
   cases.push(["custom-tool-editing-t1", { tool: "custom", state: { editingTextElement: find("t1") } }]);
   cases.push(["selection-editing-t1", { state: { editingTextElement: find("t1") } }]);
   cases.push(["selection-deleted-x1", { select: ["x1"] }]);
+  // the compact panel: the arrow type trigger's icon (the selected
+  // arrows' common type, else currentItemArrowType), and each popover
+  // open over selections and tools
+  for (const arrowType of ["sharp", "round", "elbow"]) {
+    cases.push([`arrow-type-tool-${arrowType}`, { tool: "arrow", state: { currentItemArrowType: arrowType } }]);
+    cases.push([`arrow-type-a1-${arrowType}`, { select: ["a1"], state: { currentItemArrowType: arrowType } }]);
+  }
+  for (const ids of [["a4"], ["a1", "a4"], ["a2", "a4"], ["a4", "r1"]]) cases.push([`arrow-type-${ids.join("-")}`, { select: ids }]);
+  cases.push(["arrow-type-editing-at1", { select: ["a3"], state: { editingTextElement: find("at1"), currentItemArrowType: "elbow" } }]);
+  const popups = ["compactStrokeStyles", "compactArrowProperties", "compactTextProperties", "compactOtherProperties"];
+  for (const [id, c] of [
+    ["r1", { select: ["r1"] }],
+    ["a2", { select: ["a2"] }],
+    ["t1", { select: ["t1"] }],
+    ["c1", { select: ["c1"] }],
+    ["f1", { select: ["f1"] }],
+    ["l1", { select: ["l1"] }],
+    ["i1", { select: ["i1"] }],
+    ["r1-r2", { select: ["r1", "r2"] }],
+    ["r1-e1-d1", { select: ["r1", "e1", "d1"] }],
+    ["l1-a1", { select: ["l1", "a1"] }],
+    ["g1", { select: ["g1a", "g1b"], state: { selectedGroupIds: { g1: true } } }],
+    ["tool-selection", {}],
+    ["tool-rectangle", { tool: "rectangle" }],
+    ["tool-arrow", { tool: "arrow" }],
+    ["tool-text", { tool: "text" }],
+    ["tool-hand", { tool: "hand" }],
+    ["editing-t1", { tool: "text", state: { editingTextElement: find("t1") } }],
+  ]) {
+    for (const popup of popups) cases.push([`popup-${popup}-${id}`, { ...c, state: { ...(c.state ?? {}), openPopup: popup } }]);
+  }
+  cases.push(["popup-elementStroke-r1", { select: ["r1"], state: { openPopup: "elementStroke" } }]);
   // right to left
-  for (const [id, c] of cases.filter(([id]) => ["select-r1-r2", "select-r1-e1-d1", "group-g1-and-r1", "tool-bucketfill"].includes(id))) {
+  for (const [id, c] of cases.filter(([id]) =>
+    ["select-r1-r2", "select-r1-e1-d1", "group-g1-and-r1", "tool-bucketfill", "popup-compactOtherProperties-r1-e1-d1"].includes(id),
+  )) {
     cases.push([`${id}-rtl`, { ...c, rtl: true }]);
   }
   return cases;
@@ -354,19 +416,26 @@ const randomCases = (elements) => {
 
 // -- running upstream -----------------------------------------------------------------
 
+/** icons.tsx's icons (JSX from the stand-in runtime) → export name; the
+ * first export names an alias. */
+const iconNames = new Map();
+
 /** The rendered JSX as a plain tree (see the header). */
 const flatten = (node) => {
   if (node === null || node === undefined || node === false || node === true) return [];
   if (Array.isArray(node)) return node.flatMap(flatten);
   if (typeof node === "string" || typeof node === "number") return [String(node)];
-  if (typeof node.action === "string") return [{ action: node.action }];
+  if (typeof node.action === "string") return [node.data ? { action: node.action, data: node.data } : { action: node.action }];
+  if (iconNames.has(node)) return [{ icon: iconNames.get(node) }];
   const { type, props } = node;
   if (type === FRAGMENT) return flatten(props.children);
   if (typeof type === "function") return flatten(type(props));
   if (typeof type !== "string") throw new Error(`unexpected element type ${String(type)}`);
   const out = { tag: type };
   if (props.className) out.class = props.className;
-  const attrs = Object.entries(props).filter(([k, v]) => !["children", "className", "style"].includes(k) && v !== undefined);
+  const attrs = Object.entries(props).filter(
+    ([k, v]) => !["children", "className", "style"].includes(k) && v !== undefined && typeof v !== "function",
+  );
   for (const [k, v] of attrs) if (typeof v !== "string") throw new Error(`<${type}> ${k} is not a string`);
   if (attrs.length) out.attrs = Object.fromEntries(attrs);
   if (props.style) out.style = props.style;
@@ -414,7 +483,7 @@ const runCase = (up, window, sceneName, elements, [id, c]) => {
   // skipValidation: the fractional index check only logs, and its 60 s
   // throttle would keep the process alive (Scene.ts:67-80, 271-283).
   const scene = new up.Scene(elements, { skipValidation: true });
-  const app = { scene };
+  const app = { scene, state: appState };
   const elementsMap = scene.getNonDeletedElementsMap();
   window.document.documentElement.setAttribute("dir", c.rtl ? "rtl" : "ltr");
   const targets = up.getTargetElements(elementsMap, appState);
@@ -424,6 +493,15 @@ const runCase = (up, window, sceneName, elements, [id, c]) => {
   const show = up.showSelectedShapeActions(appState, scene.getNonDeletedElements());
   const tree = flatten(
     up.SelectedShapeActions({ appState, elementsMap, renderAction: (action) => ({ action }), app }),
+  );
+  const compact = flatten(
+    up.CompactShapeActions({
+      appState,
+      elementsMap,
+      renderAction: (action, data) => ({ action, data }),
+      app,
+      setAppState: () => {},
+    }),
   );
   window.document.documentElement.removeAttribute("dir");
   const statePatch = json(patch);
@@ -435,6 +513,7 @@ const runCase = (up, window, sceneName, elements, [id, c]) => {
     show,
     predicates: json(predicates),
     tree,
+    compact,
   };
 };
 
@@ -460,6 +539,52 @@ const wrapperCase = (up, [height, zenModeEnabled]) => {
   return { height, zenModeEnabled, tree };
 };
 
+/** LayerUI's renderSelectedShapeActions around the compact panel
+ * (LayerUI.tsx:249-275). */
+const compactWrapperCase = (up, [height, zenModeEnabled]) => {
+  const tree = flatten(
+    up.Section({
+      heading: "selectedShapeActions",
+      className: ["selected-shape-actions zen-mode-transition", zenModeEnabled ? "transition-left" : ""].filter(Boolean).join(" "),
+      children: up.Island({
+        className: "compact-shape-actions-island",
+        padding: 0,
+        "data-viewport-ui": "side",
+        "data-viewport-ui-name": "stylesPanel",
+        style: { maxHeight: `${height - 166}px` },
+        children: { action: "<panel>" },
+      }),
+    }),
+  );
+  return { height, zenModeEnabled, tree };
+};
+
+/** Editor sides for the form factor grid: each breakpoint, either side
+ * of it, and common screens. */
+const SIDES = [0, 320, 375, 390, 499, 499.5, 500, 568, 599, 599.5, 600, 601, 667, 744, 768, 820, 834, 844, 999, 1000, 1024, 1112, 1180, 1180.5, 1181, 1229, 1366, 1440, 1920];
+
+const formFactorFixture = (up) => {
+  const e = up.editorInterface;
+  const sizes = SIDES.flatMap((width) => SIDES.map((height) => ({
+    width,
+    height,
+    formFactor: e.getFormFactor(width, height),
+    mobile: e.isMobileBreakpoint(width, height),
+    tablet: e.isTabletBreakpoint(width, height),
+  })));
+  const modes = ["phone", "tablet", "desktop"].flatMap((formFactor) =>
+    ["compact", "full"].map((desktopUIMode) => ({
+      formFactor,
+      desktopUIMode,
+      mode: e.deriveStylesPanelMode({ formFactor, desktopUIMode }),
+    })),
+  );
+  const constants = Object.fromEntries(
+    ["MQ_MAX_MOBILE", "MQ_MAX_WIDTH_LANDSCAPE", "MQ_MAX_HEIGHT_LANDSCAPE", "MQ_MIN_TABLET", "MQ_MAX_TABLET", "MQ_MIN_WIDTH_DESKTOP", "MQ_RIGHT_SIDEBAR_MIN_WIDTH"].map((k) => [k, e[k]]),
+  );
+  return { constants, sizes, modes };
+};
+
 const build = async (upstream) => {
   const window = installDom(ORIGIN);
   const up = await loadUpstream(upstream, {
@@ -473,6 +598,10 @@ const build = async (upstream) => {
     },
   });
   up.setCustomTextMetricsProvider({ getLineWidth: (text) => text.length * 10 });
+  iconNames.clear();
+  for (const [name, value] of Object.entries(up.icons)) {
+    if (value && typeof value === "object" && value.type === "svg" && !iconNames.has(value)) iconNames.set(value, name);
+  }
   const scenes = {};
   const cases = [];
   for (const [name, make] of Object.entries(SCENES)) {
@@ -489,13 +618,15 @@ const build = async (upstream) => {
   window.close();
   return format({
     description:
-      "Upstream getShapeActionPredicates (packages/excalidraw/components/shapeActionPredicates.ts) and the full styles panel SelectedShapeActions (components/Actions.tsx:63-217) at the pinned commit (tools/goldens/styles-panel.mjs): per case an active tool, a selection and app state keys over a scene of upstream-built elements, the document direction, the predicates, and the rendered tree ({tag, class, children}, text, and {action} where renderAction is called, stubbed to render every action).",
+      "Upstream getShapeActionPredicates (packages/excalidraw/components/shapeActionPredicates.ts), the full styles panel SelectedShapeActions (components/Actions.tsx:63-217), the compact one CompactShapeActions (:219-717) and the form factor rules (common/src/editorInterface.ts) at the pinned commit (tools/goldens/styles-panel.mjs): per case an active tool, a selection and app state keys over a scene of upstream-built elements, the document direction, the predicates, and the rendered full and compact trees ({tag, class, children}, text, {icon} for an icons.tsx icon, {tag: popover} for a radix Popover.Content, and {action, data?} where renderAction is called, stubbed to render every action).",
     upstream: upstream.commit,
     containerId: CONTAINER_ID,
     locale: Object.fromEntries(
-      ["labels.layers", "labels.align", "labels.actions", "headings.selectedShapeActions"].map((k) => [k, up.t(k)]),
+      ["labels.layers", "labels.align", "labels.actions", "headings.selectedShapeActions", "labels.stroke", "labels.arrowtypes", "labels.textAlign"].map((k) => [k, up.t(k)]),
     ),
     wrapper: [[900, false], [768, true], [600.5, false]].map((c) => wrapperCase(up, c)),
+    compactWrapper: [[900, false], [768, true], [600.5, false]].map((c) => compactWrapperCase(up, c)),
+    formFactor: formFactorFixture(up),
     scenes,
     cases,
   });
