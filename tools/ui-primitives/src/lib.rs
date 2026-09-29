@@ -12,13 +12,13 @@ use std::rc::Rc;
 use excali_scene::shape::Theme;
 use excali_ui::dom::{mount, Element, Mounted, Node};
 use excali_ui::primitives::icons::{close_icon, eye_icon};
-use excali_ui::theme::{apply_container_tokens, apply_theme};
 use excali_ui::primitives::{
     button, dialog, icon_button, install_stylesheet, island, open_modal, popover, radio_group,
     range, stack_col, stack_row, text_field, tooltip, Align, ButtonProps, DialogProps, DialogSize,
     IconButtonKind, IconButtonProps, IslandProps, OpenModal, PopoverProps, RadioGroupChoice,
     RadioGroupProps, RangeProps, StackProps, TextFieldProps, TextFieldValue, TooltipProps,
 };
+use excali_ui::theme::{apply_container_tokens, apply_theme};
 use wasm_bindgen::prelude::*;
 
 thread_local! {

@@ -141,16 +141,15 @@ fn backticked(cell: &str) -> Vec<&str> {
     cell.split('`').skip(1).step_by(2).collect()
 }
 
-/// The names a table's first cell lists: `--a` / `--b`, `--a` / `-suffix`
-/// (a suffix of the first) and `--a-1/2/3`.
+/// The names a table's first cell lists: `--a` / `--b` and `--a-1/2/3`.
 fn names(cell: &str) -> Vec<String> {
-    let parts: Vec<&str> = backticked(cell);
     let mut out = Vec::new();
-    let Some(first) = parts.first() else {
-        return out;
-    };
-    for part in &parts {
-        if part.starts_with("--") {
+    for part in backticked(cell) {
+        assert!(
+            part.starts_with("--"),
+            "{part}: write the token's full name"
+        );
+        {
             if let Some((stem, rest)) = part.split_once('/') {
                 let base = stem.trim_end_matches(|c: char| c.is_ascii_digit());
                 out.push(stem.to_string());
@@ -160,8 +159,6 @@ fn names(cell: &str) -> Vec<String> {
             } else {
                 out.push(part.to_string());
             }
-        } else if part.starts_with('-') {
-            out.push(format!("{first}{part}"));
         }
     }
     out
@@ -242,7 +239,7 @@ fn every_table_token_on_the_page_is_emitted_light_and_dark() {
             check_values(&row.names, &row.dark, &dark, "dark");
         }
     }
-    assert!(seen > 55, "{seen} names");
+    assert!(seen >= 51, "{seen} names");
 }
 
 #[test]
@@ -281,7 +278,10 @@ fn the_page_semantic_sets_are_emitted() {
     for chunk in list.split(", `--") {
         let chunk = chunk.trim_start_matches('`');
         let (prefix, values) = chunk.split_once('`').unwrap();
-        let prefix = format!("--{}", prefix.trim_start_matches("--").trim_end_matches('*'));
+        let prefix = format!(
+            "--{}",
+            prefix.trim_start_matches("--").trim_end_matches('*')
+        );
         // `--color-badge` `#0b6513` on `#d3ffd2`: the background's token is
         // `--background-color-badge`
         let background = format!("--background-{}", &prefix[2..]);

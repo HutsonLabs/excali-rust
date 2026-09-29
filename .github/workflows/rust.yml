@@ -553,7 +553,9 @@ jobs:
   # (2rem tool buttons, 1rem icons, Island padding and Stack gaps in 0.25rem
   # units, 0.5rem radii) and the primitives' behaviour (pointer types of
   # tool toggles, callbacks, redaction, tooltip placement, dialog and
-  # popover focus, Tab traps, Escape, backdrop and outside presses).
+  # popover focus, Tab traps, Escape, backdrop and outside presses), and
+  # the theme tokens (ex-532): every light and dark token computed on
+  # .excalidraw, and a host page's overrides of --color-primary*.
   ui-primitives:
     runs-on: ubuntu-latest
     steps:

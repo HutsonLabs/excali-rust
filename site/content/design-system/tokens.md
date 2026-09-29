@@ -6,6 +6,8 @@ weight = 1
 
 All tokens are declared on `.excalidraw`; dark values under `.excalidraw.theme--dark` (`theme.scss:184-278`). The port emits the same names so upstream's theming guidance ("override CSS variables on `.excalidraw` and `.excalidraw.theme--dark`") applies unchanged. Full table with line numbers: [research](../../research/ui-design-system/#11-css-custom-properties-theme-pcssthemescss).
 
+In the port, `excali_ui::primitives::install_stylesheet` embeds theme.scss compiled at the pin (every token below, light and dark), as the first child of the document's head, so a host's own `.excalidraw { --color-primary: … }` and `.excalidraw.theme--dark { … }` rules win at equal specificity wherever its stylesheet is. `excali_ui::theme::apply_theme` toggles `theme--dark` on the container as `App.tsx:4434-4437` does, `apply_container_tokens` writes `--right-sidebar-width` into its inline style (`App.tsx:2453`), and `light_tokens`, `dark_tokens` and `tokens(theme)` read the embedded declarations. `crates/excali-ui/tests/theme.rs` holds every token in the tables below (names and values) to the stylesheet, and the Chromium suite `tests/web/primitives/theme.spec.mjs` checks them computed and overridden by a host.
+
 ## Core
 
 | Token | Light | Dark |
@@ -43,7 +45,7 @@ All tokens are declared on `.excalidraw`; dark values under `.excalidraw.theme--
 | `--link-color` | blue-7 `#1c7ed6` | blue-4 `#4dabf7` |
 | `--keybinding-color` | `--color-gray-40` | `--color-gray-60` |
 | `--button-gray-1/2/3` | `#e9ecef` / `#ced4da` / `#adb5bd` | `#363636` / `#272727` / `#222` |
-| `--button-destructive-bg-color` / `-color` | `#ffe3e3` / `#c92a2a` | `#5a0000` / `#ffa8a8` |
+| `--button-destructive-bg-color` / `--button-destructive-color` | `#ffe3e3` / `#c92a2a` | `#5a0000` / `#ffa8a8` |
 | `--color-disabled` | gray-40 | gray-70 |
 | `--theme-filter` | `none` | `invert(93%) hue-rotate(180deg)` |
 
@@ -64,7 +66,7 @@ Semantic sets: `--color-warning*` (`#fceeca`, `#f5c354`, `#f3ab2c`, `#ec8b14`), 
 | `--editor-container-padding` | `1rem` (`0.75rem` on phone) |
 | `--mobile-action-button-size` | `2rem` |
 | `--right-sidebar-width` | `302px` |
-| `--shadow-island` | `0 0 0 1px rgba(0,0,0,.01), 1px 1px 5px rgba(0,0,0,.15)` (3-layer set in source) |
+| `--shadow-island` | `0px 0px 1px 0px rgba(0,0,0,.17), 0px 0px 3px 0px rgba(0,0,0,.08), 0px 7px 14px 0px rgba(0,0,0,.05)` |
 | Dialog widths | small 550, regular 800, wide 1024 px |
 | Focus ring | `box-shadow: 0 0 0 1px var(--color-brand-hover)` |
 | Button font size | `0.8333rem` |

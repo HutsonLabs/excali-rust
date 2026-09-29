@@ -99,7 +99,10 @@ pub const PRIMITIVES_CSS: &str = include_str!("primitives.css");
 /// The `data-excali-ui` value of the `<style>` holding [`PRIMITIVES_CSS`].
 const STYLESHEET_ID: &str = "primitives";
 
-/// Adds [`PRIMITIVES_CSS`] to `document`'s head once.
+/// Adds [`PRIMITIVES_CSS`] to `document`'s head once, as its first child,
+/// so a host's own rules on `.excalidraw` and `.excalidraw.theme--dark`
+/// (upstream's theming guidance) override the tokens wherever the host's
+/// stylesheet is ([`crate::theme`]).
 pub fn install_stylesheet(document: &Document) -> Result<(), JsValue> {
     let selector = format!("style[data-excali-ui=\"{STYLESHEET_ID}\"]");
     if document.query_selector(&selector)?.is_some() {
@@ -111,7 +114,7 @@ pub fn install_stylesheet(document: &Document) -> Result<(), JsValue> {
     let head = document
         .head()
         .ok_or_else(|| JsValue::from_str("the document has no head"))?;
-    head.append_child(&style)?;
+    head.insert_before(&style, head.first_child().as_ref())?;
     Ok(())
 }
 
