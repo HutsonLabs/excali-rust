@@ -81,6 +81,8 @@ class BuildTest(unittest.TestCase):
             "scripts/web/binaryen.py",
             "scripts/gates/wasm_size.py",
             "site/content/plan/phases.md",
+            "crates/excali-wasm/js/excali-editor.js",
+            "crates/excali-wasm/excali.css",
         ):
             (self.root / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(ROOT / rel, self.root / rel)
@@ -130,8 +132,15 @@ class BuildTest(unittest.TestCase):
         r = self.build()
         self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
         dist = self.root / "dist"
+        # wasm-bindgen's glue, then the custom element shim (ex-530)
+        shim = (ROOT / "crates/excali-wasm/js/excali-editor.js").read_text()
         self.assertEqual(
-            (dist / "excali_editor.js").read_text(), "export default function init() {}\n"
+            (dist / "excali_editor.js").read_text(),
+            "export default function init() {}\n" + shim,
+        )
+        self.assertEqual(
+            (dist / "excali.css").read_text(),
+            (ROOT / "crates/excali-wasm/excali.css").read_text(),
         )
         # The shipped module is wasm-opt's output, not wasm-bindgen's.
         self.assertEqual((dist / "excali_editor_bg.wasm").read_bytes(), b"\0asm-optimised")
@@ -140,7 +149,7 @@ class BuildTest(unittest.TestCase):
         # Nothing else: no TypeScript, no intermediate files.
         self.assertEqual(
             sorted(p.name for p in dist.iterdir()),
-            ["excali_editor.js", "excali_editor_bg.wasm", "fonts"],
+            ["excali.css", "excali_editor.js", "excali_editor_bg.wasm", "fonts"],
         )
 
     def test_pipeline_order_and_flags(self):
@@ -198,7 +207,7 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
         self.assertEqual(
             sorted(p.name for p in out.iterdir()),
-            ["excali_editor.js", "excali_editor_bg.wasm", "fonts"],
+            ["excali.css", "excali_editor.js", "excali_editor_bg.wasm", "fonts"],
         )
         self.assertFalse((self.root / "dist").exists())
 
