@@ -1193,6 +1193,25 @@ fn image_scene() -> Ed {
     ed
 }
 
+/// The centre of an image's south-east handle (`getTransformHandles`, no
+/// margin for images).
+fn se_handle_center(image: &Element) -> [f64; 2] {
+    use excali_editor::tools::PointerType;
+    use excali_editor::transform_handles::{
+        get_omit_sides_for_editor_interface, get_transform_handles, EditorInterface,
+    };
+    let map = excali_scene::bounds::ElementsMap::new(std::iter::once(image));
+    let handles = get_transform_handles(
+        image,
+        1.0,
+        &map,
+        PointerType::Mouse,
+        &get_omit_sides_for_editor_interface(&EditorInterface::desktop()),
+    );
+    let [x, y, w, h] = handles.se.expect("a south-east handle");
+    [x + w / 2.0, y + h / 2.0]
+}
+
 fn cropping(ed: &Ed) -> Value {
     app(ed, "croppingElementId")
 }
@@ -1234,8 +1253,10 @@ fn a_crop_handle_dragged_crops() {
     let mut ed = image_scene();
     enter(&mut ed);
     let before = get(&ed, "img").clone();
-    // the south-east handle of (0, 0)-(200, 100) spans (202, 102)-(210, 110)
-    drag(&mut ed, [206.0, 106.0], [156.0, 76.0]);
+    let se = se_handle_center(&before);
+    // the press is at the handle's centre, the corner is where the pointer
+    // less that offset is: here the corner (200, 100) moved by (-50, -30)
+    drag(&mut ed, se, [se[0] - 50.0, se[1] - 30.0]);
     let map = excali_scene::bounds::ElementsMap::new(std::iter::once(&before));
     let want = crop_element(
         &before,
@@ -1266,7 +1287,8 @@ fn a_drag_inside_a_cropped_image_moves_the_crop() {
     // image's pixels (natural / uncropped size), clamped to the image
     let mut ed = image_scene();
     enter(&mut ed);
-    drag(&mut ed, [206.0, 106.0], [156.0, 76.0]);
+    let se = se_handle_center(get(&ed, "img"));
+    drag(&mut ed, se, [se[0] - 50.0, se[1] - 30.0]);
     let crop = json!(get(&ed, "img").to_map())["crop"].clone();
     let (x0, w) = (crop["x"].as_f64().unwrap(), crop["width"].as_f64().unwrap());
     assert_eq!(x0, 0.0);
