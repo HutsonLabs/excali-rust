@@ -2702,7 +2702,7 @@ fn failing_text_layout(
 fn undo_and_redo_apply_despite_a_layout_error_in_production() {
     for production in [true, false] {
         let mut env = TestEnv::with_layout();
-        env.text_layout = Some(failing_text_layout);
+        env.text_layout = support::TextLayoutMode::Custom(failing_text_layout);
         env.production = production;
         let mut s = Session::new(env, AppState::default());
         s.initialize_scene(vec![], obj(json!({})))
