@@ -9,8 +9,18 @@
 //! added and selected, a selection change, a background colour change on
 //! the selection, a deletion), captured `IMMEDIATELY` as upstream's
 //! handlers schedule it. `Keyboard.undo()` / `redo()` are the undo / redo
-//! actions (`actions/actionHistory.tsx`). Every assertion on the undo and
-//! redo stacks, the scene and the selection is upstream's.
+//! actions (`actions/actionHistory.tsx`). A gesture in progress (a pointer
+//! down and its moves) is a scene update with no capture scheduled
+//! (`EVENTUALLY`), its pointer up the capture. Every assertion on the undo
+//! and redo stacks, the scene and the selection is upstream's.
+//!
+//! Layout after undo and redo runs as upstream's does: `redrawElements`
+//! picks the elements, and the leaf calls are `tests/support`'s
+//! `redrawTextBoundingBox` under upstream's test metric (which reproduces
+//! upstream's label positions) and a stand-in for `updateBoundElements`
+//! that moves bound arrow ends onto their fixed points (upstream's arrow
+//! routing belongs to ex-510); those cases also pin which elements were
+//! laid out.
 
 mod support;
 
@@ -165,6 +175,34 @@ impl App {
                 capture_update: Immediately,
             })
             .expect("action");
+    }
+
+    /// A pointer move of a gesture in progress: the scene and app state as
+    /// the handler leaves them, with no capture scheduled (`EVENTUALLY`,
+    /// the default of the commit in `componentDidUpdate`).
+    fn gesture(&mut self, elements: Option<Vec<Element>>, app_state: Option<Value>) {
+        self.s
+            .sync_action_result(ActionResult {
+                elements,
+                app_state: app_state.map(obj),
+                capture_update: CaptureUpdateAction::Eventually,
+            })
+            .expect("gesture");
+    }
+
+    /// The scene with `id` replaced by `newElementWith(element, updates)`.
+    fn updated(&mut self, id: &str, updates: Value) -> Vec<Element> {
+        let elements = self.elements();
+        elements
+            .iter()
+            .map(|e| {
+                if e.base.id == id {
+                    with(e, updates.clone(), self.env())
+                } else {
+                    e.clone()
+                }
+            })
+            .collect()
     }
 
     /// `UI.createElement("rectangle", { x, y })`: the rectangle is drawn,
@@ -331,6 +369,32 @@ fn should_not_collapse_when_applying_corrupted_history_entry() {
     assert!(app.s.redo().is_err());
     assert_eq!(app.stacks(), (1, 0));
     assert!(!app.get("rect").base.is_deleted);
+}
+
+#[test]
+fn should_not_end_up_with_history_entry_when_there_are_no_appstate_changes() {
+    let mut app = App::new();
+    let mut r1 = rect("rect1", 0.0, 0.0);
+    r1.base.group_ids = vec!["A".into()];
+    let mut r2 = rect("rect2", 0.0, 0.0);
+    r2.base.group_ids = vec!["A".into()];
+    app.set_elements(vec![r1, r2]);
+
+    // mouse.select(rect1): a click on a grouped element selects the group
+    let group_selection = json!({
+        "selectedElementIds": {"rect1": true, "rect2": true},
+        "selectedGroupIds": {"A": true},
+    });
+    app.act(None, Some(group_selection.clone()));
+    app.assert_selected(&["rect1", "rect2"]);
+    assert_eq!(app.state("selectedGroupIds"), json!({"A": true}));
+    assert_eq!(app.stacks(), (1, 0));
+
+    // mouse.select(rect2): the same group, the same selection
+    app.act(None, Some(group_selection));
+    app.assert_selected(&["rect1", "rect2"]);
+    assert_eq!(app.state("selectedGroupIds"), json!({"A": true}));
+    assert_eq!(app.stacks(), (1, 0)); // no new entry was created
 }
 
 #[test]
@@ -949,6 +1013,191 @@ fn should_unbind_rectangles_from_arrow_on_deletion_and_rebind_on_undo() {
     assert_eq!(arrow_binding(&app, "startBinding")["elementId"], "rect1");
     assert_eq!(arrow_binding(&app, "endBinding")["elementId"], "rect2");
     assert!(!app.get("arrow").base.is_deleted);
+}
+
+#[test]
+fn should_unbind_arrow_from_non_deleted_bindable_elements_on_deletion_and_rebind_on_undo() {
+    let mut app = bindings_scene();
+    app.assert_selected(&["arrow"]);
+    // Keyboard.keyDown(KEYS.DELETE) (actionDeleteSelected): the arrow
+    // deleted, and unbound from the rectangles it pointed at
+    let elements: Vec<Element> = app
+        .elements()
+        .iter()
+        .map(|e| match e.base.id.as_str() {
+            "arrow" => with(e, json!({"isDeleted": true}), app.env()),
+            "rect1" => with(
+                e,
+                json!({"boundElements": [{"id": "text", "type": "text"}]}),
+                app.env(),
+            ),
+            "rect2" => with(e, json!({"boundElements": []}), app.env()),
+            _ => e.clone(),
+        })
+        .collect();
+    app.act(Some(elements), Some(json!({"selectedElementIds": {}})));
+    assert_eq!(app.stacks(), (6, 0));
+    assert_eq!(
+        arrow_binding(&app, "startBinding"),
+        json!({"elementId": "rect1", "fixedPoint": [1, 0.5001], "mode": "orbit"})
+    );
+    assert_eq!(
+        arrow_binding(&app, "endBinding"),
+        json!({"elementId": "rect2", "fixedPoint": [0.5001, 0.5001], "mode": "orbit"})
+    );
+    assert_eq!(app.ids(), ["rect1", "text", "rect2", "arrow"]);
+    assert_eq!(
+        bound_elements(&app.get("rect1")),
+        json!([{"id": "text", "type": "text"}])
+    );
+    assert_eq!(bound_elements(&app.get("rect2")), json!([]));
+    assert!(app.get("arrow").base.is_deleted);
+
+    app.undo();
+    assert_eq!(app.stacks(), (5, 1));
+    assert_eq!(
+        arrow_binding(&app, "startBinding"),
+        json!({"elementId": "rect1", "fixedPoint": [1, 0.5001], "mode": "orbit"})
+    );
+    assert_eq!(
+        arrow_binding(&app, "endBinding"),
+        json!({"elementId": "rect2", "fixedPoint": [0.5001, 0.5001], "mode": "orbit"})
+    );
+    assert_eq!(app.ids(), ["rect1", "text", "rect2", "arrow"]);
+    assert_eq!(
+        bound_elements(&app.get("rect1")),
+        json!([{"id": "text", "type": "text"}, {"id": "arrow", "type": "arrow"}])
+    );
+    assert_eq!(
+        bound_elements(&app.get("rect2")),
+        json!([{"id": "arrow", "type": "arrow"}])
+    );
+    assert!(!app.get("arrow").base.is_deleted);
+}
+
+#[test]
+fn should_unbind_rectangle_from_arrow_on_deletion_and_rebind_on_undo() {
+    let mut app = bindings_scene();
+    app.select(&["rect1"]);
+    assert_eq!(app.undo_len(), 6);
+    // Keyboard.keyPress(KEYS.DELETE): rect1 and its label deleted, and the
+    // arrow's start unbound from it
+    let elements: Vec<Element> = app
+        .elements()
+        .iter()
+        .map(|e| match e.base.id.as_str() {
+            "rect1" | "text" => with(e, json!({"isDeleted": true}), app.env()),
+            "arrow" => with(e, json!({"startBinding": null}), app.env()),
+            _ => e.clone(),
+        })
+        .collect();
+    app.act(Some(elements), Some(json!({"selectedElementIds": {}})));
+    assert_eq!(app.stacks(), (7, 0));
+    let r1 = app.get("rect1");
+    assert_eq!(
+        bound_elements(&r1),
+        json!([{"id": "text", "type": "text"}, {"id": "arrow", "type": "arrow"}])
+    );
+    assert!(r1.base.is_deleted);
+    assert_eq!(container_id(&app.get("text")), json!("rect1"));
+    assert!(app.get("text").base.is_deleted);
+    assert_eq!(
+        bound_elements(&app.get("rect2")),
+        json!([{"id": "arrow", "type": "arrow"}])
+    );
+    assert!(!app.get("rect2").base.is_deleted);
+    assert_eq!(arrow_binding(&app, "startBinding"), Value::Null);
+    assert_eq!(arrow_binding(&app, "endBinding")["elementId"], "rect2");
+    assert!(!app.get("arrow").base.is_deleted);
+
+    app.undo();
+    assert_eq!(app.stacks(), (6, 1));
+    let r1 = app.get("rect1");
+    // order has now changed!
+    assert_eq!(
+        bound_elements(&r1),
+        json!([{"id": "arrow", "type": "arrow"}, {"id": "text", "type": "text"}])
+    );
+    assert!(!r1.base.is_deleted);
+    assert_eq!(container_id(&app.get("text")), json!("rect1"));
+    assert!(!app.get("text").base.is_deleted);
+    assert_eq!(
+        bound_elements(&app.get("rect2")),
+        json!([{"id": "arrow", "type": "arrow"}])
+    );
+    assert!(!app.get("rect2").base.is_deleted);
+    assert_eq!(arrow_binding(&app, "startBinding")["elementId"], "rect1");
+    assert_eq!(arrow_binding(&app, "endBinding")["elementId"], "rect2");
+    assert!(!app.get("arrow").base.is_deleted);
+}
+
+#[test]
+fn should_redraw_arrows_on_undo() {
+    let mut app = App::new();
+    let r = rect_sized("KPrBI4g_v9qUB1XxYLgSz", 873.0, 212.0, 157.0, 126.0);
+    let mut d = rect_sized("u2JGnnmoJ0VATV4vCNJE5", 1152.0, 516.0, 124.0, 129.0);
+    d.kind = ElementKind::Diamond;
+    app.update_scene(Some(vec![r.clone(), d.clone()]), None, Some(Immediately));
+
+    // Connect the arrow
+    let bound_arrow = json!([{"id": "6Rm4g567UQM4WjLwej2Vc", "type": "arrow"}]);
+    let mut a = arrow(
+        "6Rm4g567UQM4WjLwej2Vc",
+        vec![
+            [0.0, 0.0],
+            [178.9000000000001, 0.0],
+            [178.9000000000001, 236.10000000000002],
+        ],
+    );
+    if let ElementKind::Arrow(fields) = &mut a.kind {
+        fields.elbowed = true;
+    }
+    a.base.x = 1035.0;
+    a.base.y = 274.9;
+    a.base.width = 178.9000000000001;
+    a.base.height = 236.10000000000002;
+    if let Some(linear) = a.kind.linear_mut() {
+        linear.start_binding = Some(binding(
+            "KPrBI4g_v9qUB1XxYLgSz",
+            [1.0318471337579618, 0.49920634920634904],
+        ));
+        linear.end_binding = Some(binding(
+            "u2JGnnmoJ0VATV4vCNJE5",
+            [0.4991935483870975, -0.03875193720914723],
+        ));
+    }
+    let connected = vec![
+        app.with(&r, json!({"boundElements": bound_arrow})),
+        app.with(&d, json!({"boundElements": bound_arrow})),
+        a,
+    ];
+    app.update_scene(Some(connected), None, Some(Immediately));
+
+    app.undo();
+
+    // Simulate remote update: the rectangle moved
+    let moved = app.updated("KPrBI4g_v9qUB1XxYLgSz", json!({"x": 600, "y": 0}));
+    app.update_scene(Some(moved), None, Some(Never));
+
+    app.env().bound_updates.clear();
+    app.undo();
+
+    // the rectangle and the diamond are deleted by this undo, so no arrow
+    // bound to them is laid out again, and the arrow keeps its points
+    assert!(app.env().bound_updates.is_empty());
+    let modified = app
+        .elements()
+        .into_iter()
+        .find(|e| matches!(e.kind, ElementKind::Arrow(_)))
+        .unwrap();
+    let points = prop(&modified, "points");
+    let expected = [[0.0, 0.0], [178.9, 0.0], [178.9, 236.1]];
+    for (point, expected) in points.as_array().unwrap().iter().zip(expected) {
+        for axis in 0..2 {
+            let value = point[axis].as_f64().unwrap();
+            assert!((value - expected[axis]).abs() < 1e-6, "{points}");
+        }
+    }
 }
 
 // ===========================================================================
@@ -1592,6 +1841,195 @@ fn should_iterate_through_the_history_when_z_index_changes_do_not_produce_visibl
     assert_eq!(app.ids(), ["rect2", "rect3", "rect1"]);
 }
 
+fn freedraw(id: &str, x: f64, y: f64, points: Vec<[f64; 2]>) -> Element {
+    let mut element = rect(id, x, y);
+    element.kind = ElementKind::Freedraw(excali_core::element::FreedrawFields::new(points, true));
+    element
+}
+
+fn blue_rect(id: &str) -> Element {
+    let mut element = rect(id, 0.0, 0.0);
+    element.base.stroke_color = BLUE.into();
+    element
+}
+
+#[test]
+fn should_not_let_remote_changes_to_interfere_with_in_progress_freedraw() {
+    let mut app = App::new();
+    // UI.clickTool("freedraw"); mouse.down(10, 10); mouse.moveTo(30, 30)
+    let drawing = json!({"newElement": {"id": "freedraw"}});
+    let mut elements = app.elements();
+    elements.push(freedraw("freedraw", 10.0, 10.0, vec![[0.0, 0.0]]));
+    app.gesture(Some(elements), Some(drawing.clone()));
+    let elements = app.updated("freedraw", json!({"points": [[0, 0], [20, 20]]}));
+    app.gesture(Some(elements), Some(drawing));
+
+    // Simulate remote update
+    let mut elements = app.elements();
+    elements.push(blue_rect("rect"));
+    app.update_scene(Some(elements), None, Some(Never));
+
+    // mouse.moveTo(60, 60); mouse.up()
+    let elements = app.updated("freedraw", json!({"points": [[0, 0], [20, 20], [50, 50]]}));
+    app.act(Some(elements), Some(json!({"newElement": null})));
+
+    app.undo();
+    assert_eq!(app.stacks(), (0, 1));
+    assert_eq!(app.ids(), ["freedraw", "rect"]);
+    assert!(matches!(app.at(0).kind, ElementKind::Freedraw(_)));
+    assert!(app.at(0).base.is_deleted);
+    assert_eq!(app.at(1).base.stroke_color, BLUE);
+    assert!(!app.at(1).base.is_deleted);
+
+    app.redo();
+    assert_eq!(app.stacks(), (1, 0));
+    assert_eq!(app.ids(), ["freedraw", "rect"]);
+    assert!(!app.at(0).base.is_deleted);
+    assert_eq!(app.at(1).base.stroke_color, BLUE);
+}
+
+fn geometry(element: &Element) -> (f64, f64, f64, f64, bool) {
+    let b = &element.base;
+    (b.x, b.y, b.width, b.height, b.is_deleted)
+}
+
+#[test]
+fn should_not_let_remote_changes_to_interfere_with_in_progress_resizing() {
+    let mut app = App::new();
+    app.create_rect("rect1", 10.0, 10.0);
+
+    // mouse.downAt(20, 20) on the bottom-right handle; mouse.moveTo(40, 40)
+    let resizing = json!({"resizingElement": {"id": "rect1"}});
+    let elements = app.updated("rect1", json!({"width": 30, "height": 30}));
+    app.gesture(Some(elements), Some(resizing.clone()));
+    app.assert_selected(&["rect1"]);
+    assert_eq!(app.undo_len(), 1);
+
+    // Simulate remote update
+    let mut elements = app.elements();
+    elements.push(blue_rect("rect3"));
+    app.update_scene(Some(elements), None, Some(Never));
+
+    // mouse.moveTo(100, 100); mouse.up()
+    let elements = app.updated("rect1", json!({"width": 90, "height": 90}));
+    app.gesture(Some(elements), Some(resizing));
+    app.act(None, Some(json!({"resizingElement": null})));
+
+    assert_eq!(app.stacks(), (2, 0));
+    app.assert_selected(&["rect1"]);
+    assert_eq!(app.ids(), ["rect1", "rect3"]);
+    assert_eq!(geometry(&app.at(0)), (10.0, 10.0, 90.0, 90.0, false));
+    assert_eq!(app.at(1).base.stroke_color, BLUE);
+
+    app.undo();
+    app.assert_selected(&["rect1"]);
+    assert_eq!(geometry(&app.at(0)), (10.0, 10.0, 10.0, 10.0, false));
+    assert_eq!(app.at(1).base.stroke_color, BLUE);
+
+    app.undo();
+    app.assert_selected(&[]);
+    assert_eq!(geometry(&app.at(0)), (10.0, 10.0, 10.0, 10.0, true));
+    assert_eq!(app.at(1).base.stroke_color, BLUE);
+
+    app.redo();
+    app.assert_selected(&["rect1"]);
+    assert_eq!(geometry(&app.at(0)), (10.0, 10.0, 10.0, 10.0, false));
+
+    app.redo();
+    assert_eq!(app.stacks(), (2, 0));
+    app.assert_selected(&["rect1"]);
+    assert_eq!(geometry(&app.at(0)), (10.0, 10.0, 90.0, 90.0, false));
+    assert_eq!(app.at(1).base.stroke_color, BLUE);
+}
+
+fn position(element: &Element) -> (f64, f64, bool) {
+    (element.base.x, element.base.y, element.base.is_deleted)
+}
+
+#[test]
+fn should_not_let_remote_changes_to_interfere_with_in_progress_dragging() {
+    let mut app = App::new();
+    app.create_rect("rect1", 10.0, 10.0);
+    app.create_rect("rect2", 30.0, 30.0);
+    app.select(&["rect1", "rect2"]);
+
+    // mouse.downAt(20, 20); mouse.moveTo(50, 50)
+    let dragging = json!({"selectedElementsAreBeingDragged": true});
+    let mut elements = app.updated("rect1", json!({"x": 40, "y": 40}));
+    elements[1] = app.with(&elements[1].clone(), json!({"x": 60, "y": 60}));
+    app.gesture(Some(elements), Some(dragging.clone()));
+    app.assert_selected(&["rect1", "rect2"]);
+    assert_eq!(app.undo_len(), 4);
+
+    // Simulate remote update
+    let mut elements = app.elements();
+    elements.push(blue_rect("rect3"));
+    app.update_scene(Some(elements), None, Some(Never));
+
+    // mouse.moveTo(100, 100); mouse.up()
+    let mut elements = app.updated("rect1", json!({"x": 90, "y": 90}));
+    elements[1] = app.with(&elements[1].clone(), json!({"x": 110, "y": 110}));
+    app.gesture(Some(elements), Some(dragging));
+    app.act(
+        None,
+        Some(json!({"selectedElementsAreBeingDragged": false})),
+    );
+
+    assert_eq!(app.stacks(), (5, 0));
+    app.assert_selected(&["rect1", "rect2"]);
+    assert_eq!(app.ids(), ["rect1", "rect2", "rect3"]);
+    assert_eq!(position(&app.at(0)), (90.0, 90.0, false));
+    assert_eq!(position(&app.at(1)), (110.0, 110.0, false));
+    assert_eq!(app.at(2).base.stroke_color, BLUE);
+
+    app.undo();
+    app.assert_selected(&["rect1", "rect2"]);
+    assert_eq!(position(&app.at(0)), (10.0, 10.0, false));
+    assert_eq!(position(&app.at(1)), (30.0, 30.0, false));
+    assert_eq!(app.at(2).base.stroke_color, BLUE);
+
+    app.undo();
+    app.assert_selected(&["rect1"]);
+
+    app.undo();
+    app.assert_selected(&["rect2"]);
+
+    app.undo();
+    app.assert_selected(&["rect1"]);
+    assert_eq!(position(&app.at(0)), (10.0, 10.0, false));
+    assert_eq!(position(&app.at(1)), (30.0, 30.0, true));
+    assert_eq!(app.at(2).base.stroke_color, BLUE);
+
+    app.undo();
+    app.assert_selected(&[]);
+    assert_eq!(position(&app.at(0)), (10.0, 10.0, true));
+    assert_eq!(position(&app.at(1)), (30.0, 30.0, true));
+    assert_eq!(app.at(2).base.stroke_color, BLUE);
+
+    app.redo();
+    app.assert_selected(&["rect1"]);
+    assert_eq!(position(&app.at(0)), (10.0, 10.0, false));
+    assert_eq!(position(&app.at(1)), (30.0, 30.0, true));
+
+    app.redo();
+    app.assert_selected(&["rect2"]);
+
+    app.redo();
+    app.assert_selected(&["rect1"]);
+
+    app.redo();
+    app.assert_selected(&["rect1", "rect2"]);
+    assert_eq!(position(&app.at(0)), (10.0, 10.0, false));
+    assert_eq!(position(&app.at(1)), (30.0, 30.0, false));
+
+    app.redo();
+    assert_eq!(app.stacks(), (5, 0));
+    app.assert_selected(&["rect1", "rect2"]);
+    assert_eq!(position(&app.at(0)), (90.0, 90.0, false));
+    assert_eq!(position(&app.at(1)), (110.0, 110.0, false));
+    assert_eq!(app.at(2).base.stroke_color, BLUE);
+}
+
 // ---------------------------------------------------------------------------
 // conflicts in bound text elements and their containers
 
@@ -2140,6 +2578,130 @@ fn should_unbind_remotely_deleted_container_from_bound_text_when_the_text_is_add
     }
 }
 
+/// `(x, y, angle)` of an element.
+fn placement(element: &Element) -> (f64, f64, f64) {
+    (element.base.x, element.base.y, element.base.angle.0)
+}
+
+#[test]
+fn should_redraw_remotely_added_bound_text_when_its_container_is_updated_through_the_history() {
+    let mut app = App::new();
+    // Initialize the scene
+    app.update_scene(Some(vec![container()]), None, Some(Never));
+
+    // Simulate local update
+    let local = app.updated("container", json!({"x": 200, "y": 200, "angle": 90}));
+    app.update_scene(Some(local), None, Some(Immediately));
+
+    app.undo();
+
+    // Simulate remote update
+    let c = app.at(0);
+    let remote = vec![
+        app.with(
+            &c,
+            json!({"boundElements": [{"id": "text", "type": "text"}]}),
+        ),
+        app.with(&label(), json!({"containerId": "container"})),
+    ];
+    app.update_scene(Some(remote), None, Some(Never));
+
+    let bound = [
+        row("container", json!([{"id": "text", "type": "text"}]), false),
+        row("text", json!("container"), false),
+    ];
+    assert_eq!(bound_text_state(&app), bound);
+    assert_eq!(placement(&app.at(0)), (10.0, 10.0, 0.0));
+    assert_eq!(placement(&app.at(1)), (15.0, 15.0, 0.0));
+
+    for _ in 0..2 {
+        app.env().text_redraws.clear();
+        app.redo();
+        assert_eq!(app.stacks(), (1, 0));
+        assert_eq!(bound_text_state(&app), bound);
+        // the container's change brings its label into the layout
+        assert_eq!(
+            app.env().text_redraws,
+            [("text".to_string(), "container".to_string())]
+        );
+        assert_eq!(placement(&app.at(0)), (200.0, 200.0, 90.0));
+        // text element got redrawn!
+        assert_eq!(
+            placement(&app.at(1)),
+            (241.295259647664, 247.59240920619527, 90.0)
+        );
+
+        app.env().text_redraws.clear();
+        app.undo();
+        assert_eq!(app.stacks(), (0, 1));
+        // both elements got redrawn!
+        assert_eq!(bound_text_state(&app), bound);
+        assert_eq!(
+            app.env().text_redraws,
+            [("text".to_string(), "container".to_string())]
+        );
+        assert_eq!(placement(&app.at(0)), (10.0, 10.0, 0.0));
+        assert_eq!(placement(&app.at(1)), (15.0, 15.0, 0.0));
+    }
+}
+
+// TODO upstream (#7348): this leads to empty undo/redo and could be
+// confusing - instead we might consider redrawing container based on the
+// text dimensions
+#[test]
+fn should_redraw_bound_text_to_match_container_dimensions_when_the_bound_text_is_updated_through_the_history(
+) {
+    let mut app = App::new();
+    // Initialize the scene
+    app.update_scene(Some(vec![label()]), None, Some(Never));
+
+    // Simulate local update
+    let local = app.updated("text", json!({"x": 205, "y": 205, "angle": 90}));
+    app.update_scene(Some(local), None, Some(Immediately));
+
+    app.undo();
+
+    // Simulate remote update
+    let t = app.at(0);
+    let remote = vec![
+        app.with(
+            &container(),
+            json!({"boundElements": [{"id": "text", "type": "text"}]}),
+        ),
+        app.with(&t, json!({"containerId": "container"})),
+    ];
+    app.update_scene(Some(remote), None, Some(Never));
+
+    let bound = [
+        row("container", json!([{"id": "text", "type": "text"}]), false),
+        row("text", json!("container"), false),
+    ];
+    assert_eq!(app.stacks(), (0, 1));
+    assert_eq!(bound_text_state(&app), bound);
+    assert_eq!(placement(&app.at(0)), (10.0, 10.0, 0.0));
+    assert_eq!(placement(&app.at(1)), (15.0, 15.0, 0.0));
+
+    app.env().text_redraws.clear();
+    app.redo();
+    assert_eq!(app.stacks(), (1, 0));
+    assert_eq!(bound_text_state(&app), bound);
+    // bound text got redrawn, as redraw is triggered based on container
+    // position!
+    assert_eq!(
+        app.env().text_redraws,
+        [("text".to_string(), "container".to_string())]
+    );
+    assert_eq!(placement(&app.at(0)), (10.0, 10.0, 0.0));
+    assert_eq!(placement(&app.at(1)), (15.0, 15.0, 0.0));
+
+    app.undo();
+    assert_eq!(app.stacks(), (0, 1));
+    // both elements got redrawn!
+    assert_eq!(bound_text_state(&app), bound);
+    assert_eq!(placement(&app.at(0)), (10.0, 10.0, 0.0));
+    assert_eq!(placement(&app.at(1)), (15.0, 15.0, 0.0));
+}
+
 // ---------------------------------------------------------------------------
 // conflicts in arrows and their bindable elements
 
@@ -2265,6 +2827,314 @@ fn should_rebind_remotely_added_bindable_elements_when_its_arrow_is_added_throug
             assert!(!r.base.is_deleted);
         }
     }
+}
+
+/// `Keyboard.withModifierKeys({ ctrl: true })`, arrow tool, from (0, 0)
+/// to (100, 0): an arrow bound to nothing, added and selected; then its
+/// start dragged onto rect1 and its end onto rect2, each binding captured
+/// on pointer up with the fixed points upstream's binding computes.
+fn bind_arrow_by_dragging(app: &mut App) {
+    let mut elements = app.elements();
+    elements.push(arrow("arrow", vec![[0.0, 0.0], [100.0, 0.0]]));
+    app.act(
+        Some(elements),
+        Some(json!({"selectedElementIds": {"arrow": true}})),
+    );
+
+    // create start binding
+    let mut elements = app.updated(
+        "arrow",
+        json!({"startBinding": {"elementId": "rect1", "fixedPoint": [1, 0.5001], "mode": "orbit"}}),
+    );
+    elements[0] = app.with(
+        &elements[0].clone(),
+        json!({"boundElements": [{"id": "arrow", "type": "arrow"}]}),
+    );
+    app.act(Some(elements), None);
+
+    // create end binding
+    let mut elements = app.updated(
+        "arrow",
+        json!({"endBinding": {"elementId": "rect2", "fixedPoint": [0, 0.5001], "mode": "orbit"}}),
+    );
+    elements[1] = app.with(
+        &elements[1].clone(),
+        json!({"boundElements": [{"id": "arrow", "type": "arrow"}]}),
+    );
+    app.act(Some(elements), None);
+
+    assert_eq!(app.stacks(), (4, 0));
+    assert_eq!(
+        arrow_binding(app, "startBinding"),
+        json!({"elementId": "rect1", "fixedPoint": [1, 0.5001], "mode": "orbit"})
+    );
+    assert_eq!(arrow_binding(app, "endBinding")["elementId"], "rect2");
+    assert_eq!(
+        bound_elements(&app.get("rect1")),
+        json!([{"id": "arrow", "type": "arrow"}])
+    );
+    assert_eq!(
+        bound_elements(&app.get("rect2")),
+        json!([{"id": "arrow", "type": "arrow"}])
+    );
+}
+
+/// The arrow's point `i` in scene coordinates.
+fn arrow_point(app: &App, i: usize) -> [f64; 2] {
+    let a = app.get("arrow");
+    let p = a.kind.linear().unwrap().points[i];
+    [a.base.x + p[0], a.base.y + p[1]]
+}
+
+/// Where a fixed point of `id` is in scene coordinates.
+fn fixed_point(app: &App, id: &str, fixed: [f64; 2]) -> [f64; 2] {
+    let e = app.get(id);
+    [
+        e.base.x + fixed[0] * e.base.width,
+        e.base.y + fixed[1] * e.base.height,
+    ]
+}
+
+fn assert_close(actual: [f64; 2], expected: [f64; 2]) {
+    assert!(
+        (actual[0] - expected[0]).abs() < 1e-9 && (actual[1] - expected[1]).abs() < 1e-9,
+        "{actual:?} != {expected:?}"
+    );
+}
+
+fn assert_unbound(app: &App) {
+    assert_eq!(bound_elements(&app.get("rect1")), json!([]));
+    assert_eq!(bound_elements(&app.get("rect2")), json!([]));
+    assert_eq!(arrow_binding(app, "startBinding"), Value::Null);
+    assert_eq!(arrow_binding(app, "endBinding"), Value::Null);
+}
+
+#[test]
+fn should_rebind_bindings_when_both_are_updated_through_the_history_and_there_are_no_conflicting_updates_in_the_meantime(
+) {
+    let mut app = arrow_scene();
+    bind_arrow_by_dragging(&mut app);
+
+    app.undo(); // undo start binding
+    app.undo(); // undo end binding
+    assert_eq!(app.stacks(), (2, 2));
+    assert_eq!(app.ids(), ["rect1", "rect2", "arrow"]);
+    assert_unbound(&app);
+
+    // Simulate remote update, no conflicting updates
+    let x = app.at(1).base.x + 50.0;
+    let remote: Vec<Element> = app
+        .elements()
+        .iter()
+        .map(|e| with(e, json!({"x": x}), app.env()))
+        .collect();
+    app.update_scene(Some(remote), None, Some(Never));
+
+    for _ in 0..2 {
+        app.env().bound_updates.clear();
+        app.redo();
+        app.redo();
+        assert_eq!(app.stacks(), (4, 0));
+        assert_eq!(
+            bound_elements(&app.get("rect1")),
+            json!([{"id": "arrow", "type": "arrow"}])
+        );
+        assert_eq!(
+            bound_elements(&app.get("rect2")),
+            json!([{"id": "arrow", "type": "arrow"}])
+        );
+        assert_eq!(
+            arrow_binding(&app, "startBinding"),
+            json!({"elementId": "rect1", "fixedPoint": [1, 0.5001], "mode": "orbit"})
+        );
+        assert_eq!(
+            arrow_binding(&app, "endBinding"),
+            json!({"elementId": "rect2", "fixedPoint": [0, 0.5001], "mode": "orbit"})
+        );
+        // each rebound rectangle has its arrow laid out again, onto the
+        // rectangles where the remote update left them
+        let laid_out: HashSet<&str> = app
+            .s
+            .env
+            .bound_updates
+            .iter()
+            .map(|(id, _)| id.as_str())
+            .collect();
+        assert_eq!(laid_out, HashSet::from(["rect1", "rect2"]));
+        assert_close(
+            arrow_point(&app, 0),
+            fixed_point(&app, "rect1", [1.0, 0.5001]),
+        );
+        assert_close(
+            arrow_point(&app, 1),
+            fixed_point(&app, "rect2", [0.0, 0.5001]),
+        );
+
+        app.undo();
+        app.undo();
+        assert_eq!(app.stacks(), (2, 2));
+        assert_unbound(&app);
+    }
+}
+
+#[test]
+fn should_rebind_bindings_when_both_are_updated_through_the_history_and_the_arrow_got_bound_to_a_different_element_in_the_meantime(
+) {
+    let mut app = arrow_scene();
+    bind_arrow_by_dragging(&mut app);
+
+    app.undo();
+    app.undo();
+    assert_eq!(app.stacks(), (2, 2));
+    assert_unbound(&app);
+
+    // API.createElement({ type: "rectangle", width: 50, x: 100, boundElements })
+    let mut remote_container = rect_sized("remote", 100.0, 100.0, 50.0, 50.0);
+    remote_container.base.bound_elements = Some(vec![bound("arrow", BoundElementType::Arrow)]);
+
+    // Simulate remote update
+    let (r1, r2, a) = (app.at(0), app.at(1), app.at(2));
+    let remote = vec![
+        r1,
+        app.with(&r2, json!({"boundElements": []})),
+        app.with(
+            &a,
+            json!({"endBinding": {"elementId": "remote", "fixedPoint": [0.5001, 1], "mode": "orbit"}}),
+        ),
+        remote_container,
+    ];
+    app.update_scene(Some(remote), None, Some(Never));
+
+    for _ in 0..2 {
+        app.redo();
+        app.redo();
+        assert_eq!(app.stacks(), (4, 0));
+        assert_eq!(
+            bound_elements(&app.get("rect1")),
+            json!([{"id": "arrow", "type": "arrow"}])
+        );
+        assert_eq!(
+            bound_elements(&app.get("rect2")),
+            json!([{"id": "arrow", "type": "arrow"}])
+        );
+        assert_eq!(
+            arrow_binding(&app, "startBinding"),
+            json!({"elementId": "rect1", "fixedPoint": [1, 0.5001], "mode": "orbit"})
+        );
+        // rebound with previous rectangle
+        assert_eq!(
+            arrow_binding(&app, "endBinding"),
+            json!({"elementId": "rect2", "fixedPoint": [0, 0.5001], "mode": "orbit"})
+        );
+        assert_eq!(bound_elements(&app.get("remote")), json!([]));
+
+        app.undo();
+        app.undo();
+        assert_eq!(app.stacks(), (2, 2));
+        assert_eq!(bound_elements(&app.get("rect1")), json!([]));
+        assert_eq!(bound_elements(&app.get("rect2")), json!([]));
+        assert_eq!(arrow_binding(&app, "startBinding"), Value::Null);
+        // now we are back in the previous state!
+        assert_eq!(
+            arrow_binding(&app, "endBinding"),
+            json!({"elementId": "remote", "fixedPoint": [0.5001, 1], "mode": "orbit"})
+        );
+        // leaving as bound until we can rebind arrows!
+        assert_eq!(
+            bound_elements(&app.get("remote")),
+            json!([{"id": "arrow", "type": "arrow"}])
+        );
+    }
+}
+
+/// `Math.round(number / 100) * 100` (ties towards positive infinity).
+fn round_to_nearest_hundred(number: f64) -> f64 {
+    (number / 100.0 + 0.5).floor() * 100.0
+}
+
+#[test]
+fn should_update_bound_element_points_when_rectangle_was_remotely_moved_and_arrow_is_added_back_through_the_history(
+) {
+    let mut app = arrow_scene();
+    // bind arrow to rect1 and rect2: UI.clickTool("arrow"), from (0, 0)
+    // to (47, 0), captured on pointer up
+    let mut a = arrow("arrow", vec![[0.0, 0.0], [47.0, 0.0]]);
+    if let Some(linear) = a.kind.linear_mut() {
+        linear.start_binding = Some(binding("rect1", [1.0, 0.5001]));
+        linear.end_binding = Some(binding("rect2", [0.0, 0.5001]));
+    }
+    let bound_arrow = json!({"boundElements": [{"id": "arrow", "type": "arrow"}]});
+    let (r1, r2) = (app.at(0), app.at(1));
+    let elements = vec![
+        app.with(&r1, bound_arrow.clone()),
+        app.with(&r2, bound_arrow),
+        a,
+    ];
+    app.act(
+        Some(elements),
+        Some(json!({"selectedElementIds": {"arrow": true}})),
+    );
+
+    app.undo();
+    assert_eq!(app.stacks(), (1, 1));
+    assert_eq!(bound_elements(&app.get("rect1")), json!([]));
+    assert_eq!(bound_elements(&app.get("rect2")), json!([]));
+    assert_eq!(arrow_binding(&app, "startBinding")["elementId"], "rect1");
+    assert_eq!(
+        arrow_binding(&app, "startBinding")["fixedPoint"],
+        json!([1, 0.5001])
+    );
+    assert_eq!(arrow_binding(&app, "endBinding")["elementId"], "rect2");
+    assert_eq!(
+        arrow_binding(&app, "endBinding")["fixedPoint"],
+        json!([0, 0.5001])
+    );
+    assert!(app.get("arrow").base.is_deleted);
+
+    // Simulate remote update
+    let moved = app.updated("rect2", json!({"x": 500, "y": -500}));
+    app.update_scene(Some(moved), None, Some(Never));
+
+    app.env().bound_updates.clear();
+    app.redo();
+    assert_eq!(app.stacks(), (2, 0));
+    // the rebound rectangles have the arrow laid out again, which counts as
+    // part of the redo
+    let laid_out: Vec<&str> = app
+        .s
+        .env
+        .bound_updates
+        .iter()
+        .map(|(id, _)| id.as_str())
+        .collect();
+    assert_eq!(laid_out, ["rect1", "rect2"]);
+    {
+        // no need to be strict about points, hence the rounding
+        let a = app.get("arrow");
+        let point = a.kind.linear().unwrap().points[1];
+        assert_eq!(
+            [
+                round_to_nearest_hundred(point[0]),
+                round_to_nearest_hundred(point[1])
+            ],
+            [500.0, -400.0]
+        );
+    }
+    assert_close(
+        arrow_point(&app, 1),
+        fixed_point(&app, "rect2", [0.0, 0.5001]),
+    );
+    assert_eq!(
+        bound_elements(&app.get("rect1")),
+        json!([{"id": "arrow", "type": "arrow"}])
+    );
+    assert_eq!(
+        bound_elements(&app.get("rect2")),
+        json!([{"id": "arrow", "type": "arrow"}])
+    );
+    assert_eq!(arrow_binding(&app, "startBinding")["elementId"], "rect1");
+    assert_eq!(arrow_binding(&app, "endBinding")["elementId"], "rect2");
+    assert!(!app.get("arrow").base.is_deleted);
 }
 
 // ---------------------------------------------------------------------------
