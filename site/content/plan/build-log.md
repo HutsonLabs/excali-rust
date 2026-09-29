@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-29 · ex-515 · Keyboard handling: App.onKeyDown table, arrow nudges, tool letters, modifiers
+
+The editor now handles the keyboard as upstream's `App.onKeyDown` and `App.onKeyUp` do, in the same order: tool letters and digits (A again cycles the arrow type, B again the bucket fill colour, Q locks), arrow key nudges by 1, 5 with Shift or the grid size with bound text, frame children and bound arrows following, PgUp and PgDn, Enter for text editing, frames and the line editor, Space for panning, S, G and Shift+F for the pickers, the eyedropper keys, Ctrl held to turn binding off, Ctrl+Backspace to clear the canvas, the command palette shortcut, the copy, cut and paste gates, and every action shortcut through the action manager. Work that belongs to other features (text editing, the flowchart creator, element type conversion, the eyedropper) comes back as effects for the host. A Playwright suite presses every row of the shortcuts page in Chromium and fails if a row has no test. PR: [#98](https://github.com/HutsonLabs/excali-rust/pull/98).
+
 ## 2026-09-29 · ex-514 · Actions registry as data: the 99 action names with predicates and key tests
 
 The editor now has upstream's actions registry as data: the 99 `ActionName`s in upstream's order, the 95 registered actions with their labels, keywords, icons, key priorities, view-mode and navigation flags, predicates, `checked` state and key tests (with `CTRL_OR_CMD` by platform and non-Latin layouts matched by key code), and the action manager's key handling and gates. The canvas and element context menus, the command palette commands, the full styles panel and the default main menu are generated from the registry, and upstream's context menu and element lock tests are ported.
