@@ -96,6 +96,8 @@ In term.hut, `ui/src/drawingDoc.js` holds these rules for a drawing tab (tested 
 | Delete | `fs_trash(path)` with its refusal rules | none |
 | Rename | `fs_rename` | none |
 
+Create and Delete landed in term.hut PR #89 (ex-603, merge `ff0faff`, 2026-09-29). The file tree's menus offer New drawing beside New file and New folder. term.hut's `ui/src/newDrawing.js` adds `.excalidraw` to the typed name unless it is there, calls `fs_create`, which never clobbers (a taken name is its `exists:` refusal, shown in the inline row), and then `fs_write_text` of upstream's empty scene against the empty file's hash, so a file something wrote in between is a conflict, not overwritten. The scene is what `serializeAsJSON([], getDefaultAppState(), {}, "local")` writes (the `export: true` app state keys, `source` the page's origin, as `<excali-editor>` stamps its own saves), and the file opens clean in the editor. Delete is the tree's Delete for any file: the same confirmation and `fs_trash` behind its guard, whose refusal is shown and leaves the file and an open drawing untouched. Both calls carry the workspace's connection, so SSH workspaces work the same way.
+
 ## Library import in term.hut
 
 - "Import library" in the pane header accepts a URL or a `.excalidrawlib` file (via `tauri-plugin-dialog`, already a term.hut dependency).
