@@ -229,6 +229,9 @@ pub const DEFAULT_GRID_SIZE: f64 = 20.0;
 /// `DEFAULT_GRID_STEP`, `constants.ts:294`.
 pub const DEFAULT_GRID_STEP: f64 = 5.0;
 
+/// `ZOOM_STEP`, `constants.ts:362`: the zoom-in / zoom-out action step, and
+/// (times 100) the cap on a wheel tick's delta.
+pub const ZOOM_STEP: f64 = 0.1;
 /// `MIN_ZOOM`, `constants.ts:363`.
 pub const MIN_ZOOM: f64 = 0.1;
 /// `MAX_ZOOM`, `constants.ts:364`.

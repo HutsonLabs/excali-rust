@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 04:03 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 04:56 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**144 issues** · 77 closed (53%) · 0 in progress · 0 blocked · 66 open
+**144 issues** · 78 closed (54%) · 0 in progress · 0 blocked · 65 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -132,7 +132,7 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
 ## ex-e5 · Phase 5: Web runtime and editor
 
-<span class="status open">open</span> 6/34 children closed
+<span class="status open">open</span> 7/34 children closed
 
 Canvas2D backend, interaction state machine, history, DOM chrome without a framework, keyboard shortcuts, the <excali-editor> custom element.
 
@@ -142,7 +142,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-502` | excali-canvas2d: display list to CanvasRenderingContext2D via web-sys | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-503` | Layered canvases at device-pixel scale (static, new-element, interactive) and scroll snapping | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-504` | Per-element bitmap cache with padding rules, size caps and pixel snapping | task | P1 | <span class="status open">open</span> | yes |  |
-| `ex-505` | Viewport: zoom limits, wheel formula, scroll, coordinate transforms, zoom-to-fit | task | P0 | <span class="status open">open</span> | yes |  |
+| `ex-505` | Viewport: zoom limits, wheel formula, scroll, coordinate transforms, zoom-to-fit | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-506` | Editor state machine: tools registry (keys, fillable, toggle), active tool, tool lock, pen mode | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-507` | Hit testing (collision.ts): thresholds, inside/outline rules, per-shape intersections | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-508` | Selection and transform handles: sizes by pointer type, resize, rotate, aspect lock, centre resize | task | P0 | <span class="status open">open</span> | yes |  |
@@ -158,7 +158,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-518` | Shapes toolbar (desktop order) and extra-tools dropdown | task | P0 | <span class="status open">open</span> |  | `ex-516`, `ex-517` |
 | `ex-519` | Styles panel, full mode: all sixteen groups with visibility predicates | task | P0 | <span class="status open">open</span> |  | `ex-514`, `ex-516` |
 | `ex-520` | Main menu with default items and preferences submenu | task | P1 | <span class="status open">open</span> |  | `ex-516` |
-| `ex-521` | Footer: zoom actions, undo/redo, help button, exit zen | task | P1 | <span class="status open">open</span> |  | `ex-505`, `ex-516` |
+| `ex-521` | Footer: zoom actions, undo/redo, help button, exit zen | task | P1 | <span class="status open">open</span> |  | `ex-516` |
 | `ex-522` | Help dialog with the three shortcut islands | task | P2 | <span class="status open">open</span> |  | `ex-516` |
 | `ex-523` | Colour picker: top picks, palette 5x3, shades, hex input, eyedropper, keyboard map | task | P1 | <span class="status open">open</span> |  | `ex-516` |
 | `ex-524` | Font picker: three top picks, scene/available groups, deprecated badge, search | task | P2 | <span class="status open">open</span> |  | `ex-516` |
@@ -171,7 +171,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-531` | Playwright parity suite against the checklist | task | P0 | <span class="status open">open</span> |  | `ex-530` |
 | `ex-532` | Theme tokens: light and dark CSS custom properties embedded and overridable by the host | task | P0 | <span class="status open">open</span> |  | `ex-516` |
 | `ex-533` | excali-math js::sin/cos match V8's libm trig bit for bit; remove the 1e-12 tolerance in excali-editor tests/transform.rs | task | P1 | <span class="status open">open</span> |  | `ex-508` |
-| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-504`, `ex-505`, `ex-508`, `ex-509`, `ex-510`, `ex-511` … |
+| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-504`, `ex-508`, `ex-509`, `ex-510`, `ex-511`, `ex-512` … |
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
 
