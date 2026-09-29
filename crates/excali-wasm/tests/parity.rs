@@ -48,7 +48,10 @@ fn editor_with(elements: Vec<Value>) -> Ed {
 }
 
 fn live(ed: &Ed) -> Vec<&Element> {
-    ed.elements().iter().filter(|e| !e.base.is_deleted).collect()
+    ed.elements()
+        .iter()
+        .filter(|e| !e.base.is_deleted)
+        .collect()
 }
 
 fn get<'a>(ed: &'a Ed, id: &str) -> &'a Element {

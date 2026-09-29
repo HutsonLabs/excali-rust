@@ -48,14 +48,18 @@ use excali_core::restore::{LegacyBinding, LegacyBindingRequest, RestoreEnv};
 use excali_editor::actions::{ActionEnv, ActionManager, ActionName, AppProps, KeyDownOutcome};
 use excali_editor::collision::{hit_element, HitTestCache};
 use excali_editor::keyboard::{
-    get_selected_elements, on_key_down, on_key_up, KeyEffect, KeyOutcome, KeyboardEditor,
-    KeyboardState, Keystroke,
+    get_selected_elements, on_key_down, on_key_up, pan_starts, KeyEffect, KeyOutcome,
+    KeyboardEditor, KeyboardState, Keystroke, PanStart,
 };
 use excali_editor::restore_env::RoutingEnv;
 use excali_editor::scene::Scene;
 use excali_editor::session::Session;
 use excali_editor::tools::ToolState;
-use excali_editor::viewport::{viewport_coords_to_scene_coords, ViewportState};
+use excali_editor::viewport::{
+    handle_wheel, perform_zoom_action, translate, viewport_coords_to_scene_coords, InputDevice,
+    Offsets, TranslateOptions, Viewport, ViewportState, ViewportUpdate, WheelContext, WheelEvent,
+    WheelTarget, ZoomAction,
+};
 use excali_scene::bounds::{get_element_absolute_coords, ElementsMap};
 use excali_scene::canvas_export::{export_canvas_png, CanvasExportOptions, CanvasSizing};
 use excali_scene::display::{CanvasDocument, DisplayList};
@@ -67,6 +71,7 @@ use excali_scene::static_scene::{
 };
 use excali_svg::{export_to_svg, to_svg_file, FontContent};
 use excali_text::text_measurements::TextMetricsProvider;
+use excali_ui::footer::{toggle_shortcuts, toggle_zen_mode};
 use serde_json::{json, Map, Value};
 
 use crate::drag::drag_selected_elements;
@@ -197,9 +202,62 @@ impl<E: RestoreEnv> RestoreEnv for Restore<'_, E> {
     }
 }
 
-/// A press on the canvas, until its release (`pointerDownState`).
+/// A pointer event on the canvas, as the editor reads it.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct PointerInput {
+    pub client_x: f64,
+    pub client_y: f64,
+    /// `event.button` (`POINTER_BUTTON`: 0 main, 1 wheel, 2 secondary).
+    pub button: i16,
+    pub shift_key: bool,
+    pub alt_key: bool,
+    /// `event[KEYS.CTRL_OR_CMD]`.
+    pub ctrl_or_cmd: bool,
+}
+
+impl PointerInput {
+    /// The main button at client coordinates, no modifier.
+    pub fn at(client_x: f64, client_y: f64) -> PointerInput {
+        PointerInput {
+            client_x,
+            client_y,
+            ..PointerInput::default()
+        }
+    }
+
+    /// With Shift held.
+    pub fn shift(self) -> PointerInput {
+        PointerInput {
+            shift_key: true,
+            ..self
+        }
+    }
+}
+
+/// A `wheel` event on the canvas.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct WheelInput {
+    pub delta_x: f64,
+    pub delta_y: f64,
+    pub ctrl_key: bool,
+    pub meta_key: bool,
+    pub shift_key: bool,
+    /// `MouseEvent.buttons`.
+    pub buttons: u16,
+}
+
+/// A press on the canvas, until its release.
 #[derive(Clone, Debug)]
-struct Gesture {
+enum Gesture {
+    /// `AppPan`'s session (`App.pan.ts:100-285`): the last client position.
+    Pan { last: [f64; 2] },
+    /// The selection tool's press (`pointerDownState`).
+    Select(SelectGesture),
+}
+
+/// The selection tool's press (`pointerDownState`).
+#[derive(Clone, Debug)]
+struct SelectGesture {
     /// Scene coordinates of the press.
     origin: [f64; 2],
     /// The elements at the press (`pointerDownState.originalElements`).
@@ -243,6 +301,9 @@ pub struct Editor<P: TextMetricsProvider + Clone> {
     /// `offsetLeft`, `offsetTop`), kept across loads.
     viewport: Map<String, Value>,
     gesture: Option<Gesture>,
+    /// `viewport.lastPosition`: the last pointer position in the page,
+    /// which a wheel zoom zooms around.
+    last_pointer: [f64; 2],
     hit_cache: HitTestCache,
     events: Vec<HostEvent>,
     reported: (f64, bool),
@@ -280,6 +341,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             clean: String::new(),
             viewport: Map::new(),
             gesture: None,
+            last_pointer: [0.0, 0.0],
             hit_cache: HitTestCache::new(),
             events: Vec::new(),
             reported: (0.0, false),
@@ -502,8 +564,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         self.apply(scene, app_state);
         for effect in &out.effects {
             match effect {
-                KeyEffect::Action(KeyDownOutcome::Perform(ActionName::Undo)) => self.undo(),
-                KeyEffect::Action(KeyDownOutcome::Perform(ActionName::Redo)) => self.redo(),
+                KeyEffect::Action(KeyDownOutcome::Perform(name)) => self.perform_action(*name),
+                KeyEffect::Scrolled(translation) => self.set_viewport_to(translation.viewport),
                 _ => {}
             }
         }
@@ -530,6 +592,42 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         self.apply(scene, app_state);
         self.report();
         out
+    }
+
+    /// Whether there is something to undo (`!history.isUndoStackEmpty`).
+    pub fn can_undo(&self) -> bool {
+        !self.session.history.is_undo_stack_empty()
+    }
+
+    /// Whether there is something to redo.
+    pub fn can_redo(&self) -> bool {
+        !self.session.history.is_redo_stack_empty()
+    }
+
+    /// Runs the action `name` as the chrome does (`executeAction`): the
+    /// history, the zoom actions, and the app state toggles of the help
+    /// dialog and zen mode.
+    pub fn perform_action(&mut self, name: ActionName) {
+        match name {
+            ActionName::Undo => return self.undo(),
+            ActionName::Redo => return self.redo(),
+            _ => {}
+        }
+        if let Some(action) = ZoomAction::from_name(name.as_str()) {
+            self.zoom(action);
+        } else {
+            let mut app_state = self.session.app_state().clone();
+            match name {
+                ActionName::ToggleShortcuts => {
+                    toggle_shortcuts(&mut app_state);
+                }
+                ActionName::ZenMode => toggle_zen_mode(&mut app_state),
+                _ => return,
+            }
+            let scene = Scene::new(self.session.elements().to_vec());
+            self.apply(scene, app_state);
+        }
+        self.report();
     }
 
     /// The undo action.
@@ -634,13 +732,122 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         self.session.set_state(patch);
     }
 
-    /// A primary `pointerdown` on the canvas at client coordinates, with
-    /// Shift held or not.
-    pub fn pointer_down(&mut self, client_x: f64, client_y: f64, shift: bool) {
-        if !self.tools.is_interaction_enabled() {
+    /// The viewport as the app state holds it.
+    fn viewport_state(&self) -> ViewportState {
+        ViewportState::from_app_state(self.session.app_state())
+    }
+
+    /// `scrollX`, `scrollY` and `zoom` set, without capture (the viewport
+    /// is not history).
+    fn set_viewport_to(&mut self, viewport: Viewport) {
+        let mut app_state = self.session.app_state().clone();
+        viewport.write_to(&mut app_state);
+        let current = self.session.app_state().as_map();
+        let patch: Map<String, Value> = app_state
+            .into_map()
+            .into_iter()
+            .filter(|(k, v)| current.get(k) != Some(v))
+            .collect();
+        if !patch.is_empty() {
+            self.session.set_state(patch);
+            self.session.commit();
+        }
+    }
+
+    /// A zoom action's `perform` (`actions/actionCanvas.tsx`, through
+    /// [`perform_zoom_action`]), navigation being enabled.
+    fn zoom(&mut self, action: ZoomAction) {
+        let state = self.viewport_state();
+        let elements: Vec<&Element> = self.session.elements().iter().collect();
+        let selected = self
+            .session
+            .app_state()
+            .get("selectedElementIds")
+            .and_then(Value::as_object)
+            .cloned()
+            .unwrap_or_default();
+        let viewport =
+            perform_zoom_action(action, &state, &elements, &selected, &Offsets::default());
+        self.set_viewport_to(viewport);
+    }
+
+    /// A zoom action by name (the footer's zoom buttons, the keys).
+    pub fn zoom_action(&mut self, name: &str) {
+        if let Some(action) = ZoomAction::from_name(name) {
+            self.zoom(action);
+            self.report();
+        }
+    }
+
+    /// The canvas's `wheel`: `AppWheel.handle` ([`handle_wheel`]), zooming
+    /// around the last pointer position. Returns whether to prevent the
+    /// browser's default.
+    pub fn wheel(&mut self, input: &WheelInput) -> bool {
+        let state = self.viewport_state();
+        let ctx = WheelContext {
+            navigation_enabled: true,
+            pan_active: matches!(self.gesture, Some(Gesture::Pan { .. })),
+            input_device: InputDevice::from_app_state(self.session.app_state()),
+            last_position: (self.last_pointer[0], self.last_pointer[1]),
+            is_darwin: self.action_env.is_darwin,
+        };
+        let event = WheelEvent {
+            delta_x: input.delta_x,
+            delta_y: input.delta_y,
+            ctrl_key: input.ctrl_key,
+            meta_key: input.meta_key,
+            shift_key: input.shift_key,
+            buttons: input.buttons,
+            target: WheelTarget::Canvas,
+        };
+        let outcome = handle_wheel(&state, &ctx, &event);
+        if let Some(translation) = outcome.translation {
+            self.set_viewport_to(translation.viewport);
+        }
+        outcome.prevent_default
+    }
+
+    /// A `pointerdown` on the canvas.
+    pub fn pointer_down(&mut self, input: PointerInput) {
+        self.last_pointer = [input.client_x, input.client_y];
+        // a press without the previous one's release ends it first
+        // (`maybeCleanupAfterMissingPointerUp`)
+        if self.gesture.is_some() {
+            self.pointer_up(input);
+        }
+        let view_mode = self
+            .session
+            .app_state()
+            .get("viewModeEnabled")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        if pan_starts(
+            &self.tools,
+            PanStart {
+                button: input.button,
+                pointer_count: 1,
+                interaction_enabled: self.tools.is_interaction_enabled(),
+                navigation_enabled: true,
+                view_mode_enabled: view_mode,
+                active_tool_pointer_capturing: false,
+            },
+        ) {
+            self.gesture = Some(Gesture::Pan {
+                last: [input.client_x, input.client_y],
+            });
             return;
         }
-        let origin = self.scene_point(client_x, client_y);
+        // only the main button (or touch) acts on the scene
+        if input.button != 0 || !self.tools.is_interaction_enabled() {
+            return;
+        }
+        self.select_pointer_down(input);
+    }
+
+    /// The selection tool's press: selects the topmost element hit
+    /// (`handleSelectionOnPointerDown`), or starts a link click.
+    fn select_pointer_down(&mut self, input: PointerInput) {
+        let origin = self.scene_point(input.client_x, input.client_y);
         let previous_selection = self
             .session
             .app_state()
@@ -664,30 +871,51 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             let mut selected = self.selected_ids();
             match &hit {
                 Some(id) if selected.contains(id) => {}
-                Some(id) if shift => selected.push(id.clone()),
+                Some(id) if input.shift_key => selected.push(id.clone()),
                 Some(id) => selected = vec![id.clone()],
-                None if shift => {}
+                None if input.shift_key => {}
                 None => selected.clear(),
             }
             self.set_selection(&selected);
             self.session.commit();
         }
-        self.gesture = Some(Gesture {
+        self.gesture = Some(Gesture::Select(SelectGesture {
             origin,
             originals,
             hit,
             link,
             previous_selection,
             dragged: false,
-        });
+        }));
         self.report();
     }
 
-    /// A `pointermove` at client coordinates: drags the selection while a
-    /// press that hit an element lasts.
-    pub fn pointer_move(&mut self, client_x: f64, client_y: f64) {
-        let point = self.scene_point(client_x, client_y);
-        let Some(gesture) = self.gesture.as_mut() else {
+    /// A `pointermove`: pans during a pan, drags the selection while a press
+    /// that hit an element lasts; otherwise only the pointer's position is
+    /// kept.
+    pub fn pointer_move(&mut self, input: PointerInput) {
+        self.last_pointer = [input.client_x, input.client_y];
+        match &mut self.gesture {
+            Some(Gesture::Pan { last }) => {
+                let delta = [last[0] - input.client_x, last[1] - input.client_y];
+                *last = [input.client_x, input.client_y];
+                let state = self.viewport_state();
+                let update = ViewportUpdate {
+                    scroll_x: Some(state.scroll_x - delta[0] / state.zoom),
+                    scroll_y: Some(state.scroll_y - delta[1] / state.zoom),
+                    zoom: None,
+                };
+                let translation = translate(&state, Some(update), TranslateOptions::default());
+                self.set_viewport_to(translation.viewport);
+            }
+            Some(Gesture::Select(_)) => self.drag_selection(input),
+            None => {}
+        }
+    }
+
+    fn drag_selection(&mut self, input: PointerInput) {
+        let point = self.scene_point(input.client_x, input.client_y);
+        let Some(Gesture::Select(gesture)) = self.gesture.as_mut() else {
             return;
         };
         if gesture.hit.is_none() {
@@ -721,12 +949,17 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         self.report();
     }
 
-    /// The `pointerup` ending the press, at client coordinates.
-    pub fn pointer_up(&mut self, client_x: f64, client_y: f64) {
-        let Some(gesture) = self.gesture.take() else {
-            return;
-        };
-        let point = self.scene_point(client_x, client_y);
+    /// The `pointerup` ending the press.
+    pub fn pointer_up(&mut self, input: PointerInput) {
+        self.last_pointer = [input.client_x, input.client_y];
+        match self.gesture.take() {
+            None | Some(Gesture::Pan { .. }) => {}
+            Some(Gesture::Select(gesture)) => self.select_pointer_up(input, gesture),
+        }
+    }
+
+    fn select_pointer_up(&mut self, input: PointerInput, gesture: SelectGesture) {
+        let point = self.scene_point(input.client_x, input.client_y);
         if let Some((id, href)) = gesture.link {
             if self.link_at(point).is_some_and(|(at, _)| at == id) {
                 self.events.push(HostEvent::OpenLink { href });
