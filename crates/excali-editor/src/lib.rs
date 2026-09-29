@@ -32,8 +32,8 @@
 
 mod binary_heap;
 pub mod collision;
-pub mod distance;
 pub mod delta;
+pub mod distance;
 pub mod elbow_arrow;
 pub mod geometry;
 pub mod history;
