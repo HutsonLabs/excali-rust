@@ -23,8 +23,9 @@ excali-text = { path = "../excali-text" }
 # the elements, events, focus and the tooltip's MutationObserver behind
 # excali_ui::dom and excali_ui::primitives; the elements
 # excali_ui::styles_panel mounts.
-# excali_ui::main_menu's app state patches are JSON values, as the
-# editor's app state is.
+# excali_ui::main_menu's app state patches and the app state
+# excali_ui::footer's help and zen-mode actions write are JSON values, as
+# the editor's app state is.
 # Versions from the evidence log (site/content/evidence/_index.md).
 serde_json = { workspace = true }
 js-sys = "0.3.106"
