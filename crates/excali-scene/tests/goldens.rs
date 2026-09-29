@@ -13,26 +13,25 @@
 //! (`shapes[0]`) of every arrow in `elements-{arrow,arrowheads}.json`.
 //!
 //! Arrowheads (ex-212): every shape of every arrow in
-//! `elements-{arrow,arrowheads}.json`, the body exactly and the heads after
-//! it within `PLATFORM_TOLERANCE` (their wings are rotated with `Math.cos`
-//! and `Math.sin`, and circles are rough.js ellipses).
+//! `elements-{arrow,arrowheads}.json`, the heads (wings rotated with
+//! `Math.cos` and `Math.sin`, circles drawn as rough.js ellipses) as exactly
+//! as the body.
 //!
 //! Elbow arrows (ex-210): the body (`shapes[0]`) of every case of
 //! `goldens/elements-elbow-arrow.json`, the rounded path of
 //! `generateElbowArrowShape(points, 16)`, and no shape at all for the arrow
 //! beyond the 1e6 coordinate guard.
 //!
-//! Ellipse points go through `Math.cos` and `Math.sin`, which differ in the
-//! last bit between platforms (see `crates/excali-rough/tests/goldens.rs`),
-//! so ellipses are compared within `PLATFORM_TOLERANCE`; everything else,
-//! and every option, exactly.
+//! Every number and every option is compared exactly, ellipses included:
+//! their points go through `Math.cos` and `Math.sin`, which the port
+//! computes as V8 does on every platform (`excali_math::js`, ex-009).
 
 use std::collections::HashMap;
 use std::path::Path;
 
 use excali_core::element::Arrowhead;
 use excali_core::element::Element;
-use excali_rough::goldens::{ActualShape, Report, Tolerance, PLATFORM_TOLERANCE};
+use excali_rough::goldens::{ActualShape, Report, Tolerance};
 use excali_rough::{Drawable, RoughGenerator};
 use excali_scene::rough_options::generate_rough_options;
 use excali_scene::shape::{
@@ -104,12 +103,7 @@ fn check_file(file: &str) -> usize {
         };
         let drawable = generate_element_shape(&el, &generator, &config)
             .unwrap_or_else(|e| panic!("{id}: {e}"));
-        let tolerance = if ty == "ellipse" {
-            Tolerance::Relative(PLATFORM_TOLERANCE)
-        } else {
-            Tolerance::Exact
-        };
-        report.element(c, &[ActualShape::Rough(&drawable)], tolerance);
+        report.element(c, &[ActualShape::Rough(&drawable)], Tolerance::Exact);
     }
     report.assert_ok()
 }
@@ -184,12 +178,7 @@ fn stroke_styles_match_upstream_from_element_to_ops() {
                 .expect("path"),
             other => panic!("{id}: method {other}"),
         };
-        let tolerance = if matches!(method, "ellipse" | "circle") {
-            Tolerance::Relative(PLATFORM_TOLERANCE)
-        } else {
-            Tolerance::Exact
-        };
-        report.drawable(c, &c["drawable"], &drawable, tolerance);
+        report.drawable(c, &c["drawable"], &drawable, Tolerance::Exact);
     }
     assert_eq!(report.assert_ok(), 630);
 }
@@ -322,8 +311,8 @@ fn elbow_arrow_bodies_match_upstream() {
 // Arrowheads (ex-212)
 
 /// Every shape of every arrow in `file` from the port's
-/// `generate_linear_element_shapes`: the body exactly, each head within
-/// `PLATFORM_TOLERANCE`. Returns how many shapes were compared.
+/// `generate_linear_element_shapes`, body and heads exactly. Returns how
+/// many shapes were compared.
 fn check_arrows(file: &str) -> usize {
     let doc = load(file);
     let generator = RoughGenerator::new();
@@ -349,14 +338,9 @@ fn check_arrows(file: &str) -> usize {
             expected.len(),
             actual.len()
         );
-        for (i, (e, a)) in expected.iter().zip(&actual).enumerate() {
+        for (e, a) in expected.iter().zip(&actual) {
             assert_eq!(e["type"], "rough", "{id}");
-            let tolerance = if i == 0 {
-                Tolerance::Exact
-            } else {
-                Tolerance::Relative(PLATFORM_TOLERANCE)
-            };
-            report.drawable(c, &e["drawable"], a, tolerance);
+            report.drawable(c, &e["drawable"], a, Tolerance::Exact);
         }
     }
     report.assert_ok()

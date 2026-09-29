@@ -43,13 +43,6 @@ use sha2::{Digest, Sha256};
 
 use crate::{Drawable, Op, Options};
 
-/// Relative tolerance for cases computed through `Math.sin`, `Math.cos`,
-/// `Math.tan`, `Math.asin` or `Math.atan`, which are not the same function
-/// on every platform (V8 on arm64, V8 on x86_64 and libm disagree in the
-/// last bit): far below any geometric meaning, far above a few ulps carried
-/// through the arithmetic.
-pub const PLATFORM_TOLERANCE: f64 = 1e-10;
-
 /// How many differences of one case are printed; the rest are counted.
 pub const SHOWN_PER_CASE: usize = 8;
 

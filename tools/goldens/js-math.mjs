@@ -136,10 +136,11 @@ export const jsMathCases = () => {
   // sin, cos, tan: every argument-reduction path of __ieee754_rem_pio2 (none
   // below pi/4, the n = +-1 special case, the medium path with one, two and
   // three iterations near multiples of pi/2, __kernel_rem_pio2 for large
-  // arguments) and both kernels.
+  // arguments) and both kernels. 90 is the angle of history.test.tsx:4396
+  // (ex-513), where glibc's cos is one ulp from V8's.
   for (const fn of ["sin", "cos", "tan"]) {
     for (const x of SPECIAL) add(fn, x);
-    for (const x of [4, -4, 0.982953340331056, 2.4, Math.PI, Math.PI / 2, Math.PI / 4, 1e-9, 2 ** -28, 2 ** -27, 1e22, 2 ** 52, 2 ** 1000, 1e300]) {
+    for (const x of [4, -4, 0.982953340331056, 90, 2.4, Math.PI, Math.PI / 2, Math.PI / 4, 1e-9, 2 ** -28, 2 ** -27, 1e22, 2 ** 52, 2 ** 1000, 1e300]) {
       add(fn, x);
       add(fn, -x);
     }

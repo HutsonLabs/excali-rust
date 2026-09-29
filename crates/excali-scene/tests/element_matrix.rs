@@ -16,10 +16,11 @@
 //! - text, image, frame, magicframe and stickynote, which upstream gives no
 //!   rough shape (`shape.ts:996-1006`).
 //!
-//! Every shape of every case is compared with the port's: box shapes, line
-//! bodies, arrow bodies and freedraw fills exactly; ellipses and arrowheads
-//! within `PLATFORM_TOLERANCE` (they go through `Math.cos` and `Math.sin`);
-//! the freedraw stroke's `svgPath` byte for byte. The shapeless types must
+//! Every shape of every case is compared with the port's exactly: box
+//! shapes, lines, arrows and freedraw fills, ellipses and arrowheads too
+//! (they go through `Math.cos` and `Math.sin`, which `excali_math::js`
+//! computes as V8 does on every platform, ex-009); the freedraw stroke's
+//! `svgPath` byte for byte. The shapeless types must
 //! have no shape in the golden and none from any of the port's builders.
 //! A matrix cell with no case fails the coverage test.
 
@@ -27,7 +28,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
 
 use excali_core::element::Element;
-use excali_rough::goldens::{ActualShape, Report, Tolerance, PLATFORM_TOLERANCE};
+use excali_rough::goldens::{ActualShape, Report, Tolerance};
 use excali_rough::RoughGenerator;
 use excali_scene::shape::{
     generate_element_shape, generate_freedraw_shapes, generate_linear_element_shapes,
@@ -212,12 +213,7 @@ fn every_matrix_case_matches_upstream() {
             "rectangle" | "iframe" | "embeddable" | "diamond" | "ellipse" => {
                 let drawable = generate_element_shape(&el, &generator, &config)
                     .unwrap_or_else(|e| panic!("{id}: {e}"));
-                let tolerance = if ty == "ellipse" {
-                    Tolerance::Relative(PLATFORM_TOLERANCE)
-                } else {
-                    Tolerance::Exact
-                };
-                report.element(c, &[ActualShape::Rough(&drawable)], tolerance);
+                report.element(c, &[ActualShape::Rough(&drawable)], Tolerance::Exact);
                 shapes_compared += 1;
             }
             "line" | "arrow" => {
@@ -235,16 +231,10 @@ fn every_matrix_case_matches_upstream() {
                 } else {
                     assert!(actual.len() >= 2, "{id}: the body and its end head");
                 }
-                // the body exactly, the heads after it within the platform
-                // tolerance (their wings are rotated with cos and sin)
+                // the body and the heads after it, exactly
                 for (i, (e, a)) in expected.iter().zip(&actual).enumerate() {
                     assert_eq!(e["type"], "rough", "{id}: shape {i}");
-                    let tolerance = if i == 0 {
-                        Tolerance::Exact
-                    } else {
-                        Tolerance::Relative(PLATFORM_TOLERANCE)
-                    };
-                    report.drawable(c, &e["drawable"], a, tolerance);
+                    report.drawable(c, &e["drawable"], a, Tolerance::Exact);
                     shapes_compared += 1;
                 }
             }

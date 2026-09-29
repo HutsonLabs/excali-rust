@@ -10,11 +10,9 @@
 //! `getStrokeOutline(sizeOverride)`, or the error a call threw.
 //!
 //! `originalPoints` involve no floating-point operation and are compared
-//! with `==`. Outlines go through `Math.sin`, `Math.cos` and `Math.atan2`,
-//! which differ in the last bit between V8 on arm64 and libm (see
-//! `crates/excali-math/tests/goldens.rs`), so coordinates are compared to
-//! within [`PLATFORM_TOLERANCE`]; the number of outline points must match
-//! exactly.
+//! with `==`. So are outlines, which go through `Math.sin`, `Math.cos` and
+//! `Math.atan2`: `excali_math::js` computes them as V8 does, on every
+//! platform (ex-009).
 
 use std::path::Path;
 use std::sync::Arc;
@@ -26,9 +24,6 @@ use excali_freehand::{
     CORNER_DETECTION_MAX_ANGLE, MAX_TAIL_LENGTH,
 };
 use serde_json::Value;
-
-/// Relative tolerance (absolute below 1) for outline coordinates.
-const PLATFORM_TOLERANCE: f64 = 1e-10;
 
 fn load(name: &str) -> Vec<Value> {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -113,8 +108,9 @@ fn options(v: &Value) -> LaserPointerOptions {
     o
 }
 
+/// Outline coordinates are compared exactly (`-0 == 0`).
 fn close(a: f64, b: f64) -> bool {
-    a == b || (a - b).abs() <= PLATFORM_TOLERANCE * b.abs().max(1.0)
+    a == b
 }
 
 fn check_outline<const N: usize>(id: &str, got: &[[f64; N]], want: &[[f64; N]]) {

@@ -84,11 +84,14 @@ fn every_js_math_golden_is_v8s_bits() {
     );
 }
 
+/// A function's name, the port's function, and `[x, Math.f(x)]` pairs.
+type NodeTable<'a> = &'a [(&'a str, fn(f64) -> f64, &'a [[f64; 2]])];
+
 /// `[x, Math.f(x)]` from Node 26.10.0 on arm64, for arguments where fdlibm
 /// without fused multiply-adds (or the platform's libm) is one ulp away.
 #[test]
 fn one_argument_functions_match_node() {
-    let table: &[(&str, fn(f64) -> f64, &[[f64; 2]])] = &[
+    let table: NodeTable<'_> = &[
         (
             "sin",
             js::sin,
@@ -108,6 +111,9 @@ fn one_argument_functions_match_node() {
                 [-330644.38492288237, -0.37823213285329327],
                 // ex-533: fdlibm without fused multiply-adds gives ...781
                 [0.982953340331056, 0.5545673797180782],
+                // ex-513, history.test.tsx:4396 (a container rotated by 90):
+                // glibc gives ...701, which moved the bound text's y
+                [90.0, -0.4480736161291702],
             ],
         ),
         (
@@ -235,7 +241,7 @@ fn pow_keeps_v8s_special_cases() {
 #[test]
 fn pow_is_correctly_rounded() {
     for (x, y, want) in [
-        (0.25570661814708906, 3.0, 0.01671960085940678),
+        (0.25570661814708906, 3.0, 0.01671960085940678_f64),
         (0.9764517936315023, 3.0, 0.9310058770591821),
         (-595.6837189852585, 3.0, -211371870.5977843),
         (0.6275843871180324, 4.0, 0.1551274034070525),
@@ -258,7 +264,10 @@ fn f32_functions_round_the_double_ones() {
     for x in [-1.0f32, -0.5, 0.0, 0.3, 1.0] {
         assert_eq!(js::acos_f32(x), js::acos(f64::from(x)) as f32);
     }
-    assert_eq!(js::pow_f32(8.0, 0.333_333_3), js::pow(8.0, f64::from(0.333_333_3f32)) as f32);
+    assert_eq!(
+        js::pow_f32(8.0, 0.333_333_3),
+        js::pow(8.0, f64::from(0.333_333_3f32)) as f32
+    );
 }
 
 /// Every std method with a platform-dependent result is disallowed in the
@@ -272,8 +281,8 @@ fn clippy_disallows_the_platform_methods() {
     for ty in ["f64", "f32"] {
         for m in [
             "sin", "cos", "tan", "sin_cos", "asin", "acos", "atan", "atan2", "exp", "ln", "log",
-            "log2", "log10", "powf", "hypot", "cbrt", "exp2", "exp_m1", "ln_1p", "sinh",
-            "cosh", "tanh", "asinh", "acosh", "atanh",
+            "log2", "log10", "powf", "hypot", "cbrt", "exp2", "exp_m1", "ln_1p", "sinh", "cosh",
+            "tanh", "asinh", "acosh", "atanh",
         ] {
             let entry = format!("path = \"{ty}::{m}\"");
             assert!(text.contains(&entry), "clippy.toml has no {entry}");

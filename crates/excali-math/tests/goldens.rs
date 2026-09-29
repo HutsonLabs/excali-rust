@@ -8,15 +8,16 @@
 //! test checks that the Rust port returns the same doubles, compared with `==`
 //! (so `-0` equals `0`, as JSON cannot tell them apart).
 //!
-//! The one exception is the functions whose upstream result goes through
-//! `Math.sin`, `Math.cos`, `Math.atan2` or `Math.pow` ([`PLATFORM_MATH`]).
-//! Those are not the same function on every platform, upstream included: V8
-//! on arm64 (where the goldens are generated) differs in the last bit from
-//! macOS libm for about 4% of `Math.sin`/`Math.cos` arguments and 18% of
-//! `Math.atan2` arguments, and from x86_64 V8 as well (tools/goldens/README.md).
-//! Their numbers are compared to within [`PLATFORM_TOLERANCE`], relative to
-//! the magnitude of the value (absolute below 1); every other part of their
-//! results (booleans, `null`, list lengths) must still match exactly.
+//! That includes the functions whose upstream result goes through
+//! `Math.sin`, `Math.cos`, `Math.atan2` or `Math.pow` (`pointRotateRads`,
+//! `cartesian2Polar`, `simplifyConvexPolygon`, `bezierEquation` and the
+//! curve functions built on it, the ellipse functions): `excali_math::js`
+//! computes V8's own fdlibm, bit for bit and the same on every platform
+//! (ex-009), where the platform's libm was one ulp away from V8 on a few
+//! percent of arguments. `Math.pow` is the platform's `pow` in V8; the
+//! generator leaves out the cases where macOS and glibc disagree
+//! (`PLATFORM_DEPENDENT_CASES` in tools/goldens/math.mjs), and on the rest
+//! the correctly rounded `js::pow` agrees with both.
 
 use std::collections::BTreeSet;
 use std::path::Path;
@@ -436,46 +437,18 @@ fn call(fun: &str, a: &[Value]) -> Value {
     }
 }
 
-/// Functions whose upstream results depend on the platform's `Math.sin`,
-/// `Math.cos`, `Math.atan2` or `Math.pow` (see the module docs).
-const PLATFORM_MATH: &[&str] = &[
-    "cartesian2Polar",               // atan2 (angle.ts:25)
-    "isRightAngleRads",              // sin (angle.ts:44)
-    "pointRotateRads",               // sin, cos (point.ts:146)
-    "pointRotateDegs",               // via pointRotateRads
-    "lineSegmentRotate",             // via pointRotateRads
-    "simplifyConvexPolygon",         // atan2 (polygon.ts:162)
-    "ellipseDistanceFromPoint",      // ** 3 (ellipse.ts:113)
-    "ellipseTouchesPoint",           // via ellipseDistanceFromPoint
-    "ellipseLineIntersectionPoints", // Math.pow (ellipse.ts:218)
-    "bezierEquation",                // ** 3 (curve.ts:124)
-    "curveIntersectLineSegment",     // via bezierEquation
-    "curveClosestParameter",         // via bezierEquation
-    "curveClosestPoint",             // via bezierEquation
-    "curvePointDistance",            // via bezierEquation
-    "curvePointAtLength",            // via bezierEquation
-];
-
-/// Relative tolerance for [`PLATFORM_MATH`] results: far below any geometric
-/// meaning, far above a few ulps of libm disagreement propagated through the
-/// arithmetic.
-const PLATFORM_TOLERANCE: f64 = 1e-10;
-
-/// Structural equality with numbers compared as doubles, exactly or within
-/// `tolerance` relative to the larger of 1 and the expected magnitude.
-fn same(actual: &Value, expected: &Value, tolerance: f64) -> bool {
+/// Structural equality with numbers compared exactly as doubles (`==`, so
+/// `-0` equals `0`, which JSON cannot tell apart).
+fn same(actual: &Value, expected: &Value) -> bool {
     match (actual, expected) {
         (Value::Number(a), Value::Number(b)) => {
-            let (a, b) = (a.as_f64().expect("f64"), b.as_f64().expect("f64"));
-            a == b || (a - b).abs() <= tolerance * b.abs().max(1.0)
+            a.as_f64().expect("f64") == b.as_f64().expect("f64")
         }
         (Value::Array(a), Value::Array(b)) => {
-            a.len() == b.len() && a.iter().zip(b).all(|(x, y)| same(x, y, tolerance))
+            a.len() == b.len() && a.iter().zip(b).all(|(x, y)| same(x, y))
         }
         (Value::Object(a), Value::Object(b)) => {
-            a.len() == b.len()
-                && a.iter()
-                    .all(|(k, v)| b.get(k).is_some_and(|w| same(v, w, tolerance)))
+            a.len() == b.len() && a.iter().all(|(k, v)| b.get(k).is_some_and(|w| same(v, w)))
         }
         _ => actual == expected,
     }
@@ -490,12 +463,7 @@ fn every_case_matches_upstream() {
         let fun = c["fn"].as_str().expect("fn");
         let args = c["args"].as_array().expect("args");
         let actual = call(fun, args);
-        let tolerance = if PLATFORM_MATH.contains(&fun) {
-            PLATFORM_TOLERANCE
-        } else {
-            0.0
-        };
-        if !same(&actual, &c["result"], tolerance) {
+        if !same(&actual, &c["result"]) {
             failures.push(format!(
                 "{}: {fun}{} = {actual}, upstream {}",
                 c["id"].as_str().unwrap_or("?"),
@@ -622,23 +590,21 @@ fn every_covered_function_has_cases() {
     ];
     let expected: BTreeSet<String> = expected.iter().map(|s| (*s).to_owned()).collect();
     assert_eq!(seen, expected);
-    for fun in PLATFORM_MATH {
-        assert!(seen.contains(*fun), "{fun}");
-    }
 }
 
+/// Every case, the trigonometric and `pow` ones included, is compared to
+/// the last bit (ex-009).
 #[test]
-fn tolerance_applies_to_platform_math_only() {
-    let exact = load()
-        .iter()
-        .filter(|c| !PLATFORM_MATH.contains(&c["fn"].as_str().expect("fn")))
-        .count();
-    assert!(exact > 2000, "only {exact} cases are compared exactly");
-    assert!(same(&json!(1.0), &json!(1.0 + 1e-12), PLATFORM_TOLERANCE));
-    assert!(!same(&json!(1.0), &json!(1.0 + 1e-12), 0.0));
-    assert!(!same(&json!(1.0), &json!(1.0 + 1e-9), PLATFORM_TOLERANCE));
-    assert!(!same(&json!([1.0]), &json!([1.0, 2.0]), PLATFORM_TOLERANCE));
-    assert!(!same(&json!(true), &json!(false), PLATFORM_TOLERANCE));
+fn comparison_is_exact() {
+    assert!(same(&json!(1.0), &json!(1.0)));
+    assert!(same(&json!(-0.0), &json!(0.0)));
+    assert!(!same(&json!(1.0), &json!(1.0 + f64::EPSILON)));
+    assert!(!same(
+        &json!([0.9310058770591821]),
+        &json!([0.9310058770591822])
+    ));
+    assert!(!same(&json!([1.0]), &json!([1.0, 2.0])));
+    assert!(!same(&json!(true), &json!(false)));
 }
 
 /// ex-202 acceptance: `curveLength` matches upstream on the fixtures to
