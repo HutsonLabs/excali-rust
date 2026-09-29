@@ -1,0 +1,39 @@
+<!doctype html>
+<!--
+  The layered canvases' page (ex-503), served with the wasm harness
+  tools/canvas-layers (scripts/web/canvas-layers.sh builds it) by
+  playwright.layers.config.mjs.
+
+  #editor is the editor's container: `.excalidraw` with the canvases'
+  stylesheet rules (excali_ui::layers::CANVAS_LAYER_CSS, from upstream's
+  css/styles.scss) in a <style> the page adds once the module has loaded.
+  The suite drives the harness through window.harness (the module's
+  exports) and window.layers (a mounted Layers).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>excali-ui layered canvases</title>
+<style>
+  html, body { margin: 0; padding: 0; }
+  #editor { position: relative; width: 801px; height: 601px; overflow: hidden; }
+</style>
+</head>
+<body>
+<div id="editor" class="excalidraw"></div>
+<script type="module">
+  import init, * as harness from "/canvas_layers.js";
+
+  try {
+    await init();
+    const style = document.createElement("style");
+    style.textContent = harness.canvasLayerCss();
+    document.head.append(style);
+    window.harness = harness;
+    window.harnessReady = true;
+  } catch (e) {
+    window.harnessError = String((e && e.stack) || e);
+  }
+</script>
+</body>
+</html>

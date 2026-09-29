@@ -2,8 +2,9 @@
 // scripts/web/build.sh (excali_editor.js, excali_editor_bg.wasm, fonts/)
 // and the test page in tests/web/page at "/". Every response is no-store,
 // so each test's font requests reach the network log. The Canvas 2D
-// fixture suite (ex-502, playwright.canvas2d.config.mjs) serves its wasm
-// harness with its own page the same way.
+// fixture suite (ex-502, playwright.canvas2d.config.mjs) and the layered
+// canvases suite (ex-503, playwright.layers.config.mjs) serve their wasm
+// harnesses with their own pages the same way.
 //
 //   node lib/serve.mjs [--port N] [--root DIR] [--page DIR] [--expect FILE]
 //
@@ -83,7 +84,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     }
   }
   if (!isFile(join(root, expected))) {
-    const build = expected === "excali_editor.js" ? "scripts/web/build.sh" : "scripts/web/canvas2d-fixtures.sh";
+    const build =
+      {
+        "excali_editor.js": "scripts/web/build.sh",
+        "canvas_layers.js": "scripts/web/canvas-layers.sh",
+      }[expected] ?? "scripts/web/canvas2d-fixtures.sh";
     process.stderr.write(`serve: ${root}/${expected} missing; run ${build}\n`);
     process.exit(1);
   }
