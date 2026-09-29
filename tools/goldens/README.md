@@ -251,8 +251,8 @@ the scene-level inputs of `tests/data/restore.test.ts` ("restoreElements" and
 each pass: duplicate ids, index repair, invisibly small elements, frames, bound
 text in both directions, linear bindings, sticky notes, bound text order, elbow
 arrow fix-ups, the inputs upstream throws on, and `refreshDimensions` over
-rectangle, ellipse, diamond and line containers and free text of every alignment
-(`refresh-*`). Each case records the elements
+rectangle, ellipse, diamond, line and arrow containers and free text of every
+alignment (`refresh-*`). Each case records the elements
 in order, or the message thrown. The environment is the one of
 `restore-fixtures.mjs` (test mode, `reseed(1)` before each case, text at 10 px per
 character).
@@ -266,7 +266,9 @@ nothing else in the module changes. excali-core's fixture test checks that the
 port asks for the same calls and answers them with the recorded results;
 excali-editor (`tests/elbow_routing.rs`) and excali-text
 (`tests/refresh_text_dimensions.rs`) reproduce the recorded elbow routes and text
-refits from their arguments.
+refits from their arguments; the arrow labels of `refresh-arrow-labels` are
+placed by excali-editor's `SceneArrowGeometry`, so excali-editor
+(`tests/restore_arrow_labels.rs`) reproduces those.
 
 ```sh
 node tools/goldens/restore-elements-fixtures.mjs           # write the fixture
@@ -793,6 +795,37 @@ node tools/goldens/collision-fixtures.mjs --check   # exit 1 if it is stale
 CI runs `--check` in the `goldens` job, and
 `test/collision-fixtures.test.mjs` checks that two runs are byte-identical and
 that the fixture holds `collision.test.tsx`'s answers.
+
+## Linear element editor fixture
+
+`linear-editor-fixtures.mjs` writes
+`crates/excali-editor/tests/fixtures/linear-editor.json` for excali-editor's
+linear element editor (ex-511): upstream's `LinearElementEditor`
+(`packages/element/src/linearElementEditor.ts`) on ten hand-written lines
+and arrows (two points, short segments, round, a tiny round curve, rotated,
+a polygon, labelled straight, bent and round arrows, an elbow arrow) and
+sixteen seeded random ones (sharp or round, rotated or not, some labelled).
+Each case records the global points and `isPointHandle`; at zooms 0.5, 1
+and 4, in and out of the editor, `getEditorMidPoints`, the
+`isSegmentTooShort` call it makes per segment, `getPointIndexUnderCursor`
+and `getSegmentMidpointHitCoords` at probes around every point and
+midpoint (some with a hovered midpoint), and `getSegmentMidPointIndex`;
+`shouldAddMidpoint` for seeded initial states; and, each on a fresh copy of
+the scene, `addMidpoint` (with and without a grid), `deletePoints` (with and
+without an uncommitted last point), `addPoints` and
+`handleBoundTextDragging`, with the whole scene afterwards.
+
+Upstream runs in its test mode with `reseed(1)` before each case and op;
+text is 10 px per character and `Math.random` throws.
+
+```sh
+node tools/goldens/linear-editor-fixtures.mjs           # write the fixture
+node tools/goldens/linear-editor-fixtures.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and
+`test/linear-editor-fixtures.test.mjs` checks that two runs are
+byte-identical and that the fixture holds the handle and midpoint rules.
 
 ## Viewport fixture
 

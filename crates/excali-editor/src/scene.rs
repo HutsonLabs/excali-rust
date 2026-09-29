@@ -64,6 +64,8 @@ pub struct ElementUpdate {
     pub frame_id: Option<Option<String>>,
     /// A text's `containerId` (`Some(None)` is `null`).
     pub container_id: Option<Option<String>>,
+    /// An arrow label's `labelPosition` along the arrow's path.
+    pub label_position: Option<f64>,
 }
 
 impl ElementUpdate {
@@ -402,6 +404,12 @@ fn apply(element: &mut Element, update: ElementUpdate) -> bool {
             if let Some(v) = update.auto_resize {
                 if text.auto_resize != v {
                     text.auto_resize = v;
+                    changed = true;
+                }
+            }
+            if let Some(v) = update.label_position {
+                if !(text.label_position == Some(Some(v))) {
+                    text.label_position = Some(Some(v));
                     changed = true;
                 }
             }

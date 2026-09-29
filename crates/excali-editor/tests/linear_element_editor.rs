@@ -352,6 +352,9 @@ fn point_edits_and_label_moves() {
         ("addPoints", 50),
         ("dragLabel", 30),
     ] {
-        assert!(counts.get(kind).copied().unwrap_or(0) >= least, "{counts:?}");
+        assert!(
+            counts.get(kind).copied().unwrap_or(0) >= least,
+            "{counts:?}"
+        );
     }
 }
