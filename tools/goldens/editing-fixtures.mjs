@@ -23,6 +23,30 @@
 // - "groups": `appState` ({ selectedElementIds, editingGroupId }) and
 //   `result`: selectGroupsForSelectedElements(appState, elements,
 //   appState, null) (packages/element/src/groups.ts:68-196).
+// - "new": `tool`, `appState` (the keys that differ from
+//   getDefaultAppState()), `origin` and `element`: the element App creates
+//   when the tool's pointer goes down at `origin` (grid off), with the
+//   attributes App passes (createGenericElementOnPointerDown
+//   App.tsx:10534-10601, handleLinearElementOnPointerDown :10313-10408 with
+//   its two points, handleFreeDrawElementOnPointerDown :9988-10035 for a
+//   mouse, createFrameElementOnPointerDown :10603-10634) through upstream's
+//   newElement, newArrowElement, newLinearElement, newFreeDrawElement and
+//   newFrameElement, as constructed (App then gives a line or an arrow its
+//   two points with mutateElement). id, seed, versionNonce and updated are
+//   drawn and left out.
+// - "drag": `element` (at `origin`) and `drags`, each { to,
+//   shouldMaintainAspectRatio, shouldResizeFromCenter, result }:
+//   dragNewElement({ newElement, elementType, originX, originY, x, y,
+//   width: |x - originX|, height: |y - originY|, ... }) as
+//   maybeDragNewGenericElement calls it (App.tsx:13550-13569), from the
+//   element as created each time; result is its { x, y, width, height }.
+// - "perfect": `items`, each { type, width, height, result }:
+//   getPerfectElementSize (packages/element/src/sizeHelpers.ts:158-185).
+// - "eraser": `paths`, each { points, restore, steps }: an EraserTrail
+//   (packages/excalidraw/eraser/index.ts) on an app whose visible elements
+//   are the scene's non-deleted ones, startPath at the first point then
+//   addPointToPath(x, y, restore) for each further one; steps holds what
+//   each call returned (the ids to erase).
 //
 // Deterministic: upstream runs in its test mode (import.meta.env.MODE
 // "test"; ids id0.., timestamps 1), reseed(1) before each case. Math.random
@@ -30,6 +54,8 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
+
+import { JSDOM } from "jsdom";
 
 import { format } from "./lib/format.mjs";
 import { apiCreateElement } from "./lib/restore-element-cases.mjs";
@@ -58,6 +84,15 @@ export {
   newFreeDrawElement,
 } from "./packages/element/src/newElement";
 export { isUsingAdaptiveRadius } from "./packages/element/src/typeChecks";
+export { dragNewElement } from "./packages/element/src/dragElements";
+export { getPerfectElementSize } from "./packages/element/src/sizeHelpers";
+export { Scene } from "./packages/element/src/Scene";
+export { EraserTrail } from "./packages/excalidraw/eraser/index";
+export {
+  ARROW_TYPE,
+  DEFAULT_STROKE_STREAMLINE,
+  FRAME_STYLE,
+} from "./packages/common/src/constants";
 export { setCustomTextMetricsProvider } from "./packages/element/src/textMeasurements";
 export { getDefaultAppState } from "./packages/excalidraw/appState";
 `;
@@ -297,7 +332,346 @@ const groupCases = () =>
     },
   }));
 
-const buildCases = () => [...withinCases(), ...groupCases()];
+// -- element creation -----------------------------------------------------------
+
+/** App's attributes for a new element of `tool` (see the "new" kind). */
+const createElement = (up, tool, appState, [x, y]) => {
+  const strokeWidth = up.getStrokeWidthByKey(tool, appState.currentItemStrokeWidthKey);
+  const base = {
+    x,
+    y,
+    strokeColor: appState.currentItemStrokeColor,
+    backgroundColor: appState.currentItemBackgroundColor,
+    fillStyle: appState.currentItemFillStyle,
+    strokeWidth,
+    strokeStyle: appState.currentItemStrokeStyle,
+    roughness: appState.currentItemRoughness,
+    opacity: appState.currentItemOpacity,
+    locked: false,
+    frameId: null,
+  };
+  switch (tool) {
+    case "rectangle":
+    case "diamond":
+    case "ellipse":
+    case "selection":
+      return up.newElement({
+        type: tool,
+        ...base,
+        roundness:
+          appState.currentItemRoundness === "round"
+            ? {
+                type: up.isUsingAdaptiveRadius(tool)
+                  ? up.ROUNDNESS.ADAPTIVE_RADIUS
+                  : up.ROUNDNESS.PROPORTIONAL_RADIUS,
+              }
+            : null,
+      });
+    case "arrow": {
+      const element = up.newArrowElement({
+        type: "arrow",
+        ...base,
+        roundness:
+          appState.currentItemArrowType === up.ARROW_TYPE.round
+            ? { type: up.ROUNDNESS.PROPORTIONAL_RADIUS }
+            : null,
+        startArrowhead: appState.currentItemStartArrowhead,
+        endArrowhead: appState.currentItemEndArrowhead,
+        elbowed: appState.currentItemArrowType === up.ARROW_TYPE.elbow,
+        fixedSegments: appState.currentItemArrowType === up.ARROW_TYPE.elbow ? [] : null,
+      });
+      return element;
+    }
+    case "line": {
+      const element = up.newLinearElement({
+        type: "line",
+        ...base,
+        roundness:
+          appState.currentItemRoundness === "round"
+            ? { type: up.ROUNDNESS.PROPORTIONAL_RADIUS }
+            : null,
+      });
+      return element;
+    }
+    case "freedraw":
+      return up.newFreeDrawElement({
+        type: "freedraw",
+        ...base,
+        strokeWidth: up.getStrokeWidthByKey("freedraw", appState.currentItemStrokeWidthKey),
+        roundness: null,
+        simulatePressure: true,
+        strokeOptions: {
+          variability: appState.currentItemStrokeVariability,
+          streamline: up.DEFAULT_STROKE_STREAMLINE,
+        },
+        points: [[0, 0]],
+        pressures: [],
+      });
+    case "frame":
+      return up.newFrameElement({
+        x,
+        y,
+        opacity: appState.currentItemOpacity,
+        locked: false,
+        ...up.FRAME_STYLE,
+      });
+    default:
+      throw new Error(`createElement: ${tool}`);
+  }
+};
+
+const withoutDrawn = (element) => {
+  const copy = clone(element);
+  for (const key of ["id", "seed", "versionNonce", "updated"]) delete copy[key];
+  return copy;
+};
+
+const APP_STATES = [
+  ["default", {}],
+  ["sharp", { currentItemRoundness: "sharp", currentItemArrowType: "sharp" }],
+  [
+    "styled",
+    {
+      currentItemStrokeColor: "#e03131",
+      currentItemBackgroundColor: "#ffc9c9",
+      currentItemFillStyle: "hachure",
+      currentItemStrokeWidthKey: "bold",
+      currentItemStrokeStyle: "dashed",
+      currentItemRoughness: 2,
+      currentItemOpacity: 60,
+      currentItemStartArrowhead: "bar",
+      currentItemEndArrowhead: "triangle",
+      currentItemStrokeVariability: "uniform",
+    },
+  ],
+  ["elbow", { currentItemArrowType: "elbow" }],
+];
+
+const TOOLS = ["rectangle", "diamond", "ellipse", "arrow", "line", "freedraw", "frame"];
+
+const newCases = () =>
+  APP_STATES.flatMap(([name, overrides]) =>
+    TOOLS.map((tool) => ({
+      id: `new-${tool}-${name}`,
+      build: (up) => {
+        const appState = { ...up.getDefaultAppState(), ...overrides };
+        const element = createElement(up, tool, appState, [100, 100]);
+        return {
+          id: `new-${tool}-${name}`,
+          kind: "new",
+          tool,
+          appState: overrides,
+          origin: [100, 100],
+          element: withoutDrawn(element),
+        };
+      },
+    })),
+  );
+
+const DRAG_TARGETS = [
+  [250, 200],
+  [100, 100],
+  [100, 250],
+  [250, 100],
+  [40, 30],
+  [40, 260],
+  [300, 60],
+  [110.5, 180.25],
+];
+
+const dragCases = () =>
+  ["rectangle", "ellipse", "diamond", "frame", "selection"].map((tool) => ({
+    id: `drag-${tool}`,
+    build: (up) => {
+      const appState = up.getDefaultAppState();
+      const origin = [100, 100];
+      const drags = [];
+      let first = null;
+      for (const to of DRAG_TARGETS) {
+        for (const shouldMaintainAspectRatio of [false, true]) {
+          for (const shouldResizeFromCenter of [false, true]) {
+            const element = createElement(up, tool, appState, origin);
+            first ??= withoutDrawn(element);
+            const scene = new up.Scene([element], { skipValidation: true });
+            up.dragNewElement({
+              newElement: element,
+              elementType: tool,
+              originX: origin[0],
+              originY: origin[1],
+              x: to[0],
+              y: to[1],
+              width: Math.abs(to[0] - origin[0]),
+              height: Math.abs(to[1] - origin[1]),
+              shouldMaintainAspectRatio,
+              shouldResizeFromCenter,
+              zoom: 1,
+              scene,
+              informMutation: false,
+            });
+            const { x, y, width, height } = scene.getElement(element.id);
+            drags.push({
+              to,
+              shouldMaintainAspectRatio,
+              shouldResizeFromCenter,
+              result: { x, y, width, height },
+            });
+          }
+        }
+      }
+      return { id: `drag-${tool}`, kind: "drag", element: first, origin, drags };
+    },
+  }));
+
+const perfectCases = () => [
+  {
+    id: "perfect",
+    build: (up) => {
+      const items = [];
+      for (const type of ["line", "arrow", "freedraw", "rectangle", "ellipse", "selection"]) {
+        for (const [width, height] of [
+          [150, 100],
+          [150, -100],
+          [-150, 100],
+          [100, 150],
+          [100, 5],
+          [5, 100],
+          [100, 100],
+          [100, 0],
+          [0, 100],
+          [100, 27],
+          [100, 58],
+        ]) {
+          items.push({ type, width, height, result: up.getPerfectElementSize(type, width, height) });
+        }
+      }
+      return { id: "perfect", kind: "perfect", items };
+    },
+  },
+];
+
+// -- the eraser -------------------------------------------------------------------
+
+const ERASER_SCENES = (up) => {
+  const transparent = (type, id, x, y, w = 100, h = 100, rest = {}) =>
+    apiCreateElement(up, { type, id, x, y, width: w, height: h, ...rest });
+  return [
+    [
+      "parity",
+      [el(up, "rectangle", "r", 100, 100), el(up, "rectangle", "keep", 400, 100)],
+      [
+        { points: [[80, 150], [115, 150], [150, 150], [185, 150], [220, 150]] },
+        { points: [[80, 150], [220, 150]] },
+        { points: [[380, 50], [380, 90]] },
+      ],
+    ],
+    [
+      "outline",
+      [
+        transparent("rectangle", "hollow", 100, 100),
+        transparent("ellipse", "ring", 300, 100),
+        transparent("diamond", "kite", 500, 100),
+      ],
+      [
+        { points: [[130, 130], [170, 170]] },
+        { points: [[90, 150], [130, 150]] },
+        { points: [[350, 130], [350, 170]] },
+        { points: [[350, 90], [350, 110]] },
+        { points: [[550, 150], [560, 150]] },
+        { points: [[490, 150], [520, 150]] },
+      ],
+    ],
+    [
+      "labels",
+      [
+        ...labelled(up, "box", 100, 100),
+        transparent("rectangle", "g1", 400, 100, 100, 100, { groupIds: ["grp"] }),
+        transparent("rectangle", "g2", 600, 100, 100, 100, { groupIds: ["grp"] }),
+        transparent("rectangle", "locked", 100, 400, 100, 100, { locked: true }),
+      ],
+      [
+        { points: [[200, 90], [200, 130]] },
+        { points: [[190, 145], [230, 155]] },
+        { points: [[390, 150], [420, 150]] },
+        { points: [[90, 450], [130, 450]] },
+        { points: [[90, 150], [130, 150], [90, 150]], restore: [false, false, true] },
+      ],
+    ],
+    [
+      "linear",
+      [
+        arrow(up, "arr", 100, 100, [
+          [0, 0],
+          [200, 100],
+        ]),
+        apiCreateElement(up, {
+          type: "line",
+          id: "ln",
+          x: 100,
+          y: 300,
+          width: 200,
+          height: 0,
+          points: [
+            [0, 0],
+            [200, 0],
+          ],
+        }),
+        apiCreateElement(up, {
+          type: "freedraw",
+          id: "fd",
+          x: 400,
+          y: 100,
+          width: 100,
+          height: 100,
+          points: [
+            [0, 0],
+            [50, 60],
+            [100, 100],
+          ],
+        }),
+      ],
+      [
+        { points: [[200, 140], [200, 160]] },
+        { points: [[150, 200], [160, 210]] },
+        { points: [[200, 290], [200, 310]] },
+        { points: [[440, 150], [460, 150]] },
+        { points: [[600, 150], [620, 150]] },
+      ],
+    ],
+  ];
+};
+
+const eraserCases = () =>
+  ["parity", "outline", "labels", "linear"].map((name) => ({
+    id: `eraser-${name}`,
+    build: (up) => {
+      const [, elements, paths] = ERASER_SCENES(up).find(([n]) => n === name);
+      const map = up.arrayToMap(elements);
+      const app = {
+        state: { theme: "light", zoom: { value: 1 }, scrollX: 0, scrollY: 0 },
+        visibleElements: elements.filter((e) => !e.isDeleted),
+        scene: { getNonDeletedElementsMap: () => map },
+      };
+      const recorded = paths.map(({ points, restore = [] }) => {
+        const trail = new up.EraserTrail(app);
+        trail.startPath(points[0][0], points[0][1]);
+        const steps = points
+          .slice(1)
+          .map((p, i) => trail.addPointToPath(p[0], p[1], restore[i + 1] ?? false));
+        trail.endPath();
+        return { points, restore: points.map((_, i) => restore[i] ?? false), steps };
+      });
+      return { id: `eraser-${name}`, kind: "eraser", elements: clone(elements), paths: recorded };
+    },
+  }));
+
+const buildCases = () => [
+  ...withinCases(),
+  ...groupCases(),
+  ...newCases(),
+  ...dragCases(),
+  ...perfectCases(),
+  ...eraserCases(),
+];
 
 // -- the fixture --------------------------------------------------------------
 
@@ -332,8 +706,10 @@ const buildFixture = (up, commit) => {
   }
   return asciiJson({
     description:
-      "getElementsWithinSelection and selectGroupsForSelectedElements " +
-      "(packages/element/src/selection.ts, groups.ts) in upstream's test mode (ids id0.., " +
+      "getElementsWithinSelection, selectGroupsForSelectedElements, the new elements App creates, " +
+      "dragNewElement, getPerfectElementSize and EraserTrail (packages/element/src/selection.ts, " +
+      "groups.ts, newElement.ts, dragElements.ts, sizeHelpers.ts, packages/excalidraw/eraser) " +
+      "in upstream's test mode (ids id0.., " +
       "timestamps 1, reseed(1) before each case). Generated by tools/goldens/editing-fixtures.mjs.",
     upstream: commit,
     cases,
@@ -350,7 +726,13 @@ const main = async () => {
     process.exit(1);
   }
   globalThis.devicePixelRatio = 1;
-  globalThis.window ??= {};
+  // the eraser trail creates its SVG path in the document; its animation
+  // frames (which only draw the trail) never run
+  const dom = new JSDOM("<!doctype html><html><head></head><body></body></html>");
+  globalThis.window = dom.window;
+  globalThis.document = dom.window.document;
+  globalThis.requestAnimationFrame = () => 0;
+  globalThis.cancelAnimationFrame = () => {};
   const up = await loadUpstream(upstream, {
     entry: ENTRY,
     define: { "import.meta.env.MODE": '"test"' },

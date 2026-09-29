@@ -305,3 +305,156 @@ fn rotate_handle() {
     assert_eq!(a.base.angle.0, std::f64::consts::FRAC_PI_2);
     assert_eq!((a.base.width, a.base.height), (100.0, 100.0));
 }
+
+// -- Tools --------------------------------------------------------------------
+
+/// Draws with the tool of `k` from `from` to `to`; the one new element.
+fn draw(ed: &mut Ed, k: &str, from: [f64; 2], to: [f64; 2]) -> Element {
+    let before: Vec<String> = live(ed).iter().map(|e| e.base.id.clone()).collect();
+    letter(ed, k);
+    drag(ed, from, to);
+    let created: Vec<Element> = live(ed)
+        .into_iter()
+        .filter(|e| !before.contains(&e.base.id))
+        .cloned()
+        .collect();
+    assert_eq!(created.len(), 1, "{k} created {created:?}");
+    created.into_iter().next().unwrap()
+}
+
+fn json_of(e: &Element) -> Value {
+    Value::Object(e.to_map())
+}
+
+#[test]
+fn tool_rectangle() {
+    let mut ed = editor_with(vec![]);
+    let e = draw(&mut ed, "r", [100.0, 100.0], [250.0, 200.0]);
+    let j = json_of(&e);
+    for (k, v) in [
+        ("type", json!("rectangle")),
+        ("x", json!(100.0)),
+        ("y", json!(100.0)),
+        ("width", json!(150.0)),
+        ("height", json!(100.0)),
+        ("angle", json!(0.0)),
+        ("strokeColor", json!("#1e1e1e")),
+        ("backgroundColor", json!("transparent")),
+        ("fillStyle", json!("solid")),
+        ("strokeWidth", json!(2.0)),
+        ("strokeStyle", json!("solid")),
+        ("roughness", json!(1.0)),
+        ("opacity", json!(100.0)),
+        ("roundness", json!({ "type": 3 })),
+        ("groupIds", json!([])),
+        ("frameId", Value::Null),
+        ("locked", json!(false)),
+    ] {
+        assert_eq!(j[k], v, "{k}");
+    }
+    assert_eq!(state(&ed, "activeTool"), "selection");
+    assert_eq!(selected(&ed), [e.base.id.clone()]);
+    // one undo step removes it
+    key(&mut ed, Keystroke::new("z", "KeyZ").ctrl());
+    assert!(live(&ed).is_empty());
+}
+
+#[test]
+fn tool_diamond_and_ellipse() {
+    let mut ed = editor_with(vec![]);
+    let d = draw(&mut ed, "d", [100.0, 100.0], [250.0, 200.0]);
+    assert_eq!(json_of(&d)["roundness"], json!({ "type": 2 }));
+    assert_eq!((d.base.width, d.base.height), (150.0, 100.0));
+    let o = draw(&mut ed, "o", [300.0, 100.0], [450.0, 200.0]);
+    assert_eq!(json_of(&o)["roundness"], Value::Null);
+    assert_eq!((o.base.x, o.base.y, o.base.width), (300.0, 100.0, 150.0));
+}
+
+#[test]
+fn tool_arrow_and_line() {
+    let mut ed = editor_with(vec![]);
+    let a = json_of(&draw(&mut ed, "a", [100.0, 100.0], [250.0, 200.0]));
+    assert_eq!(a["type"], "arrow");
+    assert_eq!((a["x"].clone(), a["y"].clone()), (json!(100.0), json!(100.0)));
+    assert_eq!(a["points"], json!([[0.0, 0.0], [150.0, 100.0]]));
+    assert_eq!(a["startArrowhead"], Value::Null);
+    assert_eq!(a["endArrowhead"], "arrow");
+    let l = json_of(&draw(&mut ed, "l", [100.0, 300.0], [250.0, 400.0]));
+    assert_eq!(l["type"], "line");
+    assert_eq!(l["points"], json!([[0.0, 0.0], [150.0, 100.0]]));
+    assert_eq!(l["endArrowhead"], Value::Null);
+}
+
+#[test]
+fn tool_freedraw() {
+    let mut ed = editor_with(vec![]);
+    let f = json_of(&draw(&mut ed, "p", [100.0, 100.0], [250.0, 200.0]));
+    assert_eq!(f["type"], "freedraw");
+    assert_eq!((f["x"].clone(), f["y"].clone()), (json!(100.0), json!(100.0)));
+    let points = f["points"].as_array().unwrap();
+    assert!(points.len() > 2);
+    assert_eq!(points.last().unwrap(), &json!([150.0, 100.0]));
+    // the freedraw tool stays
+    assert_eq!(state(&ed, "activeTool"), "freedraw");
+}
+
+#[test]
+fn tool_frame() {
+    let mut ed = editor_with(vec![]);
+    let f = json_of(&draw(&mut ed, "f", [100.0, 100.0], [400.0, 300.0]));
+    assert_eq!(f["type"], "frame");
+    assert_eq!(
+        [&f["x"], &f["y"], &f["width"], &f["height"]],
+        [&json!(100.0), &json!(100.0), &json!(300.0), &json!(200.0)]
+    );
+    assert_eq!(f["name"], Value::Null);
+}
+
+#[test]
+fn tool_lock() {
+    let mut ed = editor_with(vec![]);
+    letter(&mut ed, "q");
+    draw(&mut ed, "r", [100.0, 100.0], [200.0, 200.0]);
+    assert_eq!(state(&ed, "activeTool"), "rectangle");
+    drag(&mut ed, [300.0, 100.0], [400.0, 200.0]);
+    let rects = live(&ed)
+        .iter()
+        .filter(|e| json_of(e)["type"] == "rectangle")
+        .count();
+    assert_eq!(rects, 2);
+}
+
+#[test]
+fn a_click_with_a_shape_tool_draws_nothing() {
+    let mut ed = editor_with(vec![]);
+    letter(&mut ed, "r");
+    click(&mut ed, [100.0, 100.0]);
+    assert!(live(&ed).is_empty());
+}
+
+#[test]
+fn tool_eraser() {
+    let mut ed = editor_with(vec![rect("r", 100.0, 100.0), rect("keep", 400.0, 100.0)]);
+    letter(&mut ed, "e");
+    drag(&mut ed, [80.0, 150.0], [220.0, 150.0]);
+    let ids: Vec<String> = live(&ed).iter().map(|e| e.base.id.clone()).collect();
+    assert_eq!(ids, ["keep"]);
+    assert_eq!(state(&ed, "activeTool"), "eraser");
+    key(&mut ed, Keystroke::new("z", "KeyZ").ctrl());
+    assert_eq!(live(&ed).len(), 2);
+}
+
+// -- Bound text and arrows ----------------------------------------------------
+
+#[test]
+fn bound_arrow_create() {
+    let mut ed = editor_with(vec![rect("a", 100.0, 100.0), rect("b", 400.0, 100.0)]);
+    let arrow = json_of(&draw(&mut ed, "a", [150.0, 150.0], [450.0, 150.0]));
+    assert_eq!(arrow["startBinding"]["elementId"], "a");
+    assert_eq!(arrow["endBinding"]["elementId"], "b");
+    // the shapes list the arrow
+    let bound = |id: &str| json_of(get(&ed, id))["boundElements"].clone();
+    let arrow_id = arrow["id"].clone();
+    assert_eq!(bound("a"), json!([{ "id": arrow_id, "type": "arrow" }]));
+    assert_eq!(bound("b"), json!([{ "id": arrow_id, "type": "arrow" }]));
+}

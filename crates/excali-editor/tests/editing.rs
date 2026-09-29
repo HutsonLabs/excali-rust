@@ -8,10 +8,21 @@
 //! - `within`: `getElementsWithinSelection` (`selection.ts:70`) for each
 //!   box, in both box selection modes, with and without
 //!   `excludeElementsInFrames`;
-//! - `groups`: `selectGroupsForSelectedElements` (`groups.ts:68-196`).
+//! - `groups`: `selectGroupsForSelectedElements` (`groups.ts:68-196`);
+//! - `new`: the element App creates for a drawing tool
+//!   ([`new_element_for_tool`]), every field but the drawn ones;
+//! - `drag`: `dragNewElement` (`dragElements.ts:294-406`);
+//! - `perfect`: `getPerfectElementSize` (`sizeHelpers.ts:158-185`);
+//! - `eraser`: `EraserTrail.addPointToPath` (`eraser/index.ts`), the ids
+//!   to erase after every point.
 
+use excali_core::app_state::AppState;
 use excali_core::element::Element;
+use excali_editor::eraser::EraserTrail;
 use excali_editor::groups::select_groups_for_selected_elements;
+use excali_editor::new_element::{
+    drag_new_element, get_perfect_element_size, new_element_for_tool, DragNewElement,
+};
 use excali_editor::selection::{get_elements_within_selection, BoxSelectionMode};
 use excali_scene::bounds::ElementsMap;
 use serde_json::{Map, Value};
@@ -124,5 +135,111 @@ fn group_selection_matches_upstream() {
             "{}",
             case["id"]
         );
+    }
+}
+
+fn num(v: &Value) -> f64 {
+    v.as_f64().expect("a number")
+}
+
+fn point(v: &Value) -> [f64; 2] {
+    [num(&v[0]), num(&v[1])]
+}
+
+#[test]
+fn new_elements_match_upstream() {
+    for case in cases("new") {
+        let mut app_state = AppState::default();
+        for (k, v) in case["appState"].as_object().unwrap() {
+            app_state.insert(k, v.clone());
+        }
+        let tool = case["tool"].as_str().unwrap();
+        let element =
+            new_element_for_tool(tool, &app_state, point(&case["origin"]), None, "x", 7.0, 1.0)
+                .unwrap_or_else(|| panic!("{} made nothing", case["id"]));
+        let mut got = element.to_map();
+        for key in ["id", "seed", "versionNonce", "updated"] {
+            got.shift_remove(key);
+        }
+        assert_eq!(Value::Object(got), case["element"], "{}", case["id"]);
+        assert_eq!(element.base.seed, 7.0);
+    }
+}
+
+#[test]
+fn drag_new_element_matches_upstream() {
+    for case in cases("drag") {
+        let element = Element::from_map(case["element"].as_object().unwrap().clone())
+            .expect("an element");
+        let tool = element.kind.element_type().as_str().to_owned();
+        let origin = point(&case["origin"]);
+        for drag in case["drags"].as_array().unwrap() {
+            let to = point(&drag["to"]);
+            let got = drag_new_element(&DragNewElement {
+                element: &element,
+                element_type: &tool,
+                origin,
+                pointer: to,
+                width: (to[0] - origin[0]).abs(),
+                height: (to[1] - origin[1]).abs(),
+                maintain_aspect_ratio: drag["shouldMaintainAspectRatio"].as_bool().unwrap(),
+                resize_from_center: drag["shouldResizeFromCenter"].as_bool().unwrap(),
+                width_aspect_ratio: None,
+            });
+            let r = &drag["result"];
+            let want = [num(&r["x"]), num(&r["y"]), num(&r["width"]), num(&r["height"])];
+            let got = got.unwrap_or([
+                element.base.x,
+                element.base.y,
+                element.base.width,
+                element.base.height,
+            ]);
+            assert_eq!(got, want, "{} {drag}", case["id"]);
+        }
+    }
+}
+
+#[test]
+fn perfect_element_size_matches_upstream() {
+    for case in cases("perfect") {
+        for item in case["items"].as_array().unwrap() {
+            let got = get_perfect_element_size(
+                item["type"].as_str().unwrap(),
+                num(&item["width"]),
+                num(&item["height"]),
+            );
+            let want = (num(&item["result"]["width"]), num(&item["result"]["height"]));
+            assert_eq!(got, want, "{item}");
+        }
+    }
+}
+
+#[test]
+fn eraser_trail_matches_upstream() {
+    for case in cases("eraser") {
+        let scene = elements(&case);
+        let visible: Vec<&Element> = scene.iter().filter(|e| !e.base.is_deleted).collect();
+        for path in case["paths"].as_array().unwrap() {
+            let points: Vec<[f64; 2]> = path["points"].as_array().unwrap().iter().map(point).collect();
+            let restore: Vec<bool> = path["restore"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| v.as_bool().unwrap())
+                .collect();
+            let mut trail = EraserTrail::default();
+            trail.start_path(points[0][0], points[0][1]);
+            for (i, step) in path["steps"].as_array().unwrap().iter().enumerate() {
+                let p = points[i + 1];
+                let got = trail.add_point_to_path(p[0], p[1], restore[i + 1], &visible, 1.0);
+                let want: Vec<String> = step
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|v| v.as_str().unwrap().to_owned())
+                    .collect();
+                assert_eq!(got, want, "{} {:?} step {i}", case["id"], points);
+            }
+        }
     }
 }

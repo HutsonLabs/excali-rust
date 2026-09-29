@@ -44,16 +44,16 @@ The suite's first test fails when a row has no test, a test has no row, or a sta
 | tool-toolbar-order | The toolbar's buttons are upstream's desktop toolbar, in order (the `default` case of `crates/excali-ui/tests/fixtures/toolbar.json`, rendered from upstream's `Toolbar`). | `excalidraw/components/Toolbar.tsx` | ex-518 | pass |
 | tool-toolbar-click | Clicking a toolbar button makes its tool active. | `excalidraw/components/Toolbar.tsx`, `excalidraw/components/App.tsx` (`setActiveTool`) | ex-518 | pass |
 | tool-letters | The tool letters select their tools: V, R, D, O, A, L, P, T, E and H. | `excalidraw/components/App.tsx` (`onKeyDown`, `findShapeByKey`) | ex-515 | pass |
-| tool-rectangle | R and a drag from (100, 100) to (250, 200) create a 150 × 100 rectangle with upstream's defaults (stroke `#1e1e1e`, transparent background, solid fill, width 2, roughness 1, opacity 100, adaptive roundness), selected, with the selection tool back. | `element/src/newElement.ts:87` (`_newElementBase`), `common/src/constants.ts:514` (`DEFAULT_ELEMENT_PROPS`), `element/src/typeChecks.ts:357`, `excalidraw/components/App.tsx:10534` | ex-506 | gap |
-| tool-diamond | D and a drag create a diamond with proportional roundness. | `element/src/typeChecks.ts:357`, `excalidraw/components/App.tsx:10534` | ex-506 | gap |
-| tool-ellipse | O and a drag create an ellipse with no roundness. | `element/src/typeChecks.ts:357`, `excalidraw/components/App.tsx:10534` | ex-506 | gap |
-| tool-arrow | A and a drag create a two-point arrow ending in an `arrow` arrowhead. | `excalidraw/appState.ts:33` (`currentItemEndArrowhead`), `excalidraw/components/App.tsx:10198`, `element/src/newElement.ts:604` | ex-506 | gap |
-| tool-line | L and a drag create a two-point line with no arrowheads. | `excalidraw/components/App.tsx:10198`, `element/src/newElement.ts:604` | ex-506 | gap |
-| tool-freedraw | P and a drag create a freedraw element through the pointer's points. | `excalidraw/components/App.tsx:9988`, `element/src/newElement.ts:583` | ex-506 | gap |
+| tool-rectangle | R and a drag from (100, 100) to (250, 200) create a 150 × 100 rectangle with upstream's defaults (stroke `#1e1e1e`, transparent background, solid fill, width 2, roughness 1, opacity 100, adaptive roundness), selected, with the selection tool back. | `element/src/newElement.ts:87` (`_newElementBase`), `common/src/constants.ts:514` (`DEFAULT_ELEMENT_PROPS`), `element/src/typeChecks.ts:357`, `excalidraw/components/App.tsx:10534` | ex-506 | pass |
+| tool-diamond | D and a drag create a diamond with proportional roundness. | `element/src/typeChecks.ts:357`, `excalidraw/components/App.tsx:10534` | ex-506 | pass |
+| tool-ellipse | O and a drag create an ellipse with no roundness. | `element/src/typeChecks.ts:357`, `excalidraw/components/App.tsx:10534` | ex-506 | pass |
+| tool-arrow | A and a drag create a two-point arrow ending in an `arrow` arrowhead. | `excalidraw/appState.ts:33` (`currentItemEndArrowhead`), `excalidraw/components/App.tsx:10198`, `element/src/newElement.ts:604` | ex-506 | pass |
+| tool-line | L and a drag create a two-point line with no arrowheads. | `excalidraw/components/App.tsx:10198`, `element/src/newElement.ts:604` | ex-506 | pass |
+| tool-freedraw | P and a drag create a freedraw element through the pointer's points. | `excalidraw/components/App.tsx:9988`, `element/src/newElement.ts:583` | ex-506 | pass |
 | tool-text | T, a click, typing and Escape create a text element at font size 20 in Excalifont (5). | `common/src/constants.ts:223` (`DEFAULT_FONT_SIZE`), `common/src/constants.ts:268` (`DEFAULT_FONT_FAMILY`), `excalidraw/components/App.tsx:7044` (`startTextEditing`) | ex-512 | gap |
-| tool-eraser | E and a drag across an element delete it. | `excalidraw/components/App.tsx:8530` (`handleEraser`) | ex-506 | gap |
-| tool-frame | F and a drag create a frame. | `excalidraw/components/App.tsx:10603`, `element/src/newElement.ts:263` | ex-506 | gap |
-| tool-lock | With the tool locked (Q), the tool stays active after drawing. | `excalidraw/components/App.tsx` (`onPointerUpFromPointerDownHandler`, `activeTool.locked`) | ex-506 | gap |
+| tool-eraser | E and a drag across an element delete it. | `excalidraw/components/App.tsx:8530` (`handleEraser`) | ex-506 | pass |
+| tool-frame | F and a drag create a frame. | `excalidraw/components/App.tsx:10603`, `element/src/newElement.ts:263` | ex-506 | pass |
+| tool-lock | With the tool locked (Q), the tool stays active after drawing. | `excalidraw/components/App.tsx` (`onPointerUpFromPointerDownHandler`, `activeTool.locked`) | ex-506 | pass |
 
 ## Selection and transforms
 
@@ -85,7 +85,7 @@ The suite's first test fails when a row has no test, a test has no row, or a sta
 |---|---|---|---|---|
 | bound-label-follows | Dragging a container moves its label with it. | `element/src/dragElements.ts:39` (`dragSelectedElements`) | ex-530 | pass |
 | bound-arrow-follows | Dragging a shape an arrow is bound to moves the arrow's end with it. | `element/src/binding.ts:1321` (`updateBoundElements`) | ex-510 | pass |
-| bound-arrow-create | An arrow drawn from inside one shape to inside another binds both ends. | `element/src/binding.ts:151` (`bindOrUnbindBindingElement`), `excalidraw/components/App.tsx:10198` | ex-510 | gap |
+| bound-arrow-create | An arrow drawn from inside one shape to inside another binds both ends. | `element/src/binding.ts:151` (`bindOrUnbindBindingElement`), `excalidraw/components/App.tsx:10198` | ex-510 | pass |
 | text-dblclick-edit | Double-clicking a text element opens its editor: a `dir="auto"`, `wrap="off"` textarea. | `excalidraw/components/App.tsx:7340` (`handleCanvasDoubleClick`), `excalidraw/wysiwyg/textWysiwyg.tsx` | ex-512 | gap |
 | text-dblclick-label | Double-clicking inside a shape opens a textarea for its label. | `excalidraw/components/App.tsx:7340` | ex-512 | gap |
 
