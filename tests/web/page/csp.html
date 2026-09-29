@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>excali-editor under a Content-Security-Policy</title>
+<!-- The browser host of the integration guide
+     (site/content/architecture/integration.md), with the release served at
+     "/": no inline script or style, so the guide's header is the whole
+     policy. specs/csp.spec.mjs serves it with that header. -->
+<link rel="stylesheet" href="/excali.css">
+<script type="module" src="/csp-app.js"></script>
+</head>
+<body>
+<main id="host"></main>
+</body>
+</html>
