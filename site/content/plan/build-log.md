@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-29 · ex-m0 · Milestone check: M0 reached (recheck)
+
+The M0 check ran again on `main` at b98ca56. Pages built, deployed and passed its smoke for that commit, and the site returns 200. `scripts/bootstrap.sh` completes in a fresh clone under macOS `/bin/bash` 3.2, with the Zola digest verified and upstream checked out at 438d898. The CI `attribution` job plants 11 violations in a scratch repository and the gate rejects every one, while a clean control passes. `cargo test --workspace --locked` passes 1679 tests with none failed or ignored. No gap tasks. PR: [#94](https://github.com/HutsonLabs/excali-rust/pull/94).
+
 ## 2026-09-29 · ex-510 · Arrow binding: gap 5+sw/2, max distance 15..30 by zoom, fixed points, modes inside/orbit/skip, highlight
 
 Arrows now stay attached to shapes. When a bound shape moves, resizes or is undone and redone, the port moves the arrow ends itself with a port of upstream's `binding.ts`: fixed points, outline and corner snapping, binding and unbinding, and the inside, orbit and skip strategies. It also describes the binding highlight around the target shape. Thousands of queries, operations and highlights match upstream's own output, as do all 1,307 `updateBoundElements` hooks in the transform fixtures and upstream's history arrow tests. PR: [#93](https://github.com/HutsonLabs/excali-rust/pull/93).
