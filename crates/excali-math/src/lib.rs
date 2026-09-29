@@ -10,11 +10,15 @@
 //!
 //! Arithmetic is kept in upstream's order, and the `Math` functions whose
 //! results differ from Rust's (`Math.hypot`, `Math.round`, `Math.min`,
-//! `Math.max`, `**`, `Math.sin`, `Math.cos`) go through [`js`].
+//! `Math.max`, `**`, and every transcendental: `Math.sin`, `cos`, `tan`,
+//! `asin`, `acos`, `atan`, `atan2`, `exp`, `log`, `log2`, `log10`, `cbrt`)
+//! go through [`js`], which returns V8's doubles on every platform
+//! (ex-009, ADR-011); the workspace `clippy.toml` rejects the `f64`
+//! methods.
 //!
 //! Targets: native, wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): none (std,
-//! and `libm` for V8's `Math.sin` and `Math.cos`).
+//! and `pxfm` for the correctly rounded `pow`).
 
 mod angle;
 mod constants;

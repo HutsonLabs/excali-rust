@@ -479,7 +479,7 @@ dependencies = [
 name = "excali-math"
 version = "26.9.1"
 dependencies = [
- "libm",
+ "pxfm",
  "serde_json",
 ]
 

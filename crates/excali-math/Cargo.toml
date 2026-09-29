@@ -8,10 +8,11 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
-# std and libm only (architecture overview): libm is fdlibm, the sin and cos
-# V8 computes Math.sin and Math.cos with (excali_math::js).
+# std and pxfm only (architecture overview): V8's fdlibm is ported in
+# excali_math::js (src/js/ieee754.rs); pxfm is the correctly rounded pow
+# behind js::pow (ADR-011).
 [dependencies]
-libm = { workspace = true }
+pxfm = { workspace = true }
 
 # serde_json reads goldens/math.json in the parity test and never reaches
 # the library.

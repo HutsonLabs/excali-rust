@@ -1,34 +1,36 @@
 //! JavaScript `Math` functions whose results differ from Rust's `f64`
-//! methods, reimplemented so the port computes the doubles upstream computes.
+//! methods, reimplemented so the port computes the doubles upstream computes,
+//! and the same doubles on every platform (ex-009, ADR-011).
 //!
+//! - `Math.sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `exp`,
+//!   `log`, `log2`, `log10` and `cbrt` are V8's own fdlibm
+//!   (`src/base/ieee754.cc`), not the platform's libm; `f64::sin` and friends
+//!   call the platform's, which is one ulp away on a few percent of arguments,
+//!   differently on macOS and glibc. They go through [`ieee754`], a port of
+//!   V8's file with the fused multiply-adds clang puts in it on arm64, the
+//!   architecture the goldens are generated on.
 //! - `Math.hypot` is not libm's `hypot`: V8 (`src/builtins/math.tq`,
 //!   `MathHypot`) scales by the largest magnitude and sums with Kahan
 //!   compensation, which can differ from libm in the last bit.
-//! - `Math.atan2` is fdlibm's in V8 (`src/base/ieee754.cc`); the platform's
-//!   can be one ulp away, so it goes through the `libm` crate, a port of the
-//!   same fdlibm code. `Math.sin` / `Math.cos` also go through the `libm`
-//!   crate's fdlibm, closer to V8 than the platform's (macOS libm: `sin(4)`),
-//!   but they are not V8's: Node 26's V8 is built with
-//!   `v8_use_libm_trig_functions` and computes them with glibc-derived
-//!   routines, which are one ulp away from fdlibm on some arguments
-//!   (`Math.cos(0.982953340331056)` is 0.5545673797180782 in Node v26.10.0,
-//!   0.5545673797180781 here). ex-533 ports those routines.
-//! - `Math.log` / `Math.log10` are fdlibm's too, compiled for arm64 with
-//!   fused multiply-adds; [`log`] and [`log10`] port them with the same
-//!   fusing, where the `libm` crate's and the platform's are an ulp away
-//!   on a fraction of arguments.
 //! - `Math.round` rounds halves towards +infinity (`-2.5` -> `-2`) and keeps
 //!   the sign of zero (`-0.4` -> `-0`); `f64::round` rounds halves away from
 //!   zero.
 //! - `Math.min` / `Math.max` return NaN if either argument is NaN and order
 //!   `-0` below `+0`; `f64::min` / `f64::max` ignore NaN.
 //! - `**` / `Math.pow` answer NaN for a NaN exponent and for `±1 **
-//!   ±Infinity`, where `f64::powf` answers 1.
+//!   ±Infinity`, where `f64::powf` answers 1, and V8 answers `x ** 2` and
+//!   `x ** 0.5` without calling `pow`; past that V8 calls the platform's
+//!   `pow`, so [`pow`] answers the correctly rounded power instead.
 //! - `Array.prototype.sort(comparator)` never fails, whatever the comparator
 //!   answers (NaN included), and for an inconsistent comparator the order it
 //!   leaves is V8's TimSort's own; `slice::sort_by` may panic when the
 //!   ordering it is given is not total, and would order differently anyway,
 //!   so [`sort`] is a port of V8's TimSort.
+//!
+//! The workspace `clippy.toml` disallows the `f64` and `f32` methods these
+//! replace, so every crate and tools harness calls these instead.
+
+mod ieee754;
 
 /// `Math.hypot(a, b)` as V8 computes it.
 pub fn hypot(a: f64, b: f64) -> f64 {
@@ -62,171 +64,89 @@ pub fn hypot(a: f64, b: f64) -> f64 {
     sum.sqrt() * max
 }
 
-/// `Math.sin(x)`, approximately as V8 computes it: fdlibm's `sin` (V8's
-/// `src/base/ieee754.cc`), which the `libm` crate ports. The platform's
-/// `sin` can differ in the last bit (macOS: `sin(4)`). Node 26's V8 uses
-/// its glibc-derived `sin` instead, which can be one ulp away from this;
-/// ex-533 makes the two agree bit for bit.
+/// `Math.sin(x)` as V8 computes it (fdlibm, [`ieee754`]). The platform's
+/// `sin` can differ in the last bit (macOS: `sin(4)`).
 pub fn sin(x: f64) -> f64 {
-    libm::sin(x)
+    ieee754::sin(x)
 }
 
-/// `Math.cos(x)`, approximately as V8 computes it: fdlibm's `cos`, one
-/// ulp from Node 26 on some arguments (see [`sin`]; ex-533).
+/// `Math.cos(x)` as V8 computes it (fdlibm, [`ieee754`]).
 pub fn cos(x: f64) -> f64 {
-    libm::cos(x)
+    ieee754::cos(x)
 }
 
-/// `Math.atan2(y, x)`: fdlibm's `atan2`, the algorithm of V8's
-/// `src/base/ieee754.cc`, as the `libm` crate ports it. It agrees with
-/// Node 26 on all but about 0.1% of arguments (an ulp away), where the
-/// platform's differs on about a fifth (macOS arm64).
+/// `Math.tan(x)` as V8 computes it (fdlibm, [`ieee754`]).
+pub fn tan(x: f64) -> f64 {
+    ieee754::tan(x)
+}
+
+/// `Math.asin(x)` as V8 computes it (fdlibm, [`ieee754`]).
+pub fn asin(x: f64) -> f64 {
+    ieee754::asin(x)
+}
+
+/// `Math.acos(x)` as V8 computes it (fdlibm, [`ieee754`]).
+pub fn acos(x: f64) -> f64 {
+    ieee754::acos(x)
+}
+
+/// `Math.atan(x)` as V8 computes it (fdlibm, [`ieee754`]).
+pub fn atan(x: f64) -> f64 {
+    ieee754::atan(x)
+}
+
+/// `Math.atan2(y, x)` as V8 computes it (fdlibm, [`ieee754`]).
 pub fn atan2(y: f64, x: f64) -> f64 {
-    libm::atan2(y, x)
+    ieee754::atan2(y, x)
 }
 
-/// `Math.log(x)` as V8 computes it on arm64: `ieee754::log` of V8's
-/// `src/base/ieee754.cc` (fdlibm's `e_log.c`) as clang compiles it for
-/// arm64, where the default `-ffp-contract=on` fuses each `a * b + c` of
-/// an expression into one fused multiply-add. The `libm` crate's `log` is
-/// the same algorithm without the fusing and answers an ulp away on about
-/// 0.2% of arguments (`log(1.125678300857544)`); with the fusing it agreed
-/// with Node 26 on arm64 macOS on every one of 265 000 arguments (random
-/// in [1, 30], random over the whole exponent range, near 1 and near every
-/// power of two). The committed goldens are arm64 output (see
-/// `tools/goldens/README.md`).
+/// `Math.exp(x)` as V8 computes it (fdlibm, [`ieee754`]).
+pub fn exp(x: f64) -> f64 {
+    ieee754::exp(x)
+}
+
+/// `Math.log(x)`, the natural logarithm, as V8 computes it (fdlibm,
+/// [`ieee754`]).
 pub fn log(x: f64) -> f64 {
-    const LN2_HI: f64 = f64::from_bits(0x3FE6_2E42_FEE0_0000); // 6.93147180369123816490e-01
-    const LN2_LO: f64 = f64::from_bits(0x3DEA_39EF_3579_3C76); // 1.90821492927058770002e-10
-    const TWO54: f64 = f64::from_bits(0x4350_0000_0000_0000); // 1.8014398509481984e16
-    const LG1: f64 = f64::from_bits(0x3FE5_5555_5555_5593); // 6.666666666666735130e-01
-    const LG2: f64 = f64::from_bits(0x3FD9_9999_9997_FA04); // 3.999999999940941908e-01
-    const LG3: f64 = f64::from_bits(0x3FD2_4924_9422_9359); // 2.857142874366239149e-01
-    const LG4: f64 = f64::from_bits(0x3FCC_71C5_1D8E_78AF); // 2.222219843214978396e-01
-    const LG5: f64 = f64::from_bits(0x3FC7_4664_96CB_03DE); // 1.818357216161805012e-01
-    const LG6: f64 = f64::from_bits(0x3FC3_9A09_D078_C69F); // 1.531383769920937332e-01
-    const LG7: f64 = f64::from_bits(0x3FC2_F112_DF3E_5244); // 1.479819860511658591e-01
-
-    let mut hx = high_word(x);
-    let lx = x.to_bits() as u32;
-    let mut k: i32 = 0;
-    let mut x = x;
-    if hx < 0x0010_0000 {
-        // x < 2^-1022
-        if ((hx & 0x7FFF_FFFF) as u32 | lx) == 0 {
-            return f64::NEG_INFINITY; // log(±0) = -inf
-        }
-        if hx < 0 {
-            return f64::NAN; // log(-#) = NaN
-        }
-        // subnormal: scale up
-        k -= 54;
-        x *= TWO54;
-        hx = high_word(x);
-    }
-    if hx >= 0x7FF0_0000 {
-        return x + x;
-    }
-    k += (hx >> 20) - 1023;
-    hx &= 0x000F_FFFF;
-    let i = (hx + 0x95F64) & 0x10_0000;
-    // normalize x or x/2
-    let x = with_high_word(x, hx | (i ^ 0x3FF0_0000));
-    k += i >> 20;
-    let f = x - 1.0;
-    if (0x000F_FFFF & (2 + hx)) < 3 {
-        // -2^-20 <= f < 2^-20
-        if f == 0.0 {
-            if k == 0 {
-                return 0.0;
-            }
-            let dk = f64::from(k);
-            return dk.mul_add(LN2_HI, dk * LN2_LO);
-        }
-        // fdlibm writes 0.33333333333333333, the double nearest 1/3
-        let r = f * f * (-1.0f64 / 3.0).mul_add(f, 0.5);
-        if k == 0 {
-            return f - r;
-        }
-        let dk = f64::from(k);
-        return dk.mul_add(LN2_HI, -((-dk).mul_add(LN2_LO, r) - f));
-    }
-    let s = f / (2.0 + f);
-    let dk = f64::from(k);
-    let z = s * s;
-    let mut i = hx - 0x6147A;
-    let w = z * z;
-    let j = 0x6B851 - hx;
-    let t1 = w * w.mul_add(w.mul_add(LG6, LG4), LG2);
-    let t2 = z * w.mul_add(w.mul_add(w.mul_add(LG7, LG5), LG3), LG1);
-    i |= j;
-    let r = t2 + t1;
-    if i > 0 {
-        let hfsq = 0.5 * f * f;
-        if k == 0 {
-            f - (-s).mul_add(hfsq + r, hfsq)
-        } else {
-            dk.mul_add(LN2_HI, -((hfsq - s.mul_add(hfsq + r, dk * LN2_LO)) - f))
-        }
-    } else if k == 0 {
-        (-s).mul_add(f - r, f)
-    } else {
-        dk.mul_add(LN2_HI, -(s.mul_add(f - r, -(dk * LN2_LO)) - f))
-    }
+    ieee754::log(x)
 }
 
-/// `Math.log10(x)` as V8 computes it on arm64: `ieee754::log10` of V8's
-/// `src/base/ieee754.cc`, fdlibm's `e_log10.c`, which splits `x` into
-/// `2^n * m` and answers `n * log10_2hi + (n * log10_2lo + ivln10 *
-/// log(m))` with [`log`], contracted as clang contracts it (see [`log`]).
-/// The `libm` crate's own `log10` and the platform's follow the newer
-/// `k_log.h` algorithm and are an ulp away on about 5% of arguments;
-/// this agreed with Node 26 on 230 000.
+/// `Math.log2(x)` as V8 computes it (fdlibm, [`ieee754`]).
+pub fn log2(x: f64) -> f64 {
+    ieee754::log2(x)
+}
+
+/// `Math.log10(x)` as V8 computes it (fdlibm, [`ieee754`]).
 pub fn log10(x: f64) -> f64 {
-    const TWO54: f64 = f64::from_bits(0x4350_0000_0000_0000); // 1.8014398509481984e16
-    const IVLN10: f64 = f64::from_bits(0x3FDB_CB7B_1526_E50E); // 4.34294481903251816668e-1
-    const LOG10_2HI: f64 = f64::from_bits(0x3FD3_4413_509F_6000); // 3.01029995663611771306e-1
-    const LOG10_2LO: f64 = f64::from_bits(0x3D59_FEF3_11F1_2B36); // 3.69423907715893078616e-13
-
-    let mut hx = high_word(x);
-    let lx = x.to_bits() as u32;
-    let mut k: i32 = 0;
-    let mut x = x;
-    if hx < 0x0010_0000 {
-        // x < 2^-1022
-        if ((hx & 0x7FFF_FFFF) as u32 | lx) == 0 {
-            return f64::NEG_INFINITY; // log(±0) = -inf
-        }
-        if hx < 0 {
-            return f64::NAN; // log(-#) = NaN
-        }
-        // subnormal: scale up
-        k -= 54;
-        x *= TWO54;
-        hx = high_word(x);
-    }
-    if hx >= 0x7FF0_0000 {
-        return x + x;
-    }
-    if hx == 0x3FF0_0000 && x.to_bits() as u32 == 0 {
-        return 0.0; // log(1) = +0
-    }
-    k += (hx >> 20) - 1023;
-    let i = ((k as u32) & 0x8000_0000) >> 31;
-    let hx = (hx & 0x000F_FFFF) | ((0x3FF - i as i32) << 20);
-    let y = f64::from(k + i as i32);
-    let z = y.mul_add(LOG10_2LO, IVLN10 * log(with_high_word(x, hx)));
-    y.mul_add(LOG10_2HI, z)
+    ieee754::log10(x)
 }
 
-/// fdlibm's `__HI(x)`: the high 32 bits, signed.
-fn high_word(x: f64) -> i32 {
-    (x.to_bits() >> 32) as u32 as i32
+/// `Math.cbrt(x)` as V8 computes it (fdlibm, [`ieee754`]).
+pub fn cbrt(x: f64) -> f64 {
+    ieee754::cbrt(x)
 }
 
-/// fdlibm's `SET_HIGH_WORD(x, hi)`: `x` with its high 32 bits replaced.
-fn with_high_word(x: f64, hi: i32) -> f64 {
-    f64::from_bits((u64::from(hi as u32) << 32) | (x.to_bits() & 0xFFFF_FFFF))
+/// `sinf(x)` for ports of C++ that calls the `float` function (Skia's
+/// `sk_float_sin` in the raster backend): [`sin`] of the widened argument,
+/// rounded once to `f32`. The platform's `sinf` is not the same function
+/// everywhere; this is.
+pub fn sin_f32(x: f32) -> f32 {
+    sin(f64::from(x)) as f32
+}
+
+/// `cosf(x)`, as [`sin_f32`].
+pub fn cos_f32(x: f32) -> f32 {
+    cos(f64::from(x)) as f32
+}
+
+/// `acosf(x)`, as [`sin_f32`].
+pub fn acos_f32(x: f32) -> f32 {
+    acos(f64::from(x)) as f32
+}
+
+/// `powf(x, y)`, as [`sin_f32`] over [`pow`].
+pub fn pow_f32(x: f32, y: f32) -> f32 {
+    pow(f64::from(x), f64::from(y)) as f32
 }
 
 /// `Math.round(x)`: the nearest integer, halves rounded towards +infinity,
@@ -277,17 +197,37 @@ pub fn min(a: f64, b: f64) -> f64 {
     }
 }
 
-/// `x ** y` and `Math.pow(x, y)` (ES `Number::exponentiate`): C's `pow`
-/// except that a NaN exponent always gives NaN and `±1 ** ±Infinity` is NaN
-/// (C answers 1 for both). The finite results are the platform's `pow`, the
-/// same caveat as `Math.sin` and friends: on arm64 macOS it agrees with V8
-/// on `x ** 2` and `x ** 3` (checked on 200 000 arguments while porting
-/// `bezierEquation`), and `x ** 2` is exactly `x * x` everywhere.
+/// `x ** y` and `Math.pow(x, y)` as V8 computes them (`math::pow`,
+/// `src/numbers/ieee754.cc`): a NaN exponent gives NaN and `±1 ** ±Infinity`
+/// is NaN (ES `Number::exponentiate`; C answers 1 for both), `x ** 2` is
+/// `x * x` and `x ** 0.5` is `sqrt(x + 0)` (`+Infinity` for `-Infinity`), as
+/// V8's optimizing compilers answer them. Everything else V8 hands to the
+/// platform's `pow`, which is not the same function on every platform (Node
+/// 26.10.0 on macOS arm64 prints `0.25570661814708906 ** 3 =
+/// 0.016719600859406776`, one ulp above the exact cube rounded, and glibc's
+/// `pow` differs from both elsewhere), so here it is the correctly rounded
+/// power (`pxfm::f_pow`, CORE-MATH's algorithm), the same everywhere and
+/// the answer every platform's `pow` gives when it is exact to half an ulp.
+/// It agrees with macOS Node on all but 0.1% of random arguments and on
+/// `x ** 3` for all but 0.14% of `x` in [0, 1].
 pub fn pow(x: f64, y: f64) -> f64 {
     if y.is_nan() || (y.is_infinite() && x.abs() == 1.0) {
         return f64::NAN;
     }
-    x.powf(y)
+    if y == 0.0 {
+        return 1.0; // NaN ** 0 included
+    }
+    if y == 2.0 {
+        return x * x;
+    }
+    if y == 0.5 {
+        return if x.is_infinite() {
+            f64::INFINITY
+        } else {
+            (x + 0.0).sqrt()
+        };
+    }
+    pxfm::f_pow(x, y)
 }
 
 /// `array.sort(comparator)` as V8 runs it: TimSort, ported from
