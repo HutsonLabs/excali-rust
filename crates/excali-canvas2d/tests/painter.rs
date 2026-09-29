@@ -11,9 +11,9 @@
 use std::collections::HashMap;
 use std::f64::consts::FRAC_PI_2;
 
-use excali_canvas2d::{paint, Context2d};
+use excali_canvas2d::{blit, paint, Context2d};
 use excali_scene::display::{
-    Clip, Color, Dash, Direction, DisplayItem, DisplayList, FillRule, Font, Group, ImageFilter,
+    bitmap_id, Blit, Clip, Color, Dash, Direction, DisplayItem, DisplayList, FillRule, Font, Group, ImageFilter,
     ImageItem, LineCap, LineJoin, PaintState, Path, Rect, Rgba, Stroke, TextAlign, TextRun,
     Transform,
 };
@@ -334,6 +334,75 @@ fn image_not_loaded_draws_nothing() {
         Rect::new(0.0, 0.0, 1.0, 1.0),
     )));
     assert!(log.is_empty(), "{log:?}");
+}
+
+#[test]
+fn blit_draws_a_bitmap_under_its_absolute_matrix() {
+    // drawElementFromCanvas (renderElement.ts:762-934): inside one
+    // save()/restore(), the element's alpha, smoothing off when snapped,
+    // the arrow label hole clipped even-odd under the matrix it was built
+    // in, then setTransform to the (snapped) blit matrix and drawImage of
+    // the whole bitmap into the destination.
+    let mut ctx = Recording::default();
+    let id = bitmap_id("arrow");
+    assert_eq!(id, "bitmap:arrow");
+    ctx.images.insert(id.clone(), (512.0, 193.0));
+    let mut hole = Path::rect(-10.0, -10.0, 20.0, 20.0);
+    hole.commands
+        .extend(Path::rect(-1.0, -1.0, 2.0, 2.0).commands);
+    blit(
+        &mut ctx,
+        &Blit {
+            id,
+            alpha: 0.5,
+            smoothing: Some(false),
+            clip: Some((
+                Clip {
+                    path: hole,
+                    rule: FillRule::EvenOdd,
+                },
+                Transform::scale(1.25, 1.25),
+            )),
+            transform: Transform::new(1.25, 0.0, 0.0, 1.25, -8.0, 65.0),
+            dest: Rect::new(0.0, 0.0, 409.6, 154.4),
+        },
+    );
+    let log = ctx.log.join(" ");
+    assert!(
+        log.starts_with("save globalAlpha=0.5 imageSmoothingEnabled=false setTransform(1.25,0,0,1.25,0,0) beginPath moveTo(-10,-10)"),
+        "{log}"
+    );
+    assert!(
+        log.ends_with("clip(evenodd) setTransform(1.25,0,0,1.25,-8,65) drawImage(bitmap:arrow,0,0,512,193,0,0,409.6,154.4) restore"),
+        "{log}"
+    );
+}
+
+#[test]
+fn blit_leaves_smoothing_alone_unless_told_and_skips_missing_bitmaps() {
+    let mut ctx = Recording::default();
+    let plain = Blit {
+        id: bitmap_id("f"),
+        alpha: 1.0,
+        smoothing: None,
+        clip: None,
+        transform: Transform::translate(3.0, 4.0),
+        dest: Rect::new(0.0, 0.0, 10.0, 20.0),
+    };
+    blit(&mut ctx, &plain);
+    assert!(ctx.log.is_empty(), "{:?}", ctx.log);
+    ctx.images.insert(bitmap_id("f"), (10.0, 20.0));
+    blit(&mut ctx, &plain);
+    assert_eq!(
+        ctx.log,
+        [
+            "save",
+            "globalAlpha=1",
+            "setTransform(1,0,0,1,3,4)",
+            "drawImage(bitmap:f,0,0,10,20,0,0,10,20)",
+            "restore"
+        ]
+    );
 }
 
 #[test]

@@ -376,6 +376,10 @@ jobs:
   # canvas-layers.json (ex-503), upstream's own snapScrollToDevicePixels,
   # each layer's bootstrapCanvas on a canvas sized as its component sizes
   # it, and renderNewElementScene on the recording context, and
+  # element-canvas.mjs --check for excali-scene's element-canvas.json
+  # (ex-504), upstream's own renderElement on its editor path: each
+  # element's cached bitmap (padding, size caps, scale, key) and its
+  # pixel-snapped blit, and when a change regenerates the bitmap, and
   # ui-primitives.mjs --check for excali-ui's ui-primitives.json and
   # primitives.css (ex-516), upstream's own Island, Stack, Button,
   # IconButton, RadioGroup, Range, TextField, Popover, Modal, Dialog and
@@ -474,6 +478,8 @@ jobs:
         run: node tools/goldens/frame-clip.mjs --check
       - name: excali-ui canvas layer fixture matches upstream's snapScrollToDevicePixels, bootstrapCanvas and renderNewElementScene
         run: node tools/goldens/canvas-layers.mjs --check
+      - name: excali-scene per-element bitmap cache fixture matches upstream's renderElement editor path
+        run: node tools/goldens/element-canvas.mjs --check
       - name: excali-ui primitive fixture and stylesheet match upstream's components and SCSS
         run: node tools/goldens/ui-primitives.mjs --check
       - name: excali-ui theme token fixture matches upstream's theme.scss
