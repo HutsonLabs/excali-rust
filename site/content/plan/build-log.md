@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-29 · ex-m4 · Milestone check: M4 reached
+
+The M4 check ran again on `main` at ae23249, after ex-g401 and ex-g402 merged. 1669 workspace tests pass with none ignored, the 27 goldens `--check` steps are current, and the raster fixtures match the local Chrome. D2 holds. SVG export equals upstream's `export.test.ts` and `export.test.tsx` snapshots and 48 whole `exportToSvg` documents byte for byte. The PNG export of 34 fixture scenes, text included, matches what upstream's own `exportToCanvas` draws in Chromium within the tolerance recorded for each scene. The emoji-only smiley scene is excluded because no vendored face has the emoji (ADR-004), but its size and the pixels outside its text are still checked. The release CLI renders all 4187 items of the 232 catalogue libraries with no failures. No gap tasks. PR: [#PRNUM](https://github.com/HutsonLabs/excali-rust/pull/PRNUM).
+
 ## 2026-09-29 · ex-009 · Platform-independent float maths: excali_math::js for every transcendental, std methods disallowed by clippy
 
 Every sine, cosine, arctangent, exponential, logarithm, cube root, hypot and power in the port now goes through `excali_math::js`, a port of V8's own fdlibm (with arm64's fused multiply-adds) plus a correctly rounded `pow`, so the port returns the same doubles as upstream's Node on macOS, Linux and wasm32. Clippy rejects new uses of the std methods in every crate and tool, and the goldens compare trigonometry exactly on both macOS and Linux CI (ADR-011). PR: [#91](https://github.com/HutsonLabs/excali-rust/pull/91).
