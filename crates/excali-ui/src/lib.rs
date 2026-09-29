@@ -16,13 +16,16 @@
 //! `LayerUI.tsx`); for [`toolbar`] the desktop shapes toolbar and its
 //! extra-tools dropdown (`components/Toolbar.tsx`, `Tools.tsx`); for
 //! [`main_menu`] the hamburger menu (`components/main-menu/*`,
-//! `components/dropdownMenu/*`).
+//! `components/dropdownMenu/*`); for [`footer`]
+//! the footer's zoom, undo/redo, help and exit-zen controls
+//! (`components/footer/Footer.tsx`).
 //!
 //! Targets: wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-canvas2d`, `excali-editor`.
 
 pub mod dom;
 pub mod fonts;
+pub mod footer;
 pub mod icons;
 pub mod keyboard;
 pub mod layers;

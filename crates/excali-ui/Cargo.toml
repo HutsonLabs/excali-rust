@@ -14,6 +14,9 @@ excali-core = { path = "../excali-core" }
 excali-editor = { path = "../excali-editor" }
 excali-scene = { path = "../excali-scene" }
 excali-text = { path = "../excali-text" }
+# The app state's JSON values excali_ui::footer's help and zen-mode actions
+# write.
+serde_json = { workspace = true }
 # The browser's FontFace / document.fonts API behind excali_ui::fonts, and
 # the <canvas> elements, their wrapper, inline styles and the owner
 # window's devicePixelRatio behind excali_ui::layers; the key, mouse and

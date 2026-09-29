@@ -201,7 +201,11 @@ fn tooltips_are_upstreams() {
             .into_iter()
             .find(|c| c.aria_label() == Some(button.as_str()))
             .unwrap_or_else(|| panic!("no control labelled {button}"));
-        assert_eq!(c.tooltip(false).as_deref(), Some(label.as_str()), "{button}");
+        assert_eq!(
+            c.tooltip(false).as_deref(),
+            Some(label.as_str()),
+            "{button}"
+        );
     }
     // getShortcutKey: Cmd on a Mac
     assert_eq!(
@@ -297,7 +301,11 @@ fn clicks_change_the_app_state_as_upstream() {
         for (k, v) in expected {
             assert_eq!(state.get(k).unwrap_or(&Value::Null), v, "{k} of {click}");
         }
-        assert_eq!(focused, click["focusContainer"].as_bool().unwrap(), "{click}");
+        assert_eq!(
+            focused,
+            click["focusContainer"].as_bool().unwrap(),
+            "{click}"
+        );
     }
 }
 
