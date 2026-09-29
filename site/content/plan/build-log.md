@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-29 · ex-602 · term.hut: save through fs_write_text with dirty state and conflict handling
+
+Drawings in term.hut now save like text files: the tab shows the unsaved dot, edits autosave after 800 ms, Cmd+S and the editor's `save-request` write through `fs_write_text`, and a change on disk prompts to reload or keep exactly as the code editor does (a clean drawing reloads silently). SSH workspaces work unchanged, and there every save re-reads the file first so a remote change still raises the prompt instead of being overwritten. The work shipped in term.hut PR #88; this PR records the resulting save flow on the site's term.hut integration page. PR: [#112](https://github.com/HutsonLabs/excali-rust/pull/112).
+
 ## 2026-09-29 · ex-010 · Close issues after merge; PR CI on the affected crates only
 
 Pull requests no longer conflict over the tracker. A branch carries code, tests and docs only. `.beads/issues.jsonl`, the progress page and this build log change on main alone, in one `<id>: close in tracker, build log` commit that the integrator pushes from the main clone after the merge, and `scripts/gates/tracker_files.py` fails any pull request whose diff touches them. Pull-request CI now tests only what a change can reach. `scripts/gates/affected.py` maps the changed files to the crates that own them or read them by path, adds their reverse dependents, and gives `rust.yml`'s `check` and `test-macos` jobs either those `-p` arguments, `--workspace` when a shared file such as `Cargo.lock`, a workflow, `goldens/` or `fixtures/` changed, or nothing for docs-only changes. Every push to main still runs the whole workspace. [AGENTS.md](https://github.com/HutsonLabs/excali-rust/blob/main/AGENTS.md) and the [agent workflow](@/plan/agent-workflow.md) record the convention (owner decision, 2026-09-29). [PR #121](https://github.com/HutsonLabs/excali-rust/pull/121).
