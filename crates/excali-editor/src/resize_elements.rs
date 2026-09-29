@@ -902,8 +902,8 @@ fn rotate_single_element(
 
     if let Some(text_id) = bound_text_id {
         if !is_arrow(&element) {
-            let (Some(container), Some(text)) = (scene.get(id), scene.get_non_deleted(&text_id))
-            else {
+            // `scene.getElement`: the label is read deleted or not.
+            let (Some(container), Some(text)) = (scene.get(id), scene.get(&text_id)) else {
                 return;
             };
             if let Some([x, y]) =
