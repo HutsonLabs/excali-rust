@@ -145,7 +145,23 @@ pub fn with(element: &Element, updates: Value, env: &mut TestEnv) -> Element {
     new_element_with(element, obj(updates), false, env).expect("newElementWith")
 }
 
-/// `element[key]` as written, `null` when absent.
+/// `element[key]`, `null` when absent, with integral numbers as integers
+/// so that it compares equal to a `json!` literal (the model writes an
+/// `f64` field as a float).
 pub fn prop(element: &Element, key: &str) -> Value {
-    element.to_map().get(key).cloned().unwrap_or(Value::Null)
+    normalize(element.to_map().get(key).cloned().unwrap_or(Value::Null))
+}
+
+fn normalize(value: Value) -> Value {
+    match value {
+        Value::Number(n) => match n.as_f64() {
+            Some(x) if x.fract() == 0.0 && x.abs() < 9e15 => Value::from(x as i64),
+            _ => Value::Number(n),
+        },
+        Value::Array(items) => Value::Array(items.into_iter().map(normalize).collect()),
+        Value::Object(map) => {
+            Value::Object(map.into_iter().map(|(k, v)| (k, normalize(v))).collect())
+        }
+        other => other,
+    }
 }

@@ -50,7 +50,8 @@ impl App {
 
     fn with_initial_data(elements: Vec<Element>, app_state: Value) -> App {
         let mut s = Session::new(TestEnv::default(), AppState::default());
-        s.initialize_scene(elements, obj(app_state));
+        s.initialize_scene(elements, obj(app_state))
+            .expect("initializeScene");
         App { s }
     }
 
@@ -64,7 +65,11 @@ impl App {
     }
 
     fn ids(&self) -> Vec<String> {
-        self.s.elements().iter().map(|e| e.base.id.clone()).collect()
+        self.s
+            .elements()
+            .iter()
+            .map(|e| e.base.id.clone())
+            .collect()
     }
 
     fn get(&self, id: &str) -> Element {
@@ -135,26 +140,31 @@ impl App {
         capture: Option<CaptureUpdateAction>,
     ) {
         self.s
-            .update_scene(elements, app_state.map(obj), capture);
+            .update_scene(elements, app_state.map(obj), capture)
+            .expect("updateScene");
     }
 
     /// `API.setElements(elements)` (`h.elements = elements`): the scene
     /// replaced, nothing captured.
     fn set_elements(&mut self, elements: Vec<Element>) {
-        self.s.sync_action_result(ActionResult {
-            elements: Some(elements),
-            app_state: None,
-            capture_update: CaptureUpdateAction::Eventually,
-        });
+        self.s
+            .sync_action_result(ActionResult {
+                elements: Some(elements),
+                app_state: None,
+                capture_update: CaptureUpdateAction::Eventually,
+            })
+            .expect("setElements");
     }
 
     /// An action result captured immediately.
     fn act(&mut self, elements: Option<Vec<Element>>, app_state: Option<Value>) {
-        self.s.sync_action_result(ActionResult {
-            elements,
-            app_state: app_state.map(obj),
-            capture_update: Immediately,
-        });
+        self.s
+            .sync_action_result(ActionResult {
+                elements,
+                app_state: app_state.map(obj),
+                capture_update: Immediately,
+            })
+            .expect("action");
     }
 
     /// `UI.createElement("rectangle", { x, y })`: the rectangle is drawn,
@@ -307,7 +317,7 @@ fn should_not_collapse_when_applying_corrupted_history_entry() {
     let corrupted = HistoryDelta::from(StoreDelta::create(
         ElementsDelta::create(IndexMap::new(), IndexMap::new(), updated, false),
         AppStateDelta::empty(),
-        Some("corrupted".into()),
+        "corrupted",
     ));
     app.s.history.undo_stack.push(corrupted);
 
@@ -530,8 +540,10 @@ fn should_end_up_with_no_history_entry_after_initializing_scene() {
 
 #[test]
 fn should_create_new_history_entry_on_scene_import() {
-    let mut app =
-        App::with_initial_data(vec![rect("A", 0.0, 0.0)], json!({"viewBackgroundColor": "#FFF"}));
+    let mut app = App::with_initial_data(
+        vec![rect("A", 0.0, 0.0)],
+        json!({"viewBackgroundColor": "#FFF"}),
+    );
     assert_eq!(app.state("viewBackgroundColor"), json!("#FFF"));
     assert_eq!(app.ids(), ["A"]);
 
@@ -637,9 +649,8 @@ fn should_support_element_creation_deletion_and_appstate_element_selection_chang
     app.delete_selected();
     assert_eq!(app.undo_len(), 6);
 
-    let deleted = |app: &App| -> Vec<bool> {
-        app.elements().iter().map(|e| e.base.is_deleted).collect()
-    };
+    let deleted =
+        |app: &App| -> Vec<bool> { app.elements().iter().map(|e| e.base.is_deleted).collect() };
 
     app.undo();
     app.assert_selected(&["rect2", "rect3"]);
@@ -758,7 +769,10 @@ fn bindings_scene() -> App {
     app.select(&["rect1", "text"]);
     let r1 = app.get("rect1");
     let t = app.get("text");
-    let r1 = app.with(&r1, json!({"boundElements": [{"id": "text", "type": "text"}]}));
+    let r1 = app.with(
+        &r1,
+        json!({"boundElements": [{"id": "text", "type": "text"}]}),
+    );
     let t = app.with(&t, json!({"containerId": "rect1"}));
     let r2 = app.get("rect2");
     app.act(
@@ -781,7 +795,10 @@ fn bindings_scene() -> App {
         &r1,
         json!({"boundElements": [{"id": "text", "type": "text"}, {"id": "arrow", "type": "arrow"}]}),
     );
-    let r2 = app.with(&r2, json!({"boundElements": [{"id": "arrow", "type": "arrow"}]}));
+    let r2 = app.with(
+        &r2,
+        json!({"boundElements": [{"id": "arrow", "type": "arrow"}]}),
+    );
     let t = app.get("text");
     app.act(
         Some(vec![r1, t, r2, a]),
@@ -1055,20 +1072,27 @@ fn should_override_remotely_added_groups_on_undo_but_restore_them_on_redo() {
     ];
     app.update_scene(Some(remote), None, Some(Never));
 
-    let groups = |app: &App| -> Vec<Value> {
-        app.elements().iter().map(|e| prop(e, "groupIds")).collect()
-    };
+    let groups =
+        |app: &App| -> Vec<Value> { app.elements().iter().map(|e| prop(e, "groupIds")).collect() };
 
     app.undo();
     assert_eq!(app.stacks(), (0, 1));
     assert_eq!(app.ids(), ["rect1", "rect2", "rect3", "rect4"]);
-    assert_eq!(groups(&app), [json!([]), json!([]), json!(["B"]), json!(["B"])]);
+    assert_eq!(
+        groups(&app),
+        [json!([]), json!([]), json!(["B"]), json!(["B"])]
+    );
 
     app.redo();
     assert_eq!(app.stacks(), (1, 0));
     assert_eq!(
         groups(&app),
-        [json!(["A", "B"]), json!(["A", "B"]), json!(["B"]), json!(["B"])]
+        [
+            json!(["A", "B"]),
+            json!(["A", "B"]),
+            json!(["B"]),
+            json!(["B"])
+        ]
     );
 }
 
@@ -1189,8 +1213,8 @@ fn should_iterate_through_the_history_when_element_change_relates_to_remotely_de
 }
 
 #[test]
-fn should_iterate_through_the_history_when_element_changes_relate_only_to_remotely_deleted_elements()
-{
+fn should_iterate_through_the_history_when_element_changes_relate_only_to_remotely_deleted_elements(
+) {
     let mut app = App::new();
     app.create_rect("rect1", 10.0, 10.0);
     app.create_rect("rect2", 20.0, 20.0);
@@ -1460,7 +1484,10 @@ fn should_iterate_through_the_history_when_selected_or_editing_linear_element_wa
         Some(json!({"selectedLinearElement": {"elementId": "arrow", "isEditing": false}})),
     );
     assert_eq!(app.stacks(), (3, 0));
-    assert_eq!(app.state("selectedLinearElement")["isEditing"], json!(false));
+    assert_eq!(
+        app.state("selectedLinearElement")["isEditing"],
+        json!(false)
+    );
 
     // Simulate remote update
     let a = app.at(0);
@@ -1597,7 +1624,10 @@ fn row(id: &str, binding: Value, deleted: bool) -> (String, Value, bool) {
 fn bind_locally(app: &mut App) {
     let (c, t) = (app.at(0), app.at(1));
     let local = vec![
-        app.with(&c, json!({"boundElements": [{"id": "text", "type": "text"}]})),
+        app.with(
+            &c,
+            json!({"boundElements": [{"id": "text", "type": "text"}]}),
+        ),
         app.with(&t, json!({"containerId": "container"})),
     ];
     app.update_scene(Some(local), None, Some(Immediately));
@@ -1614,7 +1644,10 @@ fn should_rebind_bindings_when_both_are_updated_through_the_history_and_there_no
     assert_eq!(app.stacks(), (0, 1));
     assert_eq!(
         bound_text_state(&app),
-        [row("container", json!([]), false), row("text", Value::Null, false)]
+        [
+            row("container", json!([]), false),
+            row("text", Value::Null, false)
+        ]
     );
 
     // Simulate remote update, no conflicting updates
@@ -1640,7 +1673,10 @@ fn should_rebind_bindings_when_both_are_updated_through_the_history_and_there_no
         assert_eq!(app.stacks(), (0, 1));
         assert_eq!(
             bound_text_state(&app),
-            [row("container", json!([]), false), row("text", Value::Null, false)]
+            [
+                row("container", json!([]), false),
+                row("text", Value::Null, false)
+            ]
         );
     }
 }
@@ -1770,7 +1806,10 @@ fn should_rebind_remotely_added_bound_text_when_its_container_is_added_through_t
     let c = app.at(0);
     let t = label();
     let remote = vec![
-        app.with(&c, json!({"boundElements": [{"id": "text", "type": "text"}]})),
+        app.with(
+            &c,
+            json!({"boundElements": [{"id": "text", "type": "text"}]}),
+        ),
         app.with(&t, json!({"containerId": "container"})),
     ];
     app.update_scene(Some(remote), None, Some(Never));
@@ -1815,7 +1854,10 @@ fn should_rebind_remotely_added_container_when_its_bound_text_is_added_through_t
     let t = app.at(0);
     let c = container();
     let remote = vec![
-        app.with(&c, json!({"boundElements": [{"id": "text", "type": "text"}]})),
+        app.with(
+            &c,
+            json!({"boundElements": [{"id": "text", "type": "text"}]}),
+        ),
         app.with(&t, json!({"containerId": "container"})),
     ];
     app.update_scene(Some(remote), None, Some(Never));
@@ -1857,7 +1899,10 @@ fn should_preserve_latest_remotely_added_binding_and_unbind_previous_one_when_th
     let c = app.at(0);
     let t = label();
     let remote = vec![
-        app.with(&c, json!({"boundElements": [{"id": "text", "type": "text"}]})),
+        app.with(
+            &c,
+            json!({"boundElements": [{"id": "text", "type": "text"}]}),
+        ),
         app.with(&t, json!({"containerId": "container"})),
     ];
     app.update_scene(Some(remote), None, Some(Never));
@@ -1938,7 +1983,10 @@ fn should_preserve_latest_remotely_added_binding_and_unbind_previous_one_when_th
     let t = app.at(0);
     let c = container();
     let remote = vec![
-        app.with(&c, json!({"boundElements": [{"id": "text", "type": "text"}]})),
+        app.with(
+            &c,
+            json!({"boundElements": [{"id": "text", "type": "text"}]}),
+        ),
         app.with(&t, json!({"containerId": "container"})),
     ];
     app.update_scene(Some(remote), None, Some(Never));
@@ -2017,7 +2065,10 @@ fn should_unbind_remotely_deleted_bound_text_from_container_when_the_container_i
     let c = app.at(0);
     let t = label();
     let remote = vec![
-        app.with(&c, json!({"boundElements": [{"id": "text", "type": "text"}]})),
+        app.with(
+            &c,
+            json!({"boundElements": [{"id": "text", "type": "text"}]}),
+        ),
         app.with(&t, json!({"containerId": "container", "isDeleted": true})),
     ];
     app.update_scene(Some(remote), None, Some(Never));
@@ -2113,8 +2164,14 @@ fn should_rebind_remotely_added_arrow_when_its_bindable_elements_are_added_throu
     let (r1, r2) = (app.at(0), app.at(1));
     let remote = vec![
         a,
-        app.with(&r1, json!({"boundElements": [{"id": "arrow", "type": "arrow"}]})),
-        app.with(&r2, json!({"boundElements": [{"id": "arrow", "type": "arrow"}]})),
+        app.with(
+            &r1,
+            json!({"boundElements": [{"id": "arrow", "type": "arrow"}]}),
+        ),
+        app.with(
+            &r2,
+            json!({"boundElements": [{"id": "arrow", "type": "arrow"}]}),
+        ),
     ];
     app.update_scene(Some(remote), None, Some(Never));
 
@@ -2126,7 +2183,10 @@ fn should_rebind_remotely_added_arrow_when_its_bindable_elements_are_added_throu
         assert_eq!(arrow_binding(&app, "endBinding"), Value::Null);
         for id in ["rect1", "rect2"] {
             let r = app.get(id);
-            assert_eq!(bound_elements(&r), json!([{"id": "arrow", "type": "arrow"}]));
+            assert_eq!(
+                bound_elements(&r),
+                json!([{"id": "arrow", "type": "arrow"}])
+            );
             assert!(r.base.is_deleted);
         }
 
@@ -2137,7 +2197,10 @@ fn should_rebind_remotely_added_arrow_when_its_bindable_elements_are_added_throu
         assert_eq!(arrow_binding(&app, "endBinding")["elementId"], "rect2");
         for id in ["rect1", "rect2"] {
             let r = app.get(id);
-            assert_eq!(bound_elements(&r), json!([{"id": "arrow", "type": "arrow"}]));
+            assert_eq!(
+                bound_elements(&r),
+                json!([{"id": "arrow", "type": "arrow"}])
+            );
             assert!(!r.base.is_deleted);
         }
     }
@@ -2163,8 +2226,14 @@ fn should_rebind_remotely_added_bindable_elements_when_its_arrow_is_added_throug
                 "endBinding": {"elementId": "rect2", "fixedPoint": [1, 0.5], "mode": "orbit"},
             }),
         ),
-        app.with(&r1, json!({"boundElements": [{"id": "arrow", "type": "arrow"}]})),
-        app.with(&r2, json!({"boundElements": [{"id": "arrow", "type": "arrow"}]})),
+        app.with(
+            &r1,
+            json!({"boundElements": [{"id": "arrow", "type": "arrow"}]}),
+        ),
+        app.with(
+            &r2,
+            json!({"boundElements": [{"id": "arrow", "type": "arrow"}]}),
+        ),
     ];
     app.update_scene(Some(remote), None, Some(Never));
 
@@ -2189,7 +2258,10 @@ fn should_rebind_remotely_added_bindable_elements_when_its_arrow_is_added_throug
         assert!(!a.base.is_deleted);
         for id in ["rect1", "rect2"] {
             let r = app.get(id);
-            assert_eq!(bound_elements(&r), json!([{"id": "arrow", "type": "arrow"}]));
+            assert_eq!(
+                bound_elements(&r),
+                json!([{"id": "arrow", "type": "arrow"}])
+            );
             assert!(!r.base.is_deleted);
         }
     }
@@ -2225,7 +2297,10 @@ fn should_not_rebind_frame_child_with_frame_when_frame_was_remotely_deleted_and_
     assert_eq!(app.stacks(), (1, 1));
     assert_eq!(
         state(&app),
-        [row("rect", Value::Null, false), row("frame", Value::Null, false)]
+        [
+            row("rect", Value::Null, false),
+            row("frame", Value::Null, false)
+        ]
     );
 
     app.redo();
@@ -2288,11 +2363,19 @@ fn every_undo_and_redo_bumps_version_nonce_and_updated() {
 fn undo_is_ignored_while_an_interaction_is_in_progress() {
     let mut app = App::new();
     app.create_rect("rect", 10.0, 10.0);
-    app.update_scene(None, Some(json!({"selectedElementsAreBeingDragged": true})), None);
+    app.update_scene(
+        None,
+        Some(json!({"selectedElementsAreBeingDragged": true})),
+        None,
+    );
     app.undo();
     assert_eq!(app.stacks(), (1, 0));
     assert!(!app.get("rect").base.is_deleted);
-    app.update_scene(None, Some(json!({"selectedElementsAreBeingDragged": false})), None);
+    app.update_scene(
+        None,
+        Some(json!({"selectedElementsAreBeingDragged": false})),
+        None,
+    );
     app.undo();
     assert_eq!(app.stacks(), (0, 1));
     assert!(app.get("rect").base.is_deleted);
@@ -2320,7 +2403,10 @@ fn store_delta_round_trips_through_its_dto() {
     app.create_rect("rect", 10.0, 10.0);
     let entry = app.s.history.undo_stack[0].clone();
     let dto = entry.to_dto();
-    assert_eq!(dto["elements"]["removed"]["rect"]["inserted"]["isDeleted"], json!(true));
+    assert_eq!(
+        dto["elements"]["removed"]["rect"]["inserted"]["isDeleted"],
+        json!(true)
+    );
     let restored = StoreDelta::from_dto(&dto).unwrap();
     assert_eq!(restored.to_dto(), dto);
     let _: FractionalIndex = FractionalIndex("a0".into());

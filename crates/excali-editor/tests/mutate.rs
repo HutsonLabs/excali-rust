@@ -136,7 +136,10 @@ fn mutate_element_sizes_from_new_points() {
         &mut env,
     )
     .unwrap();
-    assert_eq!(prop(&element, "points"), json!([[0, 0], [30, -20], [40, 10]]));
+    assert_eq!(
+        prop(&element, "points"),
+        json!([[0, 0], [30, -20], [40, 10]])
+    );
     assert_eq!((element.base.width, element.base.height), (40.0, 30.0));
     assert_eq!(element.base.version, 2.0);
     // an explicit size wins over the computed one

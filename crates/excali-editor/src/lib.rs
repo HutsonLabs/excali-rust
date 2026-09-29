@@ -10,6 +10,16 @@
 //!   inside and outline rules, per-shape intersections and binding hit
 //!   tests; [`distance`]: distance to an element's outline
 //!   (`distance.ts`).
+//! - [`mutate`]: `mutateElement`, `newElementWith` and `bumpVersion`, the
+//!   only ways an element changes, each bumping `version`, `versionNonce`
+//!   and `updated`.
+//! - [`delta`]: element and app state deltas (`delta.ts`): calculate,
+//!   inverse, squash, apply with binding repair and visibility.
+//! - [`store`]: snapshots and capture actions (`store.ts`), emitting the
+//!   increments history records.
+//! - [`history`]: the undo and redo stacks (`history.ts`).
+//! - [`session`]: the scene, app state, store and history wired as `App`
+//!   wires them (`updateScene`, `syncActionResult`, undo and redo).
 //! - [`elbow_arrow`]: elbow arrow routing, `updateElbowArrowPoints` and the
 //!   A* search over a non-uniform grid (`packages/element/src/elbowArrow.ts`).
 //! - [`geometry`]: what the router reads off a binding target (bounds,
@@ -23,7 +33,13 @@
 mod binary_heap;
 pub mod collision;
 pub mod distance;
+pub mod delta;
 pub mod elbow_arrow;
 pub mod geometry;
+pub mod history;
+mod js_value;
+pub mod mutate;
 pub mod restore_env;
+pub mod session;
+pub mod store;
 pub mod tools;

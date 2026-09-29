@@ -217,7 +217,11 @@ fn detects_a_bound_label_repositioned_by_a_containers_redraw() {
     let misplaced = with(&label, json!({"x": -100, "y": -100}), &mut env);
     let before = map(&[container.clone(), misplaced.clone()]);
     let after = map(&[
-        with(&container, json!({"version": container.base.version + 1.0}), &mut env),
+        with(
+            &container,
+            json!({"version": container.base.version + 1.0}),
+            &mut env,
+        ),
         misplaced,
     ]);
     let (elements, visible) = apply(&before, &after, &mut env);
@@ -234,8 +238,13 @@ fn move_unrelated(
 ) -> Result<(), String> {
     let mut unrelated = elements["unrelated"].clone();
     let x = unrelated.base.x + 1.0;
-    mutate_element(&mut unrelated, elements, support::obj(json!({"x": x})), stamp)
-        .map_err(|e| e.to_string())?;
+    mutate_element(
+        &mut unrelated,
+        elements,
+        support::obj(json!({"x": x})),
+        stamp,
+    )
+    .map_err(|e| e.to_string())?;
     elements.insert("unrelated".into(), unrelated);
     Ok(())
 }
@@ -281,7 +290,11 @@ fn keeps_an_empty_text_elements_arrow_bindings_visible() {
     }
     let before = map(&[label.clone(), bound.clone()]);
     let after = map(&[
-        with(&label, json!({"isDeleted": true, "boundElements": []}), &mut env),
+        with(
+            &label,
+            json!({"isDeleted": true, "boundElements": []}),
+            &mut env,
+        ),
         with(&bound, json!({"startBinding": null}), &mut env),
     ]);
     assert!(apply(&before, &after, &mut env).1);
@@ -323,7 +336,10 @@ fn creates_an_updated_delta_for_a_version_only_change() {
     let mut updated = IndexMap::new();
     updated.insert(
         "r".to_string(),
-        delta_of(json!({"version": 1, "versionNonce": 0}), json!({"version": 2, "versionNonce": 1})),
+        delta_of(
+            json!({"version": 1, "versionNonce": 0}),
+            json!({"version": 2, "versionNonce": 1}),
+        ),
     );
     assert_eq!(
         delta,
@@ -368,7 +384,12 @@ fn calculates_added_removed_and_updated_deltas() {
     let inverse = delta.inverse();
     assert_eq!(inverse.added.keys().collect::<Vec<_>>(), ["b"]);
     assert_eq!(inverse.removed.keys().collect::<Vec<_>>(), ["c"]);
-    assert_eq!(inverse.updated["a"].inserted["x"], Some(json!(0)));
+    assert_eq!(
+        inverse.updated["a"].inserted["x"]
+            .as_ref()
+            .and_then(Value::as_f64),
+        Some(0.0)
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -411,7 +432,11 @@ fn squashes_mutually_exclusive_delta_types() {
         json!({"x": 100, "version": 1, "versionNonce": 1}),
         json!({"x": 200, "version": 2, "versionNonce": 2}),
     );
-    let mut delta1 = created(vec![("id1", added.clone())], vec![("id2", removed.clone())], vec![]);
+    let mut delta1 = created(
+        vec![("id1", added.clone())],
+        vec![("id2", removed.clone())],
+        vec![],
+    );
     delta1.squash(&created(vec![], vec![], vec![("id3", updated.clone())]));
     assert_eq!(delta1.added["id1"], added);
     assert_eq!(delta1.removed["id2"], removed);
@@ -639,9 +664,15 @@ fn app_state_delta_keeps_a_stable_order_for_root_properties() {
     };
     let linear = json!({"elementId": "id1", "isEditing": false});
     let prev1 = with_keys(json!({"name": "", "selectedLinearElement": null}), true);
-    let next1 = with_keys(json!({"name": "untitled scene", "selectedLinearElement": linear}), true);
+    let next1 = with_keys(
+        json!({"name": "untitled scene", "selectedLinearElement": linear}),
+        true,
+    );
     let prev2 = with_keys(json!({"selectedLinearElement": null, "name": ""}), false);
-    let next2 = with_keys(json!({"selectedLinearElement": linear, "name": "untitled scene"}), false);
+    let next2 = with_keys(
+        json!({"selectedLinearElement": linear, "name": "untitled scene"}),
+        false,
+    );
     let d1 = AppStateDelta::calculate(
         &ObservedAppState::from_map(&prev1),
         &ObservedAppState::from_map(&next1),
@@ -718,7 +749,10 @@ fn app_state_delta_keeps_a_stable_order_for_selected_group_ids() {
 
 #[test]
 fn app_state_delta_does_not_squash_an_empty_delta() {
-    let inner = delta(json!({"name": "untitled scene"}), json!({"name": "titled scene"}));
+    let inner = delta(
+        json!({"name": "untitled scene"}),
+        json!({"name": "titled scene"}),
+    );
     let mut d1 = AppStateDelta::create(inner.clone());
     d1.squash(&AppStateDelta::empty());
     assert!(!d1.is_empty());
@@ -799,7 +833,11 @@ fn app_state_delta_applies_selection_as_a_diff() {
         json!({"selectedElementIds": {"a": true}}),
         json!({"selectedElementIds": {"c": true}}),
     ));
-    let elements = map(&[rect("a", 0.0, 0.0), rect("b", 0.0, 0.0), rect("c", 0.0, 0.0)]);
+    let elements = map(&[
+        rect("a", 0.0, 0.0),
+        rect("b", 0.0, 0.0),
+        rect("c", 0.0, 0.0),
+    ]);
     let (next, visible) = d.apply_to(&app_state, &elements);
     assert_eq!(
         next.get("selectedElementIds"),
