@@ -15,3 +15,5 @@ playwright-report-styles-panel/
 test-results-styles-panel/
 playwright-report-library-sidebar/
 test-results-library-sidebar/
+playwright-report-perf/
+test-results-perf/

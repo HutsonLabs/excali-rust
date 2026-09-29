@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>excali-editor performance budgets</title>
+<!-- The performance budgets (ex-710). The release loads as the term.hut
+     integration page writes it (tests/web/page/editor.html); the spec puts
+     the 1,000-element scene in window.PERF_SCENE before the page runs.
+     First paint is timed from this module's first statement, when the
+     release's ES module has loaded, to the first frame presented after the
+     static canvas holds the scene: init() (fetching and compiling the
+     WASM), defining and mounting <excali-editor>, load() and the canvas's
+     raster, read back with one getImageData so the drawing cannot stay
+     deferred. -->
+<link rel="stylesheet" href="/excali.css">
+<style>
+  body { margin: 0; }
+  #host { width: 1000px; height: 700px; }
+</style>
+</head>
+<body>
+<div id="host"></div>
+<script type="module">
+  import init, { defineExcaliEditor } from "/excali_editor.js";
+  const t0 = performance.now();
+  // a task queued from a frame's rAF callback runs after that frame paints
+  const afterPaint = () =>
+    new Promise((resolve) =>
+      requestAnimationFrame(() => {
+        const channel = new MessageChannel();
+        channel.port1.onmessage = () => resolve(performance.now());
+        channel.port2.postMessage(null);
+      }),
+    );
+  await init();
+  defineExcaliEditor();
+  const ed = document.createElement("excali-editor");
+  document.getElementById("host").appendChild(ed);
+  const fonts = ed.load(window.PERF_SCENE);
+  const canvas = ed.querySelector("canvas.static");
+  canvas.getContext("2d").getImageData(0, 0, 1, 1);
+  const painted = await afterPaint();
+  await fonts;
+  window.ed = ed;
+  window.firstPaint = { ms: painted - t0, fontsMs: performance.now() - t0 };
+</script>
+</body>
+</html>
