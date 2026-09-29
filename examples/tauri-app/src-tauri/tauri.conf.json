@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Excali Example",
+  "version": "26.9.1",
+  "identifier": "com.hutsonlabs.excali.example",
+  "build": {
+    "frontendDist": "../ui",
+    "beforeDevCommand": "sh scripts/web-runtime.sh",
+    "beforeBuildCommand": "sh scripts/web-runtime.sh"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Excali Example",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 480,
+        "minHeight": 360
+      }
+    ],
+    "security": {
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self' 'wasm-unsafe-eval'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "'self' data: blob:",
+        "font-src": "'self' data:",
+        "connect-src": "'self' ipc: http://ipc.localhost"
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg"],
+    "license": "MIT",
+    "category": "GraphicsAndDesign",
+    "shortDescription": "Excalidraw's editor, ported to Rust and WebAssembly, in a Tauri window.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": {
+      "../../../crates/excali-text/assets/fonts/": "fonts/"
+    },
+    "macOS": {
+      "minimumSystemVersion": "11.0"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+# scripts/web-runtime.sh output
+/ui/excali/
+# cargo
+/src-tauri/target/
+# tauri-build output
+/src-tauri/gen/
