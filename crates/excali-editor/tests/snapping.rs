@@ -14,12 +14,11 @@ use std::collections::HashSet;
 
 use excali_core::element::Element;
 use excali_editor::snapping::{
-    get_elements_corners, get_reference_snap_points, get_snap_distance,
-    get_snap_lines_at_pointer, get_visible_gaps, is_active_tool_non_linear_snappable,
-    is_snapping_enabled, render_snaps, snap_dragged_elements, snap_new_element,
-    snap_resizing_elements, CornersOptions, Gap, SnapAppState, SnapCache, SnapCanvasCall,
-    SnapEvent, SnapLine, SnapLineDirection, SnapRenderState, VisibleGaps, SNAP_COLOR_DARK,
-    SNAP_COLOR_DARK_ZEN, SNAP_COLOR_LIGHT,
+    get_elements_corners, get_reference_snap_points, get_snap_distance, get_snap_lines_at_pointer,
+    get_visible_gaps, is_active_tool_non_linear_snappable, is_snapping_enabled, render_snaps,
+    snap_dragged_elements, snap_new_element, snap_resizing_elements, CornersOptions, Gap,
+    SnapAppState, SnapCache, SnapCanvasCall, SnapEvent, SnapLine, SnapLineDirection,
+    SnapRenderState, VisibleGaps, SNAP_COLOR_DARK, SNAP_COLOR_DARK_ZEN, SNAP_COLOR_LIGHT,
 };
 use excali_editor::tools::ToolType;
 use excali_editor::transform_handles::TransformHandleType;
@@ -120,10 +119,16 @@ fn snap_line(line: &SnapLine) -> Value {
         SnapLine::Points { points } => {
             json!({ "type": "points", "points": points.iter().map(|&p| pt(p)).collect::<Vec<_>>() })
         }
-        SnapLine::Pointer { points, direction: d } => {
+        SnapLine::Pointer {
+            points,
+            direction: d,
+        } => {
             json!({ "type": "pointer", "points": [pt(points[0]), pt(points[1])], "direction": direction(*d) })
         }
-        SnapLine::Gap { direction: d, points } => {
+        SnapLine::Gap {
+            direction: d,
+            points,
+        } => {
             json!({ "type": "gap", "direction": direction(*d), "points": [pt(points[0]), pt(points[1])] })
         }
     }
@@ -202,7 +207,9 @@ fn snap_distance_is_8_over_zoom() {
 #[test]
 fn non_linear_snappable_tools_match_upstream() {
     let f = fixture();
-    let items = f["nonLinearSnappable"].as_array().expect("nonLinearSnappable");
+    let items = f["nonLinearSnappable"]
+        .as_array()
+        .expect("nonLinearSnappable");
     assert_eq!(items.len(), ToolType::ALL.len());
     for c in items {
         assert_eq!(
@@ -271,7 +278,10 @@ fn snapping_matches_upstream() {
         let app = state(&c["state"]);
         let by_ids = |v: &Value| -> Vec<&Element> {
             let wanted = ids(v);
-            all.iter().copied().filter(|e| wanted.contains(&e.base.id.as_str())).collect()
+            all.iter()
+                .copied()
+                .filter(|e| wanted.contains(&e.base.id.as_str()))
+                .collect()
         };
 
         for (n, item) in c["corners"].as_array().expect("corners").iter().enumerate() {
@@ -279,9 +289,7 @@ fn snapping_matches_upstream() {
             let options = CornersOptions {
                 omit_center: opts["omitCenter"] == true,
                 bounding_box_corners: opts["boundingBoxCorners"] == true,
-                drag_offset: opts
-                    .get("dragOffset")
-                    .map(|d| [num(&d["x"]), num(&d["y"])]),
+                drag_offset: opts.get("dragOffset").map(|d| [num(&d["x"]), num(&d["y"])]),
             };
             let result = get_elements_corners(&by_ids(&item["ids"]), &map, options);
             let actual = Value::Array(result.into_iter().map(pt).collect());
@@ -298,7 +306,11 @@ fn snapping_matches_upstream() {
             &c["referencePoints"],
         );
         let visible = get_visible_gaps(&all, &selected, &app, &map);
-        check(&format!("{id} visible gaps"), &gaps(&visible), &c["visibleGaps"]);
+        check(
+            &format!("{id} visible gaps"),
+            &gaps(&visible),
+            &c["visibleGaps"],
+        );
 
         for (n, d) in c["drags"].as_array().expect("drags").iter().enumerate() {
             let context = format!("{id} drag {n} {}", d["dragOffset"]);
@@ -313,8 +325,16 @@ fn snapping_matches_upstream() {
                 snap_dragged_elements(&all, &selected_ids, &mut offset, &cache, &app, ev, &map);
             let r = &d["result"];
             check(&format!("{context} offset"), &pt(offset), &r["dragOffset"]);
-            check(&format!("{context} snapOffset"), &pt(result.snap_offset), &r["snapOffset"]);
-            check(&format!("{context} snapLines"), &snap_lines(&result.snap_lines), &r["snapLines"]);
+            check(
+                &format!("{context} snapOffset"),
+                &pt(result.snap_offset),
+                &r["snapOffset"],
+            );
+            check(
+                &format!("{context} snapLines"),
+                &snap_lines(&result.snap_lines),
+                &r["snapLines"],
+            );
             counts.drags += 1;
             if result.snap_offset != [0.0, 0.0] {
                 counts.snapped_drags += 1;
@@ -343,8 +363,16 @@ fn snapping_matches_upstream() {
                 handle,
             );
             let r = &d["result"];
-            check(&format!("{context} snapOffset"), &pt(result.snap_offset), &r["snapOffset"]);
-            check(&format!("{context} snapLines"), &snap_lines(&result.snap_lines), &r["snapLines"]);
+            check(
+                &format!("{context} snapOffset"),
+                &pt(result.snap_offset),
+                &r["snapOffset"],
+            );
+            check(
+                &format!("{context} snapLines"),
+                &snap_lines(&result.snap_lines),
+                &r["snapLines"],
+            );
             counts.resizes += 1;
             count_kinds(&mut counts, &result.snap_lines);
         }
@@ -365,26 +393,56 @@ fn snapping_matches_upstream() {
                 &map,
             );
             let r = &d["result"];
-            check(&format!("{context} snapOffset"), &pt(result.snap_offset), &r["snapOffset"]);
-            check(&format!("{context} snapLines"), &snap_lines(&result.snap_lines), &r["snapLines"]);
+            check(
+                &format!("{context} snapOffset"),
+                &pt(result.snap_offset),
+                &r["snapOffset"],
+            );
+            check(
+                &format!("{context} snapLines"),
+                &snap_lines(&result.snap_lines),
+                &r["snapLines"],
+            );
             counts.news += 1;
             count_kinds(&mut counts, &result.snap_lines);
         }
 
-        for (n, d) in c["pointers"].as_array().expect("pointers").iter().enumerate() {
+        for (n, d) in c["pointers"]
+            .as_array()
+            .expect("pointers")
+            .iter()
+            .enumerate()
+        {
             let context = format!("{id} pointer {n} {}", d["pointer"]);
-            let result =
-                get_snap_lines_at_pointer(&all, &app, point(&d["pointer"]), event(&d["event"]), &map);
+            let result = get_snap_lines_at_pointer(
+                &all,
+                &app,
+                point(&d["pointer"]),
+                event(&d["event"]),
+                &map,
+            );
             let r = &d["result"];
-            check(&format!("{context} originOffset"), &pt(result.origin_offset), &r["originOffset"]);
-            check(&format!("{context} snapLines"), &snap_lines(&result.snap_lines), &r["snapLines"]);
+            check(
+                &format!("{context} originOffset"),
+                &pt(result.origin_offset),
+                &r["originOffset"],
+            );
+            check(
+                &format!("{context} snapLines"),
+                &snap_lines(&result.snap_lines),
+                &r["snapLines"],
+            );
             counts.pointers += 1;
             count_kinds(&mut counts, &result.snap_lines);
         }
     }
     assert!(counts.corners >= 100, "{} corners", counts.corners);
     assert!(counts.drags >= 500, "{} drags", counts.drags);
-    assert!(counts.snapped_drags >= 300, "{} snapped drags", counts.snapped_drags);
+    assert!(
+        counts.snapped_drags >= 300,
+        "{} snapped drags",
+        counts.snapped_drags
+    );
     assert!(counts.resizes >= 250, "{} resizes", counts.resizes);
     assert!(counts.news >= 150, "{} new elements", counts.news);
     assert!(counts.pointers >= 300, "{} pointers", counts.pointers);
