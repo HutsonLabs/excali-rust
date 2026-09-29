@@ -616,7 +616,16 @@ const ROWS = {
   "edit-zorder": async ({ page }) => {
     await mount(page, sceneText([rect("a", 100, 100), rect("b", 300, 100)]));
     await click(page, [150, 150]);
-    await press(page, `${MOD}+Shift+BracketRight`);
+    const mac = await page.evaluate(() => /Mac|iPod|iPhone|iPad/.test(navigator.platform));
+    if (mac) {
+      // Cmd+Alt+] passes both actionBringToFront's and actionBringForward's
+      // key tests, and the ActionManager cancels an ambiguous key
+      await press(page, "Meta+Alt+BracketRight");
+      expect((await saved(page)).map((e) => e.id)).toEqual(["a", "b"]);
+      await press(page, "Meta+BracketRight");
+    } else {
+      await press(page, "Control+Shift+BracketRight");
+    }
     expect((await saved(page)).map((e) => e.id)).toEqual(["b", "a"]);
   },
 

@@ -622,7 +622,7 @@ fn edit_duplicate() {
         [&json!(110.0), &json!(110.0), &json!(100.0), &json!(100.0)]
     );
     // the copy is selected, above the original
-    assert_eq!(selected(&ed), [copy.base.id.clone()]);
+    assert_eq!(selected(&ed), std::slice::from_ref(&copy.base.id));
     assert_eq!(ids(&ed)[1], copy.base.id);
 }
 
@@ -653,6 +653,26 @@ fn edit_zorder() {
 }
 
 #[test]
+fn edit_zorder_on_a_mac() {
+    // Cmd+Alt+] passes actionBringToFront's and actionBringForward's key
+    // tests: the ActionManager cancels an ambiguous key (manager.tsx:114-119)
+    let env = EditorEnv::new(CharCountTextMetrics, 7, || 1.0);
+    let mut ed = Editor::new(env, "https://term.hut", true);
+    ed.set_viewport(1000.0, 700.0, 0.0, 0.0);
+    let scene = json!({
+        "type": "excalidraw", "version": 2, "source": "", "files": {}, "appState": {},
+        "elements": [rect("a", 100.0, 100.0), rect("b", 300.0, 100.0)],
+    });
+    ed.load(&scene.to_string()).unwrap();
+    click(&mut ed, [150.0, 150.0]);
+    key(&mut ed, Keystroke::new("]", "BracketRight").meta().alt());
+    assert_eq!(ids(&ed), ["a", "b"]);
+    // Cmd+] brings it forward, past b
+    key(&mut ed, Keystroke::new("]", "BracketRight").meta());
+    assert_eq!(ids(&ed), ["b", "a"]);
+}
+
+#[test]
 fn edit_copy_paste() {
     let mut ed = editor_with(vec![rect("a", 100.0, 100.0)]);
     click(&mut ed, [150.0, 150.0]);
@@ -664,13 +684,10 @@ fn edit_copy_paste() {
     ed.paste(&text, false);
     let all = live(&ed);
     assert_eq!(all.len(), 2);
-    let copy = all.iter().find(|e| e.base.id != "a").unwrap();
+    let copy = (*all.iter().find(|e| e.base.id != "a").unwrap()).clone();
     // centred on the pointer
-    assert_eq!(
-        (copy.base.x + 50.0, copy.base.y + 50.0),
-        (500.0, 400.0)
-    );
-    assert_eq!(selected(&ed), [copy.base.id.clone()]);
+    assert_eq!((copy.base.x + 50.0, copy.base.y + 50.0), (500.0, 400.0));
+    assert_eq!(selected(&ed), std::slice::from_ref(&copy.base.id));
     // cut: copied, then deleted
     let cut = ed.cut().expect("the selection is cut");
     assert!(cut.contains(&copy.base.id));

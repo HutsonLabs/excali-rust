@@ -21,6 +21,7 @@ use std::rc::{Rc, Weak};
 use excali_canvas2d::{paint, WebCanvas};
 use excali_core::png::{encode_chunks, encode_text_chunk, extract_chunks};
 use excali_editor::actions::{ActionName, KeyLabels};
+use excali_editor::keyboard::{ClipboardEventKind, ClipboardOutcome};
 use excali_editor::tools::ToolState;
 use excali_scene::display::FontFaceSource;
 use excali_scene::shape::Theme;
@@ -28,7 +29,7 @@ use excali_svg::FontContent;
 use excali_text::text_measurements::TextMetricsProvider;
 use excali_ui::dom::{mount, Mounted, Node};
 use excali_ui::footer::{footer, FooterControl, FooterProps, OnFooterEvent};
-use excali_ui::keyboard::{apply_outcome, keystroke};
+use excali_ui::keyboard::{apply_outcome, clipboard_target, keystroke};
 use excali_ui::layers::{CanvasLayers, Layer};
 use excali_ui::main_menu::{default_main_menu, Dispatch, MenuContext, MenuEffect, ThemeChoice};
 use excali_ui::text_editor::{
@@ -843,6 +844,53 @@ impl EditorCore {
         listen(&inner, &interactive, "contextmenu", |_, event| {
             event.prevent_default();
         })?;
+        // copy, cut and paste reach the document (`App.onCopy`, `onCut`,
+        // `pasteFromClipboard`)
+        let document_target: web_sys::EventTarget = document.clone().into();
+        for (name, kind) in [
+            ("copy", ClipboardEventKind::Copy),
+            ("cut", ClipboardEventKind::Cut),
+            ("paste", ClipboardEventKind::Paste),
+        ] {
+            listen(&inner, &document_target, name, move |rc, event| {
+                let Some(data) = event
+                    .dyn_ref::<web_sys::ClipboardEvent>()
+                    .and_then(web_sys::ClipboardEvent::clipboard_data)
+                else {
+                    return;
+                };
+                let mut inner = rc.borrow_mut();
+                let pointer = inner.editor.last_pointer();
+                let target = clipboard_target(
+                    &event,
+                    Some(inner.container.as_ref()),
+                    (pointer[0], pointer[1]),
+                    kind == ClipboardEventKind::Paste,
+                );
+                match inner.editor.clipboard_outcome(kind, target) {
+                    ClipboardOutcome::Ignored => return,
+                    ClipboardOutcome::Action(ActionName::Cut) => {
+                        if let Some(text) = inner.editor.cut() {
+                            let _ = data.set_data("text/plain", &text);
+                        }
+                    }
+                    ClipboardOutcome::Action(_) => {
+                        if let Some(text) = inner.editor.copy() {
+                            let _ = data.set_data("text/plain", &text);
+                        }
+                    }
+                    ClipboardOutcome::Paste { plain } => {
+                        let text = data.get_data("text/plain").unwrap_or_default();
+                        inner.editor.paste(&text, plain);
+                    }
+                }
+                event.prevent_default();
+                event.stop_propagation();
+                inner.after_event();
+                drop(inner);
+                refresh_chrome(&Rc::downgrade(rc));
+            })?;
+        }
         listen(&inner, &interactive, "dblclick", |rc, event| {
             let Ok(event) = event.dyn_into::<web_sys::MouseEvent>() else {
                 return;

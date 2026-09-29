@@ -72,12 +72,16 @@ use excali_editor::binding::{
     bind_or_unbind_binding_element, BindingAppState, BindingOpts, LinearElementInitialState,
 };
 use excali_editor::collision::{hit_element, HitTestCache};
-use excali_editor::edit_actions::{select_all, ActionResult};
+use excali_editor::edit_actions::{
+    bring_forward, bring_to_front, copy_selected, delete_selected, duplicate_selection, group,
+    paste_elements, select_all, send_backward, send_to_back, ungroup, ActionResult,
+};
 use excali_editor::eraser::EraserTrail;
 use excali_editor::groups::select_groups_for_selected_elements;
 use excali_editor::keyboard::{
-    get_selected_elements, on_key_down, on_key_up, pan_starts, KeyEffect, KeyOutcome,
-    KeyboardEditor, KeyboardState, Keystroke, PanStart,
+    get_selected_elements, on_clipboard_event, on_key_down, on_key_up, pan_starts,
+    ClipboardEventKind, ClipboardOutcome, ClipboardTarget, KeyEffect, KeyOutcome, KeyboardEditor,
+    KeyboardState, Keystroke, PanStart,
 };
 use excali_editor::linear_element_editor::create_point_at;
 use excali_editor::mutate::bump_version;
@@ -700,8 +704,33 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             self.zoom(action);
         } else {
             let mut app_state = self.session.app_state().clone();
+            let elements = self.session.elements().to_vec();
+            let env = &mut self.session.env;
             let result = match name {
-                ActionName::SelectAll => select_all(self.session.elements(), &app_state),
+                ActionName::SelectAll => select_all(&elements, &app_state),
+                ActionName::DeleteSelectedElements => {
+                    let result = delete_selected(&elements, &app_state, env);
+                    if result.is_some() {
+                        // updateActiveTool(appState, { type: preferredSelectionTool })
+                        self.tools.active_tool = self.tools.tool_after_finalize();
+                    }
+                    result
+                }
+                ActionName::DuplicateSelection => duplicate_selection(&elements, &app_state, env),
+                ActionName::Group => group(&elements, &app_state, env),
+                ActionName::Ungroup => ungroup(&elements, &app_state, env),
+                ActionName::BringToFront => bring_to_front(&elements, &app_state, env),
+                ActionName::BringForward => bring_forward(&elements, &app_state, env),
+                ActionName::SendToBack => send_to_back(&elements, &app_state, env),
+                ActionName::SendBackward => send_backward(&elements, &app_state, env),
+                ActionName::Copy => {
+                    self.copy();
+                    return;
+                }
+                ActionName::Cut => {
+                    self.cut();
+                    return;
+                }
                 ActionName::ToggleShortcuts => {
                     toggle_shortcuts(&mut app_state);
                     None
@@ -742,6 +771,67 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         }
         self.session.commit();
         self.report();
+    }
+
+    /// `actionCopy` (`actions/actionClipboard.tsx`, `copyToClipboard`): the
+    /// selection (with its bound text and frame children) as upstream's
+    /// clipboard JSON (an empty selection copies no elements, as upstream's
+    /// does).
+    pub fn copy(&mut self) -> Option<String> {
+        let files = self.file.files.as_object().cloned();
+        let elements = self.session.elements().to_vec();
+        let app_state = self.session.app_state().clone();
+        Some(copy_selected(
+            &elements,
+            &app_state,
+            files.as_ref(),
+            &mut self.session.env,
+        ))
+    }
+
+    /// `actionCut`: the selection copied, then deleted.
+    pub fn cut(&mut self) -> Option<String> {
+        let text = self.copy()?;
+        self.perform_action(ActionName::DeleteSelectedElements);
+        Some(text)
+    }
+
+    /// `pasteFromClipboard` with the clipboard's `text/plain`: upstream's
+    /// clipboard elements inserted centred on the pointer
+    /// (`addElementsFromPasteOrLibrary`) and selected. Text that is not
+    /// elements pastes nothing (upstream makes a text element of it).
+    pub fn paste(&mut self, text: &str, _plain: bool) {
+        let [x, y] = self.last_pointer;
+        let pointer = self.scene_point(x, y);
+        let grid = self.grid_size(false);
+        let elements = self.session.elements().to_vec();
+        let app_state = self.session.app_state().clone();
+        if let Some(result) = paste_elements(
+            text,
+            &elements,
+            &app_state,
+            pointer,
+            grid,
+            &mut self.session.env,
+        ) {
+            self.tools.active_tool = self.tools.tool_after_finalize();
+            self.apply_action(result);
+        }
+    }
+
+    /// `viewport.lastPosition`: where the pointer last was, in the page.
+    pub fn last_pointer(&self) -> [f64; 2] {
+        self.last_pointer
+    }
+
+    /// `App.onCopy`, `App.onCut` and the gate of `pasteFromClipboard`
+    /// ([`on_clipboard_event`]) for a document clipboard event.
+    pub fn clipboard_outcome(
+        &self,
+        kind: ClipboardEventKind,
+        target: ClipboardTarget,
+    ) -> ClipboardOutcome {
+        on_clipboard_event(&self.tools, &self.keyboard, kind, target)
     }
 
     /// The actions' context: the scene, the app state, the props.
