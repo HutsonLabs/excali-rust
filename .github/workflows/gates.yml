@@ -348,7 +348,12 @@ jobs:
   # (ex-507), upstream's own collision.ts and distance.ts (hitElementItself,
   # isPointInElement, intersectElementWithLineSegment, the binding hit
   # tests) on collision.test.tsx's scenes and seeded scenes of every
-  # element type, and
+  # element type,
+  # transform-fixtures.mjs --check for excali-editor's transform.json
+  # (ex-508), upstream's own transformHandles.ts, resizeTest.ts and
+  # resizeElements.ts (handle layouts, resizeTest, cursors, and pointer
+  # gestures driven as App.tsx drives transformElements) on the scenes of
+  # resize.test.tsx and seeded random scenes, and
   # svg-export.mjs --check for excali-scene's export-bounds.json,
   # excali-svg's svg-export.json (ex-406, ex-407) and excali-core's
   # embed-links.json, upstream's own exportToSvg under jsdom 22.1.0 in test
@@ -434,6 +439,8 @@ jobs:
         run: node tools/goldens/elbow-routing-fixtures.mjs --check
       - name: excali-editor hit testing fixture matches upstream's collision.ts and distance.ts
         run: node tools/goldens/collision-fixtures.mjs --check
+      - name: excali-editor transform fixture matches upstream's transformHandles.ts, resizeTest.ts and resizeElements.ts
+        run: node tools/goldens/transform-fixtures.mjs --check
       - name: excali-scene export bounds, excali-svg document and excali-core embed link fixtures match upstream's exportToSvg and getEmbedLink
         run: node tools/goldens/svg-export.mjs --check
       - name: excali-scene static scene fixture matches upstream's renderStaticScene
