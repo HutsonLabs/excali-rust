@@ -336,7 +336,7 @@ pub(crate) enum Gesture {
     /// `AppPan`'s session (`App.pan.ts:100-285`): the last client position.
     Pan { last: [f64; 2] },
     /// The selection tool's press (`pointerDownState`).
-    Select(SelectGesture),
+    Select(Box<SelectGesture>),
     /// A press on a resize or rotation handle of the selection
     /// (`pointerDownState.resize`, `maybeHandleResize`).
     /// `pointerDownState.originInGrid` rides along for the snapping.
@@ -360,7 +360,7 @@ pub(crate) enum Gesture {
     /// release reverts the tool (`App.tsx:12594-12620`).
     Finalized,
     /// A press on a crop handle of the image being cropped.
-    Crop(CropPress),
+    Crop(Box<CropPress>),
     /// A press handled whole on the press (Alt adding a point in the
     /// linear element editor); its release only commits.
     Inert,
@@ -1652,13 +1652,13 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                         .find(|e| e.base.id == id)
                         .cloned();
                     if let Some(original) = original {
-                        self.gesture = Some(Gesture::Crop(CropPress {
+                        self.gesture = Some(Gesture::Crop(Box::new(CropPress {
                             id,
                             handle,
                             offset: session.offset(),
                             origin_in_grid,
                             original,
-                        }));
+                        })));
                         return;
                     }
                 }
@@ -1776,7 +1776,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 self.set_keys(vec![("selectionElement", Value::Object(element.to_map()))]);
             }
         }
-        self.gesture = Some(Gesture::Select(SelectGesture {
+        self.gesture = Some(Gesture::Select(Box::new(SelectGesture {
             origin,
             originals,
             hit,
@@ -1790,7 +1790,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             has_been_duplicated: false,
             linear,
             last_point: origin,
-        }));
+        })));
         self.report();
     }
 
@@ -2519,7 +2519,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             None | Some(Gesture::Pan { .. }) => {
                 self.session.commit();
             }
-            Some(Gesture::Select(gesture)) => self.select_pointer_up(input, gesture),
+            Some(Gesture::Select(gesture)) => self.select_pointer_up(input, *gesture),
             Some(Gesture::Transform(..)) => {
                 self.session.store.schedule_capture();
                 self.session.commit();

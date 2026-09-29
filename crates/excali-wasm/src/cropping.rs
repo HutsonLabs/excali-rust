@@ -286,7 +286,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         let ElementKind::Image(image) = &element.kind else {
             return false;
         };
-        let Some(crop) = image.crop.clone() else {
+        let Some(crop) = image.crop else {
             return false;
         };
         let Some((natural_width, natural_height)) = self.natural_size(&element) else {

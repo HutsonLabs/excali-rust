@@ -255,7 +255,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         let tool = self.tools.active_tool.tool.type_name().to_owned();
         let busy = ["newElement", "multiElement", "selectionElement"]
             .iter()
-            .any(|k| !matches!(self.session.app_state().get(*k), None | Some(Value::Null)))
+            .any(|k| !matches!(self.session.app_state().get(k), None | Some(Value::Null)))
             || self.app_flag("selectedElementsAreBeingDragged");
         let mut keys = Vec::new();
         if !busy {
@@ -417,6 +417,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// element the end would bind to, with the side midpoint it snaps to
     /// when midpoint snapping is on; `null` when it would unbind, as it was
     /// when the binding stays.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn suggest_binding(
         &mut self,
         arrow_id: &str,
