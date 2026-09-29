@@ -1,0 +1,32 @@
+# ex-516: the UI primitives' browser harness. A wasm module (built by
+# scripts/web/ui-primitives.sh with wasm-bindgen --target web) that mounts
+# excali_ui::primitives in a page with their stylesheet, so the Playwright
+# suite tests/web/primitives can measure them in Chromium and drive them
+# (clicks, keys, hover), reading what their callbacks received.
+#
+# Not a workspace member, like tools/canvas-layers: test tooling, not a
+# product crate. The empty [workspace] table keeps it out of the root
+# workspace.
+[package]
+name = "ui-primitives"
+description = "Test harness: excali-ui's UI primitives in the browser (ex-516)."
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+excali-scene = { path = "../../crates/excali-scene" }
+excali-ui = { path = "../../crates/excali-ui" }
+# The wasm-bindgen the workspace's Cargo.lock pins, so the CLI installed for
+# scripts/web/build.sh generates this module's glue too.
+wasm-bindgen = "=0.2.129"
+web-sys = { version = "0.3.106", features = ["Document", "Element", "HtmlElement", "Node", "Window"] }
+
+[profile.release]
+opt-level = "s"

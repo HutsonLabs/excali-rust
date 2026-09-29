@@ -1,0 +1,1497 @@
+{
+  "upstream": "438d89861f53d8a90ad566113ecac1b83761098f",
+  "tokens": {
+    "--default-button-size": "2rem",
+    "--default-icon-size": "1rem",
+    "--lg-button-size": "2.25rem",
+    "--lg-icon-size": "1rem",
+    "--space-factor": "0.25rem",
+    "--border-radius-md": "0.375rem",
+    "--border-radius-lg": "0.5rem"
+  },
+  "largeScreenTokens": {"--default-button-size":"2.25rem","--default-icon-size":"1.25rem","--lg-button-size":"2.375rem","--lg-icon-size":"1.25rem"},
+  "render": [
+    {
+      "name": "island-default",
+      "component": "Island",
+      "props": {"children":["content"]},
+      "env": {},
+      "dom": [{"tag":"div","attrs":{"class":"Island"},"style":{},"children":["content"]}]
+    },
+    {
+      "name": "island-padding",
+      "component": "Island",
+      "props": {"padding":2,"className":"App-toolbar","children":["content"]},
+      "env": {},
+      "dom": [{"tag":"div","attrs":{"class":"Island App-toolbar"},"style":{"--padding":"2"},"children":["content"]}]
+    },
+    {
+      "name": "island-false-class",
+      "component": "Island",
+      "props": {"padding":1,"className":false,"children":["a","b"]},
+      "env": {},
+      "dom": [{"tag":"div","attrs":{"class":"Island"},"style":{"--padding":"1"},"children":["a","b"]}]
+    },
+    {
+      "name": "island-viewport-ui",
+      "component": "Island",
+      "props": {
+        "padding": 1,
+        "className": "App-menu__left",
+        "style": {"--padding":3},
+        "data-viewport-ui": "left",
+        "data-viewport-ui-name": "styles-panel",
+        "children": [{"tag":"span","className":"x","text":"styles"}]
+      },
+      "env": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"Island App-menu__left","data-viewport-ui":"left","data-viewport-ui-name":"styles-panel"},
+          "style": {"--padding":"3"},
+          "children": [{"tag":"span","attrs":{"class":"x"},"style":{},"children":["styles"]}]
+        }
+      ]
+    },
+    {
+      "name": "stack-row",
+      "component": "Stack.Row",
+      "props": {"children":["a"]},
+      "env": {},
+      "dom": [{"tag":"div","attrs":{"class":"Stack Stack_horizontal"},"style":{},"children":["a"]}]
+    },
+    {
+      "name": "stack-row-gap",
+      "component": "Stack.Row",
+      "props": {"gap":1,"align":"center","justifyContent":"space-between","className":"shapes","children":["a","b"]},
+      "env": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"Stack Stack_horizontal shapes"},
+          "style": {"--gap":"1","align-items":"center","justify-content":"space-between"},
+          "children": ["a","b"]
+        }
+      ]
+    },
+    {
+      "name": "stack-col",
+      "component": "Stack.Col",
+      "props": {"gap":4,"children":["a"]},
+      "env": {},
+      "dom": [{"tag":"div","attrs":{"class":"Stack Stack_vertical"},"style":{"--gap":"4"},"children":["a"]}]
+    },
+    {
+      "name": "stack-col-align",
+      "component": "Stack.Col",
+      "props": {"gap":2,"align":"start","justifyContent":"center","className":"panel","children":["a"]},
+      "env": {},
+      "dom": [{"tag":"div","attrs":{"class":"Stack Stack_vertical panel"},"style":{"--gap":"2","justify-content":"center","justify-items":"start"},"children":["a"]}]
+    },
+    {
+      "name": "stack-col-false-class",
+      "component": "Stack.Col",
+      "props": {"className":false,"align":"end","children":["a"]},
+      "env": {},
+      "dom": [{"tag":"div","attrs":{"class":"Stack Stack_vertical"},"style":{"justify-items":"end"},"children":["a"]}]
+    },
+    {
+      "name": "button",
+      "component": "Button",
+      "props": {"children":["Save"]},
+      "env": {},
+      "dom": [{"tag":"button","attrs":{"class":"excalidraw-button","type":"button"},"style":{},"children":["Save"]}]
+    },
+    {
+      "name": "button-selected",
+      "component": "Button",
+      "props": {"selected":true,"className":"Card-button","children":["Open"]},
+      "env": {},
+      "dom": [{"tag":"button","attrs":{"class":"excalidraw-button Card-button selected","type":"button"},"style":{},"children":["Open"]}]
+    },
+    {
+      "name": "button-submit",
+      "component": "Button",
+      "props": {"type":"submit","title":"Submit","selected":false,"children":["Go"]},
+      "env": {},
+      "dom": [{"tag":"button","attrs":{"class":"excalidraw-button","title":"Submit","type":"submit"},"style":{},"children":["Go"]}]
+    },
+    {
+      "name": "button-style",
+      "component": "Button",
+      "props": {"style":{"border":0,"userSelect":"none"},"children":[{"tag":"svg","className":"icon","text":""}]},
+      "env": {},
+      "dom": [
+        {
+          "tag": "button",
+          "attrs": {"class":"excalidraw-button","type":"button"},
+          "style": {"border":"0px","user-select":"none"},
+          "children": [{"tag":"svg","attrs":{"class":"icon"},"style":{},"children":[]}]
+        }
+      ]
+    },
+    {
+      "name": "icon-button",
+      "component": "IconButton",
+      "props": {"type":"button","aria-label":"Undo","icon":{"tag":"svg","className":"icon","text":""}},
+      "env": {},
+      "dom": [
+        {
+          "tag": "button",
+          "attrs": {"aria-label":"Undo","class":"ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon","type":"button"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+              "style": {},
+              "children": [{"tag":"svg","attrs":{"class":"icon"},"style":{},"children":[]}]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "icon-button-full",
+      "component": "IconButton",
+      "props": {
+        "type": "button",
+        "aria-label": "Zoom in",
+        "title": "Zoom in — Ctrl+",
+        "icon": {"tag":"svg","className":"icon","text":""},
+        "size": "small",
+        "className": "zoom-in-button",
+        "keyBindingLabel": "Z",
+        "showAriaLabel": true,
+        "data-testid": "zoom-in",
+        "children": ["extra"]
+      },
+      "env": {},
+      "dom": [
+        {
+          "tag": "button",
+          "attrs": {
+            "aria-label": "Zoom in",
+            "class": "ToolIcon_type_button ToolIcon_size_small zoom-in-button ToolIcon_type_button--show ToolIcon",
+            "data-testid": "zoom-in",
+            "title": "Zoom in — Ctrl+",
+            "type": "button"
+          },
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+              "style": {},
+              "children": [
+                {"tag":"svg","attrs":{"class":"icon"},"style":{},"children":[]},
+                {"tag":"span","attrs":{"class":"ToolIcon__keybinding"},"style":{},"children":["Z"]}
+              ]
+            },
+            {"tag":"div","attrs":{"class":"ToolIcon__label"},"style":{},"children":["Zoom in"," "]},
+            "extra"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "icon-button-label",
+      "component": "IconButton",
+      "props": {"type":"button","aria-label":"Label","label":"L"},
+      "env": {},
+      "dom": [
+        {
+          "tag": "button",
+          "attrs": {"aria-label":"Label","class":"ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon","type":"button"},
+          "style": {},
+          "children": [{"tag":"div","attrs":{"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},"style":{},"children":["L"]}]
+        }
+      ]
+    },
+    {
+      "name": "icon-button-hidden",
+      "component": "IconButton",
+      "props": {"type":"button","aria-label":"Hidden","icon":{"tag":"svg","className":"icon","text":""},"hidden":true},
+      "env": {},
+      "dom": [
+        {
+          "tag": "button",
+          "attrs": {"aria-label":"Hidden","class":"ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--hide","hidden":"","type":"button"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+              "style": {},
+              "children": [{"tag":"svg","attrs":{"class":"icon"},"style":{},"children":[]}]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "icon-button-invisible",
+      "component": "IconButton",
+      "props": {"type":"button","aria-label":"Invisible","icon":{"tag":"svg","className":"icon","text":""},"visible":false},
+      "env": {},
+      "dom": [
+        {
+          "tag": "button",
+          "attrs": {"aria-label":"Invisible","class":"ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--hide ToolIcon","type":"button"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+              "style": {},
+              "children": [{"tag":"svg","attrs":{"class":"icon"},"style":{},"children":[]}]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "icon-button-disabled",
+      "component": "IconButton",
+      "props": {"type":"button","aria-label":"Disabled","icon":{"tag":"svg","className":"icon","text":""},"disabled":true},
+      "env": {},
+      "dom": [
+        {
+          "tag": "button",
+          "attrs": {"aria-label":"Disabled","class":"ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon","disabled":"","type":"button"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"aria-disabled":"true","aria-hidden":"true","class":"ToolIcon__icon"},
+              "style": {},
+              "children": [{"tag":"svg","attrs":{"class":"icon"},"style":{},"children":[]}]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "icon-button-plain",
+      "component": "IconButton",
+      "props": {"type":"icon","aria-label":"Plain","icon":{"tag":"svg","className":"icon","text":""},"style":{"marginLeft":4}},
+      "env": {},
+      "dom": [
+        {
+          "tag": "button",
+          "attrs": {"aria-label":"Plain","class":"ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon ToolIcon--plain","type":"button"},
+          "style": {"margin-left":"4px"},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+              "style": {},
+              "children": [{"tag":"svg","attrs":{"class":"icon"},"style":{},"children":[]}]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "icon-button-no-icon",
+      "component": "IconButton",
+      "props": {"type":"button","aria-label":"Nothing","showAriaLabel":true},
+      "env": {},
+      "dom": [
+        {
+          "tag": "button",
+          "attrs": {"aria-label":"Nothing","class":"ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon","type":"button"},
+          "style": {},
+          "children": [{"tag":"div","attrs":{"class":"ToolIcon__label"},"style":{},"children":["Nothing"," "]}]
+        }
+      ]
+    },
+    {
+      "name": "tool-toggle",
+      "component": "IconButton",
+      "props": {"type":"toggle","aria-label":"Rectangle","checked":false,"icon":{"tag":"svg","className":"icon","text":""}},
+      "env": {},
+      "dom": [
+        {
+          "tag": "button",
+          "attrs": {"aria-disabled":"false","aria-label":"Rectangle","aria-pressed":"false","class":"ToolIcon ToolIcon_type_toggle ToolIcon_size_medium","type":"button"},
+          "style": {},
+          "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"tag":"svg","attrs":{"class":"icon"},"style":{},"children":[]}]}]
+        }
+      ]
+    },
+    {
+      "name": "tool-toggle-checked",
+      "component": "IconButton",
+      "props": {
+        "type": "toggle",
+        "aria-label": "Rectangle — R or 2",
+        "aria-keyshortcuts": "R 2",
+        "title": "Rectangle — R or 2",
+        "checked": true,
+        "icon": {"tag":"svg","className":"icon","text":""},
+        "keyBindingLabel": "2",
+        "className": "Shape fillable",
+        "data-testid": "toolbar-rectangle",
+        "size": "medium"
+      },
+      "env": {},
+      "dom": [
+        {
+          "tag": "button",
+          "attrs": {
+            "aria-disabled": "false",
+            "aria-keyshortcuts": "R 2",
+            "aria-label": "Rectangle — R or 2",
+            "aria-pressed": "true",
+            "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium Shape fillable ToolIcon--checked",
+            "data-testid": "toolbar-rectangle",
+            "title": "Rectangle — R or 2",
+            "type": "button"
+          },
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"class":"ToolIcon__icon"},
+              "style": {},
+              "children": [
+                {"tag":"svg","attrs":{"class":"icon"},"style":{},"children":[]},
+                {"tag":"span","attrs":{"class":"ToolIcon__keybinding"},"style":{},"children":["2"]}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "tool-toggle-small-disabled",
+      "component": "IconButton",
+      "props": {"type":"toggle","aria-label":"Lock","checked":false,"icon":{"tag":"svg","className":"icon","text":""},"size":"small","disabled":true},
+      "env": {},
+      "dom": [
+        {
+          "tag": "button",
+          "attrs": {
+            "aria-disabled": "true",
+            "aria-label": "Lock",
+            "aria-pressed": "false",
+            "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_small",
+            "disabled": "",
+            "type": "button"
+          },
+          "style": {},
+          "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"tag":"svg","attrs":{"class":"icon"},"style":{},"children":[]}]}]
+        }
+      ]
+    },
+    {
+      "name": "radio-group",
+      "component": "RadioGroup",
+      "props": {
+        "name": "canvasBackground",
+        "value": "b",
+        "choices": [{"value":"a","label":"A","ariaLabel":"First"},{"value":"b","label":"B","ariaLabel":"Second"},{"value":"c","label":"C"}]
+      },
+      "env": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"RadioGroup"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"class":"RadioGroup__choice","title":"First"},
+              "style": {},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"aria-label":"First","name":"canvasBackground","type":"radio"},
+                  "style": {},
+                  "props": {"value":"on","checked":false},
+                  "children": []
+                },
+                "A"
+              ]
+            },
+            {
+              "tag": "div",
+              "attrs": {"class":"RadioGroup__choice active","title":"Second"},
+              "style": {},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"aria-label":"Second","checked":"","name":"canvasBackground","type":"radio"},
+                  "style": {},
+                  "props": {"value":"on","checked":true},
+                  "children": []
+                },
+                "B"
+              ]
+            },
+            {
+              "tag": "div",
+              "attrs": {"class":"RadioGroup__choice"},
+              "style": {},
+              "children": [{"tag":"input","attrs":{"name":"canvasBackground","type":"radio"},"style":{},"props":{"value":"on","checked":false},"children":[]},"C"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "radio-group-none",
+      "component": "RadioGroup",
+      "props": {"name":"g","value":"z","choices":[{"value":"x","label":"X"}]},
+      "env": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"RadioGroup"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"class":"RadioGroup__choice"},
+              "style": {},
+              "children": [{"tag":"input","attrs":{"name":"g","type":"radio"},"style":{},"props":{"value":"on","checked":false},"children":[]},"X"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "range",
+      "component": "Range",
+      "props": {"label":"Opacity","value":50},
+      "env": {},
+      "dom": [
+        {
+          "tag": "label",
+          "attrs": {"class":"control-label"},
+          "style": {},
+          "children": [
+            "Opacity",
+            {
+              "tag": "div",
+              "attrs": {"class":"range-wrapper"},
+              "style": {"--range-progress":"0.5"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"range-input","max":"100","min":"0","step":"10","type":"range","value":"50"},
+                  "style": {},
+                  "props": {"value":"50","checked":false},
+                  "children": []
+                },
+                {"tag":"div","attrs":{"class":"value-bubble"},"style":{},"children":["50"]},
+                {"tag":"div","attrs":{"class":"zero-label"},"style":{},"children":["0"]}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "range-min",
+      "component": "Range",
+      "props": {"label":"Opacity","value":0},
+      "env": {},
+      "dom": [
+        {
+          "tag": "label",
+          "attrs": {"class":"control-label"},
+          "style": {},
+          "children": [
+            "Opacity",
+            {
+              "tag": "div",
+              "attrs": {"class":"range-wrapper"},
+              "style": {"--range-progress":"0"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"range-input","max":"100","min":"0","step":"10","type":"range","value":"0"},
+                  "style": {},
+                  "props": {"value":"0","checked":false},
+                  "children": []
+                },
+                {"tag":"div","attrs":{"class":"value-bubble"},"style":{},"children":[]},
+                {"tag":"div","attrs":{"class":"zero-label"},"style":{},"children":["0"]}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "range-full",
+      "component": "Range",
+      "props": {"label":"Roundness","value":30,"min":10,"max":60,"step":5,"minLabel":"min","hasCommonValue":false,"testId":"roundness"},
+      "env": {},
+      "dom": [
+        {
+          "tag": "label",
+          "attrs": {"class":"control-label"},
+          "style": {},
+          "children": [
+            "Roundness",
+            {
+              "tag": "div",
+              "attrs": {"class":"range-wrapper"},
+              "style": {"--range-progress":"0.4"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"range-input","data-testid":"roundness","max":"60","min":"10","step":"5","type":"range","value":"30"},
+                  "style": {"--color-slider-track":"var(--button-bg)"},
+                  "props": {"value":"30","checked":false},
+                  "children": []
+                },
+                {"tag":"div","attrs":{"class":"value-bubble"},"style":{},"children":["30"]},
+                {"tag":"div","attrs":{"class":"zero-label"},"style":{},"children":["min"]}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "range-degenerate",
+      "component": "Range",
+      "props": {"label":"Degenerate","value":7,"min":7,"max":7},
+      "env": {},
+      "dom": [
+        {
+          "tag": "label",
+          "attrs": {"class":"control-label"},
+          "style": {},
+          "children": [
+            "Degenerate",
+            {
+              "tag": "div",
+              "attrs": {"class":"range-wrapper"},
+              "style": {"--range-progress":"0"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"range-input","max":"7","min":"7","step":"10","type":"range","value":"7"},
+                  "style": {},
+                  "props": {"value":"7","checked":false},
+                  "children": []
+                },
+                {"tag":"div","attrs":{"class":"value-bubble"},"style":{},"children":[]},
+                {"tag":"div","attrs":{"class":"zero-label"},"style":{},"children":["7"]}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "range-fraction",
+      "component": "Range",
+      "props": {"label":"Third","value":1,"min":0,"max":3,"step":1},
+      "env": {},
+      "dom": [
+        {
+          "tag": "label",
+          "attrs": {"class":"control-label"},
+          "style": {},
+          "children": [
+            "Third",
+            {
+              "tag": "div",
+              "attrs": {"class":"range-wrapper"},
+              "style": {"--range-progress":"0.3333333333333333"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"range-input","max":"3","min":"0","step":"1","type":"range","value":"1"},
+                  "style": {},
+                  "props": {"value":"1","checked":false},
+                  "children": []
+                },
+                {"tag":"div","attrs":{"class":"value-bubble"},"style":{},"children":["1"]},
+                {"tag":"div","attrs":{"class":"zero-label"},"style":{},"children":["0"]}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "text-field",
+      "component": "TextField",
+      "props": {"value":"hello"},
+      "env": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"ExcTextField"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"class":"ExcTextField__input"},
+              "style": {},
+              "children": [{"tag":"input","attrs":{"class":"","value":"hello"},"style":{},"props":{"value":"hello","checked":false},"children":[]}]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "text-field-default",
+      "component": "TextField",
+      "props": {"defaultValue":"seed","placeholder":"Search…","type":"search"},
+      "env": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"ExcTextField"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"class":"ExcTextField__input"},
+              "style": {},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"","placeholder":"Search…","type":"search","value":"seed"},
+                  "style": {},
+                  "props": {"value":"seed","checked":false},
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "text-field-full",
+      "component": "TextField",
+      "props": {
+        "value": "x",
+        "label": "Link",
+        "fullWidth": true,
+        "readonly": true,
+        "className": "ShareableLink",
+        "icon": {"tag":"svg","className":"icon","text":""},
+        "placeholder": "p",
+        "type": "text"
+      },
+      "env": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"ExcTextField ShareableLink ExcTextField--fullWidth ExcTextField--hasIcon"},
+          "style": {},
+          "children": [
+            {"tag":"svg","attrs":{"class":"icon"},"style":{},"children":[]},
+            {"tag":"div","attrs":{"class":"ExcTextField__label"},"style":{},"children":["Link"]},
+            {
+              "tag": "div",
+              "attrs": {"class":"ExcTextField__input ExcTextField__input--readonly"},
+              "style": {},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"","placeholder":"p","readonly":"","type":"text","value":"x"},
+                  "style": {},
+                  "props": {"value":"x","checked":false},
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "text-field-redacted",
+      "component": "TextField",
+      "props": {"value":"secret","isRedacted":true},
+      "env": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"ExcTextField"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"class":"ExcTextField__input"},
+              "style": {},
+              "children": [
+                {"tag":"input","attrs":{"class":"is-redacted","value":"secret"},"style":{},"props":{"value":"secret","checked":false},"children":[]},
+                {
+                  "tag": "button",
+                  "attrs": {"class":"excalidraw-button","type":"button"},
+                  "style": {"border":"0px","user-select":"none"},
+                  "children": [
+                    {
+                      "tag": "svg",
+                      "attrs": {
+                        "aria-hidden": "true",
+                        "class": "",
+                        "fill": "none",
+                        "focusable": "false",
+                        "role": "img",
+                        "stroke": "currentColor",
+                        "stroke-linecap": "round",
+                        "stroke-linejoin": "round",
+                        "stroke-width": "2",
+                        "viewBox": "0 0 24 24"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "g",
+                          "attrs": {"fill":"none","stroke":"currentColor","stroke-width":"1.5"},
+                          "style": {},
+                          "children": [
+                            {"tag":"path","attrs":{"d":"M0 0h24v24H0z","fill":"none","stroke":"none"},"style":{},"children":[]},
+                            {"tag":"path","attrs":{"d":"M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"},"style":{},"children":[]},
+                            {
+                              "tag": "path",
+                              "attrs": {"d":"M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"},
+                              "style": {},
+                              "children": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "text-field-redacted-empty",
+      "component": "TextField",
+      "props": {"value":"","isRedacted":true},
+      "env": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"ExcTextField"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"class":"ExcTextField__input"},
+              "style": {},
+              "children": [
+                {"tag":"input","attrs":{"class":"","value":""},"style":{},"props":{"value":"","checked":false},"children":[]},
+                {
+                  "tag": "button",
+                  "attrs": {"class":"excalidraw-button","type":"button"},
+                  "style": {"border":"0px","user-select":"none"},
+                  "children": [
+                    {
+                      "tag": "svg",
+                      "attrs": {
+                        "aria-hidden": "true",
+                        "class": "",
+                        "fill": "none",
+                        "focusable": "false",
+                        "role": "img",
+                        "stroke": "currentColor",
+                        "stroke-linecap": "round",
+                        "stroke-linejoin": "round",
+                        "stroke-width": "2",
+                        "viewBox": "0 0 24 24"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "g",
+                          "attrs": {"fill":"none","stroke":"currentColor","stroke-width":"1.5"},
+                          "style": {},
+                          "children": [
+                            {"tag":"path","attrs":{"d":"M0 0h24v24H0z","fill":"none","stroke":"none"},"style":{},"children":[]},
+                            {"tag":"path","attrs":{"d":"M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"},"style":{},"children":[]},
+                            {
+                              "tag": "path",
+                              "attrs": {"d":"M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"},
+                              "style": {},
+                              "children": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "popover",
+      "component": "Popover",
+      "props": {"children":["menu"]},
+      "env": {},
+      "dom": [{"tag":"div","attrs":{"class":"popover","tabindex":"-1"},"style":{},"children":["menu"]}]
+    },
+    {
+      "name": "popover-class",
+      "component": "Popover",
+      "props": {"className":"color-picker-popover","top":10,"left":20,"children":["menu"]},
+      "env": {},
+      "dom": [{"tag":"div","attrs":{"class":"popover color-picker-popover","tabindex":"-1"},"style":{},"children":["menu"]}]
+    },
+    {
+      "name": "modal",
+      "component": "Modal",
+      "props": {"labelledBy":"dialog-title","maxWidth":800,"children":["body"]},
+      "env": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"excalidraw excalidraw-modal-container"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"aria-labelledby":"dialog-title","aria-modal":"true","class":"Modal","role":"dialog"},
+              "style": {},
+              "children": [
+                {"tag":"div","attrs":{"class":"Modal__background"},"style":{},"children":[]},
+                {"tag":"div","attrs":{"class":"Modal__content","tabindex":"0"},"style":{"--max-width":"800px"},"children":["body"]}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "modal-class",
+      "component": "Modal",
+      "props": {"className":"HelpDialog","labelledBy":"x","children":["body"]},
+      "env": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"excalidraw excalidraw-modal-container"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"aria-labelledby":"x","aria-modal":"true","class":"Modal HelpDialog","role":"dialog"},
+              "style": {},
+              "children": [
+                {"tag":"div","attrs":{"class":"Modal__background"},"style":{},"children":[]},
+                {"tag":"div","attrs":{"class":"Modal__content","tabindex":"0"},"style":{"--max-width":"undefinedpx"},"children":["body"]}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "modal-dark-phone",
+      "component": "Modal",
+      "props": {"labelledBy":"x","maxWidth":550,"children":["body"]},
+      "env": {"theme":"dark","formFactor":"phone"},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"excalidraw excalidraw-modal-container excalidraw--mobile theme--dark"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"aria-labelledby":"x","aria-modal":"true","class":"Modal","role":"dialog"},
+              "style": {},
+              "children": [
+                {"tag":"div","attrs":{"class":"Modal__background"},"style":{},"children":[]},
+                {"tag":"div","attrs":{"class":"Modal__content","tabindex":"0"},"style":{"--max-width":"550px"},"children":["body"]}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dialog",
+      "component": "Dialog",
+      "props": {"title":"Help","children":["content"]},
+      "env": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"excalidraw excalidraw-modal-container"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"aria-labelledby":"dialog-title","aria-modal":"true","class":"Modal Dialog","role":"dialog"},
+              "style": {},
+              "children": [
+                {"tag":"div","attrs":{"class":"Modal__background"},"style":{},"children":[]},
+                {
+                  "tag": "div",
+                  "attrs": {"class":"Modal__content","tabindex":"0"},
+                  "style": {"--max-width":"800px"},
+                  "children": [
+                    {
+                      "tag": "div",
+                      "attrs": {"class":"Island"},
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "h2",
+                          "attrs": {"class":"Dialog__title","id":"excalidraw-id-dialog-title"},
+                          "style": {},
+                          "children": [{"tag":"span","attrs":{"class":"Dialog__titleContent"},"style":{},"children":["Help"]}]
+                        },
+                        {"tag":"div","attrs":{"class":"Dialog__content"},"style":{},"children":["content"]}
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dialog-small",
+      "component": "Dialog",
+      "props": {"title":"Export","size":"small","className":"ExportDialog","children":["content"]},
+      "env": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"excalidraw excalidraw-modal-container"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"aria-labelledby":"dialog-title","aria-modal":"true","class":"Modal Dialog ExportDialog","role":"dialog"},
+              "style": {},
+              "children": [
+                {"tag":"div","attrs":{"class":"Modal__background"},"style":{},"children":[]},
+                {
+                  "tag": "div",
+                  "attrs": {"class":"Modal__content","tabindex":"0"},
+                  "style": {"--max-width":"550px"},
+                  "children": [
+                    {
+                      "tag": "div",
+                      "attrs": {"class":"Island"},
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "h2",
+                          "attrs": {"class":"Dialog__title","id":"excalidraw-id-dialog-title"},
+                          "style": {},
+                          "children": [{"tag":"span","attrs":{"class":"Dialog__titleContent"},"style":{},"children":["Export"]}]
+                        },
+                        {"tag":"div","attrs":{"class":"Dialog__content"},"style":{},"children":["content"]}
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dialog-wide",
+      "component": "Dialog",
+      "props": {"title":"Library","size":"wide","children":["content"]},
+      "env": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"excalidraw excalidraw-modal-container"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"aria-labelledby":"dialog-title","aria-modal":"true","class":"Modal Dialog","role":"dialog"},
+              "style": {},
+              "children": [
+                {"tag":"div","attrs":{"class":"Modal__background"},"style":{},"children":[]},
+                {
+                  "tag": "div",
+                  "attrs": {"class":"Modal__content","tabindex":"0"},
+                  "style": {"--max-width":"1024px"},
+                  "children": [
+                    {
+                      "tag": "div",
+                      "attrs": {"class":"Island"},
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "h2",
+                          "attrs": {"class":"Dialog__title","id":"excalidraw-id-dialog-title"},
+                          "style": {},
+                          "children": [{"tag":"span","attrs":{"class":"Dialog__titleContent"},"style":{},"children":["Library"]}]
+                        },
+                        {"tag":"div","attrs":{"class":"Dialog__content"},"style":{},"children":["content"]}
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dialog-number",
+      "component": "Dialog",
+      "props": {"title":"Custom","size":640,"children":["content"]},
+      "env": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"excalidraw excalidraw-modal-container"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"aria-labelledby":"dialog-title","aria-modal":"true","class":"Modal Dialog","role":"dialog"},
+              "style": {},
+              "children": [
+                {"tag":"div","attrs":{"class":"Modal__background"},"style":{},"children":[]},
+                {
+                  "tag": "div",
+                  "attrs": {"class":"Modal__content","tabindex":"0"},
+                  "style": {"--max-width":"640px"},
+                  "children": [
+                    {
+                      "tag": "div",
+                      "attrs": {"class":"Island"},
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "h2",
+                          "attrs": {"class":"Dialog__title","id":"excalidraw-id-dialog-title"},
+                          "style": {},
+                          "children": [{"tag":"span","attrs":{"class":"Dialog__titleContent"},"style":{},"children":["Custom"]}]
+                        },
+                        {"tag":"div","attrs":{"class":"Dialog__content"},"style":{},"children":["content"]}
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dialog-no-title",
+      "component": "Dialog",
+      "props": {"title":false,"size":"regular","children":["content"]},
+      "env": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"excalidraw excalidraw-modal-container"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"aria-labelledby":"dialog-title","aria-modal":"true","class":"Modal Dialog","role":"dialog"},
+              "style": {},
+              "children": [
+                {"tag":"div","attrs":{"class":"Modal__background"},"style":{},"children":[]},
+                {
+                  "tag": "div",
+                  "attrs": {"class":"Modal__content","tabindex":"0"},
+                  "style": {"--max-width":"800px"},
+                  "children": [
+                    {
+                      "tag": "div",
+                      "attrs": {"class":"Island"},
+                      "style": {},
+                      "children": [{"tag":"div","attrs":{"class":"Dialog__content"},"style":{},"children":["content"]}]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dialog-phone",
+      "component": "Dialog",
+      "props": {"title":"Help","children":["content"]},
+      "env": {"formFactor":"phone"},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"excalidraw excalidraw-modal-container excalidraw--mobile"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"aria-labelledby":"dialog-title","aria-modal":"true","class":"Modal Dialog Dialog--fullscreen","role":"dialog"},
+              "style": {},
+              "children": [
+                {"tag":"div","attrs":{"class":"Modal__background"},"style":{},"children":[]},
+                {
+                  "tag": "div",
+                  "attrs": {"class":"Modal__content","tabindex":"0"},
+                  "style": {"--max-width":"800px"},
+                  "children": [
+                    {
+                      "tag": "div",
+                      "attrs": {"class":"Island"},
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "h2",
+                          "attrs": {"class":"Dialog__title","id":"excalidraw-id-dialog-title"},
+                          "style": {},
+                          "children": [{"tag":"span","attrs":{"class":"Dialog__titleContent"},"style":{},"children":["Help"]}]
+                        },
+                        {
+                          "tag": "button",
+                          "attrs": {"aria-label":"Close","class":"Dialog__close","title":"Close","type":"button"},
+                          "style": {},
+                          "children": [
+                            {
+                              "tag": "svg",
+                              "attrs": {
+                                "aria-hidden": "true",
+                                "class": "",
+                                "fill": "none",
+                                "focusable": "false",
+                                "role": "img",
+                                "stroke": "currentColor",
+                                "stroke-linecap": "round",
+                                "stroke-linejoin": "round",
+                                "viewBox": "0 0 20 20"
+                              },
+                              "style": {},
+                              "children": [
+                                {
+                                  "tag": "g",
+                                  "attrs": {"clip-path":"url(#a)","stroke":"currentColor","stroke-linecap":"round","stroke-linejoin":"round","stroke-width":"1.25"},
+                                  "style": {},
+                                  "children": [{"tag":"path","attrs":{"d":"M15 5 5 15M5 5l10 10"},"style":{},"children":[]}]
+                                },
+                                {
+                                  "tag": "defs",
+                                  "attrs": {},
+                                  "style": {},
+                                  "children": [
+                                    {
+                                      "tag": "clipPath",
+                                      "attrs": {"id":"a"},
+                                      "style": {},
+                                      "children": [{"tag":"path","attrs":{"d":"M0 0h20v20H0z","fill":"#fff"},"style":{},"children":[]}]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {"tag":"div","attrs":{"class":"Dialog__content"},"style":{},"children":["content"]}
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dialog-dark",
+      "component": "Dialog",
+      "props": {"title":"Help","children":["content"]},
+      "env": {"theme":"dark"},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"excalidraw excalidraw-modal-container theme--dark"},
+          "style": {},
+          "children": [
+            {
+              "tag": "div",
+              "attrs": {"aria-labelledby":"dialog-title","aria-modal":"true","class":"Modal Dialog","role":"dialog"},
+              "style": {},
+              "children": [
+                {"tag":"div","attrs":{"class":"Modal__background"},"style":{},"children":[]},
+                {
+                  "tag": "div",
+                  "attrs": {"class":"Modal__content","tabindex":"0"},
+                  "style": {"--max-width":"800px"},
+                  "children": [
+                    {
+                      "tag": "div",
+                      "attrs": {"class":"Island"},
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "h2",
+                          "attrs": {"class":"Dialog__title","id":"excalidraw-id-dialog-title"},
+                          "style": {},
+                          "children": [{"tag":"span","attrs":{"class":"Dialog__titleContent"},"style":{},"children":["Help"]}]
+                        },
+                        {"tag":"div","attrs":{"class":"Dialog__content"},"style":{},"children":["content"]}
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "tooltip",
+      "component": "Tooltip",
+      "props": {"label":"Hi","children":["target"]},
+      "env": {},
+      "dom": [{"tag":"div","attrs":{"class":"excalidraw-tooltip-wrapper"},"style":{},"children":["target"]}]
+    },
+    {
+      "name": "tooltip-class",
+      "component": "Tooltip",
+      "props": {"label":"Hi","long":true,"className":"tip","style":{"width":"100%"},"children":["target"]},
+      "env": {},
+      "dom": [{"tag":"div","attrs":{"class":"excalidraw-tooltip-wrapper tip"},"style":{"width":"100%"},"children":["target"]}]
+    },
+    {"name":"tooltip-disabled","component":"Tooltip","props":{"label":"Hi","disabled":true,"children":["target"]},"env":{},"dom":[]}
+  ],
+  "tooltipPosition": [
+    {
+      "item": {"left":100,"top":100,"width":32,"height":32},
+      "tooltip": {"width":80,"height":20},
+      "viewport": {"width":1024,"height":768},
+      "position": "bottom",
+      "top": "137px",
+      "left": "76px"
+    },
+    {
+      "item": {"left":100,"top":100,"width":32,"height":32},
+      "tooltip": {"width":80,"height":20},
+      "viewport": {"width":1024,"height":768},
+      "position": "top",
+      "top": "75px",
+      "left": "76px"
+    },
+    {
+      "item": {"left":0,"top":10,"width":20,"height":20},
+      "tooltip": {"width":80,"height":20},
+      "viewport": {"width":1024,"height":768},
+      "position": "bottom",
+      "top": "35px",
+      "left": "5px"
+    },
+    {
+      "item": {"left":1000,"top":10,"width":20,"height":20},
+      "tooltip": {"width":80,"height":20},
+      "viewport": {"width":1024,"height":768},
+      "position": "bottom",
+      "top": "35px",
+      "left": "939px"
+    },
+    {
+      "item": {"left":990,"top":10,"width":20,"height":20},
+      "tooltip": {"width":40,"height":20},
+      "viewport": {"width":1024,"height":768},
+      "position": "bottom",
+      "top": "35px",
+      "left": "980px"
+    },
+    {
+      "item": {"left":500,"top":740,"width":20,"height":20},
+      "tooltip": {"width":80,"height":20},
+      "viewport": {"width":1024,"height":768},
+      "position": "bottom",
+      "top": "715px",
+      "left": "470px"
+    },
+    {
+      "item": {"left":500,"top":738,"width":20,"height":5},
+      "tooltip": {"width":80,"height":20},
+      "viewport": {"width":1024,"height":768},
+      "position": "bottom",
+      "top": "713px",
+      "left": "470px"
+    },
+    {
+      "item": {"left":500,"top":10,"width":20,"height":20},
+      "tooltip": {"width":80,"height":20},
+      "viewport": {"width":1024,"height":768},
+      "position": "top",
+      "top": "35px",
+      "left": "470px"
+    },
+    {
+      "item": {"left":500,"top":25,"width":20,"height":20},
+      "tooltip": {"width":80,"height":20},
+      "viewport": {"width":1024,"height":768},
+      "position": "top",
+      "top": "0px",
+      "left": "470px"
+    },
+    {
+      "item": {"left":500,"top":26,"width":20,"height":20},
+      "tooltip": {"width":80,"height":21},
+      "viewport": {"width":1024,"height":768},
+      "position": "top",
+      "top": "0px",
+      "left": "470px"
+    },
+    {
+      "item": {"left":38.5,"top":12.25,"width":36.4,"height":36.4},
+      "tooltip": {"width":101.3,"height":27.7},
+      "viewport": {"width":390,"height":844},
+      "position": "bottom",
+      "top": "53.65px",
+      "left": "6.050000000000004px"
+    },
+    {
+      "item": {"left":20,"top":100,"width":10,"height":10},
+      "tooltip": {"width":51,"height":20},
+      "viewport": {"width":390,"height":844},
+      "position": "bottom",
+      "top": "115px",
+      "left": "5px"
+    },
+    {
+      "item": {"left":0,"top":0,"width":1,"height":1},
+      "tooltip": {"width":2,"height":2},
+      "viewport": {"width":1,"height":1},
+      "position": "bottom",
+      "top": "-7px",
+      "left": "5px"
+    }
+  ],
+  "showTooltip": [
+    {
+      "item": {"left":100,"top":100,"width":32,"height":32},
+      "label": "Rectangle — R or 2",
+      "options": {},
+      "tooltipSize": {"width":80,"height":20},
+      "shown": {
+        "tag": "div",
+        "attrs": {"class":"excalidraw-tooltip excalidraw-tooltip--visible"},
+        "style": {"left":"76px","max-width":"15ch","min-width":"10ch","top":"137px"},
+        "children": ["Rectangle — R or 2"]
+      },
+      "hidden": {
+        "tag": "div",
+        "attrs": {"class":"excalidraw-tooltip"},
+        "style": {"left":"76px","max-width":"15ch","min-width":"10ch","top":"137px"},
+        "children": ["Rectangle — R or 2"]
+      }
+    },
+    {
+      "item": {"left":100,"top":100,"width":32,"height":32},
+      "label": "A long description of a tool",
+      "options": {"long":true},
+      "tooltipSize": {"width":80,"height":20},
+      "shown": {
+        "tag": "div",
+        "attrs": {"class":"excalidraw-tooltip excalidraw-tooltip--visible"},
+        "style": {"left":"76px","max-width":"50ch","min-width":"50ch","top":"137px"},
+        "children": ["A long description of a tool"]
+      },
+      "hidden": {
+        "tag": "div",
+        "attrs": {"class":"excalidraw-tooltip"},
+        "style": {"left":"76px","max-width":"50ch","min-width":"50ch","top":"137px"},
+        "children": ["A long description of a tool"]
+      }
+    },
+    {
+      "item": {"left":300,"top":700,"width":32,"height":32},
+      "label": "Up",
+      "options": {"position":"top"},
+      "tooltipSize": {"width":80,"height":20},
+      "shown": {
+        "tag": "div",
+        "attrs": {"class":"excalidraw-tooltip excalidraw-tooltip--visible"},
+        "style": {"left":"276px","max-width":"15ch","min-width":"10ch","top":"675px"},
+        "children": ["Up"]
+      },
+      "hidden": {"tag":"div","attrs":{"class":"excalidraw-tooltip"},"style":{"left":"276px","max-width":"15ch","min-width":"10ch","top":"675px"},"children":["Up"]}
+    }
+  ],
+  "popoverFit": [
+    {"top":100,"left":200,"content":{"width":300,"height":200},"viewport":{"width":1024,"height":768},"style":{"left":"200px","top":"100px"}},
+    {"top":5,"left":5,"content":{"width":300,"height":200},"viewport":{"width":1024,"height":768},"style":{"left":"10px","top":"10px"}},
+    {"top":700,"left":900,"content":{"width":300,"height":200},"viewport":{"width":1024,"height":768},"style":{"left":"714px","top":"558px"}},
+    {
+      "top": 100,
+      "left": 100,
+      "content": {"width":1100,"height":200},
+      "viewport": {"width":1024,"height":768},
+      "style": {"left":"10px","overflow-x":"scroll","top":"100px","width":"1004px"}
+    },
+    {
+      "top": 100,
+      "left": 100,
+      "content": {"width":300,"height":800},
+      "viewport": {"width":1024,"height":768},
+      "style": {"height":"748px","left":"100px","overflow-y":"scroll","top":"10px"}
+    },
+    {
+      "top": 100,
+      "left": 100,
+      "content": {"width":1004,"height":748},
+      "viewport": {"width":1024,"height":768},
+      "style": {"height":"748px","left":"10px","overflow-x":"scroll","overflow-y":"scroll","top":"10px","width":"1004px"}
+    },
+    {"top":100,"left":100,"content":{"width":1003.5,"height":747.5},"viewport":{"width":1024,"height":768},"style":{"left":"10.5px","top":"10.5px"}},
+    {"top":12.5,"left":-40.25,"content":{"width":120.5,"height":60.75},"viewport":{"width":390,"height":844},"style":{"left":"10px","top":"12.5px"}},
+    {
+      "top": 0,
+      "left": 0,
+      "content": {"width":10,"height":10},
+      "viewport": {"width":15,"height":15},
+      "style": {"height":"0px","left":"10px","overflow-x":"scroll","overflow-y":"scroll","top":"10px","width":"0px"}
+    }
+  ],
+  "focusTrap": [
+    {"component":"Popover","count":3,"focused":-1,"shift":false,"result":0,"prevented":true},
+    {"component":"Popover","count":3,"focused":-1,"shift":true,"result":2,"prevented":true},
+    {"component":"Popover","count":3,"focused":0,"shift":true,"result":2,"prevented":true},
+    {"component":"Popover","count":3,"focused":0,"shift":false,"result":0,"prevented":false},
+    {"component":"Popover","count":3,"focused":1,"shift":false,"result":1,"prevented":false},
+    {"component":"Popover","count":3,"focused":2,"shift":false,"result":0,"prevented":true},
+    {"component":"Popover","count":3,"focused":2,"shift":true,"result":2,"prevented":false},
+    {"component":"Popover","count":1,"focused":0,"shift":false,"result":0,"prevented":true},
+    {"component":"Popover","count":1,"focused":0,"shift":true,"result":0,"prevented":true},
+    {"component":"Dialog","count":3,"focused":-1,"shift":false,"result":null,"prevented":false},
+    {"component":"Dialog","count":3,"focused":-1,"shift":true,"result":null,"prevented":false},
+    {"component":"Dialog","count":3,"focused":0,"shift":true,"result":2,"prevented":true},
+    {"component":"Dialog","count":3,"focused":0,"shift":false,"result":0,"prevented":false},
+    {"component":"Dialog","count":3,"focused":1,"shift":false,"result":1,"prevented":false},
+    {"component":"Dialog","count":3,"focused":2,"shift":false,"result":0,"prevented":true},
+    {"component":"Dialog","count":3,"focused":2,"shift":true,"result":2,"prevented":false},
+    {"component":"Dialog","count":1,"focused":0,"shift":false,"result":0,"prevented":true},
+    {"component":"Dialog","count":1,"focused":0,"shift":true,"result":0,"prevented":true}
+  ]
+}

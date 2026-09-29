@@ -259,7 +259,9 @@ let loads = 0;
  * loadUpstream's, plus esbuild's `platform` and `format` (default "node"
  * and "esm") and `globalName` for an "iife" bundle, so a script can run
  * upstream's own code in a browser page
- * (scripts/fixtures/text_width_causes.mjs).
+ * (scripts/fixtures/text_width_causes.mjs), and esbuild's `jsx` ("automatic"
+ * for upstream's components, which use React's automatic runtime as its
+ * vite config does, so a module need not import React for its JSX).
  */
 export const bundleUpstream = async (
   { dir },
@@ -275,6 +277,7 @@ export const bundleUpstream = async (
     platform = "node",
     format = "esm",
     globalName,
+    jsx,
   } = {},
 ) => {
   const esbuild = await import("esbuild");
@@ -290,6 +293,7 @@ export const bundleUpstream = async (
     format,
     ...(globalName ? { globalName } : {}),
     platform,
+    ...(jsx ? { jsx } : {}),
     target: "esnext",
     logLevel: "silent",
     plugins: [
