@@ -88,6 +88,107 @@ On a Mac, Cmd+Alt+[ and Cmd+Alt+] also pass the keyTests of send backward and br
 
 Every row of the three tables above has a test in `tests/web/keyboard` (Playwright, `scripts/web/keyboard.sh`), which fails when a row has none.
 
+## Help dialog
+
+What the Help dialog (`?`) shows, row for row, as upstream renders it on Linux with the async clipboard and the theme action enabled (`HelpDialog.tsx:145-516`). `tests/help_dialog.rs` fails when this section and the port's dialog differ.
+
+### Tools
+
+| Action | Keys |
+|---|---|
+| Hand (panning tool) | `H` |
+| Selection | `V` or `1` |
+| Rectangle | `R` or `2` |
+| Diamond | `D` or `3` |
+| Ellipse | `O` or `4` |
+| Arrow | `A` or `5` |
+| Line | `L` or `6` |
+| Draw | `P` or `7` |
+| Text | `T` or `8` |
+| Sticky note | `N` |
+| Insert image | `9` |
+| Eraser | `E` or `0` |
+| Frame tool | `F` |
+| Laser pointer | `K` |
+| Bucket fill | `B` |
+| Pick color from canvas | `I` or `Shift` `S` or `Shift` `G` |
+| Edit line/arrow points | `Ctrl` `Enter` |
+| Edit text / add label | `Enter` |
+| Add new line (text editor) | `Enter` or `Shift` `Enter` |
+| Finish editing (text editor) | `Esc` or `Ctrl` `Enter` |
+| Curved arrow | `A` `click` `click` `click` |
+| Curved line | `L` `click` `click` `click` |
+| Crop image | `double-click` or `Enter` |
+| Finish image cropping | `Enter` or `Esc` |
+| Keep selected tool active after drawing | `Q` |
+| Prevent arrow binding | `Ctrl` |
+| Add / Update link for a selected shape | `Ctrl` `K` |
+| Toggle shape type | `Tab` or `Shift` `Tab` |
+
+### View
+
+| Action | Keys |
+|---|---|
+| Zoom in | `Ctrl` `+` |
+| Zoom out | `Ctrl` `-` |
+| Reset zoom | `Ctrl` `0` |
+| Zoom to fit all elements | `Shift` `1` |
+| Zoom to selection | `Shift` `2` |
+| Move page up/down | `PgUp/PgDn` |
+| Move page left/right | `Shift` `PgUp/PgDn` |
+| Zen mode | `Alt` `Z` |
+| Snap to objects | `Alt` `S` |
+| Toggle grid | `Ctrl` `'` |
+| View mode | `Alt` `R` |
+| Toggle light/dark theme | `Alt` `Shift` `D` |
+| Canvas & Shape properties | `Alt` `/` |
+| Find on canvas | `Ctrl` `F` |
+| Command palette | `Ctrl` `/` or `Ctrl` `Shift` `P` |
+
+### Editor
+
+| Action | Keys |
+|---|---|
+| Create a flowchart from a generic element | `Ctrl` `Arrow Key` |
+| Navigate a flowchart | `Alt` `Arrow Key` |
+| Move canvas | `Space` `drag` or `Wheel` `drag` |
+| Reset the canvas | `Ctrl` `Delete` |
+| Delete | `Delete` |
+| Cut | `Ctrl` `X` |
+| Copy | `Ctrl` `C` |
+| Paste | `Ctrl` `V` |
+| Paste as plaintext | `Ctrl` `Shift` `V` |
+| Select all | `Ctrl` `A` |
+| Add element to selection | `Shift` `click` |
+| Deep select | `Ctrl` `click` |
+| Deep select within box, and prevent dragging | `Ctrl` `drag` |
+| Copy to clipboard as PNG | `Shift` `Alt` `C` |
+| Copy styles | `Ctrl` `Alt` `C` |
+| Paste styles | `Ctrl` `Alt` `V` |
+| Send to back | `Ctrl` `Shift` `[` |
+| Bring to front | `Ctrl` `Shift` `]` |
+| Send backward | `Ctrl` `[` |
+| Bring forward | `Ctrl` `]` |
+| Align top | `Ctrl` `Shift` `Up` |
+| Align bottom | `Ctrl` `Shift` `Down` |
+| Align left | `Ctrl` `Shift` `Left` |
+| Align right | `Ctrl` `Shift` `Right` |
+| Duplicate | `Ctrl` `D` or `Alt` `drag` |
+| Lock/unlock selection | `Ctrl` `Shift` `L` |
+| Undo | `Ctrl` `Z` |
+| Redo | `Ctrl` `Shift` `Z` |
+| Group selection | `Ctrl` `G` |
+| Ungroup selection | `Ctrl` `Shift` `G` |
+| Flip horizontal | `Shift` `H` |
+| Flip vertical | `Shift` `V` |
+| Show stroke color picker | `S` |
+| Show background color picker | `G` |
+| Show font picker | `Shift` `F` |
+| Decrease font size | `Ctrl` `Shift` `<` |
+| Increase font size | `Ctrl` `Shift` `>` |
+
+On a Mac every `Ctrl` reads `Cmd` and every `Alt` reads `Option`, and send to back and bring to front are `Cmd` `Option` `[` and `Cmd` `Option` `]`. Windows adds `Ctrl` `Y` before redo's `Ctrl` `Shift` `Z`. Firefox lists only `Ctrl` `/` for the command palette. Copy to clipboard as PNG is shown only with the async clipboard or in Firefox, and toggle theme only when the host enables the theme action.
+
 ## Colour picker
 
 `q w e r t / a s d f g / z x c v b` palette cells; `1–5` custom colours; `Shift+1–5` shades; `i` eyedropper; Tab cycles sections; Esc closes.

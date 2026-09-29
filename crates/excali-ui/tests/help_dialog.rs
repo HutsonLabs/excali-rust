@@ -239,14 +239,14 @@ fn the_stylesheet_is_help_dialog_scss() {
 
 const SHORTCUTS_PAGE: &str = include_str!("../../../site/content/design-system/shortcuts.md");
 
-/// The page's "Help dialog" section: from its heading to the next `## `.
+/// The page's "Help dialog" section: from its heading to the next `## `
+/// (empty when the page has none).
 fn page_section() -> String {
-    let start = SHORTCUTS_PAGE
-        .find("\n## Help dialog\n")
-        .expect("shortcuts.md has a \"## Help dialog\" section")
-        + 1;
-    let rest = &SHORTCUTS_PAGE[start..];
-    let end = rest[3..].find("\n## ").map_or(rest.len(), |i| i + 4);
+    let Some(start) = SHORTCUTS_PAGE.find("\n## Help dialog\n") else {
+        return String::new();
+    };
+    let rest = &SHORTCUTS_PAGE[start + 1..];
+    let end = rest[3..].find("\n## ").map_or(rest.len(), |i| i + 3);
     rest[..end].to_owned()
 }
 

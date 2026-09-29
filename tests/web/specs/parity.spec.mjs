@@ -723,7 +723,12 @@ const ROWS = {
   "ui-help-dialog": async ({ page }) => {
     await mount(page);
     await press(page, "Shift+Slash");
-    await expect(page.locator("excali-editor .HelpDialog")).toBeVisible(SHORT);
+    // Dialog's Modal portals to the body (hooks/useCreatePortalContainer.ts)
+    const dialog = page.locator("body > .excalidraw-modal-container .HelpDialog");
+    await expect(dialog).toBeVisible(SHORT);
+    await expect(dialog.locator(".HelpDialog__island-title")).toHaveText(["Tools", "View", "Editor"]);
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0, SHORT);
   },
 
   "ui-context-menu": async ({ page }) => {

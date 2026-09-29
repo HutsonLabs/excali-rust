@@ -37,6 +37,7 @@ use excali_ui::context_menu::{
 };
 use excali_ui::dom::{mount, Mounted, Node};
 use excali_ui::footer::{footer, FooterControl, FooterProps, OnFooterEvent};
+use excali_ui::help_dialog::{close_help_dialog, help_dialog, HelpDialogProps, Platform};
 use excali_ui::keyboard::{apply_outcome, clipboard_target, keystroke};
 use excali_ui::layers::{CanvasLayers, Layer};
 use excali_ui::library_sidebar::{
@@ -122,6 +123,7 @@ pub fn stylesheet() -> String {
         excali_ui::primitives::PRIMITIVES_CSS,
         excali_ui::toolbar::TOOLBAR_CSS,
         excali_ui::footer::FOOTER_CSS,
+        excali_ui::help_dialog::HELP_DIALOG_CSS,
         excali_ui::main_menu::MAIN_MENU_CSS,
         excali_ui::context_menu::CONTEXT_MENU_CSS,
         excali_ui::library_sidebar::LIBRARY_SIDEBAR_CSS,
@@ -135,6 +137,7 @@ pub fn stylesheet() -> String {
 fn install_element_stylesheet(document: &Document) -> Result<(), JsValue> {
     install_stylesheet(document)?;
     excali_ui::footer::install_stylesheet(document)?;
+    excali_ui::help_dialog::install_stylesheet(document)?;
     excali_ui::main_menu::install_stylesheet(document)?;
     excali_ui::context_menu::install_stylesheet(document)?;
     excali_ui::library_sidebar::install_stylesheet(document)?;
@@ -223,6 +226,9 @@ struct Inner {
     top: HtmlElement,
     toolbar: Option<Mounted>,
     footer: Option<Mounted>,
+    /// The help dialog, portalled to the body while `appState.openDialog`
+    /// is `{name: "help"}`.
+    help_dialog: Option<excali_ui::primitives::OpenModal>,
     /// The top-left corner (`App-menu_top__left`) and the main menu in it.
     top_left: HtmlElement,
     main_menu: Option<Mounted>,
@@ -329,6 +335,7 @@ fn chrome_key(inner: &Inner) -> Value {
         "redo": ed.can_redo(),
         "ui": inner.ui,
         "openMenu": ed.app_state().get("openMenu"),
+        "openDialog": ed.app_state().get("openDialog"),
         "theme": ed.app_state().get("theme"),
         "openSidebar": ed.app_state().get("openSidebar"),
         "sidebarDocked": ed.app_state().get("defaultSidebarDockedPreference"),
@@ -471,6 +478,7 @@ fn refresh_chrome(weak: &Weak<RefCell<Inner>>) {
     let _ = render_footer(weak);
     let _ = render_main_menu(weak);
     let _ = render_library_sidebar(weak);
+    let _ = render_help_dialog(weak);
 }
 
 /// Re-mounts the toolbar for the current tools.
@@ -956,6 +964,109 @@ fn render_footer(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
     Ok(())
 }
 
+/// The browser facts the help dialog reads (`isDarwin`, `isWindows`,
+/// `isFirefox`: `common/src/editorInterface.ts:37-43`;
+/// `probablySupportsClipboardBlob`: `clipboard.ts:68-72`).
+fn help_platform() -> Platform {
+    let Some(window) = web_sys::window() else {
+        return Platform::default();
+    };
+    let navigator = window.navigator();
+    let platform = navigator.platform().unwrap_or_default();
+    let agent = navigator.user_agent().unwrap_or_default();
+    let has = |target: &JsValue, key: &str| {
+        js_sys::Reflect::has(target, &JsValue::from_str(key)).unwrap_or(false)
+    };
+    let clipboard = js_sys::Reflect::get(&navigator, &JsValue::from_str("clipboard"))
+        .unwrap_or(JsValue::UNDEFINED);
+    let canvas = js_sys::Reflect::get(&window, &JsValue::from_str("HTMLCanvasElement"))
+        .and_then(|c| js_sys::Reflect::get(&c, &JsValue::from_str("prototype")))
+        .unwrap_or(JsValue::UNDEFINED);
+    Platform {
+        darwin: is_darwin(),
+        windows: platform.starts_with("Win"),
+        firefox: has(&window, "netscape")
+            && agent.find("rv:").is_some_and(|i| i > 1)
+            && agent.find("Gecko").is_some_and(|i| i > 1),
+        clipboard_blob: clipboard.is_object()
+            && has(&clipboard, "write")
+            && has(&window, "ClipboardItem")
+            && canvas.is_object()
+            && has(&canvas, "toBlob"),
+    }
+}
+
+/// Opens the help dialog (`HelpDialog.tsx`) when `appState.openDialog`
+/// becomes `{name: "help"}` (`LayerUI.tsx:577-583`), in a modal on the
+/// body, and removes it when that changes; closing it clears `openMenu`
+/// and `openDialog`.
+fn render_help_dialog(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
+    let Some(rc) = weak.upgrade() else {
+        return Ok(());
+    };
+    let mut inner = rc.borrow_mut();
+    let open = inner
+        .editor
+        .app_state()
+        .get("openDialog")
+        .and_then(|d| d.get("name"))
+        .and_then(Value::as_str)
+        == Some("help");
+    // an open dialog stays mounted (and keeps its focus) while it stays open
+    if open && inner.help_dialog.is_some() {
+        return Ok(());
+    }
+    if let Some(old) = inner.help_dialog.take() {
+        old.close();
+    }
+    if !open {
+        return Ok(());
+    }
+    let dark = inner
+        .editor
+        .app_state()
+        .get("theme")
+        .and_then(Value::as_str)
+        == Some("dark");
+    let events = weak.clone();
+    let on_close = Rc::new(move || {
+        let Some(rc) = events.upgrade() else {
+            return;
+        };
+        {
+            let Ok(mut inner) = rc.try_borrow_mut() else {
+                return;
+            };
+            let mut state = excali_core::app_state::AppState::default();
+            close_help_dialog(&mut state);
+            let patch = ["openMenu", "openDialog"]
+                .into_iter()
+                .filter_map(|k| Some((k.to_owned(), state.get(k)?.clone())))
+                .collect();
+            inner.editor.set_app_state(patch);
+            inner.after_event();
+        }
+        refresh_chrome(&events);
+    }) as Rc<dyn Fn()>;
+    let toggle_theme_enabled = {
+        let ed = &inner.editor;
+        let ctx = ed.action_context();
+        ed.action_manager()
+            .is_action_enabled(ActionName::ToggleTheme, &ctx)
+    };
+    let dialog = help_dialog(HelpDialogProps {
+        platform: help_platform(),
+        toggle_theme_enabled,
+        container_id: "excali-editor".into(),
+        theme: if dark { Theme::Dark } else { Theme::Light },
+        phone: false,
+        on_close: Some(on_close),
+    });
+    let document = inner.document();
+    inner.help_dialog = Some(excali_ui::primitives::open_modal(&document, dialog)?);
+    Ok(())
+}
+
 /// The editor of one `<excali-editor>`.
 #[wasm_bindgen]
 pub struct EditorCore {
@@ -1094,6 +1205,7 @@ impl EditorCore {
             top,
             toolbar: None,
             footer: None,
+            help_dialog: None,
             top_left,
             main_menu: None,
             context_menu: None,
@@ -1498,6 +1610,9 @@ impl EditorCore {
         }
         if let Some(overlay) = inner.overlay.take() {
             overlay.unmount();
+        }
+        if let Some(dialog) = inner.help_dialog.take() {
+            dialog.close();
         }
         for mounted in [
             inner.toolbar.take(),
