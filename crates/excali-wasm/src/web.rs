@@ -20,13 +20,19 @@ use std::rc::{Rc, Weak};
 
 use excali_canvas2d::{paint, WebCanvas};
 use excali_core::png::{encode_chunks, encode_text_chunk, extract_chunks};
-use excali_editor::actions::{ActionName, KeyLabels};
+use excali_editor::actions::{
+    build_context_menu, get_context_menu_items, ActionContext, ActionName, ContextMenuKind,
+    KeyLabels,
+};
 use excali_editor::keyboard::{ClipboardEventKind, ClipboardOutcome};
-use excali_editor::tools::ToolState;
+use excali_editor::tools::{Tool, ToolState};
 use excali_scene::display::FontFaceSource;
 use excali_scene::shape::Theme;
 use excali_svg::FontContent;
 use excali_text::text_measurements::TextMetricsProvider;
+use excali_ui::context_menu::{
+    context_menu, ContextMenuEffect, ContextMenuProps, OnContextMenuEffect,
+};
 use excali_ui::dom::{mount, Mounted, Node};
 use excali_ui::footer::{footer, FooterControl, FooterProps, OnFooterEvent};
 use excali_ui::keyboard::{apply_outcome, clipboard_target, keystroke};
@@ -103,6 +109,7 @@ pub fn stylesheet() -> String {
         excali_ui::toolbar::TOOLBAR_CSS,
         excali_ui::footer::FOOTER_CSS,
         excali_ui::main_menu::MAIN_MENU_CSS,
+        excali_ui::context_menu::CONTEXT_MENU_CSS,
         excali_ui::layers::CANVAS_LAYER_CSS,
         TEXT_EDITOR_CSS,
         ELEMENT_CSS,
@@ -114,6 +121,7 @@ fn install_element_stylesheet(document: &Document) -> Result<(), JsValue> {
     install_stylesheet(document)?;
     excali_ui::footer::install_stylesheet(document)?;
     excali_ui::main_menu::install_stylesheet(document)?;
+    excali_ui::context_menu::install_stylesheet(document)?;
     if document
         .query_selector("style[data-excali-ui=\"excali-editor\"]")?
         .is_some()
@@ -202,6 +210,8 @@ struct Inner {
     /// The top-left corner (`App-menu_top__left`) and the main menu in it.
     top_left: HtmlElement,
     main_menu: Option<Mounted>,
+    /// The open context menu (`appState.contextMenu`).
+    context_menu: Option<Mounted>,
     /// The text editor's box (`.excalidraw-textEditorContainer`) and the
     /// textarea mounted in it while a text is edited.
     editor_box: HtmlElement,
@@ -556,6 +566,111 @@ fn render_main_menu(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
     Ok(())
 }
 
+/// `App.openContextMenu` for a `contextmenu` event over the canvas: which
+/// menu, and where relative to the container. `None` when no menu opens:
+/// the default UI is off (`isDefaultUIEnabled`), interaction is disabled,
+/// or a touch (or a pen's primary button) presses while a tool other than
+/// the preferred selection tool is active.
+fn open_context_menu(inner: &mut Inner, event: &Event) -> Option<(ContextMenuKind, f64, f64)> {
+    if inner.ui == "none" || !inner.editor.tools().is_interaction_enabled() {
+        return None;
+    }
+    if let Some(pointer) = event.dyn_ref::<PointerEvent>() {
+        let tools = inner.editor.tools();
+        let pointer_type = pointer.pointer_type();
+        let selection_tool = Tool::Builtin(tools.preferred_selection_tool.tool.tool_type());
+        if (pointer_type == "touch" || (pointer_type == "pen" && pointer.button() != 2))
+            && tools.active_tool.tool != selection_tool
+        {
+            return None;
+        }
+    }
+    inner.measure();
+    let (client_x, client_y) = (number(event, "clientX"), number(event, "clientY"));
+    let kind = inner.editor.open_context_menu(client_x, client_y);
+    inner.after_event();
+    let rect = inner.container.get_bounding_client_rect();
+    Some((kind, client_y - rect.top(), client_x - rect.left()))
+}
+
+/// Mounts the context menu (`ContextMenu`) at `top`, `left` in the
+/// container, its rows those of `getContextMenuItems(kind)` whose
+/// predicates hold now. A row closes it and runs its action; a press
+/// outside it closes it.
+fn render_context_menu(
+    weak: &Weak<RefCell<Inner>>,
+    kind: ContextMenuKind,
+    top: f64,
+    left: f64,
+) -> Result<(), JsValue> {
+    let Some(rc) = weak.upgrade() else {
+        return Ok(());
+    };
+    let mut inner = rc.borrow_mut();
+    if let Some(old) = inner.context_menu.take() {
+        old.remove();
+    }
+    let events = weak.clone();
+    let on_effect: OnContextMenuEffect = Rc::new(move |effect: ContextMenuEffect| {
+        let Some(rc) = events.upgrade() else {
+            return;
+        };
+        {
+            let Ok(mut inner) = rc.try_borrow_mut() else {
+                return;
+            };
+            match effect {
+                ContextMenuEffect::Close => {
+                    if let Some(menu) = inner.context_menu.take() {
+                        menu.remove();
+                    }
+                }
+                ContextMenuEffect::ExecuteAction(name) => {
+                    apply_menu_effect(&mut inner, MenuEffect::ExecuteAction(name));
+                    inner.after_event();
+                }
+                ContextMenuEffect::PreventDefault => return,
+            }
+        }
+        refresh_chrome(&events);
+    });
+    let node = {
+        let ed = &inner.editor;
+        let live: Vec<_> = ed
+            .elements()
+            .iter()
+            .filter(|e| !e.base.is_deleted)
+            .cloned()
+            .collect();
+        let ctx = ActionContext {
+            elements: &live,
+            ..ed.action_context()
+        };
+        let view_mode = ed.app_state().get("viewModeEnabled") == Some(&Value::Bool(true));
+        let items = get_context_menu_items(kind, view_mode, ctx.env.form_factor);
+        let entries = build_context_menu(&items, &ctx, &KeyLabels::EN);
+        let app = ed.app_state();
+        let size = |key: &str| app.get(key).and_then(Value::as_f64).unwrap_or(0.0);
+        Node::Element(
+            context_menu(
+                &entries,
+                ContextMenuProps {
+                    top,
+                    left,
+                    viewport_width: size("width"),
+                    viewport_height: size("height"),
+                    on_effect: Some(on_effect),
+                },
+            )
+            .element,
+        )
+    };
+    let document = inner.document();
+    let mounted = mount(&node, &document, &inner.container)?;
+    inner.context_menu = Some(mounted);
+    Ok(())
+}
+
 /// Re-mounts the footer (`Footer.tsx`): the zoom actions and the undo and
 /// redo buttons, run through the editor.
 fn render_footer(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
@@ -739,6 +854,7 @@ impl EditorCore {
             footer: None,
             top_left,
             main_menu: None,
+            context_menu: None,
             editor_box,
             overlay: None,
             extra_tools_open: false,
@@ -840,9 +956,18 @@ impl EditorCore {
             refresh_chrome(&Rc::downgrade(rc));
         })?;
         // the canvas's context menu is the editor's (`handleCanvasContextMenu`
-        // prevents the browser's)
-        listen(&inner, &interactive, "contextmenu", |_, event| {
+        // prevents the browser's and opens it, `openContextMenu`)
+        listen(&inner, &interactive, "contextmenu", |rc, event| {
             event.prevent_default();
+            let opened = {
+                let mut inner = rc.borrow_mut();
+                open_context_menu(&mut inner, &event)
+            };
+            if let Some((kind, top, left)) = opened {
+                let weak = Rc::downgrade(rc);
+                refresh_chrome(&weak);
+                let _ = render_context_menu(&weak, kind, top, left);
+            }
         })?;
         // copy, cut and paste reach the document (`App.onCopy`, `onCut`,
         // `pasteFromClipboard`)
@@ -1087,6 +1212,7 @@ impl EditorCore {
             inner.toolbar.take(),
             inner.footer.take(),
             inner.main_menu.take(),
+            inner.context_menu.take(),
         ]
         .into_iter()
         .flatten()

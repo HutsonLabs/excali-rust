@@ -16,7 +16,8 @@
 //! `LayerUI.tsx`); for [`toolbar`] the desktop shapes toolbar and its
 //! extra-tools dropdown (`components/Toolbar.tsx`, `Tools.tsx`); for
 //! [`main_menu`] the hamburger menu (`components/main-menu/*`,
-//! `components/dropdownMenu/*`); for [`footer`]
+//! `components/dropdownMenu/*`); for [`context_menu`] the canvas and
+//! element context menus (`components/ContextMenu.tsx`); for [`footer`]
 //! the footer's zoom, undo/redo, help and exit-zen controls
 //! (`components/footer/Footer.tsx`).
 //!
@@ -24,6 +25,7 @@
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-canvas2d`, `excali-editor`.
 
 pub mod color_picker;
+pub mod context_menu;
 pub mod dom;
 pub mod fonts;
 pub mod footer;

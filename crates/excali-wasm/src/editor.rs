@@ -57,6 +57,7 @@
 use std::collections::HashMap;
 
 use excali_core::app_state::{AppState, AppStateEnv};
+use excali_core::constants::{DEFAULT_COLLISION_THRESHOLD, DEFAULT_TRANSFORM_HANDLE_SPACING};
 use excali_core::document::{load_scene_json, LoadSceneError, LoadedScene};
 use excali_core::element::{BindMode, BoundElement, BoundElementType, Element, ElementKind};
 use excali_core::library::{
@@ -66,7 +67,7 @@ use excali_core::library::{
 use excali_core::library_url::{parse_library_tokens_from_url, validate_library_url};
 use excali_core::restore::{LegacyBinding, LegacyBindingRequest, RestoreEnv};
 use excali_editor::actions::{
-    ActionContext, ActionEnv, ActionManager, ActionName, AppProps, KeyDownOutcome,
+    ActionContext, ActionEnv, ActionManager, ActionName, AppProps, ContextMenuKind, KeyDownOutcome,
 };
 use excali_editor::binding::{
     bind_or_unbind_binding_element, BindingAppState, BindingOpts, LinearElementInitialState,
@@ -104,7 +105,7 @@ use excali_editor::viewport::{
     WheelTarget, ZoomAction,
 };
 use excali_math::js;
-use excali_scene::bounds::{get_element_absolute_coords, ElementsMap};
+use excali_scene::bounds::{get_common_bounds, get_element_absolute_coords, ElementsMap};
 use excali_scene::canvas_export::{export_canvas_png, CanvasExportOptions, CanvasSizing};
 use excali_scene::display::{CanvasDocument, DisplayList};
 use excali_scene::export::{svg_document, SvgExportAppState, SvgExportOptions};
@@ -928,6 +929,87 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 )
             })
             .map(|e| e.base.id.clone())
+    }
+
+    /// `isHittingCommonBoundingBoxOfSelectedElements` (`App.tsx:9964-9986`):
+    /// two or more selected elements whose common bounds, padded by the
+    /// transform handles' spacing and the collision threshold, hold `point`.
+    fn is_hitting_common_bounding_box(&self, point: [f64; 2], selected: &[&Element]) -> bool {
+        if selected.len() < 2 {
+            return false;
+        }
+        let zoom = self.session.app_state().zoom().unwrap_or(1.0);
+        let threshold = (DEFAULT_COLLISION_THRESHOLD / zoom).max(1.0);
+        let padding = (DEFAULT_TRANSFORM_HANDLE_SPACING * 2.0) / zoom;
+        let [x1, y1, x2, y2] = get_common_bounds(selected);
+        let [x, y] = point;
+        x > x1 - padding - threshold
+            && x < x2 + padding + threshold
+            && y > y1 - padding - threshold
+            && y < y2 + padding + threshold
+    }
+
+    /// `App.openContextMenu` (`App.tsx:13387-13465`) for a pointer at
+    /// `client`: the element menu over an element or the selection's
+    /// common bounding box, else the canvas menu. An element that is not
+    /// selected becomes the selection (with its groups,
+    /// `selectGroupsForSelectedElements`), and the hyperlink popup closes.
+    pub fn open_context_menu(&mut self, client_x: f64, client_y: f64) -> ContextMenuKind {
+        let point = self.scene_point(client_x, client_y);
+        let hit = self.element_at(point);
+        let selected_ids = self.selected_ids();
+        let hitting_box = {
+            let selected: Vec<&Element> = self
+                .session
+                .elements()
+                .iter()
+                .filter(|e| !e.base.is_deleted && selected_ids.contains(&e.base.id))
+                .collect();
+            self.is_hitting_common_bounding_box(point, &selected)
+        };
+        let mut patch = Map::new();
+        if let Some(id) = hit.as_ref().filter(|id| !selected_ids.contains(id)) {
+            let live: Vec<&Element> = self
+                .session
+                .elements()
+                .iter()
+                .filter(|e| !e.base.is_deleted)
+                .collect();
+            let mut selection = Map::new();
+            selection.insert(id.clone(), Value::Bool(true));
+            let editing = self
+                .session
+                .app_state()
+                .get("editingGroupId")
+                .and_then(Value::as_str)
+                .map(str::to_owned);
+            let groups = select_groups_for_selected_elements(&selection, editing.as_deref(), &live);
+            patch.insert(
+                "selectedElementIds".into(),
+                Value::Object(groups.selected_element_ids),
+            );
+            patch.insert(
+                "selectedGroupIds".into(),
+                Value::Object(groups.selected_group_ids),
+            );
+            patch.insert(
+                "editingGroupId".into(),
+                groups.editing_group_id.map_or(Value::Null, Value::String),
+            );
+        }
+        patch.insert("showHyperlinkPopup".into(), Value::Bool(false));
+        let current = self.session.app_state().as_map();
+        patch.retain(|k, v| current.get(k) != Some(v));
+        if !patch.is_empty() {
+            self.session.set_state(patch);
+            self.session.commit();
+        }
+        self.report();
+        if hit.is_some() || hitting_box {
+            ContextMenuKind::Element
+        } else {
+            ContextMenuKind::Canvas
+        }
     }
 
     /// `isPointHittingLink(element, elementsMap, appState, point)` for the
