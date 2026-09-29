@@ -459,6 +459,7 @@ dependencies = [
  "excali-core",
  "excali-math",
  "excali-scene",
+ "excali-text",
  "indexmap",
  "serde_json",
 ]

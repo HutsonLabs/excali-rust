@@ -12,7 +12,7 @@
 //! no binding points from a live element into a deleted one and both
 //! sides of a binding agree (`resolveConflicts`), reorders elements by
 //! fractional index when an index changed, runs the layout of
-//! [`HistoryEnv::redraw_elements`], and reports whether the result looks
+//! [`redraw_elements`], and reports whether the result looks
 //! any different, which history uses to skip entries with no visible
 //! change.
 //!
@@ -66,7 +66,7 @@ pub enum DeltaError {
     Element(String, MutateError),
     /// Syncing fractional indices after a reorder failed.
     Indices(OrderKeyError),
-    /// The layout ([`HistoryEnv::redraw_elements`]) failed.
+    /// The layout ([`redraw_elements`]) failed.
     Redraw(String),
     /// The layout changed an element the delta does not reach, so history
     /// cannot tell whether the change is visible (`delta.ts:1513-1524`).
@@ -1276,7 +1276,7 @@ impl ElementsDelta {
     /// element is a new version (`version + 1` unless the partial names
     /// one). Bindings are then repaired, which may change more elements
     /// and is squashed into this delta; elements are reordered when an
-    /// index changed; and [`HistoryEnv::redraw_elements`] runs.
+    /// index changed; and [`redraw_elements`] runs.
     pub fn apply_to(
         &mut self,
         elements: &SceneElementsMap,
@@ -1358,8 +1358,7 @@ impl ElementsDelta {
             .iter()
             .map(|(id, e)| (id.clone(), e.base.version))
             .collect();
-        env.redraw_elements(&mut next, &changed)
-            .map_err(DeltaError::Redraw)?;
+        redraw_elements(&mut next, &mut changed, env).map_err(DeltaError::Redraw)?;
         for (id, element) in &next {
             if versions_before.get(id) != Some(&element.base.version) && !seen.contains(id) {
                 return Err(DeltaError::UntrackedRedraw(id.clone()));
@@ -1409,6 +1408,122 @@ impl ElementsDelta {
             false,
         ))
     }
+}
+
+/// `ElementsDelta.redrawElements(nextElements, changedElements)`
+/// (`delta.ts:2034-2057`): the bound text boxes, then the bound arrows, of
+/// the changed elements are laid out again, through the leaf layout of
+/// [`HistoryEnv::redraw_text_bounding_box`] and
+/// [`HistoryEnv::update_bound_elements`].
+///
+/// Upstream's `changedElements` holds the same instances as
+/// `nextElements`, so what layout mutates shows through it; here `changed`
+/// is re-read from `elements` before each leaf call to the same effect.
+pub fn redraw_elements(
+    elements: &mut SceneElementsMap,
+    changed: &mut SceneElementsMap,
+    env: &mut dyn HistoryEnv,
+) -> Result<(), String> {
+    redraw_text_bounding_boxes(elements, changed, env)?;
+    // needs ordered nextElements to avoid z-index binding issues
+    redraw_bound_arrows(elements, changed, env)
+}
+
+/// `changed` re-read from `elements` (upstream shares the instances).
+fn refresh_changed(changed: &mut SceneElementsMap, elements: &SceneElementsMap) {
+    for (id, element) in changed.iter_mut() {
+        if let Some(current) = elements.get(id) {
+            if current != element {
+                *element = current.clone();
+            }
+        }
+    }
+}
+
+/// `isBoundToContainer`: a text whose `containerId` is not `null`.
+fn is_bound_to_container(element: &Element) -> bool {
+    matches!(&element.kind, ElementKind::Text(t) if t.container_id.is_some())
+}
+
+/// `hasBoundTextElement`: a text container (`isTextBindableContainer`,
+/// locked or not) with a `text` entry in `boundElements`.
+fn has_bound_text_element(element: &Element) -> bool {
+    element.element_type().is_text_container()
+        && element.base.bound_elements.as_ref().is_some_and(|b| {
+            b.iter()
+                .any(|b| b.kind == excali_core::element::BoundElementType::Text)
+        })
+}
+
+/// `redrawTextBoundingBoxes(scene, changed)` (`delta.ts:2059-2106`): for
+/// every changed bound text, its container, and for every changed
+/// container, its bound text, both looked up among the non-deleted
+/// elements; one pair per container id (a later pair replaces an earlier
+/// one, keeping its place), and a pair is skipped when either side is
+/// deleted.
+fn redraw_text_bounding_boxes(
+    elements: &mut SceneElementsMap,
+    changed: &mut SceneElementsMap,
+    env: &mut dyn HistoryEnv,
+) -> Result<(), String> {
+    let non_deleted = |id: &str| elements.get(id).filter(|e| !e.base.is_deleted);
+    // container id -> (container id, bound text id)
+    let mut boxes: IndexMap<String, (String, String)> = IndexMap::new();
+    for element in changed.values() {
+        if is_bound_to_container(element) {
+            let container = text_container_id(element)
+                .filter(|id| !id.is_empty())
+                .and_then(non_deleted);
+            if let Some(container) = container {
+                boxes.insert(
+                    container.base.id.clone(),
+                    (container.base.id.clone(), element.base.id.clone()),
+                );
+            }
+        }
+        if has_bound_text_element(element) {
+            let bound_text =
+                excali_scene::bounds::get_bound_text_element_id(element).and_then(non_deleted);
+            if let Some(bound_text) = bound_text {
+                boxes.insert(
+                    element.base.id.clone(),
+                    (element.base.id.clone(), bound_text.base.id.clone()),
+                );
+            }
+        }
+    }
+    for (container_id, text_id) in boxes.into_values() {
+        let deleted = |id: &str| elements.get(id).is_none_or(|e| e.base.is_deleted);
+        if deleted(&container_id) || deleted(&text_id) {
+            // skip redraw if one of them is deleted, as it would not result
+            // in a meaningful redraw
+            continue;
+        }
+        env.redraw_text_bounding_box(elements, &text_id, &container_id)?;
+        refresh_changed(changed, elements);
+    }
+    Ok(())
+}
+
+/// `redrawBoundArrows(scene, changed)` (`delta.ts:2108-2124`): the arrows
+/// bound to every changed, non-deleted bindable element are updated, with
+/// the changed elements passed through.
+fn redraw_bound_arrows(
+    elements: &mut SceneElementsMap,
+    changed: &mut SceneElementsMap,
+    env: &mut dyn HistoryEnv,
+) -> Result<(), String> {
+    let ids: Vec<String> = changed.keys().cloned().collect();
+    for id in ids {
+        let Some(element) = changed.get(&id) else {
+            continue;
+        };
+        if !element.base.is_deleted && element.is_bindable() {
+            env.update_bound_elements(elements, &id, changed)?;
+            refresh_changed(changed, elements);
+        }
+    }
+    Ok(())
 }
 
 /// `reorderElements`: the elements in fractional index order with the

@@ -49,7 +49,7 @@ impl App {
     }
 
     fn with_initial_data(elements: Vec<Element>, app_state: Value) -> App {
-        let mut s = Session::new(TestEnv::default(), AppState::default());
+        let mut s = Session::new(TestEnv::with_layout(), AppState::default());
         s.initialize_scene(elements, obj(app_state))
             .expect("initializeScene");
         App { s }

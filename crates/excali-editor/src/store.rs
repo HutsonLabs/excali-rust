@@ -56,33 +56,47 @@ pub enum CaptureUpdateAction {
     Eventually,
 }
 
-/// What the store and history draw from the outside world, and the layout
-/// that runs after a delta is applied.
+/// What the store and history draw from the outside world, and the leaf
+/// layout that runs after a delta is applied.
 ///
 /// - The [`ChangeStamp`] supertrait: `randomInteger()` for version nonces
 ///   and `getUpdatedTimestamp()` for `updated`.
 /// - [`HistoryEnv::random_id`], `randomId()` for store delta ids.
-/// - [`HistoryEnv::redraw_elements`], `ElementsDelta.redrawElements`
-///   (`delta.ts:2034-2057`), the layout upstream runs on the elements a
-///   delta changed: bound text boxes re-wrapped into their containers
-///   (`redrawTextBoundingBox`, `textElement.ts:51`) and arrows bound to
-///   the changed bindable elements re-routed (`updateBoundElements`,
-///   `binding.ts:1321`). The text and binding layout live with text
-///   editing and arrow binding; the host environment wires them in. Every
-///   element the layout changes must go through
+/// - [`HistoryEnv::redraw_text_bounding_box`] and
+///   [`HistoryEnv::update_bound_elements`], the two layout calls of
+///   `ElementsDelta.redrawElements` (`delta.ts:2034-2124`). Which elements
+///   they run on is decided by [`crate::delta::redraw_elements`]; the
+///   layout itself (text wrapping and measuring, arrow routing) lives with
+///   text editing (ex-512) and arrow binding (ex-510), and the host wires
+///   it in. Every element a leaf changes must go through
 ///   [`crate::mutate::mutate_element`], which bumps its version; history
 ///   checks that only elements the delta reaches were changed.
 pub trait HistoryEnv: ChangeStamp {
     /// `randomId()`.
     fn random_id(&mut self) -> String;
 
-    /// `ElementsDelta.redrawElements(nextElements, changedElements)`:
-    /// update `elements` in place for the elements in `changed` (the
-    /// elements the delta and its binding repair changed, as they are in
-    /// `elements`). An error is what upstream's layout throws.
-    fn redraw_elements(
+    /// `redrawTextBoundingBox(textElement, container, scene)`
+    /// (`textElement.ts:51`): re-wrap and re-measure the text `text_id`
+    /// bound to `container_id` and place it in the container, growing the
+    /// container when the text no longer fits. `elements` is the whole
+    /// scene being built (deleted elements included); both elements are
+    /// in it and not deleted. An error is what upstream's layout throws.
+    fn redraw_text_bounding_box(
         &mut self,
         elements: &mut SceneElementsMap,
+        text_id: &str,
+        container_id: &str,
+    ) -> Result<(), String>;
+
+    /// `updateBoundElements(changedElement, scene, { changedElements })`
+    /// (`binding.ts:1321`): re-route the arrows bound to the bindable
+    /// element `element_id` (in `elements`, not deleted), reading the
+    /// elements of `changed` in place of the scene's. An error is what
+    /// upstream's layout throws.
+    fn update_bound_elements(
+        &mut self,
+        elements: &mut SceneElementsMap,
+        element_id: &str,
         changed: &SceneElementsMap,
     ) -> Result<(), String>;
 }

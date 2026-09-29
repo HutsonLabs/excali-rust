@@ -5,8 +5,8 @@
 //! `redrawElements` ("detects a container resized by restoring an empty
 //! label", "detects a bound label/arrow repositioned by a container's
 //! redraw") exercise `redrawTextBoundingBox` and `updateBoundElements`,
-//! which the history reaches through `HistoryEnv::redraw_elements`; here the
-//! hook is driven by a test layout that moves what upstream's would.
+//! whose calls `redrawElements` makes through `HistoryEnv`; here they are
+//! the deterministic stand-ins of `tests/support`.
 
 mod support;
 
@@ -14,7 +14,9 @@ use std::collections::HashSet;
 
 use excali_core::element::{Element, ElementKind, FractionalIndex, StickyNoteFields};
 use excali_core::fractional_index::{ChangeStamp, SceneElementsMap};
-use excali_editor::delta::{AppStateDelta, ApplyToOptions, Delta, ElementsDelta, Partial};
+use excali_editor::delta::{
+    redraw_elements, AppStateDelta, ApplyToOptions, Delta, ElementsDelta, Partial,
+};
 use excali_editor::mutate::mutate_element;
 use excali_editor::store::{ObservedAppState, SnapshotElements};
 use indexmap::IndexMap;
@@ -95,6 +97,8 @@ fn bound_text(
     if let ElementKind::Text(t) = &mut label.kind {
         t.container_id = Some("container".into());
         t.font_size = 20.0;
+        t.text_align = excali_core::element::TextAlign::Center;
+        t.vertical_align = excali_core::element::VerticalAlign::Middle;
     }
     let before = map(&[container.clone(), label.clone()]);
     let after = map(&[
@@ -189,30 +193,35 @@ fn keeps_an_arrows_empty_label_gap_visible() {
     assert!(apply(&after, &before, &mut env).1);
 }
 
-/// A layout that moves the label of `container` to `x = 5` whenever the
-/// container is among the changed elements, as `redrawTextBoundingBox`
-/// re-centres a label in its container.
-fn recentre_label(
-    stamp: &mut dyn ChangeStamp,
-    elements: &mut SceneElementsMap,
-    changed: &SceneElementsMap,
-) -> Result<(), String> {
-    if !changed.contains_key("container") {
-        return Ok(());
-    }
-    let mut label = elements["label"].clone();
-    mutate_element(&mut label, elements, support::obj(json!({"x": 5})), stamp)
-        .map_err(|e| e.to_string())?;
-    elements.insert("label".into(), label);
-    Ok(())
+#[test]
+fn detects_a_container_resized_by_restoring_an_empty_label() {
+    let mut env = TestEnv::with_layout();
+    let (container, label, _, _) = bound_text("rectangle", "", &mut env);
+    let small = with(
+        &container,
+        json!({"width": 20, "height": 10, "boundElements": []}),
+        &mut env,
+    );
+    let before = map(&[
+        small.clone(),
+        with(&label, json!({"isDeleted": true}), &mut env),
+    ]);
+    let after = map(&[
+        with(
+            &small,
+            json!({"boundElements": [{"id": "label", "type": "text"}]}),
+            &mut env,
+        ),
+        with(&label, json!({"isDeleted": false}), &mut env),
+    ]);
+    let (elements, visible) = apply(&before, &after, &mut env);
+    assert!(elements["container"].base.height > 10.0);
+    assert!(visible);
 }
 
 #[test]
 fn detects_a_bound_label_repositioned_by_a_containers_redraw() {
-    let mut env = TestEnv {
-        redraw: Some(recentre_label),
-        ..TestEnv::default()
-    };
+    let mut env = TestEnv::with_layout();
     let (container, label, _, _) = bound_text("rectangle", "hello", &mut env);
     let misplaced = with(&label, json!({"x": -100, "y": -100}), &mut env);
     let before = map(&[container.clone(), misplaced.clone()]);
@@ -225,15 +234,195 @@ fn detects_a_bound_label_repositioned_by_a_containers_redraw() {
         misplaced,
     ]);
     let (elements, visible) = apply(&before, &after, &mut env);
+    // the changed container brings its label into redrawTextBoundingBoxes
+    assert_eq!(
+        env.text_redraws,
+        [("label".to_string(), "container".to_string())]
+    );
     assert_eq!(elements["container"].base.height, container.base.height);
     assert_ne!(elements["label"].base.x, -100.0);
     assert!(visible);
 }
 
-/// A layout that mutates an element no delta names and no binding reaches.
+#[test]
+fn detects_a_bound_arrow_repositioned_by_a_containers_redraw() {
+    let mut env = TestEnv::with_layout();
+    let mut container = indexed(rect("container", 0.0, 0.0), "a0");
+    container.base.bound_elements = Some(vec![excali_core::element::BoundElement {
+        id: "arrow".into(),
+        kind: excali_core::element::BoundElementType::Arrow,
+    }]);
+    let mut bound = indexed(arrow("arrow", vec![[0.0, 0.0], [100.0, 0.0]]), "a1");
+    bound.base.x = 200.0;
+    bound.base.y = 50.0;
+    if let Some(linear) = bound.kind.linear_mut() {
+        linear.start_binding = Some(excali_core::element::FixedPointBinding {
+            element_id: "container".into(),
+            fixed_point: [1.0, 0.5],
+            mode: excali_core::element::BindMode::Orbit,
+        });
+    }
+    let before = map(&[container.clone(), bound.clone()]);
+    let after = map(&[
+        with(
+            &container,
+            json!({"version": container.base.version + 1.0}),
+            &mut env,
+        ),
+        bound,
+    ]);
+    let (elements, visible) = apply(&before, &after, &mut env);
+    assert_eq!(env.bound_updates.len(), 1);
+    assert_eq!(env.bound_updates[0].0, "container");
+    assert_eq!(elements["container"].base.width, container.base.width);
+    assert_ne!(elements["arrow"].base.x, 200.0);
+    assert!(visible);
+}
+
+// ---------------------------------------------------------------------------
+// redrawElements: which elements the layout runs on (delta.ts:2034-2124)
+
+fn contained(id: &str, container: &str) -> Element {
+    let mut label = text(id, "label", 0.0, 0.0);
+    if let ElementKind::Text(t) = &mut label.kind {
+        t.container_id = Some(container.into());
+    }
+    label
+}
+
+fn container_of(id: &str, label: &str) -> Element {
+    let mut container = rect(id, 0.0, 0.0);
+    container.base.bound_elements = Some(vec![excali_core::element::BoundElement {
+        id: label.into(),
+        kind: excali_core::element::BoundElementType::Text,
+    }]);
+    container
+}
+
+fn deleted(mut element: Element) -> Element {
+    element.base.is_deleted = true;
+    element
+}
+
+fn pairs(env: &TestEnv) -> Vec<(&str, &str)> {
+    env.text_redraws
+        .iter()
+        .map(|(t, c)| (t.as_str(), c.as_str()))
+        .collect()
+}
+
+#[test]
+fn redraws_text_boxes_from_both_directions_once_per_container() {
+    let mut env = TestEnv::default();
+    let mut elements = map(&[
+        container_of("c1", "t1"),
+        contained("t1", "c1"),
+        container_of("c2", "t2"),
+        contained("t2", "c2"),
+        container_of("c3", "t3"),
+        contained("t3", "c3"),
+    ]);
+    // a changed label brings its container, a changed container its label;
+    // both changed is one pair
+    let mut changed = map(&[
+        elements["t1"].clone(),
+        elements["c2"].clone(),
+        elements["c3"].clone(),
+        elements["t3"].clone(),
+    ]);
+    redraw_elements(&mut elements, &mut changed, &mut env).unwrap();
+    assert_eq!(pairs(&env), [("t1", "c1"), ("t2", "c2"), ("t3", "c3")]);
+}
+
+#[test]
+fn skips_text_boxes_with_a_deleted_side() {
+    let mut env = TestEnv::default();
+    let mut elements = map(&[
+        // a deleted changed container with a live label
+        deleted(container_of("c1", "t1")),
+        contained("t1", "c1"),
+        // a deleted changed label in a live container
+        container_of("c2", "t2"),
+        deleted(contained("t2", "c2")),
+        // a live changed label whose container is deleted (not found among
+        // the non-deleted elements)
+        deleted(container_of("c3", "t3")),
+        contained("t3", "c3"),
+        // a live changed container whose label is deleted
+        container_of("c4", "t4"),
+        deleted(contained("t4", "c4")),
+        // an empty containerId finds no container
+        contained("t5", ""),
+    ]);
+    let mut changed = map(&[
+        elements["c1"].clone(),
+        elements["t2"].clone(),
+        elements["t3"].clone(),
+        elements["c4"].clone(),
+        elements["t5"].clone(),
+    ]);
+    redraw_elements(&mut elements, &mut changed, &mut env).unwrap();
+    assert!(env.text_redraws.is_empty(), "{:?}", env.text_redraws);
+}
+
+#[test]
+fn redraws_arrows_of_non_deleted_bindable_elements_with_the_changed_elements() {
+    let mut env = TestEnv::default();
+    let mut elements = map(&[
+        rect("rect", 0.0, 0.0),
+        deleted(rect("gone", 0.0, 0.0)),
+        arrow("arrow", vec![[0.0, 0.0], [10.0, 0.0]]),
+        contained("label", "rect"),
+        text("free", "free", 0.0, 0.0),
+    ]);
+    let mut changed = elements.clone();
+    redraw_elements(&mut elements, &mut changed, &mut env).unwrap();
+    let all: Vec<String> = ["rect", "gone", "arrow", "label", "free"]
+        .map(String::from)
+        .to_vec();
+    assert_eq!(
+        env.bound_updates,
+        [("rect".to_string(), all.clone()), ("free".to_string(), all)]
+    );
+}
+
+/// An arrow layout that fails unless `changed` shows the container as the
+/// text layout left it.
+fn expect_grown_container(
+    _: &mut dyn ChangeStamp,
+    elements: &mut SceneElementsMap,
+    id: &str,
+    changed: &SceneElementsMap,
+) -> Result<(), String> {
+    if changed[id] != elements[id] {
+        return Err(format!("stale {id} in changedElements"));
+    }
+    Ok(())
+}
+
+#[test]
+fn passes_the_laid_out_elements_as_changed_to_the_arrow_layout() {
+    let mut env = TestEnv {
+        text_layout: Some(support::centre_label),
+        arrow_layout: Some(expect_grown_container),
+        ..TestEnv::default()
+    };
+    let mut container = container_of("c", "t");
+    container.base.height = 10.0;
+    let mut elements = map(&[container, contained("t", "c")]);
+    let mut changed = map(&[elements["c"].clone()]);
+    redraw_elements(&mut elements, &mut changed, &mut env).unwrap();
+    assert!(elements["c"].base.height > 10.0);
+    assert_eq!(changed["c"], elements["c"]);
+    assert_eq!(env.bound_updates.len(), 1);
+}
+
+/// An arrow layout that mutates an element no delta names and no binding
+/// reaches.
 fn move_unrelated(
     stamp: &mut dyn ChangeStamp,
     elements: &mut SceneElementsMap,
+    _: &str,
     _: &SceneElementsMap,
 ) -> Result<(), String> {
     let mut unrelated = elements["unrelated"].clone();
@@ -252,7 +441,7 @@ fn move_unrelated(
 #[test]
 fn guards_against_untracked_layout_mutations() {
     let mut env = TestEnv {
-        redraw: Some(move_unrelated),
+        arrow_layout: Some(move_unrelated),
         ..TestEnv::default()
     };
     let element = indexed(rect("changed", 0.0, 0.0), "a0");
