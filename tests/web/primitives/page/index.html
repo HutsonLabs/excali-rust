@@ -8,6 +8,12 @@
   the primitives' stylesheet (excali_ui::primitives::PRIMITIVES_CSS) and
   mounts a gallery of them in it. The suite drives the harness through
   window.harness (the module's exports).
+
+  #host-theme is a host page's theming as upstream documents it
+  (override the custom properties on `.excalidraw` and
+  `.excalidraw.theme--dark`); it comes before the harness's stylesheet is
+  installed and stays off (media "not all") until the theme suite
+  (ex-532) turns it on.
 -->
 <html lang="en">
 <head>
@@ -16,6 +22,24 @@
 <style>
   html, body { margin: 0; padding: 0; font-size: 16px; }
   #editor { position: relative; width: 600px; padding: 20px; }
+</style>
+<style id="host-theme" media="not all">
+  .excalidraw {
+    --color-primary: #0b7a3e;
+    --color-primary-darker: #096a36;
+    --color-primary-darkest: #07592d;
+    --color-primary-light: #d3f9e0;
+    --color-primary-light-darker: #b8f2cc;
+    --color-primary-hover: #0a6e38;
+  }
+  .excalidraw.theme--dark {
+    --color-primary: #ffb000;
+    --color-primary-darker: #ffbb26;
+    --color-primary-darkest: #ffc64d;
+    --color-primary-light: #5c4300;
+    --color-primary-light-darker: #4d3800;
+    --color-primary-hover: #ffc233;
+  }
 </style>
 </head>
 <body>

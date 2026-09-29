@@ -381,6 +381,9 @@ jobs:
   # IconButton, RadioGroup, Range, TextField, Popover, Modal, Dialog and
   # Tooltip rendered by React 19.0.0 into jsdom, their tooltip and popover
   # placement and Tab traps, and their SCSS compiled by sass 1.51.0, and
+  # theme-tokens.mjs --check for excali-ui's theme-tokens.json (ex-532),
+  # upstream's theme.scss compiled by sass 1.51.0 (the light, dark, mobile
+  # and large-screen custom properties) and RIGHT_SIDEBAR_WIDTH, and
   # viewport.mjs --check for excali-editor's viewport.json (ex-505),
   # upstream's own getNormalizedZoom, coordinate transforms,
   # constrainScrollState, zoomToFitBounds, AppViewport.translate,
@@ -469,6 +472,8 @@ jobs:
         run: node tools/goldens/canvas-layers.mjs --check
       - name: excali-ui primitive fixture and stylesheet match upstream's components and SCSS
         run: node tools/goldens/ui-primitives.mjs --check
+      - name: excali-ui theme token fixture matches upstream's theme.scss
+        run: node tools/goldens/theme-tokens.mjs --check
       - name: excali-editor viewport fixture matches upstream's zoom, scroll constraints, zoom-to-fit, wheel handler and zoom actions
         run: node tools/goldens/viewport.mjs --check
       - name: excali-editor text editing fixture matches upstream's textWysiwyg, startTextEditing and redrawTextBoundingBox

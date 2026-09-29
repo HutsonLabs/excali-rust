@@ -18,6 +18,7 @@ use excali_ui::primitives::{
     IconButtonKind, IconButtonProps, IslandProps, OpenModal, PopoverProps, RadioGroupChoice,
     RadioGroupProps, RangeProps, StackProps, TextFieldProps, TextFieldValue, TooltipProps,
 };
+use excali_ui::theme::{apply_container_tokens, apply_theme};
 use wasm_bindgen::prelude::*;
 
 thread_local! {
@@ -69,11 +70,21 @@ fn tool(name: &'static str, checked: bool, key: &str) -> Node {
     .into()
 }
 
-/// Mounts one of each primitive in `parent` (an `.excalidraw` element).
+/// Switches `container` (the `.excalidraw` element) to the dark theme or
+/// back (ex-532).
+#[wasm_bindgen(js_name = setTheme)]
+pub fn set_theme(container: &web_sys::Element, dark: bool) -> Result<(), JsError> {
+    let theme = if dark { Theme::Dark } else { Theme::Light };
+    apply_theme(container, theme).map_err(js)
+}
+
+/// Mounts one of each primitive in `parent` (an `.excalidraw` element) and
+/// gives it the container's inline tokens.
 #[wasm_bindgen(js_name = mountGallery)]
-pub fn mount_gallery(parent: &web_sys::Element) -> Result<(), JsError> {
+pub fn mount_gallery(parent: &web_sys::HtmlElement) -> Result<(), JsError> {
     let document = document()?;
     install_stylesheet(&document).map_err(js)?;
+    apply_container_tokens(parent).map_err(js)?;
     let toolbar = island(
         IslandProps {
             padding: Some(2.0),

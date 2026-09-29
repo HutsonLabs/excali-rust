@@ -1,7 +1,8 @@
 #!/bin/sh
 # The UI primitives in the browser (ex-516): excali_ui::primitives mounted
 # in Chromium with their stylesheet, their computed sizes measured and
-# their behaviour (clicks, keys, hover, focus) driven by Playwright.
+# their behaviour (clicks, keys, hover, focus) driven by Playwright; the
+# theme tokens (ex-532) computed light and dark, and overridden by a host.
 #
 #   scripts/web/ui-primitives.sh
 #
