@@ -25,7 +25,7 @@ use excali_editor::text_editing::{
     start_text_editing, StartTextEditing, TextEditingContext, TextEditingHost, TextTarget,
 };
 use excali_editor::text_layout::TextLayouter;
-use excali_text::text_measurements::TextMetricsProvider;
+use excali_text::text_measurements::{CharWidthCache, TextMetricsProvider};
 use excali_ui::text_editor::{
     measure_caret_offset, TextEditingApp, TextEditorOverlay, TextareaState, TEXT_EDITOR_CSS,
 };
@@ -50,6 +50,7 @@ struct Env {
     ids: VecDeque<String>,
     deltas: u32,
     nonce: f64,
+    char_widths: CharWidthCache,
 }
 
 impl ChangeStamp for Env {
@@ -64,6 +65,10 @@ impl ChangeStamp for Env {
 }
 
 impl HistoryEnv for Env {
+    fn text(&mut self) -> (&dyn TextMetricsProvider, &mut CharWidthCache) {
+        (&TenPxPerCodeUnit, &mut self.char_widths)
+    }
+
     fn random_id(&mut self) -> String {
         self.ids.pop_front().unwrap_or_else(|| {
             self.deltas += 1;
@@ -184,6 +189,7 @@ impl TextEditing {
             ids,
             deltas: 0,
             nonce: 0.0,
+            char_widths: CharWidthCache::new(),
         };
         let mut session = Session::new(env, AppState::default());
         session.initialize_scene(elements, state).map_err(error)?;

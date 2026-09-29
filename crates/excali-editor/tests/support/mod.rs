@@ -19,7 +19,7 @@ use excali_text::font_metadata::get_font_string;
 use excali_text::text_measurements::{
     measure_text, CharCountTextMetrics, CharWidthCache, TextMetricsProvider,
 };
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value};
 
 /// `reseed(7)` and `isTestEnv()`: nonces and ids from counters, and
 /// `getUpdatedTimestamp()` answering 1 as it does in tests
@@ -261,8 +261,6 @@ pub fn mutate_in(
     mutate_element(&mut element, elements, obj(updates), stamp).map_err(|e| e.to_string())?;
     elements.insert(id.to_owned(), element);
     Ok(())
-}
-
 }
 
 fn element(kind: ElementKind, id: &str, x: f64, y: f64, width: f64, height: f64) -> Element {

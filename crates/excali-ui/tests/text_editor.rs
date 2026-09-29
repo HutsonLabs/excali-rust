@@ -265,7 +265,7 @@ use excali_editor::text_editing::{
     start_text_editing, NoHost, StartTextEditing, TextEditingContext, TextTarget,
 };
 use excali_editor::text_layout::TextLayouter;
-use excali_text::text_measurements::TextMetricsProvider;
+use excali_text::text_measurements::{CharWidthCache, TextMetricsProvider};
 use excali_ui::text_editor::{
     Handled, TextEditingApp, TextareaEvent, TextareaHandler, TextareaKey, TextareaState,
 };
@@ -279,7 +279,7 @@ impl TextMetricsProvider for TenPx {
 }
 
 #[derive(Default)]
-struct Env(f64);
+struct Env(f64, CharWidthCache);
 
 impl ChangeStamp for Env {
     fn version_nonce(&mut self) -> f64 {
@@ -293,6 +293,10 @@ impl ChangeStamp for Env {
 }
 
 impl HistoryEnv for Env {
+    fn text(&mut self) -> (&dyn TextMetricsProvider, &mut CharWidthCache) {
+        (&TenPx, &mut self.1)
+    }
+
     fn random_id(&mut self) -> String {
         format!("id{}", self.0)
     }

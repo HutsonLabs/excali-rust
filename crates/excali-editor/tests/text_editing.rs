@@ -35,7 +35,7 @@ use excali_editor::text_layout::{
     get_position_after_height_change, normalize_sticky_note_font_size, OriginalContainerCache,
     TextLayouter, VerticalAnchor,
 };
-use excali_text::text_measurements::CharCountTextMetrics;
+use excali_text::text_measurements::{CharCountTextMetrics, CharWidthCache, TextMetricsProvider};
 use serde_json::{json, Map, Value};
 
 const NOW: f64 = 1_700_000_000_000.0;
@@ -51,6 +51,7 @@ struct Env {
     ids: VecDeque<String>,
     deltas: u32,
     nonce: f64,
+    char_widths: CharWidthCache,
 }
 
 impl ChangeStamp for Env {
@@ -65,6 +66,10 @@ impl ChangeStamp for Env {
 }
 
 impl HistoryEnv for Env {
+    fn text(&mut self) -> (&dyn TextMetricsProvider, &mut CharWidthCache) {
+        (&CharCountTextMetrics, &mut self.char_widths)
+    }
+
     fn random_id(&mut self) -> String {
         self.ids.pop_front().unwrap_or_else(|| {
             self.deltas += 1;
@@ -662,6 +667,7 @@ impl Replay {
             ids,
             deltas: 0,
             nonce: 0.0,
+            char_widths: CharWidthCache::new(),
         };
         let elements: Vec<Element> = initial["elements"]
             .as_array()
