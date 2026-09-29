@@ -101,6 +101,19 @@ fn editor(v: &Value) -> EditorInterface {
     }
 }
 
+/// A begin step's `appState.selectedLinearElement` (`null`, or its
+/// `isEditing` and `hoverPointIndex`).
+fn selected_linear_element(v: &Value) -> Option<SelectedLinearElementState> {
+    if v.is_null() {
+        return None;
+    }
+    Some(SelectedLinearElementState {
+        is_editing: v["isEditing"] == true,
+        hover_point_index: v["hoverPointIndex"].as_i64().expect("hoverPointIndex"),
+        ..SelectedLinearElementState::default()
+    })
+}
+
 fn omit_sides(v: &Value) -> OmitSides {
     match v.as_str().expect("omit sides") {
         "default" | "desktop" => DEFAULT_OMIT_SIDES,
@@ -422,6 +435,7 @@ fn replay(case: &Value) -> Vec<Vec<Value>> {
                     num(&step["zoom"]),
                     pointer_type(&step["pointerType"]),
                     &editor(&step["editor"]),
+                    selected_linear_element(&step["selectedLinearElement"]),
                 );
                 let r = &step["result"];
                 assert_eq!(s.handle(), handle_type(&r["handle"]), "{context}: handle");
@@ -765,6 +779,7 @@ fn has_bounding_box_matches_upstream() {
             Some(SelectedLinearElementState {
                 is_editing: linear["isEditing"] == true,
                 is_dragging: linear["isDragging"] == true,
+                ..SelectedLinearElementState::default()
             })
         };
         assert_eq!(

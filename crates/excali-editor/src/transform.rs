@@ -27,7 +27,7 @@ use crate::resize_test::{
 use crate::scene::Scene;
 use crate::tools::PointerType;
 use crate::transform_handles::{
-    is_elbow_arrow, is_frame_like, EditorInterface, TransformHandleType,
+    is_elbow_arrow, is_frame_like, EditorInterface, SelectedLinearElementState, TransformHandleType,
 };
 
 /// The keys held during a transform: Shift keeps the aspect ratio (frees it
@@ -67,10 +67,12 @@ pub fn get_grid_point(x: f64, y: f64, grid_size: Option<f64>) -> [f64; 2] {
 
 impl TransformSession {
     /// The pointer pressed at `origin` (scene coordinates) with
-    /// `selected` selected. One element that is not an elbow arrow (nor, on
-    /// a mobile device or with two points, a line) is tested with
-    /// [`get_element_with_transform_handle_type`]; several with
-    /// [`get_transform_handle_type_from_coords`] on their common box.
+    /// `selected` selected and `selected_linear_element` as
+    /// `appState.selectedLinearElement`. One element that is not an elbow
+    /// arrow (nor, on a mobile device or with two points, a line) is tested
+    /// with [`get_element_with_transform_handle_type`], unless the linear
+    /// element editor is editing or one of its points is hovered; several
+    /// with [`get_transform_handle_type_from_coords`] on their common box.
     /// [`TransformSession::handle`] is `None` when the pointer is on no
     /// handle; the gesture then transforms nothing.
     pub fn begin(
@@ -80,6 +82,7 @@ impl TransformSession {
         zoom: f64,
         pointer_type: PointerType,
         editor: &EditorInterface,
+        selected_linear_element: Option<SelectedLinearElementState>,
     ) -> TransformSession {
         let all = scene.non_deleted();
         let elements_map = scene.elements_map();
@@ -90,9 +93,11 @@ impl TransformSession {
 
         let mut handle = None;
         if sel.len() == 1
+            && !selected_linear_element.is_some_and(|l| l.is_editing)
             && !is_elbow_arrow(sel[0])
             && !(is_linear(sel[0])
                 && (editor.is_mobile_device || sel[0].kind.points().map_or(0, <[_]>::len) == 2))
+            && !selected_linear_element.is_some_and(|l| l.hover_point_index != -1)
         {
             handle = get_element_with_transform_handle_type(
                 &all,

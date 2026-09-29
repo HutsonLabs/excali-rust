@@ -460,11 +460,26 @@ pub fn get_transform_handles(
 }
 
 /// `appState.selectedLinearElement`'s editing state, as
-/// [`has_bounding_box`] reads it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+/// [`has_bounding_box`] and [`crate::transform::TransformSession::begin`]
+/// read it (the rest of `LinearElementEditor` is ex-511's).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SelectedLinearElementState {
     pub is_editing: bool,
     pub is_dragging: bool,
+    /// `hoverPointIndex`: the point under the pointer, `-1` for none.
+    pub hover_point_index: i64,
+}
+
+impl Default for SelectedLinearElementState {
+    /// A linear element just selected: not edited, not dragged, no point
+    /// hovered (`hoverPointIndex: -1`, `linearElementEditor.ts`).
+    fn default() -> Self {
+        SelectedLinearElementState {
+            is_editing: false,
+            is_dragging: false,
+            hover_point_index: -1,
+        }
+    }
 }
 
 /// `hasBoundingBox(elements, appState, editorInterface)`
