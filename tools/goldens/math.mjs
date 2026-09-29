@@ -130,8 +130,10 @@ const RANDOM_PER_FUNCTION = 24;
  * ubuntu-24.04-arm CI runner): curveClosestPoint evaluates bezierEquation at
  * a many-digit parameter, and `**` there is the platform pow. Their ids stay
  * reserved so every other case keeps its id and input, and goldens/ stays
- * byte-identical on both. The Rust side compares these functions within
- * PLATFORM_TOLERANCE anyway (crates/excali-math/tests/goldens.rs).
+ * byte-identical on both. They stay excluded because upstream's `**` is the
+ * platform pow, which is platform-dependent even in V8, while the port
+ * answers the correctly rounded pow (excali_math::js::pow, ADR-011); every
+ * other case compares exactly (crates/excali-math/tests/goldens.rs).
  */
 export const PLATFORM_DEPENDENT_CASES = new Set([
   "curveClosestPoint/57",

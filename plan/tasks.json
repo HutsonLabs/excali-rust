@@ -301,10 +301,7 @@
     "https://crates.io/crates/pxfm 0.1.30 (BSD-3-Clause OR Apache-2.0; read 2026-09-28)"
    ],
    "description": "Upstream runs on V8, whose Math transcendentals are V8's own fdlibm on every OS, while Rust's f64 methods call the platform libm, which differs by an ulp between macOS and glibc. Port V8's code into excali_math::js, replace every std call, disallow the std methods in clippy.toml, run the test suite on macOS and Linux, and record the rule in an ADR and the architecture overview.",
-   "type": "task",
-   "labels": [
-    "crate:excali-math"
-   ]
+   "type": "task"
   },
   {
    "id": "ex-g001",

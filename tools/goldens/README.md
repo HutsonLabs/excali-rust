@@ -60,6 +60,7 @@ on an arm64 machine only.
 | `freehand.json` | `getStrokePoints` and `getStroke` with Excalidraw's options, the library defaults, and `edge/` cases for the branches Excalidraw never reaches (taper `true`/`false`, flat caps, cap easings, one-point strokes with a taper, `{x, y, pressure}` points, missing and negative pressures, reversals, duplicates, size 0, no points) | ex-213 |
 | `laser-pointer.json` | the vendored `@excalidraw/laser-pointer` (`packages/laser-pointer/src`): `excalidraw/` cases with `getConstantWidthFreedrawOutline`'s options (size `sw * 1.4`, simplify 0, `sizeMapping` `max(0.1, pressure)`, pressure 1) for the freedraw fixture points, and `edge/` cases for the rest of the library (defaults, `output`/`input`/`tail` simplify phases and the tail's `Not implemented yet` throw, corners at both speeds, zero sizes, `keepHead`, size overrides, one and two points, duplicates, no points); `sizeMapping` is named (`SIZE_MAPPINGS` in `fixtures.mjs`) | ex-214 |
 | `math.json` | every `packages/math/src` export except `pca.ts`, called on fixed and Park-Miller-random inputs (`math.mjs`): `{ id, fn, args, result }`; the `curve.ts` cases (including the `curveLength` fixtures) are ex-202's | ex-201, ex-202 |
+| `js-math.json` | V8's `Math` transcendentals (sin, cos, tan, asin, acos, atan, atan2, exp, log, log2, log10, cbrt, hypot, and pow where it is not platform-dependent) on tricky arguments, every double as IEEE 754 bits in hex (`js-math.mjs`); `crates/excali-math/tests/js_math.rs` checks `excali_math::js` against it bit for bit | ex-009 |
 | `js-sort.json` | V8's `Array.prototype.sort` (TimSort) permutation when the comparator answers NaN, and `convexHull` on points with NaN or infinite coordinates (`jssort.mjs`) | ex-201 |
 | `fractional-indexing.json` | vendored `fractional-indexing`: `validateOrderKey`, `generateKeyBetween` over every pair of a key pool (base 62, plus the rocicorp suite's base 10 and base 95), `generateNKeysBetween` for n = 0..40 and long runs, random insertion walks; result or thrown message | ex-107 |
 | `fractional-index.json` | `element/src/fractionalIndex.ts`: `syncInvalidIndices` and `syncMovedIndices` on every scenario of `fractionalIndex.test.ts` and 400 random lists (indices and versions after), `syncInvalidIndicesImmutable` on those scenarios and 200 random lists with duplicate ids (the returned map), `validateFractionalIndices` log messages, `orderByFractionalIndex` (V8 TimSort order, also with unindexed elements and duplicate ids) | ex-107 |
@@ -139,9 +140,11 @@ case rectangle/seed7-r0, element rectangle_seed7-r0, shape 0, set 0 (path), op 1
 ```
 
 Different op, set or shape counts, op kinds, set types, options and SVG path
-tokens (freedraw `svgPath` shapes) are reported the same way. Numbers are
-exact unless the case goes through platform trigonometry, which is compared
-within `PLATFORM_TOLERANCE` (relative 1e-10). `Manifest` checks every file
+tokens (freedraw `svgPath` shapes) are reported the same way. Every number
+compares exactly, on every platform: the port's transcendentals (sin, cos,
+atan2, exp, log, pow, hypot, cbrt and the rest) go through `excali_math::js`,
+which answers V8's `Math` bit for bit (ADR-011, pinned by `js-math.json`), so
+there is no platform tolerance. `Manifest` checks every file
 against `manifest.json` (sha256, case count) and the upstream commit against
 `site/config.toml` (`crates/excali-rough/tests/goldens_manifest.rs`).
 
