@@ -1075,3 +1075,37 @@ CI runs `--check` in the `goldens` job, and `test/image-elements.test.mjs`
 checks that two runs are byte-identical and restates the placeholder colours,
 the icon size rule, the crop, the order of rotate and scale, the corner radii
 and the SVG-only dark filter from the recorded calls.
+
+## Main menu fixture
+
+`main-menu.mjs` writes `crates/excali-ui/tests/fixtures/main-menu.json` and
+`crates/excali-ui/src/main_menu.css` for excali-ui's main menu (ex-520):
+upstream's own `components/main-menu/MainMenu.tsx`, the default menu of
+`LayerUI.tsx:111-136` and the items of `main-menu/DefaultItems.tsx` over the
+`components/dropdownMenu/*` components, with upstream's actions deciding
+which items show:
+
+- `menus`: the default menu for app states (closed, dark, view mode, a file
+  handle, an element link dialog), trimmed `UIOptions.canvasActions`, a
+  non-empty scene and the phone form factor;
+- `items`: ToggleTheme with the Light/Dark/System radio for each theme (and
+  without `onThemeChange`), the Preferences submenu for several app states,
+  CommandPalette and LiveCollaborationTrigger;
+- per tree, each handler's effects (`executeAction`, `setAppState`,
+  `toggleLock`, confirm dialogs, `onThemeChange`, `trackEvent`), and the
+  English strings the menu shows.
+
+radix-ui's DropdownMenu is shimmed to the DOM it leaves for upstream's
+markup (roles, `aria-haspopup`, `aria-expanded`; not its ids, data-state or
+placement). The stylesheet is `DropdownMenu.scss` and `DefaultItems.scss`
+compiled with sass 1.51.0.
+
+```sh
+node tools/goldens/main-menu.mjs           # write the fixture and CSS
+node tools/goldens/main-menu.mjs --check   # exit 1 if either is stale
+```
+
+CI runs `--check` in the `goldens` job, and `test/main-menu.test.mjs` checks
+that two runs are byte-identical and restates research 3.3: the default
+items, their shortcuts, the theme radio's light/dark/system choices and the
+Preferences submenu's items.
