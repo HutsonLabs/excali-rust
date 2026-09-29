@@ -954,6 +954,107 @@ const lineCases = () => [
 const rect = (id, rest = {}) =>
   saved("rectangle", { id, x: 100, y: 0, width: 100, height: 100, ...rest });
 
+/** An arrow at (0, 50) whose legacy bindings are migrated with geometry. */
+const legacyArrow = (rest = {}) => savedArrow({ id: "arrow", x: 0, y: 50, ...rest });
+
+/** Legacy binding cases: [name, arrow fields, targets besides the arrow, existing]. */
+const legacyGeometryCases = () =>
+  [
+    ["rotated-target", { points: [[0, 0], [105, 10]], endBinding: { elementId: "r1", focus: 0.2, gap: 3 } },
+      [rect("r1", { angle: 0.6 })]],
+    ["rotated-target-inside", { points: [[0, 0], [140, -5]], endBinding: { elementId: "r1", focus: 0, gap: 1 } },
+      [rect("r1", { type: "diamond", angle: 1.1 })]],
+    ["ellipse-inside", { points: [[0, 0], [150, 5]], endBinding: { elementId: "r1", focus: 0, gap: 1 } },
+      [rect("r1", { type: "ellipse" })]],
+    ["ellipse-outside-corner", { points: [[0, 0], [104, -45]], endBinding: { elementId: "r1", focus: 0.5, gap: 8 } },
+      [rect("r1", { type: "ellipse" })]],
+    ["diamond-projection", { points: [[0, 0], [110, -40]], endBinding: { elementId: "r1", focus: -0.3, gap: 4 } },
+      [rect("r1", { type: "diamond" })]],
+    ["diamond-corner", { points: [[0, 0], [99, -49]], endBinding: { elementId: "r1", focus: 0, gap: 4 } },
+      [rect("r1", { type: "diamond" })]],
+    ["midpoint-snap", { points: [[0, 0], [97, 2]], endBinding: { elementId: "r1", focus: 0, gap: 3 } },
+      [rect("r1")]],
+    ["midpoint-snap-top", { x: 150, y: -60, points: [[0, 0], [2, 57]], startBinding: null,
+      endBinding: { elementId: "r1", focus: 0, gap: 3 } }, [rect("r1")]],
+    ["far-from-target", { points: [[0, 0], [40, 30]], endBinding: { elementId: "r1", focus: 0, gap: 60 } },
+      [rect("r1")]],
+    ["multi-point-both-ends", {
+      points: [[0, 0], [60, -40], [120, 0]],
+      startBinding: { elementId: "r0", focus: 0.1, gap: 2 },
+      endBinding: { elementId: "r1", focus: -0.1, gap: 2 },
+    }, [rect("r0", { x: -100, y: 20, width: 90, height: 70 }), rect("r1", { x: 125, y: 10 })]],
+    ["rotated-arrow", { angle: 0.7, points: [[0, 0], [95, 20]], endBinding: { elementId: "r1", focus: 0, gap: 5 } },
+      [rect("r1")]],
+    ["other-end-fixed-point", {
+      points: [[0, 0], [96, 20]],
+      startBinding: { elementId: "r0", focus: 0, gap: 1, fixedPoint: [1, 0.3] },
+      endBinding: { elementId: "r1", focus: 0, gap: 4 },
+    }, [rect("r0", { x: -60, y: 20, width: 60, height: 60 }), rect("r1")]],
+    ["other-end-bad-fixed-point", {
+      points: [[0, 0], [96, 20]],
+      startBinding: { elementId: "r0", focus: 0, gap: 1, fixedPoint: [0.5, "x"] },
+      endBinding: { elementId: "r1", focus: 0, gap: 4 },
+    }, [rect("r0", { x: -60, y: 20, width: 60, height: 60 }), rect("r1")]],
+    ["tiny-target", { points: [[0, 0], [99, 0]], endBinding: { elementId: "r1", focus: 0, gap: 1 } },
+      [rect("r1", { y: 49.8, width: 0.5, height: 0.5 })]],
+    ["narrow-target", { points: [[0, 0], [98, 3]], endBinding: { elementId: "r1", focus: 0, gap: 1 } },
+      [rect("r1", { width: 3, height: 200, y: -50 })]],
+    ["short-arrow", { x: 96, y: 30, points: [[0, 0], [2, 2]], endBinding: { elementId: "r1", focus: 0, gap: 1 } },
+      [rect("r1")]],
+    ["rounded-target", { points: [[0, 0], [102, -48]], endBinding: { elementId: "r1", focus: 0, gap: 1 } },
+      [rect("r1", { roundness: { type: 3 } })]],
+    ["text-target", { points: [[0, 0], [95, 0]], endBinding: { elementId: "t1", focus: 0, gap: 5 } },
+      [saved("text", { id: "t1", x: 100, y: 30, width: 80, height: 25, text: "label", fontSize: 20,
+        fontFamily: 1, textAlign: "left", verticalAlign: "top", containerId: null, originalText: "label",
+        lineHeight: 1.25, autoResize: true })]],
+    ["frame-target", { points: [[0, 0], [130, 0]], endBinding: { elementId: "f1", focus: 0, gap: 5 } },
+      [saved("frame", { id: "f1", x: 100, y: 0, width: 100, height: 100, name: null })]],
+    ["image-target", { points: [[0, 0], [95, 0]], endBinding: { elementId: "i1", focus: 0, gap: 5 } },
+      [saved("image", { id: "i1", x: 100, y: 0, width: 100, height: 100, fileId: null, status: "pending",
+        scale: [1, 1], crop: null })]],
+    ["line-target", { points: [[0, 0], [95, 0]], endBinding: { elementId: "l1", focus: 0, gap: 5 } },
+      [savedLinear("line", { id: "l1", x: 100, y: 0, points: [[0, 0], [100, 100]], polygon: false })]],
+    ["closed-line-target", { points: [[0, 0], [150, 0]], endBinding: { elementId: "l1", focus: 0, gap: 5 } },
+      [savedLinear("line", { id: "l1", x: 100, y: 0, width: 100, height: 100,
+        points: [[0, 0], [100, 0], [100, 100], [0, 100], [0, 0]], polygon: true })]],
+    ["deleted-target", { points: [[0, 0], [95, 0]], endBinding: { elementId: "r1", focus: 0, gap: 5 } },
+      [rect("r1", { isDeleted: true })]],
+    ["target-in-a-frame", { points: [[0, 0], [95, 0]], endBinding: { elementId: "r1", focus: 0, gap: 5 } },
+      [rect("r1", { frameId: "f1" }), saved("frame", { id: "f1", x: 50, y: -50, width: 300, height: 300, name: null })]],
+    ["container-target", { points: [[0, 0], [95, 0]], endBinding: { elementId: "r1", focus: 0, gap: 5 } },
+      [rect("r1", { boundElements: [{ id: "t1", type: "text" }] }),
+        saved("text", { id: "t1", x: 120, y: 40, width: 60, height: 25, text: "in", fontSize: 20,
+          fontFamily: 1, textAlign: "center", verticalAlign: "middle", containerId: "r1",
+          originalText: "in", lineHeight: 1.25, autoResize: true })]],
+    ["arrow-missing-size", { points: [[0, 0], [95, 0]], width: undefined, height: undefined,
+      endBinding: { elementId: "r1", focus: 0, gap: 5 } }, [rect("r1")]],
+    ["arrow-string-x", { x: "0", points: [[0, 0], [95, 0]], endBinding: { elementId: "r1", focus: 0, gap: 5 } },
+      [rect("r1")]],
+    ["thick-target", { points: [[0, 0], [85, 3]], endBinding: { elementId: "r1", focus: 0, gap: 5 } },
+      [rect("r1", { strokeWidth: 16 })]],
+    ["start-end-same-target", {
+      points: [[0, 0], [30, -80], [140, 5]],
+      startBinding: { elementId: "r1", focus: 0, gap: 5 },
+      endBinding: { elementId: "r1", focus: 0, gap: 5 },
+    }, [rect("r1", { x: 0, y: 0 })]],
+    ["target-without-angle", { points: [[0, 0], [95, 20]], endBinding: { elementId: "r1", focus: 0, gap: 5 } },
+      [without(rect("r1"), "angle")]],
+    ["target-string-width", { points: [[0, 0], [95, 20]], endBinding: { elementId: "r1", focus: 0, gap: 5 } },
+      [rect("r1", { width: "100" })]],
+    ["both-in-existing", {
+      points: [[0, 0], [95, 20]],
+      startBinding: { elementId: "r0", focus: 0, gap: 1 },
+      endBinding: { elementId: "r1", focus: 0, gap: 4 },
+    }, [], [rect("r0", { x: -60, y: 20, width: 60, height: 60 }), rect("r1")]],
+  ].map(([name, fields, targets, existing]) => {
+    const arrow = legacyArrow(fields);
+    for (const [key, value] of Object.entries(fields)) if (value === undefined) delete arrow[key];
+    return re(`arrow-binding-legacy-geometry-${name}`, arrow, {
+      targets: (up, a) => [a, ...targets],
+      ...(existing ? { existing: () => existing } : {}),
+    });
+  });
+
 const arrowCases = () => [
   re("arrow-saved", savedArrow()),
   re("arrow-minimal", { type: "arrow" }),
@@ -1088,6 +1189,11 @@ const arrowCases = () => [
     }),
     { targets: (up, arrow) => [arrow, rect(7), rect("7", { x: 1000 })] },
   ),
+  // the migration's geometry (ex-116): mode from isPointInElement, focus
+  // point from projectFixedPointOntoDiagonal at DEFAULT_ZOOM (midpoint
+  // snapping, the diagonals, the other end's fixed point for a two-point
+  // arrow), fixedPoint from calculateFixedPointForNonElbowArrowBinding
+  ...legacyGeometryCases(),
   // elbow arrows (restore.ts:315-325, 702-712)
   re("elbow-saved", savedElbow()),
   re("elbow-bindings", savedElbow({

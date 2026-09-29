@@ -463,8 +463,10 @@ dependencies = [
  "excali-rough",
  "excali-scene",
  "excali-text",
+ "flate2",
  "indexmap",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]

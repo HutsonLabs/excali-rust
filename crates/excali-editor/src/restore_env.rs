@@ -111,3 +111,9 @@ impl<E: RestoreEnv> RestoreEnv for RoutingEnv<E> {
         Some(update.to_map())
     }
 }
+
+/// The legacy binding migration (ex-116): not yet implemented.
+pub fn migrate_legacy_binding(request: &LegacyBindingRequest<'_>) -> Option<LegacyBinding> {
+    let _ = request;
+    None
+}
