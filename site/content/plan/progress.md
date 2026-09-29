@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 12:10 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 12:40 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**147 issues** · 90 closed (61%) · 2 in progress · 0 blocked · 54 open
+**147 issues** · 92 closed (63%) · 1 in progress · 0 blocked · 53 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -133,7 +133,7 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
 ## ex-e5 · Phase 5: Web runtime and editor
 
-<span class="status open">open</span> 15/36 children closed
+<span class="status open">open</span> 17/36 children closed
 
 Canvas2D backend, interaction state machine, history, DOM chrome without a framework, keyboard shortcuts, the <excali-editor> custom element.
 
@@ -142,14 +142,14 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-501` | WASM build pipeline: wasm-bindgen --target web, wasm-opt, size check in CI | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-502` | excali-canvas2d: display list to CanvasRenderingContext2D via web-sys | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-503` | Layered canvases at device-pixel scale (static, new-element, interactive) and scroll snapping | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-504` | Per-element bitmap cache with padding rules, size caps and pixel snapping | task | P1 | <span class="status in_progress">in progress</span> |  |  |
+| `ex-504` | Per-element bitmap cache with padding rules, size caps and pixel snapping | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-505` | Viewport: zoom limits, wheel formula, scroll, coordinate transforms, zoom-to-fit | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-506` | Editor state machine: tools registry (keys, fillable, toggle), active tool, tool lock, pen mode | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-507` | Hit testing (collision.ts): thresholds, inside/outline rules, per-shape intersections | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-508` | Selection and transform handles: sizes by pointer type, resize, rotate, aspect lock, centre resize | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-509` | Snapping: point and gap snaps at 8/zoom, snap lines rendering | task | P1 | <span class="status in_progress">in progress</span> |  |  |
+| `ex-509` | Snapping: point and gap snaps at 8/zoom, snap lines rendering | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-510` | Arrow binding: gap 5+sw/2, max distance 15..30 by zoom, fixed points, modes inside/orbit/skip, highlight | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-511` | Linear element editor: point handles (size 10), midpoints, segment length rule, label position | task | P1 | <span class="status open">open</span> |  | `ex-509` |
+| `ex-511` | Linear element editor: point handles (size 10), midpoints, segment length rule, label position | task | P1 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-512` | Text editing overlay: textarea with dir=auto wrap=off, transform formula, 5% height buffer | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-513` | History: store snapshots, element and appState deltas, undo/redo stacks, version bumps | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-514` | Actions registry as data: the 99 action names with predicates and key tests | task | P0 | <span class="status closed">closed</span> |  |  |
@@ -174,7 +174,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-533` | excali-math js::sin/cos match V8's libm trig bit for bit; remove the 1e-12 tolerance in excali-editor tests/transform.rs | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-534` | Flowchart creator and navigator (flowchart.ts): Ctrl+Arrow pending nodes and arrows, Alt+Arrow navigation | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-535` | Element type conversion: convertElementTypes and the Tab / Shift+Tab convert popup | task | P2 | <span class="status open">open</span> | yes |  |
-| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-504`, `ex-509`, `ex-511`, `ex-517`, `ex-518`, `ex-520` … |
+| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-511`, `ex-517`, `ex-518`, `ex-520`, `ex-521`, `ex-522` … |
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
 
@@ -210,7 +210,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 | `ex-707` | Image crop editor | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-708` | Search sidebar (frames and texts) | task | P3 | <span class="status open">open</span> |  | `ex-526` |
 | `ex-709` | Accessibility: focus order, ARIA on controls, reduced motion, RTL mirroring of icons | task | P2 | <span class="status open">open</span> |  | `ex-518` |
-| `ex-710` | Performance budgets in CI (pan at 1,000 elements, first paint) | task | P1 | <span class="status open">open</span> |  | `ex-504` |
+| `ex-710` | Performance budgets in CI (pan at 1,000 elements, first paint) | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-711` | Locale loader using upstream JSON files (58 locales, 633 keys) | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-712` | Parity checklist to 100% for the v1 scope | task | P0 | <span class="status open">open</span> |  | `ex-531` |
 | `ex-m7` | M7: parity checklist 100% for v1 scope | milestone | P2 | <span class="status open">open</span> |  | `ex-701`, `ex-702`, `ex-703`, `ex-704`, `ex-705`, `ex-706` … |
