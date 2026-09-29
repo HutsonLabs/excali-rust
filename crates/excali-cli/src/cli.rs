@@ -15,9 +15,10 @@ use excali_core::element::ElementKind;
 use crate::env::CliEnv;
 use crate::error::{code, Failure};
 use crate::export::{embeds_scene, export_svg, render_png, ExportSettings, DEFAULT_SOURCE};
-use crate::fonts::FONTS_DIR_VAR;
+use crate::fonts::{load_fonts, FONTS_DIR_VAR};
 use crate::input::{load_library, load_scene, load_scene_or_library, read_file, Loaded};
 use crate::library;
+use crate::preview;
 
 /// Validate, export and manage Excalidraw files.
 #[derive(Debug, Parser)]
@@ -50,7 +51,7 @@ pub enum Command {
         #[arg(long)]
         no_fonts: bool,
     },
-    /// List and merge libraries (.excalidrawlib).
+    /// List, merge and preview libraries (.excalidrawlib).
     #[command(subcommand, arg_required_else_help = true)]
     Lib(LibCommand),
 }
@@ -77,6 +78,25 @@ pub enum LibCommand {
         /// The `source` written in the file.
         #[arg(long, env = "EXCALIDRAW_EXPORT_SOURCE", default_value = DEFAULT_SOURCE)]
         source: String,
+    },
+    /// Draw a library's items onto the preview image the publish dialog
+    /// makes: rows of six 128 px boxes, each item scaled to fit its box.
+    Preview {
+        #[arg(value_name = "FILE")]
+        file: PathBuf,
+        /// The preview image to write, a PNG ("-" for standard output).
+        #[arg(short, long, value_name = "FILE")]
+        output: PathBuf,
+        /// Also write each item's own PNG into this directory
+        /// (item-0001.png, ...).
+        #[arg(long, value_name = "DIR")]
+        items: Option<PathBuf>,
+        /// Print a JSON report of the items and the image size.
+        #[arg(long)]
+        json: bool,
+        /// The font directory (default: the fonts this binary was built with).
+        #[arg(long, env = FONTS_DIR_VAR, value_name = "DIR")]
+        fonts: Option<PathBuf>,
     },
 }
 
@@ -346,6 +366,88 @@ fn lib_merge(files: &[PathBuf], output: &Path, source: &str) -> Result<(), Failu
     write_output(output, library::write(&merged, source).as_bytes())
 }
 
+struct PreviewArgs<'a> {
+    file: &'a Path,
+    output: &'a Path,
+    items: Option<&'a Path>,
+    json: bool,
+    fonts: Option<&'a Path>,
+}
+
+fn lib_preview(args: &PreviewArgs<'_>) -> Result<(), Failure> {
+    let mut env = CliEnv::from_environment();
+    let file = read_file(args.file)?;
+    let items = load_library(&file, &mut env).map_err(|f| prefixed(args.file, f))?;
+    if items.is_empty() {
+        return Err(prefixed(
+            args.file,
+            Failure::Export(preview::NO_ITEMS.to_owned()),
+        ));
+    }
+    let fonts_dir = args
+        .fonts
+        .map_or_else(crate::fonts::built_in_fonts_dir, Path::to_path_buf);
+    let all: Vec<_> = items
+        .iter()
+        .flat_map(|i| i.elements.iter().cloned())
+        .collect();
+    let fonts = load_fonts(&fonts_dir, &all)?;
+    let app_state = preview::default_export_app_state()?;
+    let mut canvases = Vec::with_capacity(items.len());
+    for item in &items {
+        canvases.push(
+            preview::item_canvas(item, &app_state, &fonts, &mut env)
+                .map_err(|f| prefixed(args.file, f))?,
+        );
+    }
+    let sheet = preview::sheet(&canvases).map_err(|f| prefixed(args.file, f))?;
+    let png = |pixmap: &excali_raster::tiny_skia::Pixmap| {
+        excali_raster::encode_png(pixmap, None).map_err(|e| Failure::Export(e.to_string()))
+    };
+
+    let mut reports = Vec::with_capacity(items.len());
+    let mut lines = String::new();
+    if let Some(dir) = args.items {
+        std::fs::create_dir_all(dir).map_err(|e| Failure::io(dir, &e))?;
+    }
+    for (index, (item, canvas)) in items.iter().zip(&canvases).enumerate() {
+        let mut report = Map::new();
+        report.insert("index".into(), json!(index));
+        report.insert("id".into(), json!(item.id));
+        report.insert("name".into(), json!(item.name));
+        report.insert("width".into(), json!(canvas.width()));
+        report.insert("height".into(), json!(canvas.height()));
+        if let Some(dir) = args.items {
+            let path = dir.join(format!("item-{:04}.png", index + 1));
+            std::fs::write(&path, png(&canvas.pixmap)?).map_err(|e| Failure::io(&path, &e))?;
+            report.insert("file".into(), json!(path.display().to_string()));
+        }
+        reports.push(Value::Object(report));
+        lines.push_str(&format!(
+            "{}\t{}x{}\t{}\n",
+            item.id,
+            canvas.width(),
+            canvas.height(),
+            item.name.as_deref().unwrap_or_default()
+        ));
+    }
+    write_output(args.output, &png(&sheet)?)?;
+    if args.output == Path::new("-") {
+        return Ok(());
+    }
+    let text = if args.json {
+        let report = json!({
+            "items": reports,
+            "width": sheet.width(),
+            "height": sheet.height(),
+        });
+        serde_json::to_string_pretty(&report).unwrap_or_default() + "\n"
+    } else {
+        lines
+    };
+    write_output(Path::new("-"), text.as_bytes())
+}
+
 /// Run the command line `args` (the program name first); the exit code.
 pub fn run<I, T>(args: I) -> u8
 where
@@ -369,6 +471,19 @@ where
             output,
             source,
         }) => lib_merge(files, output, source),
+        Command::Lib(LibCommand::Preview {
+            file,
+            output,
+            items,
+            json,
+            fonts,
+        }) => lib_preview(&PreviewArgs {
+            file,
+            output,
+            items: items.as_deref(),
+            json: *json,
+            fonts: fonts.as_deref(),
+        }),
     };
     match result {
         Ok(()) => code::OK,

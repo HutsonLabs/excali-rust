@@ -75,7 +75,9 @@ use excali_scene::display::{
     Clip, Color, DisplayList, FillRule, ImageFilter, ImageItem, LineCap, LineJoin, PaintState,
     Painter, Path, Rect, Rgba, Stroke, TextRun, Transform,
 };
-pub use png_export::{export_png, PngExportError, MAX_CANVAS_AREA, MAX_CANVAS_SIDE};
+pub use png_export::{
+    encode_png, export_png, paint_canvas, PngExportError, MAX_CANVAS_AREA, MAX_CANVAS_SIDE,
+};
 pub use resvg;
 use resvg::usvg;
 pub use tiny_skia;

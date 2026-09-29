@@ -86,6 +86,32 @@ ttf2woff2 = { version = "=0.13.3", default-features = false }
 sha2 = "0.11.0"
 base64 = "0.23.1"
 
+# Test builds optimise the rasterizer and the PNG encoder: the corpus
+# render (ex-410, crates/excali-cli/tests/corpus.rs) paints and encodes
+# every catalogue library item, which takes minutes unoptimised (most of it
+# in deflate). Rust does not reorder floating-point arithmetic at any
+# opt-level, so the pixels and bytes are the same.
+[profile.dev.package.excali-raster]
+opt-level = 2
+[profile.dev.package.tiny-skia]
+opt-level = 2
+[profile.dev.package.tiny-skia-path]
+opt-level = 2
+[profile.dev.package.png]
+opt-level = 2
+[profile.dev.package.miniz_oxide]
+opt-level = 2
+[profile.dev.package.simd-adler32]
+opt-level = 2
+[profile.dev.package.adler2]
+opt-level = 2
+[profile.dev.package.fdeflate]
+opt-level = 2
+[profile.dev.package.crc32fast]
+opt-level = 2
+[profile.dev.package.flate2]
+opt-level = 2
+
 # The web runtime's release build (scripts/web/build.sh, ex-501): the size
 # budget on site/content/plan/phases.md is measured on this profile's output
 # after wasm-opt -Oz. opt-level "z", fat LTO and one codegen unit trade build
