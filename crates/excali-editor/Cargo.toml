@@ -16,6 +16,7 @@ excali-core = { path = "../excali-core" }
 excali-math = { path = "../excali-math" }
 excali-scene = { path = "../excali-scene" }
 serde_json = { workspace = true }
+indexmap = { workspace = true }
 
 [lints]
 workspace = true
