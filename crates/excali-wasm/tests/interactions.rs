@@ -1367,7 +1367,13 @@ fn a_text_tool_drag_sets_the_text_width() {
         assert_eq!(text["y"], json!(y), "{from_x}->{to_x}");
         assert_eq!(text["containerId"], Value::Null);
         assert!(text["text"].as_str().unwrap().contains('\n'));
-        assert_eq!(json!(get(&ed, "c").to_map())["boundElements"], Value::Null);
+        // upstream's `null` (API.setElements does not restore); loading
+        // restores it to `[]`: either way nothing is bound
+        let bound = json!(get(&ed, "c").to_map())["boundElements"].clone();
+        assert!(
+            bound.is_null() || bound == json!([]),
+            "{from_x}->{to_x}: {bound}"
+        );
     }
 }
 
