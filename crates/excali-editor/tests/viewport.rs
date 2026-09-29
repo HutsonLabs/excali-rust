@@ -27,9 +27,10 @@ use excali_editor::viewport::{
     perform_zoom_action, scene_coords_to_viewport_coords, scroll_bounds_into_view, translate,
     viewport_coords_to_scene_coords, wheel_zoom_value, zoom_to_fit_bounds, Fit, InputDevice,
     Offsets, ScrollConstraints, TooLarge, TranslateOptions, Viewport, ViewportState,
-    ViewportUpdate, WheelContext, WheelEvent, WheelOutcome, WheelTarget, ZoomAction,
-    ZoomKeyEvent, ZoomToFit, DEFAULT_OVERSCROLL,
+    ViewportUpdate, WheelContext, WheelEvent, WheelOutcome, WheelTarget, ZoomAction, ZoomKeyEvent,
+    ZoomToFit, DEFAULT_OVERSCROLL,
 };
+use excali_math::js;
 use serde_json::{json, Map, Value};
 
 const FIXTURE: &str = include_str!("fixtures/viewport.json");
@@ -62,17 +63,30 @@ fn same(a: f64, b: f64) -> bool {
 }
 
 fn assert_same(actual: f64, expected: f64, what: &str) {
-    assert!(same(actual, expected), "{what}: got {actual:?}, upstream {expected:?}");
+    assert!(
+        same(actual, expected),
+        "{what}: got {actual:?}, upstream {expected:?}"
+    );
 }
 
 fn assert_viewport(actual: Viewport, expected: &Value, what: &str) {
-    assert_same(actual.scroll_x, num(&expected["scrollX"]), &format!("{what} scrollX"));
-    assert_same(actual.scroll_y, num(&expected["scrollY"]), &format!("{what} scrollY"));
+    assert_same(
+        actual.scroll_x,
+        num(&expected["scrollX"]),
+        &format!("{what} scrollX"),
+    );
+    assert_same(
+        actual.scroll_y,
+        num(&expected["scrollY"]),
+        &format!("{what} scrollY"),
+    );
     assert_same(actual.zoom, num(&expected["zoom"]), &format!("{what} zoom"));
 }
 
 fn offsets(v: Option<&Value>) -> Offsets {
-    v.filter(|v| !v.is_null()).map(Offsets::from_json).unwrap_or_default()
+    v.filter(|v| !v.is_null())
+        .map(Offsets::from_json)
+        .unwrap_or_default()
 }
 
 /// A fixture state (`zoom` as a number, the rest as upstream names them).
@@ -85,7 +99,9 @@ fn state(v: &Value) -> ViewportState {
         height: opt_num(v, "height").unwrap_or(0.0),
         offset_left: opt_num(v, "offsetLeft").unwrap_or(0.0),
         offset_top: opt_num(v, "offsetTop").unwrap_or(0.0),
-        scroll_constraints: v.get("scrollConstraints").and_then(ScrollConstraints::from_json),
+        scroll_constraints: v
+            .get("scrollConstraints")
+            .and_then(ScrollConstraints::from_json),
     }
 }
 
@@ -99,7 +115,10 @@ fn elements(f: &Value) -> Vec<Element> {
         .as_array()
         .expect("elements")
         .iter()
-        .map(|e| Element::from_map(e.as_object().expect("an element").clone()).expect("an element upstream built"))
+        .map(|e| {
+            Element::from_map(e.as_object().expect("an element").clone())
+                .expect("an element upstream built")
+        })
         .collect()
 }
 
@@ -110,7 +129,9 @@ fn element_set<'a>(f: &Value, all: &'a [Element], set: &str) -> Vec<&'a Element>
         .iter()
         .map(|id| id.as_str().expect("an id"))
         .collect();
-    all.iter().filter(|e| ids.contains(&e.base.id.as_str())).collect()
+    all.iter()
+        .filter(|e| ids.contains(&e.base.id.as_str()))
+        .collect()
 }
 
 // -- constants and the zoom formula ---------------------------------------------
@@ -136,7 +157,11 @@ fn normalized_zoom_matches_upstream() {
     assert!(cases.len() >= 30);
     for c in cases {
         let input = num(&c["input"]);
-        assert_same(get_normalized_zoom(input), num(&c["output"]), &format!("getNormalizedZoom({input:?})"));
+        assert_same(
+            get_normalized_zoom(input),
+            num(&c["output"]),
+            &format!("getNormalizedZoom({input:?})"),
+        );
     }
 }
 
@@ -164,11 +189,11 @@ fn wheel_formula() {
     assert_eq!(step(0.5, 100.0), 0.4);
     assert_eq!(step(0.5, -4.0), 0.54);
     // above 100% the steps grow by log10(z), scaled by min(1, |Δ|/20)
-    let expected = get_normalized_zoom(1.1 - 0.1 + 1.1f64.log10() * -1.0);
+    let expected = get_normalized_zoom(1.1 - 0.1 - js::log10(1.1));
     assert_eq!(step(1.1, 100.0), expected);
     assert_eq!(step(1.1, 100.0), 0.958607);
     let z = 5.0;
-    let expected = get_normalized_zoom(z + 0.05 + 5f64.log10() * (5.0 / 20.0));
+    let expected = get_normalized_zoom(z + 0.05 + js::log10(5.0) * (5.0 / 20.0));
     assert_eq!(step(z, -5.0), expected);
     // the limits
     assert_eq!(step(0.1, 100.0), MIN_ZOOM);
@@ -220,7 +245,11 @@ fn constrain_scroll_state_matches_upstream() {
     for c in f["constrain"].as_array().expect("constrain") {
         let name = c["name"].as_str().unwrap();
         let overscroll = opt_num(c, "overscroll").unwrap_or(0.0);
-        assert_viewport(constrain_scroll_state(&state(&c["state"]), overscroll), &c["result"], name);
+        assert_viewport(
+            constrain_scroll_state(&state(&c["state"]), overscroll),
+            &c["result"],
+            name,
+        );
     }
 }
 
@@ -238,7 +267,12 @@ fn locked(x: f64, y: f64, w: f64, h: f64) -> ScrollConstraints {
     }
 }
 
-fn view_200x100(scroll_x: f64, scroll_y: f64, zoom: f64, lock: Option<ScrollConstraints>) -> ViewportState {
+fn view_200x100(
+    scroll_x: f64,
+    scroll_y: f64,
+    zoom: f64,
+    lock: Option<ScrollConstraints>,
+) -> ViewportState {
     ViewportState {
         scroll_x,
         scroll_y,
@@ -255,53 +289,144 @@ fn view_200x100(scroll_x: f64, scroll_y: f64, zoom: f64, lock: Option<ScrollCons
 fn upstream_scroll_lock_suites() {
     // scrollConstraints.test.tsx "constrainScrollState (pure)"
     let no_lock = constrain_scroll_state(&view_200x100(123.0, -45.0, 0.5, None), 0.0);
-    assert_eq!(no_lock, Viewport { scroll_x: 123.0, scroll_y: -45.0, zoom: 0.5 });
+    assert_eq!(
+        no_lock,
+        Viewport {
+            scroll_x: 123.0,
+            scroll_y: -45.0,
+            zoom: 0.5
+        }
+    );
 
-    let zoom_only = ScrollConstraints { lock_zoom: true, zoom: 0.2, ..locked(0.0, 0.0, 1000.0, 1000.0) };
+    let zoom_only = ScrollConstraints {
+        lock_zoom: true,
+        zoom: 0.2,
+        ..locked(0.0, 0.0, 1000.0, 1000.0)
+    };
     let r = constrain_scroll_state(&view_200x100(9999.0, 9999.0, 1.0, Some(zoom_only)), 0.0);
     assert_eq!((r.scroll_x, r.scroll_y), (9999.0, 9999.0));
 
-    let scroll_lock = ScrollConstraints { lock_scroll: true, ..locked(0.0, 0.0, 1000.0, 1000.0) };
-    let r = constrain_scroll_state(&view_200x100(0.0, 0.0, 0.15, Some(scroll_lock.clone())), 0.0);
+    let scroll_lock = ScrollConstraints {
+        lock_scroll: true,
+        ..locked(0.0, 0.0, 1000.0, 1000.0)
+    };
+    let r = constrain_scroll_state(
+        &view_200x100(0.0, 0.0, 0.15, Some(scroll_lock.clone())),
+        0.0,
+    );
     assert!((r.zoom - 0.15).abs() < 1e-9);
-    let corner = constrain_scroll_state(&view_200x100(100.0, 100.0, 1.0, Some(scroll_lock.clone())), 0.0);
+    let corner = constrain_scroll_state(
+        &view_200x100(100.0, 100.0, 1.0, Some(scroll_lock.clone())),
+        0.0,
+    );
     assert_eq!((corner.scroll_x, corner.scroll_y), (0.0, 0.0));
-    let far = constrain_scroll_state(&view_200x100(-5000.0, -5000.0, 1.0, Some(scroll_lock.clone())), 0.0);
+    let far = constrain_scroll_state(
+        &view_200x100(-5000.0, -5000.0, 1.0, Some(scroll_lock.clone())),
+        0.0,
+    );
     assert_eq!((far.scroll_x, far.scroll_y), (-800.0, -900.0));
-    let inside = constrain_scroll_state(&view_200x100(-100.0, -100.0, 1.0, Some(scroll_lock.clone())), 0.0);
-    assert_eq!(inside, Viewport { scroll_x: -100.0, scroll_y: -100.0, zoom: 1.0 });
-    let centred = constrain_scroll_state(&view_200x100(999.0, 0.0, 0.1, Some(scroll_lock.clone())), 0.0);
+    let inside = constrain_scroll_state(
+        &view_200x100(-100.0, -100.0, 1.0, Some(scroll_lock.clone())),
+        0.0,
+    );
+    assert_eq!(
+        inside,
+        Viewport {
+            scroll_x: -100.0,
+            scroll_y: -100.0,
+            zoom: 1.0
+        }
+    );
+    let centred = constrain_scroll_state(
+        &view_200x100(999.0, 0.0, 0.1, Some(scroll_lock.clone())),
+        0.0,
+    );
     assert!((centred.scroll_x - (200.0 / 0.1 - 1000.0) / 2.0).abs() < 1e-9);
 
     // "zoom lock (pure)"
-    let zoom_lock = ScrollConstraints { lock_zoom: true, zoom: 0.5, ..locked(0.0, 0.0, 1000.0, 1000.0) };
-    assert_eq!(constrain_scroll_state(&view_200x100(0.0, 0.0, 0.1, Some(zoom_lock.clone())), 0.0).zoom, 0.5);
-    assert_eq!(constrain_scroll_state(&view_200x100(0.0, 0.0, MAX_ZOOM, Some(zoom_lock.clone())), 0.0).zoom, MAX_ZOOM);
-    assert_eq!(constrain_scroll_state(&view_200x100(0.0, 0.0, 1.5, Some(zoom_lock)), 0.0).zoom, 1.5);
+    let zoom_lock = ScrollConstraints {
+        lock_zoom: true,
+        zoom: 0.5,
+        ..locked(0.0, 0.0, 1000.0, 1000.0)
+    };
+    assert_eq!(
+        constrain_scroll_state(&view_200x100(0.0, 0.0, 0.1, Some(zoom_lock.clone())), 0.0).zoom,
+        0.5
+    );
+    assert_eq!(
+        constrain_scroll_state(
+            &view_200x100(0.0, 0.0, MAX_ZOOM, Some(zoom_lock.clone())),
+            0.0
+        )
+        .zoom,
+        MAX_ZOOM
+    );
+    assert_eq!(
+        constrain_scroll_state(&view_200x100(0.0, 0.0, 1.5, Some(zoom_lock)), 0.0).zoom,
+        1.5
+    );
 
     // "offsets (pure)"
     let with_offsets = ScrollConstraints {
-        offsets: Offsets { top: 10.0, right: 20.0, bottom: 30.0, left: 40.0 },
+        offsets: Offsets {
+            top: 10.0,
+            right: 20.0,
+            bottom: 30.0,
+            left: 40.0,
+        },
         ..scroll_lock.clone()
     };
-    let r = constrain_scroll_state(&view_200x100(999.0, 999.0, 1.0, Some(with_offsets.clone())), 0.0);
+    let r = constrain_scroll_state(
+        &view_200x100(999.0, 999.0, 1.0, Some(with_offsets.clone())),
+        0.0,
+    );
     assert_eq!((r.scroll_x, r.scroll_y), (40.0, 10.0));
-    let r = constrain_scroll_state(&view_200x100(-5000.0, -5000.0, 1.0, Some(with_offsets)), 0.0);
+    let r = constrain_scroll_state(
+        &view_200x100(-5000.0, -5000.0, 1.0, Some(with_offsets)),
+        0.0,
+    );
     assert_eq!((r.scroll_x, r.scroll_y), (-820.0, -930.0));
-    let top_40 = ScrollConstraints { offsets: Offsets { top: 40.0, ..Offsets::default() }, ..scroll_lock.clone() };
-    assert_eq!(constrain_scroll_state(&view_200x100(0.0, 999.0, 2.0, Some(top_40)), 0.0).scroll_y, 20.0);
+    let top_40 = ScrollConstraints {
+        offsets: Offsets {
+            top: 40.0,
+            ..Offsets::default()
+        },
+        ..scroll_lock.clone()
+    };
+    assert_eq!(
+        constrain_scroll_state(&view_200x100(0.0, 999.0, 2.0, Some(top_40)), 0.0).scroll_y,
+        20.0
+    );
     let left_40 = ScrollConstraints {
         overscroll: 30.0,
-        offsets: Offsets { left: 40.0, ..Offsets::default() },
+        offsets: Offsets {
+            left: 40.0,
+            ..Offsets::default()
+        },
         ..scroll_lock.clone()
     };
-    assert_eq!(constrain_scroll_state(&view_200x100(999.0, 0.0, 1.0, Some(left_40)), 30.0).scroll_x, 70.0);
+    assert_eq!(
+        constrain_scroll_state(&view_200x100(999.0, 0.0, 1.0, Some(left_40)), 30.0).scroll_x,
+        70.0
+    );
 
     // "rubberband overscroll (pure)"
-    let give = ScrollConstraints { overscroll: 30.0, ..scroll_lock.clone() };
-    assert_eq!(constrain_scroll_state(&view_200x100(999.0, 0.0, 1.0, Some(give.clone())), 30.0).scroll_x, 30.0);
-    assert_eq!(constrain_scroll_state(&view_200x100(999.0, 0.0, 2.0, Some(give.clone())), 30.0).scroll_x, 15.0);
-    assert_eq!(constrain_scroll_state(&view_200x100(999.0, 0.0, 1.0, Some(scroll_lock)), 0.0).scroll_x, 0.0);
+    let give = ScrollConstraints {
+        overscroll: 30.0,
+        ..scroll_lock.clone()
+    };
+    assert_eq!(
+        constrain_scroll_state(&view_200x100(999.0, 0.0, 1.0, Some(give.clone())), 30.0).scroll_x,
+        30.0
+    );
+    assert_eq!(
+        constrain_scroll_state(&view_200x100(999.0, 0.0, 2.0, Some(give.clone())), 30.0).scroll_x,
+        15.0
+    );
+    assert_eq!(
+        constrain_scroll_state(&view_200x100(999.0, 0.0, 1.0, Some(scroll_lock)), 0.0).scroll_x,
+        0.0
+    );
     let small = view_200x100(9999.0, 0.0, 0.1, Some(give));
     assert!((constrain_scroll_state(&small, 30.0).scroll_x - 800.0).abs() < 1e-9);
     assert!((constrain_scroll_state(&small, 0.0).scroll_x - 500.0).abs() < 1e-9);
@@ -326,7 +451,11 @@ fn zoom_at_a_point_matches_upstream() {
 fn zooming_keeps_the_screen_space_overscroll() {
     // scrollConstraints.test.tsx "preserves the screen-space overscroll
     // distance while zooming"
-    let lock = ScrollConstraints { lock_scroll: true, overscroll: 50.0, ..locked(0.0, 0.0, 1000.0, 1000.0) };
+    let lock = ScrollConstraints {
+        lock_scroll: true,
+        overscroll: 50.0,
+        ..locked(0.0, 0.0, 1000.0, 1000.0)
+    };
     let s = view_200x100(0.0, 50.0, 1.0, Some(lock));
     let v = get_viewport_for_zoom_with_scroll_constraints(0.0, 0.0, get_normalized_zoom(2.0), &s);
     let resting = constrain_scroll_state(&s.with_viewport(v), 0.0);
@@ -335,7 +464,11 @@ fn zooming_keeps_the_screen_space_overscroll() {
 }
 
 fn translate_opts(v: Option<&Value>) -> TranslateOptions {
-    let flag = |k: &str| v.and_then(|o| o.get(k)).and_then(Value::as_bool).unwrap_or(false);
+    let flag = |k: &str| {
+        v.and_then(|o| o.get(k))
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+    };
     TranslateOptions {
         zoom_pre_constrained: flag("zoomPreConstrained"),
         preserve_scroll_constraints_snap_back: flag("preserveScrollConstraintsSnapBack"),
@@ -358,7 +491,11 @@ fn translation_calls(t: &excali_editor::viewport::Translation) -> Vec<&'static s
 }
 
 fn strings(v: &Value) -> Vec<&str> {
-    v.as_array().expect("strings").iter().map(|s| s.as_str().expect("a string")).collect()
+    v.as_array()
+        .expect("strings")
+        .iter()
+        .map(|s| s.as_str().expect("a string"))
+        .collect()
 }
 
 #[test]
@@ -391,7 +528,10 @@ fn fit_options(bounds: [f64; 4], offsets: Offsets, o: &Value) -> ZoomToFit {
         },
         min_zoom: opt_num(o, "minZoom").unwrap_or(f64::NEG_INFINITY),
         max_zoom: opt_num(o, "maxZoom").unwrap_or(f64::INFINITY),
-        stepped_zoom: o.get("steppedZoom").and_then(Value::as_bool).unwrap_or(false),
+        stepped_zoom: o
+            .get("steppedZoom")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
     }
 }
 
@@ -401,7 +541,11 @@ fn zoom_to_fit_bounds_matches_upstream() {
     let cases = f["zoomToFitBounds"].as_array().expect("cases");
     assert!(cases.len() >= 900);
     for (i, c) in cases.iter().enumerate() {
-        let opts = fit_options(bounds(&c["bounds"]), offsets(c.get("offsets")), &c["options"]);
+        let opts = fit_options(
+            bounds(&c["bounds"]),
+            offsets(c.get("offsets")),
+            &c["options"],
+        );
         let r = zoom_to_fit_bounds(&opts, &state(&c["state"]));
         assert_viewport(r, &c["result"], &format!("zoomToFitBounds #{i} {c}"));
     }
@@ -420,24 +564,39 @@ fn zoom_to_fit_upstream_cases() {
         scroll_constraints: None,
     };
     // fitToContent.test.tsx "scale-down": a 50 x 100 element in a 10 x 10 view
-    let r = zoom_to_fit_bounds(&ZoomToFit::new([50.0, 100.0, 100.0, 200.0]), &s(10.0, 10.0, 1.0));
+    let r = zoom_to_fit_bounds(
+        &ZoomToFit::new([50.0, 100.0, 100.0, 200.0]),
+        &s(10.0, 10.0, 1.0),
+    );
     assert!(r.zoom <= 0.1);
     // two 20 x 20 elements spanning 100 x 100
-    let r = zoom_to_fit_bounds(&ZoomToFit::new([0.0, 0.0, 100.0, 100.0]), &s(10.0, 10.0, 1.0));
+    let r = zoom_to_fit_bounds(
+        &ZoomToFit::new([0.0, 0.0, 100.0, 100.0]),
+        &s(10.0, 10.0, 1.0),
+    );
     assert!(r.zoom <= 0.1);
     // "contain" scrolls to the element
-    let contain = ZoomToFit { fit: Fit::Contain, ..ZoomToFit::new([100.0, 100.0, 200.0, 200.0]) };
+    let contain = ZoomToFit {
+        fit: Fit::Contain,
+        ..ZoomToFit::new([100.0, 100.0, 200.0, 200.0])
+    };
     let r = zoom_to_fit_bounds(&contain, &s(10.0, 10.0, 1.0));
     assert_eq!(r.zoom, 0.1);
     assert!(r.scroll_x != 0.0 && r.scroll_y != 0.0);
     // "none" keeps the zoom and centres the target
-    let none = ZoomToFit { fit: Fit::None, ..ZoomToFit::new([1000.0, 1000.0, 1050.0, 1050.0]) };
+    let none = ZoomToFit {
+        fit: Fit::None,
+        ..ZoomToFit::new([1000.0, 1000.0, 1050.0, 1050.0])
+    };
     let r = zoom_to_fit_bounds(&none, &s(100.0, 100.0, 0.5));
     assert_eq!(r.zoom, 0.5);
     assert!((r.scroll_x - (100.0 / 2.0 / 0.5 - 1025.0)).abs() < 1e-9);
     assert!((r.scroll_y - (100.0 / 2.0 / 0.5 - 1025.0)).abs() < 1e-9);
     // scale-down never zooms past 100%
-    let r = zoom_to_fit_bounds(&ZoomToFit::new([0.0, 0.0, 10.0, 10.0]), &s(1000.0, 800.0, 0.5));
+    let r = zoom_to_fit_bounds(
+        &ZoomToFit::new([0.0, 0.0, 10.0, 10.0]),
+        &s(1000.0, 800.0, 0.5),
+    );
     assert_eq!(r.zoom, 1.0);
 }
 
@@ -452,8 +611,16 @@ fn center_scroll_on_matches_upstream() {
             num(&c["zoom"]),
             &offsets(c.get("offsets")),
         );
-        assert_same(x, num(&c["result"]["scrollX"]), &format!("centerScrollOn {c}"));
-        assert_same(y, num(&c["result"]["scrollY"]), &format!("centerScrollOn {c}"));
+        assert_same(
+            x,
+            num(&c["result"]["scrollX"]),
+            &format!("centerScrollOn {c}"),
+        );
+        assert_same(
+            y,
+            num(&c["result"]["scrollY"]),
+            &format!("centerScrollOn {c}"),
+        );
     }
 }
 
@@ -467,7 +634,12 @@ fn scroll_bounds_into_view_matches_upstream() {
             Some("leave") => TooLarge::Leave,
             Some(other) => panic!("tooLarge {other}"),
         };
-        let r = scroll_bounds_into_view(bounds(&c["bounds"]), &state(&c["state"]), &offsets(c.get("offsets")), too_large);
+        let r = scroll_bounds_into_view(
+            bounds(&c["bounds"]),
+            &state(&c["state"]),
+            &offsets(c.get("offsets")),
+            too_large,
+        );
         match (&c["result"], r) {
             (Value::Null, None) => {}
             (Value::Null, Some(r)) => panic!("{name}: got {r:?}, upstream null"),
@@ -494,16 +666,81 @@ fn scroll_bounds_into_view_upstream_cases() {
         scroll_constraints: None,
     };
     let none = Offsets::default();
-    let right = |r: f64| Offsets { right: r, ..Offsets::default() };
-    let go = |b: [f64; 4], st: &ViewportState, o: &Offsets, t: TooLarge| scroll_bounds_into_view(b, st, o, t);
-    assert_eq!(go([100.0, 100.0, 200.0, 200.0], &s(1.0), &none, TooLarge::AlignStart), None);
-    assert_eq!(go([900.0, -30.0, 1050.0, 100.0], &s(1.0), &none, TooLarge::AlignStart), Some((-50.0, 30.0)));
-    assert_eq!(go([900.0, 100.0, 1000.0, 200.0], &s(1.0), &right(320.0), TooLarge::AlignStart), Some((-320.0, 0.0)));
-    assert_eq!(go([450.0, 100.0, 550.0, 150.0], &s(2.0), &none, TooLarge::AlignStart), Some((-50.0, 0.0)));
-    assert_eq!(go([100.0, 500.0, 200.0, 2000.0], &s(1.0), &none, TooLarge::AlignStart), Some((0.0, -500.0)));
-    assert_eq!(go([100.0, 500.0, 200.0, 2000.0], &s(1.0), &none, TooLarge::Leave), None);
-    let both = Offsets { left: 600.0, right: 600.0, ..Offsets::default() };
-    assert_eq!(go([900.0, 0.0, 1100.0, 10.0], &s(1.0), &both, TooLarge::AlignStart), None);
+    let right = |r: f64| Offsets {
+        right: r,
+        ..Offsets::default()
+    };
+    let go = |b: [f64; 4], st: &ViewportState, o: &Offsets, t: TooLarge| {
+        scroll_bounds_into_view(b, st, o, t)
+    };
+    assert_eq!(
+        go(
+            [100.0, 100.0, 200.0, 200.0],
+            &s(1.0),
+            &none,
+            TooLarge::AlignStart
+        ),
+        None
+    );
+    assert_eq!(
+        go(
+            [900.0, -30.0, 1050.0, 100.0],
+            &s(1.0),
+            &none,
+            TooLarge::AlignStart
+        ),
+        Some((-50.0, 30.0))
+    );
+    assert_eq!(
+        go(
+            [900.0, 100.0, 1000.0, 200.0],
+            &s(1.0),
+            &right(320.0),
+            TooLarge::AlignStart
+        ),
+        Some((-320.0, 0.0))
+    );
+    assert_eq!(
+        go(
+            [450.0, 100.0, 550.0, 150.0],
+            &s(2.0),
+            &none,
+            TooLarge::AlignStart
+        ),
+        Some((-50.0, 0.0))
+    );
+    assert_eq!(
+        go(
+            [100.0, 500.0, 200.0, 2000.0],
+            &s(1.0),
+            &none,
+            TooLarge::AlignStart
+        ),
+        Some((0.0, -500.0))
+    );
+    assert_eq!(
+        go(
+            [100.0, 500.0, 200.0, 2000.0],
+            &s(1.0),
+            &none,
+            TooLarge::Leave
+        ),
+        None
+    );
+    let both = Offsets {
+        left: 600.0,
+        right: 600.0,
+        ..Offsets::default()
+    };
+    assert_eq!(
+        go(
+            [900.0, 0.0, 1100.0, 10.0],
+            &s(1.0),
+            &both,
+            TooLarge::AlignStart
+        ),
+        None
+    );
 }
 
 #[test]
@@ -527,8 +764,16 @@ fn scroll_to_content_matches_upstream() {
     for c in f["scrollToContent"].as_array().expect("cases") {
         let set = element_set(&f, &all, c["set"].as_str().unwrap());
         let (x, y) = get_scroll_to_content_state(&set, &state(&c["state"]));
-        assert_same(x, num(&c["result"]["scrollX"]), &format!("getScrollToContentState {c}"));
-        assert_same(y, num(&c["result"]["scrollY"]), &format!("getScrollToContentState {c}"));
+        assert_same(
+            x,
+            num(&c["result"]["scrollX"]),
+            &format!("getScrollToContentState {c}"),
+        );
+        assert_same(
+            y,
+            num(&c["result"]["scrollY"]),
+            &format!("getScrollToContentState {c}"),
+        );
     }
 }
 
@@ -584,21 +829,33 @@ fn wheel_matches_upstream_event_by_event() {
         let ctx = WheelContext {
             navigation_enabled: seq["navigation"].as_bool().unwrap(),
             pan_active: seq["panActive"].as_bool().unwrap(),
-            input_device: InputDevice::from_name(seq["state"]["inputDevice"].as_str().unwrap()).unwrap(),
-            last_position: (num(&seq["lastPosition"]["x"]), num(&seq["lastPosition"]["y"])),
+            input_device: InputDevice::from_name(seq["state"]["inputDevice"].as_str().unwrap())
+                .unwrap(),
+            last_position: (
+                num(&seq["lastPosition"]["x"]),
+                num(&seq["lastPosition"]["y"]),
+            ),
             is_darwin,
         };
         for (i, step) in seq["steps"].as_array().unwrap().iter().enumerate() {
             let what = format!("{name} step {i} {}", step["event"]);
             let o = handle_wheel(&s, &ctx, &wheel_event(&step["event"]));
-            assert_eq!(o.prevent_default, step["prevented"].as_bool().unwrap(), "{what} prevented");
+            assert_eq!(
+                o.prevent_default,
+                step["prevented"].as_bool().unwrap(),
+                "{what} prevented"
+            );
             assert_eq!(outcome_calls(&o), strings(&step["calls"]), "{what} calls");
             if let Some(t) = &o.translation {
                 s = s.with_viewport(t.viewport);
             }
             should_cache_ignore_zoom |= o.should_cache_ignore_zoom;
             assert_viewport(s.viewport(), &step["state"], &what);
-            assert_eq!(should_cache_ignore_zoom, step["state"]["shouldCacheIgnoreZoom"].as_bool().unwrap(), "{what}");
+            assert_eq!(
+                should_cache_ignore_zoom,
+                step["state"]["shouldCacheIgnoreZoom"].as_bool().unwrap(),
+                "{what}"
+            );
         }
     }
 }
@@ -626,11 +883,17 @@ fn editor(zoom: f64, input_device: InputDevice) -> (ViewportState, WheelContext)
 }
 
 fn ev(delta_x: f64, delta_y: f64) -> WheelEvent {
-    WheelEvent { delta_x, delta_y, ..WheelEvent::default() }
+    WheelEvent {
+        delta_x,
+        delta_y,
+        ..WheelEvent::default()
+    }
 }
 
 fn apply(s: &ViewportState, o: &WheelOutcome) -> ViewportState {
-    o.translation.as_ref().map_or_else(|| s.clone(), |t| s.with_viewport(t.viewport))
+    o.translation
+        .as_ref()
+        .map_or_else(|| s.clone(), |t| s.with_viewport(t.viewport))
 }
 
 #[test]
@@ -639,23 +902,78 @@ fn upstream_wheel_suite() {
     // zooms on ctrl/cmd+wheel"
     let (s, ctx) = editor(1.0, InputDevice::Auto);
     let s = apply(&s, &handle_wheel(&s, &ctx, &ev(30.0, 40.0)));
-    assert_eq!(s.viewport(), Viewport { scroll_x: -30.0, scroll_y: -40.0, zoom: 1.0 });
-    let s = apply(&s, &handle_wheel(&s, &ctx, &WheelEvent { shift_key: true, ..ev(0.0, 40.0) }));
-    assert_eq!(s.viewport(), Viewport { scroll_x: -70.0, scroll_y: -40.0, zoom: 1.0 });
-    let zoomed = apply(&s, &handle_wheel(&s, &ctx, &WheelEvent { ctrl_key: true, ..ev(0.0, -100.0) }));
+    assert_eq!(
+        s.viewport(),
+        Viewport {
+            scroll_x: -30.0,
+            scroll_y: -40.0,
+            zoom: 1.0
+        }
+    );
+    let s = apply(
+        &s,
+        &handle_wheel(
+            &s,
+            &ctx,
+            &WheelEvent {
+                shift_key: true,
+                ..ev(0.0, 40.0)
+            },
+        ),
+    );
+    assert_eq!(
+        s.viewport(),
+        Viewport {
+            scroll_x: -70.0,
+            scroll_y: -40.0,
+            zoom: 1.0
+        }
+    );
+    let zoomed = apply(
+        &s,
+        &handle_wheel(
+            &s,
+            &ctx,
+            &WheelEvent {
+                ctrl_key: true,
+                ..ev(0.0, -100.0)
+            },
+        ),
+    );
     assert!(zoomed.zoom > 1.0);
-    let out = apply(&zoomed, &handle_wheel(&zoomed, &ctx, &WheelEvent { meta_key: true, ..ev(0.0, 100.0) }));
+    let out = apply(
+        &zoomed,
+        &handle_wheel(
+            &zoomed,
+            &ctx,
+            &WheelEvent {
+                meta_key: true,
+                ..ev(0.0, 100.0)
+            },
+        ),
+    );
     assert!(out.zoom < zoomed.zoom);
 
     // "does nothing on a zoom tick at the zoom limit"
     let (s, ctx) = editor(MIN_ZOOM, InputDevice::Auto);
-    let o = handle_wheel(&s, &ctx, &WheelEvent { ctrl_key: true, ..ev(0.0, 100.0) });
+    let o = handle_wheel(
+        &s,
+        &ctx,
+        &WheelEvent {
+            ctrl_key: true,
+            ..ev(0.0, 100.0)
+        },
+    );
     assert_eq!(apply(&s, &o).viewport(), s.viewport());
     assert!(!o.should_cache_ignore_zoom);
 
     // "wheel button held down: zooms instead of panning, whatever the modifiers"
     let (s, ctx) = editor(1.0, InputDevice::Auto);
-    let held = |dy: f64, shift: bool| WheelEvent { buttons: 4, shift_key: shift, ..ev(0.0, dy) };
+    let held = |dy: f64, shift: bool| WheelEvent {
+        buttons: 4,
+        shift_key: shift,
+        ..ev(0.0, dy)
+    };
     let a = apply(&s, &handle_wheel(&s, &ctx, &held(-100.0, false)));
     assert!(a.zoom > 1.0);
     let b = apply(&a, &handle_wheel(&a, &ctx, &held(100.0, false)));
@@ -686,15 +1004,33 @@ fn upstream_input_device_suite() {
 
     // "shift+wheel with %s input": pans only the named axis
     for device in [InputDevice::Auto, InputDevice::Mouse, InputDevice::Trackpad] {
-        for (ctrl, meta, vertical) in [(false, false, false), (true, false, true), (false, true, true)] {
+        for (ctrl, meta, vertical) in [
+            (false, false, false),
+            (true, false, true),
+            (false, true, true),
+        ] {
             let (mut s, ctx) = editor(2.0, device);
             s.scroll_x = 12.0;
             s.scroll_y = 34.0;
-            let e = WheelEvent { shift_key: true, ctrl_key: ctrl, meta_key: meta, ..ev(10.0, 40.0) };
+            let e = WheelEvent {
+                shift_key: true,
+                ctrl_key: ctrl,
+                meta_key: meta,
+                ..ev(10.0, 40.0)
+            };
             let moved = apply(&s, &handle_wheel(&s, &ctx, &e));
             let want = if vertical { (12.0, 14.0) } else { (-8.0, 34.0) };
-            assert_eq!((moved.scroll_x, moved.scroll_y, moved.zoom), (want.0, want.1, 2.0), "{device:?}");
-            let e = WheelEvent { shift_key: true, ctrl_key: ctrl, meta_key: meta, ..ev(-40.0, 0.0) };
+            assert_eq!(
+                (moved.scroll_x, moved.scroll_y, moved.zoom),
+                (want.0, want.1, 2.0),
+                "{device:?}"
+            );
+            let e = WheelEvent {
+                shift_key: true,
+                ctrl_key: ctrl,
+                meta_key: meta,
+                ..ev(-40.0, 0.0)
+            };
             let back = apply(&moved, &handle_wheel(&moved, &ctx, &e));
             assert_eq!(back.viewport(), s.viewport(), "{device:?}");
         }
@@ -704,7 +1040,11 @@ fn upstream_input_device_suite() {
     for (ctrl, meta) in [(false, false), (true, false), (false, true)] {
         let (s, ctx) = editor(1.0, InputDevice::Mouse);
         let before = viewport_coords_to_scene_coords(100.0, 100.0, &s);
-        let e = |dy: f64| WheelEvent { ctrl_key: ctrl, meta_key: meta, ..ev(0.0, dy) };
+        let e = |dy: f64| WheelEvent {
+            ctrl_key: ctrl,
+            meta_key: meta,
+            ..ev(0.0, dy)
+        };
         let zoomed = apply(&s, &handle_wheel(&s, &ctx, &e(-100.0)));
         assert!(zoomed.zoom > 1.0);
         let p = viewport_coords_to_scene_coords(100.0, 100.0, &zoomed);
@@ -716,11 +1056,23 @@ fn upstream_input_device_suite() {
     }
     // "keeps zooming with the wheel button held"
     let (s, ctx) = editor(1.0, InputDevice::Mouse);
-    let e = WheelEvent { buttons: 4, ctrl_key: true, shift_key: true, ..ev(0.0, -100.0) };
+    let e = WheelEvent {
+        buttons: 4,
+        ctrl_key: true,
+        shift_key: true,
+        ..ev(0.0, -100.0)
+    };
     assert!(apply(&s, &handle_wheel(&s, &ctx, &e)).zoom > 1.0);
     // "pans sideways on a horizontal-only wheel instead of zooming"
     let o = handle_wheel(&s, &ctx, &ev(30.0, 0.0));
-    assert_eq!(apply(&s, &o).viewport(), Viewport { scroll_x: -30.0, scroll_y: 0.0, zoom: 1.0 });
+    assert_eq!(
+        apply(&s, &o).viewport(),
+        Viewport {
+            scroll_x: -30.0,
+            scroll_y: 0.0,
+            zoom: 1.0
+        }
+    );
     assert!(!o.should_cache_ignore_zoom);
 }
 
@@ -728,22 +1080,73 @@ fn upstream_input_device_suite() {
 fn wheel_outside_the_editor_surfaces() {
     let (s, ctx) = editor(1.0, InputDevice::Auto);
     // menus and sidebars keep scrolling; only the browser zoom is prevented
-    let o = handle_wheel(&s, &ctx, &WheelEvent { target: WheelTarget::Other, ..ev(0.0, 40.0) });
+    let o = handle_wheel(
+        &s,
+        &ctx,
+        &WheelEvent {
+            target: WheelTarget::Other,
+            ..ev(0.0, 40.0)
+        },
+    );
     assert!(!o.prevent_default && o.translation.is_none());
-    let o = handle_wheel(&s, &ctx, &WheelEvent { target: WheelTarget::Other, ctrl_key: true, ..ev(0.0, 40.0) });
+    let o = handle_wheel(
+        &s,
+        &ctx,
+        &WheelEvent {
+            target: WheelTarget::Other,
+            ctrl_key: true,
+            ..ev(0.0, 40.0)
+        },
+    );
     assert!(o.prevent_default && o.translation.is_none());
     // CTRL_OR_CMD is metaKey on a Mac
-    let mac = WheelContext { is_darwin: true, ..ctx };
-    let o = handle_wheel(&s, &mac, &WheelEvent { target: WheelTarget::Other, meta_key: true, ..ev(0.0, 40.0) });
+    let mac = WheelContext {
+        is_darwin: true,
+        ..ctx
+    };
+    let o = handle_wheel(
+        &s,
+        &mac,
+        &WheelEvent {
+            target: WheelTarget::Other,
+            meta_key: true,
+            ..ev(0.0, 40.0)
+        },
+    );
     assert!(o.prevent_default && o.translation.is_none());
-    let o = handle_wheel(&s, &mac, &WheelEvent { target: WheelTarget::Other, ctrl_key: true, ..ev(0.0, 40.0) });
+    let o = handle_wheel(
+        &s,
+        &mac,
+        &WheelEvent {
+            target: WheelTarget::Other,
+            ctrl_key: true,
+            ..ev(0.0, 40.0)
+        },
+    );
     assert!(!o.prevent_default);
     // frame labels are editor surface: "wheel over a frame label is handled once"
-    let o = handle_wheel(&s, &ctx, &WheelEvent { target: WheelTarget::FrameName, ..ev(0.0, 40.0) });
+    let o = handle_wheel(
+        &s,
+        &ctx,
+        &WheelEvent {
+            target: WheelTarget::FrameName,
+            ..ev(0.0, 40.0)
+        },
+    );
     assert_eq!(apply(&s, &o).scroll_y, -40.0);
     // navigation disabled: nothing at all
-    let off = WheelContext { navigation_enabled: false, ..ctx };
-    let o = handle_wheel(&s, &off, &WheelEvent { ctrl_key: true, ..ev(0.0, 40.0) });
+    let off = WheelContext {
+        navigation_enabled: false,
+        ..ctx
+    };
+    let o = handle_wheel(
+        &s,
+        &off,
+        &WheelEvent {
+            ctrl_key: true,
+            ..ev(0.0, 40.0)
+        },
+    );
     assert!(!o.prevent_default && o.translation.is_none());
 }
 
@@ -774,7 +1177,12 @@ fn zoom_actions_match_upstream() {
         .unwrap_or_default();
         let offsets = match c["offsets"].as_str().unwrap() {
             "none" => Offsets::default(),
-            "ui" => Offsets { left: 216.0, top: 60.0, right: 302.0, bottom: 50.0 },
+            "ui" => Offsets {
+                left: 216.0,
+                top: 60.0,
+                right: 302.0,
+                bottom: 50.0,
+            },
             other => panic!("offsets {other}"),
         };
         assert_eq!(strings(&c["calls"]), ["requestUnfollow"]);
@@ -793,7 +1201,11 @@ fn zoom_action_keys_match_upstream() {
             alt_key: c["altKey"].as_bool().unwrap(),
             ctrl_or_cmd: c["ctrlOrCmd"].as_bool().unwrap(),
         };
-        let matches: Vec<&str> = ZoomAction::ALL.iter().filter(|a| a.key_test(&e)).map(|a| a.name()).collect();
+        let matches: Vec<&str> = ZoomAction::ALL
+            .iter()
+            .filter(|a| a.key_test(&e))
+            .map(|a| a.name())
+            .collect();
         assert_eq!(matches, strings(&c["matches"]), "{c}");
     }
 }
@@ -817,17 +1229,56 @@ fn zoom_actions_step_by_zoom_step_around_the_centre() {
     let c0 = viewport_coords_to_scene_coords(500.0, 400.0, &s);
     let c1 = viewport_coords_to_scene_coords(500.0, 400.0, &s.with_viewport(zin));
     assert!((c0.0 - c1.0).abs() < 1e-9 && (c0.1 - c1.1).abs() < 1e-9);
-    assert_eq!(perform_zoom_action(ZoomAction::ZoomOut, &s, &[], &Map::new(), &none).zoom, 0.9);
-    let max = ViewportState { zoom: MAX_ZOOM, ..s.clone() };
-    assert_eq!(perform_zoom_action(ZoomAction::ZoomIn, &max, &[], &Map::new(), &none).zoom, MAX_ZOOM);
-    let min = ViewportState { zoom: MIN_ZOOM, ..s.clone() };
-    assert_eq!(perform_zoom_action(ZoomAction::ZoomOut, &min, &[], &Map::new(), &none).zoom, MIN_ZOOM);
-    let far = ViewportState { zoom: 7.5, ..s.clone() };
-    assert_eq!(perform_zoom_action(ZoomAction::ResetZoom, &far, &[], &Map::new(), &none).zoom, 1.0);
+    assert_eq!(
+        perform_zoom_action(ZoomAction::ZoomOut, &s, &[], &Map::new(), &none).zoom,
+        0.9
+    );
+    let max = ViewportState {
+        zoom: MAX_ZOOM,
+        ..s.clone()
+    };
+    assert_eq!(
+        perform_zoom_action(ZoomAction::ZoomIn, &max, &[], &Map::new(), &none).zoom,
+        MAX_ZOOM
+    );
+    let min = ViewportState {
+        zoom: MIN_ZOOM,
+        ..s.clone()
+    };
+    assert_eq!(
+        perform_zoom_action(ZoomAction::ZoomOut, &min, &[], &Map::new(), &none).zoom,
+        MIN_ZOOM
+    );
+    let far = ViewportState {
+        zoom: 7.5,
+        ..s.clone()
+    };
+    assert_eq!(
+        perform_zoom_action(ZoomAction::ResetZoom, &far, &[], &Map::new(), &none).zoom,
+        1.0
+    );
     // scrollConstraints.test.tsx "resets zoom to the locked minimum zoom"
-    let lock = ScrollConstraints { lock_zoom: true, zoom: 0.5, ..locked(0.0, 0.0, 4000.0, 3000.0) };
-    let locked_state = ViewportState { zoom: 2.0, scroll_constraints: Some(lock), ..s };
-    assert_eq!(perform_zoom_action(ZoomAction::ResetZoom, &locked_state, &[], &Map::new(), &none).zoom, 0.5);
+    let lock = ScrollConstraints {
+        lock_zoom: true,
+        zoom: 0.5,
+        ..locked(0.0, 0.0, 4000.0, 3000.0)
+    };
+    let locked_state = ViewportState {
+        zoom: 2.0,
+        scroll_constraints: Some(lock),
+        ..s
+    };
+    assert_eq!(
+        perform_zoom_action(
+            ZoomAction::ResetZoom,
+            &locked_state,
+            &[],
+            &Map::new(),
+            &none
+        )
+        .zoom,
+        0.5
+    );
 }
 
 // -- app state --------------------------------------------------------------------------
@@ -836,7 +1287,14 @@ fn zoom_actions_step_by_zoom_step_around_the_centre() {
 fn viewport_state_reads_and_writes_the_app_state() {
     let mut app_state = AppState::default();
     let s = ViewportState::from_app_state(&app_state);
-    assert_eq!(s.viewport(), Viewport { scroll_x: 0.0, scroll_y: 0.0, zoom: 1.0 });
+    assert_eq!(
+        s.viewport(),
+        Viewport {
+            scroll_x: 0.0,
+            scroll_y: 0.0,
+            zoom: 1.0
+        }
+    );
     assert_eq!(s.scroll_constraints, None);
     app_state.insert("width", json!(1024));
     app_state.insert("height", json!(768));
@@ -847,12 +1305,26 @@ fn viewport_state_reads_and_writes_the_app_state() {
         json!({"x": 1, "y": 2, "width": 3, "height": 4, "lockScroll": true, "lockZoom": false, "zoom": 0.5, "overscroll": 150, "offsets": {"left": 10}}),
     );
     let s = ViewportState::from_app_state(&app_state);
-    assert_eq!((s.width, s.height, s.offset_left, s.offset_top), (1024.0, 768.0, 8.0, 16.0));
+    assert_eq!(
+        (s.width, s.height, s.offset_left, s.offset_top),
+        (1024.0, 768.0, 8.0, 16.0)
+    );
     let lock = s.scroll_constraints.clone().expect("a lock");
     assert!(lock.lock_scroll && !lock.lock_zoom);
-    assert_eq!(lock.offsets, Offsets { left: 10.0, ..Offsets::default() });
+    assert_eq!(
+        lock.offsets,
+        Offsets {
+            left: 10.0,
+            ..Offsets::default()
+        }
+    );
     assert_eq!(ScrollConstraints::from_json(&lock.to_json()), Some(lock));
-    Viewport { scroll_x: -3.5, scroll_y: 7.25, zoom: 2.0 }.write_to(&mut app_state);
+    Viewport {
+        scroll_x: -3.5,
+        scroll_y: 7.25,
+        zoom: 2.0,
+    }
+    .write_to(&mut app_state);
     assert_eq!(app_state.get("scrollX"), Some(&json!(-3.5)));
     assert_eq!(app_state.get("scrollY"), Some(&json!(7.25)));
     assert_eq!(app_state.zoom(), Some(2.0));

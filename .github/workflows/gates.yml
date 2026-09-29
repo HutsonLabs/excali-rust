@@ -364,6 +364,10 @@ jobs:
   # canvas-layers.json (ex-503), upstream's own snapScrollToDevicePixels,
   # each layer's bootstrapCanvas on a canvas sized as its component sizes
   # it, and renderNewElementScene on the recording context, and
+  # viewport.mjs --check for excali-editor's viewport.json (ex-505),
+  # upstream's own getNormalizedZoom, coordinate transforms,
+  # constrainScrollState, zoomToFitBounds, AppViewport.translate,
+  # AppWheel.handle event by event and the zoom actions, and
   # font-subset.mjs --check for tools/font-subset-eval's
   # upstream-subsets.json (ex-408), upstream's own
   # generateFontFaceDeclarations with its harfbuzzjs subsetting of every
@@ -438,6 +442,8 @@ jobs:
         run: node tools/goldens/frame-clip.mjs --check
       - name: excali-ui canvas layer fixture matches upstream's snapScrollToDevicePixels, bootstrapCanvas and renderNewElementScene
         run: node tools/goldens/canvas-layers.mjs --check
+      - name: excali-editor viewport fixture matches upstream's zoom, scroll constraints, zoom-to-fit, wheel handler and zoom actions
+        run: node tools/goldens/viewport.mjs --check
       - name: font subsetting fixture matches upstream's generateFontFaceDeclarations and harfbuzzjs subsetting
         run: node tools/goldens/font-subset.mjs --check
       - name: excali-scene image element fixture matches upstream's renderElement

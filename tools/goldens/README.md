@@ -785,6 +785,49 @@ CI runs `--check` in the `goldens` job, and
 `test/collision-fixtures.test.mjs` checks that two runs are byte-identical and
 that the fixture holds `collision.test.tsx`'s answers.
 
+## Viewport fixture
+
+`viewport.mjs` writes `crates/excali-editor/tests/fixtures/viewport.json` for
+excali-editor's viewport (ex-505): upstream's own zoom and scroll code on
+tables of states, with the stand-in App it needs:
+
+- `constants`, `normalizedZoom`: `MIN_ZOOM`, `MAX_ZOOM`, `ZOOM_STEP`,
+  `DEFAULT_OVERSCROLL` and `getNormalizedZoom` (non-finite inputs included);
+- `coords`: `viewportCoordsToSceneCoords` and `sceneCoordsToViewportCoords`;
+- `constrain`, `zoomAt`: `constrainScrollState` (every case of
+  `tests/scrollConstraints.test.tsx`'s pure suites and more) and
+  `getViewportForZoomWithScrollConstraints`;
+- `translate`: `AppViewport.translate` on a stand-in App: the committed
+  viewport and what it called (snap-back cancelled or scheduled, unfollow);
+- `zoomToFitBounds` (bounds x states x offsets x fit, range and stepping
+  options), `centerScrollOn`, `scrollBoundsIntoView` (including
+  `tests/viewport.test.ts`), `getClosestElementBounds`,
+  `getScrollToContentState` on a fixed set of elements;
+- `wheel`: `AppWheel.handle` with upstream's `AppViewport`, event by event
+  (prevented or not, what it called, the state after): the scenarios of
+  `tests/wheel.test.tsx`, every target, navigation off, zero deltas, tick
+  runs to both zoom limits, scroll and zoom locks, and a sweep of the zoom
+  formula over ten zooms and twenty deltas;
+- `actions`: `actionZoomIn`, `actionZoomOut`, `actionResetZoom`,
+  `actionZoomToFit`, `actionZoomToFitSelection` and
+  `actionZoomToFitSelectionInViewport` performed on states with and without
+  locks, element sets, selections and UI offsets, and each `keyTest` on a
+  table of key events.
+
+`actionCanvas.tsx`'s React panels, `reactUtils` (React's batching) and
+`register` are stubbed; nothing the recorded paths run reaches them. The
+debounced snap-back and `AnimationController.cancel` of the snap-back are
+recorded instead of run. The wheel formula takes `Math.log10`, which V8 on
+arm64 computes with fused multiply-adds (`excali_math::js::log10`).
+
+```sh
+node tools/goldens/viewport.mjs           # write the fixture
+node tools/goldens/viewport.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and `test/viewport.test.mjs` checks
+that two runs are byte-identical and restates the zoom rules independently.
+
 ## Image element fixture
 
 `image-elements.mjs` writes `crates/excali-scene/tests/fixtures/image-elements.json`

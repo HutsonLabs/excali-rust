@@ -29,6 +29,10 @@
 //! - [`tools`]: the tool registry (`TOOLS`, `findShapeByKey`), the active
 //!   tool, the tool lock and pen mode (`components/Tools.tsx`,
 //!   `setActiveTool`, `toggleLock`, `togglePenMode`).
+//! - [`viewport`]: zoom limits and normalisation, the viewport/scene
+//!   coordinate transforms, scroll locks, the wheel, the zoom actions and
+//!   zoom-to-fit (`viewport.ts`, `App.wheel.ts`, `App.viewport.ts`,
+//!   `actionCanvas.tsx`).
 
 mod binary_heap;
 pub mod collision;
@@ -43,3 +47,4 @@ pub mod restore_env;
 pub mod session;
 pub mod store;
 pub mod tools;
+pub mod viewport;
