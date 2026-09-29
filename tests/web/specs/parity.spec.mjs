@@ -540,7 +540,8 @@ const ROWS = {
 
   "select-box": async ({ page }) => {
     await mount(page, sceneText([rect("a", 100, 100), rect("b", 300, 100), rect("c", 600, 400)]));
-    await drag(page, [50, 50], [450, 250]);
+    // from below the main menu's trigger, which covers the top-left corner
+    await drag(page, [60, 80], [450, 250]);
     expect((await state(page)).selectionCount).toBe(2);
   },
 

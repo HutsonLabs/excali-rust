@@ -20,6 +20,7 @@ use std::rc::{Rc, Weak};
 
 use excali_canvas2d::{paint, WebCanvas};
 use excali_core::png::{encode_chunks, encode_text_chunk, extract_chunks};
+use excali_editor::actions::{ActionName, KeyLabels};
 use excali_editor::tools::ToolState;
 use excali_scene::display::FontFaceSource;
 use excali_scene::shape::Theme;
@@ -29,6 +30,7 @@ use excali_ui::dom::{mount, Mounted, Node};
 use excali_ui::footer::{footer, FooterControl, FooterProps, OnFooterEvent};
 use excali_ui::keyboard::{apply_outcome, keystroke};
 use excali_ui::layers::{CanvasLayers, Layer};
+use excali_ui::main_menu::{default_main_menu, Dispatch, MenuContext, MenuEffect, ThemeChoice};
 use excali_ui::text_editor::{
     measure_caret_offset, Handled, TextEditorOverlay, TextareaEvent, TextareaHandler,
     TEXTAREA_ATTRIBUTES, TEXT_EDITOR_CSS,
@@ -81,6 +83,12 @@ excali-editor .excali-editor__top {
 excali-editor .excali-editor__top > * {
   pointer-events: all;
 }
+excali-editor .excali-editor__top-left {
+  position: absolute;
+  top: var(--editor-container-padding, 1rem);
+  left: var(--editor-container-padding, 1rem);
+  z-index: 4;
+}
 ";
 
 /// Every stylesheet the element needs, in the order it installs them:
@@ -93,6 +101,7 @@ pub fn stylesheet() -> String {
         excali_ui::primitives::PRIMITIVES_CSS,
         excali_ui::toolbar::TOOLBAR_CSS,
         excali_ui::footer::FOOTER_CSS,
+        excali_ui::main_menu::MAIN_MENU_CSS,
         excali_ui::layers::CANVAS_LAYER_CSS,
         TEXT_EDITOR_CSS,
         ELEMENT_CSS,
@@ -103,6 +112,7 @@ pub fn stylesheet() -> String {
 fn install_element_stylesheet(document: &Document) -> Result<(), JsValue> {
     install_stylesheet(document)?;
     excali_ui::footer::install_stylesheet(document)?;
+    excali_ui::main_menu::install_stylesheet(document)?;
     if document
         .query_selector("style[data-excali-ui=\"excali-editor\"]")?
         .is_some()
@@ -188,6 +198,9 @@ struct Inner {
     top: HtmlElement,
     toolbar: Option<Mounted>,
     footer: Option<Mounted>,
+    /// The top-left corner (`App-menu_top__left`) and the main menu in it.
+    top_left: HtmlElement,
+    main_menu: Option<Mounted>,
     /// The text editor's box (`.excalidraw-textEditorContainer`) and the
     /// textarea mounted in it while a text is edited.
     editor_box: HtmlElement,
@@ -279,6 +292,8 @@ fn chrome_key(inner: &Inner) -> Value {
         "undo": ed.can_undo(),
         "redo": ed.can_redo(),
         "ui": inner.ui,
+        "openMenu": ed.app_state().get("openMenu"),
+        "theme": ed.app_state().get("theme"),
     })
 }
 
@@ -391,6 +406,7 @@ fn refresh_chrome(weak: &Weak<RefCell<Inner>>) {
     rc.borrow_mut().chrome_key = Some(key);
     let _ = render_toolbar(weak);
     let _ = render_footer(weak);
+    let _ = render_main_menu(weak);
 }
 
 /// Re-mounts the toolbar for the current tools.
@@ -447,6 +463,95 @@ fn render_toolbar(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
     let document = inner.document();
     let mounted = mount(&node, &document, &inner.top)?;
     inner.toolbar = Some(mounted);
+    Ok(())
+}
+
+/// A main menu item's effect, applied to the editor.
+fn apply_menu_effect(inner: &mut Inner, effect: MenuEffect) {
+    match effect {
+        MenuEffect::ExecuteAction(ActionName::ToggleTheme) => {
+            let dark = inner
+                .editor
+                .app_state()
+                .get("theme")
+                .and_then(Value::as_str)
+                == Some("dark");
+            let _ = apply_theme(
+                &inner.container,
+                if dark { Theme::Light } else { Theme::Dark },
+            );
+            inner.editor.set_theme(!dark);
+        }
+        MenuEffect::ExecuteAction(name) => inner.editor.perform_action(name),
+        MenuEffect::SetAppState(patch) => inner.editor.set_app_state(patch),
+        MenuEffect::ToggleLock => {
+            inner.editor.tools_mut().toggle_lock();
+        }
+        MenuEffect::ThemeChange(choice) => {
+            let dark = choice == ThemeChoice::Dark;
+            let _ = apply_theme(
+                &inner.container,
+                if dark { Theme::Dark } else { Theme::Light },
+            );
+            inner.editor.set_theme(dark);
+        }
+        MenuEffect::Warn(message) => web_sys::console::warn_1(&JsValue::from_str(message)),
+        // the host owns files, dialogs and analytics
+        MenuEffect::ConfirmDialog(_)
+        | MenuEffect::ConfirmOverwrite { .. }
+        | MenuEffect::TrackEvent { .. }
+        | MenuEffect::Select => {}
+    }
+}
+
+/// Re-mounts the main menu (`MainMenu`, LayerUI's default items) in the
+/// top-left corner, open while `appState.openMenu` is `"canvas"`.
+fn render_main_menu(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
+    let Some(rc) = weak.upgrade() else {
+        return Ok(());
+    };
+    let mut inner = rc.borrow_mut();
+    if let Some(old) = inner.main_menu.take() {
+        old.remove();
+    }
+    if inner.ui == "none" {
+        return Ok(());
+    }
+    let events = weak.clone();
+    let dispatch: Dispatch = Rc::new(move |effect: MenuEffect| {
+        let Some(rc) = events.upgrade() else {
+            return;
+        };
+        {
+            let Ok(mut inner) = rc.try_borrow_mut() else {
+                return;
+            };
+            apply_menu_effect(&mut inner, effect);
+            inner.after_event();
+        }
+        refresh_chrome(&events);
+    });
+    let dark = inner
+        .editor
+        .app_state()
+        .get("theme")
+        .and_then(Value::as_str)
+        == Some("dark");
+    let node = {
+        let cx = MenuContext::new(
+            false,
+            is_darwin(),
+            &KeyLabels::EN,
+            if dark { Theme::Dark } else { Theme::Light },
+            dispatch,
+        );
+        let ed = &inner.editor;
+        let ctx = ed.action_context();
+        Node::Element(default_main_menu(&cx, ed.action_manager(), &ctx, &|_| None))
+    };
+    let document = inner.document();
+    let mounted = mount(&node, &document, &inner.top_left)?;
+    inner.main_menu = Some(mounted);
     Ok(())
 }
 
@@ -610,6 +715,9 @@ impl EditorCore {
         let top: HtmlElement = document.create_element("div")?.dyn_into()?;
         top.set_class_name("excali-editor__top");
         container.append_child(&top)?;
+        let top_left: HtmlElement = document.create_element("div")?.dyn_into()?;
+        top_left.set_class_name("excali-editor__top-left");
+        container.append_child(&top_left)?;
 
         let source = web_sys::window()
             .and_then(|w| w.location().origin().ok())
@@ -628,6 +736,8 @@ impl EditorCore {
             top,
             toolbar: None,
             footer: None,
+            top_left,
+            main_menu: None,
             editor_box,
             overlay: None,
             extra_tools_open: false,
@@ -925,9 +1035,13 @@ impl EditorCore {
         if let Some(overlay) = inner.overlay.take() {
             overlay.unmount();
         }
-        for mounted in [inner.toolbar.take(), inner.footer.take()]
-            .into_iter()
-            .flatten()
+        for mounted in [
+            inner.toolbar.take(),
+            inner.footer.take(),
+            inner.main_menu.take(),
+        ]
+        .into_iter()
+        .flatten()
         {
             mounted.remove();
         }

@@ -45,7 +45,9 @@ use excali_core::library::{
 };
 use excali_core::library_url::{parse_library_tokens_from_url, validate_library_url};
 use excali_core::restore::{LegacyBinding, LegacyBindingRequest, RestoreEnv};
-use excali_editor::actions::{ActionEnv, ActionManager, ActionName, AppProps, KeyDownOutcome};
+use excali_editor::actions::{
+    ActionContext, ActionEnv, ActionManager, ActionName, AppProps, KeyDownOutcome,
+};
 use excali_editor::binding::{
     bind_or_unbind_binding_element, BindingAppState, BindingOpts, LinearElementInitialState,
 };
@@ -719,6 +721,36 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             self.session.store.schedule_capture();
         }
         self.session.commit();
+        self.report();
+    }
+
+    /// The actions' context: the scene, the app state, the props.
+    pub fn action_context(&self) -> ActionContext<'_> {
+        ActionContext {
+            elements: self.session.elements(),
+            app_state: self.session.app_state(),
+            props: &self.props,
+            env: &self.action_env,
+        }
+    }
+
+    /// The action manager.
+    pub fn action_manager(&self) -> &ActionManager {
+        &self.actions
+    }
+
+    /// `setState(patch)` from the chrome (a menu opening or closing):
+    /// the keys merged, nothing captured.
+    pub fn set_app_state(&mut self, patch: Map<String, Value>) {
+        let current = self.session.app_state().as_map();
+        let patch: Map<String, Value> = patch
+            .into_iter()
+            .filter(|(k, v)| current.get(k) != Some(v))
+            .collect();
+        if !patch.is_empty() {
+            self.session.set_state(patch);
+            self.session.commit();
+        }
         self.report();
     }
 
