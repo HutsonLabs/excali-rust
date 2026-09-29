@@ -34,8 +34,10 @@ use excali_scene::canvas_export::{
     export_canvas_png, get_elements_overlapping_frame, CanvasExportOptions, CanvasSizing,
     ExportCanvasError,
 };
+use excali_scene::display::CanvasDocument;
 use excali_scene::export::{svg_document, SvgExportAppState, SvgExportOptions};
 use excali_svg::{export_to_svg, to_svg_file, FontFiles};
+use excali_text::font_store::FontStore;
 
 use crate::error::Failure;
 use crate::fonts::{load_fonts, GlyphText, Metrics};
@@ -160,8 +162,17 @@ fn files_of(scene: &LoadedScene) -> Map<String, Value> {
     scene.files.as_object().cloned().unwrap_or_default()
 }
 
-/// The PNG `exportCanvas("png")` saves.
-pub fn render_png(scene: &LoadedScene, settings: &ExportSettings) -> Result<Vec<u8>, Failure> {
+/// What `exportCanvas("png")` paints, before painting: the canvas
+/// document, the scene's files decoded (upstream's image cache) and the
+/// faces its text needs.
+pub struct PngCanvas {
+    pub document: CanvasDocument,
+    pub images: ImageFiles,
+    pub fonts: FontStore,
+}
+
+/// The canvas `exportCanvas("png")` draws for `scene`.
+pub fn png_canvas(scene: &LoadedScene, settings: &ExportSettings) -> Result<PngCanvas, Failure> {
     let (elements, frame) = prepare(scene, settings.frame.as_deref())?;
     if elements.is_empty() {
         return Err(Failure::Export(EMPTY_CANVAS.to_owned()));
@@ -190,12 +201,27 @@ pub fn render_png(scene: &LoadedScene, settings: &ExportSettings) -> Result<Vec<
         text_metrics: &fonts,
         image_loads: &loads,
     };
-    let doc = export_canvas_png(&elements, &app_state, &files, &options, &settings.source)
+    let document = export_canvas_png(&elements, &app_state, &files, &options, &settings.source)
         .map_err(|e| match e {
             ExportCanvasError::EmptyCanvas => Failure::Export(e.to_string()),
         })?;
-    export_png(&doc, &images, &mut GlyphText::new(&fonts))
-        .map_err(|e| Failure::Export(e.to_string()))
+    Ok(PngCanvas {
+        document,
+        images,
+        fonts,
+    })
+}
+
+/// The PNG `exportCanvas("png")` saves: [`png_canvas`] painted with the
+/// text drawn from the font files ([`GlyphText`]).
+pub fn render_png(scene: &LoadedScene, settings: &ExportSettings) -> Result<Vec<u8>, Failure> {
+    let canvas = png_canvas(scene, settings)?;
+    export_png(
+        &canvas.document,
+        &canvas.images,
+        &mut GlyphText::new(&canvas.fonts),
+    )
+    .map_err(|e| Failure::Export(e.to_string()))
 }
 
 /// The `.svg` file `exportCanvas("svg")` saves.

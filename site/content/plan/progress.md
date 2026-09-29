@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 05:29 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 06:04 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**145 issues** · 79 closed (54%) · 0 in progress · 0 blocked · 65 open
+**145 issues** · 80 closed (55%) · 0 in progress · 0 blocked · 64 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -111,7 +111,7 @@ Font metadata, measurement from font files, wrapping port, bound-text sizing, la
 
 ## ex-e4 · Phase 4: Headless rendering and export
 
-<span class="status open">open</span> 11/13 children closed
+<span class="status open">open</span> 12/13 children closed
 
 tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
@@ -128,8 +128,8 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 | `ex-409` | excali-cli: validate, render (png), export (svg), lib (list/merge), with exit codes | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-410` | Corpus render: every catalogue library item renders to PNG without panic | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-g401` | SVG export: reproduce the two export.test.tsx snapshots (svg-embedded scene, transformed images) as whole documents | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-g402` | D2 PNG half: port's PNG export of the fixture scenes vs upstream's exportToCanvas in Chrome, within a tolerance recorded per fixture | task | P0 | <span class="status open">open</span> | yes |  |
-| `ex-m4` | M4: SVG/PNG export parity | milestone | P2 | <span class="status open">open</span> |  | `ex-g402` |
+| `ex-g402` | D2 PNG half: port's PNG export of the fixture scenes vs upstream's exportToCanvas in Chrome, within a tolerance recorded per fixture | task | P0 | <span class="status closed">closed</span> |  |  |
+| `ex-m4` | M4: SVG/PNG export parity | milestone | P2 | <span class="status open">open</span> | yes |  |
 
 ## ex-e5 · Phase 5: Web runtime and editor
 

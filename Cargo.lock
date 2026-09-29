@@ -434,6 +434,8 @@ dependencies = [
  "excali-text",
  "png",
  "serde_json",
+ "sha2",
+ "tiny-skia",
 ]
 
 [[package]]

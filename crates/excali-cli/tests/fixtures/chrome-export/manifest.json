@@ -1,0 +1,258 @@
+{
+ "generator": "scripts/fixtures/chrome_png_export.mjs",
+ "description": "Upstream's exportToCanvas at the pinned commit in Playwright's Chromium (software canvas, sRGB, device pixel ratio 1) with the vendored fonts, per scene: its source and that source's SHA-256, the canvas size and the SHA-256 of the PNG canvas.toBlob wrote. Element fixture scenes were written from upstream's elementFixture.ts (fixtures/upstream/packages/excalidraw/tests/fixtures/elementFixture.ts, SHA-256 fa3a50ed780c64e7f2e19bf50258d2259a67951e294d5f4cc578565ce0d2c42b).",
+ "upstream": "438d89861f53d8a90ad566113ecac1b83761098f",
+ "browser": "Chromium 153.0.8010.12 (@playwright/test, tests/web/package-lock.json), darwin arm64",
+ "fonts": [
+  "Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2",
+  "Nunito/Nunito-Regular-XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTQ3j6zbXWjgeg.woff2",
+  "Virgil/Virgil-Regular.woff2"
+ ],
+ "scenes": {
+  "default": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#default",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 318,
+   "height": 160,
+   "pngSha256": "a5937eccd2ed53f8406aa327fed6cbcecf27e01167983adf3b8041359651e4ce"
+  },
+  "scale-2": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#scale-2",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 636,
+   "height": 320,
+   "pngSha256": "b6bf253513d863d710aa732084831897c8cc8f5cab6c73ae3d2e881a1aa33ccf"
+  },
+  "scale-3-embed": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#scale-3-embed",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 955,
+   "height": 480,
+   "pngSha256": "2335a9e882a484e86c4cfcf034c120bfa544c1774af612b803094671e8dfd59b"
+  },
+  "fractional-scale-1.5": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#fractional-scale-1.5",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 272,
+   "height": 87,
+   "pngSha256": "9c701828cf96e46d90072428509324e0185f1d8b9516d8a2e4a23a4683ed4db7"
+  },
+  "padding-0": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#padding-0",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 298,
+   "height": 140,
+   "pngSha256": "03a4e082e8f18b23770626a63ee71231b6be7a724671d464682241796ff258bd"
+  },
+  "padding-25.5": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#padding-25.5",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 212,
+   "height": 89,
+   "pngSha256": "3234a7c9db71385d75ebacf9a16a04b26df574699637f833eaca698d3f8a6e50"
+  },
+  "no-background": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#no-background",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 318,
+   "height": 160,
+   "pngSha256": "77faf9129ca0ba3e2fd4c074f5f09e0b9fbea7aebe3e4f8f190f0ce9547bbe29"
+  },
+  "background-transparent": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#background-transparent",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 318,
+   "height": 160,
+   "pngSha256": "77faf9129ca0ba3e2fd4c074f5f09e0b9fbea7aebe3e4f8f190f0ce9547bbe29"
+  },
+  "background-coloured": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#background-coloured",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 636,
+   "height": 320,
+   "pngSha256": "65e238ff4730423583fa96b40b80e027d2f8c95ddd3aa2c4f292daa43d058b43"
+  },
+  "dark": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#dark",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 318,
+   "height": 160,
+   "pngSha256": "4e4b4c2e059373171d567de1ac271deac2eaef9b51296f300633bb44b7bb41ae"
+  },
+  "frames": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#frames",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 510,
+   "height": 320,
+   "pngSha256": "c7a884b7a52ed49a4e746b6ac7599eba238169e7deb2d566242747067ef0657d"
+  },
+  "frames-dark": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#frames-dark",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 510,
+   "height": 320,
+   "pngSha256": "eb285b6911a3241a574c758ccc35fc57fb813b339dd8cf9b0075689fb63a451b"
+  },
+  "frames-names-off": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#frames-names-off",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 510,
+   "height": 320,
+   "pngSha256": "97ca1754ac1d84c148875a7015121dcbe3c08d4cf170eb0fc74aa35d22169423"
+  },
+  "frames-disabled": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#frames-disabled",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 510,
+   "height": 320,
+   "pngSha256": "28bfb4cf5f88607b6621a2aaa9036e376d3d6f7322bca7b7fccd583488870792"
+  },
+  "exporting-frame": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#exporting-frame",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 400,
+   "height": 300,
+   "pngSha256": "0e499cfb27a725749e1a314fcc9fbaf512cb95b1361be904230a5e11b6121016"
+  },
+  "images": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#images",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 210,
+   "height": 120,
+   "pngSha256": "7317a1581d9add10191bbdca2df320eb607e9df41dee99f33afc7f52c5f15838"
+  },
+  "images-dark": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#images-dark",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 210,
+   "height": 120,
+   "pngSha256": "7d6340409c9ca8e644ff33f8f4d42332946e8b7fbe43f58cf4b9df1ffd60d89c"
+  },
+  "embeddables": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#embeddables",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 320,
+   "height": 140,
+   "pngSha256": "f8e4215bf97a7e00c8943950384a2ee19d5906849174c297db66f2a506001fdc"
+  },
+  "negative-size": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#negative-size",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 300,
+   "height": 150,
+   "pngSha256": "10e9a6526ad556573b1ab11da850ba503986f5b96025d26f7a28aa45b5dc57de"
+  },
+  "utils-max-smaller": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#utils-max-smaller",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 100,
+   "height": 50,
+   "pngSha256": "ba979a5a661705b0ab40fb4b3e4adc012a6695971592de572d0f0f040b638fa2"
+  },
+  "utils-max-larger": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#utils-max-larger",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 636,
+   "height": 320,
+   "pngSha256": "77c53712fc6238263739506475732bc724bc170db34ea0c48b0c448024ac04c0"
+  },
+  "utils-max-larger-no-scale": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#utils-max-larger-no-scale",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 318,
+   "height": 160,
+   "pngSha256": "d2476dc4725f633bbe7be80f52a9382d6a5b5764e972a3e47d2279320e958c6f"
+  },
+  "utils-get-dimensions": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#utils-get-dimensions",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 153,
+   "height": 74,
+   "pngSha256": "2496ddf6d3b749376cb4af1c85b598fcdb94b1cdba260c495cafb4d49c163f02"
+  },
+  "utils-get-dimensions-no-scale": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#utils-get-dimensions-no-scale",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 363,
+   "height": 117,
+   "pngSha256": "5a3db8e47e7233f181841c77c5091bdc7cce3b6da73e2a9f1e749d761e2b5ad4"
+  },
+  "utils-max-and-get-dimensions": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#utils-max-and-get-dimensions",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 120,
+   "height": 60,
+   "pngSha256": "e3954dc9214676c1479104565e0766e1db82f9a597eafdd6ceba6c2c24797d4d"
+  },
+  "utils-plain": {
+   "source": "crates/excali-scene/tests/fixtures/canvas-export.json#utils-plain",
+   "sourceSha256": "94dda3cc9d846ba08f2cf9accf27a779eee25afdfbc6920ff227168deb4c405e",
+   "width": 318,
+   "height": 160,
+   "pngSha256": "3a52452c6f4d40ef0b6b5377d755728d1d239de0835999a2159d8a800ea6f47e"
+  },
+  "element-rectangle": {
+   "source": "crates/excali-cli/tests/fixtures/chrome-export/scenes/element-rectangle.excalidraw",
+   "sourceSha256": "9fab7f7d95334e8f778c39b39325c54992db54c9795ae586c8b682d653637e14",
+   "width": 234,
+   "height": 234,
+   "pngSha256": "637616d35a1477a8c7707e04cccfe2765bd7c4a338b4acbaebeb4518f3628803"
+  },
+  "element-embeddable": {
+   "source": "crates/excali-cli/tests/fixtures/chrome-export/scenes/element-embeddable.excalidraw",
+   "sourceSha256": "5ca2e245579097dc345901d83bc989faac2c48eae49584a95192ea9b15e782cb",
+   "width": 234,
+   "height": 234,
+   "pngSha256": "29ab77d0aa630737ade4d21f777970edb522a46c3d1ed27ff7181336536a7312"
+  },
+  "element-ellipse": {
+   "source": "crates/excali-cli/tests/fixtures/chrome-export/scenes/element-ellipse.excalidraw",
+   "sourceSha256": "2754ff61abec791c9f19b94e2bf805c94edd5419da68bd46626656ca5d186bbe",
+   "width": 234,
+   "height": 234,
+   "pngSha256": "98bbe253a4e602cbd816192bcd7615758370f0006e25653899544c4ebddb364d"
+  },
+  "element-diamond": {
+   "source": "crates/excali-cli/tests/fixtures/chrome-export/scenes/element-diamond.excalidraw",
+   "sourceSha256": "55bc849abdbc34792fd9b54e8506bc9f73441f351dd9fadb5b52fd128f409486",
+   "width": 234,
+   "height": 234,
+   "pngSha256": "d58ddfb3ba48c7e26b675f636cd1796dd0b7bc730c0d942bc85a86297e9d36b1"
+  },
+  "element-rectangle-with-link": {
+   "source": "crates/excali-cli/tests/fixtures/chrome-export/scenes/element-rectangle-with-link.excalidraw",
+   "sourceSha256": "c55235075dab9320237b36ecae1deb30e26c45de3dea52301b83e3daf15a633f",
+   "width": 234,
+   "height": 234,
+   "pngSha256": "637616d35a1477a8c7707e04cccfe2765bd7c4a338b4acbaebeb4518f3628803"
+  },
+  "element-text": {
+   "source": "crates/excali-cli/tests/fixtures/chrome-export/scenes/element-text.excalidraw",
+   "sourceSha256": "115b02bf1461850423bf476afbd9e0b07ff9393910a4180a9233d6c6f9af12ca",
+   "width": 234,
+   "height": 234,
+   "pngSha256": "5454a12b9db0334f2e738981ee3dfa0972f7f269c11c4abca237d5f150d2c88b"
+  },
+  "element-text-nunito": {
+   "source": "crates/excali-cli/tests/fixtures/chrome-export/scenes/element-text-nunito.excalidraw",
+   "sourceSha256": "cfc8a1882ff9e440e6ee01db09f3314da1630ad53b27860686cd0d22530ba4d3",
+   "width": 234,
+   "height": 234,
+   "pngSha256": "be4f5e4522ab65e18ed0c539e009f2f4085bf03c7f56a27477d505a0a95585ff"
+  },
+  "test_embedded_v1": {
+   "source": "fixtures/upstream/packages/excalidraw/tests/fixtures/test_embedded_v1.png",
+   "sourceSha256": "8dc62bebeb3b2d0267fd3427620a7da0f3e3809b1cbe83478e2eace295eca258",
+   "width": 97,
+   "height": 77,
+   "pngSha256": "6744f901a2e6b232a0ad480c56191cedc984fb86ed292c43418ccfce3eda6c53"
+  },
+  "smiley_embedded_v2": {
+   "source": "fixtures/upstream/packages/excalidraw/tests/fixtures/smiley_embedded_v2.png",
+   "sourceSha256": "d62147db2f66d839881034f8a1c3d82d1fda95d2a1383749d316c5c9db920abc",
+   "width": 56,
+   "height": 77,
+   "pngSha256": "921309c47b0b86340195325a7cd18d83a058263c2630cdee189afc791acb0f10"
+  }
+ }
+}

@@ -194,6 +194,46 @@ jobs:
           name: raster-diff
           path: target/raster-diff/
           retention-days: 14
+  # ex-g402: the PNG half of D2. The workspace tests (check) hold the port's
+  # full PNG export of every fixture scene (text by the CLI's GlyphText,
+  # images decoded) to the committed PNGs upstream's own exportToCanvas drew
+  # in Playwright's Chromium with the vendored fonts
+  # (crates/excali-cli/tests/fixtures/chrome-export); this job draws them
+  # again with upstream at the pin in this runner's Chromium
+  # (scripts/fixtures/chrome-png-export.sh --check) and holds the port to
+  # those pixels within each scene's tolerance, canvas size exactly. On
+  # macOS arm64, where the tolerances were measured: Chromium's glyph
+  # rasterization is the platform's.
+  chrome-png-export:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: upstream checkout at the pin
+        run: scripts/upstream/checkout.sh
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            tools/goldens/package-lock.json
+            tests/web/package-lock.json
+      - name: install
+        run: |
+          npm ci --prefix tools/goldens --no-audit --no-fund
+          npm ci --prefix tests/web --no-audit --no-fund
+          (cd tests/web && npx playwright install chromium)
+      - name: port within tolerance of upstream's export in this Chromium
+        run: scripts/fixtures/chrome-png-export.sh --check
+      - name: keep the port's, Chrome's and diff images on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: chrome-export-diff
+          path: target/chrome-export-diff/
+          retention-days: 14
   # ex-206: the roughr evaluation behind ADR-003 (tools/roughr-eval, a
   # stand-alone package outside the workspace). Its tests fail if
   # report.json differs from a fresh run over goldens/ or ADR-003 does not
