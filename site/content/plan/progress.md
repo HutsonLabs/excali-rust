@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 11:44 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 12:10 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**147 issues** · 90 closed (61%) · 0 in progress · 0 blocked · 56 open
+**147 issues** · 90 closed (61%) · 2 in progress · 0 blocked · 54 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -142,12 +142,12 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-501` | WASM build pipeline: wasm-bindgen --target web, wasm-opt, size check in CI | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-502` | excali-canvas2d: display list to CanvasRenderingContext2D via web-sys | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-503` | Layered canvases at device-pixel scale (static, new-element, interactive) and scroll snapping | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-504` | Per-element bitmap cache with padding rules, size caps and pixel snapping | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-504` | Per-element bitmap cache with padding rules, size caps and pixel snapping | task | P1 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-505` | Viewport: zoom limits, wheel formula, scroll, coordinate transforms, zoom-to-fit | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-506` | Editor state machine: tools registry (keys, fillable, toggle), active tool, tool lock, pen mode | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-507` | Hit testing (collision.ts): thresholds, inside/outline rules, per-shape intersections | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-508` | Selection and transform handles: sizes by pointer type, resize, rotate, aspect lock, centre resize | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-509` | Snapping: point and gap snaps at 8/zoom, snap lines rendering | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-509` | Snapping: point and gap snaps at 8/zoom, snap lines rendering | task | P1 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-510` | Arrow binding: gap 5+sw/2, max distance 15..30 by zoom, fixed points, modes inside/orbit/skip, highlight | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-511` | Linear element editor: point handles (size 10), midpoints, segment length rule, label position | task | P1 | <span class="status open">open</span> |  | `ex-509` |
 | `ex-512` | Text editing overlay: textarea with dir=auto wrap=off, transform formula, 5% height buffer | task | P0 | <span class="status closed">closed</span> |  |  |
