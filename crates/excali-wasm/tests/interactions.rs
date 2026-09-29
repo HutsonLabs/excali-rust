@@ -102,6 +102,10 @@ fn app_id(ed: &Ed, key: &str) -> Value {
     app(ed, key).get("id").cloned().unwrap_or(Value::Null)
 }
 
+fn tool(ed: &Ed) -> Value {
+    ed.state()["activeTool"].clone()
+}
+
 /// The ids of `elementsToHighlight`.
 fn highlighted(ed: &Ed) -> Value {
     match app(ed, "elementsToHighlight") {
@@ -589,4 +593,185 @@ fn a_resized_frame_takes_in_what_it_now_covers() {
     drag(&mut ed, [156.0, 156.0], [306.0, 156.0]);
     assert_eq!(get(&ed, "id0").base.width, 300.0);
     assert_eq!(frame_of(&ed, "r").as_deref(), Some("id0"));
+}
+
+// -- Point by point -----------------------------------------------------------
+
+fn enter(ed: &mut Ed) {
+    key(ed, Keystroke::new("Enter", "Enter"));
+}
+
+fn escape(ed: &mut Ed) {
+    key(ed, Keystroke::new("Escape", "Escape"));
+}
+
+fn points(e: &Element) -> Vec<[f64; 2]> {
+    e.kind.points().expect("a linear element").to_vec()
+}
+
+fn multi_points(ed: &Ed) -> usize {
+    app(ed, "multiElement")["points"]
+        .as_array()
+        .map_or(0, Vec::len)
+}
+
+/// multiPointCreate.test.tsx's gesture: a click, a move, a click, a move,
+/// a click, Enter.
+fn three_clicks(ed: &mut Ed, k: &str) {
+    letter(ed, k);
+    // the first point on the press, multi-point mode on the release
+    ed.pointer_down(at(30.0, 30.0));
+    ed.pointer_up(at(30.0, 30.0));
+    ed.pointer_move(at(50.0, 60.0));
+    // a second point
+    ed.pointer_down(at(50.0, 60.0));
+    ed.pointer_up(at(50.0, 60.0));
+    ed.pointer_move(at(100.0, 140.0));
+    // done
+    ed.pointer_down(at(100.0, 140.0));
+    ed.pointer_up(at(100.0, 140.0));
+    enter(ed);
+}
+
+#[test]
+fn an_arrow_drawn_point_by_point() {
+    // multiPointCreate.test.tsx:88-128
+    let mut ed = editor_with(vec![]);
+    three_clicks(&mut ed, "a");
+    let elements = live(&ed);
+    assert_eq!(elements.len(), 1);
+    let arrow = elements[0];
+    assert_eq!(arrow.element_type().as_str(), "arrow");
+    assert_eq!(xy(arrow), [30.0, 30.0]);
+    assert_eq!(points(arrow), [[0.0, 0.0], [20.0, 30.0], [70.0, 110.0]]);
+    // actionFinalize (actionFinalize.tsx:343-418): the tool reverts and the
+    // arrow is selected
+    assert_eq!(tool(&ed), "selection");
+    assert_eq!(app(&ed, "multiElement"), Value::Null);
+    assert_eq!(app(&ed, "newElement"), Value::Null);
+    assert_eq!(
+        app(&ed, "selectedElementIds"),
+        json!({ arrow.base.id.clone(): true })
+    );
+}
+
+#[test]
+fn a_line_drawn_point_by_point() {
+    // multiPointCreate.test.tsx:129-168
+    let mut ed = editor_with(vec![]);
+    three_clicks(&mut ed, "l");
+    let elements = live(&ed);
+    assert_eq!(elements.len(), 1);
+    assert_eq!(elements[0].element_type().as_str(), "line");
+    assert_eq!(xy(elements[0]), [30.0, 30.0]);
+    assert_eq!(
+        points(elements[0]),
+        [[0.0, 0.0], [20.0, 30.0], [70.0, 110.0]]
+    );
+}
+
+#[test]
+fn no_tool_switch_while_drawing_point_by_point() {
+    // multiPointCreate.test.tsx:170-205
+    let mut ed = editor_with(vec![]);
+    letter(&mut ed, "l");
+    ed.pointer_down(at(30.0, 30.0));
+    ed.pointer_up(at(30.0, 30.0));
+    ed.pointer_move(at(50.0, 60.0));
+    letter(&mut ed, "e");
+    assert_eq!(tool(&ed), "line");
+    ed.pointer_down(at(50.0, 60.0));
+    ed.pointer_up(at(50.0, 60.0));
+    ed.pointer_move(at(100.0, 140.0));
+    ed.pointer_down(at(100.0, 140.0));
+    ed.pointer_up(at(100.0, 140.0));
+    enter(&mut ed);
+    assert_eq!(live(&ed).len(), 1);
+}
+
+#[test]
+fn escape_drops_the_point_not_yet_placed() {
+    // actionFinalize.tsx:238-289: the last point, following the pointer
+    // since the last click, is not the last committed one
+    let mut ed = editor_with(vec![]);
+    letter(&mut ed, "a");
+    ed.pointer_down(at(30.0, 30.0));
+    ed.pointer_up(at(30.0, 30.0));
+    ed.pointer_move(at(50.0, 60.0));
+    ed.pointer_down(at(50.0, 60.0));
+    ed.pointer_up(at(50.0, 60.0));
+    ed.pointer_move(at(100.0, 140.0));
+    assert_eq!(multi_points(&ed), 3);
+    escape(&mut ed);
+    let arrow = live(&ed)[0];
+    assert_eq!(points(arrow), [[0.0, 0.0], [20.0, 30.0]]);
+    assert_eq!(tool(&ed), "selection");
+    assert_eq!(app(&ed, "multiElement"), Value::Null);
+}
+
+#[test]
+fn a_click_on_the_last_point_finishes() {
+    // handleLinearElementOnPointerDown (App.tsx:10292-10317): a press within
+    // LINE_CONFIRM_THRESHOLD of the last committed point finalizes; the
+    // release reverts the tool (App.tsx:12594-12620)
+    let mut ed = editor_with(vec![]);
+    letter(&mut ed, "a");
+    ed.pointer_down(at(100.0, 100.0));
+    ed.pointer_up(at(100.0, 100.0));
+    ed.pointer_move(at(200.0, 100.0));
+    ed.pointer_down(at(200.0, 100.0));
+    ed.pointer_up(at(200.0, 100.0));
+    ed.pointer_down(at(202.0, 101.0));
+    assert_eq!(app(&ed, "multiElement"), Value::Null);
+    ed.pointer_up(at(202.0, 101.0));
+    let arrow = live(&ed)[0];
+    assert_eq!(points(arrow), [[0.0, 0.0], [100.0, 0.0]]);
+    assert_eq!(tool(&ed), "selection");
+    assert_eq!(
+        app(&ed, "selectedElementIds"),
+        json!({ arrow.base.id.clone(): true })
+    );
+}
+
+#[test]
+fn moving_back_to_the_last_point_removes_the_next() {
+    // App.tsx:8199-8235: back within the commit zone of the last committed
+    // point, the point following the pointer goes
+    let mut ed = editor_with(vec![]);
+    letter(&mut ed, "l");
+    ed.pointer_down(at(100.0, 100.0));
+    ed.pointer_up(at(100.0, 100.0));
+    ed.pointer_move(at(200.0, 100.0));
+    ed.pointer_down(at(200.0, 100.0));
+    ed.pointer_up(at(200.0, 100.0));
+    ed.pointer_move(at(300.0, 100.0));
+    assert_eq!(multi_points(&ed), 3);
+    ed.pointer_move(at(202.0, 101.0));
+    assert_eq!(multi_points(&ed), 2);
+    ed.pointer_move(at(300.0, 150.0));
+    assert_eq!(multi_points(&ed), 3);
+}
+
+#[test]
+fn a_line_closed_on_its_first_point_is_a_polygon() {
+    // handleLinearElementOnPointerDown (App.tsx:10218-10240) and
+    // actionFinalize (actionFinalize.tsx:303-330): the last point snaps to
+    // the first and the line becomes a polygon
+    let mut ed = editor_with(vec![]);
+    letter(&mut ed, "l");
+    for p in [[100.0, 100.0], [200.0, 100.0], [200.0, 200.0]] {
+        ed.pointer_move(at(p[0], p[1]));
+        ed.pointer_down(at(p[0], p[1]));
+        ed.pointer_up(at(p[0], p[1]));
+    }
+    ed.pointer_move(at(103.0, 102.0));
+    ed.pointer_down(at(103.0, 102.0));
+    ed.pointer_up(at(103.0, 102.0));
+    let line = live(&ed)[0];
+    assert_eq!(
+        points(line),
+        [[0.0, 0.0], [100.0, 0.0], [100.0, 100.0], [0.0, 0.0]]
+    );
+    assert_eq!(json!(line.to_map())["polygon"], json!(true));
+    assert_eq!(tool(&ed), "selection");
 }
