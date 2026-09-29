@@ -1273,7 +1273,10 @@ fn a_crop_handle_dragged_crops() {
         [got.base.x, got.base.y, got.base.width, got.base.height],
         [want.x, want.y, want.width, want.height]
     );
-    assert_eq!(json!(got.to_map())["crop"]["width"], json!(want.crop.as_ref().unwrap().width));
+    assert_eq!(
+        json!(got.to_map())["crop"]["width"],
+        json!(want.crop.as_ref().unwrap().width)
+    );
     assert!(got.base.width < 200.0);
     // still cropping, one undo step
     assert_eq!(cropping(&ed), "img");
@@ -1359,7 +1362,10 @@ fn a_text_tool_drag_sets_the_text_width() {
         )]);
         letter(&mut ed, "t");
         drag_steps(&mut ed, [from_x, y], to_x, at(0.0, 0.0));
-        type_and_submit(&mut ed, "A label long enough to wrap within the dragged width");
+        type_and_submit(
+            &mut ed,
+            "A label long enough to wrap within the dragged width",
+        );
         let text = the_text(&ed);
         assert_eq!(text["autoResize"], json!(false), "{from_x}->{to_x}");
         assert_eq!(text["width"], json!(160.0), "{from_x}->{to_x}");
@@ -1427,10 +1433,34 @@ fn bind_text_at(ed: &mut Ed, at_: [f64; 2], value: &str) {
 fn a_text_tool_click_on_an_arrow_end_labels_it() {
     // arrowEndpointTextBinding.test.tsx:334-385
     for (from, to, fixed, align, valign) in [
-        ([100.0, 300.0], [100.0, 100.0], [0.5001, 1.0], "center", "bottom"),
-        ([100.0, 100.0], [300.0, 100.0], [0.0, 0.5001], "left", "middle"),
-        ([100.0, 100.0], [100.0, 300.0], [0.5001, 0.0], "center", "top"),
-        ([300.0, 100.0], [100.0, 100.0], [1.0, 0.5001], "right", "middle"),
+        (
+            [100.0, 300.0],
+            [100.0, 100.0],
+            [0.5001, 1.0],
+            "center",
+            "bottom",
+        ),
+        (
+            [100.0, 100.0],
+            [300.0, 100.0],
+            [0.0, 0.5001],
+            "left",
+            "middle",
+        ),
+        (
+            [100.0, 100.0],
+            [100.0, 300.0],
+            [0.5001, 0.0],
+            "center",
+            "top",
+        ),
+        (
+            [300.0, 100.0],
+            [100.0, 100.0],
+            [1.0, 0.5001],
+            "right",
+            "middle",
+        ),
     ] {
         let mut ed = editor_with(vec![arrow_to("arrow", from, to)]);
         bind_text_at(&mut ed, to, "label");
@@ -1444,7 +1474,10 @@ fn a_text_tool_click_on_an_arrow_end_labels_it() {
         assert_eq!(text["textAlign"], align);
         assert_eq!(text["verticalAlign"], valign);
         assert_eq!(text["containerId"], Value::Null);
-        assert_eq!(text["boundElements"], json!([{ "id": "arrow", "type": "arrow" }]));
+        assert_eq!(
+            text["boundElements"],
+            json!([{ "id": "arrow", "type": "arrow" }])
+        );
     }
 }
 

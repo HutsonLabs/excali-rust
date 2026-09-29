@@ -148,9 +148,9 @@ use excali_text::text_measurements::TextMetricsProvider;
 use excali_ui::footer::{toggle_shortcuts, toggle_zen_mode};
 use serde_json::{json, Map, Value};
 
+use crate::cropping::CropPress;
 use crate::drag::drag_selected_elements;
 use crate::env::EditorEnv;
-use crate::cropping::CropPress;
 use crate::interact;
 use crate::linear::{LinearPress, LinearState};
 use crate::multi::MultiPoint;
@@ -1212,7 +1212,11 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     }
 
     /// `getElementAtPosition(x, y, { includeLockedElements })`.
-    pub(crate) fn element_at_with(&mut self, point: [f64; 2], include_locked: bool) -> Option<String> {
+    pub(crate) fn element_at_with(
+        &mut self,
+        point: [f64; 2],
+        include_locked: bool,
+    ) -> Option<String> {
         let zoom = self.session.app_state().zoom().unwrap_or(1.0);
         let selected: Vec<String> = self.selected_ids();
         let elements = self.session.elements();
@@ -1774,8 +1778,15 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             let id = self.session.env.random_id();
             let seed = self.session.env.random_integer();
             let now = RestoreEnv::now(&mut self.session.env);
-            let element =
-                new_element_for_tool("selection", self.session.app_state(), corner, None, &id, seed, now);
+            let element = new_element_for_tool(
+                "selection",
+                self.session.app_state(),
+                corner,
+                None,
+                &id,
+                seed,
+                now,
+            );
             if let Some(element) = element {
                 self.set_keys(vec![("selectionElement", Value::Object(element.to_map()))]);
             }
@@ -2144,7 +2155,10 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 selection.base.y = y;
                 selection.base.width = width;
                 selection.base.height = height;
-                self.set_keys(vec![("selectionElement", Value::Object(selection.to_map()))]);
+                self.set_keys(vec![(
+                    "selectionElement",
+                    Value::Object(selection.to_map()),
+                )]);
             }
         }
         self.session.commit();
@@ -3045,7 +3059,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             .copied()
             .filter(|e| selected_ids.contains(&e.base.id))
             .collect();
-        let app_state = InteractiveCanvasAppState::from_app_state(self.session.app_state().as_map());
+        let app_state =
+            InteractiveCanvasAppState::from_app_state(self.session.app_state().as_map());
         let pointer = self.scene_point(self.last_pointer[0], self.last_pointer[1]);
         render_interactive_scene(&InteractiveScene {
             canvas_width: width,

@@ -307,7 +307,9 @@ impl Inner {
             .and_then(|style| style.get_property_value("--color-selection").ok())
             .map(|c| c.trim().to_owned())
             .filter(|c| !c.is_empty())
-            .unwrap_or_else(|| excali_editor::interactive_scene::DEFAULT_SELECTION_COLOR.to_owned());
+            .unwrap_or_else(|| {
+                excali_editor::interactive_scene::DEFAULT_SELECTION_COLOR.to_owned()
+            });
         let size = self.layers.backing_size(Layer::Interactive);
         let interactive = self.editor.interactive_scene(
             f64::from(size.width),

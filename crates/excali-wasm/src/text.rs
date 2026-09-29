@@ -36,19 +36,17 @@ use excali_ui::text_editor::{Handled, TextareaEvent, TextareaState};
 use serde_json::{json, Map, Value};
 
 use crate::editor::{Editor, Gesture, PointerInput};
+use crate::env::{EditorEnv, StampBinding};
 use excali_editor::arrow_endpoint_text::{
-    drag_new_text_element, get_endpoint_bound_text_drag_anchor, get_unbound_arrow_endpoint_at_point,
-    is_endpoint_bound_text, ArrowEndpoint,
+    drag_new_text_element, get_endpoint_bound_text_drag_anchor,
+    get_unbound_arrow_endpoint_at_point, is_endpoint_bound_text, ArrowEndpoint,
 };
 use excali_editor::transform::get_grid_point;
 use excali_text::font_metadata::get_font_string;
 use excali_text::text_measurements::get_min_text_element_width;
-use crate::env::{EditorEnv, StampBinding};
 
-/// `TEXT_AUTOWRAP_THRESHOLD` (`common/src/constants.ts:24`): how far a
-/// press on an empty container's centre may travel (screen px) and still
-/// be a click.
-pub const TEXT_AUTOWRAP_THRESHOLD: f64 = 36.0;
+/// `TEXT_AUTOWRAP_THRESHOLD` (`common/src/constants.ts:24`).
+pub use excali_editor::arrow_endpoint_text::TEXT_AUTOWRAP_THRESHOLD;
 
 /// What text editing asks of the element.
 pub struct EditorHost<P> {
@@ -252,7 +250,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         }
         let origin = self.scene_point(input.client_x, input.client_y);
         let zoom = self.session.app_state().zoom().unwrap_or(1.0);
-        let origin_in_grid = get_grid_point(origin[0], origin[1], self.grid_size(input.ctrl_or_cmd));
+        let origin_in_grid =
+            get_grid_point(origin[0], origin[1], self.grid_size(input.ctrl_or_cmd));
         // a free arrow endpoint gets a label (AppArrowText,
         // App.arrowText.ts:52-100), sized by the drag
         if let Some(endpoint) = self.bindable_endpoint_at(origin) {

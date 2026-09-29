@@ -13,13 +13,13 @@ use excali_editor::binding::{
     BindingOpts, BindingStrategy,
 };
 use excali_editor::collision::{get_hovered_element_for_binding, hit_element};
-use excali_editor::linear_element_editor::{
-    get_point_index_under_cursor, get_segment_midpoint_hit_coords, is_point_handle,
-};
 use excali_editor::frame::{
     add_elements_to_frame, get_common_frame_id, get_elements_in_resizing_frame, is_cursor_in_frame,
     is_in_frame, replace_all_elements_in_frame, update_frame_membership_of_selected_elements,
     MembershipState,
+};
+use excali_editor::linear_element_editor::{
+    get_point_index_under_cursor, get_segment_midpoint_hit_coords, is_point_handle,
 };
 use excali_editor::snapping::{
     get_snap_lines_at_pointer, is_active_tool_non_linear_snappable, SnapAppState, SnapEvent,

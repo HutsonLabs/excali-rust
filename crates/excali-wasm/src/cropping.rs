@@ -121,7 +121,11 @@ fn data_url_bytes(url: &str) -> Option<Vec<u8>> {
 }
 
 fn rotate(p: [f64; 2], c: [f64; 2], angle: f64) -> [f64; 2] {
-    let r: GlobalPoint = point_rotate_rads(point_from(p[0], p[1]), point_from(c[0], c[1]), Radians(angle));
+    let r: GlobalPoint = point_rotate_rads(
+        point_from(p[0], p[1]),
+        point_from(c[0], c[1]),
+        Radians(angle),
+    );
     [r.x, r.y]
 }
 
@@ -151,12 +155,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         if let Some(size) = self.image_sizes.get(&file_id) {
             return Some(*size);
         }
-        let url = self
-            .file
-            .files
-            .get(&file_id)?
-            .get("dataURL")?
-            .as_str()?;
+        let url = self.file.files.get(&file_id)?.get("dataURL")?.as_str()?;
         image_natural_size(&data_url_bytes(url)?)
     }
 
@@ -196,7 +195,9 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         self.session
             .elements()
             .iter()
-            .any(|e| &e.base.id == id && !e.base.is_deleted && matches!(e.kind, ElementKind::Image(_)))
+            .any(|e| {
+                &e.base.id == id && !e.base.is_deleted && matches!(e.kind, ElementKind::Image(_))
+            })
             .then(|| id.clone())
     }
 
@@ -218,7 +219,11 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         let Some((natural_width, natural_height)) = self.natural_size(&element) else {
             return;
         };
-        let [x, y] = get_grid_point(pointer[0] - press.offset[0], pointer[1] - press.offset[1], grid);
+        let [x, y] = get_grid_point(
+            pointer[0] - press.offset[0],
+            pointer[1] - press.offset[1],
+            grid,
+        );
         let [gx, gy] = get_grid_point(pointer[0], pointer[1], grid);
         let drag_offset = [gx - press.origin_in_grid[0], gy - press.origin_in_grid[1]];
         let snap_state = self.snap_state();
@@ -228,8 +233,13 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         let elements = self.session.elements().to_vec();
         let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
         let map = ElementsMap::new(live.iter().copied());
-        self.snap_cache
-            .maybe_cache_reference_snap_points(&snap_state, event, &[&element], &live, &map);
+        self.snap_cache.maybe_cache_reference_snap_points(
+            &snap_state,
+            event,
+            &[&element],
+            &live,
+            &map,
+        );
         let snapped = snap_resizing_elements(
             &[&element],
             &[&press.original],
@@ -262,7 +272,10 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         let app_state = self.session.app_state().clone();
         self.apply(scene, app_state);
         self.set_keys(vec![
-            ("isCropping", json!(press.handle != TransformHandleType::Rotation)),
+            (
+                "isCropping",
+                json!(press.handle != TransformHandleType::Rotation),
+            ),
             ("snapLines", snap_lines_json(&snapped.snap_lines)),
         ]);
         self.session.commit();

@@ -33,8 +33,7 @@ use excali_editor::binding::{bind_or_unbind_binding_element, BindingOpts};
 use excali_editor::linear_element_editor::{
     add_midpoint, create_point_at, delete_fixed_segment, get_point_index_under_cursor,
     get_points_global_coordinates, get_segment_mid_point_index, get_segment_midpoint_hit_coords,
-    move_fixed_segment, move_points, should_add_midpoint, PointUpdate,
-    SegmentMidpoint,
+    move_fixed_segment, move_points, should_add_midpoint, PointUpdate, SegmentMidpoint,
 };
 use excali_editor::mutate::bump_version;
 use excali_editor::new_element::get_locked_linear_cursor_align_size_with_angle;
