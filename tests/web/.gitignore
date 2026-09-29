@@ -7,3 +7,5 @@ playwright-report-layers/
 test-results-layers/
 playwright-report-keyboard/
 test-results-keyboard/
+playwright-report-text-editing/
+test-results-text-editing/

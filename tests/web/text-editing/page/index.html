@@ -1,0 +1,45 @@
+<!doctype html>
+<!--
+  The text editor's page (ex-512), served with the wasm harness
+  tools/text-editing (scripts/web/text-editing.sh builds it) by
+  playwright.text-editing.config.mjs.
+
+  #editor is the editor's container, `.excalidraw`, with a canvas under
+  the editor's box `.excalidraw-textEditorContainer` and the box's
+  stylesheet rules (excali_ui::text_editor::TEXT_EDITOR_CSS, from
+  upstream's css/styles.scss) in a <style> the page adds once the module
+  has loaded. The suite drives the harness through window.harness (the
+  module's exports) and window.editing (a TextEditing).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>excali-ui text editor</title>
+<style>
+  html, body { margin: 0; padding: 0; }
+  #editor { position: relative; width: 1000px; height: 800px; overflow: hidden; }
+  #editor canvas { position: absolute; left: 0; top: 0; width: 1000px; height: 800px; }
+</style>
+</head>
+<body>
+<div id="editor" class="excalidraw">
+  <canvas width="1000" height="800"></canvas>
+  <div class="excalidraw-textEditorContainer"></div>
+</div>
+<button id="outside">outside</button>
+<script type="module">
+  import init, * as harness from "/text_editing.js";
+
+  try {
+    await init();
+    const style = document.createElement("style");
+    style.textContent = harness.textEditorCss();
+    document.head.append(style);
+    window.harness = harness;
+    window.harnessReady = true;
+  } catch (e) {
+    window.harnessError = String((e && e.stack) || e);
+  }
+</script>
+</body>
+</html>
