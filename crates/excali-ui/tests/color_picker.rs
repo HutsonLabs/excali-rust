@@ -823,3 +823,28 @@ fn the_stylesheet_is_upstreams() {
         assert!(css.contains(selector), "{selector}");
     }
 }
+
+#[test]
+fn the_eye_dropper_samples_through_the_dark_mode_filter() {
+    use excali_core::color::{apply_dark_mode_filter, remove_dark_mode_filter};
+    use excali_ui::color_picker::{preview_border_color, sample_point, sampled_colors};
+    // (clientX - offsetLeft) * devicePixelRatio (EyeDropper.tsx:95-104)
+    assert_eq!(
+        sample_point((110.0, 70.0), (10.0, 20.0), 2.0),
+        (200.0, 100.0)
+    );
+    assert_eq!(
+        sampled_colors((0x1e, 0x1e, 0x1e), Theme::Light),
+        ("#1e1e1e".to_string(), "#1e1e1e".to_string())
+    );
+    // the dark canvas shows black through the filter; picking it applies
+    // the colour without the filter (EyeDropper.tsx:106-107)
+    let shown = apply_dark_mode_filter("#1e1e1e", true);
+    let hex = u32::from_str_radix(&shown[1..], 16).unwrap();
+    let rgb = ((hex >> 16) as u8, (hex >> 8) as u8, hex as u8);
+    let (s, applied) = sampled_colors(rgb, Theme::Dark);
+    assert_eq!(s, shown);
+    assert_eq!(applied, remove_dark_mode_filter(&shown));
+    assert_eq!(preview_border_color("#1e1e1e"), "#fff");
+    assert_eq!(preview_border_color("#ffffff"), "#222");
+}
