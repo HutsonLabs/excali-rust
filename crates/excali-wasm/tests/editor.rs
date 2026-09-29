@@ -18,7 +18,9 @@ use excali_scene::bounds::{get_element_absolute_coords, ElementsMap};
 use excali_scene::render_element::get_link_handle_from_coords;
 use excali_svg::FontContent;
 use excali_text::text_measurements::CharCountTextMetrics;
-use excali_wasm::editor::{library_source, Editor, ExportOptions, HostEvent, LibrarySource};
+use excali_wasm::editor::{
+    library_source, Editor, ExportOptions, HostEvent, LibrarySource, PointerInput,
+};
 use excali_wasm::env::EditorEnv;
 use serde_json::Value;
 
@@ -41,11 +43,11 @@ fn get<'a>(ed: &'a Editor<CharCountTextMetrics>, id: &str) -> &'a Element {
 }
 
 fn drag(ed: &mut Editor<CharCountTextMetrics>, from: [f64; 2], to: [f64; 2]) {
-    ed.pointer_down(from[0], from[1], false);
+    ed.pointer_down(PointerInput::at(from[0], from[1]));
     let mid = [(from[0] + to[0]) / 2.0, (from[1] + to[1]) / 2.0];
-    ed.pointer_move(mid[0], mid[1]);
-    ed.pointer_move(to[0], to[1]);
-    ed.pointer_up(to[0], to[1]);
+    ed.pointer_move(PointerInput::at(mid[0], mid[1]));
+    ed.pointer_move(PointerInput::at(to[0], to[1]));
+    ed.pointer_up(PointerInput::at(to[0], to[1]));
 }
 
 fn undo(ed: &mut Editor<CharCountTextMetrics>) {
@@ -133,8 +135,8 @@ fn get_state_reports_the_documented_keys() {
             "activeTool": "selection",
         })
     );
-    ed.pointer_down(160.0, 110.0, false);
-    ed.pointer_up(160.0, 110.0);
+    ed.pointer_down(PointerInput::at(160.0, 110.0));
+    ed.pointer_up(PointerInput::at(160.0, 110.0));
     assert_eq!(ed.state()["selectionCount"], 1);
     ed.key_down(&Keystroke::new("r", "KeyR"));
     assert_eq!(ed.state()["activeTool"], "rectangle");
@@ -238,8 +240,8 @@ fn pressing_a_link_icon_asks_the_host_to_open_it() {
     let [x1, y1, x2, y2, ..] = get_element_absolute_coords(&linked, &map, false);
     let [lx, ly, lw, lh] = get_link_handle_from_coords([x1, y1, x2, y2], 0.0, 1.0);
     let (x, y) = (lx + lw / 2.0, ly + lh / 2.0);
-    ed.pointer_down(x, y, false);
-    ed.pointer_up(x, y);
+    ed.pointer_down(PointerInput::at(x, y));
+    ed.pointer_up(PointerInput::at(x, y));
     assert_eq!(
         ed.take_events(),
         [HostEvent::OpenLink {
@@ -248,8 +250,8 @@ fn pressing_a_link_icon_asks_the_host_to_open_it() {
     );
     assert_eq!(ed.state()["selectionCount"], 0);
     // released elsewhere: nothing
-    ed.pointer_down(x, y, false);
-    ed.pointer_up(x + 100.0, y + 100.0);
+    ed.pointer_down(PointerInput::at(x, y));
+    ed.pointer_up(PointerInput::at(x + 100.0, y + 100.0));
     assert!(ed.take_events().is_empty());
 }
 

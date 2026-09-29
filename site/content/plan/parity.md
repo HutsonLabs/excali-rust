@@ -31,11 +31,11 @@ The suite's first test fails when a row has no test, a test has no row, or a sta
 |---|---|---|---|---|
 | view-theme | The `theme` attribute toggles `theme--dark` on the `.excalidraw` container. | `excalidraw/components/App.tsx` (`theme--dark` class) | ex-532 | pass |
 | view-device-pixels | At device pixel ratio 2 each canvas's backing store is twice its CSS size. | `excalidraw/components/canvases/StaticCanvas.tsx`, `excalidraw/renderer/helpers.ts` | ex-503 | pass |
-| view-zoom-keys | Ctrl/Cmd+= zooms in by `ZOOM_STEP` (0.1) and Ctrl/Cmd+0 resets to 100%. | `common/src/constants.ts:362`, `excalidraw/actions/actionCanvas.tsx:129` (`actionZoomIn`), `excalidraw/actions/actionCanvas.tsx:233` (`actionResetZoom`) | ex-505 | gap |
-| view-wheel-zoom | Ctrl+wheel zooms the canvas. | `excalidraw/components/App.wheel.ts` (`AppWheel`) | ex-505 | gap |
-| view-wheel-scroll | The wheel scrolls the canvas: after scrolling down 100 px an element 100 px lower is under the pointer. | `excalidraw/components/App.wheel.ts` (`AppWheel`) | ex-505 | gap |
-| view-hand-pan | With the hand tool (H), dragging pans the canvas. | `excalidraw/components/App.pan.ts` (`AppPan`) | ex-505 | gap |
-| view-space-pan | Holding Space while dragging pans the canvas. | `excalidraw/components/App.tsx:5989`, `excalidraw/components/App.pan.ts` | ex-505 | gap |
+| view-zoom-keys | Ctrl/Cmd+= zooms in by `ZOOM_STEP` (0.1) and Ctrl/Cmd+0 resets to 100%. | `common/src/constants.ts:362`, `excalidraw/actions/actionCanvas.tsx:129` (`actionZoomIn`), `excalidraw/actions/actionCanvas.tsx:233` (`actionResetZoom`) | ex-505 | pass |
+| view-wheel-zoom | Ctrl+wheel zooms the canvas. | `excalidraw/components/App.wheel.ts` (`AppWheel`) | ex-505 | pass |
+| view-wheel-scroll | The wheel scrolls the canvas: after scrolling down 100 px an element 100 px lower is under the pointer. | `excalidraw/components/App.wheel.ts` (`AppWheel`) | ex-505 | pass |
+| view-hand-pan | With the hand tool (H), dragging pans the canvas. | `excalidraw/components/App.pan.ts` (`AppPan`) | ex-505 | pass |
+| view-space-pan | Holding Space while dragging pans the canvas. | `excalidraw/components/App.tsx:5989`, `excalidraw/components/App.pan.ts` | ex-505 | pass |
 
 ## Tools
 
@@ -95,7 +95,7 @@ The suite's first test fails when a row has no test, a test has no row, or a sta
 |---|---|---|---|---|
 | ui-main-menu | The hamburger (`main-menu-trigger`) opens the main menu. | `excalidraw/components/main-menu/MainMenu.tsx:51` | ex-520 | gap |
 | ui-styles-panel | Selecting an element shows the styles panel (`.App-menu__left` with the stroke colour picker). | `excalidraw/components/Actions.tsx` (`SelectedShapeActions`), `excalidraw/components/LayerUI.tsx` | ex-519 | gap |
-| ui-footer-zoom | The footer has the zoom actions (`.zoom-actions`) showing 100%. | `excalidraw/components/Actions.tsx:877` (`ZoomActions`), `common/src/constants.ts:114` | ex-521 | gap |
+| ui-footer-zoom | The footer has the zoom actions (`.zoom-actions`) showing 100%. | `excalidraw/components/Actions.tsx:877` (`ZoomActions`), `common/src/constants.ts:114` | ex-521 | pass |
 | ui-help-dialog | `?` opens the help dialog (`.HelpDialog`). | `excalidraw/actions/actionMenu.tsx:34`, `excalidraw/components/HelpDialog.tsx:141` | ex-522 | gap |
 | ui-context-menu | A right-click on the canvas opens the context menu (`.context-menu`). | `excalidraw/components/App.tsx:13363` (`handleCanvasContextMenu`), `excalidraw/components/ContextMenu.tsx:68` | ex-525 | gap |
 | ui-library | The library trigger (`.default-sidebar-trigger`) opens the library sidebar (`.library-menu`). | `excalidraw/components/DefaultSidebar.tsx:37`, `excalidraw/components/LibraryMenuHeaderContent.tsx:203` | ex-526 | gap |
