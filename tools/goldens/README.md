@@ -938,6 +938,35 @@ CI runs `--check` in the `goldens` job, and
 that the fixture holds `history.test.tsx`'s answer (the arrow's second point
 rounds to `[500, -400]`).
 
+## Snapping fixture
+
+`snapping-fixtures.mjs` writes `crates/excali-editor/tests/fixtures/snapping.json`
+for excali-editor's object snapping (ex-509): upstream's own
+`packages/excalidraw/snapping.ts` and `renderer/renderSnaps.ts`:
+
+- `getSnapDistance` (8 / zoom), `isActiveToolNonLinearSnappable` for every
+  tool, and `isSnappingEnabled` over snap mode, grid mode, the lasso,
+  Ctrl/Cmd, no event and a lone arrow;
+- per scene (hand-written: aligned rows, horizontal and vertical gaps for
+  each of the six gap snap directions, a gap grid, rotated diamonds and
+  ellipses, groups and bound text, lines, arrows, text and freedraw, zoom
+  and an offset viewport, the snap modes; and 80 seeded random scenes):
+  `getElementsCorners`, `getReferenceSnapPoints`, `getVisibleGaps`,
+  `snapDraggedElements` with the snap cache filled as `App.tsx` fills it,
+  `snapResizingElements` on every handle, `snapNewElement` and
+  `getSnapLinesAtPointer`;
+- `renderSnaps` on a context that records every call, for each kind of snap
+  line in light, dark and zen mode at several zooms and scrolls.
+
+```sh
+node tools/goldens/snapping-fixtures.mjs           # write the fixture
+node tools/goldens/snapping-fixtures.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and
+`test/snapping-fixtures.test.mjs` checks that two runs are byte-identical and
+that the fixture covers every snap line kind and the three snap colours.
+
 ## Text editing fixture
 
 `text-editing.mjs` writes `crates/excali-editor/tests/fixtures/text-editing.json`

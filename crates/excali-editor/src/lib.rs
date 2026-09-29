@@ -51,6 +51,10 @@
 //!   [`transform`]: the gesture that drives them (`App.tsx`'s pointer-down
 //!   and `maybeHandleResize`); [`scene`]: the elements and
 //!   `mutateElement`.
+//! - [`snapping`]: object snapping (`snapping.ts`): point and gap snaps
+//!   at 8 / zoom for dragged, resized and new elements, the pointer's snap
+//!   lines before drawing, and the canvas calls that draw the snap lines
+//!   (`renderSnaps.ts`).
 //! - [`tools`]: the tool registry (`TOOLS`, `findShapeByKey`), the active
 //!   tool, the tool lock and pen mode (`components/Tools.tsx`,
 //!   `setActiveTool`, `toggleLock`, `togglePenMode`).
@@ -85,6 +89,7 @@ pub mod resize_test;
 pub mod restore_env;
 pub mod scene;
 pub mod session;
+pub mod snapping;
 pub mod store;
 pub mod text_editing;
 pub mod text_layout;
