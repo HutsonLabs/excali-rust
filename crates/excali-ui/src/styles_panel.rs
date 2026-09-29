@@ -1,7 +1,8 @@
 //! The styles panel: the full `SelectedShapeActions`
-//! (`components/Actions.tsx:63-217`) and the compact
+//! (`components/Actions.tsx:63-217`), the compact
 //! `CompactShapeActions` (:219-717), whose popovers open from
-//! `appState.openPopup`, inside LayerUI's section and island
+//! `appState.openPopup`, and the phone's `MobileShapeActions` row
+//! (:719-876), inside LayerUI's section and island
 //! (`components/LayerUI.tsx:249-297`), as a tree of [`PanelNode`]s and
 //! mounted with `web-sys`. Which one LayerUI renders is the styles panel
 //! mode ([`crate::editor_interface::derive_styles_panel_mode`]: compact on
@@ -439,6 +440,182 @@ fn arrow_type_icon(ctx: &ActionContext<'_>, targets: &[Element]) -> &'static Ico
     }
 }
 
+/// The popovers' state: the active tool type and `appState.openPopup`.
+struct Popups<'a> {
+    tool: &'a str,
+    open: Option<&'a str>,
+}
+
+impl<'a> Popups<'a> {
+    fn of(ctx: &'a ActionContext<'_>) -> Popups<'a> {
+        Popups {
+            tool: ctx
+                .app_state
+                .get("activeTool")
+                .and_then(|t| t.get("type"))
+                .and_then(Value::as_str)
+                .unwrap_or(""),
+            open: ctx.app_state.get("openPopup").and_then(Value::as_str),
+        }
+    }
+}
+
+/// The stroke and background colour items (`Actions.tsx:623-644`, and
+/// alike in the mobile row).
+fn colour_items(p: &ShapeActionPredicates, popups: &Popups<'_>, out: &mut Vec<PanelNode>) {
+    let a = PanelNode::Action;
+    if p.stroke_color {
+        out.push(item(vec![a(ActionName::ChangeStrokeColor)]));
+    }
+    if p.background_color {
+        // the bucket fill variant excludes `transparent`
+        out.push(item(vec![a(if popups.tool == "bucketfill" {
+            ActionName::ChangeBucketFillBackgroundColor
+        } else {
+            ActionName::ChangeBackgroundColor
+        })]));
+    }
+}
+
+/// `CombinedShapeProperties` (`Actions.tsx:219-305`).
+fn shape_properties(p: &ShapeActionPredicates, popups: &Popups<'_>) -> Option<PanelNode> {
+    use ActionName as N;
+    let a = PanelNode::Action;
+    let passive = matches!(
+        popups.tool,
+        "selection" | "eraser" | "hand" | "laser" | "lasso"
+    );
+    if !(p.has_selection || !passive) {
+        return None;
+    }
+    Some(popup_item(
+        CompactPopup::StrokeStyles,
+        popups.open,
+        "labels.stroke",
+        &icons::adjustmentsIcon,
+        PROPERTIES_CLASSES,
+        &[("max-width", "13rem")],
+        || {
+            let gated = [
+                (p.fill, N::ChangeFillStyle),
+                (p.stroke_width, N::ChangeStrokeWidth),
+                (p.freedraw_mode, N::ChangeFreedrawMode),
+                (p.stroke_style, N::ChangeStrokeStyle),
+                (p.sloppiness, N::ChangeSloppiness),
+                (p.roundness, N::ChangeRoundness),
+                (p.opacity, N::ChangeOpacity),
+            ];
+            let actions = gated.iter().filter(|(on, _)| *on).map(|(_, n)| a(*n));
+            vec![el("div", Some("selected-shape-actions"), actions.collect())]
+        },
+    ))
+}
+
+/// `CombinedArrowProperties` (`Actions.tsx:307-401`).
+fn arrow_properties(
+    ctx: &ActionContext<'_>,
+    p: &ShapeActionPredicates,
+    popups: &Popups<'_>,
+) -> Option<PanelNode> {
+    if !p.arrow_type {
+        return None;
+    }
+    let targets = get_target_elements(ctx);
+    Some(popup_item(
+        CompactPopup::ArrowProperties,
+        popups.open,
+        "labels.arrowtypes",
+        arrow_type_icon(ctx, &targets),
+        "properties-content",
+        &[("max-width", "13rem")],
+        || vec![PanelNode::Action(ActionName::ChangeArrowProperties)],
+    ))
+}
+
+/// `LinearEditorAction` (`Actions.tsx:583-603`).
+fn linear_editor(p: &ShapeActionPredicates) -> Option<PanelNode> {
+    p.line_editor
+        .then(|| item(vec![PanelNode::Action(ActionName::ToggleLinearEditor)]))
+}
+
+/// The font family item and `CombinedTextProperties`
+/// (`Actions.tsx:403-487`).
+fn text_items(p: &ShapeActionPredicates, popups: &Popups<'_>, out: &mut Vec<PanelNode>) {
+    use ActionName as N;
+    let a = PanelNode::Action;
+    if !p.text {
+        return;
+    }
+    out.push(item(vec![a(N::ChangeFontFamily)]));
+    out.push(popup_item(
+        CompactPopup::TextProperties,
+        popups.open,
+        "labels.textAlign",
+        &icons::TextSizeIcon,
+        PROPERTIES_CLASSES,
+        &[("max-width", "13rem")],
+        || {
+            let gated = [
+                (p.text, N::ChangeFontSize),
+                (p.text_align, N::ChangeTextAlign),
+                (p.vertical_align, N::ChangeVerticalAlign),
+            ];
+            let actions = gated.iter().filter(|(on, _)| *on).map(|(_, n)| a(*n));
+            vec![el("div", Some("selected-shape-actions"), actions.collect())]
+        },
+    ));
+}
+
+/// `CombinedExtraActions` (`Actions.tsx:489-581`): its "…" popover, with
+/// duplicate and delete when asked.
+fn extra_actions(
+    p: &ShapeActionPredicates,
+    popups: &Popups<'_>,
+    rtl: bool,
+    show_duplicate: bool,
+    show_delete: bool,
+) -> Option<PanelNode> {
+    use ActionName as N;
+    let a = PanelNode::Action;
+    if !p.show_extra_actions {
+        return None;
+    }
+    Some(popup_item(
+        CompactPopup::OtherProperties,
+        popups.open,
+        "labels.actions",
+        &icons::DotsHorizontalIcon,
+        PROPERTIES_CLASSES,
+        &[
+            ("max-width", "12rem"),
+            ("justify-content", "center"),
+            ("align-items", "center"),
+        ],
+        || {
+            let mut body = Vec::new();
+            if p.layers {
+                body.push(layers_fieldset());
+            }
+            if p.align {
+                body.push(align_fieldset(rtl, p.distribute));
+            }
+            let mut buttons = vec![a(N::Group), a(N::Ungroup)];
+            let gated = [
+                (p.link_single_only, N::Hyperlink),
+                (p.crop_editor, N::CropEditor),
+                (show_duplicate, N::DuplicateSelection),
+                (show_delete, N::DeleteSelectedElements),
+            ];
+            buttons.extend(gated.iter().filter(|(on, _)| *on).map(|(_, n)| a(*n)));
+            body.push(fieldset(
+                "labels.actions",
+                vec![el("div", Some("buttonList"), buttons)],
+            ));
+            vec![el("div", Some("selected-shape-actions"), body)]
+        },
+    ))
+}
+
 /// `CompactShapeActions` (`Actions.tsx:605-717`): the compact styles
 /// panel of tablets and the desktop's compact UI mode, for the context's
 /// active tool and targets. The colours and the freedraw pressure cycle
@@ -448,130 +625,122 @@ fn arrow_type_icon(ctx: &ActionContext<'_>, targets: &[Element]) -> &'static Ico
 pub fn compact_shape_actions(ctx: &ActionContext<'_>, rtl: bool) -> PanelNode {
     use ActionName as N;
     let p: ShapeActionPredicates = get_shape_action_predicates(ctx);
-    let a = PanelNode::Action;
-    let tool = ctx
-        .app_state
-        .get("activeTool")
-        .and_then(|t| t.get("type"))
-        .and_then(Value::as_str)
-        .unwrap_or("");
-    let open_popup = ctx.app_state.get("openPopup").and_then(Value::as_str);
+    let popups = Popups::of(ctx);
     let mut out = Vec::new();
-    if p.stroke_color {
-        out.push(item(vec![a(N::ChangeStrokeColor)]));
-    }
-    if p.background_color {
-        // the bucket fill variant excludes `transparent`
-        out.push(item(vec![a(if tool == "bucketfill" {
-            N::ChangeBucketFillBackgroundColor
-        } else {
-            N::ChangeBackgroundColor
-        })]));
-    }
+    colour_items(&p, &popups, &mut out);
     if p.freedraw_mode {
         out.push(item(vec![PanelNode::CycleAction(N::ChangeFreedrawMode)]));
     }
-    // CombinedShapeProperties (:219-305)
-    let passive = matches!(tool, "selection" | "eraser" | "hand" | "laser" | "lasso");
-    if p.has_selection || !passive {
-        out.push(popup_item(
-            CompactPopup::StrokeStyles,
-            open_popup,
-            "labels.stroke",
-            &icons::adjustmentsIcon,
-            PROPERTIES_CLASSES,
-            &[("max-width", "13rem")],
-            || {
-                let gated = [
-                    (p.fill, N::ChangeFillStyle),
-                    (p.stroke_width, N::ChangeStrokeWidth),
-                    (p.freedraw_mode, N::ChangeFreedrawMode),
-                    (p.stroke_style, N::ChangeStrokeStyle),
-                    (p.sloppiness, N::ChangeSloppiness),
-                    (p.roundness, N::ChangeRoundness),
-                    (p.opacity, N::ChangeOpacity),
-                ];
-                let actions = gated.iter().filter(|(on, _)| *on).map(|(_, n)| a(*n));
-                vec![el("div", Some("selected-shape-actions"), actions.collect())]
-            },
-        ));
-    }
-    // CombinedArrowProperties (:307-401)
-    if p.arrow_type {
-        let targets = get_target_elements(ctx);
-        out.push(popup_item(
-            CompactPopup::ArrowProperties,
-            open_popup,
-            "labels.arrowtypes",
-            arrow_type_icon(ctx, &targets),
-            "properties-content",
-            &[("max-width", "13rem")],
-            || vec![a(N::ChangeArrowProperties)],
-        ));
-    }
-    if p.line_editor {
-        out.push(item(vec![a(N::ToggleLinearEditor)]));
-    }
-    if p.text {
-        out.push(item(vec![a(N::ChangeFontFamily)]));
-        // CombinedTextProperties (:403-487)
-        out.push(popup_item(
-            CompactPopup::TextProperties,
-            open_popup,
-            "labels.textAlign",
-            &icons::TextSizeIcon,
-            PROPERTIES_CLASSES,
-            &[("max-width", "13rem")],
-            || {
-                let gated = [
-                    (p.text, N::ChangeFontSize),
-                    (p.text_align, N::ChangeTextAlign),
-                    (p.vertical_align, N::ChangeVerticalAlign),
-                ];
-                let actions = gated.iter().filter(|(on, _)| *on).map(|(_, n)| a(*n));
-                vec![el("div", Some("selected-shape-actions"), actions.collect())]
-            },
-        ));
-    }
+    out.extend(shape_properties(&p, &popups));
+    out.extend(arrow_properties(ctx, &p, &popups));
+    out.extend(linear_editor(&p));
+    text_items(&p, &popups, &mut out);
     if p.show_extra_actions {
-        out.push(item(vec![a(N::DuplicateSelection)]));
-        out.push(item(vec![a(N::DeleteSelectedElements)]));
-        // CombinedExtraActions (:489-581), without its own duplicate and
-        // delete (the panel passes neither showDuplicate nor showDelete)
-        out.push(popup_item(
-            CompactPopup::OtherProperties,
-            open_popup,
-            "labels.actions",
-            &icons::DotsHorizontalIcon,
-            PROPERTIES_CLASSES,
-            &[
-                ("max-width", "12rem"),
-                ("justify-content", "center"),
-                ("align-items", "center"),
-            ],
-            || {
-                let mut body = Vec::new();
-                if p.layers {
-                    body.push(layers_fieldset());
-                }
-                if p.align {
-                    body.push(align_fieldset(rtl, p.distribute));
-                }
-                let mut buttons = vec![a(N::Group), a(N::Ungroup)];
-                let gated = [
-                    (p.link_single_only, N::Hyperlink),
-                    (p.crop_editor, N::CropEditor),
-                ];
-                buttons.extend(gated.iter().filter(|(on, _)| *on).map(|(_, n)| a(*n)));
-                body.push(fieldset(
-                    "labels.actions",
-                    vec![el("div", Some("buttonList"), buttons)],
-                ));
-                vec![el("div", Some("selected-shape-actions"), body)]
-            },
-        ));
+        out.push(item(vec![PanelNode::Action(N::DuplicateSelection)]));
+        out.push(item(vec![PanelNode::Action(N::DeleteSelectedElements)]));
     }
+    // the panel passes neither showDuplicate nor showDelete
+    out.extend(extra_actions(&p, &popups, rtl, false, false));
     el("div", Some("compact-shape-actions"), out)
+}
+
+/// The mobile row's button size (`WIDTH`, `Actions.tsx:754`).
+pub const MOBILE_ACTION_WIDTH: f64 = 32.0;
+
+/// The gap between the mobile row's buttons (`GAP`, `Actions.tsx:753`).
+pub const MOBILE_ACTION_GAP: f64 = 6.0;
+
+/// The width of the mobile row's 9 fixed buttons (7 actions, undo and
+/// redo) and their gaps (`MIN_WIDTH`, `Actions.tsx:750-756`); delete moves
+/// out of the "…" popover at one more button, duplicate at two.
+pub const MOBILE_ACTIONS_MIN_WIDTH: f64 = 9.0 * MOBILE_ACTION_WIDTH + 8.0 * MOBILE_ACTION_GAP;
+
+/// `MobileShapeActions` (`Actions.tsx:719-876`): the phone's styles row
+/// above the bottom toolbar, for the context's active tool and targets,
+/// at the row's measured `width` (upstream reads its island's width on
+/// render, 0 on the first). The compact panel's colours, popovers, line
+/// editor and text items on the left, undo and redo on the right, with
+/// duplicate and delete beside them once the row is wide enough and in
+/// the "…" popover otherwise.
+pub fn mobile_shape_actions(ctx: &ActionContext<'_>, rtl: bool, width: f64) -> PanelNode {
+    use ActionName as N;
+    let p: ShapeActionPredicates = get_shape_action_predicates(ctx);
+    let popups = Popups::of(ctx);
+    let extra = MOBILE_ACTION_WIDTH + MOBILE_ACTION_GAP;
+    let delete_outside = width >= MOBILE_ACTIONS_MIN_WIDTH + extra;
+    let duplicate_outside = width >= MOBILE_ACTIONS_MIN_WIDTH + 2.0 * extra;
+    let px = |n: f64| format!("{}px", number_to_string(n));
+    let mut left = Vec::new();
+    colour_items(&p, &popups, &mut left);
+    left.extend(shape_properties(&p, &popups));
+    left.extend(arrow_properties(ctx, &p, &popups));
+    left.extend(linear_editor(&p));
+    text_items(&p, &popups, &mut left);
+    left.extend(extra_actions(
+        &p,
+        &popups,
+        rtl,
+        !duplicate_outside,
+        !delete_outside,
+    ));
+    let mut right = vec![
+        item(vec![PanelNode::Action(N::Undo)]),
+        item(vec![PanelNode::Action(N::Redo)]),
+    ];
+    if duplicate_outside {
+        right.push(item(vec![PanelNode::Action(N::DuplicateSelection)]));
+    }
+    if delete_outside {
+        right.push(item(vec![PanelNode::Action(N::DeleteSelectedElements)]));
+    }
+    let row = |style: Vec<(&str, String)>, children| {
+        PanelNode::Element(PanelElement {
+            tag: "div",
+            style: style.into_iter().map(|(k, v)| (k.to_string(), v)).collect(),
+            children,
+            ..PanelElement::default()
+        })
+    };
+    let gap = px(MOBILE_ACTION_GAP);
+    PanelNode::Element(PanelElement {
+        tag: "div",
+        class: Some("Island compact-shape-actions mobile-shape-actions".into()),
+        style: [
+            ("flex-direction", "row".to_string()),
+            ("box-shadow", "none".into()),
+            ("padding", "0".into()),
+            ("z-index", "2".into()),
+            ("background-color", "transparent".into()),
+            ("height", px(MOBILE_ACTION_WIDTH * 1.35)),
+            ("margin-bottom", "4px".into()),
+            ("align-items", "center".into()),
+            ("gap", gap.clone()),
+            ("pointer-events", "none".into()),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.to_string(), v))
+        .collect(),
+        children: vec![
+            row(
+                vec![
+                    ("display", "flex".into()),
+                    ("flex-direction", "row".into()),
+                    ("gap", gap.clone()),
+                    ("flex", "1".into()),
+                ],
+                left,
+            ),
+            row(
+                vec![
+                    ("display", "flex".into()),
+                    ("flex-direction", "row".into()),
+                    ("gap", gap),
+                ],
+                right,
+            ),
+        ],
+        ..PanelElement::default()
+    })
 }
 
 /// LayerUI's `renderSelectedShapeActions` in full mode

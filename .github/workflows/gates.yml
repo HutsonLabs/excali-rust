@@ -447,7 +447,10 @@ jobs:
   # its size preset and mirror flag; and toolbar.mjs --check for excali-ui's
   # toolbar.json and src/toolbar/toolbar.css (ex-518), upstream's desktop
   # Toolbar and extra-tools dropdown rendered by React with radix-ui into
-  # jsdom, per tool state; and main-menu.mjs --check for
+  # jsdom, per tool state; and mobile-menu.mjs --check for excali-ui's
+  # mobile-menu.json and src/mobile_menu/mobile_menu.css (ex-702),
+  # upstream's MobileToolbar, ToolPopover and MobileMenu rendered by React
+  # with radix-ui into jsdom per tool state, width and click; and main-menu.mjs --check for
   # excali-ui's main-menu.json and src/main_menu.css (ex-520), upstream's
   # MainMenu, DefaultMainMenu and DefaultItems over the DropdownMenu
   # components (trees and the effects of each handler) and their SCSS; and
@@ -548,6 +551,8 @@ jobs:
         run: node tools/goldens/icons.mjs --check
       - name: excali-ui shapes toolbar fixture and stylesheet match upstream's Toolbar and ExtraToolsDropdown
         run: node tools/goldens/toolbar.mjs --check
+      - name: excali-ui phone layout fixture and stylesheet match upstream's MobileToolbar, ToolPopover and MobileMenu
+        run: node tools/goldens/mobile-menu.mjs --check
       - name: excali-ui main menu fixture and stylesheet match upstream's MainMenu and DefaultItems
         run: node tools/goldens/main-menu.mjs --check
       - name: excali-ui footer fixture and stylesheet match upstream's Footer, ZoomActions, UndoRedoActions, HelpButton and ExitZenModeButton

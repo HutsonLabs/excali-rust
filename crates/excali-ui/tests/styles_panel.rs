@@ -25,8 +25,9 @@ use excali_editor::actions::{
     PanelGate, ShapeActionPredicates,
 };
 use excali_ui::styles_panel::{
-    compact_shape_actions, compact_shape_actions_section, legend_text, selected_shape_actions,
-    shape_actions_section, CompactPopup, PanelNode,
+    compact_shape_actions, compact_shape_actions_section, legend_text, mobile_shape_actions,
+    selected_shape_actions, shape_actions_section, CompactPopup, PanelNode,
+    MOBILE_ACTIONS_MIN_WIDTH, MOBILE_ACTION_GAP, MOBILE_ACTION_WIDTH,
 };
 use serde_json::{json, Map, Value};
 
@@ -208,6 +209,18 @@ fn number(n: f64) -> String {
     excali_core::json::number_to_string(n)
 }
 
+/// A number in an inline style as React writes it
+/// (`dangerousStyleValue`): as is for a custom property or a unitless
+/// property, else in px (0 as is).
+fn react_number(name: &str, n: f64) -> String {
+    let unitless = name.starts_with("--") || matches!(name, "z-index" | "flex" | "opacity");
+    if unitless || n == 0.0 {
+        number(n)
+    } else {
+        format!("{}px", number(n))
+    }
+}
+
 /// The fixture's tree with the style as CSS names and strings.
 fn expected_tree(value: &Value) -> Value {
     match value {
@@ -220,12 +233,13 @@ fn expected_tree(value: &Value) -> Value {
                             .unwrap()
                             .iter()
                             .map(|(k, v)| {
+                                let name = css_name(k);
                                 let v = match v {
                                     Value::String(s) => s.clone(),
-                                    Value::Number(n) => n.to_string(),
+                                    Value::Number(n) => react_number(&name, n.as_f64().unwrap()),
                                     other => panic!("style value {other}"),
                                 };
-                                (css_name(k), json!(v))
+                                (name, json!(v))
                             })
                             .collect(),
                     ),
@@ -555,4 +569,52 @@ fn compact_triggers_toggle_their_popups() {
         assert_eq!(CompactPopup::from_popup(popup.as_str()), Some(popup));
     }
     assert_eq!(CompactPopup::from_popup("elementStroke"), None);
+}
+
+/// MobileShapeActions (`Actions.tsx:719-876`), the phone's styles row, at
+/// the width it measures on its first render (0) in every hand-written
+/// case.
+#[test]
+fn mobile_tree_matches_upstream() {
+    let mut failures = Vec::new();
+    let mut n = 0;
+    for case in cases().iter().filter(|c| c.get("mobile").is_some()) {
+        n += 1;
+        let c = Case::new(case);
+        let got = node_json(&mobile_shape_actions(&c.ctx(), c.rtl, 0.0));
+        let expected = expected_tree(&case["mobile"][0]);
+        if got != expected {
+            failures.push(format!(
+                "{}:\n  got      {got}\n  expected {expected}",
+                c.id
+            ));
+        }
+    }
+    assert!(n >= 200, "{n} mobile cases");
+    assert!(
+        failures.is_empty(),
+        "{} cases differ:\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
+}
+
+/// Duplicate and delete leave the "…" popover for the row once it is wide
+/// enough: delete at 9 actions and one more, duplicate at two more.
+#[test]
+fn mobile_row_promotes_duplicate_and_delete_by_width() {
+    assert_eq!(MOBILE_ACTION_WIDTH, 32.0);
+    assert_eq!(MOBILE_ACTION_GAP, 6.0);
+    assert_eq!(MOBILE_ACTIONS_MIN_WIDTH, 9.0 * 32.0 + 8.0 * 6.0);
+    let mut n = 0;
+    for case in cases().iter().filter(|c| c.get("mobileWidths").is_some()) {
+        let c = Case::new(case);
+        for w in case["mobileWidths"].as_array().unwrap() {
+            n += 1;
+            let width = w["width"].as_f64().unwrap();
+            let got = node_json(&mobile_shape_actions(&c.ctx(), c.rtl, width));
+            assert_eq!(got, expected_tree(&w["tree"][0]), "{} at {width}", c.id);
+        }
+    }
+    assert!(n >= 30, "{n} width cases");
 }

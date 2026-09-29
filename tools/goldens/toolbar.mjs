@@ -184,7 +184,7 @@ const CASES = [
 
 // -- DOM ----------------------------------------------------------------------
 
-const installDom = () => {
+export const installDom = () => {
   const dom = new JSDOM("<!doctype html><html><head></head><body></body></html>", {
     url: "http://localhost/",
     pretendToBeVisual: true,
@@ -224,22 +224,22 @@ const installDom = () => {
   return window;
 };
 
-const sorted = (entries) => Object.fromEntries([...entries].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+export const sorted = (entries) => Object.fromEntries([...entries].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
 
-const styleOf = (node) => {
+export const styleOf = (node) => {
   const style = node.style;
   if (!style) return {};
   return sorted(Array.from({ length: style.length }, (_, i) => style.item(i)).map((p) => [p, style.getPropertyValue(p)]));
 };
 
 /** The static <svg> icons of icons.tsx (the toolbar uses no themed one). */
-const staticIcons = (icons) =>
+export const staticIcons = (icons) =>
   Object.entries(icons).filter(
     ([, value]) => value && value.$$typeof === Symbol.for("react.transitional.element") && value.type === "svg",
   );
 
 /** An inline style attribute as React writes it → property → value. */
-const parseStyle = (text) =>
+export const parseStyle = (text) =>
   sorted(
     text
       .split(";")
@@ -251,7 +251,7 @@ const parseStyle = (text) =>
   );
 
 /** The AI badge's style, as React writes it (see the header). */
-const badgeStyle = (up) => {
+export const badgeStyle = (up) => {
   const { React, DropdownMenu, renderToStaticMarkup } = up;
   const markup = renderToStaticMarkup(React.createElement(DropdownMenu.Item.Badge, null, "AI"));
   const m = markup.match(/^<div class="DropDownMenuItemBadge" style="([^"]*)">AI<\/div>$/);
@@ -260,7 +260,7 @@ const badgeStyle = (up) => {
 };
 
 /** The tree, with the substitutions of the header. */
-const makeTree = (iconNames, ids, badge) => {
+export const makeTree = (iconNames, ids, badge) => {
   const tree = (node) => {
     if (node.nodeType === 3) return node.data;
     if (node.localName === "svg") {
@@ -283,7 +283,7 @@ const makeTree = (iconNames, ids, badge) => {
 };
 
 /** The badge style React writes, which must hold what jsdom kept. */
-const checkedBadge = (kept, badge) => {
+export const checkedBadge = (kept, badge) => {
   for (const [k, v] of Object.entries(kept)) {
     if (badge[k] !== v) throw new Error(`the AI badge's ${k} is ${v} in jsdom, ${badge[k]} in React's markup`);
   }
@@ -291,7 +291,7 @@ const checkedBadge = (kept, badge) => {
 };
 
 /** React's useId ids (`«r0»` in React 19.0, `:r0:` before) → radix-N. */
-const renameIds = (value, ids) =>
+export const renameIds = (value, ids) =>
   value.replace(/radix-(«r[0-9a-z]+»|:r[0-9a-z]+:)/g, (id) => {
     if (!ids.has(id)) ids.set(id, `radix-${ids.size + 1}`);
     return ids.get(id);

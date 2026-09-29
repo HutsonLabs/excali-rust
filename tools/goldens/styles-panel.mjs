@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Styles panel goldens for excali-ui (ex-519, ex-701): upstream's own
+// Styles panel goldens for excali-ui (ex-519, ex-701, ex-702): upstream's own
 // getShapeActionPredicates (packages/excalidraw/components/
 // shapeActionPredicates.ts), SelectedShapeActions, the full styles panel
 // (components/Actions.tsx:63-217), CompactShapeActions, the compact one
@@ -21,6 +21,11 @@
 //   the rest are seeded random selections.
 // - `compact` on every case: the tree CompactShapeActions renders for it
 //   on a tablet (the case's `openPopup` opens one of its popovers);
+// - `mobile` on every hand-written case: the tree MobileShapeActions
+//   (:719-876), the phone's styles row, renders for it at the width it
+//   measures on its first render (0); `mobileWidths`: the tree for some
+//   selections at widths either side of the thresholds where duplicate and
+//   delete move out of the "…" popover (its ref answers the width);
 // - `compactWrapper`: LayerUI's section and island around the compact
 //   panel (LayerUI.tsx:249-275);
 // - `formFactor`: the breakpoints, getFormFactor, isMobileBreakpoint and
@@ -62,7 +67,7 @@ export const OUT_DIR = join(REPO_ROOT, "crates", "excali-ui", "tests", "fixtures
 export const OUT_FILE = "styles-panel.json";
 
 const ENTRY = `
-export { SelectedShapeActions, CompactShapeActions } from "./packages/excalidraw/components/Actions";
+export { SelectedShapeActions, CompactShapeActions, MobileShapeActions } from "./packages/excalidraw/components/Actions";
 export * as editorInterface from "./packages/common/src/editorInterface";
 export * as icons from "./packages/excalidraw/components/icons";
 export { getShapeActionPredicates } from "./packages/excalidraw/components/shapeActionPredicates";
@@ -134,7 +139,12 @@ module.exports = {
   useEffect: () => {},
   useLayoutEffect: () => {},
   useMemo: (f) => f(),
-  useRef: (v) => ({ current: v }),
+  // MobileShapeActions measures its row through its only ref (Actions.tsx:745-748)
+  useRef: (v) => ({
+    current: v === null && globalThis.__mobileActionsWidth !== undefined
+      ? { getBoundingClientRect: () => ({ width: globalThis.__mobileActionsWidth }) }
+      : v,
+  }),
   useState: (v) => [v, () => {}],
 };`,
   // clsx 1.1.1's rules: strings and numbers, arrays recursively, the truthy
@@ -438,7 +448,9 @@ const flatten = (node) => {
   );
   for (const [k, v] of attrs) if (typeof v !== "string") throw new Error(`<${type}> ${k} is not a string`);
   if (attrs.length) out.attrs = Object.fromEntries(attrs);
-  if (props.style) out.style = props.style;
+  // React writes no declaration for an undefined value (Island's
+  // `--padding` without a padding prop)
+  if (props.style) out.style = Object.fromEntries(Object.entries(props.style).filter(([, v]) => v !== undefined));
   const children = flatten(props.children);
   if (children.length) out.children = children;
   return [out];
@@ -470,7 +482,31 @@ const PREDICATE_KEYS = [
   "lineEditor",
 ];
 
-const runCase = (up, window, sceneName, elements, [id, c]) => {
+/** MobileShapeActions' tree at a measured `width`. */
+const mobileTree = (up, appState, elementsMap, app, width) => {
+  globalThis.__mobileActionsWidth = width;
+  try {
+    return flatten(
+      up.MobileShapeActions({
+        appState,
+        elementsMap,
+        renderAction: (action, data) => ({ action, data }),
+        app,
+        setAppState: () => {},
+      }),
+    );
+  } finally {
+    delete globalThis.__mobileActionsWidth;
+  }
+};
+
+/** MobileShapeActions' thresholds (MIN_WIDTH 336, +38 for delete, +76
+ * for duplicate), either side, 0 and the widest bar's row. */
+const MOBILE_WIDTHS = [0, 373, 374, 411, 412, 442];
+
+const MOBILE_WIDTH_CASES = ["select-r1", "select-t1", "select-a1", "tool-rectangle", "select-r1-e1-d1"];
+
+const runCase = (up, window, sceneName, elements, [id, c], mobile = false) => {
   const byId = new Map(elements.map((e) => [e.id, e]));
   const resolveRefs = (state) =>
     Object.fromEntries(Object.entries(state).map(([k, v]) => [k, v && typeof v === "object" && "ref" in v ? byId.get(v.ref) : v]));
@@ -503,6 +539,11 @@ const runCase = (up, window, sceneName, elements, [id, c]) => {
       setAppState: () => {},
     }),
   );
+  const mobileTrees = mobile ? { mobile: mobileTree(up, appState, elementsMap, app, 0) } : {};
+  const widths =
+    mobile && MOBILE_WIDTH_CASES.includes(id)
+      ? { mobileWidths: MOBILE_WIDTHS.map((width) => ({ width, tree: mobileTree(up, appState, elementsMap, app, width) })) }
+      : {};
   window.document.documentElement.removeAttribute("dir");
   const statePatch = json(patch);
   return {
@@ -514,6 +555,8 @@ const runCase = (up, window, sceneName, elements, [id, c]) => {
     predicates: json(predicates),
     tree,
     compact,
+    ...mobileTrees,
+    ...widths,
   };
 };
 
@@ -608,7 +651,8 @@ const build = async (upstream) => {
     up.reseed(RANDOM_SEED);
     const elements = make(up).map(fixed);
     scenes[name] = json(elements);
-    for (const c of [...handCases(), ...randomCases(elements)]) cases.push(runCase(up, window, name, elements, c));
+    for (const c of handCases()) cases.push(runCase(up, window, name, elements, c, true));
+    for (const c of randomCases(elements)) cases.push(runCase(up, window, name, elements, c));
   }
   const ids = new Set();
   for (const c of cases) {
@@ -618,7 +662,7 @@ const build = async (upstream) => {
   window.close();
   return format({
     description:
-      "Upstream getShapeActionPredicates (packages/excalidraw/components/shapeActionPredicates.ts), the full styles panel SelectedShapeActions (components/Actions.tsx:63-217), the compact one CompactShapeActions (:219-717) and the form factor rules (common/src/editorInterface.ts) at the pinned commit (tools/goldens/styles-panel.mjs): per case an active tool, a selection and app state keys over a scene of upstream-built elements, the document direction, the predicates, and the rendered full and compact trees ({tag, class, children}, text, {icon} for an icons.tsx icon, {tag: popover} for a radix Popover.Content, and {action, data?} where renderAction is called, stubbed to render every action).",
+      "Upstream getShapeActionPredicates (packages/excalidraw/components/shapeActionPredicates.ts), the full styles panel SelectedShapeActions (components/Actions.tsx:63-217), the compact one CompactShapeActions (:219-717), the phone's MobileShapeActions (:719-876) and the form factor rules (common/src/editorInterface.ts) at the pinned commit (tools/goldens/styles-panel.mjs): per case an active tool, a selection and app state keys over a scene of upstream-built elements, the document direction, the predicates, and the rendered full, compact and (hand-written cases) mobile trees ({tag, class, children}, text, {icon} for an icons.tsx icon, {tag: popover} for a radix Popover.Content, and {action, data?} where renderAction is called, stubbed to render every action).",
     upstream: upstream.commit,
     containerId: CONTAINER_ID,
     locale: Object.fromEntries(
