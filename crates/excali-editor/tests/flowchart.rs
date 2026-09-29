@@ -102,12 +102,7 @@ fn same_elements(got: &[Element], want: &[Element], context: &str) {
         "{context}: ids"
     );
     for (g, w) in got.iter().zip(want) {
-        assert_eq!(
-            g.to_map(),
-            w.to_map(),
-            "{context}: element {}",
-            w.base.id
-        );
+        assert_eq!(g.to_map(), w.to_map(), "{context}: element {}", w.base.id);
     }
 }
 
@@ -146,7 +141,13 @@ fn place_cluster_matches_upstream() {
             .collect();
         let sticky = c["sticky"].as_f64();
         let count = c["count"].as_u64().unwrap() as usize;
-        let got = place_cluster(&parent, direction(&c["direction"]), count, &obstacles, sticky);
+        let got = place_cluster(
+            &parent,
+            direction(&c["direction"]),
+            count,
+            &obstacles,
+            sticky,
+        );
         let want: Vec<[f64; 2]> = c["result"]["positions"]
             .as_array()
             .unwrap()
@@ -204,7 +205,11 @@ fn create_nodes_matches_upstream() {
                 .filter(|e| !initial.contains(e))
                 .cloned()
                 .collect();
-            same_elements(&changed, &elements(&step["changed"]), &format!("{context} scene"));
+            same_elements(
+                &changed,
+                &elements(&step["changed"]),
+                &format!("{context} scene"),
+            );
         }
     }
     assert!(framed > 0, "the frame rule is exercised");
