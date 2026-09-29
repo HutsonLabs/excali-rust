@@ -1299,3 +1299,202 @@ fn a_drag_inside_a_cropped_image_moves_the_crop() {
     assert_eq!(crop["x"], json!(20.0f64.min(400.0 - w)));
     assert_eq!(xy(get(&ed, "img")), [0.0, 0.0]);
 }
+
+// -- The text tool's drag and arrow endpoint labels ------------------------------------
+
+fn type_and_submit(ed: &mut Ed, value: &str) {
+    use excali_ui::text_editor::TextareaEvent;
+    let n = value.encode_utf16().count();
+    ed.textarea_event(TextareaEvent::Input {
+        value: value.into(),
+        selection: (n, n),
+    });
+    ed.textarea_event(TextareaEvent::Submit);
+}
+
+/// `mouse.downAt(from); 4 × mouse.moveTo; mouse.upAt(to)` along y.
+fn drag_steps(ed: &mut Ed, from: [f64; 2], to_x: f64, input: PointerInput) {
+    let p = |x: f64| PointerInput {
+        client_x: x,
+        client_y: from[1],
+        ..input
+    };
+    ed.pointer_move(p(from[0]));
+    ed.pointer_down(p(from[0]));
+    for i in 1..=4 {
+        ed.pointer_move(p(from[0] + (to_x - from[0]) * f64::from(i) / 4.0));
+    }
+    ed.pointer_up(p(to_x));
+}
+
+fn the_text(ed: &Ed) -> Value {
+    let texts: Vec<Value> = live(ed)
+        .iter()
+        .map(|e| json!(e.to_map()))
+        .filter(|e| e["type"] == "text")
+        .collect();
+    assert_eq!(texts.len(), 1, "{texts:?}");
+    texts[0].clone()
+}
+
+#[test]
+fn a_text_tool_drag_sets_the_text_width() {
+    // textWysiwyg.test.tsx:285-330 (dragNewTextElement,
+    // dragElements.ts:227-292): the drag from the press sizes the text, which
+    // no longer grows by itself
+    for (from_x, to_x, y) in [
+        (220.0, 380.0, 230.0),
+        (380.0, 220.0, 230.0),
+        (350.0, 510.0, 300.0),
+        (350.0, 190.0, 300.0),
+        (365.0, 525.0, 300.0),
+    ] {
+        let mut ed = editor_with(vec![el(
+            "rectangle",
+            "c",
+            100.0,
+            100.0,
+            500.0,
+            json!({ "height": 400 }),
+        )]);
+        letter(&mut ed, "t");
+        drag_steps(&mut ed, [from_x, y], to_x, at(0.0, 0.0));
+        type_and_submit(&mut ed, "A label long enough to wrap within the dragged width");
+        let text = the_text(&ed);
+        assert_eq!(text["autoResize"], json!(false), "{from_x}->{to_x}");
+        assert_eq!(text["width"], json!(160.0), "{from_x}->{to_x}");
+        assert_eq!(text["x"], json!(f64::min(from_x, to_x)), "{from_x}->{to_x}");
+        assert_eq!(text["y"], json!(y), "{from_x}->{to_x}");
+        assert_eq!(text["containerId"], Value::Null);
+        assert!(text["text"].as_str().unwrap().contains('\n'));
+        assert_eq!(json!(get(&ed, "c").to_map())["boundElements"], Value::Null);
+    }
+}
+
+#[test]
+fn a_ctrl_text_tool_drag_from_a_centre_is_free_text() {
+    // textWysiwyg.test.tsx:452-484
+    let mut ed = editor_with(vec![el(
+        "rectangle",
+        "c",
+        100.0,
+        100.0,
+        500.0,
+        json!({ "height": 400, "backgroundColor": "#a5d8ff" }),
+    )]);
+    letter(&mut ed, "t");
+    drag_steps(&mut ed, [350.0, 300.0], 430.0, ctrl(0.0, 0.0));
+    type_and_submit(&mut ed, "Hello");
+    let text = the_text(&ed);
+    assert_eq!(text["autoResize"], json!(false));
+    assert_eq!(text["width"], json!(80.0));
+    assert_eq!(text["x"], json!(350.0));
+    assert_eq!(text["containerId"], Value::Null);
+}
+
+/// arrowEndpointTextBinding.test.tsx's `createArrow` (`:14-32`).
+fn arrow_to(id: &str, from: [f64; 2], to: [f64; 2]) -> Value {
+    el(
+        "arrow",
+        id,
+        from[0],
+        from[1],
+        (to[0] - from[0]).abs(),
+        json!({
+            "height": (to[1] - from[1]).abs(),
+            "points": [[0, 0], [to[0] - from[0], to[1] - from[1]]],
+            "endArrowhead": "arrow", "startArrowhead": null,
+            "startBinding": null, "endBinding": null, "elbowed": false,
+        }),
+    )
+}
+
+/// arrowEndpointTextBinding.test.tsx's `bindTextAt` (`:73-80`).
+fn bind_text_at(ed: &mut Ed, at_: [f64; 2], value: &str) {
+    letter(ed, "t");
+    ed.pointer_move(at(at_[0], at_[1]));
+    click(ed, at_);
+    type_and_submit(ed, value);
+}
+
+#[test]
+fn a_text_tool_click_on_an_arrow_end_labels_it() {
+    // arrowEndpointTextBinding.test.tsx:334-385
+    for (from, to, fixed, align, valign) in [
+        ([100.0, 300.0], [100.0, 100.0], [0.5001, 1.0], "center", "bottom"),
+        ([100.0, 100.0], [300.0, 100.0], [0.0, 0.5001], "left", "middle"),
+        ([100.0, 100.0], [100.0, 300.0], [0.5001, 0.0], "center", "top"),
+        ([300.0, 100.0], [100.0, 100.0], [1.0, 0.5001], "right", "middle"),
+    ] {
+        let mut ed = editor_with(vec![arrow_to("arrow", from, to)]);
+        bind_text_at(&mut ed, to, "label");
+        let text = the_text(&ed);
+        let arrow = json!(get(&ed, "arrow").to_map());
+        assert_eq!(
+            arrow["endBinding"],
+            json!({ "elementId": text["id"], "fixedPoint": fixed, "mode": "orbit" }),
+            "{from:?}->{to:?}"
+        );
+        assert_eq!(text["textAlign"], align);
+        assert_eq!(text["verticalAlign"], valign);
+        assert_eq!(text["containerId"], Value::Null);
+        assert_eq!(text["boundElements"], json!([{ "id": "arrow", "type": "arrow" }]));
+    }
+}
+
+#[test]
+fn a_text_tool_click_on_an_arrow_start_labels_the_start() {
+    // arrowEndpointTextBinding.test.tsx:387-401
+    let mut ed = editor_with(vec![arrow_to("arrow", [100.0, 100.0], [300.0, 100.0])]);
+    bind_text_at(&mut ed, [100.0, 100.0], "label");
+    let text = the_text(&ed);
+    let arrow = json!(get(&ed, "arrow").to_map());
+    assert_eq!(arrow["startBinding"]["elementId"], text["id"]);
+    assert_eq!(arrow["endBinding"], Value::Null);
+    assert_eq!(arrow["startBinding"]["fixedPoint"], json!([1.0, 0.5001]));
+    assert_eq!(text["textAlign"], "right");
+}
+
+#[test]
+fn an_endpoint_label_is_sized_by_the_drag() {
+    // arrowEndpointTextBinding.test.tsx:479-548
+    let close = |a: &Value, b: f64| (a.as_f64().unwrap() - b).abs() < 0.5;
+    // left-bound: the left edge stays
+    let mut ed = editor_with(vec![arrow_to("arrow", [100.0, 100.0], [300.0, 100.0])]);
+    letter(&mut ed, "t");
+    drag_steps(&mut ed, [300.0, 100.0], 520.0, at(0.0, 0.0));
+    type_and_submit(&mut ed, "a label long enough to wrap");
+    let t = the_text(&ed);
+    assert_eq!(t["autoResize"], json!(false));
+    assert_eq!(t["textAlign"], "left");
+    assert!(close(&t["x"], 306.0) && close(&t["width"], 214.0), "{t}");
+    // right-bound: the right edge stays
+    let mut ed = editor_with(vec![arrow_to("arrow", [500.0, 100.0], [300.0, 100.0])]);
+    letter(&mut ed, "t");
+    drag_steps(&mut ed, [300.0, 100.0], 80.0, at(0.0, 0.0));
+    type_and_submit(&mut ed, "a label long enough to wrap");
+    let t = the_text(&ed);
+    assert_eq!(t["textAlign"], "right");
+    let right = t["x"].as_f64().unwrap() + t["width"].as_f64().unwrap();
+    assert!((right - 294.0).abs() < 0.5, "{t}");
+    // back over the arrow: no drag at all
+    let mut ed = editor_with(vec![arrow_to("arrow", [100.0, 100.0], [300.0, 100.0])]);
+    letter(&mut ed, "t");
+    drag_steps(&mut ed, [300.0, 100.0], 150.0, at(0.0, 0.0));
+    type_and_submit(&mut ed, "label");
+    let t = the_text(&ed);
+    assert_eq!(t["autoResize"], json!(true));
+    assert!(close(&t["x"], 306.0), "{t}");
+}
+
+#[test]
+fn one_undo_removes_an_endpoint_label_and_its_binding() {
+    // arrowEndpointTextBinding.test.tsx:704-731
+    let mut ed = editor_with(vec![arrow_to("arrow", [100.0, 300.0], [100.0, 100.0])]);
+    bind_text_at(&mut ed, [100.0, 100.0], "bound");
+    let text_id = json!(get(&ed, "arrow").to_map())["endBinding"]["elementId"].clone();
+    assert!(text_id.is_string());
+    key(&mut ed, Keystroke::new("z", "KeyZ").ctrl());
+    assert!(live(&ed).iter().all(|e| json!(e.base.id) != text_id));
+    assert_eq!(json!(get(&ed, "arrow").to_map())["endBinding"], Value::Null);
+}
