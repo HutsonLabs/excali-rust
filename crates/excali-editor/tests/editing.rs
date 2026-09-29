@@ -22,7 +22,10 @@
 //!   fractional indices included) and the app state keys they set;
 //! - `copy`: the clipboard JSON `actionCopy` writes;
 //! - `paste`: `addElementsFromPasteOrLibrary` for pasted clipboard JSON at
-//!   the pointer, the scene and the selection after.
+//!   the pointer, the scene and the selection after;
+//! - `library`: library items inserted (`LibraryMenuItems`'s click and
+//!   App's drop): each item duplicated, `distributeLibraryItemsOnSquareGrid`
+//!   and `addElementsFromPasteOrLibrary`.
 
 use excali_core::app_state::{get_default_app_state, AppState, AppStateEnv};
 use excali_core::element::Element;
@@ -533,4 +536,68 @@ fn paste_of_plain_text_pastes_no_elements() {
             "{text}"
         );
     }
+}
+
+fn library_items(case: &Value) -> Vec<Vec<Element>> {
+    case["items"]
+        .as_array()
+        .expect("items")
+        .iter()
+        .map(elements)
+        .collect()
+}
+
+/// `distributeLibraryItemsOnSquareGrid` (`data/library.ts:405-493`) of the
+/// items as `LibraryMenuItems.getInsertedElements` duplicates them.
+#[test]
+fn library_items_distribute_on_a_square_grid_as_upstream() {
+    for case in cases("library") {
+        let what = case["id"].as_str().unwrap();
+        let mut env = ActionEnv::new();
+        let duplicated = edit_actions::duplicate_library_items(&library_items(&case), &mut env)
+            .unwrap_or_else(|e| panic!("{what}: {e:?}"));
+        let got = edit_actions::distribute_library_items_on_square_grid(&duplicated);
+        assert_elements(&got, &case["distributed"], what);
+    }
+}
+
+/// Inserting library items (a click in the library, a drop on the canvas):
+/// duplicated, distributed, then `addElementsFromPasteOrLibrary` at the
+/// pointer, the sidebar left open only when docked and fitting.
+#[test]
+fn library_insertion_matches_upstream() {
+    for case in cases("library") {
+        let what = case["id"].as_str().unwrap();
+        let scene = elements(&case);
+        let mut app_state = action_app_state(&Value::Null);
+        app_state.insert("openSidebar", json!({"name": "default", "tab": "library"}));
+        let mut env = ActionEnv::new();
+        let got = edit_actions::insert_library_items(
+            &library_items(&case),
+            &scene,
+            &app_state,
+            point(&case["pointer"]),
+            case["gridSize"].as_f64(),
+            case["dockedAndFits"].as_bool().unwrap(),
+            &mut env,
+        )
+        .unwrap_or_else(|| panic!("{what}: inserts"));
+        let want = &case["result"];
+        let next = got.elements.as_deref().expect("the scene with the items");
+        assert_elements(next, &want["elements"], what);
+        assert_app_state(&got.app_state, &app_state, &want["appState"], what);
+        assert!(got.capture, "{what}: the store captures the insertion");
+    }
+}
+
+/// No items insert nothing.
+#[test]
+fn inserting_no_library_items_does_nothing() {
+    let app_state = action_app_state(&Value::Null);
+    let mut env = ActionEnv::new();
+    assert_eq!(
+        edit_actions::insert_library_items(&[], &[], &app_state, [0.0, 0.0], None, true, &mut env),
+        None
+    );
+    assert!(edit_actions::distribute_library_items_on_square_grid(&[]).is_empty());
 }

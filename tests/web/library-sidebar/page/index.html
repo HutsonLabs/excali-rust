@@ -1,0 +1,40 @@
+<!doctype html>
+<!--
+  The library sidebar's page (ex-526), served with the wasm harness
+  tools/library-sidebar (scripts/web/library-sidebar.sh builds it) by
+  playwright.library-sidebar.config.mjs.
+
+  window.sidebar.start(config) mounts excali_ui::library_sidebar into #app
+  (an editor container filling the viewport); take() returns the effects
+  logged since the last call, snapshot() the menu and app state.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>excali-ui library sidebar</title>
+<style>
+  html, body { margin: 0; padding: 0; }
+  #app, #app > .excalidraw { position: absolute; inset: 0; overflow: hidden; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+  import init, { start, take_effects, snapshot } from "/library_sidebar.js";
+
+  init()
+    .then(() => {
+      const app = document.getElementById("app");
+      window.sidebar = {
+        start: (config) => start(app, JSON.stringify(config)),
+        take: () => JSON.parse(take_effects()),
+        snapshot: () => JSON.parse(snapshot()),
+      };
+      window.harnessReady = true;
+    })
+    .catch((e) => {
+      window.harnessError = String(e);
+    });
+</script>
+</body>
+</html>

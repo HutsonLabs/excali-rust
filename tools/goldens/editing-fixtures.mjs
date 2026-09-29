@@ -142,6 +142,9 @@ export {
 } from "./packages/element/src/selection";
 export { getNonDeletedElements } from "./packages/element/src/index";
 export { syncInvalidIndices } from "./packages/element/src/fractionalIndex";
+export { duplicateElements } from "./packages/element/src/duplicate";
+export { distributeLibraryItemsOnSquareGrid } from "./packages/excalidraw/data/library";
+export { viewportCoordsToSceneCoords } from "./packages/common/src/utils";
 `;
 
 // The action modules render React panels (icons, buttons, the styles panel
@@ -165,6 +168,8 @@ const SHIMS = {
   "react-dom": "module.exports = { flushSync: (fn) => fn() };",
   // register() only adds the action to the registry and returns it
   "packages/excalidraw/actions/register": "module.exports = { register: (action) => action };",
+  // data/library.ts's atoms (distributeLibraryItemsOnSquareGrid reads none)
+  "packages/excalidraw/editor-jotai": "module.exports = { atom: (init) => ({ init }) };",
 };
 
 const usage = () => {
@@ -1117,6 +1122,110 @@ const pasteCases = () =>
     },
   }));
 
+// -- library insertion ------------------------------------------------------------
+
+// [case, [scene, element ids] per item, scene inserted into, client
+// position (null: the viewport's centre, as onInsertElements), grid size,
+// whether the sidebar is docked and fits]
+const LIBRARY_CASES = [
+  ["library-one", [["two", ["a"]]], "two", null, null, false],
+  ["library-one-at-pointer", [["two", ["a"]]], "three", [640, 380], null, true],
+  ["library-one-grid", [["two", ["b"]]], "two", [613, 427], 20, true],
+  ["library-two", [["two", ["a"]], ["three", ["c"]]], "three", null, null, true],
+  [
+    "library-grid",
+    [["three", ["a"]], ["group", ["g1", "g2"]], ["three", ["b", "c"]], ["label", ["box", "box-label"]], ["two", ["b"]]],
+    "two",
+    [300, 200],
+    null,
+    false,
+  ],
+  ["library-group", [["group", ["g1", "g2"]]], "three", null, null, false],
+  ["library-frame", [["frame", ["f", "in1", "in2"]]], "two", [100, 900], null, false],
+  ["library-bound", [["bound", ["s1", "s2", "arr"]]], "two", null, null, false],
+  ["library-label", [["label", ["box", "box-label"]], ["label", ["box", "box-label"]]], "two", null, null, false],
+];
+
+// The viewport the insertions happen in: 1000x800 at (10, 20), scrolled
+// and zoomed so that client and scene coordinates differ.
+const LIBRARY_VIEWPORT = { width: 1000, height: 800, offsetLeft: 10, offsetTop: 20, scrollX: -30, scrollY: 15, zoom: { value: 2 } };
+
+const libraryCases = () =>
+  LIBRARY_CASES.map(([id, itemSpecs, intoName, client, gridSize, dockedAndFits]) => ({
+    id,
+    build: (up) => {
+      const items = itemSpecs.map(([sceneName, ids], i) => {
+        const from = indexedScene(up, sceneName);
+        return {
+          id: `item${i}`,
+          status: "unpublished",
+          created: 1,
+          elements: clone(from.getNonDeletedElements().filter((e) => ids.includes(e.id))),
+        };
+      });
+      const scene = indexedScene(up, intoName);
+      const recordedElements = clone(scene.getElementsIncludingDeleted());
+      const appState = withAppState(up, { ...LIBRARY_VIEWPORT, openSidebar: { name: "default", tab: "library" } });
+      // LibraryMenuItems.getInsertedElements (and App's drop handler):
+      // each item's elements duplicated to confine ids and bindings
+      const duplicated = items.map((item) => ({
+        ...item,
+        elements: up.duplicateElements({
+          type: "everything",
+          elements: item.elements,
+          randomizeSeed: true,
+          preserveFrameChildrenOrder: true,
+        }).duplicatedElements,
+      }));
+      const distributed = up.distributeLibraryItemsOnSquareGrid(duplicated);
+      const recordedDistributed = clone(distributed);
+      // addElementsFromPasteOrLibrary({ elements, files: null, position })
+      // as onInsertElements ("center") and the drop handler (the event)
+      // call it: no retainSeed, no preserveFrameChildrenOrder
+      const restored = up.restoreElements(distributed, null, { deleteInvisibleElements: true });
+      const clientX = client ? client[0] : appState.width / 2 + appState.offsetLeft;
+      const clientY = client ? client[1] : appState.height / 2 + appState.offsetTop;
+      const { x, y } = up.viewportCoordsToSceneCoords({ clientX, clientY }, appState);
+      const app = {
+        scene,
+        state: appState,
+        props: {},
+        getEffectiveGridSize: () => gridSize,
+        getTopLayerFrameAtSceneCoords: () => null,
+      };
+      const { nextElements, duplicatedElements } = new up.AppDuplicate(app).duplicateAtSceneCoords(
+        restored,
+        { x, y },
+        { retainSeed: undefined, preserveFrameChildrenOrder: undefined },
+      );
+      scene.replaceAllElements(nextElements);
+      const selection = up.getSelectionStateForElements(
+        up.excludeElementsInFramesFromSelection(duplicatedElements),
+        scene.getNonDeletedElements(),
+        appState,
+      );
+      return {
+        id,
+        kind: "library",
+        elements: recordedElements,
+        items: clone(items),
+        viewport: LIBRARY_VIEWPORT,
+        client,
+        pointer: [x, y],
+        gridSize,
+        dockedAndFits,
+        distributed: recordedDistributed,
+        result: {
+          elements: clone(scene.getElementsIncludingDeleted()),
+          appState: {
+            ...pickAppState(selection),
+            openSidebar: dockedAndFits ? appState.openSidebar : null,
+          },
+        },
+      };
+    },
+  }));
+
 const buildCases = () => [
   ...withinCases(),
   ...groupCases(),
@@ -1127,6 +1236,7 @@ const buildCases = () => [
   ...actionCases(),
   ...copyCases(),
   ...pasteCases(),
+  ...libraryCases(),
 ];
 
 // -- the fixture --------------------------------------------------------------
@@ -1166,7 +1276,8 @@ const buildFixture = (up, commit) => {
       "dragNewElement, getPerfectElementSize, EraserTrail (packages/element/src/selection.ts, " +
       "groups.ts, newElement.ts, dragElements.ts, sizeHelpers.ts, packages/excalidraw/eraser), " +
       "the delete, duplicate, group, ungroup and z-order actions' perform, the clipboard JSON of " +
-      "actionCopy and the paste insertion of addElementsFromPasteOrLibrary " +
+      "actionCopy, the paste insertion of addElementsFromPasteOrLibrary and its library insertion " +
+      "(distributeLibraryItemsOnSquareGrid of data/library.ts) " +
       "in upstream's test mode (ids id0.., " +
       "timestamps 1, reseed(1) before each case). Generated by tools/goldens/editing-fixtures.mjs.",
     upstream: commit,
