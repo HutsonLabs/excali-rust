@@ -359,3 +359,39 @@ fn export_options_read_the_documented_keys() {
         ExportOptions::default()
     );
 }
+
+#[test]
+fn the_context_menu_is_the_elements_over_an_element_or_the_selection() {
+    use excali_editor::actions::ContextMenuKind;
+    let selected = |ed: &Editor<CharCountTextMetrics>| {
+        let mut ids: Vec<String> = ed
+            .app_state()
+            .get("selectedElementIds")
+            .and_then(Value::as_object)
+            .map(|m| m.keys().cloned().collect())
+            .unwrap_or_default();
+        ids.sort();
+        ids
+    };
+    let mut ed = editor();
+    // App.openContextMenu: nothing under the pointer is the canvas menu
+    assert_eq!(ed.open_context_menu(900.0, 100.0), ContextMenuKind::Canvas);
+    assert!(selected(&ed).is_empty());
+    // an element not selected becomes the selection
+    let a = center(get(&ed, "a"));
+    assert_eq!(ed.open_context_menu(a[0], a[1]), ContextMenuKind::Element);
+    assert_eq!(selected(&ed), ["a"]);
+    // a selected element keeps the selection
+    let b = center(get(&ed, "b"));
+    ed.pointer_down(PointerInput::at(b[0], b[1]).shift());
+    ed.pointer_up(PointerInput::at(b[0], b[1]).shift());
+    assert_eq!(selected(&ed), ["a", "b"]);
+    assert_eq!(ed.open_context_menu(b[0], b[1]), ContextMenuKind::Element);
+    assert_eq!(selected(&ed), ["a", "b"]);
+    // inside the two's common bounds, over neither: still the element menu
+    // (isHittingCommonBoundingBoxOfSelectedElements), the selection kept
+    assert_eq!(ed.open_context_menu(330.0, 310.0), ContextMenuKind::Element);
+    assert_eq!(selected(&ed), ["a", "b"]);
+    // outside them, past the padding: the canvas menu
+    assert_eq!(ed.open_context_menu(330.0, 285.0), ContextMenuKind::Canvas);
+}

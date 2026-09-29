@@ -53,10 +53,10 @@
       "type": "canvas",
       "formFactor": "desktop",
       "elements": [],
-      "appState": {},
+      "appState": {"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "paste",
         "|",
@@ -302,10 +302,10 @@
           "locked": false
         }
       ],
-      "appState": {},
+      "appState": {"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "paste",
         "|",
@@ -584,10 +584,10 @@
           "locked": false
         }
       ],
-      "appState": {},
+      "appState": {"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "paste",
         "|",
@@ -859,11 +859,13 @@
         "isMidpointSnappingEnabled": false,
         "stats": {"open":true,"panels":3},
         "zenModeEnabled": true,
-        "objectsSnapModeEnabled": true
+        "objectsSnapModeEnabled": true,
+        "width": 1024,
+        "height": 768
       },
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "paste",
         "|",
@@ -1113,10 +1115,10 @@
           "locked": false
         }
       ],
-      "appState": {"viewModeEnabled":true},
+      "appState": {"viewModeEnabled":true,"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": ["copyAsPng","copyAsSvg","gridMode","zenMode","viewMode","stats"],
       "tree": [
         {
@@ -1236,10 +1238,10 @@
       "type": "canvas",
       "formFactor": "desktop",
       "elements": [],
-      "appState": {"gridModeEnabled":true,"viewModeEnabled":true},
+      "appState": {"gridModeEnabled":true,"viewModeEnabled":true,"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": ["copyAsPng","copyAsSvg","gridMode","zenMode","viewMode","stats"],
       "tree": [
         {
@@ -1357,10 +1359,10 @@
           "locked": false
         }
       ],
-      "appState": {},
+      "appState": {"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "paste",
         "|",
@@ -1594,10 +1596,10 @@
           "locked": false
         }
       ],
-      "appState": {"selectedElementIds":{"r1":true}},
+      "appState": {"selectedElementIds":{"r1":true},"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "|",
         "cut",
@@ -2025,10 +2027,10 @@
           "locked": false
         }
       ],
-      "appState": {"selectedElementIds":{"r1":true}},
+      "appState": {"selectedElementIds":{"r1":true},"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "|",
         "cut",
@@ -2386,10 +2388,10 @@
           "locked": false
         }
       ],
-      "appState": {"selectedElementIds":{"r1":true}},
+      "appState": {"selectedElementIds":{"r1":true},"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "|",
         "cut",
@@ -2776,10 +2778,10 @@
           "locked": false
         }
       ],
-      "appState": {"selectedElementIds":{"r1":true,"r2":true}},
+      "appState": {"selectedElementIds":{"r1":true,"r2":true},"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "|",
         "cut",
@@ -3220,10 +3222,10 @@
           "locked": false
         }
       ],
-      "appState": {"selectedElementIds":{"r1":true,"r2":true},"selectedGroupIds":{"g1":true}},
+      "appState": {"selectedElementIds":{"r1":true,"r2":true},"selectedGroupIds":{"g1":true},"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "|",
         "cut",
@@ -3663,10 +3665,10 @@
           "labelPosition": null
         }
       ],
-      "appState": {"selectedElementIds":{"t1":true}},
+      "appState": {"selectedElementIds":{"t1":true},"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "|",
         "cut",
@@ -4138,10 +4140,10 @@
           "labelPosition": null
         }
       ],
-      "appState": {"selectedElementIds":{"t1":true}},
+      "appState": {"selectedElementIds":{"t1":true},"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "|",
         "cut",
@@ -4658,10 +4660,10 @@
           "labelPosition": null
         }
       ],
-      "appState": {"selectedElementIds":{"c1":true}},
+      "appState": {"selectedElementIds":{"c1":true},"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "|",
         "cut",
@@ -5162,10 +5164,10 @@
           "labelPosition": null
         }
       ],
-      "appState": {"selectedElementIds":{"r1":true,"t1":true}},
+      "appState": {"selectedElementIds":{"r1":true,"t1":true},"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "|",
         "cut",
@@ -5655,10 +5657,10 @@
           "name": null
         }
       ],
-      "appState": {"selectedElementIds":{"f1":true}},
+      "appState": {"selectedElementIds":{"f1":true},"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "|",
         "cut",
@@ -6106,10 +6108,10 @@
           "crop": null
         }
       ],
-      "appState": {"selectedElementIds":{"i1":true}},
+      "appState": {"selectedElementIds":{"i1":true},"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "|",
         "cut",
@@ -6560,10 +6562,10 @@
           "polygon": false
         }
       ],
-      "appState": {"selectedElementIds":{"l1":true}},
+      "appState": {"selectedElementIds":{"l1":true},"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "|",
         "cut",
@@ -7014,10 +7016,10 @@
           "elbowed": false
         }
       ],
-      "appState": {"selectedElementIds":{"a1":true}},
+      "appState": {"selectedElementIds":{"a1":true},"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "|",
         "cut",
@@ -7462,10 +7464,10 @@
           "locked": true
         }
       ],
-      "appState": {"selectedElementIds":{"r1":true}},
+      "appState": {"selectedElementIds":{"r1":true},"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "|",
         "cut",
@@ -7893,10 +7895,10 @@
           "locked": false
         }
       ],
-      "appState": {"selectedElementIds":{"r1":true}},
+      "appState": {"selectedElementIds":{"r1":true},"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "|",
         "cut",
@@ -8324,10 +8326,10 @@
           "locked": false
         }
       ],
-      "appState": {"selectedElementIds":{"e1":true}},
+      "appState": {"selectedElementIds":{"e1":true},"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "|",
         "cut",
@@ -8766,10 +8768,10 @@
           "labelPosition": null
         }
       ],
-      "appState": {"selectedElementIds":{"t1":true},"viewModeEnabled":true},
+      "appState": {"selectedElementIds":{"t1":true},"viewModeEnabled":true,"width":1024,"height":768},
       "top": 100,
       "left": 200,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": ["copy","copyAsPng","copyAsSvg","copyText"],
       "tree": [
         {
@@ -8887,10 +8889,10 @@
           "locked": false
         }
       ],
-      "appState": {"selectedElementIds":{"r1":true}},
+      "appState": {"selectedElementIds":{"r1":true},"width":1024,"height":768},
       "top": 700,
       "left": 1000,
-      "viewport": {},
+      "viewport": {"width":1024,"height":768},
       "items": [
         "|",
         "cut",

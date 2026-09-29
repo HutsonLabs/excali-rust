@@ -333,3 +333,50 @@ test("undoing a bound rectangle move re-routes its arrow", async ({ page }) => {
   expect(arrow(now.link)).toEqual(laidOut);
   expect(errors).toEqual([]);
 });
+
+// ex-525: the context menu (App.openContextMenu, ContextMenu.tsx): the
+// canvas menu over nothing, the element menu over an element (selecting
+// it), a row closing the menu and running its action, a press outside
+// closing it. The rows are upstream's (tests/context_menu.rs in excali-ui
+// holds them to upstream's own component).
+test("right-click opens the canvas or the element context menu", async ({ page }) => {
+  const errors = await mount(page);
+  const menu = page.locator("excali-editor .context-menu");
+  const rows = () => menu.locator("li").evaluateAll((lis) => lis.map((li) => li.dataset.testid));
+
+  const [cx, cy] = await client(page, [900, 100]);
+  await page.mouse.click(cx, cy, { button: "right" });
+  await expect(menu).toBeVisible();
+  expect(await rows(page)).toEqual([
+    "paste",
+    "selectAll",
+    "gridMode",
+    "objectsSnapMode",
+    "arrowBinding",
+    "midpointSnapping",
+    "zenMode",
+    "viewMode",
+    "stats",
+  ]);
+  // a press outside the popover (which fits itself left of the pointer
+  // here) closes it
+  const [ox, oy] = await client(page, [900, 650]);
+  await page.mouse.click(ox, oy);
+  await expect(menu).toHaveCount(0);
+
+  const a = center((await elements(page)).a);
+  const [ax, ay] = await client(page, a);
+  await page.mouse.click(ax, ay, { button: "right" });
+  await expect(menu).toBeVisible();
+  const elementRows = await rows(page);
+  expect(elementRows.slice(0, 3)).toEqual(["cut", "copy", "paste"]);
+  expect(elementRows).toContain("bringToFront");
+  expect(elementRows.at(-1)).toBe("deleteSelectedElements");
+  await expect(menu.locator(".context-menu-item.dangerous")).toHaveText(/Delete/);
+  expect(await page.evaluate(() => window.ed.getState().selectionCount)).toBe(1);
+
+  await menu.locator('[data-testid="deleteSelectedElements"] button').click();
+  await expect(menu).toHaveCount(0);
+  expect((await elements(page)).a.isDeleted).toBe(true);
+  expect(errors).toEqual([]);
+});
