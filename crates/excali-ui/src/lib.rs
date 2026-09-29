@@ -19,7 +19,10 @@
 //! `components/dropdownMenu/*`); for [`context_menu`] the canvas and
 //! element context menus (`components/ContextMenu.tsx`); for [`footer`]
 //! the footer's zoom, undo/redo, help and exit-zen controls
-//! (`components/footer/Footer.tsx`).
+//! (`components/footer/Footer.tsx`); for [`library_sidebar`] the default
+//! sidebar with the library (`components/DefaultSidebar.tsx`,
+//! `components/Sidebar/*`, `components/LibraryMenu*.tsx`,
+//! `components/LibraryUnit.tsx`).
 //!
 //! Targets: wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-canvas2d`, `excali-editor`.
@@ -32,6 +35,7 @@ pub mod footer;
 pub mod icons;
 pub mod keyboard;
 pub mod layers;
+pub mod library_sidebar;
 pub mod main_menu;
 pub mod primitives;
 pub mod styles_panel;

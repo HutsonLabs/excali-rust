@@ -100,10 +100,27 @@ pub fn paste_elements<E: EditEnv>(
         .map(Element::from_restored)
         .collect::<Result<_, _>>()
         .ok()?;
+    add_elements_at(restored, elements, app_state, pointer, grid_size, true, env)
+}
+
+/// The shared half of `addElementsFromPasteOrLibrary` (`App.tsx:
+/// 4885-4990`) after `restoreElements`: `duplicateAtSceneCoords` of
+/// `App.duplicate.ts` at `pointer` (scene coordinates) with new seeds and
+/// `preserve_frame_children_order`, the duplicates on top of the scene with
+/// their fractional indices synced, and selected. `None` when nothing is
+/// left to add, or routing or indexing fails where upstream throws.
+pub(super) fn add_elements_at<E: EditEnv>(
+    restored: Vec<Element>,
+    elements: &[Element],
+    app_state: &AppState,
+    pointer: [f64; 2],
+    grid_size: Option<f64>,
+    preserve_frame_children_order: bool,
+    env: &mut E,
+) -> Option<ActionResult> {
     if restored.is_empty() {
         return None;
     }
-
     // duplicateAtSceneCoords
     let [min_x, min_y, max_x, max_y] = get_common_bounds(&restored.iter().collect::<Vec<_>>());
     let center_x = (min_x - max_x).abs() / 2.0;
@@ -126,7 +143,7 @@ pub fn paste_elements<E: EditEnv>(
         })
         .collect();
     let kind = DuplicateType::Everything {
-        preserve_frame_children_order: true,
+        preserve_frame_children_order,
     };
     let duplication = duplicate_elements(&moved, &kind, true, env).ok()?;
 

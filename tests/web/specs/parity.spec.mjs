@@ -735,7 +735,8 @@ const ROWS = {
   "ui-library": async ({ page }) => {
     await mount(page);
     await page.locator("excali-editor .default-sidebar-trigger").click(SHORT);
-    await expect(page.locator("excali-editor .library-menu")).toBeVisible(SHORT);
+    await expect(page.locator("excali-editor .default-sidebar")).toBeVisible(SHORT);
+    await expect(page.locator("excali-editor .layer-ui__library")).toBeVisible(SHORT);
   },
 
   "ui-command-palette": async ({ page }) => {

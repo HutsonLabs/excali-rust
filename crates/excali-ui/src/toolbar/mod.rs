@@ -664,8 +664,28 @@ fn menu(
         },
         children,
     );
-    let on_key = props.on_event.clone();
-    let on_outside = props.on_event.clone();
+    let on_event = props.on_event.clone();
+    radix_menu_content(
+        "dropdown-menu App-toolbar__extra-tools-dropdown",
+        trigger_id,
+        content_id,
+        container,
+        Rc::new(move || emit(&on_event, ToolbarEvent::ExtraToolsClose)),
+    )
+}
+
+/// radix's popper wrapper and `Menu.Content` (react-dropdown-menu 2.1.16)
+/// around a `DropdownMenuContent`'s `container`, of class `class`: placed
+/// by its trigger and focused once mounted; Escape and a press outside the
+/// dropdown's wrapper ask `close`.
+pub(crate) fn radix_menu_content(
+    class: &str,
+    trigger_id: &str,
+    content_id: &str,
+    container: Element,
+    close: Rc<dyn Fn()>,
+) -> Element {
+    let on_key = close.clone();
     let trigger = trigger_id.to_owned();
     let content = Element::new("div")
         .attr("id", content_id)
@@ -677,7 +697,7 @@ fn menu(
         .attr("dir", "ltr")
         .attr("data-side", "bottom")
         .attr("data-align", "end")
-        .attr("class", "dropdown-menu App-toolbar__extra-tools-dropdown")
+        .attr("class", class)
         .attr("data-testid", "dropdown-menu")
         .attr("tabindex", "-1")
         .attr("data-orientation", "vertical")
@@ -704,7 +724,7 @@ fn menu(
         )
         .on("keydown", move |e| {
             if let Some(k) = e.dyn_ref::<KeyboardEvent>() {
-                menu_keydown(k, &on_key);
+                menu_keydown(k, &*on_key);
             }
         })
         .child(container);
@@ -713,7 +733,7 @@ fn menu(
         .attr("dir", "ltr")
         .on_mount(move |wrapper| {
             place(wrapper, &trigger);
-            close_on_outside_press(wrapper, on_outside.clone());
+            close_on_outside_press(wrapper, close.clone());
         })
         .child(content)
 }
@@ -732,12 +752,12 @@ fn menu_items(content: &web_sys::Element) -> Vec<web_sys::HtmlElement> {
 /// Keys in the menu: Escape closes (`DropdownMenuContent.tsx:63-83`), Tab
 /// stays, the arrows, Home and End move focus among the items (radix's
 /// `Menu.Content` and roving focus group).
-fn menu_keydown(e: &KeyboardEvent, on_event: &Option<OnToolbarEvent>) {
+fn menu_keydown(e: &KeyboardEvent, close: &dyn Fn()) {
     let key = e.key();
     if key == "Escape" {
         e.prevent_default();
         e.stop_immediate_propagation();
-        emit(on_event, ToolbarEvent::ExtraToolsClose);
+        close();
         return;
     }
     if key == "Tab" {
@@ -841,7 +861,7 @@ fn place(wrapper: &web_sys::Element, trigger_id: &str) {
 /// Asks to close on a press outside the dropdown's wrapper (the trigger
 /// toggles itself) while the menu is in the document (`useOutsideClick`,
 /// `DropdownMenuContent.tsx:48-61`).
-fn close_on_outside_press(wrapper: &web_sys::Element, on_event: Option<OnToolbarEvent>) {
+fn close_on_outside_press(wrapper: &web_sys::Element, close: Rc<dyn Fn()>) {
     let Some(document) = wrapper.owner_document() else {
         return;
     };
@@ -874,7 +894,7 @@ fn close_on_outside_press(wrapper: &web_sys::Element, on_event: Option<OnToolbar
             .flatten()
             .is_some_and(|w| w.contains(Some(&node)));
         if !in_wrapper {
-            emit(&on_event, ToolbarEvent::ExtraToolsClose);
+            close();
         }
     });
     let f: js_sys::Function = closure.into_js_value().unchecked_into();

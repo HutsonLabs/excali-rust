@@ -13,3 +13,5 @@ playwright-report-primitives/
 test-results-primitives/
 playwright-report-styles-panel/
 test-results-styles-panel/
+playwright-report-library-sidebar/
+test-results-library-sidebar/

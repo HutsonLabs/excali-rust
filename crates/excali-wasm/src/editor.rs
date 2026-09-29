@@ -75,7 +75,8 @@ use excali_editor::binding::{
 use excali_editor::collision::{hit_element, HitTestCache};
 use excali_editor::edit_actions::{
     bring_forward, bring_to_front, copy_selected, delete_selected, duplicate_selection, group,
-    paste_elements, select_all, send_backward, send_to_back, ungroup, ActionResult,
+    insert_library_items, paste_elements, select_all, selected_elements, send_backward,
+    send_to_back, ungroup, ActionResult,
 };
 use excali_editor::eraser::EraserTrail;
 use excali_editor::groups::select_groups_for_selected_elements;
@@ -818,6 +819,99 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             self.tools.active_tool = self.tools.tool_after_finalize();
             self.apply_action(result);
         }
+    }
+
+    /// Inserts the library's items `ids` (in library order), as a click in
+    /// the library sidebar (`onInsertElements`, at the viewport's centre,
+    /// `client` `None`) or a drop on the canvas (at the drop's client
+    /// point) does: duplicated, laid out on a square grid, added and
+    /// selected ([`insert_library_items`]); the sidebar stays open only
+    /// when `sidebar_docked_and_fits`. Returns whether anything was added.
+    pub fn insert_library(
+        &mut self,
+        ids: &[String],
+        client: Option<[f64; 2]>,
+        sidebar_docked_and_fits: bool,
+    ) -> bool {
+        let items: Vec<Vec<Element>> = self
+            .library
+            .iter()
+            .filter(|i| ids.contains(&i.id))
+            .map(|i| i.elements.clone())
+            .collect();
+        let app_state = self.session.app_state().clone();
+        let [x, y] = client.unwrap_or_else(|| {
+            let n = |k: &str| app_state.get(k).and_then(Value::as_f64).unwrap_or(0.0);
+            [
+                n("width") / 2.0 + n("offsetLeft"),
+                n("height") / 2.0 + n("offsetTop"),
+            ]
+        });
+        let pointer = self.scene_point(x, y);
+        let grid = self.grid_size(false);
+        let elements = self.session.elements().to_vec();
+        match insert_library_items(
+            &items,
+            &elements,
+            &app_state,
+            pointer,
+            grid,
+            sidebar_docked_and_fits,
+            &mut self.session.env,
+        ) {
+            Some(result) => {
+                self.tools.active_tool = self.tools.tool_after_finalize();
+                self.apply_action(result);
+                true
+            }
+            None => false,
+        }
+    }
+
+    /// Runs `f` with the editor's id and clock (`randomId()`, `Date.now()`),
+    /// as the library sidebar's handlers draw them.
+    pub fn with_restore_env<R>(&mut self, f: impl FnOnce(&mut dyn RestoreEnv) -> R) -> R {
+        f(&mut Restore(&mut self.session.env))
+    }
+
+    /// The library's items after the sidebar changed them (an item added,
+    /// items removed, the library reset).
+    pub fn set_library(&mut self, items: Vec<LibraryItem>) {
+        self.library = items;
+    }
+
+    /// The elements the library offers to add (`getPendingElements`): the
+    /// selection with its bound text and frames' children.
+    pub fn pending_library_elements(&self) -> Vec<Element> {
+        let selected = self
+            .session
+            .app_state()
+            .get("selectedElementIds")
+            .and_then(Value::as_object)
+            .cloned()
+            .unwrap_or_default();
+        selected_elements(self.session.elements(), &selected, true, true)
+    }
+
+    /// A library item's preview (`exportLibraryItemToSvg`,
+    /// `hooks/useLibraryItemSvg.ts`): `exportToSvg` of its elements with no
+    /// background on white, no embeddables, fonts not inlined; the `<svg>`
+    /// element's markup.
+    pub fn library_item_svg(&self, elements: &[Element]) -> String {
+        struct NoFonts;
+        impl FontContent for NoFonts {
+            fn content(&self, _: &excali_scene::display::FontFaceSource) -> String {
+                String::new()
+            }
+        }
+        let mut state = SvgExportAppState::new("#ffffff");
+        state.export_background = false;
+        let metrics = Measure(&self.session.env.layouter.provider);
+        let mut options = SvgExportOptions::new(&self.source, &metrics);
+        options.skip_inlining_fonts = true;
+        options.render_embeddables = false;
+        let document = svg_document(elements, &state, None, &options);
+        export_to_svg(&document, &NoFonts).outer_html()
     }
 
     /// `viewport.lastPosition`: where the pointer last was, in the page.
