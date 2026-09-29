@@ -5,3 +5,5 @@ playwright-report-canvas2d/
 test-results-canvas2d/
 playwright-report-layers/
 test-results-layers/
+playwright-report-keyboard/
+test-results-keyboard/
