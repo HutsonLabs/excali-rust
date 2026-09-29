@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 22:58 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 23:18 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**151 issues** · 112 closed (74%) · 2 in progress · 0 blocked · 36 open
+**151 issues** · 112 closed (74%) · 3 in progress · 0 blocked · 35 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -205,7 +205,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 | id | title | type | P | status | ready | blocked by |
 |---|---|---|---|---|---|---|
 | `ex-701` | Compact styles panel and tablet form factor | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-702` | Phone layout: mobile menu, bottom bar, mobile toolbar order | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-702` | Phone layout: mobile menu, bottom bar, mobile toolbar order | task | P1 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-703` | Sticky notes: element, rendering (shadow, edge, footer), label fitting | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-704` | Bucket fill tool | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-705` | Lasso selection | task | P2 | <span class="status open">open</span> | yes |  |
