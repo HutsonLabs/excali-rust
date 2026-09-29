@@ -1,0 +1,51 @@
+# The example Tauri app (ex-606): <excali-editor> in a Tauri v2 window, with
+# tauri-plugin-excali's open, save, export and library fetch. Its own
+# workspace (and Cargo.lock), so the library workspace's builds and gates do
+# not compile a webview; CI builds and tests it in the tauri-example job.
+[workspace]
+
+[package]
+name = "excali-tauri-example"
+description = "Example Tauri app embedding the <excali-editor> web component."
+version = "26.9.1"
+edition = "2021"
+rust-version = "1.94"
+license = "MIT"
+repository = "https://github.com/HutsonLabs/excali-rust"
+publish = false
+
+[lib]
+name = "excali_tauri_example"
+path = "src/lib.rs"
+
+[[bin]]
+name = "excali-tauri-example"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1.0.151"
+tauri = { version = "2.12.0", features = [] }
+tauri-plugin-dialog = "2.8.0"
+tauri-plugin-excali = { path = "../../../crates/tauri-plugin-excali" }
+
+# The mock runtime drives the app's own context (its compiled capabilities)
+# through the IPC in tests/app.rs; png decodes the export.
+[dev-dependencies]
+tauri = { version = "2.12.0", features = ["test"] }
+png = "0.18.1"
+
+[build-dependencies]
+tauri-build = { version = "2.7.0", features = [] }
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+rust_2018_idioms = { level = "deny", priority = -1 }
+
+[lints.clippy]
+dbg_macro = "deny"
+todo = "deny"
+unimplemented = "deny"
+
+# Dependencies without debug info: a Tauri debug build is several GB with it.
+[profile.dev.package."*"]
+debug = false

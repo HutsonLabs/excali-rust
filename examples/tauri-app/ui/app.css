@@ -1,0 +1,27 @@
+html, body { height: 100%; margin: 0; }
+body {
+  display: flex;
+  flex-direction: column;
+  font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+}
+.bar button {
+  font: inherit;
+  padding: 4px 10px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+.bar button:hover { background: #f0f0ff; }
+.file { margin-left: 12px; font-weight: 600; }
+.status { margin-left: auto; color: #555; }
+.status.error { color: #c92a2a; }
+#host { flex: 1; min-height: 0; }
