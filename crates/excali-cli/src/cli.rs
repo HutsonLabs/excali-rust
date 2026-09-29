@@ -260,7 +260,17 @@ fn validate_one(path: &Path) -> Result<(Map<String, Value>, String), Failure> {
     let file = read_file(path)?;
     let mut report = Map::new();
     report.insert("path".into(), json!(path.display().to_string()));
-    let line = match load_scene_or_library(&file, &mut env)? {
+    let (summary, line) = validation_report(&load_scene_or_library(&file, &mut env)?);
+    report.extend(summary);
+    Ok((report, line))
+}
+
+/// What `validate` reports of a loaded file, as JSON and as the plain
+/// line: a scene's live elements (by type), texts and files, or a
+/// library's items and their elements.
+pub fn validation_report(loaded: &Loaded) -> (Map<String, Value>, String) {
+    let mut report = Map::new();
+    let line = match loaded {
         Loaded::Scene(scene) => {
             let live: Vec<_> = scene
                 .elements
@@ -301,7 +311,7 @@ fn validate_one(path: &Path) -> Result<(Map<String, Value>, String), Failure> {
             )
         }
     };
-    Ok((report, line))
+    (report, line)
 }
 
 fn validate(files: &[PathBuf], as_json: bool) -> u8 {

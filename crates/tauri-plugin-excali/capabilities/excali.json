@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "excali",
+  "description": "The excali plugin's commands in the window that embeds <excali-editor>",
+  "windows": ["main"],
+  "permissions": ["excali:default"]
+}

@@ -50,6 +50,7 @@ Method: every claim on this site traces to one of the rows below. Upstream sourc
 | tauri-build | 2.7.0 | 2026-09-26 |
 | wry / tao | 0.57.0 / 0.37.1 | 2026-09 |
 | tauri-plugin-fs / tauri-plugin-dialog | 2.6.0 / 2.8.0 | 2026-09-26 |
+| tauri-plugin (build script and permissions of `tauri-plugin-excali`) / ureq | 2.7.0 / 3.4.2 (`cargo info`, read 2026-09-29) | 2026 |
 | wasm-bindgen / js-sys / web-sys | 0.2.129 / 0.3.106 / 0.3.106 | 2026-09-25 |
 | wasm-bindgen-futures / wasm-bindgen-cli | 0.4.79 / 0.2.129 (crates.io API, read 2026-09-28) | 2026-09-25 |
 | wasm-pack / trunk | 0.15.0 / 0.21.14 | 2026 |
