@@ -21,6 +21,12 @@
 //!   textarea's value and selection; the handler answers with whether to
 //!   prevent the browser's default and the editor's new
 //!   [`TextareaState`], which the overlay applies.
+//! - **Scene updates.** When the scene changes while the editor is open
+//!   (`app.scene.onUpdate`) the app relays out the editor
+//!   (`TextEditor::relayout`) and hands its state to
+//!   [`TextEditorOverlay::scene_updated`], which applies it and focuses the
+//!   textarea again without scrolling unless the focus is in a properties
+//!   popover ([`refocuses_on_scene_update`]).
 //! - **Submit without blur.** A pointer down on the canvas submits on the
 //!   next frame (mobile browsers do not always blur); one in the styles
 //!   panel, its popovers or the zoom actions suspends the blur submit until
@@ -28,8 +34,8 @@
 //!   `beforeunload` submit.
 //!
 //! The pure rules ([`css_property_name`], [`classify_pointer_down`],
-//! [`closest_caret_offset`], ...) are tested natively; the DOM half in
-//! Chromium (`tests/web/text-editing`).
+//! [`refocuses_on_scene_update`], [`closest_caret_offset`], ...) are tested
+//! natively; the DOM half in Chromium (`tests/web/text-editing`).
 
 mod dom;
 
@@ -375,6 +381,15 @@ pub fn classify_pointer_down(target: &PointerDownTarget) -> PointerDownAction {
 /// or in a properties popover keeps it suspended.
 pub fn rearms_on_pointer_up(target: &PointerDownTarget) -> bool {
     !(target.in_actions_menu || target.properties_trigger || target.in_properties_content)
+}
+
+/// The scene update's popup check (`textWysiwyg.tsx:1053-1061`): after a
+/// scene change the textarea takes the focus back from `active` (the
+/// document's focused element) unless it is inside a properties popover
+/// (`ownerDocument.activeElement?.closest(".properties-content")`). Focus
+/// in the shape actions menu or on a properties trigger is taken back.
+pub fn refocuses_on_scene_update(active: &PointerDownTarget) -> bool {
+    !active.in_properties_content
 }
 
 /// `getCaretBoundaryOffsets(text)` (`textWysiwyg.tsx:117-126`): the UTF-16

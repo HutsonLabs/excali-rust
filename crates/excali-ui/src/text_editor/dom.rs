@@ -14,8 +14,9 @@ use web_sys::{
 
 use super::{
     caret_boundary_offsets, classify_pointer_down, closest_caret_offset, css_property_name,
-    is_darwin, rearms_on_pointer_up, PointerDownAction, PointerDownTarget, TextareaEvent,
-    TextareaHandler, TextareaKey, TextareaState, TEXTAREA_ATTRIBUTES,
+    is_darwin, rearms_on_pointer_up, refocuses_on_scene_update, PointerDownAction,
+    PointerDownTarget, TextareaEvent, TextareaHandler, TextareaKey, TextareaState,
+    TEXTAREA_ATTRIBUTES,
 };
 
 type Callback = Closure<dyn FnMut(Event)>;
@@ -181,12 +182,17 @@ fn px(x: f64) -> String {
 /// `event.target` as `onPointerDown` reads it.
 fn target_of(event: &Event) -> PointerDownTarget {
     let button = event.dyn_ref::<MouseEvent>().map_or(0, MouseEvent::button);
-    let Some(element) = event.target().and_then(|t| t.dyn_into::<Element>().ok()) else {
-        return PointerDownTarget {
+    match event.target().and_then(|t| t.dyn_into::<Element>().ok()) {
+        Some(element) => element_target(&element, button),
+        None => PointerDownTarget {
             button,
             ..PointerDownTarget::default()
-        };
-    };
+        },
+    }
+}
+
+/// `element` as `onPointerDown` and the scene update's popup check read it.
+fn element_target(element: &Element, button: i16) -> PointerDownTarget {
     let tag = element.tag_name().to_ascii_lowercase();
     let closest = |selector: &str| element.closest(selector).ok().flatten().is_some();
     PointerDownTarget {
@@ -197,7 +203,7 @@ fn target_of(event: &Event) -> PointerDownTarget {
         in_properties_content: closest(".properties-content"),
         in_actions_menu: closest(".App-menu__left, .zoom-actions")
             || closest(".compact-shape-actions-island"),
-        writable: is_writable(&element, &tag),
+        writable: is_writable(element, &tag),
     }
 }
 
@@ -469,10 +475,38 @@ impl TextEditorOverlay {
     }
 
     /// Applies the editor's state (after the app changed it outside the
-    /// textarea's events: a scene or scroll change, a submit).
+    /// textarea's events: a scroll or app state change, a submit). A scene
+    /// change goes through [`TextEditorOverlay::scene_updated`], which also
+    /// takes the focus back.
     pub fn apply(&self, state: &TextareaState) {
         if !self.shared.closed.get() {
             self.shared.apply(state);
+        }
+    }
+
+    /// The scene changed (`app.scene.onUpdate`, `textWysiwyg.tsx:1053-1061`):
+    /// applies the editor's state after its `updateWysiwygStyle()`
+    /// (`TextEditor::relayout`), then focuses the textarea without
+    /// scrolling, unless the focused element is inside a properties popover
+    /// (`.properties-content`, [`refocuses_on_scene_update`]). The app calls
+    /// it for every scene change while the editor is open: a style change
+    /// from the panel, a collaborator's edit, the container moved.
+    pub fn scene_updated(&self, state: &TextareaState) {
+        if self.shared.closed.get() {
+            return;
+        }
+        self.shared.apply(state);
+        if self.shared.closed.get() {
+            return;
+        }
+        let active = self
+            .shared
+            .textarea
+            .owner_document()
+            .and_then(|d| d.active_element())
+            .map_or_else(PointerDownTarget::default, |e| element_target(&e, 0));
+        if refocuses_on_scene_update(&active) {
+            self.shared.focus();
         }
     }
 

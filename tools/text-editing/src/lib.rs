@@ -369,13 +369,38 @@ impl TextEditing {
             &mut TextEditingContext<'_, Env, TenPxPerCodeUnit>,
         ) -> Result<(), excali_editor::text_editing::TextEditingError>,
     {
+        self.after_with(false, f)
+    }
+
+    /// [`Self::after`] for a scene change: the overlay's `scene_updated`.
+    fn after_scene_update<F>(&mut self, f: F) -> Result<(), JsError>
+    where
+        F: FnOnce(
+            &mut excali_editor::text_editing::TextEditor,
+            &mut TextEditingContext<'_, Env, TenPxPerCodeUnit>,
+        ) -> Result<(), excali_editor::text_editing::TextEditingError>,
+    {
+        self.after_with(true, f)
+    }
+
+    fn after_with<F>(&mut self, scene_update: bool, f: F) -> Result<(), JsError>
+    where
+        F: FnOnce(
+            &mut excali_editor::text_editing::TextEditor,
+            &mut TextEditingContext<'_, Env, TenPxPerCodeUnit>,
+        ) -> Result<(), excali_editor::text_editing::TextEditingError>,
+    {
         let state = self.app.borrow_mut().with_editor(f).map(|(_, s)| s);
         let errors = self.app.borrow().errors.clone();
         if let Some(e) = errors.last() {
             return Err(error(e));
         }
         if let (Some(state), Some(overlay)) = (state, &self.overlay) {
-            overlay.apply(&state);
+            if scene_update {
+                overlay.scene_updated(&state);
+            } else {
+                overlay.apply(&state);
+            }
         }
         Ok(())
     }
@@ -398,8 +423,9 @@ impl TextEditing {
         self.after(|editor, ctx| editor.relayout(ctx))
     }
 
-    /// An element changed elsewhere (a collaborator): `updates` (JSON)
-    /// applied to `id`.
+    /// An element changed elsewhere (a collaborator, the styles panel):
+    /// `updates` (JSON) applied to `id`, then the scene update
+    /// (`TextEditorOverlay::scene_updated`).
     pub fn mutate(&mut self, id: &str, updates_json: &str) -> Result<(), JsError> {
         let updates = parse(updates_json)?
             .as_object()
@@ -415,7 +441,7 @@ impl TextEditing {
             Ok::<(), String>(())
         });
         result.map_err(error)?;
-        self.after(|editor, ctx| editor.relayout(ctx))
+        self.after_scene_update(|editor, ctx| editor.relayout(ctx))
     }
 
     /// The editor box scrolled by `left` × `top` to reveal the caret.
