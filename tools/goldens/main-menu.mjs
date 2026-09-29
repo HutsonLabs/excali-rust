@@ -336,7 +336,15 @@ const flatten = (node, ctx) => {
       continue;
     }
     if (typeof v === "boolean") {
-      if (v) attrs[k] = "";
+      // as React 19 writes a boolean (react-dom setProp and
+      // setValueForAttribute): an input's `checked` and the boolean
+      // attributes present and empty when true, `data-`/`aria-` as text,
+      // any other (DropdownMenuItemCheckbox's `checked` on its button) left
+      // out
+      if (/^(data|aria)-/.test(k)) attrs[k] = String(v);
+      else if ((type === "input" && k === "checked") || ["disabled", "hidden", "required"].includes(k)) {
+        if (v) attrs[k] = "";
+      }
       continue;
     }
     if (typeof v !== "string") throw new Error(`<${type}> ${k} is not a string`);

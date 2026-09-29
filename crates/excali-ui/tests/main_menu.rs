@@ -269,15 +269,36 @@ fn render_action(name: ActionName) -> Option<Node> {
     Some(Element::new("x-action").attr("name", name.as_str()).into())
 }
 
+/// Where two trees first differ: the path and both values.
+fn first_diff(got: &Value, want: &Value, path: String) -> Option<String> {
+    match (got, want) {
+        (Value::Object(a), Value::Object(b)) => {
+            let keys: std::collections::BTreeSet<_> = a.keys().chain(b.keys()).collect();
+            keys.into_iter().find_map(|k| {
+                let (x, y) = (
+                    a.get(k).unwrap_or(&Value::Null),
+                    b.get(k).unwrap_or(&Value::Null),
+                );
+                first_diff(x, y, format!("{path}.{k}"))
+            })
+        }
+        (Value::Array(a), Value::Array(b)) if a.len() == b.len() => a
+            .iter()
+            .zip(b)
+            .enumerate()
+            .find_map(|(i, (x, y))| first_diff(x, y, format!("{path}[{i}]"))),
+        _ if got == want => None,
+        _ => Some(format!("{path}: got {got}, want {want}")),
+    }
+}
+
 fn check(id: &str, got: &Node, cx: &MenuContext<'_>, want: &Value) {
     let mut want_handlers = Vec::new();
     let want_tree = expected(want, &mut want_handlers);
-    assert_eq!(
-        vec![tree(got)],
-        want_tree,
-        "{id}: tree\n{}",
-        serde_json::to_string_pretty(&tree(got)).unwrap()
-    );
+    let got_tree = vec![tree(got)];
+    if let Some(diff) = first_diff(&json!(got_tree), &json!(want_tree), String::new()) {
+        panic!("{id}: tree differs at {diff}");
+    }
     let got_handlers: Vec<(String, Value)> = cx.handlers().iter().map(sequence).collect();
     assert_eq!(got_handlers, want_handlers, "{id}: handlers");
 }
@@ -358,4 +379,24 @@ fn stylesheet_is_upstreams() {
     ] {
         assert!(MAIN_MENU_CSS.contains(rule), "{rule}");
     }
+}
+
+#[test]
+fn closed_preferences_submenu_is_hidden() {
+    let manager = ActionManager::new();
+    let case = json!({ "appState": {}, "phone": false });
+    let setup = Setup::new(&case, CanvasActions::default());
+    let cx = setup.menu();
+    let nodes = preferences(&cx, &manager, &setup.ctx(), false);
+    let [Node::Element(trigger), Node::Element(content)] = &nodes[..] else {
+        panic!("a trigger and a content");
+    };
+    assert_eq!(trigger.attribute("aria-expanded"), Some("false"));
+    assert_eq!(content.attribute("hidden"), Some(""));
+    let events: Vec<&str> = trigger.listened_events().collect();
+    assert_eq!(events, ["click", "pointerenter"]);
+    // its items are bound all the same: two radios of two, nine checkboxes
+    let handlers = cx.handlers();
+    assert_eq!(handlers.len(), 13);
+    assert!(handlers.iter().all(|h| !h.close_menu));
 }
