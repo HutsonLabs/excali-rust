@@ -775,3 +775,237 @@ fn a_line_closed_on_its_first_point_is_a_polygon() {
     assert_eq!(json!(line.to_map())["polygon"], json!(true));
     assert_eq!(tool(&ed), "selection");
 }
+
+// -- The linear element editor ------------------------------------------------
+
+/// linearElementEditor.test.tsx's `createTwoPointerLinearElement`
+/// (`:108-128`): (20, 20) to (60, 20), roughness 0, selected by a click on
+/// its start.
+fn two_pointer(ty: &str) -> Ed {
+    let mut ed = editor_with(vec![el(
+        ty,
+        "l",
+        20.0,
+        20.0,
+        40.0,
+        json!({ "height": 0, "roughness": 0, "points": [[0, 0], [40, 0]] }),
+    )]);
+    click(&mut ed, [20.0, 20.0]);
+    ed
+}
+
+fn double_click(ed: &mut Ed, p: [f64; 2]) {
+    double_click_with(ed, at(p[0], p[1]));
+}
+
+fn double_click_with(ed: &mut Ed, input: PointerInput) {
+    ed.pointer_down(input);
+    ed.pointer_up(input);
+    ed.pointer_down(input);
+    ed.pointer_up(input);
+    ed.double_click(input);
+}
+
+fn editing(ed: &Ed) -> Value {
+    app(ed, "selectedLinearElement")["isEditing"].clone()
+}
+
+fn line_points(ed: &Ed) -> Vec<[f64; 2]> {
+    points(get(ed, "l"))
+}
+
+/// `mouse.downAt(from); mouse.moveTo(to); mouse.upAt(to)` with `input`'s
+/// modifiers.
+fn drag_with(ed: &mut Ed, from: [f64; 2], to: [f64; 2], input: PointerInput) {
+    let p = |q: [f64; 2]| PointerInput {
+        client_x: q[0],
+        client_y: q[1],
+        ..input
+    };
+    ed.pointer_down(p(from));
+    ed.pointer_move(p(to));
+    ed.pointer_up(p(to));
+}
+
+#[test]
+fn a_double_click_on_a_line_opens_its_editor() {
+    // linearElementEditor.test.tsx:411-418
+    let mut ed = two_pointer("line");
+    assert_eq!(editing(&ed), json!(false));
+    double_click(&mut ed, [20.0, 20.0]);
+    assert_eq!(editing(&ed), json!(true));
+    assert_eq!(app(&ed, "selectedLinearElement")["elementId"], "l");
+}
+
+#[test]
+fn a_double_click_on_an_arrow_does_not() {
+    // linearElementEditor.test.tsx:420-427
+    let mut ed = two_pointer("arrow");
+    double_click(&mut ed, [40.0, 20.0]);
+    assert_eq!(editing(&ed), json!(false));
+}
+
+#[test]
+fn ctrl_double_click_opens_an_arrow_editor() {
+    // linearElementEditor.test.tsx:389-398
+    let mut ed = two_pointer("arrow");
+    double_click_with(&mut ed, ctrl(20.0, 20.0));
+    assert_eq!(editing(&ed), json!(true));
+}
+
+#[test]
+fn escape_and_a_click_elsewhere_close_the_editor() {
+    // actionFinalize's keyTest (actionFinalize.tsx:421-424); a press off the
+    // element (App.tsx:9764-9782)
+    let mut ed = two_pointer("line");
+    double_click(&mut ed, [20.0, 20.0]);
+    escape(&mut ed);
+    assert_eq!(editing(&ed), json!(false));
+    double_click(&mut ed, [20.0, 20.0]);
+    assert_eq!(editing(&ed), json!(true));
+    click(&mut ed, [500.0, 500.0]);
+    assert_eq!(editing(&ed), json!(false));
+    assert_eq!(app(&ed, "selectedElementIds"), json!({ "l": true }));
+}
+
+#[test]
+fn a_midpoint_dragged_adds_a_point() {
+    // linearElementEditor.test.tsx:214-245
+    let mut ed = two_pointer("line");
+    drag(&mut ed, [40.0, 20.0], [90.0, 70.0]);
+    assert_eq!(
+        line_points(&ed),
+        [[0.0, 0.0], [70.0, 50.0], [40.0, 0.0]]
+    );
+}
+
+#[test]
+fn a_midpoint_adds_a_point_only_past_the_threshold() {
+    // linearElementEditor.test.tsx:192-212
+    let mut ed = two_pointer("line");
+    click(&mut ed, [40.0, 20.0]);
+    drag(&mut ed, [40.0, 20.0], [41.0, 21.0]);
+    assert_eq!(line_points(&ed).len(), 2);
+    assert_eq!(xy(get(&ed, "l")), [20.0, 20.0]);
+    drag(&mut ed, [40.0, 20.0], [90.0, 70.0]);
+    assert_eq!(xy(get(&ed, "l")), [20.0, 20.0]);
+    assert_eq!(line_points(&ed).len(), 3);
+}
+
+#[test]
+fn in_the_editor_a_midpoint_adds_a_point_at_once() {
+    // linearElementEditor.test.tsx:481-498
+    let mut ed = two_pointer("line");
+    double_click(&mut ed, [20.0, 20.0]);
+    click(&mut ed, [40.0, 20.0]);
+    assert_eq!(line_points(&ed).len(), 2);
+    drag(&mut ed, [40.0, 20.0], [41.0, 21.0]);
+    assert_eq!(xy(get(&ed, "l")), [20.0, 20.0]);
+    assert_eq!(line_points(&ed).len(), 3);
+}
+
+#[test]
+fn an_endpoint_dragged_moves() {
+    // handlePointDragging (linearElementEditor.ts:471-719): the point under
+    // the press follows the pointer (createPointAt)
+    let mut ed = two_pointer("line");
+    drag(&mut ed, [60.0, 20.0], [80.0, 60.0]);
+    assert_eq!(line_points(&ed), [[0.0, 0.0], [60.0, 40.0]]);
+    assert_eq!(xy(get(&ed, "l")), [20.0, 20.0]);
+    // the start moves the element
+    drag(&mut ed, [20.0, 20.0], [30.0, 10.0]);
+    assert_eq!(xy(get(&ed, "l")), [30.0, 10.0]);
+    assert_eq!(line_points(&ed), [[0.0, 0.0], [50.0, 50.0]]);
+}
+
+#[test]
+fn shift_keeps_the_angle_of_a_dragged_endpoint() {
+    // linearElementEditor.test.tsx:1976-2025
+    let mut ed = two_pointer("line");
+    double_click(&mut ed, [20.0, 20.0]);
+    drag_with(&mut ed, [60.0, 20.0], [64.0, 24.0], at(0.0, 0.0).shift());
+    let p = line_points(&ed);
+    let angle = js_atan2(p[1][1] - p[0][1], p[1][0] - p[0][0]);
+    assert!(angle.abs() < 0.01, "{p:?}");
+}
+
+fn js_atan2(y: f64, x: f64) -> f64 {
+    y.atan2(x)
+}
+
+#[test]
+fn alt_click_in_the_editor_adds_a_point() {
+    // LinearElementEditor.handlePointerDown (linearElementEditor.ts:
+    // 1094-1134): with Alt the pointer becomes the last point
+    let mut ed = two_pointer("line");
+    double_click(&mut ed, [20.0, 20.0]);
+    ed.pointer_down(alt(100.0, 50.0));
+    ed.pointer_up(alt(100.0, 50.0));
+    assert_eq!(
+        line_points(&ed),
+        [[0.0, 0.0], [40.0, 0.0], [80.0, 30.0]]
+    );
+}
+
+#[test]
+fn an_end_dragged_onto_the_start_closes_the_line() {
+    // LinearElementEditor.handlePointerUp (linearElementEditor.ts:738-772)
+    let mut ed = editor_with(vec![el(
+        "line",
+        "l",
+        100.0,
+        100.0,
+        100.0,
+        json!({ "roughness": 0, "points": [[0, 0], [100, 0], [100, 100]] }),
+    )]);
+    click(&mut ed, [100.0, 100.0]);
+    double_click(&mut ed, [100.0, 100.0]);
+    assert_eq!(editing(&ed), json!(true));
+    drag(&mut ed, [200.0, 200.0], [103.0, 102.0]);
+    let l = get(&ed, "l");
+    assert_eq!(points(l).last(), Some(&[0.0, 0.0]));
+    assert_eq!(json!(l.to_map())["polygon"], json!(true));
+}
+
+// -- Elbow arrows ---------------------------------------------------------------
+
+#[test]
+fn an_elbow_segment_moved_and_reset_by_a_double_click() {
+    // elbowArrow.test.tsx:89-121
+    let mut ed = editor_with(vec![]);
+    letter(&mut ed, "a");
+    let mut patch = serde_json::Map::new();
+    patch.insert("currentItemArrowType".into(), json!("elbow"));
+    ed.set_app_state(patch);
+    ed.pointer_move(at(0.0, 0.0));
+    click(&mut ed, [0.0, 0.0]);
+    ed.pointer_move(at(250.0, 200.0));
+    click(&mut ed, [250.0, 200.0]);
+    ed.pointer_move(at(125.0, 100.0));
+    ed.pointer_down(at(125.0, 100.0));
+    ed.pointer_move(at(130.0, 100.0));
+    ed.pointer_up(at(130.0, 100.0));
+    let arrow = live(&ed)[0].clone();
+    let close = |got: Vec<[f64; 2]>, want: [[f64; 2]; 4]| {
+        assert_eq!(got.len(), 4, "{got:?}");
+        for (g, w) in got.iter().zip(want) {
+            assert!(
+                (g[0] - w[0]).abs() < 1.0 && (g[1] - w[1]).abs() < 1.0,
+                "{got:?}"
+            );
+        }
+    };
+    assert_eq!(
+        app(&ed, "selectedElementIds"),
+        json!({ arrow.base.id.clone(): true })
+    );
+    close(
+        points(&arrow),
+        [[0.0, 0.0], [130.0, 0.0], [130.0, 200.0], [250.0, 200.0]],
+    );
+    double_click(&mut ed, [130.0, 100.0]);
+    close(
+        points(live(&ed)[0]),
+        [[0.0, 0.0], [125.0, 0.0], [125.0, 200.0], [250.0, 200.0]],
+    );
+}
