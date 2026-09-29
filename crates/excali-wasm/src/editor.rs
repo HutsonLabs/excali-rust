@@ -352,7 +352,11 @@ pub(crate) enum Gesture {
     },
     /// The text tool's press that started a new text (`newElement`),
     /// opened on release.
-    TextCreate { id: String },
+    TextCreate {
+        id: String,
+        /// `pointerDownState.originInGrid`.
+        origin_in_grid: [f64; 2],
+    },
     /// The text tool's press on an empty container's centre, decided on
     /// release (`AppTextTool.pending`).
     TextLabel { container: String, origin: [f64; 2] },
@@ -1851,7 +1855,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                     .collect();
                 *pending = trail.add_point_to_path(point.0, point.1, input.alt_key, &visible, zoom);
             }
-            Some(Gesture::TextCreate { .. } | Gesture::TextLabel { .. }) => {}
+            Some(Gesture::TextCreate { .. } | Gesture::TextLabel { .. }) => self.text_drag(input),
             None if self.multi.is_some() => self.multi_hover(input),
             None => self.hover(input),
             Some(Gesture::Finalized | Gesture::Inert) => {}

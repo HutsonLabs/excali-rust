@@ -11,11 +11,10 @@
 //! point (`getTextElementAtPosition`), the frame on top at a point, and
 //! the arrows bound to a container following it as its label grows.
 //!
-//! Reduced from upstream: the text tool binds no label to an arrow's free
-//! endpoint (`arrowText`), and a drag with it creates the text where the
-//! press was instead of sizing it (`dragNewTextElement`); a double-click
-//! does not toggle the linear element editor, delete an elbow arrow's
-//! segment or crop an image.
+//! A double-click on the selected line (or, with Ctrl/Cmd, arrow) opens
+//! its editor and on an elbow arrow's fixed segment frees it
+//! (`crate::linear`); on the one selected image it starts cropping
+//! (`crate::cropping`).
 
 use excali_core::color::is_transparent;
 use excali_core::element::{Element, ElementKind};
@@ -37,6 +36,13 @@ use excali_ui::text_editor::{Handled, TextareaEvent, TextareaState};
 use serde_json::{json, Map, Value};
 
 use crate::editor::{Editor, Gesture, PointerInput};
+use excali_editor::arrow_endpoint_text::{
+    drag_new_text_element, get_endpoint_bound_text_drag_anchor, get_unbound_arrow_endpoint_at_point,
+    is_endpoint_bound_text, ArrowEndpoint,
+};
+use excali_editor::transform::get_grid_point;
+use excali_text::font_metadata::get_font_string;
+use excali_text::text_measurements::get_min_text_element_width;
 use crate::env::{EditorEnv, StampBinding};
 
 /// `TEXT_AUTOWRAP_THRESHOLD` (`common/src/constants.ts:24`): how far a
@@ -246,6 +252,23 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         }
         let origin = self.scene_point(input.client_x, input.client_y);
         let zoom = self.session.app_state().zoom().unwrap_or(1.0);
+        let origin_in_grid = get_grid_point(origin[0], origin[1], self.grid_size(input.ctrl_or_cmd));
+        // a free arrow endpoint gets a label (AppArrowText,
+        // App.arrowText.ts:52-100), sized by the drag
+        if let Some(endpoint) = self.bindable_endpoint_at(origin) {
+            let created = self.start_text(&StartTextEditing {
+                auto_edit: false,
+                text_element: TextTarget::New,
+                arrow_endpoint: Some(endpoint),
+                ..StartTextEditing::at(origin[0], origin[1])
+            });
+            self.finish_text_tool();
+            if let Some(id) = created {
+                self.gesture = Some(Gesture::TextCreate { id, origin_in_grid });
+            }
+            self.report();
+            return;
+        }
         let elements = self.session.elements().to_vec();
         if let Some(text) = text_element_at(&elements, origin, zoom) {
             self.start_text(&StartTextEditing {
@@ -282,8 +305,146 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         });
         self.finish_text_tool();
         if let Some(id) = created {
-            self.gesture = Some(Gesture::TextCreate { id });
+            self.gesture = Some(Gesture::TextCreate { id, origin_in_grid });
         }
+        self.report();
+    }
+
+    /// `AppArrowText.getBindableEndpointAtPosition(x, y)`
+    /// (`App.arrowText.ts:52-100`): with binding on, the free arrow
+    /// endpoint under the point, unless an element stacked above the arrow
+    /// is hit there.
+    fn bindable_endpoint_at(&mut self, point: [f64; 2]) -> Option<ArrowEndpoint> {
+        let enabled = self
+            .session
+            .app_state()
+            .get("isBindingEnabled")
+            .and_then(Value::as_bool)
+            .unwrap_or(true);
+        if !enabled {
+            return None;
+        }
+        let zoom = self.session.app_state().zoom().unwrap_or(1.0);
+        let live: Vec<Element> = self
+            .session
+            .elements()
+            .iter()
+            .filter(|e| !e.base.is_deleted)
+            .cloned()
+            .collect();
+        let endpoint = {
+            let map = ElementsMap::new(live.iter());
+            get_unbound_arrow_endpoint_at_point(point, &live, &map, zoom)?
+        };
+        if let Some(hit) = self.element_at_with(point, true) {
+            let index = |id: &str| self.session.elements().iter().position(|e| e.base.id == id);
+            if hit != endpoint.arrow_id && index(&hit) > index(&endpoint.arrow_id) {
+                return None;
+            }
+        }
+        Some(endpoint)
+    }
+
+    /// A move while the text tool's press lasts (`maybeDragNewGenericElement`
+    /// with `dragNewTextElement`, `dragElements.ts:227-292`): an armed
+    /// container's centre press past [`TEXT_AUTOWRAP_THRESHOLD`] becomes
+    /// free text at the press (`resolvePending`); a new text is sized by
+    /// the drag, pinned where the press was (or, bound to an arrow
+    /// endpoint, where the binding put it).
+    pub(crate) fn text_drag(&mut self, input: PointerInput) {
+        let pointer = self.scene_point(input.client_x, input.client_y);
+        let zoom = self.session.app_state().zoom().unwrap_or(1.0);
+        if let Some(Gesture::TextLabel { container, origin }) = self.gesture.clone() {
+            if (pointer[0] - origin[0]).abs() * zoom <= TEXT_AUTOWRAP_THRESHOLD {
+                return;
+            }
+            let exists = self
+                .session
+                .elements()
+                .iter()
+                .any(|e| e.base.id == container && !e.base.is_deleted);
+            self.gesture = None;
+            let created = exists
+                .then(|| {
+                    self.start_text(&StartTextEditing {
+                        container: None,
+                        text_element: TextTarget::New,
+                        insert_at_parent_center: false,
+                        auto_edit: false,
+                        ..StartTextEditing::at(origin[0], origin[1])
+                    })
+                })
+                .flatten();
+            self.finish_text_tool();
+            let Some(id) = created else {
+                return self.report();
+            };
+            let origin_in_grid =
+                get_grid_point(origin[0], origin[1], self.grid_size(input.ctrl_or_cmd));
+            self.gesture = Some(Gesture::TextCreate { id, origin_in_grid });
+        }
+        let Some(Gesture::TextCreate { id, origin_in_grid }) = self.gesture.clone() else {
+            return;
+        };
+        let Some(text) = self
+            .session
+            .elements()
+            .iter()
+            .find(|e| e.base.id == id && !e.base.is_deleted)
+            .cloned()
+        else {
+            return;
+        };
+        let provider = self.session.env.layouter.provider.clone();
+        let bound = {
+            let live: Vec<&Element> = self
+                .session
+                .elements()
+                .iter()
+                .filter(|e| !e.base.is_deleted)
+                .collect();
+            let map = ElementsMap::new(live.iter().copied());
+            is_endpoint_bound_text(&text, &map)
+        };
+        let update = if bound {
+            // AppArrowText.maybeDragNewText (App.arrowText.ts:137-165)
+            let anchor = get_endpoint_bound_text_drag_anchor(&text);
+            drag_new_text_element(
+                &text,
+                anchor.anchor_x,
+                anchor.anchor_ratio,
+                pointer[0],
+                None,
+                zoom,
+                &provider,
+            )
+        } else {
+            let [gx, _] = get_grid_point(pointer[0], pointer[1], self.grid_size(input.ctrl_or_cmd));
+            let [dx, dy] = self.origin_snap_offset().unwrap_or([0.0, 0.0]);
+            let [ox, oy] = origin_in_grid;
+            let ratio = if input.alt_key {
+                0.5
+            } else if gx < ox {
+                1.0
+            } else {
+                0.0
+            };
+            drag_new_text_element(&text, ox + dx, ratio, gx, Some(oy + dy), zoom, &provider)
+        };
+        let mut scene = excali_editor::scene::Scene::new(self.session.elements().to_vec());
+        scene.mutate_element(
+            &id,
+            excali_editor::scene::ElementUpdate {
+                x: Some(update.x),
+                y: update.y,
+                width: Some(update.width),
+                auto_resize: update.auto_resize,
+                ..Default::default()
+            },
+            &mut self.session.env,
+        );
+        let app_state = self.session.app_state().clone();
+        self.apply(scene, app_state);
         self.report();
     }
 
@@ -293,7 +454,42 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// [`TEXT_AUTOWRAP_THRESHOLD`].
     pub(crate) fn text_pointer_up(&mut self, input: PointerInput, gesture: Gesture) {
         match gesture {
-            Gesture::TextCreate { id } => self.open_new_text(&id),
+            Gesture::TextCreate { id, .. } => {
+                // a text narrower than one character grows by itself again
+                // (App.tsx:11891-11911)
+                let narrow = self
+                    .session
+                    .elements()
+                    .iter()
+                    .find(|e| e.base.id == id)
+                    .and_then(|e| match &e.kind {
+                        ElementKind::Text(t) => Some(
+                            e.base.width
+                                < get_min_text_element_width(
+                                    &get_font_string(t.font_size, t.font_family),
+                                    t.line_height,
+                                    &self.session.env.layouter.provider,
+                                ),
+                        ),
+                        _ => None,
+                    })
+                    .unwrap_or(false);
+                if narrow {
+                    let mut scene =
+                        excali_editor::scene::Scene::new(self.session.elements().to_vec());
+                    scene.mutate_element(
+                        &id,
+                        excali_editor::scene::ElementUpdate {
+                            auto_resize: Some(true),
+                            ..Default::default()
+                        },
+                        &mut self.session.env,
+                    );
+                    let app_state = self.session.app_state().clone();
+                    self.apply(scene, app_state);
+                }
+                self.open_new_text(&id)
+            }
             Gesture::TextLabel { container, origin } => {
                 let pointer = self.scene_point(input.client_x, input.client_y);
                 let zoom = self.session.app_state().zoom().unwrap_or(1.0);
