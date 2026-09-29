@@ -17,8 +17,9 @@ keeps OUT as the corpus-contact-sheets artifact.
 
   contact_sheets.py --excali target/release/excali --out target/contact-sheets
 
-Exit status: 0 when every library rendered, 1 when any failed (each failure
-is printed), 2 usage error.
+Exit status: 0 when all 232 catalogue libraries rendered with at least one
+item each, 1 otherwise (a library failed or had no items, or the manifest
+did not yield the 232 libraries; each problem is printed), 2 usage error.
 """
 from __future__ import annotations
 
@@ -32,6 +33,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / "fixtures"
 LIBRARY_SUFFIX = ".excalidrawlib.gz"
+# The catalogue libraries fixtures/manifest.json lists (ex-003); the same count
+# crates/excali-cli/tests/corpus.rs asserts.
+EXPECTED_LIBRARIES = 232
 
 
 def catalogue(manifest: dict) -> list[str]:
@@ -98,6 +102,22 @@ def render(excali: Path, out: Path, paths: list[str]) -> list[dict]:
     return entries
 
 
+def problems(entries: list[dict]) -> list[str]:
+    """Why a run must fail: a library that failed or drew no items, a
+    catalogue that is not the expected 232 libraries, or no items at all."""
+    found = []
+    for e in entries:
+        if "error" in e:
+            found.append(f"{e['path']}: {e['error']}")
+        elif not e.get("items"):
+            found.append(f"{e['path']}: no items rendered")
+    if len(entries) != EXPECTED_LIBRARIES:
+        found.append(f"{len(entries)} libraries rendered, expected {EXPECTED_LIBRARIES}")
+    if not any(e.get("items") for e in entries):
+        found.append("no items rendered")
+    return found
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--excali", type=Path, required=True, help="the excali binary")
@@ -113,10 +133,11 @@ def main(argv: list[str] | None = None) -> int:
 
     failed = [e for e in entries if "error" in e]
     items = sum(len(e.get("items", [])) for e in entries)
-    for e in failed:
-        print(f"{e['path']}: {e['error']}", file=sys.stderr)
+    found = problems(entries)
+    for problem in found:
+        print(problem, file=sys.stderr)
     print(f"{len(entries)} libraries, {items} items rendered, {len(failed)} failed")
-    return 1 if failed else 0
+    return 1 if found else 0
 
 
 if __name__ == "__main__":
