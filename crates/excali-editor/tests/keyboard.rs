@@ -713,6 +713,38 @@ fn space_released_with_a_drawing_tool_clears_the_selection() {
 }
 
 #[test]
+fn shift_f_opens_the_font_picker_for_the_text_tool_and_bound_text() {
+    // App.tsx:6022-6050: the text tool, or a selection holding a text or a
+    // container with live bound text; Ctrl/Cmd+Shift+F does not
+    let mut ed = Editor::new(vec![rect("r", 0.0, 0.0)]);
+    ed.down(key("t"));
+    assert_eq!(ed.tool(), "text");
+    ed.down(key("F").shift().ctrl());
+    assert_eq!(ed.state("openPopup"), Value::Null);
+    let out = ed.down(key("F").shift());
+    assert!(out.prevent_default);
+    assert_eq!(ed.state("openPopup"), json!("fontFamily"));
+
+    let mut label = text("l", "label", 0.0, 0.0);
+    label.base.is_deleted = true;
+    let mut container = rect("c", 0.0, 0.0);
+    container.base.bound_elements = Some(vec![BoundElement {
+        id: "l".into(),
+        kind: BoundElementType::Text,
+    }]);
+    let mut ed = Editor::new(vec![container, label]);
+    ed.select(&["c"]);
+    // the container's text is deleted: nothing opens
+    ed.down(key("F").shift());
+    assert_eq!(ed.state("openPopup"), Value::Null);
+    let mut live = ed.el("l").clone();
+    live.base.is_deleted = false;
+    ed.scene.replace_element(live);
+    ed.down(key("F").shift());
+    assert_eq!(ed.state("openPopup"), json!("fontFamily"));
+}
+
+#[test]
 fn s_and_g_open_the_colour_pickers_and_shift_f_the_font_picker() {
     let mut ed = Editor::new(vec![rect("r", 0.0, 0.0), text("t", "a", 0.0, 0.0)]);
     // nothing selected with the selection tool: nothing opens
