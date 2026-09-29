@@ -539,6 +539,42 @@ pub fn get_element_bounds(element: &Element, elements_map: &ElementsMap<'_>) -> 
     }
 }
 
+/// `getElementBounds(element, elementsMap, true)` (`bounds.ts:101-135`):
+/// the element's box as if it were not rotated (`{ ...element, angle: 0 }`).
+pub fn get_element_bounds_non_rotated(element: &Element, elements_map: &ElementsMap<'_>) -> Bounds {
+    if element.base.angle.0 == 0.0 {
+        return get_element_bounds(element, elements_map);
+    }
+    let mut unrotated = element.clone();
+    unrotated.base.angle.0 = 0.0;
+    get_element_bounds(&unrotated, elements_map)
+}
+
+/// `elementCenterPoint(element, elementsMap)` (`bounds.ts:1555-1571`): the
+/// centre of a line's, arrow's or freedraw's unrotated box
+/// ([`get_element_absolute_coords`]), else of [`get_element_bounds`].
+pub fn element_center_point(element: &Element, elements_map: &ElementsMap<'_>) -> [f64; 2] {
+    match element.kind {
+        ElementKind::Line(_) | ElementKind::Arrow(_) | ElementKind::Freedraw(_) => {
+            let [x1, y1, x2, y2, _, _] = get_element_absolute_coords(element, elements_map, false);
+            [(x1 + x2) / 2.0, (y1 + y2) / 2.0]
+        }
+        _ => {
+            let [x1, y1, x2, y2] = get_element_bounds(element, elements_map);
+            // getCenterForBounds (bounds.ts:1164-1168)
+            [x1 + (x2 - x1) / 2.0, y1 + (y2 - y1) / 2.0]
+        }
+    }
+}
+
+/// `doBoundsIntersect(bounds1, bounds2)` (`bounds.ts:1246-1258`): the boxes
+/// overlap; boxes that only touch do not.
+pub fn do_bounds_intersect(a: Bounds, b: Bounds) -> bool {
+    let [min_x1, min_y1, max_x1, max_y1] = a;
+    let [min_x2, min_y2, max_x2, max_y2] = b;
+    min_x1 < max_x2 && max_x1 > min_x2 && min_y1 < max_y2 && max_y1 > min_y2
+}
+
 /// `getCommonBounds(elements)` (`bounds.ts:1005-1029`): the box holding
 /// every element's [`get_element_bounds`], looking containers and bound
 /// text up among the elements themselves; `[0, 0, 0, 0]` for no elements.

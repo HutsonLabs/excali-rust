@@ -45,7 +45,7 @@ use excali_core::encode::encode;
 use excali_math::js;
 use excali_text::text_measurements::TextMetricsProvider;
 
-use crate::bounds::{get_element_bounds, Bounds, ElementsMap};
+use crate::bounds::{do_bounds_intersect, get_element_bounds, ElementsMap};
 use crate::display::{CanvasDocument, PngPayload};
 use crate::export::{
     canvas_size, frame_labels, get_frame_rendering_config, get_root_elements_of, serialize_as_json,
@@ -266,13 +266,6 @@ pub(crate) fn label_element(label: &FrameLabel, id: String) -> Element {
     let mut fields = TextFields::new(label.text.clone(), label.font_family, label.line_height);
     fields.font_size = label.font_size;
     Element::new(base, ElementKind::Text(fields))
-}
-
-/// `doBoundsIntersect(bounds1, bounds2)` (`element/src/bounds.ts:1246-1258`).
-fn do_bounds_intersect(a: Bounds, b: Bounds) -> bool {
-    let [min_x1, min_y1, max_x1, max_y1] = a;
-    let [min_x2, min_y2, max_x2, max_y2] = b;
-    min_x1 < max_x2 && max_x1 > min_x2 && min_y1 < max_y2 && max_y1 > min_y2
 }
 
 /// `getElementsOverlappingFrame(elements, frame, elementsMap)`

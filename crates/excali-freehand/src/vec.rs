@@ -72,8 +72,8 @@ pub(crate) fn dist(a: Vec2, b: Vec2) -> f64 {
 
 /// `rotAround`: rotate `a` around `c` by `r` radians.
 pub(crate) fn rot_around(a: Vec2, c: Vec2, r: f64) -> Vec2 {
-    let s = r.sin();
-    let co = r.cos();
+    let s = js::sin(r);
+    let co = js::cos(r);
     let px = a[0] - c[0];
     let py = a[1] - c[1];
     let nx = px * co - py * s;

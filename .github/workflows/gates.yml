@@ -342,6 +342,11 @@ jobs:
   # elbow-routing-fixtures.mjs --check for excali-editor's
   # elbow-routing.json (ex-211), upstream's own updateElbowArrowPoints on
   # seeded tables of unbound, bound and fixed-segment elbow arrows, and
+  # collision-fixtures.mjs --check for excali-editor's collision.json
+  # (ex-507), upstream's own collision.ts and distance.ts (hitElementItself,
+  # isPointInElement, intersectElementWithLineSegment, the binding hit
+  # tests) on collision.test.tsx's scenes and seeded scenes of every
+  # element type, and
   # svg-export.mjs --check for excali-scene's export-bounds.json,
   # excali-svg's svg-export.json (ex-406, ex-407) and excali-core's
   # embed-links.json, upstream's own exportToSvg under jsdom 22.1.0 in test
@@ -418,6 +423,8 @@ jobs:
         run: node tools/goldens/document-fixtures.mjs --check
       - name: excali-editor elbow routing fixture matches upstream's updateElbowArrowPoints
         run: node tools/goldens/elbow-routing-fixtures.mjs --check
+      - name: excali-editor hit testing fixture matches upstream's collision.ts and distance.ts
+        run: node tools/goldens/collision-fixtures.mjs --check
       - name: excali-scene export bounds, excali-svg document and excali-core embed link fixtures match upstream's exportToSvg and getEmbedLink
         run: node tools/goldens/svg-export.mjs --check
       - name: excali-scene static scene fixture matches upstream's renderStaticScene

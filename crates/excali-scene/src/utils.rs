@@ -4,7 +4,10 @@ use excali_core::constants::{
     DEFAULT_ADAPTIVE_RADIUS, DEFAULT_PROPORTIONAL_RADIUS, LINE_CONFIRM_THRESHOLD,
 };
 use excali_core::element::{Element, ElementKind, LocalPoint, RoundnessType};
-use excali_math::{curve, js, line_segment, point_from, Curve, GlobalPoint, LineSegment};
+use excali_math::{
+    curve, curve_catmull_rom_cubic_approx_points, curve_offset_points, js, line_segment,
+    point_from, Curve, GlobalPoint, LineSegment,
+};
 
 use crate::bounds::get_diamond_points;
 
@@ -100,6 +103,12 @@ fn gp(x: f64, y: f64) -> GlobalPoint {
 /// corners as cubic curves whose handles sit 2/3 of the way to the box's
 /// corner, starting top left.
 pub fn deconstruct_rectanguloid_element(element: &Element) -> ElementOutline {
+    ElementOutline::from_corners(rectanguloid_base_corners(element))
+}
+
+/// The four corners of `deconstructRectanguloidElement` before any offset
+/// (`baseCorners`, `utils.ts:302-351`), starting top left.
+fn rectanguloid_base_corners(element: &Element) -> [Curve; 4] {
     let b = &element.base;
     let mut radius = if matches!(element.kind, ElementKind::StickyNote(_)) {
         get_sticky_note_corner_radius(element)
@@ -122,7 +131,7 @@ pub fn deconstruct_rectanguloid_element(element: &Element) -> ElementOutline {
         )
     };
     let at = |p: [f64; 2]| gp(p[0], p[1]);
-    ElementOutline::from_corners([
+    [
         // TOP LEFT
         curve(
             at(left[1]),
@@ -151,7 +160,7 @@ pub fn deconstruct_rectanguloid_element(element: &Element) -> ElementOutline {
             toward(left[0], r0[0], r1[1]),
             at(left[0]),
         ),
-    ])
+    ]
 }
 
 /// `getDiamondBaseCorners(element)` and `deconstructDiamondElement(element)`
@@ -160,6 +169,13 @@ pub fn deconstruct_rectanguloid_element(element: &Element) -> ElementOutline {
 /// [`get_corner_radius`] of the half diagonals when rounded, else 1 % of
 /// them.
 pub fn deconstruct_diamond_element(element: &Element) -> ElementOutline {
+    ElementOutline::from_corners(get_diamond_base_corners(element))
+}
+
+/// `getDiamondBaseCorners(element)` (`utils.ts:378-446`): the corners at
+/// the right, bottom, left and top vertices (its `offset` argument is
+/// unused upstream).
+pub fn get_diamond_base_corners(element: &Element) -> [Curve; 4] {
     let b = &element.base;
     let [top_x, top_y, right_x, right_y, bottom_x, bottom_y, left_x, left_y] =
         get_diamond_points(element);
@@ -176,7 +192,7 @@ pub fn deconstruct_diamond_element(element: &Element) -> ElementOutline {
     let bottom = [b.x + bottom_x, b.y + bottom_y];
     let left = [b.x + left_x, b.y + left_y];
     let at = |p: [f64; 2]| gp(p[0], p[1]);
-    ElementOutline::from_corners([
+    [
         // RIGHT
         curve(
             gp(right[0] - v, right[1] - h),
@@ -205,5 +221,110 @@ pub fn deconstruct_diamond_element(element: &Element) -> ElementOutline {
             at(top),
             gp(top[0] + v, top[1] + h),
         ),
-    ])
+    ]
+}
+
+/// An outline's **unrotated** sides and corner curves as
+/// `deconstructRectanguloidElement(element, offset)` and
+/// `deconstructDiamondElement(element, offset)` return them (`ElementShape`,
+/// `utils.ts`): with an offset each corner becomes several curves, so the
+/// corners are a flat list; side `i` runs from the end of corner `i`'s last
+/// curve to the start of corner `i + 1`'s first.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ElementShape {
+    pub sides: Vec<LineSegment>,
+    pub corners: Vec<Curve>,
+}
+
+impl ElementShape {
+    /// The shape of the base corners grown by `offset` (`utils.ts:353-375`,
+    /// `:469-490`): with a positive offset each corner is
+    /// `curveCatmullRomCubicApproxPoints(curveOffsetPoints(corner, offset))`,
+    /// otherwise the corner itself.
+    fn offset(base: [Curve; 4], offset: f64) -> ElementShape {
+        let corners: Vec<Vec<Curve>> = base
+            .iter()
+            .map(|&corner| {
+                if offset > 0.0 {
+                    // curveOffsetPoints gives 51 points, always enough for
+                    // at least one curve
+                    curve_catmull_rom_cubic_approx_points(&curve_offset_points(corner, offset))
+                        .unwrap_or_else(|| vec![corner])
+                } else {
+                    vec![corner]
+                }
+            })
+            .collect();
+        let side = |a: usize, b: usize| {
+            let end = corners[a].last().map_or(corners[a][0].3, |c| c.3);
+            line_segment(end, corners[b][0].0)
+        };
+        ElementShape {
+            sides: vec![side(0, 1), side(1, 2), side(2, 3), side(3, 0)],
+            corners: corners.into_iter().flatten().collect(),
+        }
+    }
+}
+
+/// `deconstructRectanguloidElement(element, offset)` (`utils.ts:245-376`).
+pub fn deconstruct_rectanguloid_element_with_offset(
+    element: &Element,
+    offset: f64,
+) -> ElementShape {
+    ElementShape::offset(rectanguloid_base_corners(element), offset)
+}
+
+/// `deconstructDiamondElement(element, offset)` (`utils.ts:448-493`).
+pub fn deconstruct_diamond_element_with_offset(element: &Element, offset: f64) -> ElementShape {
+    ElementShape::offset(get_diamond_base_corners(element), offset)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use excali_core::element::{ElementBase, Roundness};
+
+    fn element(kind: ElementKind, roundness: Option<Roundness>) -> Element {
+        let mut base = ElementBase::new("e", 10.0, 20.0, 1.0, 1.0);
+        base.width = 200.0;
+        base.height = 100.0;
+        base.roundness = roundness;
+        Element::new(base, kind)
+    }
+
+    const ROUND: Option<Roundness> = Some(Roundness {
+        kind: RoundnessType::ProportionalRadius,
+        value: None,
+    });
+
+    #[test]
+    fn no_offset_is_the_outline() {
+        for e in [
+            element(ElementKind::Rectangle, None),
+            element(ElementKind::Rectangle, ROUND),
+        ] {
+            let outline = deconstruct_rectanguloid_element(&e);
+            let shape = deconstruct_rectanguloid_element_with_offset(&e, 0.0);
+            assert_eq!(shape.sides, outline.sides.to_vec());
+            assert_eq!(shape.corners, outline.corners.to_vec());
+        }
+        let e = element(ElementKind::Diamond, ROUND);
+        let outline = deconstruct_diamond_element(&e);
+        let shape = deconstruct_diamond_element_with_offset(&e, 0.0);
+        assert_eq!(shape.sides, outline.sides.to_vec());
+        assert_eq!(shape.corners, outline.corners.to_vec());
+    }
+
+    #[test]
+    fn an_offset_splits_each_corner_and_joins_the_sides() {
+        let e = element(ElementKind::Diamond, None);
+        let shape = deconstruct_diamond_element_with_offset(&e, 6.0);
+        // curveOffsetPoints gives 51 points, so 50 curves per corner
+        assert_eq!(shape.corners.len(), 4 * 50);
+        for i in 0..4 {
+            let last = shape.corners[i * 50 + 49];
+            let next = shape.corners[((i + 1) % 4) * 50];
+            assert_eq!(shape.sides[i], line_segment(last.3, next.0));
+        }
+    }
 }
