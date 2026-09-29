@@ -45,7 +45,7 @@ use crate::env::{EditorEnv, StampBinding};
 pub const TEXT_AUTOWRAP_THRESHOLD: f64 = 36.0;
 
 /// What text editing asks of the element.
-pub(crate) struct EditorHost<P> {
+pub struct EditorHost<P> {
     zoom: f64,
     grid_mode_enabled: Option<bool>,
     provider: P,

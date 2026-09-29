@@ -1,13 +1,13 @@
 //! The editor behind `<excali-editor>`, without the DOM: the scene with its
-//! store and history, the tools, the keyboard, pointer selection and
-//! dragging, and the host API of the term.hut integration page
+//! store and history, the tools, the keyboard, the pointer and the wheel,
+//! and the host API of the term.hut integration page
 //! (`site/content/architecture/termhut-integration.md`): `load`, `save`,
 //! `export`, `importLibrary`, `getState`, and the `change`, `save-request`
 //! and `open-link` events.
 //!
 //! Upstream counterpart: `App` (`packages/excalidraw/components/App.tsx`)
-//! as the `Excalidraw` component mounts it, reduced to what the host API
-//! needs. Every step goes through the ported code:
+//! as the `Excalidraw` component mounts it, at the pinned commit. Every
+//! step goes through the ported code:
 //!
 //! - **Load** is `loadFromBlob` (`data/blob.ts:137-216`,
 //!   [`load_scene_json`]) then `initializeScene`'s `updateScene` without
@@ -15,21 +15,41 @@
 //! - **Save** is `serializeAsJSON(elements, appState, files, "local")`
 //!   (`data/json.ts:52-75`, [`LoadedScene::to_document`]): the elements
 //!   deleted ones included, as `actionSaveToActiveFile` passes them.
-//! - **Keys** go through `App.onKeyDown` ([`on_key_down`]); the undo and
-//!   redo actions it names run [`Session::undo`] and [`Session::redo`].
+//! - **Keys** go through `App.onKeyDown` ([`on_key_down`]); the actions it
+//!   names run their `perform` ([`Editor::perform_action`]: history, zoom,
+//!   select all, the edit actions of `excali_editor::edit_actions`).
 //!   Cmd+S (Ctrl+S elsewhere) is the host's: upstream's
 //!   `saveToActiveFile` writes to the file handle, which the host owns, so
 //!   the editor asks with `save-request`.
-//! - **Pointer**: a press selects the topmost element hit
-//!   (`getElementAtPosition` over `App.hitElement`, [`hit_element`]); a move
-//!   drags the selection ([`drag_selected_elements`]); the release captures
-//!   when something is selected or the selection changed
-//!   (`App.tsx:12553-12566`). A press and release on an element's link icon
-//!   (`isPointHittingLink`, `hyperlink/helpers.ts:61-105`) is upstream's
-//!   `onLinkOpen`: the `open-link` event, the host deciding.
-//! - After every step the store commits (`componentDidUpdate`), and a
-//!   `change` event reports whether the file [`Editor::save`] would write
-//!   differs from the one loaded or last saved.
+//! - **The viewport**: `AppPan` (the wheel or secondary button, Space held,
+//!   the hand tool) and `AppWheel` ([`handle_wheel`]) through
+//!   `viewport.translate`, the zoom actions through [`perform_zoom_action`].
+//! - **The pointer** (`handleCanvasPointerDown`,
+//!   `onPointerMoveFromPointerDownHandler`,
+//!   `onPointerUpFromPointerDownHandler`): with the selection tool a press
+//!   on a handle of the selection resizes or rotates it (`TransformSession`),
+//!   on an element selects it (`getElementAtPosition` over `App.hitElement`,
+//!   [`hit_element`]) and drags the selection ([`drag_selected_elements`]),
+//!   on empty canvas draws the selection box (`getElementsWithinSelection`);
+//!   the drawing tools create an element on the press, size it on the
+//!   moves and finalize it on the release (`excali_editor::new_element`,
+//!   an arrow's ends bound through `bindOrUnbindBindingElement`); the
+//!   eraser erases what its trail crosses (`excali_editor::eraser`); the
+//!   text tool and the double-click edit text (`crate::text`). A press and
+//!   release on an element's link icon (`isPointHittingLink`,
+//!   `hyperlink/helpers.ts:61-105`) is upstream's `onLinkOpen`: the
+//!   `open-link` event, the host deciding.
+//! - After every step the store commits (`componentDidUpdate`); a gesture
+//!   is captured on its release, and a `change` event reports whether the
+//!   file [`Editor::save`] would write differs from the one loaded or last
+//!   saved.
+//!
+//! Reduced from upstream (ex-713): a line or arrow is drawn by dragging
+//! only (no point-by-point `multiElement` drawing); nothing snaps
+//! (`snapDraggedElements`, `snapNewElement`, `snapResizingElements`);
+//! drawing, dragging and resizing leave frame membership as it was; Alt+drag
+//! does not duplicate; the interactive canvas (selection outlines, handles,
+//! the box) is not painted.
 //!
 //! The history's leaf layouts are the real ones ([`EditorEnv`]), so an
 //! undo re-wraps and re-centres bound text and re-routes bound arrows.
