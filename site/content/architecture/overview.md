@@ -52,7 +52,7 @@ Build from primitives up. Each crate below is a pure layer over the one beneath 
 | `excali-editor` | `App.tsx` interaction code, `collision.ts`, `transformHandles.ts`, `binding.ts`, `snapping.ts`, `linearElementEditor.ts`, `store.ts`, `history.ts`, `actions/*` | `excali-scene` | native (tests), wasm32 |
 | `excali-canvas2d` | `renderElement.ts` canvas paths | `excali-scene`, `web-sys`, `js-sys` | wasm32 |
 | `excali-ui` | `packages/excalidraw/components/*`; scene font loading of `packages/excalidraw/fonts/Fonts.ts` | `excali-editor`, `excali-canvas2d`, `web-sys`, `js-sys`, `wasm-bindgen-futures` | wasm32 |
-| `excali-wasm` | the `Excalidraw` React component's public props | `excali-ui`, `wasm-bindgen`, `wasm-bindgen-futures`, `web-sys` | wasm32 |
+| `excali-wasm` | the `Excalidraw` React component's public props | `excali-ui` (and beneath it `excali-editor`, `excali-canvas2d`, `excali-scene`), `excali-svg` (SVG export, fonts by URL, so the subsetter is not linked), `wasm-bindgen`, `wasm-bindgen-futures`, `web-sys`, `js-sys` | wasm32 |
 | `tauri-plugin-excali` | none (new) | `excali-raster`, `excali-core`, `tauri`, `tauri-plugin-dialog` | native |
 
 The dependency direction is enforced in CI: `excali-core`, `excali-math`, `excali-rough`, `excali-freehand`, `excali-text`, `excali-scene` and `excali-editor` are built with `--target wasm32-unknown-unknown` and must not pull `std::fs`, `tokio` or `web-sys`.

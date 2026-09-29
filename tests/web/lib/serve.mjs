@@ -1,6 +1,6 @@
 // Static server for the web runtime suite (ex-307): serves the build of
 // scripts/web/build.sh (excali_editor.js, excali_editor_bg.wasm, fonts/)
-// and the test page in tests/web/page at "/". Every response is no-store,
+// and the test pages in tests/web/page (index.html at "/"). Every response is no-store,
 // so each test's font requests reach the network log. The Canvas 2D
 // fixture suite (ex-502, playwright.canvas2d.config.mjs) and the layered
 // canvases suite (ex-503, playwright.layers.config.mjs) serve their wasm
@@ -50,7 +50,10 @@ export function createWebServer(rootDir, pageDir = PAGE_DIR) {
       res.writeHead(400).end();
       return;
     }
-    const base = pathname === "/" || pathname === "/index.html" ? page : root;
+    // "/" is the page's index.html; another .html file of the page
+    // directory (the editor page, ex-530) is served from there too
+    const pageFile = pathname.endsWith(".html") && isFile(resolve(page, `.${pathname}`));
+    const base = pathname === "/" || pathname === "/index.html" || pageFile ? page : root;
     const target = resolve(base, `.${pathname === "/" ? "/index.html" : pathname}`);
     if (!target.startsWith(base + sep) || !isFile(target)) {
       res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });

@@ -3,8 +3,13 @@
 # plain static files that load as an ES module with no bundler, as term.hut
 # vendors third-party code (PRODUCT.md:106-108):
 #
-#   <out>/excali_editor.js          wasm-bindgen --target web output
+#   <out>/excali_editor.js          wasm-bindgen --target web output, then
+#                                   the <excali-editor> custom element shim
+#                                   (crates/excali-wasm/js/excali-editor.js,
+#                                   ex-530), one plain ES module
 #   <out>/excali_editor_bg.wasm     the module after wasm-opt -Oz
+#   <out>/excali.css                the element's stylesheet
+#                                   (crates/excali-wasm/excali.css)
 #   <out>/fonts/                    crates/excali-text/assets/fonts: the
 #                                   range-split font files, their licences
 #                                   and manifest.json (ex-307)
@@ -58,7 +63,8 @@ wasm-bindgen --target web --no-typescript --out-dir "$stage" --out-name excali_e
 # --enable-* flags are needed.
 "$wasm_opt" -Oz --strip-debug --strip-producers \
   -o "$out/excali_editor_bg.wasm" "$stage/excali_editor_bg.wasm"
-cp "$stage/excali_editor.js" "$out/excali_editor.js"
+cat "$stage/excali_editor.js" "$root/crates/excali-wasm/js/excali-editor.js" >"$out/excali_editor.js"
+cp "$root/crates/excali-wasm/excali.css" "$out/excali.css"
 cp -R "$root/crates/excali-text/assets/fonts" "$out/fonts"
 echo "web build: $out (wasm-bindgen $have, $("$wasm_opt" --version))"
 python3 "$root/scripts/gates/wasm_size.py" check "$out"

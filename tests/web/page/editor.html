@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>excali-editor from plain JS</title>
+<!-- The loading snippet of the term.hut integration page, as written
+     there (site/content/architecture/termhut-integration.md), with the
+     release served at "/": no bundler, one ES module. -->
+<link rel="stylesheet" href="/excali.css">
+<style>
+  body { margin: 0; }
+  #host { width: 1000px; height: 700px; }
+</style>
+</head>
+<body>
+<div id="host"></div>
+<script type="module">
+  import init, { defineExcaliEditor } from "/excali_editor.js";
+  await init();               // fetches excali_editor_bg.wasm relative to the module
+  defineExcaliEditor();       // registers <excali-editor>
+  window.editorReady = true;
+</script>
+</body>
+</html>
