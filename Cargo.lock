@@ -1153,6 +1153,7 @@ dependencies = [
  "excali-canvas2d",
  "excali-core",
  "excali-editor",
+ "excali-math",
  "excali-scene",
  "excali-svg",
  "excali-text",

@@ -17,6 +17,7 @@ crate-type = ["cdylib", "rlib"]
 excali-canvas2d = { path = "../excali-canvas2d" }
 excali-core = { path = "../excali-core" }
 excali-editor = { path = "../excali-editor" }
+excali-math = { path = "../excali-math" }
 excali-scene = { path = "../excali-scene" }
 excali-svg = { path = "../excali-svg" }
 excali-text = { path = "../excali-text" }
@@ -26,10 +27,14 @@ serde_json = { workspace = true }
 wasm-bindgen = "0.2.129"
 wasm-bindgen-futures = "0.4.79"
 web-sys = { version = "0.3.106", features = [
+  "console",
+  "AddEventListenerOptions",
   "Blob",
   "BlobPropertyBag",
   "CanvasRenderingContext2d",
+  "ClipboardEvent",
   "CssStyleDeclaration",
+  "DataTransfer",
   "CustomEvent",
   "CustomEventInit",
   "Document",
@@ -43,9 +48,11 @@ web-sys = { version = "0.3.106", features = [
   "Location",
   "Navigator",
   "MediaQueryList",
+  "MouseEvent",
   "Node",
   "PointerEvent",
   "TextMetrics",
+  "WheelEvent",
   "Window",
 ] }
 

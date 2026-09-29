@@ -20,14 +20,22 @@ use std::rc::{Rc, Weak};
 
 use excali_canvas2d::{paint, WebCanvas};
 use excali_core::png::{encode_chunks, encode_text_chunk, extract_chunks};
+use excali_editor::actions::{ActionName, KeyLabels};
+use excali_editor::keyboard::{ClipboardEventKind, ClipboardOutcome};
 use excali_editor::tools::ToolState;
 use excali_scene::display::FontFaceSource;
 use excali_scene::shape::Theme;
 use excali_svg::FontContent;
 use excali_text::text_measurements::TextMetricsProvider;
 use excali_ui::dom::{mount, Mounted, Node};
-use excali_ui::keyboard::{apply_outcome, keystroke};
+use excali_ui::footer::{footer, FooterControl, FooterProps, OnFooterEvent};
+use excali_ui::keyboard::{apply_outcome, clipboard_target, keystroke};
 use excali_ui::layers::{CanvasLayers, Layer};
+use excali_ui::main_menu::{default_main_menu, Dispatch, MenuContext, MenuEffect, ThemeChoice};
+use excali_ui::text_editor::{
+    measure_caret_offset, Handled, TextEditorOverlay, TextareaEvent, TextareaHandler,
+    TEXTAREA_ATTRIBUTES, TEXT_EDITOR_CSS,
+};
 use excali_ui::theme::{apply_container_tokens, apply_theme};
 use excali_ui::toolbar::{
     activate_extra_tool, activate_tool_button, install_stylesheet, toolbar, ToolbarEvent,
@@ -37,11 +45,13 @@ use serde_json::Value;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{
-    CanvasRenderingContext2d, Document, Event, HtmlCanvasElement, HtmlElement, KeyboardEvent,
-    PointerEvent,
+    AddEventListenerOptions, CanvasRenderingContext2d, Document, Event, HtmlCanvasElement,
+    HtmlElement, KeyboardEvent, PointerEvent, WheelEvent,
 };
 
-use crate::editor::{library_source, Editor, ExportOptions, HostEvent, LibrarySource};
+use crate::editor::{
+    library_source, Editor, ExportOptions, HostEvent, LibrarySource, PointerInput, WheelInput,
+};
 use crate::env::EditorEnv;
 
 /// The element's own rules: the host is a positioned block filling its
@@ -74,6 +84,12 @@ excali-editor .excali-editor__top {
 excali-editor .excali-editor__top > * {
   pointer-events: all;
 }
+excali-editor .excali-editor__top-left {
+  position: absolute;
+  top: var(--editor-container-padding, 1rem);
+  left: var(--editor-container-padding, 1rem);
+  z-index: 4;
+}
 ";
 
 /// Every stylesheet the element needs, in the order it installs them:
@@ -85,7 +101,10 @@ pub fn stylesheet() -> String {
     [
         excali_ui::primitives::PRIMITIVES_CSS,
         excali_ui::toolbar::TOOLBAR_CSS,
+        excali_ui::footer::FOOTER_CSS,
+        excali_ui::main_menu::MAIN_MENU_CSS,
         excali_ui::layers::CANVAS_LAYER_CSS,
+        TEXT_EDITOR_CSS,
         ELEMENT_CSS,
     ]
     .join("\n")
@@ -93,6 +112,8 @@ pub fn stylesheet() -> String {
 
 fn install_element_stylesheet(document: &Document) -> Result<(), JsValue> {
     install_stylesheet(document)?;
+    excali_ui::footer::install_stylesheet(document)?;
+    excali_ui::main_menu::install_stylesheet(document)?;
     if document
         .query_selector("style[data-excali-ui=\"excali-editor\"]")?
         .is_some()
@@ -102,7 +123,12 @@ fn install_element_stylesheet(document: &Document) -> Result<(), JsValue> {
     let style = document.create_element("style")?;
     style.set_attribute("data-excali-ui", "excali-editor")?;
     style.set_text_content(Some(
-        &[excali_ui::layers::CANVAS_LAYER_CSS, ELEMENT_CSS].join("\n"),
+        &[
+            excali_ui::layers::CANVAS_LAYER_CSS,
+            TEXT_EDITOR_CSS,
+            ELEMENT_CSS,
+        ]
+        .join("\n"),
     ));
     let head = document
         .head()
@@ -172,7 +198,17 @@ struct Inner {
     layers: CanvasLayers,
     top: HtmlElement,
     toolbar: Option<Mounted>,
+    footer: Option<Mounted>,
+    /// The top-left corner (`App-menu_top__left`) and the main menu in it.
+    top_left: HtmlElement,
+    main_menu: Option<Mounted>,
+    /// The text editor's box (`.excalidraw-textEditorContainer`) and the
+    /// textarea mounted in it while a text is edited.
+    editor_box: HtmlElement,
+    overlay: Option<TextEditorOverlay>,
     extra_tools_open: bool,
+    /// What the chrome was last rendered from ([`chrome_key`]).
+    chrome_key: Option<Value>,
     ui: String,
     dispatch: js_sys::Function,
     fonts_base: String,
@@ -222,6 +258,13 @@ impl Inner {
         self.layers.paint_static(background.as_deref(), &list);
     }
 
+    /// Paints the scene and the chrome again and dispatches the editor's
+    /// events.
+    fn after_event(&mut self) {
+        self.render();
+        self.flush();
+    }
+
     /// The editor's events, dispatched on the host.
     fn flush(&mut self) {
         for event in self.editor.take_events() {
@@ -236,6 +279,135 @@ impl Inner {
                 .call2(&JsValue::NULL, &JsValue::from_str(name), &detail);
         }
     }
+}
+
+/// What the chrome shows: the tools, the extra tools menu, the zoom, the
+/// history stacks and the `ui` attribute.
+fn chrome_key(inner: &Inner) -> Value {
+    let ed = &inner.editor;
+    serde_json::json!({
+        "tool": ed.tools().active_tool.to_json(),
+        "locked": ed.tools().is_tool_locked(),
+        "extra": inner.extra_tools_open,
+        "zoom": ed.app_state().zoom().unwrap_or(1.0),
+        "undo": ed.can_undo(),
+        "redo": ed.can_redo(),
+        "ui": inner.ui,
+        "openMenu": ed.app_state().get("openMenu"),
+        "theme": ed.app_state().get("theme"),
+    })
+}
+
+/// The textarea's events, handed to the editor.
+struct TextareaBridge {
+    inner: Weak<RefCell<Inner>>,
+}
+
+impl TextareaHandler for TextareaBridge {
+    fn on_event(&mut self, event: TextareaEvent) -> Handled {
+        let Some(rc) = self.inner.upgrade() else {
+            return Handled::default();
+        };
+        // an event fired while the element is busy (the textarea's removal)
+        let Ok(mut inner) = rc.try_borrow_mut() else {
+            return Handled::default();
+        };
+        let handled = inner.editor.textarea_event(event);
+        inner.after_event();
+        let closed = handled.state.as_ref().is_some_and(|s| !s.open);
+        drop(inner);
+        if closed {
+            // unmounted once this event is over (its listener is the
+            // overlay's); the container takes the focus back
+            let weak = self.inner.clone();
+            let later = Closure::once_into_js(move || {
+                let Some(rc) = weak.upgrade() else {
+                    return;
+                };
+                let mut inner = rc.borrow_mut();
+                if inner.editor.textarea().is_none() {
+                    if let Some(overlay) = inner.overlay.take() {
+                        overlay.unmount();
+                    }
+                }
+                let _ = inner.container.focus();
+                drop(inner);
+                refresh_chrome(&weak);
+            });
+            if let Some(window) = web_sys::window() {
+                let _ = window.set_timeout_with_callback(later.unchecked_ref());
+            }
+        }
+        handled
+    }
+}
+
+/// Mounts the textarea when the editor opened a text editor, unmounts it
+/// when the editor closed, and lays it out again after anything else
+/// moved the scene or the viewport under it.
+fn sync_text_editor(weak: &Weak<RefCell<Inner>>) {
+    let Some(rc) = weak.upgrade() else {
+        return;
+    };
+    let mut inner = rc.borrow_mut();
+    match (inner.editor.textarea().is_some(), inner.overlay.is_some()) {
+        (true, false) => {
+            let Some(state) = inner.editor.text_editor_app_changed() else {
+                return;
+            };
+            let handler: Rc<RefCell<dyn TextareaHandler>> = Rc::new(RefCell::new(TextareaBridge {
+                inner: weak.clone(),
+            }));
+            let canvas: Option<web_sys::Element> = inner
+                .layers
+                .canvas(Layer::Interactive)
+                .map(|c| c.clone().into());
+            let Ok(overlay) =
+                TextEditorOverlay::mount(&inner.editor_box, canvas.as_ref(), &state, handler)
+            else {
+                return;
+            };
+            if let Some(request) = inner.editor.caret_request() {
+                let offset = measure_caret_offset(&inner.document(), &request);
+                inner.editor.resolve_caret(offset);
+                if let Some(state) = inner.editor.textarea() {
+                    overlay.apply(&state);
+                }
+            }
+            inner.overlay = Some(overlay);
+        }
+        (false, true) => {
+            if let Some(overlay) = inner.overlay.take() {
+                overlay.unmount();
+            }
+        }
+        (true, true) => {
+            if let Some(state) = inner.editor.text_editor_app_changed() {
+                if let Some(overlay) = &inner.overlay {
+                    overlay.apply(&state);
+                }
+            }
+        }
+        (false, false) => {}
+    }
+}
+
+/// Re-mounts the chrome (the toolbar and the footer) when what it shows
+/// changed since the last time, and keeps the text editor's textarea in
+/// step with the editor.
+fn refresh_chrome(weak: &Weak<RefCell<Inner>>) {
+    sync_text_editor(weak);
+    let Some(rc) = weak.upgrade() else {
+        return;
+    };
+    let key = chrome_key(&rc.borrow());
+    if rc.borrow().chrome_key.as_ref() == Some(&key) {
+        return;
+    }
+    rc.borrow_mut().chrome_key = Some(key);
+    let _ = render_toolbar(weak);
+    let _ = render_footer(weak);
+    let _ = render_main_menu(weak);
 }
 
 /// Re-mounts the toolbar for the current tools.
@@ -275,7 +447,7 @@ fn render_toolbar(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
                 _ => return,
             }
         }
-        let _ = render_toolbar(&events);
+        refresh_chrome(&events);
     }) as Rc<dyn Fn(ToolbarEvent)>;
     let node = Node::Element(toolbar(ToolbarProps {
         tools: inner.editor.tools(),
@@ -292,6 +464,141 @@ fn render_toolbar(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
     let document = inner.document();
     let mounted = mount(&node, &document, &inner.top)?;
     inner.toolbar = Some(mounted);
+    Ok(())
+}
+
+/// A main menu item's effect, applied to the editor.
+fn apply_menu_effect(inner: &mut Inner, effect: MenuEffect) {
+    match effect {
+        MenuEffect::ExecuteAction(ActionName::ToggleTheme) => {
+            let dark = inner
+                .editor
+                .app_state()
+                .get("theme")
+                .and_then(Value::as_str)
+                == Some("dark");
+            let _ = apply_theme(
+                &inner.container,
+                if dark { Theme::Light } else { Theme::Dark },
+            );
+            inner.editor.set_theme(!dark);
+        }
+        MenuEffect::ExecuteAction(name) => inner.editor.perform_action(name),
+        MenuEffect::SetAppState(patch) => inner.editor.set_app_state(patch),
+        MenuEffect::ToggleLock => {
+            inner.editor.tools_mut().toggle_lock();
+        }
+        MenuEffect::ThemeChange(choice) => {
+            let dark = choice == ThemeChoice::Dark;
+            let _ = apply_theme(
+                &inner.container,
+                if dark { Theme::Dark } else { Theme::Light },
+            );
+            inner.editor.set_theme(dark);
+        }
+        MenuEffect::Warn(message) => web_sys::console::warn_1(&JsValue::from_str(message)),
+        // the host owns files, dialogs and analytics
+        MenuEffect::ConfirmDialog(_)
+        | MenuEffect::ConfirmOverwrite { .. }
+        | MenuEffect::TrackEvent { .. }
+        | MenuEffect::Select => {}
+    }
+}
+
+/// Re-mounts the main menu (`MainMenu`, LayerUI's default items) in the
+/// top-left corner, open while `appState.openMenu` is `"canvas"`.
+fn render_main_menu(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
+    let Some(rc) = weak.upgrade() else {
+        return Ok(());
+    };
+    let mut inner = rc.borrow_mut();
+    if let Some(old) = inner.main_menu.take() {
+        old.remove();
+    }
+    if inner.ui == "none" {
+        return Ok(());
+    }
+    let events = weak.clone();
+    let dispatch: Dispatch = Rc::new(move |effect: MenuEffect| {
+        let Some(rc) = events.upgrade() else {
+            return;
+        };
+        {
+            let Ok(mut inner) = rc.try_borrow_mut() else {
+                return;
+            };
+            apply_menu_effect(&mut inner, effect);
+            inner.after_event();
+        }
+        refresh_chrome(&events);
+    });
+    let dark = inner
+        .editor
+        .app_state()
+        .get("theme")
+        .and_then(Value::as_str)
+        == Some("dark");
+    let node = {
+        let cx = MenuContext::new(
+            false,
+            is_darwin(),
+            &KeyLabels::EN,
+            if dark { Theme::Dark } else { Theme::Light },
+            dispatch,
+        );
+        let ed = &inner.editor;
+        let ctx = ed.action_context();
+        Node::Element(default_main_menu(&cx, ed.action_manager(), &ctx, &|_| None))
+    };
+    let document = inner.document();
+    let mounted = mount(&node, &document, &inner.top_left)?;
+    inner.main_menu = Some(mounted);
+    Ok(())
+}
+
+/// Re-mounts the footer (`Footer.tsx`): the zoom actions and the undo and
+/// redo buttons, run through the editor.
+fn render_footer(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
+    let Some(rc) = weak.upgrade() else {
+        return Ok(());
+    };
+    let mut inner = rc.borrow_mut();
+    if let Some(old) = inner.footer.take() {
+        old.remove();
+    }
+    if inner.ui == "none" {
+        return Ok(());
+    }
+    let events = weak.clone();
+    let on_event = Rc::new(move |control: FooterControl| {
+        let Some(rc) = events.upgrade() else {
+            return;
+        };
+        {
+            let mut inner = rc.borrow_mut();
+            match control {
+                FooterControl::Undo => inner.editor.undo(),
+                FooterControl::Redo => inner.editor.redo(),
+                other => match other.zoom_action() {
+                    Some(action) => inner.editor.zoom_action(action.name()),
+                    None => inner.editor.perform_action(other.action()),
+                },
+            }
+            inner.after_event();
+        }
+        refresh_chrome(&events);
+    }) as OnFooterEvent;
+    let node = Node::Element(footer(FooterProps {
+        zoom: inner.editor.app_state().zoom().unwrap_or(1.0),
+        undo_stack_empty: !inner.editor.can_undo(),
+        redo_stack_empty: !inner.editor.can_redo(),
+        is_darwin: is_darwin(),
+        on_event: Some(on_event),
+        ..FooterProps::default()
+    }));
+    let document = inner.document();
+    let mounted = mount(&node, &document, &inner.container)?;
+    inner.footer = Some(mounted);
     Ok(())
 }
 
@@ -322,6 +629,60 @@ fn listen(
     Ok(())
 }
 
+/// [`listen`] with `{ passive: false }`, so the handler may prevent the
+/// default (a wheel over the canvas).
+fn listen_active(
+    inner: &Rc<RefCell<Inner>>,
+    target: &web_sys::EventTarget,
+    name: &'static str,
+    handler: impl FnMut(&Rc<RefCell<Inner>>, Event) + 'static,
+) -> Result<(), JsValue> {
+    let weak = Rc::downgrade(inner);
+    let mut handler = handler;
+    let closure = Closure::<dyn FnMut(Event)>::new(move |event: Event| {
+        if let Some(rc) = weak.upgrade() {
+            handler(&rc, event);
+        }
+    });
+    let options = AddEventListenerOptions::new();
+    options.set_passive(false);
+    target.add_event_listener_with_callback_and_add_event_listener_options(
+        name,
+        closure.as_ref().unchecked_ref(),
+        &options,
+    )?;
+    inner
+        .borrow_mut()
+        .listeners
+        .push((target.clone(), name, closure));
+    Ok(())
+}
+
+/// A number property of an event: `clientX` and `clientY` are doubles,
+/// fractional in Chromium, where web-sys reads them as integers.
+fn number(event: &Event, key: &str) -> f64 {
+    js_sys::Reflect::get(event, &JsValue::from_str(key))
+        .ok()
+        .and_then(|v| v.as_f64())
+        .unwrap_or(0.0)
+}
+
+/// A pointer event as the editor reads it; Cmd is the modifier on a Mac.
+fn pointer_input(event: &PointerEvent) -> PointerInput {
+    PointerInput {
+        client_x: number(event, "clientX"),
+        client_y: number(event, "clientY"),
+        button: event.button(),
+        shift_key: event.shift_key(),
+        alt_key: event.alt_key(),
+        ctrl_or_cmd: if is_darwin() {
+            event.meta_key()
+        } else {
+            event.ctrl_key()
+        },
+    }
+}
+
 fn is_darwin() -> bool {
     web_sys::window()
         .and_then(|w| w.navigator().platform().ok())
@@ -349,9 +710,15 @@ impl EditorCore {
         apply_container_tokens(&container)?;
         host.append_child(&container)?;
         let layers = CanvasLayers::mount(&container)?;
+        let editor_box: HtmlElement = document.create_element("div")?.dyn_into()?;
+        editor_box.set_class_name(TEXTAREA_ATTRIBUTES.container_class_name);
+        container.append_child(&editor_box)?;
         let top: HtmlElement = document.create_element("div")?.dyn_into()?;
         top.set_class_name("excali-editor__top");
         container.append_child(&top)?;
+        let top_left: HtmlElement = document.create_element("div")?.dyn_into()?;
+        top_left.set_class_name("excali-editor__top-left");
+        container.append_child(&top_left)?;
 
         let source = web_sys::window()
             .and_then(|w| w.location().origin().ok())
@@ -369,7 +736,13 @@ impl EditorCore {
             layers,
             top,
             toolbar: None,
+            footer: None,
+            top_left,
+            main_menu: None,
+            editor_box,
+            overlay: None,
             extra_tools_open: false,
+            chrome_key: None,
             ui: "full".into(),
             dispatch,
             fonts_base,
@@ -383,16 +756,11 @@ impl EditorCore {
             };
             let mut inner = rc.borrow_mut();
             let stroke = keystroke(&event, Some(&inner.container));
-            let before = inner.editor.tools().active_tool.clone();
             let out = inner.editor.key_down(&stroke);
             apply_outcome(&event, &out);
-            let tools_changed = inner.editor.tools().active_tool != before;
-            inner.render();
-            inner.flush();
+            inner.after_event();
             drop(inner);
-            if tools_changed {
-                let _ = render_toolbar(&Rc::downgrade(rc));
-            }
+            refresh_chrome(&Rc::downgrade(rc));
         })?;
         listen(&inner, target, "keyup", |rc, event| {
             let Ok(event) = event.dyn_into::<KeyboardEvent>() else {
@@ -402,8 +770,9 @@ impl EditorCore {
             let stroke = keystroke(&event, Some(&inner.container));
             let out = inner.editor.key_up(&stroke);
             apply_outcome(&event, &out);
-            inner.render();
-            inner.flush();
+            inner.after_event();
+            drop(inner);
+            refresh_chrome(&Rc::downgrade(rc));
         })?;
         let interactive: web_sys::EventTarget = inner
             .borrow()
@@ -416,9 +785,6 @@ impl EditorCore {
             let Ok(event) = event.dyn_into::<PointerEvent>() else {
                 return;
             };
-            if event.button() != 0 {
-                return;
-            }
             let mut inner = rc.borrow_mut();
             let _ = inner.container.focus();
             if let Some(target) = event
@@ -428,24 +794,18 @@ impl EditorCore {
                 let _ = target.set_pointer_capture(event.pointer_id());
             }
             inner.measure();
-            inner.editor.pointer_down(
-                f64::from(event.client_x()),
-                f64::from(event.client_y()),
-                event.shift_key(),
-            );
-            inner.render();
-            inner.flush();
+            inner.editor.pointer_down(pointer_input(&event));
+            inner.after_event();
+            drop(inner);
+            refresh_chrome(&Rc::downgrade(rc));
         })?;
         listen(&inner, &interactive, "pointermove", |rc, event| {
             let Ok(event) = event.dyn_into::<PointerEvent>() else {
                 return;
             };
             let mut inner = rc.borrow_mut();
-            inner
-                .editor
-                .pointer_move(f64::from(event.client_x()), f64::from(event.client_y()));
-            inner.render();
-            inner.flush();
+            inner.editor.pointer_move(pointer_input(&event));
+            inner.after_event();
         })?;
         for name in ["pointerup", "pointercancel"] {
             listen(&inner, &interactive, name, |rc, event| {
@@ -453,20 +813,112 @@ impl EditorCore {
                     return;
                 };
                 let mut inner = rc.borrow_mut();
-                inner
-                    .editor
-                    .pointer_up(f64::from(event.client_x()), f64::from(event.client_y()));
-                inner.render();
-                inner.flush();
+                inner.editor.pointer_up(pointer_input(&event));
+                inner.after_event();
+                drop(inner);
+                refresh_chrome(&Rc::downgrade(rc));
             })?;
         }
+        listen_active(&inner, &interactive, "wheel", |rc, event| {
+            let Ok(event) = event.dyn_into::<WheelEvent>() else {
+                return;
+            };
+            let mut inner = rc.borrow_mut();
+            let prevent = inner.editor.wheel(&WheelInput {
+                delta_x: event.delta_x(),
+                delta_y: event.delta_y(),
+                ctrl_key: event.ctrl_key(),
+                meta_key: event.meta_key(),
+                shift_key: event.shift_key(),
+                buttons: event.buttons(),
+            });
+            if prevent {
+                event.prevent_default();
+            }
+            inner.after_event();
+            drop(inner);
+            refresh_chrome(&Rc::downgrade(rc));
+        })?;
+        // the canvas's context menu is the editor's (`handleCanvasContextMenu`
+        // prevents the browser's)
+        listen(&inner, &interactive, "contextmenu", |_, event| {
+            event.prevent_default();
+        })?;
+        // copy, cut and paste reach the document (`App.onCopy`, `onCut`,
+        // `pasteFromClipboard`)
+        let document_target: web_sys::EventTarget = document.clone().into();
+        for (name, kind) in [
+            ("copy", ClipboardEventKind::Copy),
+            ("cut", ClipboardEventKind::Cut),
+            ("paste", ClipboardEventKind::Paste),
+        ] {
+            listen(&inner, &document_target, name, move |rc, event| {
+                let Some(data) = event
+                    .dyn_ref::<web_sys::ClipboardEvent>()
+                    .and_then(web_sys::ClipboardEvent::clipboard_data)
+                else {
+                    return;
+                };
+                let mut inner = rc.borrow_mut();
+                let pointer = inner.editor.last_pointer();
+                let target = clipboard_target(
+                    &event,
+                    Some(inner.container.as_ref()),
+                    (pointer[0], pointer[1]),
+                    kind == ClipboardEventKind::Paste,
+                );
+                match inner.editor.clipboard_outcome(kind, target) {
+                    ClipboardOutcome::Ignored => return,
+                    ClipboardOutcome::Action(ActionName::Cut) => {
+                        if let Some(text) = inner.editor.cut() {
+                            let _ = data.set_data("text/plain", &text);
+                        }
+                    }
+                    ClipboardOutcome::Action(_) => {
+                        if let Some(text) = inner.editor.copy() {
+                            let _ = data.set_data("text/plain", &text);
+                        }
+                    }
+                    ClipboardOutcome::Paste { plain } => {
+                        let text = data.get_data("text/plain").unwrap_or_default();
+                        inner.editor.paste(&text, plain);
+                    }
+                }
+                event.prevent_default();
+                event.stop_propagation();
+                inner.after_event();
+                drop(inner);
+                refresh_chrome(&Rc::downgrade(rc));
+            })?;
+        }
+        listen(&inner, &interactive, "dblclick", |rc, event| {
+            let Ok(event) = event.dyn_into::<web_sys::MouseEvent>() else {
+                return;
+            };
+            let mut inner = rc.borrow_mut();
+            inner.editor.double_click(PointerInput {
+                client_x: number(&event, "clientX"),
+                client_y: number(&event, "clientY"),
+                button: event.button(),
+                shift_key: event.shift_key(),
+                alt_key: event.alt_key(),
+                ctrl_or_cmd: if is_darwin() {
+                    event.meta_key()
+                } else {
+                    event.ctrl_key()
+                },
+            });
+            inner.after_event();
+            drop(inner);
+            refresh_chrome(&Rc::downgrade(rc));
+        })?;
 
         {
             let mut i = inner.borrow_mut();
             i.measure();
             i.render();
         }
-        render_toolbar(&Rc::downgrade(&inner))?;
+        refresh_chrome(&Rc::downgrade(&inner));
         Ok(EditorCore { inner })
     }
 
@@ -504,7 +956,8 @@ impl EditorCore {
     #[wasm_bindgen(js_name = setUi)]
     pub fn set_ui(&self, ui: &str) -> Result<(), JsValue> {
         ui.clone_into(&mut self.inner.borrow_mut().ui);
-        render_toolbar(&Rc::downgrade(&self.inner))
+        refresh_chrome(&Rc::downgrade(&self.inner));
+        Ok(())
     }
 
     /// `load(text)`. Throws with a one-sentence reason.
@@ -515,7 +968,8 @@ impl EditorCore {
         inner.render();
         inner.flush();
         drop(inner);
-        render_toolbar(&Rc::downgrade(&self.inner))
+        refresh_chrome(&Rc::downgrade(&self.inner));
+        Ok(())
     }
 
     /// The scene as a `.excalidraw` document, for `loadSceneFonts`.
@@ -626,8 +1080,18 @@ impl EditorCore {
             let _ =
                 target.remove_event_listener_with_callback(name, closure.as_ref().unchecked_ref());
         }
-        if let Some(toolbar) = inner.toolbar.take() {
-            toolbar.remove();
+        if let Some(overlay) = inner.overlay.take() {
+            overlay.unmount();
+        }
+        for mounted in [
+            inner.toolbar.take(),
+            inner.footer.take(),
+            inner.main_menu.take(),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            mounted.remove();
         }
         inner.container.remove();
     }

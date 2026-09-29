@@ -2556,12 +2556,42 @@
    "title": "Parity checklist to 100% for the v1 scope",
    "priority": 0,
    "blocked_by": [
-    "ex-531"
+    "ex-531",
+    "ex-522",
+    "ex-523",
+    "ex-525",
+    "ex-526",
+    "ex-527",
+    "ex-528",
+    "ex-529"
    ],
    "crates": [],
    "acceptance": "Checklist page on the site with every row linked to a passing test.",
-   "evidence": [],
-   "description": "",
+   "evidence": [
+    "site/content/plan/parity.md: the issue column of the rows ui-help-dialog, ui-styles-panel, ui-context-menu, ui-library, ui-command-palette, ui-welcome-screen, ui-hints and ui-stats"
+   ],
+   "description": "The rows of site/content/plan/parity.md whose behaviour is ported are wired into <excali-editor> and pass: the viewport, the drawing tools, selection and transforms, the edit actions, text editing, the main menu and the footer. The rest wait on the ports of their features: the help dialog (ex-522), the colour picker the styles panel shows (ex-523), the context menu (ex-525), the library sidebar (ex-526), the command palette (ex-527), the hints and welcome screen (ex-528) and the stats panel (ex-529). Each of those wires its feature into the element and marks its row pass (the suite fails while a passing row is still marked gap); ex-712 closes when every row passes.",
+   "type": "task",
+   "labels": []
+  },
+  {
+   "id": "ex-713",
+   "epic": "ex-e7",
+   "title": "<excali-editor>: the interactive canvas and the App interactions ex-712 reduced",
+   "priority": 1,
+   "blocked_by": [],
+   "crates": [
+    "excali-wasm",
+    "excali-editor",
+    "excali-scene"
+   ],
+   "acceptance": "The element paints upstream's interactive scene (renderInteractiveScene: selection outlines, transform handles, the selection box, binding highlights, snap lines, linear editor points) and runs the interactions ex-712 left out, each with a parity test against upstream at the pin.",
+   "evidence": [
+    "crates/excali-wasm/src/editor.rs and src/text.rs module docs list the reductions",
+    "packages/excalidraw/renderer/interactiveScene.ts (renderInteractiveScene)",
+    "packages/excalidraw/components/App.tsx (handleLinearElementOnPointerDown multiElement branch, maybeDragNewGenericElement snapping, onPointerUpFromPointerDownHandler frame membership)"
+   ],
+   "description": "ex-712 wired the parity rows into <excali-editor> with these left out: the interactive canvas is not painted; a line or arrow is drawn by dragging only (no point-by-point multiElement drawing, no actionFinalize loop closing); the text tool does not size a text by dragging nor label an arrow's endpoint; drawing, dragging and resizing neither snap (snapDraggedElements, snapNewElement, snapResizingElements) nor update frame membership (getElementsInNewFrame, addElementsToFrame, updateFrameMembershipOfSelectedElements); Alt+drag does not duplicate; a double-click does not open the linear element editor, delete an elbow arrow segment or crop an image.",
    "type": "task",
    "labels": []
   },

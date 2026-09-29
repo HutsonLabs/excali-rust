@@ -19,12 +19,17 @@
 //! both from a splitmix64 generator seeded by the host, and the time from a
 //! clock the host gives (`Date.now` in the browser).
 
+use excali_core::element::Element;
 use excali_core::fractional_index::{ChangeStamp, SceneElementsMap};
 use excali_core::restore::RestoreEnv;
 use excali_editor::binding::{update_bound_elements_in_map, BindingEnv};
+use excali_editor::resize_elements::{
+    StickyNoteLayout, StickyNoteLayoutAnchor, StickyNoteLayoutOpts, StickyNoteTextLayout,
+    TransformEnv,
+};
 use excali_editor::scene::MutationEnv;
 use excali_editor::store::HistoryEnv;
-use excali_editor::text_layout::TextLayouter;
+use excali_editor::text_layout::{self, get_sticky_note_layout, TextLayouter, VerticalAnchor};
 use excali_text::text_measurements::{CharWidthCache, TextMetricsProvider};
 
 /// nanoid's alphabet (`nanoid/url-alphabet`), which `randomId` draws from.
@@ -136,10 +141,10 @@ impl<P: TextMetricsProvider + Clone> ChangeStamp for EditorEnv<P> {
 
 /// A sticky note's arrows, laid out while the layouter is busy: the
 /// layout's version stamp and a copy of its metrics.
-struct StampBinding<'a, P> {
-    stamp: &'a mut dyn ChangeStamp,
-    provider: &'a P,
-    char_widths: &'a mut CharWidthCache,
+pub(crate) struct StampBinding<'a, P> {
+    pub(crate) stamp: &'a mut dyn ChangeStamp,
+    pub(crate) provider: &'a P,
+    pub(crate) char_widths: &'a mut CharWidthCache,
 }
 
 impl<P> MutationEnv for StampBinding<'_, P> {
@@ -196,5 +201,47 @@ impl<P: TextMetricsProvider + Clone> HistoryEnv for EditorEnv<P> {
     /// development build does; release builds carry on.
     fn dev_checks(&self) -> bool {
         cfg!(debug_assertions)
+    }
+}
+
+/// Resizing and rotating: the bound arrows follow through the trait's
+/// default, a sticky note's label is laid out by `getStickyNoteLayout`.
+impl<P: TextMetricsProvider + Clone> TransformEnv for EditorEnv<P> {
+    fn sticky_note_layout(
+        &mut self,
+        container: &Element,
+        text: Option<&Element>,
+        opts: &StickyNoteLayoutOpts,
+    ) -> StickyNoteLayout {
+        let opts = text_layout::StickyNoteLayoutOpts {
+            original_text: None,
+            base_height: opts.base_height,
+            base_font_size: opts.base_font_size,
+            anchor: match opts.anchor {
+                Some(StickyNoteLayoutAnchor::Bottom) => VerticalAnchor::Bottom,
+                Some(StickyNoteLayoutAnchor::Center) => VerticalAnchor::Center,
+                Some(StickyNoteLayoutAnchor::Top) | None => VerticalAnchor::Top,
+            },
+        };
+        let layout = self
+            .layouter
+            .with_layout(|layout, _| get_sticky_note_layout(layout, container, text, &opts));
+        StickyNoteLayout {
+            x: layout.container.x,
+            y: layout.container.y,
+            width: layout.container.width,
+            height: layout.container.height,
+            base_height: layout.container.base_height,
+            text: layout.text.map(|t| StickyNoteTextLayout {
+                text: t.text,
+                font_size: t.font_size,
+                base_font_size: t.base_font_size,
+                width: t.width,
+                height: t.height,
+                x: t.x,
+                y: t.y,
+                angle: t.angle,
+            }),
+        }
     }
 }

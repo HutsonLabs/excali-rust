@@ -444,7 +444,8 @@ const ROWS = {
   "tool-ellipse": async ({ page }) => {
     await mount(page);
     const e = await draw(page, "o", [100, 100], [250, 200]);
-    expect(e).toMatchObject({ type: "ellipse", x: 100, y: 100, width: 150, height: 100, roundness: null });
+    // getCurrentItemRoundness("ellipse") outside upstream's test mode
+    expect(e).toMatchObject({ type: "ellipse", x: 100, y: 100, width: 150, height: 100, roundness: { type: 2 } });
   },
 
   "tool-arrow": async ({ page }) => {
@@ -539,7 +540,8 @@ const ROWS = {
 
   "select-box": async ({ page }) => {
     await mount(page, sceneText([rect("a", 100, 100), rect("b", 300, 100), rect("c", 600, 400)]));
-    await drag(page, [50, 50], [450, 250]);
+    // from below the main menu's trigger, which covers the top-left corner
+    await drag(page, [60, 80], [450, 250]);
     expect((await state(page)).selectionCount).toBe(2);
   },
 
@@ -614,7 +616,16 @@ const ROWS = {
   "edit-zorder": async ({ page }) => {
     await mount(page, sceneText([rect("a", 100, 100), rect("b", 300, 100)]));
     await click(page, [150, 150]);
-    await press(page, `${MOD}+Shift+BracketRight`);
+    const mac = await page.evaluate(() => /Mac|iPod|iPhone|iPad/.test(navigator.platform));
+    if (mac) {
+      // Cmd+Alt+] passes both actionBringToFront's and actionBringForward's
+      // key tests, and the ActionManager cancels an ambiguous key
+      await press(page, "Meta+Alt+BracketRight");
+      expect((await saved(page)).map((e) => e.id)).toEqual(["a", "b"]);
+      await press(page, "Meta+BracketRight");
+    } else {
+      await press(page, "Control+Shift+BracketRight");
+    }
     expect((await saved(page)).map((e) => e.id)).toEqual(["b", "a"]);
   },
 
@@ -697,7 +708,9 @@ const ROWS = {
   "ui-styles-panel": async ({ page }) => {
     await mount(page, sceneText([rect("a", 100, 100)]));
     await click(page, [150, 150]);
-    await expect(page.locator("excali-editor .App-menu__left")).toBeVisible(SHORT);
+    const panel = page.locator("excali-editor .App-menu__left");
+    await expect(panel).toBeVisible(SHORT);
+    await expect(panel.locator('button.color-picker__button[aria-label="Stroke"]')).toBeVisible(SHORT);
   },
 
   "ui-footer-zoom": async ({ page }) => {

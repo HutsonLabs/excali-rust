@@ -35,6 +35,15 @@
 //! - [`store`]: snapshots and capture actions (`store.ts`), emitting the
 //!   increments history records.
 //! - [`history`]: the undo and redo stacks (`history.ts`).
+//! - [`edit_actions`]: the `perform`s of the editing actions (select
+//!   all, delete, duplicate, group and ungroup, z-order, copy and paste)
+//!   over an [`edit_actions::EditEnv`].
+//! - [`new_element`]: the element a drawing tool creates and its size as
+//!   the pointer drags (`newElement.ts`, `dragNewElement`); [`eraser`]:
+//!   what an eraser path erases (`EraserTrail`).
+//! - [`selection`]: box selection (`getElementsWithinSelection`,
+//!   `elementsOverlappingBBox`); [`groups`]: selecting whole groups
+//!   (`groups.ts`).
 //! - [`session`]: the scene, app state, store and history wired as `App`
 //!   wires them (`updateScene`, `syncActionResult`, undo and redo).
 //! - [`elbow_arrow`]: elbow arrow routing, `updateElbowArrowPoints` and the
@@ -77,17 +86,22 @@ pub mod binding_highlight;
 pub mod collision;
 pub mod delta;
 pub mod distance;
+pub mod edit_actions;
 pub mod elbow_arrow;
+pub mod eraser;
 pub mod geometry;
+pub mod groups;
 pub mod history;
 mod js_value;
 pub mod keyboard;
 pub mod linear_element_editor;
 pub mod mutate;
+pub mod new_element;
 pub mod resize_elements;
 pub mod resize_test;
 pub mod restore_env;
 pub mod scene;
+pub mod selection;
 pub mod session;
 pub mod snapping;
 pub mod store;

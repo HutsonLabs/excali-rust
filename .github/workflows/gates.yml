@@ -434,7 +434,10 @@ jobs:
   # components (trees and the effects of each handler) and their SCSS; and
   # footer.mjs --check for excali-ui's
   # footer.json and src/footer/footer.css (ex-521), upstream's Footer
-  # rendered through its ActionManager, its tooltips and clicks.
+  # rendered through its ActionManager, its tooltips and clicks; and
+  # editing-fixtures.mjs --check for excali-editor's editing.json (ex-712),
+  # upstream's selection, group, element creation and edit action code on
+  # the scenes of the gestures <excali-editor> wires.
   # Runs on arm64: V8's float results for some shapes differ in the last bits
   # between x64 and arm64, and the committed goldens are the arm64 output
   # (macOS and Linux arm64 agree byte for byte).
@@ -529,6 +532,8 @@ jobs:
         run: node tools/goldens/image-elements.mjs --check
       - name: excali-scene canvas export fixture matches upstream's exportToCanvas
         run: node tools/goldens/png-export.mjs --check
+      - name: excali-editor editing fixture matches upstream's selection, groups, newElement and edit actions
+        run: node tools/goldens/editing-fixtures.mjs --check
       - name: toolchain (from rust-toolchain.toml)
         run: rustup toolchain install
       - uses: Swatinem/rust-cache@v2
