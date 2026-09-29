@@ -1,6 +1,7 @@
 //! Paths in the canvas's vocabulary, and the canonical form that backends
 //! without canvas path semantics (tiny-skia, SVG) draw.
 
+use excali_math::js;
 use std::f64::consts::{FRAC_PI_2, PI, TAU};
 
 /// The winding rule of a fill or clip: `fill(rule)`, `clip(rule)`.
@@ -304,7 +305,7 @@ impl Path {
                         continue;
                     }
                     let sweep = arc_sweep(a0, a1, anticlockwise);
-                    let first = (cx + radius * a0.cos(), cy + radius * a0.sin());
+                    let first = (cx + radius * js::cos(a0), cy + radius * js::sin(a0));
                     if current.is_none() && !closed {
                         ensure(&mut out, &mut start, &mut current, &mut closed, first);
                     } else {
@@ -316,7 +317,7 @@ impl Path {
                         continue;
                     }
                     let end = a0 + sweep;
-                    let (s, c) = end.sin_cos();
+                    let (s, c) = (js::sin(end), js::cos(end));
                     if keep_arcs {
                         out.commands.push(PathCommand::Arc {
                             cx,
@@ -331,7 +332,7 @@ impl Path {
                     }
                     let segments = (sweep.abs() / FRAC_PI_2).ceil().max(1.0) as usize;
                     let step = sweep / segments as f64;
-                    let k = 4.0 / 3.0 * (step / 4.0).tan() * radius;
+                    let k = 4.0 / 3.0 * js::tan(step / 4.0) * radius;
                     let mut angle = a0;
                     for i in 0..segments {
                         let next = if i + 1 == segments {
@@ -339,8 +340,8 @@ impl Path {
                         } else {
                             angle + step
                         };
-                        let (s0, c0) = angle.sin_cos();
-                        let (s1, c1) = next.sin_cos();
+                        let (s0, c0) = (js::sin(angle), js::cos(angle));
+                        let (s1, c1) = (js::sin(next), js::cos(next));
                         let (x0, y0) = (cx + radius * c0, cy + radius * s0);
                         let (x1, y1) = (cx + radius * c1, cy + radius * s1);
                         out.cubic_to(x0 - k * s0, y0 + k * c0, x1 + k * s1, y1 - k * c1, x1, y1);

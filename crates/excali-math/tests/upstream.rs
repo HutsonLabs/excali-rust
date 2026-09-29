@@ -21,7 +21,7 @@ fn close_to(actual: f64, expected: f64, digits: i32) -> bool {
 /// that power itself, so the default is 100 units; the curve tests below
 /// check this matcher and then the 0.01 their expected values are written to.
 fn closely_equal_points<S: Space>(received: &[Point<S>], expected: &[[f64; 2]]) -> bool {
-    let compare = 10f64.powf(2.0);
+    let compare = js::pow(10f64, 2.0);
     expected.iter().enumerate().all(|(idx, point)| {
         let got = received
             .get(idx)
@@ -387,7 +387,7 @@ mod polygon_test {
         let cloud: Vec<P> = (0..30)
             .map(|i| {
                 let a = f64::from(i) * 2.4;
-                pt(a.cos() * 10.0, a.sin() * 10.0)
+                pt(js::cos(a) * 10.0, js::sin(a) * 10.0)
             })
             .collect();
         let hull = convex_hull(&cloud);
@@ -413,7 +413,7 @@ mod polygon_test {
         (0..n)
             .map(|i| {
                 let a = (f64::from(i) * 2.0 * std::f64::consts::PI) / f64::from(n);
-                pt(a.cos() * 100.0, a.sin() * 100.0)
+                pt(js::cos(a) * 100.0, js::sin(a) * 100.0)
             })
             .collect()
     }

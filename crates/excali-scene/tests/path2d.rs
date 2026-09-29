@@ -4,6 +4,7 @@
 //! Path2D constructor does (the SVG path grammar, "render up to the
 //! error").
 
+use excali_math::js;
 use excali_scene::display::{Path, PathCommand};
 use excali_scene::freedraw::get_svg_path_from_stroke;
 use PathCommand::*;
@@ -145,7 +146,7 @@ fn errors_keep_what_came_before() {
 fn arcs() {
     // a half circle of radius 10 from (0, 0) to (20, 0), clockwise on
     // screen through (10, -10): two quarter-turn cubics
-    let k = 4.0 / 3.0 * (std::f64::consts::FRAC_PI_8).tan() * 10.0;
+    let k = 4.0 / 3.0 * js::tan(std::f64::consts::FRAC_PI_8) * 10.0;
     assert!(close_to(
         &cmds("M0 0 A 10 10 0 0 1 20 0"),
         &[

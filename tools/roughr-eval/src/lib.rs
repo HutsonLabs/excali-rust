@@ -13,8 +13,8 @@
 //! (`fixedDecimalPlaceDigits` 2, `packages/excalidraw/renderer/staticSvgScene.ts:71`,
 //! through rough.js `opsToPath`), so it is the loosest "equal" a user could
 //! see. It matches exactly when the numbers are within the relative 1e-10
-//! the port's own golden gate allows for platform trig
-//! (`excali_rough::goldens::PLATFORM_TOLERANCE`).
+//! the port's own golden gate allowed for platform trig when this
+//! evaluation ran (ex-206; since ex-009 the port's gate is exact).
 
 use std::collections::BTreeMap;
 use std::panic::{catch_unwind, AssertUnwindSafe};
@@ -36,8 +36,8 @@ pub const FILES: &[&str] = &[
     "rough-strokes.json",
 ];
 
-/// The relative tolerance of an "exact" match: the port's golden gate
-/// (`excali_rough::goldens::PLATFORM_TOLERANCE`).
+/// The relative tolerance of an "exact" match: the port's golden gate for
+/// platform trig at the time of the evaluation (ex-206).
 pub const EXACT_TOLERANCE: f64 = 1e-10;
 
 /// The share of goldens (percent, at two decimals) from which a divergence

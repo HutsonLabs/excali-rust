@@ -24,6 +24,7 @@ use excali_core::element::{
     ArrowFields, Arrowhead, Element, ElementBase, ElementKind, LineFields, LinearFields,
     LocalPoint, StrokeStyle,
 };
+use excali_math::js;
 use excali_math::Degrees;
 use excali_rough::{Drawable, RoughGenerator, Shape};
 use excali_scene::bounds::{
@@ -134,7 +135,7 @@ fn arrow_wings_rotate_the_base_by_twenty_degrees_about_the_tip() {
     // roughness 0: the body is the straight segment, so the head points
     // along +x; size 25 fits in half of the 100 px segment
     let el = arrow_with(&STRAIGHT, None, Some(Arrowhead::Arrow));
-    let (c, s) = (20f64.to_radians().cos(), 20f64.to_radians().sin());
+    let (c, s) = (js::cos(20f64.to_radians()), js::sin(20f64.to_radians()));
     let ArrowheadPoints::Wings(p) = points_of(&el, ArrowheadPosition::End, Arrowhead::Arrow, 0.0)
     else {
         panic!("wings")
@@ -171,7 +172,7 @@ fn heads_shrink_to_half_the_last_segment() {
     else {
         panic!("wings")
     };
-    let (c, s) = (20f64.to_radians().cos(), 20f64.to_radians().sin());
+    let (c, s) = (js::cos(20f64.to_radians()), js::sin(20f64.to_radians()));
     close(
         &p,
         &[
@@ -216,7 +217,7 @@ fn diamonds_add_the_vertex_opposite_the_tip() {
     else {
         panic!("diamond")
     };
-    let (c, s) = (25f64.to_radians().cos(), 25f64.to_radians().sin());
+    let (c, s) = (js::cos(25f64.to_radians()), js::sin(25f64.to_radians()));
     close(
         &d,
         &[
@@ -252,7 +253,7 @@ fn crowfeet_swap_the_tip_and_the_base() {
     else {
         panic!("wings")
     };
-    let (c, s) = (25f64.to_radians().cos(), 25f64.to_radians().sin());
+    let (c, s) = (js::cos(25f64.to_radians()), js::sin(25f64.to_radians()));
     close(
         &p,
         &[

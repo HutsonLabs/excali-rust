@@ -32,6 +32,7 @@ import {
 } from "./fixtures.mjs";
 import { fractionalIndexCases, orderKeyCases } from "./fixtures-fractional.mjs";
 import { format } from "./lib/format.mjs";
+import { jsMathCases, jsMathResult } from "./js-math.mjs";
 import { jsSortCases, jsSortResult } from "./jssort.mjs";
 import { mathCases } from "./math.mjs";
 import { loadUpstream, readJson, REPO_ROOT, TOOL_DIR, verifyUpstream } from "./lib/upstream.mjs";
@@ -344,6 +345,12 @@ const buildGoldens = (up) => {
     description:
       "Array.prototype.sort (V8 TimSort) with a comparator that can answer NaN: kind sort is [0..n).sort((i, j) => values[i] - values[j]); kind convexHull is packages/math/src/polygon.ts convexHull(points) as indices into points. Non-finite inputs are the strings NaN, Infinity, -Infinity.",
     cases: jsSortCases().map((c) => ({ ...c, result: jsSortResult(up, c) })),
+  });
+  files.push({
+    name: "js-math.json",
+    description:
+      "V8's Math functions (Node at tools/goldens/.node-version, arm64): Math[fn](...args) = result, every double as its IEEE 754 bits in hex, a NaN result as the string NaN. sin, cos, tan, asin, acos, atan, atan2, exp, log, log2, log10 and cbrt are V8's fdlibm (src/base/ieee754.cc, fused multiply-adds on arm64); hypot is src/builtins/math.tq; pow only where its answer does not depend on the platform's pow (tools/goldens/js-math.mjs).",
+    cases: jsMathCases().map(jsMathResult),
   });
   files.push({
     name: "fractional-indexing.json",

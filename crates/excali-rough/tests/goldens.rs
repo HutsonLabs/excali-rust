@@ -27,18 +27,15 @@
 //!   them; each is drawn with the generator method that element type uses,
 //!   at stroke widths 1, 2, 4, roughness 0, 1, 2 and three seeds.
 //!
-//! Numbers are compared as doubles with `==`, op by op, except where rough.js
-//! goes through `Math.sin`/`Math.cos`/`Math.tan`/`Math.asin`/`Math.atan` on
-//! arguments that land near a rounding boundary: ellipses, circles, arcs, SVG
-//! `A` commands, and the `dashed` and `zigzag-line` fillers, which walk each
-//! line along its `atan` slope. Those are not the same function on every
-//! platform (upstream's own V8 on arm64 differs from x86_64 V8 and from libm
-//! in the last bit; see `tools/goldens/README.md` and
-//! `crates/excali-math/tests/goldens.rs`), so they are compared to within
-//! `PLATFORM_TOLERANCE`. The number of ops, their kinds and every option
-//! must still match exactly, so a draw taken out of order fails either way.
+//! Numbers are compared as doubles with `==`, op by op, every case: the
+//! ellipses, circles, arcs, SVG `A` commands and the `dashed` and
+//! `zigzag-line` fillers go through `Math.sin`/`Math.cos`/`Math.tan`/
+//! `Math.asin`/`Math.atan`, which the port computes as V8 does, bit for bit
+//! and the same on every platform (`excali_math::js`, ex-009; the platform's
+//! libm, like x86_64 V8, differs from arm64 V8 in the last bit on some of
+//! them, see `tools/goldens/README.md`). The number of ops, their kinds and
+//! every option match exactly too.
 //!
-//! Every other fill (solid, hachure, cross-hatch, zigzag) is compared exactly.
 //! hachure-fill rotates the polygon by the hachure angle in place and back
 //! (`rotatePoints`), which moves shared vertices in the last bits; the
 //! goldens record that drift (for example `4.999999999999999` where the
@@ -48,13 +45,11 @@
 //! 150 degrees in the exactly compared cases. V8 returns them correctly
 //! rounded, and every true value lies at least 0.07 ulp from a rounding
 //! midpoint, so any libm within glibc's documented 0.548 ulp bound returns
-//! the same doubles (checked on macOS arm64 and Linux arm64 glibc 2.36). Only 42 fill cases (all
-//! `dashed` or `zigzag-line`) in `rough-fills.json` and 5 in
-//! `rough-options.json` differ from V8 in the last bits.
+//! the same doubles (checked on macOS arm64 and Linux arm64 glibc 2.36).
 
 use std::path::Path;
 
-use excali_rough::goldens::{Report, Tolerance, PLATFORM_TOLERANCE};
+use excali_rough::goldens::{Report, Tolerance};
 use excali_rough::{Drawable, Options, Random, RoughGenerator};
 use serde_json::Value;
 
@@ -157,22 +152,6 @@ fn call(method: &str, a: &[Value], o: &Options) -> Drawable {
     }
 }
 
-/// Whether rough.js computed this case through trigonometric functions
-/// whose last bit is platform-dependent (see the module comment). The
-/// hachure-fill rotation is not among them: it is checked exactly.
-fn uses_trig(method: &str, args: &[Value], o: &Options) -> bool {
-    if o.fill.is_some() && matches!(o.fill_style.as_str(), "dashed" | "zigzag-line") {
-        return true;
-    }
-    match method {
-        "ellipse" | "circle" | "arc" => true,
-        "path" => args[0]
-            .as_str()
-            .is_some_and(|d| d.contains('A') || d.contains('a')),
-        _ => false,
-    }
-}
-
 /// Runs every case of `file` through the golden harness; returns how many
 /// ran. A difference panics with the case id, the set and op index and the
 /// expected and actual numbers (`excali_rough::goldens`).
@@ -184,12 +163,7 @@ fn check_file(file: &str) -> usize {
         let o = options(&c["options"]);
         let method = c["method"].as_str().expect("method");
         let args = c["args"].as_array().expect("args");
-        let tolerance = if uses_trig(method, args, &o) {
-            Tolerance::Relative(PLATFORM_TOLERANCE)
-        } else {
-            Tolerance::Exact
-        };
-        report.drawable(c, &c["drawable"], &call(method, args, &o), tolerance);
+        report.drawable(c, &c["drawable"], &call(method, args, &o), Tolerance::Exact);
     }
     report.assert_ok()
 }

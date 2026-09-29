@@ -13,6 +13,7 @@
 //! crispEdges`, `stroke-linejoin: miter-clip`) answers `None`, and the
 //! caller renders the document with resvg instead.
 
+use excali_scene::display::js;
 use excali_scene::display::{
     Color, Dash, DisplayItem, FillRule, Group, LineCap, LineJoin, Path, PathCommand, Rect, Rgba,
     Stroke, Transform,
@@ -220,7 +221,7 @@ fn path_end(path: &Path) -> Option<(f64, f64)> {
             radius,
             end,
             ..
-        } => Some((cx + radius * end.cos(), cy + radius * end.sin())),
+        } => Some((cx + radius * js::cos(end), cy + radius * js::sin(end))),
         PathCommand::Close => None,
     }
 }
@@ -265,7 +266,7 @@ fn quarter_circle(
     // rounded once, so its handles land within it (Font Awesome's are
     // 2.6 ulps off; the rare real arc a rounding pushes past stays a
     // cubic).
-    let tolerance = f64::from(f32::EPSILON) * 2f64.powi(magnitude.log2().floor() as i32);
+    let tolerance = f64::from(f32::EPSILON) * 2f64.powi(js::log2(magnitude).floor() as i32);
     let near = |a: f64, b: f64| (a - b).abs() <= tolerance;
     // Leaving p0 vertically (p1 straight above or below it) and arriving
     // at p3 horizontally, or the other way round.
@@ -293,8 +294,8 @@ fn quarter_circle(
     if radius == 0.0 {
         return None;
     }
-    let start = (p0.1 - centre.1).atan2(p0.0 - centre.0);
-    let end = (p3.1 - centre.1).atan2(p3.0 - centre.0);
+    let start = js::atan2(p0.1 - centre.1, p0.0 - centre.0);
+    let end = js::atan2(p3.1 - centre.1, p3.0 - centre.0);
     let mut sweep = end - start;
     if sweep > std::f64::consts::PI {
         sweep -= std::f64::consts::TAU;

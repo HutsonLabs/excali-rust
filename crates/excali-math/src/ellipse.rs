@@ -74,8 +74,8 @@ pub fn ellipse_distance_from_point<S: Space>(p: Point<S>, ellipse: Ellipse<S>) -
         let x = a * tx;
         let y = b * ty;
 
-        let ex = ((a * a - b * b) * tx.powf(3.0)) / a;
-        let ey = ((b * b - a * a) * ty.powf(3.0)) / b;
+        let ex = ((a * a - b * b) * js::pow(tx, 3.0)) / a;
+        let ey = ((b * b - a * a) * js::pow(ty, 3.0)) / b;
 
         let rx = x - ex;
         let ry = y - ey;
@@ -169,13 +169,16 @@ pub fn ellipse_line_intersection_points<S: Space>(
     let y1 = g.y - cy;
     let x2 = h.x - cx;
     let y2 = h.y - cy;
-    let a =
-        (x2 - x1).powf(2.0) / half_width.powf(2.0) + (y2 - y1).powf(2.0) / half_height.powf(2.0);
-    let b =
-        2.0 * ((x1 * (x2 - x1)) / half_width.powf(2.0) + (y1 * (y2 - y1)) / half_height.powf(2.0));
-    let c = x1.powf(2.0) / half_width.powf(2.0) + y1.powf(2.0) / half_height.powf(2.0) - 1.0;
-    let t1 = (-b + (b.powf(2.0) - 4.0 * a * c).sqrt()) / (2.0 * a);
-    let t2 = (-b - (b.powf(2.0) - 4.0 * a * c).sqrt()) / (2.0 * a);
+    let a = js::pow(x2 - x1, 2.0) / js::pow(half_width, 2.0)
+        + js::pow(y2 - y1, 2.0) / js::pow(half_height, 2.0);
+    let b = 2.0
+        * ((x1 * (x2 - x1)) / js::pow(half_width, 2.0)
+            + (y1 * (y2 - y1)) / js::pow(half_height, 2.0));
+    let c = js::pow(x1, 2.0) / js::pow(half_width, 2.0)
+        + js::pow(y1, 2.0) / js::pow(half_height, 2.0)
+        - 1.0;
+    let t1 = (-b + (js::pow(b, 2.0) - 4.0 * a * c).sqrt()) / (2.0 * a);
+    let t2 = (-b - (js::pow(b, 2.0) - 4.0 * a * c).sqrt()) / (2.0 * a);
     let candidates: Vec<Point<S>> = [
         point_from(x1 + t1 * (x2 - x1) + cx, y1 + t1 * (y2 - y1) + cy),
         point_from(x1 + t2 * (x2 - x1) + cx, y1 + t2 * (y2 - y1) + cy),

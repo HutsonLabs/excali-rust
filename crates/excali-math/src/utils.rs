@@ -37,7 +37,7 @@ impl RoundingFn {
 /// `round(value, precision, func)`: rounds to `precision` decimal places,
 /// nudging by `Number.EPSILON` first (`utils.ts:7`).
 pub fn round(value: f64, precision: f64, func: RoundingFn) -> f64 {
-    let multiplier = 10f64.powf(precision);
+    let multiplier = js::pow(10f64, precision);
     func.apply((value + f64::EPSILON) * multiplier) / multiplier
 }
 

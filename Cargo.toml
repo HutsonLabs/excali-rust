@@ -65,10 +65,12 @@ unicode-properties = { version = "0.1.4", default-features = false, features = [
 # in the tree through url's IDNA (idna_adapter), at these versions.
 icu_properties = { version = "2.3.0", default-features = false, features = ["compiled_data"] }
 icu_normalizer = { version = "2.3.0", default-features = false, features = ["compiled_data"] }
-# fdlibm's sin and cos, the code V8's Math.sin and Math.cos run
-# (src/base/ieee754.cc), so rotations give upstream's doubles on every
-# platform (excali_math::js).
-libm = "0.2.16"
+# The correctly rounded pow behind excali_math::js::pow (ex-009, ADR-011):
+# V8's Math.pow is the platform's pow, which differs between macOS and glibc,
+# so the port answers the correctly rounded power on every platform. pxfm
+# (BSD-3-Clause OR Apache-2.0, no dependencies) ports CORE-MATH's pow to
+# Rust. Pinned exactly: crates/excali-math/tests/js_math.rs pins its answers.
+pxfm = "=0.1.30"
 # SVG export font subsetting (excali_svg::fonts, ex-408, ADR-010): skera,
 # fontations' port of HarfBuzz's hb-subset to Rust, subsets each inlined face
 # to the scene's characters with upstream's input (every layout feature),

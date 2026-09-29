@@ -12,9 +12,9 @@
 //! `refresh_text_dimensions` through an [`ArrowLabelGeometry`], the way
 //! `excali-editor` will.
 //!
-//! Geometry is compared exactly for unrotated text. A rotated text's
-//! position goes through `Math.cos`/`Math.sin`, which V8 and Rust's libm may
-//! round differently in the last bit, so there it is compared to 1e-9.
+//! Geometry is compared exactly, rotated text included: its position goes
+//! through `Math.cos`/`Math.sin`, which `excali_math::js` computes as V8
+//! does on every platform (ex-009).
 
 use excali_core::element::{Element, FontFamily, TextAlign, TextFields, VerticalAlign};
 use excali_text::new_element::{
@@ -152,22 +152,15 @@ fn text_fields(element: &Element) -> &TextFields {
     }
 }
 
-fn assert_num(what: &str, actual: f64, expected: f64, exact: bool) {
-    if exact {
-        assert!(
-            actual == expected || (actual.is_nan() && expected.is_nan()),
-            "{what}: {actual} != {expected}"
-        );
-    } else {
-        assert!(
-            (actual - expected).abs() <= 1e-9 * expected.abs().max(1.0),
-            "{what}: {actual} not within 1e-9 of {expected}"
-        );
-    }
+fn assert_num(what: &str, actual: f64, expected: f64) {
+    assert!(
+        actual == expected || (actual.is_nan() && expected.is_nan()),
+        "{what}: {actual} != {expected}"
+    );
 }
 
 /// `update` against the keys upstream assigned (`result`).
-fn assert_update(what: &str, update: &RefreshedText, expected: &Value, exact: bool) {
+fn assert_update(what: &str, update: &RefreshedText, expected: &Value) {
     assert_eq!(
         update.text,
         expected["text"].as_str().expect("text"),
@@ -186,12 +179,7 @@ fn assert_update(what: &str, update: &RefreshedText, expected: &Value, exact: bo
         ("x", update.x),
         ("y", update.y),
     ] {
-        assert_num(
-            &format!("{what}: {key}"),
-            actual,
-            num(&expected[key]),
-            exact,
-        );
+        assert_num(&format!("{what}: {key}"), actual, num(&expected[key]));
     }
 }
 
@@ -273,7 +261,7 @@ fn new_text_element_positions_the_box_from_its_anchor() {
             ("width", created.width),
             ("height", created.height),
         ] {
-            assert_num(&format!("{what}: {key}"), actual, num(&e[key]), true);
+            assert_num(&format!("{what}: {key}"), actual, num(&e[key]));
         }
         let t = &created.fields;
         assert_eq!(t.text, e["text"].as_str().unwrap(), "{what}: text");
@@ -366,9 +354,7 @@ fn refresh_reproduces_upstream_geometry_for_every_edit() {
         }
         match (&update, &case["result"]) {
             (None, Value::Null) => {}
-            (Some(update), expected @ Value::Object(_)) => {
-                assert_update(&what, update, expected, element.base.angle.0 == 0.0)
-            }
+            (Some(update), expected @ Value::Object(_)) => assert_update(&what, update, expected),
             (actual, expected) => panic!("{what}: {actual:?} != {expected}"),
         }
     }
@@ -383,7 +369,6 @@ fn typing_session_grows_and_wraps_like_the_editor() {
     for session in sessions {
         let provider = provider(session["metric"].as_str().unwrap());
         let mut element = text_element(&session["text"]);
-        let exact = element.base.angle.0 == 0.0;
         let typed: Vec<char> = session["typed"].as_str().unwrap().chars().collect();
         let max_width = session.get("maxWidth").map(num);
         let steps = session["steps"].as_array().unwrap();
@@ -426,12 +411,7 @@ fn typing_session_grows_and_wraps_like_the_editor() {
                 ("width", element.base.width),
                 ("height", element.base.height),
             ] {
-                assert_num(
-                    &format!("{what}: {key}"),
-                    actual,
-                    num(&expected[key]),
-                    exact,
-                );
+                assert_num(&format!("{what}: {key}"), actual, num(&expected[key]));
             }
         }
     }
@@ -445,7 +425,7 @@ fn auto_resize_unwraps_around_the_anchor() {
         let element = text_element(&case["text"]);
         let update =
             text_auto_resize(&element, provider(case["metric"].as_str().unwrap())).expect("a text");
-        assert_update(&case.to_string(), &update, &case["result"], true);
+        assert_update(&case.to_string(), &update, &case["result"]);
     }
 }
 

@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-29 · ex-009 · Platform-independent float maths: excali_math::js for every transcendental, std methods disallowed by clippy
+
+Every sine, cosine, arctangent, exponential, logarithm, cube root, hypot and power in the port now goes through `excali_math::js`, a port of V8's own fdlibm (with arm64's fused multiply-adds) plus a correctly rounded `pow`, so the port returns the same doubles as upstream's Node on macOS, Linux and wasm32. Clippy rejects new uses of the std methods in every crate and tool, and the goldens compare trigonometry exactly on both macOS and Linux CI (ADR-011). PR: [#91](https://github.com/HutsonLabs/excali-rust/pull/91).
+
 ## 2026-09-29 · ex-g402 · D2 PNG half: port's PNG export of the fixture scenes vs upstream's exportToCanvas in Chrome, within a tolerance recorded per fixture
 
 The port's full PNG export, text included, is now compared pixel by pixel with what upstream's own `exportToCanvas` draws in Chromium for 35 fixture scenes: canvas sizes exactly, every pixel within a per-scene tolerance, and everything outside the text boxes within 8 levels. The emoji-only smiley scene is excluded (no vendored face, ADR-004) but its size and the pixels outside its text are still checked. A macOS arm64 CI job redraws the references and reruns the comparison. PR: [#90](https://github.com/HutsonLabs/excali-rust/pull/90).

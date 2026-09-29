@@ -10,6 +10,7 @@
 //! the HTML canvas specification's. These tests pin those rules; the
 //! backends are then checked against the same list.
 
+use excali_math::js;
 use std::f64::consts::{FRAC_PI_2, PI};
 
 use excali_scene::display::{
@@ -296,7 +297,7 @@ mod path {
         let CubicTo(x1, y1, x2, y2, x, y) = c[1] else {
             panic!("expected a cubic, got {:?}", c[1]);
         };
-        let k = 10.0 * 4.0 / 3.0 * (FRAC_PI_2 / 4.0).tan();
+        let k = 10.0 * 4.0 / 3.0 * js::tan(FRAC_PI_2 / 4.0);
         assert_point((x1, y1), (10.0, k));
         assert_point((x2, y2), (k, 10.0));
         assert_point((x, y), (0.0, 10.0));
@@ -404,7 +405,7 @@ mod path {
         let LineTo(x, y) = c[8] else {
             panic!("a line to the start: {:?}", c[8])
         };
-        assert_point((x, y), (2.0 * 1f64.cos(), 2.0 * 1f64.sin()));
+        assert_point((x, y), (2.0 * js::cos(1f64), 2.0 * js::sin(1f64)));
         assert_eq!(c.len(), 9);
         // Without arcs, canonical_arcs and canonical agree.
         let mut q = Path::new();
@@ -1214,7 +1215,9 @@ mod boundaries {
     /// identifier in the module that defines it names an element, it uses
     /// nothing of this crate outside `display`, and it reaches `excali-core`
     /// only for the dark-mode filter maths (`excali_core::color`) and
-    /// JavaScript number printing (`excali_core::json`).
+    /// JavaScript number printing (`excali_core::json`), and `excali-math`
+    /// only for the platform-independent `sin`, `atan2` and `pow`
+    /// (`excali_math::js`, ex-009).
     #[test]
     fn display_module_does_not_know_elements() {
         let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/src/display");
@@ -1363,6 +1366,7 @@ mod boundaries {
         }
         match root.split_once("::") {
             Some(("excali_core", m)) => matches!(m, "color" | "json"),
+            Some(("excali_math", m)) => m == "js",
             Some(("crate", m)) => m == "display",
             Some(("super" | "self", "super")) => false,
             Some(("super", _)) => !is_mod,

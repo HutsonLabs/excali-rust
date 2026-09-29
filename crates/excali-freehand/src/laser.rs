@@ -8,11 +8,11 @@
 //! `x ** 2` is `x * x` (V8's `Math.pow` returns the correctly rounded
 //! product for an exponent of 2), and `Math.sin`, `Math.cos` and
 //! `Math.atan2` go through [`js::sin`], [`js::cos`] and [`js::atan2`]
-//! (fdlibm), which agree with V8 far more often than the platform's (on
-//! 200,000 random arguments under Node 26 on macOS arm64: sin 1.4% of
-//! results an ulp away against 4.1%, atan2 0.1% against 20.6%). An ulp is
-//! enough to move an outline point across the hit testing simplification
-//! tolerance (`CONSTANT_WIDTH_COLLISION_SIMPLIFY_TOLERANCE`).
+//! (V8's fdlibm, ported), which return V8's doubles on every platform where
+//! the platform's are an ulp away on a few percent of arguments (on 200,000
+//! random arguments under Node 26 on macOS arm64: sin 4.1%, atan2 20.6%).
+//! An ulp is enough to move an outline point across the hit testing
+//! simplification tolerance (`CONSTANT_WIDTH_COLLISION_SIMPLIFY_TOLERANCE`).
 
 use std::f64::consts::PI;
 use std::fmt;

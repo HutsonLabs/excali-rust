@@ -24,6 +24,7 @@
     {"name":"laser-pointer.json","cases":61,"sha256":"cc87317d60f9a532cb41a801daa89a3741312c9086173ebcb5c9e71d64257038"},
     {"name":"math.json","cases":2942,"sha256":"6096ee4182c6f475cf4cee1dd3cdd40b8401cc8fd6748f30d5bd5c2e709f64a1"},
     {"name":"js-sort.json","cases":200,"sha256":"cdc8039d805c0cd0bb2e9352483c9b981b6dc2e418cd6814c43583c72002087c"},
+    {"name":"js-math.json","cases":3329,"sha256":"c88fb6ac6df07ecc3c65385830ac5e11f6bb73724ce01f1beb700f3c63d64a7e"},
     {"name":"fractional-indexing.json","cases":5165,"sha256":"398c068bd6414f829527ec74d960ffeed4026b53237fe3195e360bedb0f4c42f"},
     {"name":"fractional-index.json","cases":1274,"sha256":"563e16870b4b420c1ed8a8fbb8b665a8afc69fd06177e68d87f20178760ac3ba"}
   ]

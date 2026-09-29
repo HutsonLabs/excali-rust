@@ -18,6 +18,7 @@
 //!   non-finite numbers, integers) are pinned to the strings upstream's code
 //!   writes in Node 26 (the vectors below).
 
+use excali_math::js;
 use std::path::Path;
 
 use excali_core::element::{Element, ElementKind, StrokeVariability};
@@ -188,11 +189,11 @@ fn element_entry_points_reject_other_types() {
     assert_eq!(get_variable_width_freedraw_outline(&el), None);
 }
 
-/// Outline coordinates go through `Math.sin`/`Math.cos`, which may differ
-/// from libm in the last bit on some platforms (see
-/// `crates/excali-freehand/tests/goldens.rs`). The end-to-end byte equality
-/// above holds on every platform only where a one-ulp change cannot move
-/// the trimmed text (a value at a 0.01 boundary, or a short decimal such as
+/// Outline coordinates go through `Math.sin`/`Math.cos`, which the
+/// platform's libm may round differently from V8 in the last bit;
+/// `excali_math::js` computes V8's (ex-009). Before it did, the end-to-end
+/// byte equality above held on every platform only where a one-ulp change
+/// could not move the trimmed text (a value at a 0.01 boundary, or a short decimal such as
 /// `0.5` that would grow digits). This finds every such coordinate and
 /// midpoint of the variable-width fixtures and pins the list.
 ///
@@ -206,7 +207,7 @@ fn element_entry_points_reject_other_types() {
 #[test]
 fn variable_width_paths_depend_on_the_last_bit_only_where_pinned() {
     assert_eq!(
-        (std::f64::consts::PI / 4.0).sin(),
+        js::sin(std::f64::consts::PI / 4.0),
         0.7071067811865475,
         "sin(pi / 4) on this platform"
     );

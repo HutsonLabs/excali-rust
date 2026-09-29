@@ -37,6 +37,7 @@
 //! case.
 
 use super::paint::Rgba;
+use excali_math::js;
 
 /// Parse `input` as the canvas parses a `fillStyle` assignment, or `None`
 /// when the canvas ignores it.
@@ -527,7 +528,10 @@ fn color_function(name: &str, tokens: &[Token]) -> Option<Rgba> {
             let l = scalar(x, 100.0)?.clamp(0.0, 100.0);
             let c = scalar(y, 150.0)?.max(0.0);
             let h = hue(z)?.to_radians();
-            Some(from_xyz_d50(lab_to_xyz_d50(l, c * h.cos(), c * h.sin()), a))
+            Some(from_xyz_d50(
+                lab_to_xyz_d50(l, c * js::cos(h), c * js::sin(h)),
+                a,
+            ))
         }
         "oklab" if !args.legacy => {
             let l = scalar(x, 1.0)?.clamp(0.0, 1.0);
@@ -541,7 +545,7 @@ fn color_function(name: &str, tokens: &[Token]) -> Option<Rgba> {
             let c = scalar(y, 0.4)?.max(0.0);
             let h = hue(z)?.to_radians();
             Some(from_linear_srgb(
-                oklab_to_linear_srgb(l, c * h.cos(), c * h.sin()),
+                oklab_to_linear_srgb(l, c * js::cos(h), c * js::sin(h)),
                 a,
             ))
         }
@@ -707,7 +711,7 @@ fn srgb_decode(v: f64) -> f64 {
     let lin = if x <= 0.04045 {
         x / 12.92
     } else {
-        ((x + 0.055) / 1.055).powf(2.4)
+        js::pow((x + 0.055) / 1.055, 2.4)
     };
     lin.copysign(v)
 }
@@ -716,7 +720,7 @@ fn srgb_decode(v: f64) -> f64 {
 fn srgb_encode(v: f64) -> f64 {
     let x = v.abs();
     let gam = if x > 0.0031308 {
-        1.055 * x.powf(1.0 / 2.4) - 0.055
+        1.055 * js::pow(x, 1.0 / 2.4) - 0.055
     } else {
         12.92 * x
     };
@@ -724,7 +728,7 @@ fn srgb_encode(v: f64) -> f64 {
 }
 
 fn a98_decode(v: f64) -> f64 {
-    v.abs().powf(563.0 / 256.0).copysign(v)
+    js::pow(v.abs(), 563.0 / 256.0).copysign(v)
 }
 
 /// ProPhoto's transfer as Chrome applies it: a pure 1.8 power. CSS
@@ -732,7 +736,7 @@ fn a98_decode(v: f64) -> f64 {
 /// does not (`color(prophoto-rgb 0.01 0.02 0.03)` paints `[0, 3, 6]`, the
 /// segment would give `[0, 5, 7]`; `tests/fixtures/css-colors.json`).
 fn prophoto_decode(v: f64) -> f64 {
-    v.abs().powf(1.8).copysign(v)
+    js::pow(v.abs(), 1.8).copysign(v)
 }
 
 fn rec2020_decode(v: f64) -> f64 {
@@ -742,7 +746,7 @@ fn rec2020_decode(v: f64) -> f64 {
     let lin = if x < BETA * 4.5 {
         x / 4.5
     } else {
-        ((x + ALPHA - 1.0) / ALPHA).powf(1.0 / 0.45)
+        js::pow((x + ALPHA - 1.0) / ALPHA, 1.0 / 0.45)
     };
     lin.copysign(v)
 }
