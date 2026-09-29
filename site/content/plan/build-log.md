@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-29 · ex-508 · Selection and transform handles: sizes by pointer type, resize, rotate, aspect lock, centre resize
+
+The editor now has upstream's transform handles and resizing: handle layout by pointer type and zoom with omitted sides, the hit test that finds the handle under the pointer and its cursor, and resize and rotate for single and multiple elements, with aspect lock, centre resize, flips, labelled containers, images, text, lines and arrows. Each gesture is replayed move by move against 410 cases recorded from upstream's own code, and CI rechecks the fixture. Bound-arrow updates (ex-510), sticky-note layout (ex-703) and exact trig (ex-533) follow. PR: [#89](https://github.com/HutsonLabs/excali-rust/pull/89).
+
 ## 2026-09-28 · ex-505 · Viewport: zoom limits, wheel formula, scroll, coordinate transforms, zoom-to-fit
 
 The editor now has upstream's viewport: zoom clamped to 0.1–30 and normalised to six places, the wheel zoom formula event by event (with V8's `Math.log10` ported so it matches bit for bit), viewport and scene coordinate transforms, scroll constraints, zoom-to-fit, scroll-into-view and scroll-to-content, and the zoom actions with their keys. Every result is checked against goldens recorded from upstream's own functions, and CI rechecks the goldens. PR: [#88](https://github.com/HutsonLabs/excali-rust/pull/88).
