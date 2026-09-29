@@ -1,0 +1,71 @@
+<!doctype html>
+<!--
+  The keyboard handling's page (ex-515), served with the wasm harness
+  tools/keyboard (scripts/web/keyboard.sh builds it) by
+  playwright.keyboard.config.mjs.
+
+  #container is the editor's focusable container with its canvas. The
+  document's keydown and keyup go to App.onKeyDown and App.onKeyUp (as
+  with handleKeyboardGlobally), the window's capture-phase keydown to the
+  command palette's listener, copy / cut / paste to App's clipboard
+  handlers and the canvas's pointer events to the pointer checks. The
+  other controls are key targets: a textarea and a text input (writable),
+  a range input (input-like, not writable), the text editor
+  (data-type="wysiwyg") and the convert element type popup.
+
+  Every event's outcome is kept in window.log; the suite reads it and the
+  editor state (window.keyboard.state()).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>excali-editor keyboard handling</title>
+<style>
+  html, body { margin: 0; padding: 0; }
+  #container { position: relative; width: 800px; height: 500px; outline: none; }
+  #canvas { display: block; width: 800px; height: 500px; }
+</style>
+</head>
+<body>
+<div id="container" class="excalidraw excalidraw-container" tabindex="0"><canvas id="canvas" width="800" height="500"></canvas></div>
+<textarea id="textarea"></textarea>
+<input id="text" type="text">
+<input id="range" type="range">
+<div id="wysiwyg" data-type="wysiwyg" contenteditable="true"></div>
+<div id="convert" class="ConvertElementTypePopup" tabindex="0"></div>
+<script type="module">
+  import init, { Keyboard } from "/keyboard.js";
+
+  window.log = [];
+  const record = (type, event, outcome) =>
+    window.log.push({ type, key: event.key, outcome: JSON.parse(outcome) });
+
+  init()
+    .then(() => {
+      // upstream's isDarwin (editorInterface.ts)
+      const isDarwin = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+      const container = document.getElementById("container");
+      const keyboard = new Keyboard(container, isDarwin);
+      window.keyboard = keyboard;
+      window.isDarwin = isDarwin;
+      window.addEventListener("keydown", (e) => record("palette", e, keyboard.commandPalette(e)), { capture: true });
+      document.addEventListener("keydown", (e) => record("keydown", e, keyboard.keyDown(e)));
+      document.addEventListener("keyup", (e) => record("keyup", e, keyboard.keyUp(e)));
+      for (const kind of ["copy", "cut", "paste"]) {
+        document.addEventListener(kind, (e) =>
+          window.log.push({ type: kind, outcome: JSON.parse(keyboard.clipboard(e, kind)) }),
+        );
+      }
+      const canvas = document.getElementById("canvas");
+      canvas.addEventListener("pointermove", (e) => keyboard.pointerMove(e));
+      canvas.addEventListener("pointerdown", (e) =>
+        window.log.push({ type: "pointerdown", outcome: JSON.parse(keyboard.pointerDown(e)) }),
+      );
+      window.harnessReady = true;
+    })
+    .catch((e) => {
+      window.harnessError = String(e);
+    });
+</script>
+</body>
+</html>

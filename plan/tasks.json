@@ -2178,6 +2178,48 @@
    "labels": []
   },
   {
+   "id": "ex-534",
+   "epic": "ex-e5",
+   "title": "Flowchart creator and navigator (flowchart.ts): Ctrl+Arrow pending nodes and arrows, Alt+Arrow navigation",
+   "priority": 1,
+   "blocked_by": [
+    "ex-515"
+   ],
+   "crates": [
+    "excali-editor"
+   ],
+   "acceptance": "FlowChartCreator.createNodes and FlowChartNavigator.exploreByDirection are ported (addNewNodes, placeCluster, findNearestFreeSlot, createBindingArrow, the frame rule, the same-level and visited-node walk); the host answers excali_editor::keyboard's KeyEffect::FlowchartCreate / FlowchartNavigate / FlowchartCommit with them; fixtures from upstream's flowchart.ts on seeded scenes match exactly; tests/web/keyboard's Ctrl+Arrow row checks the inserted nodes.",
+   "evidence": [
+    "packages/element/src/flowchart.ts (771 lines) at the pinned commit",
+    "packages/excalidraw/components/App.flowchart.ts:53-197",
+    "crates/excali-editor/src/keyboard.rs (ex-515: the key resolution, geometry left to this task)"
+   ],
+   "description": "ex-515 ports the flowchart keys (App.flowchart.ts resolveKeyboardEventToOperation) and hands creation and navigation to the host as effects. This task ports the geometry that answers them.",
+   "type": "task",
+   "labels": []
+  },
+  {
+   "id": "ex-535",
+   "epic": "ex-e5",
+   "title": "Element type conversion: convertElementTypes and the Tab / Shift+Tab convert popup",
+   "priority": 2,
+   "blocked_by": [
+    "ex-515"
+   ],
+   "crates": [
+    "excali-editor",
+    "excali-ui"
+   ],
+   "acceptance": "convertElementTypes (generic rectangle/diamond/ellipse and linear line/sharp/curved/elbow cycles, bound text and bindings carried over) is ported with fixtures from upstream's ConvertElementTypePopup.tsx; excali_editor::keyboard's KeyEffect::ConvertElementType applies it and schedules a capture when it converted; the popup renders and takes focus.",
+   "evidence": [
+    "packages/excalidraw/components/ConvertElementTypePopup.tsx at the pinned commit",
+    "packages/excalidraw/components/App.tsx:5636-5672 (the Tab keys, ported by ex-515)"
+   ],
+   "description": "ex-515 ports the Tab / Shift+Tab keys (popup state, conversion type, direction) and hands the conversion to the host as an effect.",
+   "type": "task",
+   "labels": []
+  },
+  {
    "id": "ex-601",
    "epic": "ex-e6",
    "title": "term.hut: vendor the module and route .excalidraw to the editor in preview.js",

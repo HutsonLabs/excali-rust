@@ -5,6 +5,11 @@
 //! Targets: native (tests), wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-scene`.
 //!
+//! - [`actions`]: the actions registry as data (`actions/*`): the 99
+//!   action names, each registered action's key test, predicate, label and
+//!   flags, the action manager's key and gate logic, and the context
+//!   menus, command palette commands, styles panel and main menu built
+//!   from it.
 //! - [`binding`]: arrow binding (`binding.ts`): the gap and distance,
 //!   fixed points, the binding strategies for dragged ends (modes inside,
 //!   orbit and skip), binding and unbinding, and bound arrows following
@@ -17,6 +22,11 @@
 //!   inside and outline rules, per-shape intersections and binding hit
 //!   tests; [`distance`]: distance to an element's outline
 //!   (`distance.ts`).
+//! - [`keyboard`]: `App.onKeyDown` and `App.onKeyUp`: the keys the
+//!   actions do not own (tool letters, arrow nudges, PgUp/PgDn, Enter,
+//!   Space, S/G/Shift+F pickers, the eyedropper, Tab conversion, the
+//!   flowchart keys, Ctrl held for binding) and the modifier helpers of
+//!   `keys.ts`.
 //! - [`mutate`]: `mutateElement`, `newElementWith` and `bumpVersion`, the
 //!   only ways an element changes, each bumping `version`, `versionNonce`
 //!   and `updated`.
@@ -49,6 +59,7 @@
 //!   zoom-to-fit (`viewport.ts`, `App.wheel.ts`, `App.viewport.ts`,
 //!   `actionCanvas.tsx`).
 
+pub mod actions;
 mod binary_heap;
 pub mod binding;
 pub mod binding_highlight;
@@ -59,6 +70,7 @@ pub mod elbow_arrow;
 pub mod geometry;
 pub mod history;
 mod js_value;
+pub mod keyboard;
 pub mod linear_element_editor;
 pub mod mutate;
 pub mod resize_elements;

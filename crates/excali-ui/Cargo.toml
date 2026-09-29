@@ -11,11 +11,13 @@ publish = false
 [dependencies]
 excali-canvas2d = { path = "../excali-canvas2d" }
 excali-core = { path = "../excali-core" }
+excali-editor = { path = "../excali-editor" }
 excali-scene = { path = "../excali-scene" }
 excali-text = { path = "../excali-text" }
 # The browser's FontFace / document.fonts API behind excali_ui::fonts, and
 # the <canvas> elements, their wrapper, inline styles and the owner
-# window's devicePixelRatio behind excali_ui::layers.
+# window's devicePixelRatio behind excali_ui::layers, and the key, mouse and
+# clipboard events behind excali_ui::keyboard.
 # Versions from the evidence log (site/content/evidence/_index.md).
 js-sys = "0.3.106"
 wasm-bindgen = "0.2.129"
@@ -24,14 +26,23 @@ web-sys = { version = "0.3.106", features = [
   "CanvasRenderingContext2d",
   "CssStyleDeclaration",
   "Document",
+  "DomTokenList",
   "Element",
+  "Event",
+  "EventTarget",
   "FontFace",
   "FontFaceDescriptors",
   "FontFaceLoadStatus",
   "FontFaceSet",
+  "HtmlBrElement",
   "HtmlCanvasElement",
   "HtmlElement",
   "HtmlImageElement",
+  "HtmlInputElement",
+  "HtmlSelectElement",
+  "HtmlTextAreaElement",
+  "KeyboardEvent",
+  "MouseEvent",
   "Node",
   "Window",
 ] }

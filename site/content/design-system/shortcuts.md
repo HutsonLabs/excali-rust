@@ -84,6 +84,10 @@ Source: `packages/excalidraw/components/HelpDialog.tsx`, `actions/*` `keyTest`s 
 | ? | help |
 | Ctrl+O / Ctrl+S / Ctrl+Shift+S / Ctrl+Shift+E | open / save / save as / export image |
 
+On a Mac, Cmd+Alt+[ and Cmd+Alt+] also pass the keyTests of send backward and bring forward (Cmd without Shift, `actionZindex.tsx:17-21, 47-51`), so the action manager finds two actions and does nothing (`manager.tsx:113-118`). The port keeps upstream's behaviour.
+
+Every row of the three tables above has a test in `tests/web/keyboard` (Playwright, `scripts/web/keyboard.sh`), which fails when a row has none.
+
 ## Colour picker
 
 `q w e r t / a s d f g / z x c v b` palette cells; `1–5` custom colours; `Shift+1–5` shades; `i` eyedropper; Tab cycles sections; Esc closes.

@@ -493,6 +493,59 @@ jobs:
             tests/web/playwright-report-layers/
             tests/web/test-results-layers/
           retention-days: 14
+  # ex-515: keyboard handling. scripts/web/keyboard.sh builds the wasm
+  # harness tools/keyboard (excali_ui::keyboard into excali_editor::keyboard:
+  # App.onKeyDown, App.onKeyUp, the command palette listener, the clipboard
+  # handlers and the pan start) and runs the Playwright suite
+  # tests/web/keyboard in Chromium: one test per row of the shortcuts page
+  # (site/content/design-system/shortcuts.md), and a test that fails when a
+  # row has no test.
+  keyboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            tools/keyboard
+      - name: harness fmt
+        run: cargo fmt --manifest-path tools/keyboard/Cargo.toml --check
+      - name: harness clippy (native and wasm32)
+        run: |
+          cargo clippy --manifest-path tools/keyboard/Cargo.toml --all-targets --locked -- -D warnings
+          cargo clippy --manifest-path tools/keyboard/Cargo.toml --target wasm32-unknown-unknown --locked -- -D warnings
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: |
+          want="$(awk '/^name = "wasm-bindgen"$/ { getline; gsub(/"/, "", $3); print $3; exit }' Cargo.lock)"
+          if [ "$(wasm-bindgen --version 2>/dev/null | awk '{ print $2 }')" != "$want" ]; then
+            cargo install --locked wasm-bindgen-cli --version "$want"
+          fi
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tests/web/package-lock.json
+      - name: install
+        working-directory: tests/web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: every row of the shortcuts page in Chromium
+        run: scripts/web/keyboard.sh
+        env:
+          CI: "1"
+      - name: keep the Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: keyboard
+          path: |
+            tests/web/playwright-report-keyboard/
+            tests/web/test-results-keyboard/
+          retention-days: 14
   msrv:
     runs-on: ubuntu-latest
     steps:
