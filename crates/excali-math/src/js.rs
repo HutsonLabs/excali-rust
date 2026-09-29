@@ -4,9 +4,15 @@
 //! - `Math.hypot` is not libm's `hypot`: V8 (`src/builtins/math.tq`,
 //!   `MathHypot`) scales by the largest magnitude and sums with Kahan
 //!   compensation, which can differ from libm in the last bit.
-//! - `Math.sin` / `Math.cos` / `Math.atan2` are fdlibm's in V8 (`src/base/ieee754.cc`);
-//!   the platform's can be one ulp away (macOS libm: `sin(4)`), so they go
-//!   through the `libm` crate, a port of the same fdlibm code.
+//! - `Math.atan2` is fdlibm's in V8 (`src/base/ieee754.cc`); the platform's
+//!   can be one ulp away, so it goes through the `libm` crate, a port of the
+//!   same fdlibm code. `Math.sin` / `Math.cos` also go through the `libm`
+//!   crate's fdlibm, closer to V8 than the platform's (macOS libm: `sin(4)`),
+//!   but they are not V8's: Node 26's V8 is built with
+//!   `v8_use_libm_trig_functions` and computes them with glibc-derived
+//!   routines, which are one ulp away from fdlibm on some arguments
+//!   (`Math.cos(0.982953340331056)` is 0.5545673797180782 in Node v26.10.0,
+//!   0.5545673797180781 here). ex-533 ports those routines.
 //! - `Math.log` / `Math.log10` are fdlibm's too, compiled for arm64 with
 //!   fused multiply-adds; [`log`] and [`log10`] port them with the same
 //!   fusing, where the `libm` crate's and the platform's are an ulp away
@@ -56,14 +62,17 @@ pub fn hypot(a: f64, b: f64) -> f64 {
     sum.sqrt() * max
 }
 
-/// `Math.sin(x)` as V8 computes it: fdlibm's `sin` (V8's
+/// `Math.sin(x)`, approximately as V8 computes it: fdlibm's `sin` (V8's
 /// `src/base/ieee754.cc`), which the `libm` crate ports. The platform's
-/// `sin` can differ in the last bit (macOS: `sin(4)`).
+/// `sin` can differ in the last bit (macOS: `sin(4)`). Node 26's V8 uses
+/// its glibc-derived `sin` instead, which can be one ulp away from this;
+/// ex-533 makes the two agree bit for bit.
 pub fn sin(x: f64) -> f64 {
     libm::sin(x)
 }
 
-/// `Math.cos(x)` as V8 computes it: fdlibm's `cos` (see [`sin`]).
+/// `Math.cos(x)`, approximately as V8 computes it: fdlibm's `cos`, one
+/// ulp from Node 26 on some arguments (see [`sin`]; ex-533).
 pub fn cos(x: f64) -> f64 {
     libm::cos(x)
 }

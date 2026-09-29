@@ -8,18 +8,24 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
-# excali-core and excali-math are reached through excali-scene (the crate
-# table of site/content/architecture/overview.md); serde_json carries the
-# element maps restore hands to the router (excali_core::restore::RestoreEnv).
+# excali-core, excali-math, excali-rough and excali-text are reached through
+# excali-scene (the crate table of site/content/architecture/overview.md):
+# excali-text measures and wraps text a resize rewraps, excali-rough draws
+# the curve a resized line's box is read from
+# (getResizedElementAbsoluteCoords); serde_json carries the element maps
+# restore hands to the router (excali_core::restore::RestoreEnv).
 [dependencies]
 excali-core = { path = "../excali-core" }
 excali-math = { path = "../excali-math" }
+excali-rough = { path = "../excali-rough" }
 excali-scene = { path = "../excali-scene" }
+excali-text = { path = "../excali-text" }
 serde_json = { workspace = true }
 indexmap = { workspace = true }
 
-# The history tests lay out bound text as upstream's tests do, with the
-# 10 px per code unit metric of excali-text's `test-util`.
+# The history and transform tests lay out bound text as upstream's tests
+# do, with the 10 px per code unit metric of excali-text's `test-util`
+# (CharCountTextMetrics, text.length * 10).
 [dev-dependencies]
 excali-text = { path = "../excali-text", features = ["test-util"] }
 

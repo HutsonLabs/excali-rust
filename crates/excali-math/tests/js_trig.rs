@@ -1,5 +1,7 @@
-//! `Math.sin` and `Math.cos` as V8 computes them (fdlibm, `src/base/
-//! ieee754.cc`): the platform's `sin`/`cos` can be one ulp away (macOS
+//! `Math.sin` and `Math.cos` as V8 computes them, on arguments where
+//! fdlibm (`src/base/ieee754.cc`, which `js::sin`/`js::cos` port) and Node
+//! 26's glibc-derived routines agree (ex-533 covers the arguments where they
+//! do not): the platform's `sin`/`cos` can be one ulp away (macOS
 //! libm gives `sin(4) = -0.7568024953079283` where V8 gives
 //! `-0.7568024953079282`), which moves a rotated point and so an exported
 //! document's size in its last digit.
