@@ -13,11 +13,14 @@
 //! replayed and the whole scene compared with upstream's, number for
 //! number.
 //!
-//! The calls `transformElements` makes into binding (`updateBoundElements`,
-//! ex-510) and sticky-note layout (`getStickyNoteLayout`, ex-703) are
-//! recorded in the fixture with their arguments and effects; the test's
-//! [`TransformEnv`] checks each call's arguments and answers with what
-//! upstream did.
+//! The calls `transformElements` makes into binding (`updateBoundElements`)
+//! and sticky-note layout (`getStickyNoteLayout`, ex-703) are recorded in
+//! the fixture with their arguments and effects. The test's
+//! [`TransformEnv`] checks each call's arguments; a binding call is then
+//! run by the port's own `updateBoundElements`
+//! ([`excali_editor::binding::update_bound_elements`]) and every element it
+//! changes compared with what upstream's changed, and a sticky-note layout
+//! is answered with what upstream returned.
 //!
 //! The tests after the replay restate `resize.test.tsx`'s assertions on
 //! those gestures.
@@ -25,6 +28,7 @@
 use std::collections::{HashSet, VecDeque};
 
 use excali_core::element::Element;
+use excali_editor::binding::{update_bound_elements, BindingEnv};
 use excali_editor::resize_elements::{
     get_resize_arrow_direction, get_resize_offset_xy, resize_single_element, ArrowDirection,
     ResizeOptions, StickyNoteLayout, StickyNoteLayoutAnchor, StickyNoteLayoutOpts,
@@ -262,11 +266,13 @@ fn opt_num(v: &Value) -> Option<f64> {
     }
 }
 
-impl TransformEnv for ReplayEnv {
+impl BindingEnv for ReplayEnv {
     fn text(&mut self) -> (&dyn TextMetricsProvider, &mut CharWidthCache) {
         (&CharCountTextMetrics, &mut self.char_widths)
     }
+}
 
+impl TransformEnv for ReplayEnv {
     fn update_bound_elements(
         &mut self,
         scene: &mut Scene,
@@ -300,8 +306,38 @@ impl TransformEnv for ReplayEnv {
             "{}: updateBoundElements simultaneouslyUpdated",
             self.context
         );
-        for change in hook["changes"].as_array().expect("changes") {
-            scene.replace_element(element(change));
+        // updateBoundElements run by the port, its effect compared with
+        // upstream's: the elements upstream changed as upstream left them,
+        // every other element as it was
+        let before: Vec<Element> = scene.elements().to_vec();
+        let context = format!("{}: updateBoundElements({changed})", self.context);
+        update_bound_elements(scene, self, changed, simultaneously_updated, None);
+        let changes: Vec<&Value> = hook["changes"]
+            .as_array()
+            .expect("changes")
+            .iter()
+            .collect();
+        assert_eq!(
+            scene.elements().len(),
+            before.len(),
+            "{context}: element count"
+        );
+        for (actual, prior) in scene.elements().iter().zip(&before) {
+            let id = actual.base.id.as_str();
+            match changes.iter().find(|c| c["id"] == id) {
+                Some(expected) => {
+                    let actual = Value::Object(actual.to_map());
+                    same_json(&actual, expected, &format!("{context} {id}")).unwrap_or_else(|e| {
+                        panic!("{e}\n  port:     {actual}\n  upstream: {expected}")
+                    });
+                }
+                // as JSON: a NaN (written null) is the NaN it was
+                None => assert_eq!(
+                    Value::Object(actual.to_map()),
+                    Value::Object(prior.to_map()),
+                    "{context}: {id} changed, upstream left it"
+                ),
+            }
         }
     }
 

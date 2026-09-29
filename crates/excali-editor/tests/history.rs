@@ -17,17 +17,18 @@
 //! Layout after undo and redo runs as upstream's does: `redrawElements`
 //! picks the elements, and the leaf calls are `tests/support`'s
 //! `redrawTextBoundingBox` under upstream's test metric (which reproduces
-//! upstream's label positions) and a stand-in for `updateBoundElements`
-//! that moves bound arrow ends onto their fixed points (upstream's arrow
-//! routing belongs to ex-510); those cases also pin which elements were
-//! laid out.
+//! upstream's label positions) and the port's own `updateBoundElements`
+//! (`HistoryEnv::update_bound_elements`, `excali_editor::binding`), whose
+//! arrows are compared with upstream's own layout of the same scenes
+//! (`tests/fixtures/binding.json`); those cases also pin which elements
+//! were laid out.
 
 mod support;
 
 use excali_core::app_state::AppState;
 use excali_core::element::{
-    BindMode, BoundElement, BoundElementType, Element, ElementKind, FixedPointBinding,
-    FractionalIndex,
+    Arrowhead, BindMode, BoundElement, BoundElementType, Element, ElementKind, FixedPointBinding,
+    FractionalIndex, Roundness, RoundnessType,
 };
 use excali_core::fractional_index::sync_moved_indices;
 use excali_editor::delta::{AppStateDelta, Delta, ElementsDelta};
@@ -2936,7 +2937,7 @@ fn should_rebind_remotely_added_bindable_elements_when_its_arrow_is_added_throug
 /// on pointer up with the fixed points upstream's binding computes.
 fn bind_arrow_by_dragging(app: &mut App) {
     let mut elements = app.elements();
-    elements.push(arrow("arrow", vec![[0.0, 0.0], [100.0, 0.0]]));
+    elements.push(tool_arrow(vec![[0.0, 0.0], [100.0, 0.0]]));
     app.act(
         Some(elements),
         Some(json!({"selectedElementIds": {"arrow": true}})),
@@ -2980,27 +2981,55 @@ fn bind_arrow_by_dragging(app: &mut App) {
     );
 }
 
-/// The arrow's point `i` in scene coordinates.
-fn arrow_point(app: &App, i: usize) -> [f64; 2] {
-    let a = app.get("arrow");
-    let p = a.kind.linear().unwrap().points[i];
-    [a.base.x + p[0], a.base.y + p[1]]
+/// An arrow as the arrow tool draws it (`App.createGenericElementOnPointerDown`
+/// with the default app state: an arrowhead at the end, round, the size of
+/// its points).
+fn tool_arrow(points: Vec<[f64; 2]>) -> Element {
+    let mut a = arrow("arrow", points);
+    a.base.roundness = Some(Roundness {
+        kind: RoundnessType::ProportionalRadius,
+        value: None,
+    });
+    if let Some(linear) = a.kind.linear_mut() {
+        linear.end_arrowhead = Some(Arrowhead::Arrow);
+        let xs = linear.points.iter().map(|p| p[0]);
+        let ys = linear.points.iter().map(|p| p[1]);
+        a.base.width = xs.clone().fold(f64::MIN, f64::max) - xs.fold(f64::MAX, f64::min);
+        a.base.height = ys.clone().fold(f64::MIN, f64::max) - ys.fold(f64::MAX, f64::min);
+    }
+    a
 }
 
-/// Where a fixed point of `id` is in scene coordinates.
-fn fixed_point(app: &App, id: &str, fixed: [f64; 2]) -> [f64; 2] {
-    let e = app.get(id);
-    [
-        e.base.x + fixed[0] * e.base.width,
-        e.base.y + fixed[1] * e.base.height,
-    ]
-}
-
-fn assert_close(actual: [f64; 2], expected: [f64; 2]) {
-    assert!(
-        (actual[0] - expected[0]).abs() < 1e-9 && (actual[1] - expected[1]).abs() < 1e-9,
-        "{actual:?} != {expected:?}"
-    );
+/// The arrow as upstream's `updateBoundElements` lays it out in the same
+/// scene: case `case` of `tests/fixtures/binding.json`
+/// (`tools/goldens/binding-fixtures.mjs`, whose `history-*` cases are the
+/// scenes of these tests before the redo's layout).
+fn assert_arrow_as_upstream(app: &App, case: &str) {
+    let fixture: Value =
+        serde_json::from_str(include_str!("fixtures/binding.json")).expect("binding.json");
+    let case = fixture["cases"]
+        .as_array()
+        .expect("cases")
+        .iter()
+        .find(|c| c["id"] == case)
+        .unwrap_or_else(|| panic!("no case {case}"));
+    let expected = case["ops"][0]["changes"]
+        .as_array()
+        .expect("changes")
+        .iter()
+        .find(|e| e["id"] == "arrow")
+        .expect("the arrow laid out");
+    let actual = app.get("arrow");
+    for key in [
+        "x",
+        "y",
+        "width",
+        "height",
+        "points",
+        "moveMidPointsWithElement",
+    ] {
+        assert_eq!(prop(&actual, key), expected[key], "arrow {key}");
+    }
 }
 
 fn assert_unbound(app: &App) {
@@ -3062,14 +3091,9 @@ fn should_rebind_bindings_when_both_are_updated_through_the_history_and_there_ar
             .map(|(id, _)| id.as_str())
             .collect();
         assert_eq!(laid_out, HashSet::from(["rect1", "rect2"]));
-        assert_close(
-            arrow_point(&app, 0),
-            fixed_point(&app, "rect1", [1.0, 0.5001]),
-        );
-        assert_close(
-            arrow_point(&app, 1),
-            fixed_point(&app, "rect2", [0.0, 0.5001]),
-        );
+        // and laid out as upstream lays it out: the rectangles overlap, so
+        // each end goes to its fixed point
+        assert_arrow_as_upstream(&app, "history-rebind-both");
 
         app.undo();
         app.undo();
@@ -3159,7 +3183,7 @@ fn should_update_bound_element_points_when_rectangle_was_remotely_moved_and_arro
     let mut app = arrow_scene();
     // bind arrow to rect1 and rect2: UI.clickTool("arrow"), from (0, 0)
     // to (47, 0), captured on pointer up
-    let mut a = arrow("arrow", vec![[0.0, 0.0], [47.0, 0.0]]);
+    let mut a = tool_arrow(vec![[0.0, 0.0], [47.0, 0.0]]);
     if let Some(linear) = a.kind.linear_mut() {
         linear.start_binding = Some(binding("rect1", [1.0, 0.5001]));
         linear.end_binding = Some(binding("rect2", [0.0, 0.5001]));
@@ -3221,10 +3245,8 @@ fn should_update_bound_element_points_when_rectangle_was_remotely_moved_and_arro
             [500.0, -400.0]
         );
     }
-    assert_close(
-        arrow_point(&app, 1),
-        fixed_point(&app, "rect2", [0.0, 0.5001]),
-    );
+    // laid out as upstream lays it out, number for number
+    assert_arrow_as_upstream(&app, "history-remote-move");
     assert_eq!(
         bound_elements(&app.get("rect1")),
         json!([{"id": "arrow", "type": "arrow"}])

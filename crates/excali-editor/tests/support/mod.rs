@@ -6,18 +6,22 @@
 #![allow(dead_code)]
 
 use excali_core::element::{
-    ArrowFields, BoundElementType, Element, ElementBase, ElementKind, FixedPointBinding,
-    FontFamily, FrameFields, ImageFields, LinearFields, TextFields,
+    ArrowFields, Element, ElementBase, ElementKind, FontFamily, FrameFields, ImageFields,
+    LinearFields, TextFields,
 };
 use excali_core::fractional_index::{ChangeStamp, SceneElementsMap};
+use excali_editor::binding::{update_bound_elements_in_map, BindingEnv};
 use excali_editor::mutate::{mutate_element, new_element_with};
+use excali_editor::scene::MutationEnv;
 use excali_editor::store::HistoryEnv;
 use excali_text::font_metadata::get_font_string;
 use excali_text::text_element::{
     compute_bound_text_position, compute_container_dimension_for_bound_text,
     get_bound_text_max_height, get_bound_text_max_width, NoArrowGeometry,
 };
-use excali_text::text_measurements::{measure_text, CharCountTextMetrics, CharWidthCache};
+use excali_text::text_measurements::{
+    measure_text, CharCountTextMetrics, CharWidthCache, TextMetricsProvider,
+};
 use excali_text::text_wrapping::wrap_text;
 use serde_json::{json, Map, Value};
 
@@ -28,9 +32,11 @@ use serde_json::{json, Map, Value};
 /// The two leaf layout calls of `redrawElements` are recorded in
 /// `text_redraws` (`(text, container)`) and `bound_updates` (the bindable
 /// element, with the ids of the changed elements passed along), and do
-/// nothing else unless a test installs a layout: [`centre_label`] and
-/// [`follow_bindings`] are deterministic stand-ins for upstream's text and
-/// arrow layout, which live with text editing and arrow binding.
+/// nothing else unless a test installs a layout: [`centre_label`] is a
+/// deterministic stand-in for upstream's text layout, which lives with
+/// text editing; the arrow layout is the port's own `updateBoundElements`
+/// ([`ArrowLayout::Upstream`], the default of
+/// `HistoryEnv::update_bound_elements`) or a test's own.
 #[derive(Default)]
 pub struct TestEnv {
     pub nonce: f64,
@@ -42,6 +48,8 @@ pub struct TestEnv {
     /// Upstream's production build (`isTestEnv() || isDevEnv()` false):
     /// applying a delta carries on past errors instead of failing.
     pub production: bool,
+    /// Upstream's test metric (10 px per UTF-16 code unit) for arrow labels.
+    pub char_widths: CharWidthCache,
 }
 
 /// `redrawTextBoundingBox(text, container)` over the scene.
@@ -49,17 +57,47 @@ pub type TextLayout =
     fn(&mut dyn ChangeStamp, &mut SceneElementsMap, &str, &str) -> Result<(), String>;
 
 /// `updateBoundElements(element, scene, { changedElements })`.
-pub type ArrowLayout =
-    fn(&mut dyn ChangeStamp, &mut SceneElementsMap, &str, &SceneElementsMap) -> Result<(), String>;
+#[derive(Clone, Copy)]
+pub enum ArrowLayout {
+    /// The port's `updateBoundElements`
+    /// (`excali_editor::binding::update_bound_elements_in_map`).
+    Upstream,
+    /// A test's own layout.
+    Custom(
+        fn(
+            &mut dyn ChangeStamp,
+            &mut SceneElementsMap,
+            &str,
+            &SceneElementsMap,
+        ) -> Result<(), String>,
+    ),
+}
 
 impl TestEnv {
-    /// Both deterministic layouts installed.
+    /// Both layouts installed: the text stand-in and the port's arrow
+    /// layout.
     pub fn with_layout() -> TestEnv {
         TestEnv {
             text_layout: Some(centre_label),
-            arrow_layout: Some(follow_bindings),
+            arrow_layout: Some(ArrowLayout::Upstream),
             ..TestEnv::default()
         }
+    }
+}
+
+impl MutationEnv for TestEnv {
+    fn random_integer(&mut self) -> f64 {
+        self.version_nonce()
+    }
+
+    fn now(&mut self) -> f64 {
+        self.updated()
+    }
+}
+
+impl BindingEnv for TestEnv {
+    fn text(&mut self) -> (&dyn TextMetricsProvider, &mut CharWidthCache) {
+        (&CharCountTextMetrics, &mut self.char_widths)
     }
 }
 
@@ -92,6 +130,10 @@ impl ChangeStamp for Stamp<'_> {
 impl HistoryEnv for TestEnv {
     fn dev_checks(&self) -> bool {
         !self.production
+    }
+
+    fn text(&mut self) -> (&dyn TextMetricsProvider, &mut CharWidthCache) {
+        (&CharCountTextMetrics, &mut self.char_widths)
     }
 
     fn random_id(&mut self) -> String {
@@ -127,7 +169,11 @@ impl HistoryEnv for TestEnv {
         self.bound_updates
             .push((element_id.to_owned(), changed.keys().cloned().collect()));
         match self.arrow_layout {
-            Some(layout) => {
+            Some(ArrowLayout::Upstream) => {
+                update_bound_elements_in_map(elements, element_id, changed, self);
+                Ok(())
+            }
+            Some(ArrowLayout::Custom(layout)) => {
                 let mut stamp = Stamp {
                     nonce: &mut self.nonce,
                 };
@@ -227,79 +273,6 @@ pub fn centre_label(
         updates["y"] = json!(y);
     }
     mutate_in(stamp, elements, text_id, updates)
-}
-
-/// Where `binding` puts an arrow end on `target`: its fixed point, in
-/// scene coordinates.
-fn fixed_point_of(target: &Element, binding: &FixedPointBinding) -> [f64; 2] {
-    [
-        target.base.x + binding.fixed_point[0] * target.base.width,
-        target.base.y + binding.fixed_point[1] * target.base.height,
-    ]
-}
-
-/// A stand-in for `updateBoundElements` without routing: every
-/// non-deleted arrow in `boundElements` of `element_id` (read from
-/// `changed` first, as upstream does) gets the ends bound to that element
-/// moved onto their fixed points; the other points keep their place in
-/// the scene.
-pub fn follow_bindings(
-    stamp: &mut dyn ChangeStamp,
-    elements: &mut SceneElementsMap,
-    element_id: &str,
-    changed: &SceneElementsMap,
-) -> Result<(), String> {
-    let lookup = |elements: &SceneElementsMap, id: &str| -> Option<Element> {
-        changed
-            .get(id)
-            .or_else(|| elements.get(id))
-            .filter(|e| !e.base.is_deleted)
-            .cloned()
-    };
-    let Some(target) = lookup(elements, element_id) else {
-        return Ok(());
-    };
-    for bound in target.base.bound_elements.iter().flatten() {
-        if bound.kind != BoundElementType::Arrow {
-            continue;
-        }
-        let Some(arrow) = lookup(elements, &bound.id) else {
-            continue;
-        };
-        let Some(linear) = arrow.kind.linear() else {
-            continue;
-        };
-        let (x, y) = (arrow.base.x, arrow.base.y);
-        let mut absolute: Vec<[f64; 2]> =
-            linear.points.iter().map(|p| [x + p[0], y + p[1]]).collect();
-        let last = absolute.len() - 1;
-        if let Some(b) = linear
-            .start_binding
-            .as_ref()
-            .filter(|b| b.element_id == element_id)
-        {
-            absolute[0] = fixed_point_of(&target, b);
-        }
-        if let Some(b) = linear
-            .end_binding
-            .as_ref()
-            .filter(|b| b.element_id == element_id)
-        {
-            absolute[last] = fixed_point_of(&target, b);
-        }
-        let origin = absolute[0];
-        let points: Vec<[f64; 2]> = absolute
-            .iter()
-            .map(|p| [p[0] - origin[0], p[1] - origin[1]])
-            .collect();
-        mutate_in(
-            stamp,
-            elements,
-            &bound.id,
-            json!({"x": origin[0], "y": origin[1], "points": points}),
-        )?;
-    }
-    Ok(())
 }
 
 fn element(kind: ElementKind, id: &str, x: f64, y: f64, width: f64, height: f64) -> Element {
