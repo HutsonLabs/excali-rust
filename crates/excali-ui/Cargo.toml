@@ -16,20 +16,30 @@ excali-scene = { path = "../excali-scene" }
 excali-text = { path = "../excali-text" }
 # The browser's FontFace / document.fonts API behind excali_ui::fonts, and
 # the <canvas> elements, their wrapper, inline styles and the owner
-# window's devicePixelRatio behind excali_ui::layers, and the key, mouse and
-# clipboard events behind excali_ui::keyboard.
+# window's devicePixelRatio behind excali_ui::layers; the key, mouse and
+# clipboard events behind excali_ui::keyboard; the textarea, its keyboard,
+# clipboard, focus and pointer events, the window's timers, the canvas's
+# ResizeObserver and caret measurement (Range) behind excali_ui::text_editor.
 # Versions from the evidence log (site/content/evidence/_index.md).
 js-sys = "0.3.106"
 wasm-bindgen = "0.2.129"
 wasm-bindgen-futures = "0.4.79"
 web-sys = { version = "0.3.106", features = [
+  "AddEventListenerOptions",
   "CanvasRenderingContext2d",
+  "ClipboardEvent",
   "CssStyleDeclaration",
+  "DataTransfer",
+  "DataTransferItem",
+  "DataTransferItemList",
   "Document",
+  "DomRect",
+  "DomStringMap",
   "DomTokenList",
   "Element",
   "Event",
   "EventTarget",
+  "FocusOptions",
   "FontFace",
   "FontFaceDescriptors",
   "FontFaceLoadStatus",
@@ -43,7 +53,11 @@ web-sys = { version = "0.3.106", features = [
   "HtmlTextAreaElement",
   "KeyboardEvent",
   "MouseEvent",
+  "Navigator",
   "Node",
+  "Range",
+  "ResizeObserver",
+  "Text",
   "Window",
 ] }
 
