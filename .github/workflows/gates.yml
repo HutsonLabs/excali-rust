@@ -22,6 +22,8 @@ jobs:
       # asserts exit 1 with the rule id; a clean control must exit 0.
       - name: gate self-test (planted violations are rejected)
         run: python3 scripts/gates/test_attribution.py -v
+      - name: pre-commit hook self-test (no tracker export from linked worktrees)
+        run: python3 scripts/gates/test_hooks.py -v
       - name: tracked files
         run: python3 scripts/gates/attribution.py files --all
       - name: commit authors and messages
