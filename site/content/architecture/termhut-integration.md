@@ -54,6 +54,15 @@ ed.addEventListener("open-link", e => { /* e.detail.href; host decides */ });
 ed.addEventListener("library-fetch", e => { /* e.detail.url; host may e.preventDefault() and supply e.detail.respond(text) */ });
 ```
 
+The element is `excali_wasm::web::EditorCore` behind a small shim (`crates/excali-wasm/js/excali-editor.js`, appended to `excali_editor.js` by `scripts/web/build.sh`); the editor itself, without the DOM, is `excali_wasm::editor::Editor`, tested natively (`crates/excali-wasm/tests/editor.rs`) and in Chromium from the page above (`tests/web/specs/editor.spec.mjs`, ex-530). What each call does:
+
+- `load(text)` restores the file as upstream's `loadFromBlob` does and resets the history; it rejects with one sentence ("The text is not valid JSON (…).", "The JSON is not an Excalidraw scene.", "The scene could not be restored (…)."), leaving the scene as it was.
+- `save()` is `serializeAsJSON(elements, appState, files, "local")` with `source` the page's origin; the text it returns becomes the clean state, so `getState().dirty` and `change`'s `detail.dirty` say whether the scene differs from what was loaded or last saved.
+- `export("png", …)` paints `exportToCanvas` into a canvas and adds the scene as upstream's `tEXt` chunk with `embedScene`; `export("svg", …)` is `exportToSvg` with each `@font-face` pointing at the release's `fonts/` files (the call is synchronous, so nothing is fetched to inline). Options: `scale`, `background`, `dark`, `embedScene`, `padding`. Image elements export as placeholders until the element decodes images.
+- `importLibrary(textOrUrl, { merge })` merges as `updateLibrary({ merge: true })` does (`mergeLibraryItems`) and resolves to the library's item count; `exportLibrary()` returns the library as `.excalidrawlib` text for the host to store. A URL (or a `#addLibrary=` link) must pass upstream's allow-list; the host fetches it through `library-fetch`, and an unhandled `library-fetch` rejects the import.
+- `ui`: `full`, `compact`, `mobile` and `auto` show the desktop toolbar (the compact and mobile layouts are Phase 7), `none` hides it. `theme="system"` follows `prefers-color-scheme` when set.
+- Keys go through upstream's `App.onKeyDown` on the element's container (upstream's default, `handleKeyboardGlobally` off). A press selects, a drag moves the selection with its bound text and arrows (`dragSelectedElements`), and Cmd+Z / Cmd+Shift+Z undo and redo; undo and redo lay bound text and bound arrows out again with the real layouts. Pressing an element's link icon emits `open-link`.
+
 Host adapter rules:
 
 - The editor never touches the file system, the network or the clipboard beyond the DOM Clipboard API. Every side effect is an event the host handles.

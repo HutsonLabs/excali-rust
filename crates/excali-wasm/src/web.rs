@@ -1,0 +1,643 @@
+//! `<excali-editor>`'s DOM side: [`EditorCore`], which the custom element
+//! shim (`js/excali-editor.js`, appended to `excali_editor.js` by
+//! `scripts/web/build.sh`) creates in `connectedCallback`.
+//!
+//! The core mounts upstream's container (`div.excalidraw
+//! .excalidraw-container`, focusable, `theme--dark` in the dark theme) in
+//! the host element, the layered canvases in it (`excali_ui::layers`) and
+//! the desktop toolbar (`excali_ui::toolbar`). Keys are listened to on the
+//! container, as `Excalidraw` does with `handleKeyboardGlobally` off (its
+//! default); pointer presses on the interactive canvas, which captures the
+//! pointer until the release. Each event goes to the [`Editor`], then the
+//! static canvas is painted again and the editor's [`HostEvent`]s are
+//! dispatched on the host element through the shim's `dispatch` function.
+//!
+//! Text is measured with a canvas context's `measureText`, as upstream's
+//! `CanvasTextMetricsProvider` does (`textMeasurements.ts`).
+
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
+
+use excali_canvas2d::{paint, WebCanvas};
+use excali_core::png::{encode_chunks, encode_text_chunk, extract_chunks};
+use excali_editor::tools::ToolState;
+use excali_scene::display::FontFaceSource;
+use excali_scene::shape::Theme;
+use excali_svg::FontContent;
+use excali_text::text_measurements::TextMetricsProvider;
+use excali_ui::dom::{mount, Mounted, Node};
+use excali_ui::keyboard::{apply_outcome, keystroke};
+use excali_ui::layers::{CanvasLayers, Layer};
+use excali_ui::theme::{apply_container_tokens, apply_theme};
+use excali_ui::toolbar::{
+    activate_extra_tool, activate_tool_button, install_stylesheet, toolbar, ToolbarEvent,
+    ToolbarProps,
+};
+use serde_json::Value;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
+use web_sys::{
+    CanvasRenderingContext2d, Document, Event, HtmlCanvasElement, HtmlElement, KeyboardEvent,
+    PointerEvent,
+};
+
+use crate::editor::{library_source, Editor, ExportOptions, HostEvent, LibrarySource};
+use crate::env::EditorEnv;
+
+/// The element's own rules: the host is a positioned block filling its
+/// parent, as the `Excalidraw` component fills its own, the container
+/// fills it, and the toolbar island sits centred at the top, as upstream's
+/// `App-menu_top` places it (`LayerUI.tsx`, `css/styles.scss`).
+pub const ELEMENT_CSS: &str = "\
+excali-editor {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+excali-editor > .excalidraw-container {
+  position: absolute;
+  inset: 0;
+  outline: none;
+}
+excali-editor .excali-editor__top {
+  position: absolute;
+  top: var(--editor-container-padding, 1rem);
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 3;
+}
+excali-editor .excali-editor__top > * {
+  pointer-events: all;
+}
+";
+
+/// Every stylesheet the element needs, in the order it installs them:
+/// the primitives' (upstream's `theme.scss` tokens with them), the
+/// toolbar's, the canvases' and the element's. The release ships the same
+/// text as `excali.css` (`crates/excali-wasm/excali.css`, checked by
+/// `tests/stylesheet.rs`).
+pub fn stylesheet() -> String {
+    [
+        excali_ui::primitives::PRIMITIVES_CSS,
+        excali_ui::toolbar::TOOLBAR_CSS,
+        excali_ui::layers::CANVAS_LAYER_CSS,
+        ELEMENT_CSS,
+    ]
+    .join("\n")
+}
+
+fn install_element_stylesheet(document: &Document) -> Result<(), JsValue> {
+    install_stylesheet(document)?;
+    if document
+        .query_selector("style[data-excali-ui=\"excali-editor\"]")?
+        .is_some()
+    {
+        return Ok(());
+    }
+    let style = document.create_element("style")?;
+    style.set_attribute("data-excali-ui", "excali-editor")?;
+    style.set_text_content(Some(
+        &[excali_ui::layers::CANVAS_LAYER_CSS, ELEMENT_CSS].join("\n"),
+    ));
+    let head = document
+        .head()
+        .ok_or_else(|| JsValue::from_str("the document has no head"))?;
+    head.append_child(&style)?;
+    Ok(())
+}
+
+/// `canvas.getContext("2d").measureText(text).width` with `font` set.
+#[derive(Clone)]
+pub struct CanvasMetrics {
+    context: CanvasRenderingContext2d,
+    font: Rc<RefCell<String>>,
+}
+
+impl CanvasMetrics {
+    pub fn new(document: &Document) -> Result<CanvasMetrics, JsValue> {
+        let canvas: HtmlCanvasElement = document.create_element("canvas")?.dyn_into()?;
+        let context: CanvasRenderingContext2d = canvas
+            .get_context("2d")?
+            .ok_or_else(|| JsValue::from_str("no 2d context"))?
+            .dyn_into()?;
+        Ok(CanvasMetrics {
+            context,
+            font: Rc::default(),
+        })
+    }
+}
+
+impl TextMetricsProvider for CanvasMetrics {
+    fn get_line_width(&self, text: &str, font: &str) -> f64 {
+        let mut current = self.font.borrow_mut();
+        if *current != font {
+            self.context.set_font(font);
+            font.clone_into(&mut current);
+        }
+        self.context.measure_text(text).map_or(0.0, |m| m.width())
+    }
+}
+
+/// An SVG export's `@font-face` sources: the release's font files by URL
+/// (upstream writes the file's URL when it cannot inline it,
+/// `ExcalidrawFontFace.getContent`); the export is synchronous, so nothing
+/// is fetched to inline.
+struct FontUrls<'a>(&'a str);
+
+impl FontContent for FontUrls<'_> {
+    fn content(&self, face: &FontFaceSource) -> String {
+        format!("{}{}", self.0, face.file)
+    }
+}
+
+fn js_err(e: impl std::fmt::Display) -> JsValue {
+    JsError::new(&e.to_string()).into()
+}
+
+type Listener = (
+    web_sys::EventTarget,
+    &'static str,
+    Closure<dyn FnMut(Event)>,
+);
+
+struct Inner {
+    editor: Editor<CanvasMetrics>,
+    host: HtmlElement,
+    container: HtmlElement,
+    layers: CanvasLayers,
+    top: HtmlElement,
+    toolbar: Option<Mounted>,
+    extra_tools_open: bool,
+    ui: String,
+    dispatch: js_sys::Function,
+    fonts_base: String,
+    listeners: Vec<Listener>,
+}
+
+impl Inner {
+    fn document(&self) -> Document {
+        self.host
+            .owner_document()
+            .expect("the host is in a document")
+    }
+
+    /// The canvas size and page offset into the app state, when they moved.
+    fn measure(&mut self) {
+        let rect = self.container.get_bounding_client_rect();
+        let (w, h) = (rect.width(), rect.height());
+        if self.layers.css_size() != (w, h) {
+            let scale = self.layers.device_pixel_ratio();
+            self.layers.resize(w, h, scale);
+        }
+        let app = self.editor.app_state();
+        let now = [
+            app.get("width").and_then(Value::as_f64),
+            app.get("height").and_then(Value::as_f64),
+            app.get("offsetLeft").and_then(Value::as_f64),
+            app.get("offsetTop").and_then(Value::as_f64),
+        ];
+        let want = [Some(w), Some(h), Some(rect.left()), Some(rect.top())];
+        if now != want {
+            self.editor.set_viewport(w, h, rect.left(), rect.top());
+        }
+    }
+
+    fn render(&mut self) {
+        let size = self.layers.backing_size(Layer::Static);
+        let list = self.editor.static_scene(
+            f64::from(size.width),
+            f64::from(size.height),
+            self.layers.scale(),
+        );
+        let background = self
+            .editor
+            .app_state()
+            .view_background_color()
+            .map(str::to_owned);
+        self.layers.paint_static(background.as_deref(), &list);
+    }
+
+    /// The editor's events, dispatched on the host.
+    fn flush(&mut self) {
+        for event in self.editor.take_events() {
+            let (name, detail) = match event {
+                HostEvent::Change { dirty } => ("change", serde_json::json!({ "dirty": dirty })),
+                HostEvent::SaveRequest => ("save-request", serde_json::json!({})),
+                HostEvent::OpenLink { href } => ("open-link", serde_json::json!({ "href": href })),
+            };
+            let detail = js_sys::JSON::parse(&detail.to_string()).unwrap_or(JsValue::NULL);
+            let _ = self
+                .dispatch
+                .call2(&JsValue::NULL, &JsValue::from_str(name), &detail);
+        }
+    }
+}
+
+/// Re-mounts the toolbar for the current tools.
+fn render_toolbar(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
+    let Some(rc) = weak.upgrade() else {
+        return Ok(());
+    };
+    let mut inner = rc.borrow_mut();
+    if let Some(old) = inner.toolbar.take() {
+        old.remove();
+    }
+    if inner.ui == "none" {
+        return Ok(());
+    }
+    let events = weak.clone();
+    let on_event = Rc::new(move |event: ToolbarEvent| {
+        let Some(rc) = events.upgrade() else {
+            return;
+        };
+        {
+            let mut inner = rc.borrow_mut();
+            let tools: &mut ToolState = inner.editor.tools_mut();
+            match event {
+                ToolbarEvent::ToolButton { tool, pointer_type } => {
+                    let _ = activate_tool_button(tools, tool, pointer_type);
+                }
+                ToolbarEvent::Lock => {
+                    tools.toggle_lock();
+                }
+                ToolbarEvent::PenMode => tools.toggle_pen_mode(None),
+                ToolbarEvent::ExtraTool(tool) => {
+                    let _ = activate_extra_tool(tools, tool);
+                    inner.extra_tools_open = false;
+                }
+                ToolbarEvent::ExtraToolsToggle => inner.extra_tools_open = !inner.extra_tools_open,
+                ToolbarEvent::ExtraToolsClose => inner.extra_tools_open = false,
+                _ => return,
+            }
+        }
+        let _ = render_toolbar(&events);
+    }) as Rc<dyn Fn(ToolbarEvent)>;
+    let node = Node::Element(toolbar(ToolbarProps {
+        tools: inner.editor.tools(),
+        zen_mode: false,
+        collaborating: false,
+        ai_enabled: false,
+        diagram_to_code: false,
+        extra_tools_open: inner.extra_tools_open,
+        id_prefix: "excali-editor".into(),
+        hint_viewer: None,
+        ttd_trigger: None,
+        on_event: Some(on_event),
+    }));
+    let document = inner.document();
+    let mounted = mount(&node, &document, &inner.top)?;
+    inner.toolbar = Some(mounted);
+    Ok(())
+}
+
+/// The editor of one `<excali-editor>`.
+#[wasm_bindgen]
+pub struct EditorCore {
+    inner: Rc<RefCell<Inner>>,
+}
+
+fn listen(
+    inner: &Rc<RefCell<Inner>>,
+    target: &web_sys::EventTarget,
+    name: &'static str,
+    handler: impl FnMut(&Rc<RefCell<Inner>>, Event) + 'static,
+) -> Result<(), JsValue> {
+    let weak = Rc::downgrade(inner);
+    let mut handler = handler;
+    let closure = Closure::<dyn FnMut(Event)>::new(move |event: Event| {
+        if let Some(rc) = weak.upgrade() {
+            handler(&rc, event);
+        }
+    });
+    target.add_event_listener_with_callback(name, closure.as_ref().unchecked_ref())?;
+    inner
+        .borrow_mut()
+        .listeners
+        .push((target.clone(), name, closure));
+    Ok(())
+}
+
+fn is_darwin() -> bool {
+    web_sys::window()
+        .and_then(|w| w.navigator().platform().ok())
+        .is_some_and(|p| p.to_uppercase().contains("MAC") || p.contains("iP"))
+}
+
+#[wasm_bindgen]
+impl EditorCore {
+    /// Mounts the editor in `host` (the `<excali-editor>`); `dispatch(type,
+    /// detail)` dispatches an event on it; `fonts_base` is the release's
+    /// `fonts/` URL.
+    #[wasm_bindgen(constructor)]
+    pub fn new(
+        host: HtmlElement,
+        dispatch: js_sys::Function,
+        fonts_base: String,
+    ) -> Result<EditorCore, JsValue> {
+        let document = host
+            .owner_document()
+            .ok_or_else(|| JsValue::from_str("the host has no document"))?;
+        install_element_stylesheet(&document)?;
+        let container: HtmlElement = document.create_element("div")?.dyn_into()?;
+        container.set_class_name("excalidraw excalidraw-container");
+        container.set_tab_index(0);
+        apply_container_tokens(&container)?;
+        host.append_child(&container)?;
+        let layers = CanvasLayers::mount(&container)?;
+        let top: HtmlElement = document.create_element("div")?.dyn_into()?;
+        top.set_class_name("excali-editor__top");
+        container.append_child(&top)?;
+
+        let source = web_sys::window()
+            .and_then(|w| w.location().origin().ok())
+            .unwrap_or_default();
+        let env = EditorEnv::new(
+            CanvasMetrics::new(&document)?,
+            (js_sys::Math::random() * 9_007_199_254_740_991.0) as u64,
+            js_sys::Date::now,
+        );
+        let editor = Editor::new(env, &source, is_darwin());
+        let inner = Rc::new(RefCell::new(Inner {
+            editor,
+            host,
+            container: container.clone(),
+            layers,
+            top,
+            toolbar: None,
+            extra_tools_open: false,
+            ui: "full".into(),
+            dispatch,
+            fonts_base,
+            listeners: Vec::new(),
+        }));
+
+        let target: &web_sys::EventTarget = container.as_ref();
+        listen(&inner, target, "keydown", |rc, event| {
+            let Ok(event) = event.dyn_into::<KeyboardEvent>() else {
+                return;
+            };
+            let mut inner = rc.borrow_mut();
+            let stroke = keystroke(&event, Some(&inner.container));
+            let before = inner.editor.tools().active_tool.clone();
+            let out = inner.editor.key_down(&stroke);
+            apply_outcome(&event, &out);
+            let tools_changed = inner.editor.tools().active_tool != before;
+            inner.render();
+            inner.flush();
+            drop(inner);
+            if tools_changed {
+                let _ = render_toolbar(&Rc::downgrade(rc));
+            }
+        })?;
+        listen(&inner, target, "keyup", |rc, event| {
+            let Ok(event) = event.dyn_into::<KeyboardEvent>() else {
+                return;
+            };
+            let mut inner = rc.borrow_mut();
+            let stroke = keystroke(&event, Some(&inner.container));
+            let out = inner.editor.key_up(&stroke);
+            apply_outcome(&event, &out);
+            inner.render();
+            inner.flush();
+        })?;
+        let interactive: web_sys::EventTarget = inner
+            .borrow()
+            .layers
+            .canvas(Layer::Interactive)
+            .ok_or_else(|| JsValue::from_str("no interactive canvas"))?
+            .clone()
+            .into();
+        listen(&inner, &interactive, "pointerdown", |rc, event| {
+            let Ok(event) = event.dyn_into::<PointerEvent>() else {
+                return;
+            };
+            if event.button() != 0 {
+                return;
+            }
+            let mut inner = rc.borrow_mut();
+            let _ = inner.container.focus();
+            if let Some(target) = event
+                .target()
+                .and_then(|t| t.dyn_into::<web_sys::Element>().ok())
+            {
+                let _ = target.set_pointer_capture(event.pointer_id());
+            }
+            inner.measure();
+            inner.editor.pointer_down(
+                f64::from(event.client_x()),
+                f64::from(event.client_y()),
+                event.shift_key(),
+            );
+            inner.render();
+            inner.flush();
+        })?;
+        listen(&inner, &interactive, "pointermove", |rc, event| {
+            let Ok(event) = event.dyn_into::<PointerEvent>() else {
+                return;
+            };
+            let mut inner = rc.borrow_mut();
+            inner
+                .editor
+                .pointer_move(f64::from(event.client_x()), f64::from(event.client_y()));
+            inner.render();
+            inner.flush();
+        })?;
+        for name in ["pointerup", "pointercancel"] {
+            listen(&inner, &interactive, name, |rc, event| {
+                let Ok(event) = event.dyn_into::<PointerEvent>() else {
+                    return;
+                };
+                let mut inner = rc.borrow_mut();
+                inner
+                    .editor
+                    .pointer_up(f64::from(event.client_x()), f64::from(event.client_y()));
+                inner.render();
+                inner.flush();
+            })?;
+        }
+
+        {
+            let mut i = inner.borrow_mut();
+            i.measure();
+            i.render();
+        }
+        render_toolbar(&Rc::downgrade(&inner))?;
+        Ok(EditorCore { inner })
+    }
+
+    /// The canvases and viewport after the host's size changed.
+    pub fn resize(&self) {
+        let mut inner = self.inner.borrow_mut();
+        inner.measure();
+        inner.render();
+    }
+
+    /// `theme`: `"light"`, `"dark"` or `"system"` (the page's
+    /// `prefers-color-scheme`).
+    #[wasm_bindgen(js_name = setTheme)]
+    pub fn set_theme(&self, theme: &str) -> Result<(), JsValue> {
+        let dark = match theme {
+            "dark" => true,
+            "system" => web_sys::window()
+                .and_then(|w| w.match_media("(prefers-color-scheme: dark)").ok().flatten())
+                .is_some_and(|m| m.matches()),
+            _ => false,
+        };
+        let mut inner = self.inner.borrow_mut();
+        apply_theme(
+            &inner.container,
+            if dark { Theme::Dark } else { Theme::Light },
+        )?;
+        inner.editor.set_theme(dark);
+        inner.render();
+        Ok(())
+    }
+
+    /// `ui`: `"full"`, `"compact"`, `"mobile"` or `"auto"` show the
+    /// desktop toolbar (the compact and mobile layouts are Phase 7),
+    /// `"none"` hides it.
+    #[wasm_bindgen(js_name = setUi)]
+    pub fn set_ui(&self, ui: &str) -> Result<(), JsValue> {
+        ui.clone_into(&mut self.inner.borrow_mut().ui);
+        render_toolbar(&Rc::downgrade(&self.inner))
+    }
+
+    /// `load(text)`. Throws with a one-sentence reason.
+    pub fn load(&self, text: &str) -> Result<(), JsValue> {
+        let mut inner = self.inner.borrow_mut();
+        inner.editor.load(text).map_err(js_err)?;
+        inner.measure();
+        inner.render();
+        inner.flush();
+        drop(inner);
+        render_toolbar(&Rc::downgrade(&self.inner))
+    }
+
+    /// The scene as a `.excalidraw` document, for `loadSceneFonts`.
+    #[wasm_bindgen(js_name = sceneJson)]
+    pub fn scene_json(&self) -> String {
+        self.inner.borrow_mut().editor.scene_text()
+    }
+
+    /// Paints the scene again (after its fonts loaded).
+    pub fn repaint(&self) {
+        self.inner.borrow_mut().render();
+    }
+
+    /// `save()`.
+    pub fn save(&self) -> String {
+        let mut inner = self.inner.borrow_mut();
+        let text = inner.editor.save();
+        inner.flush();
+        text
+    }
+
+    /// `getState()`.
+    #[wasm_bindgen(js_name = getState)]
+    pub fn get_state(&self) -> Result<JsValue, JsValue> {
+        js_sys::JSON::parse(&self.inner.borrow().editor.state().to_string())
+    }
+
+    /// `export("svg", options)`: the SVG file's text.
+    #[wasm_bindgen(js_name = exportSvg)]
+    pub fn export_svg(&self, options: JsValue) -> Result<String, JsValue> {
+        let opts = export_options(&options)?;
+        let inner = self.inner.borrow();
+        inner
+            .editor
+            .export_svg(&opts, &FontUrls(&inner.fonts_base))
+            .map_err(js_err)
+    }
+
+    /// `export("png", options)`: the PNG file's bytes, the scene embedded
+    /// in a `tEXt` chunk with `embedScene` (`encodePngMetadata`).
+    #[wasm_bindgen(js_name = exportPng)]
+    pub fn export_png(&self, options: JsValue) -> Result<Vec<u8>, JsValue> {
+        let opts = export_options(&options)?;
+        let inner = self.inner.borrow();
+        let doc = inner.editor.export_png(&opts).map_err(js_err)?;
+        let document = inner.document();
+        let canvas: HtmlCanvasElement = document.create_element("canvas")?.dyn_into()?;
+        canvas.set_width(doc.width);
+        canvas.set_height(doc.height);
+        let context: CanvasRenderingContext2d = canvas
+            .get_context("2d")?
+            .ok_or_else(|| JsValue::from_str("no 2d context"))?
+            .dyn_into()?;
+        paint(&doc.list, &mut WebCanvas::new(context));
+        let url = canvas.to_data_url_with_type("image/png")?;
+        let data = url
+            .split_once(',')
+            .map(|(_, d)| d)
+            .ok_or_else(|| js_err("the canvas gave no data URL"))?;
+        let bytes: Vec<u8> = excali_core::encode::atob(data)
+            .map_err(js_err)?
+            .chars()
+            .map(|c| c as u8)
+            .collect();
+        let Some(payload) = doc.payload else {
+            return Ok(bytes);
+        };
+        let mut chunks = extract_chunks(&bytes).map_err(js_err)?;
+        let chunk = encode_text_chunk(&payload.keyword, &payload.text).map_err(js_err)?;
+        let last = chunks.len() - 1;
+        chunks.insert(last, chunk);
+        Ok(encode_chunks(&chunks))
+    }
+
+    /// Whether `input` of `importLibrary` is a URL: the URL to fetch
+    /// (allow-listed, a `#addLibrary=` link resolved), or `undefined` for
+    /// library text. Throws for a URL upstream's list refuses.
+    #[wasm_bindgen(js_name = libraryUrl)]
+    pub fn library_url(&self, input: &str) -> Result<Option<String>, JsValue> {
+        match library_source(input).map_err(js_err)? {
+            LibrarySource::Text => Ok(None),
+            LibrarySource::Url(url) => Ok(Some(url)),
+        }
+    }
+
+    /// `importLibrary(text, { merge })`: the library's item count.
+    #[wasm_bindgen(js_name = importLibrary)]
+    pub fn import_library(&self, text: &str, merge: bool) -> Result<u32, JsValue> {
+        let n = self
+            .inner
+            .borrow_mut()
+            .editor
+            .import_library(text, merge)
+            .map_err(js_err)?;
+        Ok(u32::try_from(n).unwrap_or(u32::MAX))
+    }
+
+    /// The personal library as a `.excalidrawlib` file.
+    #[wasm_bindgen(js_name = libraryJson)]
+    pub fn library_json(&self) -> String {
+        self.inner.borrow().editor.library_json()
+    }
+
+    /// Removes the editor from the host and its listeners.
+    pub fn destroy(&self) {
+        let mut inner = self.inner.borrow_mut();
+        for (target, name, closure) in inner.listeners.drain(..) {
+            let _ =
+                target.remove_event_listener_with_callback(name, closure.as_ref().unchecked_ref());
+        }
+        if let Some(toolbar) = inner.toolbar.take() {
+            toolbar.remove();
+        }
+        inner.container.remove();
+    }
+}
+
+fn export_options(options: &JsValue) -> Result<ExportOptions, JsValue> {
+    if options.is_undefined() || options.is_null() {
+        return Ok(ExportOptions::default());
+    }
+    let text: String = js_sys::JSON::stringify(options)?.into();
+    let value: Value = serde_json::from_str(&text).map_err(js_err)?;
+    Ok(ExportOptions::from_json(&value))
+}

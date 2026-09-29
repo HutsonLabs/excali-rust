@@ -105,7 +105,9 @@ jobs:
   # site/content/plan/phases.md (scripts/gates/wasm_size.py); tests/web then
   # checks the optimised module in Chromium: that registering the font manifest fetches nothing and
   # that loading a scene's fonts fetches exactly the range-split files its
-  # text needs (sceneFontFiles), for every scene of the font-assets goldens.
+  # text needs (sceneFontFiles), for every scene of the font-assets goldens,
+  # and that <excali-editor> works from plain JS as the term.hut integration
+  # page documents (ex-530).
   web-runtime:
     runs-on: ubuntu-latest
     steps:
@@ -137,6 +139,7 @@ jobs:
           path: |
             dist/excali_editor.js
             dist/excali_editor_bg.wasm
+            dist/excali.css
           retention-days: 14
       - uses: actions/setup-node@v7
         with:
@@ -158,7 +161,10 @@ jobs:
           sudo apt-get remove -y 'fonts-liberation*'
           fc-cache -f
           if fc-list | grep -qi liberation; then fc-list | grep -i liberation; exit 1; fi
-      - name: scene fonts load by unicode range
+      # specs/fonts.spec.mjs (ex-307) and specs/editor.spec.mjs (ex-530: the
+      # <excali-editor> API from plain JS, undo re-laying out bound text and
+      # bound arrows)
+      - name: scene fonts load by unicode range; the editor element
         working-directory: tests/web
         run: npx playwright test
         env:

@@ -2,6 +2,13 @@
 //!
 //! Upstream counterpart: the `Excalidraw` React component's public props.
 //!
+//! The element (ex-530): [`editor::Editor`] is the editor without the DOM
+//! (load, save, export, library import, state, keys, pointer selection
+//! and dragging, undo and redo with the real leaf layouts of
+//! [`env::EditorEnv`]); [`web::EditorCore`] mounts it in the host element
+//! for the custom element shim (`js/excali-editor.js`), whose API is the
+//! one on `site/content/architecture/termhut-integration.md`.
+//!
 //! Fonts: [`register_fonts`] registers every range-split face of the
 //! manifest with `document.fonts` (nothing is fetched), and
 //! [`load_scene_fonts`] asks the browser for the characters a scene uses,
@@ -10,7 +17,13 @@
 //! [`scene_font_files`] is the same selection computed without a browser.
 //!
 //! Targets: wasm32. Internal dependencies allowed by the architecture
-//! overview (`site/content/architecture/overview.md`, ADR-008): `excali-ui`.
+//! overview (`site/content/architecture/overview.md`, ADR-008): `excali-ui`
+//! and `excali-svg`.
+
+pub mod drag;
+pub mod editor;
+pub mod env;
+pub mod web;
 
 use std::cell::RefCell;
 use std::rc::Rc;

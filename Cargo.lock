@@ -578,9 +578,15 @@ dependencies = [
 name = "excali-wasm"
 version = "26.9.1"
 dependencies = [
+ "excali-canvas2d",
  "excali-core",
+ "excali-editor",
+ "excali-scene",
+ "excali-svg",
  "excali-text",
  "excali-ui",
+ "js-sys",
+ "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
