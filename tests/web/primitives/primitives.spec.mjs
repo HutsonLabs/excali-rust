@@ -156,7 +156,18 @@ test("the tooltip shows under its item and hides on leave", async ({ page }) => 
   const item = await box(page, ".gallery-tooltip");
   const tip = await box(page, ".excalidraw-tooltip");
   const written = await tooltip.evaluate((el) => [el.style.top, el.style.left]);
-  expect(written).toEqual([`${item.top + item.height + 5}px`, `${item.left + item.width / 2 - tip.width / 2}px`]);
+  // upstream assigns `${n}px` to the style; the CSSOM stores it serialized
+  // (Chromium keeps six significant digits), so the expected values go
+  // through a style declaration the same way
+  const serialized = await page.evaluate(
+    ([top, left]) => {
+      const probe = document.createElement("div");
+      Object.assign(probe.style, { top: `${top}px`, left: `${left}px` });
+      return [probe.style.top, probe.style.left];
+    },
+    [item.top + item.height + 5, item.left + item.width / 2 - tip.width / 2],
+  );
+  expect(written).toEqual(serialized);
   // and the box is there, to the layout grid
   expect(Math.abs(tip.top - (item.top + item.height + 5))).toBeLessThanOrEqual(1 / 64);
   expect(Math.abs(tip.left + tip.width / 2 - (item.left + item.width / 2))).toBeLessThanOrEqual(1 / 64);
