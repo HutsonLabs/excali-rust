@@ -5,9 +5,124 @@
 
 use excali_core::app_state::AppState;
 use excali_core::element::{Element, ElementKind};
+use excali_core::fractional_index::ChangeStamp;
+use excali_core::restore::RestoreEnv;
 use serde_json::{Map, Value};
 
 use crate::groups::select_groups_for_selected_elements;
+use crate::scene::MutationEnv;
+
+/// Where the edit actions draw what upstream draws: new ids
+/// (`randomId()`, [`RestoreEnv::random_id`]), seeds and version nonces
+/// (`randomInteger()`) and timestamps (`getUpdatedTimestamp()`). Any
+/// environment that restores, mutates and stamps elements is one.
+pub trait EditEnv: RestoreEnv + MutationEnv + ChangeStamp {}
+
+impl<T: RestoreEnv + MutationEnv + ChangeStamp> EditEnv for T {}
+
+/// `actionDeleteSelected.perform`.
+pub fn delete_selected<E: EditEnv>(
+    elements: &[Element],
+    app_state: &AppState,
+    env: &mut E,
+) -> Option<ActionResult> {
+    let _ = (elements, app_state, env);
+    None
+}
+
+/// `actionDuplicateSelection.perform`.
+pub fn duplicate_selection<E: EditEnv>(
+    elements: &[Element],
+    app_state: &AppState,
+    env: &mut E,
+) -> Option<ActionResult> {
+    let _ = (elements, app_state, env);
+    None
+}
+
+/// `actionGroup.perform`.
+pub fn group<E: EditEnv>(
+    elements: &[Element],
+    app_state: &AppState,
+    env: &mut E,
+) -> Option<ActionResult> {
+    let _ = (elements, app_state, env);
+    None
+}
+
+/// `actionUngroup.perform`.
+pub fn ungroup<E: EditEnv>(
+    elements: &[Element],
+    app_state: &AppState,
+    env: &mut E,
+) -> Option<ActionResult> {
+    let _ = (elements, app_state, env);
+    None
+}
+
+/// `actionBringToFront.perform`.
+pub fn bring_to_front<E: EditEnv>(
+    elements: &[Element],
+    app_state: &AppState,
+    env: &mut E,
+) -> Option<ActionResult> {
+    let _ = (elements, app_state, env);
+    None
+}
+
+/// `actionSendToBack.perform`.
+pub fn send_to_back<E: EditEnv>(
+    elements: &[Element],
+    app_state: &AppState,
+    env: &mut E,
+) -> Option<ActionResult> {
+    let _ = (elements, app_state, env);
+    None
+}
+
+/// `actionBringForward.perform`.
+pub fn bring_forward<E: EditEnv>(
+    elements: &[Element],
+    app_state: &AppState,
+    env: &mut E,
+) -> Option<ActionResult> {
+    let _ = (elements, app_state, env);
+    None
+}
+
+/// `actionSendBackward.perform`.
+pub fn send_backward<E: EditEnv>(
+    elements: &[Element],
+    app_state: &AppState,
+    env: &mut E,
+) -> Option<ActionResult> {
+    let _ = (elements, app_state, env);
+    None
+}
+
+/// `actionCopy.perform`'s clipboard JSON.
+pub fn copy_selected<E: EditEnv>(
+    elements: &[Element],
+    app_state: &AppState,
+    files: Option<&Map<String, Value>>,
+    env: &mut E,
+) -> String {
+    let _ = (elements, app_state, files, env);
+    String::new()
+}
+
+/// `App.addElementsFromPasteOrLibrary` for pasted clipboard JSON.
+pub fn paste_elements<E: EditEnv>(
+    clipboard_text: &str,
+    elements: &[Element],
+    app_state: &AppState,
+    pointer: [f64; 2],
+    grid_size: Option<f64>,
+    env: &mut E,
+) -> Option<ActionResult> {
+    let _ = (clipboard_text, elements, app_state, pointer, grid_size, env);
+    None
+}
 
 /// What an action's `perform` returns (`ActionResult`).
 #[derive(Debug, Clone, PartialEq, Default)]

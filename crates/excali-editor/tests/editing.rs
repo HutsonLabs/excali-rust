@@ -14,15 +14,27 @@
 //! - `drag`: `dragNewElement` (`dragElements.ts:294-406`);
 //! - `perfect`: `getPerfectElementSize` (`sizeHelpers.ts:158-185`);
 //! - `eraser`: `EraserTrail.addPointToPath` (`eraser/index.ts`), the ids
-//!   to erase after every point.
+//!   to erase after every point;
+//! - `delete`, `duplicate`, `group`, `ungroup` and `zindex`: the
+//!   `perform`s of `actionDeleteSelected`, `actionDuplicateSelection`,
+//!   `actionGroup`, `actionUngroup` and the four z-order actions
+//!   ([`edit_actions`]): every element they return (seeds, nonces and
+//!   fractional indices included) and the app state keys they set;
+//! - `copy`: the clipboard JSON `actionCopy` writes;
+//! - `paste`: `addElementsFromPasteOrLibrary` for pasted clipboard JSON at
+//!   the pointer, the scene and the selection after.
 
-use excali_core::app_state::{get_default_app_state, AppStateEnv};
+use excali_core::app_state::{get_default_app_state, AppState, AppStateEnv};
 use excali_core::element::Element;
+use excali_core::fractional_index::ChangeStamp;
+use excali_core::restore::RestoreEnv;
+use excali_editor::edit_actions::{self, ActionResult};
 use excali_editor::eraser::EraserTrail;
 use excali_editor::groups::select_groups_for_selected_elements;
 use excali_editor::new_element::{
     drag_new_element, get_perfect_element_size, new_element_for_tool, DragNewElement,
 };
+use excali_editor::scene::MutationEnv;
 use excali_editor::selection::{get_elements_within_selection, BoxSelectionMode};
 use excali_scene::bounds::ElementsMap;
 use serde_json::{json, Map, Value};
@@ -288,5 +300,237 @@ fn eraser_trail_matches_upstream() {
                 assert_eq!(got, want, "{} {:?} step {i}", case["id"], points);
             }
         }
+    }
+}
+
+// -- the edit actions ---------------------------------------------------------
+
+/// Upstream's test mode after `reseed(1)`, which the generator runs before
+/// each action: ids `id0`, `id1`, ..., timestamps 1, and `randomInteger()`
+/// (seeds and version nonces) from roughjs' `Random(1)`, drawn in
+/// upstream's order.
+struct ActionEnv(excali_core::restore::TestEnv);
+
+impl ActionEnv {
+    fn new() -> ActionEnv {
+        ActionEnv(excali_core::restore::TestEnv::default())
+    }
+}
+
+impl RestoreEnv for ActionEnv {
+    fn now(&mut self) -> f64 {
+        1.0
+    }
+
+    fn random_id(&mut self) -> String {
+        self.0.random_id()
+    }
+
+    fn random_integer(&mut self) -> f64 {
+        self.0.random_integer()
+    }
+}
+
+impl MutationEnv for ActionEnv {
+    fn random_integer(&mut self) -> f64 {
+        self.0.random_integer()
+    }
+
+    fn now(&mut self) -> f64 {
+        1.0
+    }
+}
+
+impl ChangeStamp for ActionEnv {
+    fn version_nonce(&mut self) -> f64 {
+        self.0.random_integer()
+    }
+
+    fn updated(&mut self) -> f64 {
+        1.0
+    }
+}
+
+/// The app state a case's action runs in: upstream's defaults in test mode
+/// with the case's keys.
+fn action_app_state(case: &Value) -> AppState {
+    let mut app_state = get_default_app_state(&AppStateEnv {
+        test_env: true,
+        ..AppStateEnv::default()
+    });
+    app_state.insert("selectedElementIds", json!({}));
+    app_state.insert("selectedGroupIds", json!({}));
+    app_state.insert("editingGroupId", Value::Null);
+    if let Some(keys) = case["appState"].as_object() {
+        for (k, v) in keys {
+            app_state.insert(k.clone(), v.clone());
+        }
+    }
+    app_state
+}
+
+fn element_values(elements: &[Element]) -> Vec<Value> {
+    elements
+        .iter()
+        .map(|e| numbers(&Value::Object(e.to_map())))
+        .collect()
+}
+
+/// The elements an action returned, compared with upstream's in order and
+/// one by one, every key (the drawn seeds and nonces included).
+fn assert_elements(got: &[Element], want: &Value, what: &str) {
+    let got = element_values(got);
+    let want: Vec<Value> = want
+        .as_array()
+        .expect("elements")
+        .iter()
+        .map(numbers)
+        .collect();
+    let got_ids: Vec<&Value> = got.iter().map(|e| &e["id"]).collect();
+    let want_ids: Vec<&Value> = want.iter().map(|e| &e["id"]).collect();
+    assert_eq!(got_ids, want_ids, "{what}: order");
+    for (g, w) in got.iter().zip(&want) {
+        assert_eq!(g, w, "{what}: element {}", w["id"]);
+    }
+}
+
+/// The app state keys an action set over `before`: upstream's app state
+/// after it (none set when upstream returned its app state as it was), a
+/// key the action leaves keeping its value.
+fn assert_app_state(got: &Map<String, Value>, before: &AppState, want: &Value, what: &str) {
+    match want {
+        Value::Null => assert!(got.is_empty(), "{what}: app state {got:?}"),
+        Value::Object(want) => {
+            for (key, value) in want {
+                let after = got.get(key).or_else(|| before.get(key));
+                assert_eq!(after, Some(value), "{what}: {key}");
+            }
+            for key in got.keys() {
+                assert!(want.contains_key(key), "{what}: unexpected {key}");
+            }
+        }
+        other => panic!("{what}: app state {other}"),
+    }
+}
+
+type ActionFn = fn(&[Element], &AppState, &mut ActionEnv) -> Option<ActionResult>;
+
+fn replay_action(case: &Value, perform: ActionFn) {
+    let what = case["id"].as_str().unwrap();
+    let scene = elements(case);
+    let app_state = action_app_state(case);
+    let mut env = ActionEnv::new();
+    let got = perform(&scene, &app_state, &mut env);
+    let want = &case["result"];
+    if want.is_null() {
+        assert_eq!(got, None, "{what}: upstream returns false");
+        return;
+    }
+    let got = got.unwrap_or_else(|| panic!("{what}: upstream performs"));
+    let next = got.elements.clone().unwrap_or_else(|| scene.clone());
+    assert_elements(&next, &want["elements"], what);
+    assert_app_state(&got.app_state, &app_state, &want["appState"], what);
+    assert_eq!(
+        got.capture,
+        want["captureUpdate"] == "IMMEDIATELY",
+        "{what}: captureUpdate"
+    );
+}
+
+#[test]
+fn delete_selected_matches_upstream() {
+    for case in cases("delete") {
+        replay_action(&case, edit_actions::delete_selected);
+    }
+}
+
+#[test]
+fn duplicate_selection_matches_upstream() {
+    for case in cases("duplicate") {
+        replay_action(&case, edit_actions::duplicate_selection);
+    }
+}
+
+#[test]
+fn group_matches_upstream() {
+    for case in cases("group") {
+        replay_action(&case, edit_actions::group);
+    }
+}
+
+#[test]
+fn ungroup_matches_upstream() {
+    for case in cases("ungroup") {
+        replay_action(&case, edit_actions::ungroup);
+    }
+}
+
+#[test]
+fn z_index_actions_match_upstream() {
+    for case in cases("zindex") {
+        let perform: ActionFn = match case["action"].as_str().unwrap() {
+            "bringToFront" => edit_actions::bring_to_front,
+            "sendToBack" => edit_actions::send_to_back,
+            "bringForward" => edit_actions::bring_forward,
+            "sendBackward" => edit_actions::send_backward,
+            other => panic!("action {other}"),
+        };
+        replay_action(&case, perform);
+    }
+}
+
+#[test]
+fn copy_matches_upstream() {
+    for case in cases("copy") {
+        let what = case["id"].as_str().unwrap();
+        let scene = elements(&case);
+        let app_state = action_app_state(&case);
+        let mut env = ActionEnv::new();
+        let got = edit_actions::copy_selected(&scene, &app_state, Some(&Map::new()), &mut env);
+        let got: Value = serde_json::from_str(&got).unwrap_or_else(|e| panic!("{what}: {e}"));
+        let want: Value = serde_json::from_str(case["clipboard"].as_str().unwrap()).unwrap();
+        assert_eq!(numbers(&got), numbers(&want), "{what}");
+    }
+}
+
+#[test]
+fn paste_matches_upstream() {
+    for case in cases("paste") {
+        let what = case["id"].as_str().unwrap();
+        let scene = elements(&case);
+        let app_state = action_app_state(&Value::Null);
+        let mut env = ActionEnv::new();
+        let got = edit_actions::paste_elements(
+            case["clipboard"].as_str().unwrap(),
+            &scene,
+            &app_state,
+            point(&case["pointer"]),
+            case["gridSize"].as_f64(),
+            &mut env,
+        )
+        .unwrap_or_else(|| panic!("{what}: pastes"));
+        let want = &case["result"];
+        let next = got
+            .elements
+            .as_deref()
+            .expect("the scene with the pasted elements");
+        assert_elements(next, &want["elements"], what);
+        assert_app_state(&got.app_state, &app_state, &want["appState"], what);
+        assert!(got.capture, "{what}: the store captures the paste");
+    }
+}
+
+/// Text that is not Excalidraw clipboard JSON pastes no elements (upstream
+/// makes a text element of it, which the port leaves to the caller).
+#[test]
+fn paste_of_plain_text_pastes_no_elements() {
+    let app_state = action_app_state(&Value::Null);
+    let mut env = ActionEnv::new();
+    for text in ["hello", "{\"type\":\"excalidraw/clipboard\"}", ""] {
+        assert_eq!(
+            edit_actions::paste_elements(text, &[], &app_state, [0.0, 0.0], None, &mut env),
+            None,
+            "{text}"
+        );
     }
 }

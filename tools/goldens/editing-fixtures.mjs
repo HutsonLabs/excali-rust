@@ -48,6 +48,34 @@
 //   are the scene's non-deleted ones, startPath at the first point then
 //   addPointToPath(x, y, restore) for each further one; steps holds what
 //   each call returned (the ids to erase).
+// - "delete", "duplicate", "group", "ungroup" and "zindex" (with `action`,
+//   one of bringToFront, sendToBack, bringForward, sendBackward): the
+//   scene indexed by upstream's Scene (syncInvalidIndices), `appState` (the
+//   keys set over getDefaultAppState(), selectedElementIds,
+//   selectedGroupIds and editingGroupId) and `result`: what
+//   action.perform(elements, appState, null, app) returned for the action
+//   object of packages/excalidraw/actions/actionDeleteSelected.tsx,
+//   actionDuplicateSelection.tsx, actionGroup.tsx or actionZindex.tsx, on
+//   an app of { scene, state: appState, props: {} }; null when it returned
+//   false, else { elements (every key), appState, captureUpdate }, where
+//   appState holds the keys the port sets (selectedElementIds,
+//   selectedGroupIds, editingGroupId, selectedLinearElement as { elementId,
+//   isEditing }, multiElement, newElement, activeEmbeddable) or is null
+//   when the action returned its app state as it was.
+// - "copy": `appState` ({ selectedElementIds }) and `clipboard`: the JSON
+//   actionCopy writes, serializeAsClipboardJSON (packages/excalidraw/
+//   clipboard.ts) of scene.getSelectedElements with bound text and frame
+//   children, with the app's files ({}).
+// - "paste": `clipboard` (a "copy" of another scene), `pointer` (scene
+//   coordinates), `gridSize` and `result` { elements, appState }: the
+//   scene and the selection after addElementsFromPasteOrLibrary
+//   (App.tsx:4885) as the paste handler calls it (restoreElements with
+//   deleteInvisibleElements, AppDuplicate.duplicateAtSceneCoords of
+//   App.duplicate.ts with retainSeed false and preserveFrameChildrenOrder,
+//   no frame under the pointer, then getSelectionStateForElements).
+//
+// The action cases reseed(1) again after building their scene, so what an
+// action draws (ids, seeds, version nonces) starts afresh.
 //
 // Deterministic: upstream runs in its test mode (import.meta.env.MODE
 // "test"; ids id0.., timestamps 1), reseed(1) before each case. Math.random
@@ -96,7 +124,48 @@ export {
 } from "./packages/common/src/constants";
 export { setCustomTextMetricsProvider } from "./packages/element/src/textMeasurements";
 export { getDefaultAppState } from "./packages/excalidraw/appState";
+export { actionDeleteSelected } from "./packages/excalidraw/actions/actionDeleteSelected";
+export { actionDuplicateSelection } from "./packages/excalidraw/actions/actionDuplicateSelection";
+export { actionGroup, actionUngroup } from "./packages/excalidraw/actions/actionGroup";
+export {
+  actionBringForward,
+  actionBringToFront,
+  actionSendBackward,
+  actionSendToBack,
+} from "./packages/excalidraw/actions/actionZindex";
+export { serializeAsClipboardJSON, parseClipboard } from "./packages/excalidraw/clipboard";
+export { AppDuplicate } from "./packages/excalidraw/components/App.duplicate";
+export { restoreElements } from "./packages/excalidraw/data/restore";
+export {
+  excludeElementsInFramesFromSelection,
+  getSelectionStateForElements,
+} from "./packages/element/src/selection";
+export { getNonDeletedElements } from "./packages/element/src/index";
+export { syncInvalidIndices } from "./packages/element/src/fractionalIndex";
 `;
+
+// The action modules render React panels (icons, buttons, the styles panel
+// mode hook of App.tsx); performing an action never reaches them.
+const STUBS = [
+  "react",
+  "react/jsx-runtime",
+  "packages/excalidraw/components/App",
+  "packages/excalidraw/components/IconButton",
+  "packages/excalidraw/components/ToolButton",
+  "packages/excalidraw/components/Tooltip",
+  "packages/excalidraw/components/icons",
+  "packages/excalidraw/data/blob",
+  "packages/excalidraw/data/filesystem",
+  "packages/excalidraw/i18n",
+  "packages/excalidraw/shortcut",
+];
+
+const SHIMS = {
+  // flushSync runs its callback (App.duplicate.ts imports it)
+  "react-dom": "module.exports = { flushSync: (fn) => fn() };",
+  // register() only adds the action to the registry and returns it
+  "packages/excalidraw/actions/register": "module.exports = { register: (action) => action };",
+};
 
 const usage = () => {
   process.stderr.write("usage: editing-fixtures.mjs [--check] [--out DIR]\n");
@@ -666,6 +735,388 @@ const eraserCases = () =>
     },
   }));
 
+// -- the edit actions -------------------------------------------------------------
+
+/** A binding of an arrow end to `elementId`. */
+const binding = (elementId, fixedPoint = [0.5, 0.5]) => ({ elementId, fixedPoint, mode: "orbit" });
+
+/** Two shapes and an arrow bound between them. */
+const boundArrowScene = (up) => [
+  el(up, "rectangle", "s1", 100, 100, 100, 100, { boundElements: [{ type: "arrow", id: "arr" }] }),
+  el(up, "rectangle", "s2", 400, 100, 100, 100, { boundElements: [{ type: "arrow", id: "arr" }] }),
+  arrow(up, "arr", 205, 150, [
+    [0, 0],
+    [190, 0],
+  ], { startBinding: binding("s1", [1, 0.5]), endBinding: binding("s2", [0, 0.5]) }),
+];
+
+const frameScene = (up) => [
+  apiCreateElement(up, { type: "frame", id: "f", x: 100, y: 100, width: 400, height: 300 }),
+  el(up, "rectangle", "in1", 150, 150, 100, 100, { frameId: "f" }),
+  el(up, "rectangle", "in2", 300, 200, 100, 100, { frameId: "f" }),
+  el(up, "rectangle", "free", 600, 100),
+];
+
+const groupScene = (up) => [
+  el(up, "rectangle", "a", 100, 100),
+  el(up, "rectangle", "g1", 300, 100, 100, 100, { groupIds: ["grp"] }),
+  el(up, "rectangle", "g2", 500, 100, 100, 100, { groupIds: ["grp"] }),
+  el(up, "rectangle", "c", 700, 100),
+];
+
+const nestedScene = (up) => [
+  el(up, "rectangle", "n1", 100, 100, 100, 100, { groupIds: ["inner", "outer"] }),
+  el(up, "rectangle", "n2", 300, 100, 100, 100, { groupIds: ["inner", "outer"] }),
+  el(up, "rectangle", "n3", 500, 100, 100, 100, { groupIds: ["outer"] }),
+  el(up, "rectangle", "c", 700, 100),
+];
+
+const labelScene = (up) => [
+  el(up, "rectangle", "a", 0, 0),
+  ...labelled(up, "box", 200, 100),
+  el(up, "rectangle", "c", 500, 100),
+];
+
+const deletedScene = (up) => [
+  el(up, "rectangle", "a", 100, 100),
+  el(up, "rectangle", "d", 200, 100, 100, 100, { isDeleted: true }),
+  el(up, "rectangle", "b", 300, 100),
+  el(up, "rectangle", "c", 500, 100),
+];
+
+const groupedFrameScene = (up) => [
+  apiCreateElement(up, { type: "frame", id: "f", x: 100, y: 100, width: 400, height: 300 }),
+  el(up, "rectangle", "in1", 150, 150, 100, 100, { frameId: "f", groupIds: ["fg"] }),
+  el(up, "rectangle", "in2", 300, 200, 100, 100, { frameId: "f", groupIds: ["fg"] }),
+  el(up, "rectangle", "out", 450, 350, 100, 100, { frameId: "f", groupIds: ["fg"] }),
+  el(up, "rectangle", "free", 600, 100),
+];
+
+const ACTION_SCENES = {
+  two: (up) => [el(up, "rectangle", "a", 100, 100), el(up, "rectangle", "b", 300, 100)],
+  three: (up) => THREE(up),
+  label: labelScene,
+  bound: boundArrowScene,
+  frame: frameScene,
+  group: groupScene,
+  nested: nestedScene,
+  deleted: deletedScene,
+  groupedFrame: groupedFrameScene,
+};
+
+const selecting = (...list) => Object.fromEntries(list.map((id) => [id, true]));
+
+// [case, action, scene, app state keys]
+const ACTION_CASES = [
+  ["delete-one", "delete", "two", { selectedElementIds: selecting("a") }],
+  ["delete-labelled", "delete", "label", { selectedElementIds: selecting("box") }],
+  ["delete-bound-shape", "delete", "bound", { selectedElementIds: selecting("s1") }],
+  ["delete-bound-arrow", "delete", "bound", { selectedElementIds: selecting("arr") }],
+  ["delete-frame", "delete", "frame", { selectedElementIds: selecting("f") }],
+  ["delete-frame-child", "delete", "frame", { selectedElementIds: selecting("in1") }],
+  [
+    "delete-group",
+    "delete",
+    "group",
+    { selectedElementIds: selecting("g1", "g2"), selectedGroupIds: selecting("grp") },
+  ],
+  [
+    "delete-in-editing-group",
+    "delete",
+    "nested",
+    { selectedElementIds: selecting("n1"), editingGroupId: "inner" },
+  ],
+  [
+    "delete-editing-group-last",
+    "delete",
+    "nested",
+    {
+      selectedElementIds: selecting("n1", "n2"),
+      selectedGroupIds: selecting("inner"),
+      editingGroupId: "outer",
+    },
+  ],
+  ["delete-nothing", "delete", "two", { selectedElementIds: {} }],
+  ["duplicate-one", "duplicate", "two", { selectedElementIds: selecting("a") }],
+  ["duplicate-two", "duplicate", "three", { selectedElementIds: selecting("a", "c") }],
+  ["duplicate-labelled", "duplicate", "label", { selectedElementIds: selecting("box") }],
+  [
+    "duplicate-group",
+    "duplicate",
+    "group",
+    { selectedElementIds: selecting("g1", "g2"), selectedGroupIds: selecting("grp") },
+  ],
+  ["duplicate-bound-arrow", "duplicate", "bound", { selectedElementIds: selecting("s1", "s2", "arr") }],
+  ["duplicate-bound-shape", "duplicate", "bound", { selectedElementIds: selecting("s1") }],
+  ["duplicate-frame", "duplicate", "frame", { selectedElementIds: selecting("f") }],
+  ["duplicate-frame-child", "duplicate", "frame", { selectedElementIds: selecting("in1") }],
+  [
+    "duplicate-in-editing-group",
+    "duplicate",
+    "nested",
+    { selectedElementIds: selecting("n1"), editingGroupId: "outer" },
+  ],
+  ["duplicate-nothing", "duplicate", "two", { selectedElementIds: {} }],
+  ["group-two", "group", "three", { selectedElementIds: selecting("a", "c") }],
+  [
+    "group-across-group",
+    "group",
+    "group",
+    { selectedElementIds: selecting("g1", "g2", "c"), selectedGroupIds: selecting("grp") },
+  ],
+  ["group-labelled", "group", "label", { selectedElementIds: selecting("a", "box") }],
+  [
+    "group-same-group",
+    "group",
+    "group",
+    { selectedElementIds: selecting("g1", "g2"), selectedGroupIds: selecting("grp") },
+  ],
+  ["group-one", "group", "three", { selectedElementIds: selecting("a") }],
+  ["group-frames", "group", "frame", { selectedElementIds: selecting("in1", "free") }],
+  [
+    "group-in-editing-group",
+    "group",
+    "nested",
+    { selectedElementIds: selecting("n1", "n3"), editingGroupId: "outer" },
+  ],
+  [
+    "ungroup",
+    "ungroup",
+    "group",
+    { selectedElementIds: selecting("g1", "g2"), selectedGroupIds: selecting("grp") },
+  ],
+  [
+    "ungroup-nested",
+    "ungroup",
+    "nested",
+    { selectedElementIds: selecting("n1", "n2", "n3"), selectedGroupIds: selecting("outer") },
+  ],
+  ["ungroup-nothing", "ungroup", "group", { selectedElementIds: selecting("a") }],
+  [
+    "ungroup-in-frame",
+    "ungroup",
+    "groupedFrame",
+    { selectedElementIds: selecting("in1", "in2", "out"), selectedGroupIds: selecting("fg") },
+  ],
+  ...["bringToFront", "sendToBack", "bringForward", "sendBackward"].flatMap((action) => [
+    [`${action}-a`, action, "three", { selectedElementIds: selecting("a") }],
+    [`${action}-b`, action, "three", { selectedElementIds: selecting("b") }],
+    [`${action}-c`, action, "three", { selectedElementIds: selecting("c") }],
+    [`${action}-ac`, action, "three", { selectedElementIds: selecting("a", "c") }],
+    [`${action}-ab`, action, "three", { selectedElementIds: selecting("a", "b") }],
+    [
+      `${action}-group`,
+      action,
+      "group",
+      { selectedElementIds: selecting("g1", "g2"), selectedGroupIds: selecting("grp") },
+    ],
+    [`${action}-past-group`, action, "group", { selectedElementIds: selecting("a") }],
+    [`${action}-under-group`, action, "group", { selectedElementIds: selecting("c") }],
+    [
+      `${action}-editing-group`,
+      action,
+      "nested",
+      { selectedElementIds: selecting("n1"), editingGroupId: "outer" },
+    ],
+    [`${action}-label`, action, "label", { selectedElementIds: selecting("a") }],
+    [`${action}-labelled`, action, "label", { selectedElementIds: selecting("box") }],
+    [`${action}-frame-child`, action, "frame", { selectedElementIds: selecting("in1") }],
+    [`${action}-frame`, action, "frame", { selectedElementIds: selecting("f") }],
+    [`${action}-free`, action, "frame", { selectedElementIds: selecting("free") }],
+    [`${action}-deleted`, action, "deleted", { selectedElementIds: selecting("a", "b") }],
+  ]),
+];
+
+const ACTIONS = (up) => ({
+  delete: up.actionDeleteSelected,
+  duplicate: up.actionDuplicateSelection,
+  group: up.actionGroup,
+  ungroup: up.actionUngroup,
+  bringToFront: up.actionBringToFront,
+  sendToBack: up.actionSendToBack,
+  bringForward: up.actionBringForward,
+  sendBackward: up.actionSendBackward,
+});
+
+const KIND = {
+  delete: "delete",
+  duplicate: "duplicate",
+  group: "group",
+  ungroup: "ungroup",
+  bringToFront: "zindex",
+  sendToBack: "zindex",
+  bringForward: "zindex",
+  sendBackward: "zindex",
+};
+
+/** The app state keys the actions set, as the port holds them. */
+const APP_STATE_KEYS = [
+  "selectedElementIds",
+  "selectedGroupIds",
+  "editingGroupId",
+  "selectedLinearElement",
+  "multiElement",
+  "newElement",
+  "activeEmbeddable",
+];
+
+const pickAppState = (appState) => {
+  const out = {};
+  for (const key of APP_STATE_KEYS) {
+    if (!(key in appState)) continue;
+    let value = appState[key];
+    if (key === "selectedLinearElement" && value) {
+      value = { elementId: value.elementId, isEditing: value.isEditing };
+    }
+    out[key] = clone(value);
+  }
+  return out;
+};
+
+/**
+ * A case's scene: built, indexed by upstream's Scene (syncInvalidIndices),
+ * then reseed(1), so what the action draws starts at id0.
+ */
+const indexedScene = (up, name) => {
+  const scene = new up.Scene(up.syncInvalidIndices(ACTION_SCENES[name](up)));
+  up.reseed(1);
+  return scene;
+};
+
+const withAppState = (up, overrides) => ({
+  ...up.getDefaultAppState(),
+  selectedElementIds: {},
+  selectedGroupIds: {},
+  editingGroupId: null,
+  ...overrides,
+});
+
+const actionCases = () =>
+  ACTION_CASES.map(([id, action, sceneName, overrides]) => ({
+    id,
+    build: (up) => {
+      const scene = indexedScene(up, sceneName);
+      const elements = scene.getElementsIncludingDeleted();
+      const appState = withAppState(up, overrides);
+      const recordedElements = clone(elements);
+      const app = { scene, state: appState, props: {} };
+      const result = ACTIONS(up)[action].perform(elements, appState, null, app);
+      return {
+        id,
+        kind: KIND[action],
+        ...(KIND[action] === "zindex" ? { action } : {}),
+        elements: recordedElements,
+        appState: clone(overrides),
+        result:
+          result === false
+            ? null
+            : {
+                elements: clone(result.elements),
+                appState: result.appState === appState ? null : pickAppState(result.appState),
+                captureUpdate: result.captureUpdate,
+              },
+      };
+    },
+  }));
+
+// -- copy and paste ---------------------------------------------------------------
+
+const COPY_CASES = [
+  ["copy-labelled", "label", selecting("box")],
+  ["copy-two", "three", selecting("a", "c")],
+  ["copy-frame", "frame", selecting("f")],
+  ["copy-frame-child", "frame", selecting("in1")],
+  ["copy-group", "group", selecting("g1", "g2")],
+  ["copy-nothing", "three", {}],
+];
+
+const copyCases = () =>
+  COPY_CASES.map(([id, sceneName, selectedElementIds]) => ({
+    id,
+    build: (up) => {
+      const scene = indexedScene(up, sceneName);
+      const recordedElements = clone(scene.getElementsIncludingDeleted());
+      // actionCopy: the selection with bound text and frame children, and
+      // the app's files
+      const elementsToCopy = scene.getSelectedElements({
+        selectedElementIds,
+        includeBoundTextElement: true,
+        includeElementsInFrames: true,
+      });
+      const clipboard = up.serializeAsClipboardJSON({ elements: elementsToCopy, files: {} });
+      return {
+        id,
+        kind: "copy",
+        elements: recordedElements,
+        appState: { selectedElementIds },
+        clipboard,
+      };
+    },
+  }));
+
+// [case, scene copied from, its selection, scene pasted into, pointer, grid size]
+const PASTE_CASES = [
+  ["paste-rectangle", "two", selecting("a"), "two", [500, 400], null],
+  ["paste-rectangle-grid", "two", selecting("a"), "two", [503, 417], 20],
+  ["paste-group", "group", selecting("g1", "g2"), "three", [250, 250], null],
+  ["paste-bound-arrow", "bound", selecting("s1", "s2", "arr"), "two", [0, 0], null],
+  ["paste-frame", "frame", selecting("f"), "two", [1000, 1000], null],
+];
+
+const pasteCases = () =>
+  PASTE_CASES.map(([id, fromName, selectedElementIds, intoName, pointer, gridSize]) => ({
+    id,
+    build: (up) => {
+      const from = indexedScene(up, fromName);
+      const clipboard = up.serializeAsClipboardJSON({
+        elements: from.getSelectedElements({
+          selectedElementIds,
+          includeBoundTextElement: true,
+          includeElementsInFrames: true,
+        }),
+        files: {},
+      });
+      const scene = indexedScene(up, intoName);
+      const recordedElements = clone(scene.getElementsIncludingDeleted());
+      const appState = withAppState(up, {});
+      // addElementsFromPasteOrLibrary({ elements, position: "cursor",
+      // retainSeed: false, preserveFrameChildrenOrder: true }) as the paste
+      // handler calls it, with no frame under the pointer
+      const data = JSON.parse(clipboard);
+      const restored = up.restoreElements(data.elements, null, { deleteInvisibleElements: true });
+      const app = {
+        scene,
+        state: appState,
+        props: {},
+        getEffectiveGridSize: () => gridSize,
+        getTopLayerFrameAtSceneCoords: () => null,
+      };
+      const { nextElements, duplicatedElements } = new up.AppDuplicate(app).duplicateAtSceneCoords(
+        restored,
+        { x: pointer[0], y: pointer[1] },
+        { retainSeed: false, preserveFrameChildrenOrder: true },
+      );
+      scene.replaceAllElements(nextElements);
+      const selection = up.getSelectionStateForElements(
+        up.excludeElementsInFramesFromSelection(duplicatedElements),
+        scene.getNonDeletedElements(),
+        appState,
+      );
+      return {
+        id,
+        kind: "paste",
+        elements: recordedElements,
+        clipboard,
+        pointer,
+        gridSize,
+        result: {
+          elements: clone(scene.getElementsIncludingDeleted()),
+          appState: pickAppState(selection),
+        },
+      };
+    },
+  }));
+
 const buildCases = () => [
   ...withinCases(),
   ...groupCases(),
@@ -673,6 +1124,9 @@ const buildCases = () => [
   ...dragCases(),
   ...perfectCases(),
   ...eraserCases(),
+  ...actionCases(),
+  ...copyCases(),
+  ...pasteCases(),
 ];
 
 // -- the fixture --------------------------------------------------------------
@@ -709,8 +1163,10 @@ const buildFixture = (up, commit) => {
   return asciiJson({
     description:
       "getElementsWithinSelection, selectGroupsForSelectedElements, the new elements App creates, " +
-      "dragNewElement, getPerfectElementSize and EraserTrail (packages/element/src/selection.ts, " +
-      "groups.ts, newElement.ts, dragElements.ts, sizeHelpers.ts, packages/excalidraw/eraser) " +
+      "dragNewElement, getPerfectElementSize, EraserTrail (packages/element/src/selection.ts, " +
+      "groups.ts, newElement.ts, dragElements.ts, sizeHelpers.ts, packages/excalidraw/eraser), " +
+      "the delete, duplicate, group, ungroup and z-order actions' perform, the clipboard JSON of " +
+      "actionCopy and the paste insertion of addElementsFromPasteOrLibrary " +
       "in upstream's test mode (ids id0.., " +
       "timestamps 1, reseed(1) before each case). Generated by tools/goldens/editing-fixtures.mjs.",
     upstream: commit,
@@ -737,7 +1193,13 @@ const main = async () => {
   globalThis.cancelAnimationFrame = () => {};
   const up = await loadUpstream(upstream, {
     entry: ENTRY,
-    define: { "import.meta.env.MODE": '"test"' },
+    stubs: STUBS,
+    shims: SHIMS,
+    define: {
+      "import.meta.env.MODE": '"test"',
+      "import.meta.env.PKG_NAME": "undefined",
+      "import.meta.env.PKG_VERSION": "undefined",
+    },
   });
   up.setCustomTextMetricsProvider({ getLineWidth: (text) => text.length * 10 });
   const text = deterministic(() => buildFixture(up, upstream.commit));
