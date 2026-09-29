@@ -545,6 +545,8 @@ jobs:
         run: node tools/goldens/static-scene.mjs --check
       - name: excali-editor interactive scene fixture matches upstream's renderInteractiveScene
         run: node tools/goldens/interactive-scene.mjs --check
+      - name: excali-editor crop fixture matches upstream's cropElement.ts
+        run: node tools/goldens/crop-fixtures.mjs --check
       - name: excali-scene frame clipping fixture matches upstream's frame.ts
         run: node tools/goldens/frame-clip.mjs --check
       - name: excali-ui canvas layer fixture matches upstream's snapScrollToDevicePixels, bootstrapCanvas and renderNewElementScene
