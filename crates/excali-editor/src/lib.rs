@@ -36,7 +36,8 @@
 //!   increments history records.
 //! - [`history`]: the undo and redo stacks (`history.ts`).
 //! - [`edit_actions`]: the `perform`s of the editing actions (select
-//!   all, delete, duplicate, group, z-order, paste).
+//!   all, delete, duplicate, group and ungroup, z-order, copy and paste)
+//!   over an [`edit_actions::EditEnv`].
 //! - [`new_element`]: the element a drawing tool creates and its size as
 //!   the pointer drags (`newElement.ts`, `dragNewElement`); [`eraser`]:
 //!   what an eraser path erases (`EraserTrail`).
