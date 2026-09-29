@@ -442,6 +442,9 @@ const session = (up, id, elements, script) => {
   for (const step of script) {
     if (step.begin) {
       const { selected, zoom = 1, pointerType = "mouse", editor = "desktop" } = step.begin;
+      // appState.selectedLinearElement: only the two fields
+      // handleSelectionOnPointerDown reads (App.tsx:9524-9537)
+      const selectedLinearElement = step.begin.selectedLinearElement ?? null;
       const editorIf = EDITORS[editor];
       const pressAt = () => {
         try {
@@ -467,8 +470,10 @@ const session = (up, id, elements, script) => {
       let handle = false;
       if (
         sel.length === 1 &&
+        !selectedLinearElement?.isEditing &&
         !up.isElbowArrow(sel[0]) &&
-        !(up.isLinearElement(sel[0]) && (editorIf.userAgent.isMobileDevice || sel[0].points.length === 2))
+        !(up.isLinearElement(sel[0]) && (editorIf.userAgent.isMobileDevice || sel[0].points.length === 2)) &&
+        !(selectedLinearElement && selectedLinearElement.hoverPointIndex !== -1)
       ) {
         const hit = up.getElementWithTransformHandleType(
           all,
@@ -509,6 +514,7 @@ const session = (up, id, elements, script) => {
         zoom,
         pointerType,
         editor,
+        selectedLinearElement,
         result: { handle, offset, center, arrowDirection },
       });
     } else if (step.move) {
@@ -1161,6 +1167,36 @@ const extraCases = () => {
       ...resize([f.id], "e", [-300, 0]),
     ]);
   });
+  // a lone multi-point line has handles, but not while the linear element
+  // editor edits it or a point of it is hovered (App.tsx:9524-9537)
+  for (const [name, selectedLinearElement] of [
+    ["not-editing", { isEditing: false, hoverPointIndex: -1 }],
+    ["editing", { isEditing: true, hoverPointIndex: -1 }],
+    ["hover-point", { isEditing: false, hoverPointIndex: 1 }],
+    ["editing-hover-point", { isEditing: true, hoverPointIndex: 2 }],
+  ]) {
+    const id = `line-selected-linear-${name}`;
+    add(id, (up) => {
+      const l = el(up, {
+        type: "line",
+        x: 0,
+        y: 0,
+        width: 160,
+        height: 90,
+        roundness: null,
+        points: [
+          [0, 0],
+          [80, 90],
+          [160, 20],
+        ],
+      });
+      return session(up, id, [l], [
+        { begin: { selected: [l.id], handle: "se", selectedLinearElement } },
+        { move: [40, 30] },
+        { move: [-20, 60] },
+      ]);
+    });
+  }
   // a lone elbow arrow is never transformed
   add("elbow-single-refused", (up) => {
     const a = el(up, {

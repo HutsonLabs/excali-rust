@@ -853,7 +853,10 @@ transform handles, resizing and rotation (ex-508): upstream's
   as `App.tsx` runs it (`handleSelectionOnPointerDown`,
   `maybeHandleResize` without snapping), recording every element each move
   changes: the scenes of `packages/element/tests/resize.test.tsx`
-  (`upstream-*`), rotation, rotated elements on every handle and modifier,
+  (`upstream-*`), rotation (with a label, and with a deleted one), a lone
+  multi-point line with `appState.selectedLinearElement` editing it or
+  hovering a point (`line-selected-linear-*`, no handle), rotated elements
+  on every handle and modifier,
   sticky notes, zoom and pointer types, the grid, groups, frames, bound and
   elbow arrows, and 160 seeded random scenes (`random-*`).
 
