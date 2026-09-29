@@ -116,6 +116,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "excali-editor"
+version = "26.9.1"
+dependencies = [
+ "excali-core",
+ "excali-math",
+ "excali-rough",
+ "excali-scene",
+ "excali-text",
+ "indexmap",
+ "serde_json",
+]
+
+[[package]]
 name = "excali-freehand"
 version = "26.9.1"
 dependencies = [
@@ -170,6 +183,7 @@ version = "26.9.1"
 dependencies = [
  "excali-canvas2d",
  "excali-core",
+ "excali-editor",
  "excali-scene",
  "excali-text",
  "js-sys",
