@@ -538,6 +538,7 @@ name = "excali-text"
 version = "26.9.1"
 dependencies = [
  "excali-core",
+ "excali-math",
  "excali-text",
  "flate2",
  "icu_normalizer",

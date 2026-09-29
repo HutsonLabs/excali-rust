@@ -27,6 +27,7 @@ use excali_core::constants::{DEFAULT_FONT_SIZE, DEFAULT_TEXT_ALIGN, DEFAULT_VERT
 use excali_core::element::{
     Element, ElementKind, ElementType, FontFamily, TextAlign, TextFields, VerticalAlign,
 };
+use excali_math::js;
 use serde_json::{Map, Value};
 
 use crate::font_metadata::{get_font_string, get_line_height};
@@ -244,8 +245,8 @@ fn adjust_xy_with_rotation(
     delta_x2: f64,
     delta_y2: f64,
 ) -> [f64; 2] {
-    let cos = angle.cos();
-    let sin = angle.sin();
+    let cos = js::cos(angle);
+    let sin = js::sin(angle);
     if sides.e && sides.w {
         x += delta_x1 + delta_x2;
     } else if sides.e {

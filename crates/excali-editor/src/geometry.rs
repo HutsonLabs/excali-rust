@@ -100,8 +100,8 @@ pub fn element_bounds(element: &Element) -> Bounds {
         ElementKind::Ellipse => {
             let w = (x2 - x1) / 2.0;
             let h = (y2 - y1) / 2.0;
-            let cos = b.angle.0.cos();
-            let sin = b.angle.0.sin();
+            let cos = js::cos(b.angle.0);
+            let sin = js::sin(b.angle.0);
             let ww = js::hypot(w * cos, h * sin);
             let hh = js::hypot(h * cos, w * sin);
             [cx - ww, cy - hh, cx + ww, cy + hh]
