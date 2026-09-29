@@ -61,12 +61,12 @@ The suite's first test fails when a row has no test, a test has no row, or a sta
 |---|---|---|---|---|
 | select-click | A click selects the element under the pointer; a click on empty canvas clears the selection. | `excalidraw/components/App.tsx:9515` (`handleSelectionOnPointerDown`) | ex-507 | pass |
 | select-shift | Shift+click adds an element to the selection. | `excalidraw/components/App.tsx:9515` | ex-507 | pass |
-| select-box | A drag from empty canvas selects the elements the box encloses. | `excalidraw/components/App.tsx:8683` (`handleCanvasPointerDown`), `element/src/selection.ts:70` (`getElementsWithinSelection`) | ex-508 | gap |
-| select-all | Ctrl/Cmd+A selects every element. | `excalidraw/actions/actionSelectAll.ts:21` | ex-514 | gap |
+| select-box | A drag from empty canvas selects the elements the box encloses. | `excalidraw/components/App.tsx:8683` (`handleCanvasPointerDown`), `element/src/selection.ts:70` (`getElementsWithinSelection`) | ex-508 | pass |
+| select-all | Ctrl/Cmd+A selects every element. | `excalidraw/actions/actionSelectAll.ts:21` | ex-514 | pass |
 | move-drag | Dragging a selected element moves it by the pointer's offset. | `element/src/dragElements.ts:39` (`dragSelectedElements`) | ex-530 | pass |
 | move-nudge | The arrow keys move the selection by 1, and by 5 with Shift. | `common/src/constants.ts:31-32`, `excalidraw/components/App.tsx` (`onKeyDown`) | ex-515 | pass |
-| resize-handle | Dragging the south-east handle of a 100 × 100 rectangle by (50, 30) makes it 150 × 130. | `element/src/transformHandles.ts:133` (`getTransformHandlesFromCoords`), `element/src/resizeElements.ts` | ex-508 | gap |
-| rotate-handle | Dragging the rotation handle rotates the element. | `element/src/transformHandles.ts:133`, `element/src/resizeElements.ts:210` (`rotateSingleElement`) | ex-508 | gap |
+| resize-handle | Dragging the south-east handle of a 100 × 100 rectangle by (50, 30) makes it 150 × 130. | `element/src/transformHandles.ts:133` (`getTransformHandlesFromCoords`), `element/src/resizeElements.ts` | ex-508 | pass |
+| rotate-handle | Dragging the rotation handle rotates the element. | `element/src/transformHandles.ts:133`, `element/src/resizeElements.ts:210` (`rotateSingleElement`) | ex-508 | pass |
 
 ## Editing
 

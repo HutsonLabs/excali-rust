@@ -197,3 +197,107 @@ fn secondary_button_press_does_not_select() {
     assert_eq!(state(&ed, "selectionCount"), 0);
     assert_eq!(get(&ed, "r").base.x, 100.0);
 }
+
+// -- Selection and transforms -------------------------------------------------
+
+fn three() -> Ed {
+    editor_with(vec![
+        rect("a", 100.0, 100.0),
+        rect("b", 300.0, 100.0),
+        rect("c", 600.0, 400.0),
+    ])
+}
+
+fn selected(ed: &Ed) -> Vec<String> {
+    let mut ids: Vec<String> = ed
+        .app_state()
+        .get("selectedElementIds")
+        .and_then(Value::as_object)
+        .map(|m| {
+            m.iter()
+                .filter(|(_, v)| v.as_bool() == Some(true))
+                .map(|(k, _)| k.clone())
+                .collect()
+        })
+        .unwrap_or_default();
+    ids.sort();
+    ids
+}
+
+#[test]
+fn select_box() {
+    // a drag from empty canvas: getElementsWithinSelection in "contain" mode
+    let mut ed = three();
+    drag(&mut ed, [50.0, 50.0], [450.0, 250.0]);
+    assert_eq!(selected(&ed), ["a", "b"]);
+    // the box itself is gone and nothing moved
+    assert!(ed.app_state().get("selectionElement").is_none_or(Value::is_null));
+    assert_eq!(get(&ed, "a").base.x, 100.0);
+    // a new box without Shift replaces the selection; with Shift adds to it
+    drag(&mut ed, [550.0, 350.0], [750.0, 550.0]);
+    assert_eq!(selected(&ed), ["c"]);
+    drag_with(
+        &mut ed,
+        [50.0, 50.0],
+        [250.0, 250.0],
+        PointerInput::at(0.0, 0.0).shift(),
+    );
+    assert_eq!(selected(&ed), ["a", "c"]);
+}
+
+#[test]
+fn select_box_takes_whole_groups() {
+    let mut g1 = rect("g1", 100.0, 100.0);
+    let mut g2 = rect("g2", 300.0, 100.0);
+    g1["groupIds"] = json!(["grp"]);
+    g2["groupIds"] = json!(["grp"]);
+    let mut ed = editor_with(vec![g1, g2]);
+    // a box around one member of a group selects nothing in "contain" mode
+    drag(&mut ed, [50.0, 50.0], [250.0, 250.0]);
+    assert!(selected(&ed).is_empty());
+    drag(&mut ed, [50.0, 50.0], [450.0, 250.0]);
+    assert_eq!(selected(&ed), ["g1", "g2"]);
+    assert_eq!(
+        ed.app_state().get("selectedGroupIds"),
+        Some(&json!({ "grp": true }))
+    );
+}
+
+#[test]
+fn select_all() {
+    // actionSelectAll: every element but bound text and deleted ones
+    let mut ed = three();
+    key(&mut ed, Keystroke::new("a", "KeyA").ctrl());
+    assert_eq!(selected(&ed), ["a", "b", "c"]);
+    assert_eq!(state(&ed, "selectionCount"), 3);
+}
+
+#[test]
+fn resize_handle() {
+    // getTransformHandlesFromCoords at zoom 1 for the mouse: the south-east
+    // handle of (100, 100)–(200, 200) spans (202, 202)–(210, 210)
+    let mut ed = editor_with(vec![rect("a", 100.0, 100.0)]);
+    click(&mut ed, [150.0, 150.0]);
+    drag(&mut ed, [206.0, 206.0], [256.0, 236.0]);
+    let a = get(&ed, "a");
+    assert_eq!(
+        (a.base.x, a.base.y, a.base.width, a.base.height),
+        (100.0, 100.0, 150.0, 130.0)
+    );
+    // one undo step
+    key(&mut ed, Keystroke::new("z", "KeyZ").ctrl());
+    assert_eq!(get(&ed, "a").base.width, 100.0);
+}
+
+#[test]
+fn rotate_handle() {
+    // the rotation handle spans (146, 74)–(154, 82)
+    let mut ed = editor_with(vec![rect("a", 100.0, 100.0)]);
+    click(&mut ed, [150.0, 150.0]);
+    drag(&mut ed, [150.0, 78.0], [300.0, 150.0]);
+    let a = get(&ed, "a");
+    // rotateSingleElement: atan2 from the centre, plus 90 degrees
+    let want = (150.0f64 - 150.0).atan2(300.0 - 150.0) + std::f64::consts::FRAC_PI_2;
+    assert!((a.base.angle.0 - want).abs() < 1e-9, "{}", a.base.angle.0);
+    assert_eq!((a.base.width, a.base.height), (100.0, 100.0));
+}
