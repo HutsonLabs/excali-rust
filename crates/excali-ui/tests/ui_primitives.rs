@@ -408,7 +408,12 @@ fn every_primitive_renders_upstreams_dom() {
     let mut failures = Vec::new();
     for case in &cases {
         let got: Vec<Value> = render(case).iter().map(tree).collect();
-        let want: Vec<Value> = case["dom"].as_array().unwrap().iter().map(normalize).collect();
+        let want: Vec<Value> = case["dom"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(normalize)
+            .collect();
         if got != want {
             failures.push(format!(
                 "{}:\n  want {}\n  got  {}",
@@ -432,27 +437,30 @@ fn class_names_are_upstreams() {
             Node::Text(_) => None,
         })
         .collect();
-    for want in [
-        "Island",
-        "Stack Stack_horizontal",
-        "Stack Stack_vertical",
-        "excalidraw-button",
-        "ToolIcon_type_button",
-        "ToolIcon ToolIcon_type_toggle",
-        "RadioGroup",
-        "control-label",
-        "ExcTextField",
-        "popover",
-        "excalidraw excalidraw-modal-container",
-        "excalidraw-tooltip-wrapper",
+    // (root class, the class its stylesheet styles): Range's root
+    // `label.control-label` is styled by the global styles.scss, its own
+    // Range.scss styles the wrapper inside it
+    for (want, styled) in [
+        ("Island", "Island"),
+        ("Stack Stack_horizontal", "Stack_horizontal"),
+        ("Stack Stack_vertical", "Stack_vertical"),
+        ("excalidraw-button", "excalidraw-button"),
+        ("ToolIcon_type_button", "ToolIcon_type_button"),
+        ("ToolIcon ToolIcon_type_toggle", "ToolIcon_type_toggle"),
+        ("RadioGroup", "RadioGroup"),
+        ("control-label", "range-wrapper"),
+        ("ExcTextField", "ExcTextField"),
+        ("popover", "popover"),
+        ("excalidraw excalidraw-modal-container", "Modal"),
+        ("excalidraw-tooltip-wrapper", "excalidraw-tooltip-wrapper"),
     ] {
         assert!(
             classes.iter().any(|c| c.starts_with(want)),
             "no root class {want}"
         );
         assert!(
-            PRIMITIVES_CSS.contains(&format!(".{}", want.split(' ').next_back().unwrap())),
-            "{want} not styled"
+            PRIMITIVES_CSS.contains(&format!(".{styled}")),
+            "{styled} not styled"
         );
     }
 }
@@ -627,11 +635,7 @@ fn tab_traps() {
                 count,
                 shift,
             ),
-            "Dialog" => dialog_tab_target(
-                (focused >= 0).then_some(focused as usize),
-                count,
-                shift,
-            ),
+            "Dialog" => dialog_tab_target((focused >= 0).then_some(focused as usize), count, shift),
             other => panic!("{other}"),
         };
         // a target: focus moves there and Tab's default is prevented

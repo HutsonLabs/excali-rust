@@ -1,0 +1,36 @@
+<!doctype html>
+<!--
+  The UI primitives' page (ex-516), served with the wasm harness
+  tools/ui-primitives (scripts/web/ui-primitives.sh builds it) by
+  playwright.primitives.config.mjs.
+
+  #editor is the editor's container, `.excalidraw`; the harness installs
+  the primitives' stylesheet (excali_ui::primitives::PRIMITIVES_CSS) and
+  mounts a gallery of them in it. The suite drives the harness through
+  window.harness (the module's exports).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>excali-ui primitives</title>
+<style>
+  html, body { margin: 0; padding: 0; font-size: 16px; }
+  #editor { position: relative; width: 600px; padding: 20px; }
+</style>
+</head>
+<body>
+<div id="editor" class="excalidraw"></div>
+<script type="module">
+  import init, * as harness from "/ui_primitives.js";
+
+  try {
+    await init();
+    harness.mountGallery(document.getElementById("editor"));
+    window.harness = harness;
+    window.harnessReady = true;
+  } catch (e) {
+    window.harnessError = String(e);
+  }
+</script>
+</body>
+</html>

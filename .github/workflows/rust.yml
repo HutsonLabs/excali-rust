@@ -546,6 +546,60 @@ jobs:
             tests/web/playwright-report-keyboard/
             tests/web/test-results-keyboard/
           retention-days: 14
+  # ex-516: the UI primitives. scripts/web/ui-primitives.sh builds the wasm
+  # harness tools/ui-primitives (a gallery of excali_ui::primitives with
+  # their stylesheet, a dialog and a popover) and runs the Playwright suite
+  # tests/web/primitives in Chromium: the design system's sizes as laid out
+  # (2rem tool buttons, 1rem icons, Island padding and Stack gaps in 0.25rem
+  # units, 0.5rem radii) and the primitives' behaviour (pointer types of
+  # tool toggles, callbacks, redaction, tooltip placement, dialog and
+  # popover focus, Tab traps, Escape, backdrop and outside presses).
+  ui-primitives:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            tools/ui-primitives
+      - name: harness fmt
+        run: cargo fmt --manifest-path tools/ui-primitives/Cargo.toml --check
+      - name: harness clippy (native and wasm32)
+        run: |
+          cargo clippy --manifest-path tools/ui-primitives/Cargo.toml --all-targets --locked -- -D warnings
+          cargo clippy --manifest-path tools/ui-primitives/Cargo.toml --target wasm32-unknown-unknown --locked -- -D warnings
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: |
+          want="$(awk '/^name = "wasm-bindgen"$/ { getline; gsub(/"/, "", $3); print $3; exit }' Cargo.lock)"
+          if [ "$(wasm-bindgen --version 2>/dev/null | awk '{ print $2 }')" != "$want" ]; then
+            cargo install --locked wasm-bindgen-cli --version "$want"
+          fi
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tests/web/package-lock.json
+      - name: install
+        working-directory: tests/web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: the UI primitives' sizes and behaviour in Chromium
+        run: scripts/web/ui-primitives.sh
+        env:
+          CI: "1"
+      - name: keep the Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ui-primitives
+          path: |
+            tests/web/playwright-report-primitives/
+            tests/web/test-results-primitives/
+          retention-days: 14
   msrv:
     runs-on: ubuntu-latest
     steps:
