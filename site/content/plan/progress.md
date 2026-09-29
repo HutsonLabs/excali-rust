@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 10:42 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 11:19 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**147 issues** · 88 closed (60%) · 1 in progress · 0 blocked · 57 open
+**147 issues** · 89 closed (61%) · 1 in progress · 0 blocked · 56 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -133,7 +133,7 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
 ## ex-e5 · Phase 5: Web runtime and editor
 
-<span class="status open">open</span> 13/36 children closed
+<span class="status open">open</span> 14/36 children closed
 
 Canvas2D backend, interaction state machine, history, DOM chrome without a framework, keyboard shortcuts, the <excali-editor> custom element.
 
@@ -157,7 +157,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-516` | excali-ui DOM builder and primitives: Island, Stack, Button, ToolIcon, RadioGroup, Range, TextField, Popover, Dialog, Tooltip | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-517` | Icons module generated from upstream icons.tsx (MIT) with tabler 24/20 presets | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-518` | Shapes toolbar (desktop order) and extra-tools dropdown | task | P0 | <span class="status open">open</span> |  | `ex-517` |
-| `ex-519` | Styles panel, full mode: all sixteen groups with visibility predicates | task | P0 | <span class="status in_progress">in progress</span> |  |  |
+| `ex-519` | Styles panel, full mode: all sixteen groups with visibility predicates | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-520` | Main menu with default items and preferences submenu | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-521` | Footer: zoom actions, undo/redo, help button, exit zen | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-522` | Help dialog with the three shortcut islands | task | P2 | <span class="status open">open</span> | yes |  |
@@ -168,13 +168,13 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-527` | Command palette with category order and item lists | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-528` | Hints, tooltips, cursor hints, welcome screen | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-529` | Stats panel (general and element properties) | task | P3 | <span class="status open">open</span> | yes |  |
-| `ex-530` | <excali-editor> custom element: load/save/export/importLibrary/getState, events, host adapter | task | P0 | <span class="status open">open</span> |  | `ex-518`, `ex-519` |
+| `ex-530` | <excali-editor> custom element: load/save/export/importLibrary/getState, events, host adapter | task | P0 | <span class="status open">open</span> |  | `ex-518` |
 | `ex-531` | Playwright parity suite against the checklist | task | P0 | <span class="status open">open</span> |  | `ex-530` |
-| `ex-532` | Theme tokens: light and dark CSS custom properties embedded and overridable by the host | task | P0 | <span class="status open">open</span> | yes |  |
+| `ex-532` | Theme tokens: light and dark CSS custom properties embedded and overridable by the host | task | P0 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-533` | excali-math js::sin/cos match V8's libm trig bit for bit; remove the 1e-12 tolerance in excali-editor tests/transform.rs | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-534` | Flowchart creator and navigator (flowchart.ts): Ctrl+Arrow pending nodes and arrows, Alt+Arrow navigation | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-535` | Element type conversion: convertElementTypes and the Tab / Shift+Tab convert popup | task | P2 | <span class="status open">open</span> | yes |  |
-| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-504`, `ex-509`, `ex-511`, `ex-517`, `ex-518`, `ex-519` … |
+| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-504`, `ex-509`, `ex-511`, `ex-517`, `ex-518`, `ex-520` … |
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
 
@@ -201,7 +201,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 
 | id | title | type | P | status | ready | blocked by |
 |---|---|---|---|---|---|---|
-| `ex-701` | Compact styles panel and tablet form factor | task | P1 | <span class="status open">open</span> |  | `ex-519` |
+| `ex-701` | Compact styles panel and tablet form factor | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-702` | Phone layout: mobile menu, bottom bar, mobile toolbar order | task | P1 | <span class="status open">open</span> |  | `ex-701` |
 | `ex-703` | Sticky notes: element, rendering (shadow, edge, footer), label fitting | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-704` | Bucket fill tool | task | P2 | <span class="status open">open</span> | yes |  |
