@@ -6,8 +6,8 @@
 #![allow(dead_code)]
 
 use excali_core::element::{
-    ArrowFields, Element, ElementBase, ElementKind, FontFamily, FrameFields, LinearFields,
-    TextFields,
+    ArrowFields, Element, ElementBase, ElementKind, FontFamily, FrameFields, ImageFields,
+    LinearFields, TextFields,
 };
 use excali_core::fractional_index::{ChangeStamp, SceneElementsMap};
 use excali_editor::mutate::new_element_with;
@@ -112,6 +112,18 @@ pub fn text(id: &str, content: &str, x: f64, y: f64) -> Element {
 pub fn arrow(id: &str, points: Vec<[f64; 2]>) -> Element {
     element(
         ElementKind::Arrow(ArrowFields::new(LinearFields::new(points), false)),
+        id,
+        0.0,
+        0.0,
+        100.0,
+        100.0,
+    )
+}
+
+/// `API.createElement({ type: "image", id })`: scale `[1, 1]`.
+pub fn image(id: &str) -> Element {
+    element(
+        ElementKind::Image(ImageFields::default()),
         id,
         0.0,
         0.0,

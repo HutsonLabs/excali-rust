@@ -176,8 +176,9 @@ fn elbow_arrow_update(
 /// - Otherwise new `points` bring their `width` and `height`
 ///   ([`get_size_from_points`]) unless the update names them.
 /// - A primitive value equal to the current one is skipped; an object or
-///   array value is always applied, except `groupIds` and `scale` equal to
-///   the current ones, and `points` of the same length whose pairs after
+///   array value is always applied (a rebuilt `groupIds` array included,
+///   as it is not `===` the current one), except a `scale` equal to the
+///   current one, and `points` of the same length whose pairs after
 ///   the first are equal (upstream's `while (--index)` never compares the
 ///   first pair).
 ///
@@ -215,7 +216,9 @@ pub fn mutate_element(
     for (key, value) in &updates {
         let current = map.get(key);
         match key.as_str() {
-            "groupIds" | "scale" if current.is_some_and(|c| deep_equal(c, value)) => continue,
+            // only `scale` is compared element-wise; a rebuilt `groupIds`
+            // array is not `===` the current one, so it counts as a change
+            "scale" if current.is_some_and(|c| deep_equal(c, value)) => continue,
             "points" => {
                 if let (Some(Value::Array(prev)), Value::Array(next)) = (current, value) {
                     if prev.len() == next.len()

@@ -12,7 +12,7 @@ use excali_core::element::{ArrowFields, ElementKind, LinearFields};
 use excali_core::fractional_index::SceneElementsMap;
 use excali_editor::mutate::{bump_version, get_size_from_points, mutate_element, new_element_with};
 use serde_json::json;
-use support::{arrow, obj, prop, rect, TestEnv};
+use support::{arrow, image, obj, prop, rect, TestEnv};
 
 fn empty_map() -> SceneElementsMap {
     SceneElementsMap::new()
@@ -90,7 +90,9 @@ fn mutate_element_always_applies_object_values() {
 }
 
 #[test]
-fn mutate_element_compares_group_ids_and_scale_by_value() {
+fn mutate_element_applies_a_rebuilt_group_ids_array() {
+    // `groupIds` is only skipped when it is the same array (`===`,
+    // mutateElement.ts:83-93); a new array with equal content is assigned
     let mut env = TestEnv::default();
     let mut element = rect("A", 0.0, 0.0);
     element.base.group_ids = vec!["g".into()];
@@ -101,8 +103,37 @@ fn mutate_element_compares_group_ids_and_scale_by_value() {
         &mut env,
     )
     .unwrap();
+    assert!(changed);
+    assert_eq!(element.base.version, 2.0);
+    assert_eq!(prop(&element, "groupIds"), json!(["g"]));
+}
+
+#[test]
+fn mutate_element_compares_scale_by_value() {
+    // prevScale[0] === nextScale[0] && prevScale[1] === nextScale[1]
+    // (mutateElement.ts:95-100)
+    let mut env = TestEnv::default();
+    let mut element = image("I");
+    let changed = mutate_element(
+        &mut element,
+        &empty_map(),
+        obj(json!({"scale": [1, 1]})),
+        &mut env,
+    )
+    .unwrap();
     assert!(!changed);
     assert_eq!(element.base.version, 1.0);
+
+    let changed = mutate_element(
+        &mut element,
+        &empty_map(),
+        obj(json!({"scale": [-1, 1]})),
+        &mut env,
+    )
+    .unwrap();
+    assert!(changed);
+    assert_eq!(element.base.version, 2.0);
+    assert_eq!(prop(&element, "scale"), json!([-1, 1]));
 }
 
 #[test]
