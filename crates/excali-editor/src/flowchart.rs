@@ -7,7 +7,7 @@
 //! - `packages/element/src/flowchart.ts`: `mergeIntervals`,
 //!   `intervalIsFree` and `findNearestFreeSlot` (`:62-111`),
 //!   `getConnectedFlowchartNodes` (`:113-151`), `placeCluster`
-//!   (`:153-240`), `cloneFlowchartNode` (`:242-270`), `addNewNodes`
+//!   (`:153-230`), `cloneFlowchartNode` (`:232-270`), `addNewNodes`
 //!   (`:272-308`), `createBindingArrow` (`:310-450`), `FlowChartNavigator`
 //!   (`:452-680`), `FlowChartCreator` (`:682-754`) and `isNodeInFlowchart`
 //!   (`:756-771`);
