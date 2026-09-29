@@ -71,11 +71,11 @@ fn indices(v: &Value) -> Vec<usize> {
         .collect()
 }
 
-/// A rotated element's numbers go through `Math.sin` and `Math.cos`, which
-/// `excali_math::js` ports to within an ulp of V8's (ex-533); the
-/// tolerance is a millionth of a millionth, relative.
+/// Two numbers as the same double (`-0` equal to `0`): a rotated element's
+/// numbers go through `Math.sin` and `Math.cos`, which `excali_math::js`
+/// computes as Node 26's V8 does (ADR-011).
 fn same_number(a: f64, e: f64) -> bool {
-    a == e || (a - e).abs() <= 1e-12 * a.abs().max(e.abs()).max(1.0)
+    a == e
 }
 
 fn same_json(actual: &Value, expected: &Value, path: &str) -> Result<(), String> {

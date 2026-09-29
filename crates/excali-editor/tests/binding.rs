@@ -190,18 +190,13 @@ fn dragging_points(v: &Value) -> Vec<(usize, [f64; 2])> {
 
 // -- comparison ---------------------------------------------------------------------
 
-/// Two numbers as the same double, or within rounding of the last bits.
-///
-/// Node 26's V8 computes `Math.sin` and `Math.cos` with its glibc-derived
-/// routines; `excali_math::js` ports fdlibm, which is one ulp away on a few
-/// arguments (ex-533), and the outline intersections binding reads
-/// (`intersectElementWithLineSegment`, ex-507) can round differently in
-/// the last bits. A rotated element's or an ellipse's numbers can
-/// therefore differ in the last bits (`-3.1440210513339792` for
-/// `-3.1440210513339935`); the tolerance is a millionth of a millionth,
-/// relative, so any real difference still fails.
+/// Two numbers as the same double (`-0` equal to `0`): `excali_math::js`
+/// computes `Math.sin`, `Math.cos` and `Math.atan2` as Node 26's V8 does
+/// (ADR-011), so a rotated element's or an ellipse's numbers, and the
+/// outline intersections binding reads (`intersectElementWithLineSegment`,
+/// ex-507), are upstream's to the last bit.
 fn same_number(a: f64, e: f64) -> bool {
-    a == e || (a - e).abs() <= 1e-12 * a.abs().max(e.abs()).max(1.0)
+    a == e
 }
 
 fn same_json(actual: &Value, expected: &Value, path: &str) -> Result<(), String> {

@@ -176,18 +176,14 @@ fn same_handles(actual: &TransformHandles, expected: &Value, context: &str) {
 
 // -- JSON comparison --------------------------------------------------------------
 
-/// Two numbers as the same double, or within rounding of the last bits.
+/// Two numbers as the same double.
 ///
-/// Node 26's V8 computes `Math.sin` and `Math.cos` with its glibc-derived
-/// routines (`v8_use_libm_trig_functions`); `excali_math::js` ports fdlibm,
-/// which is one ulp away on a few arguments (`Math.cos(0.982953340331056)`
-/// is 0.5545673797180782 in Node 26 and 0.5545673797180781 in fdlibm). A
-/// rotated element's numbers can therefore differ in the last bits; the
-/// tolerance is a millionth of a millionth, relative, so any real
-/// difference still fails. ex-533 ports V8's trig routines and removes the
-/// tolerance (exact comparison, `-0` equal to `0`).
+/// Exact: `excali_math::js` computes `Math.sin`, `Math.cos` and
+/// `Math.atan2` as Node 26's V8 does (ADR-011), so a rotated element's
+/// numbers are upstream's to the last bit. `-0` and `0` are one number
+/// (`==`), as `JSON.stringify` writes them.
 fn same_number(a: f64, e: f64) -> bool {
-    a == e || (a - e).abs() <= 1e-12 * a.abs().max(e.abs()).max(1.0)
+    a == e
 }
 
 /// Upstream's element and the port's, key for key and number for number
