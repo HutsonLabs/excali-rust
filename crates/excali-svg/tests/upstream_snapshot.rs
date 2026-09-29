@@ -45,33 +45,14 @@ fn read(path: &str) -> String {
         .unwrap_or_else(|e| panic!("{path}: {e}"))
 }
 
-/// The snapshots of `export.test.ts.snap` by name, as vitest wrote them
-/// (between the backticks, `\`, `` ` `` and `${` unescaped).
+/// The snapshots of `export.test.ts.snap` by name.
 fn snapshots() -> HashMap<String, String> {
-    let text =
-        read("fixtures/upstream/packages/excalidraw/tests/scene/__snapshots__/export.test.ts.snap");
-    let mut out = HashMap::new();
-    let mut rest = text.as_str();
-    while let Some(start) = rest.find("exports[`") {
-        rest = &rest[start + "exports[`".len()..];
-        let name_end = rest.find("`] = `").unwrap();
-        let name = rest[..name_end].to_owned();
-        rest = &rest[name_end + "`] = `".len()..];
-        let end = rest.find("\n`;").unwrap() + 1;
-        let body = rest[..end]
-            .replace("\\`", "`")
-            .replace("\\${", "${")
-            .replace("\\\\", "\\");
-        rest = &rest[end..];
-        out.insert(name, body);
-    }
-    out
+    support::parse_snapshots(&read(
+        "fixtures/upstream/packages/excalidraw/tests/scene/__snapshots__/export.test.ts.snap",
+    ))
 }
 
-/// Every run of whitespace as one space, none at the ends.
-fn normalize(s: &str) -> String {
-    s.split_whitespace().collect::<Vec<_>>().join(" ")
-}
+use support::normalize;
 
 // -- pretty-format ---------------------------------------------------------------
 

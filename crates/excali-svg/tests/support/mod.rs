@@ -10,6 +10,8 @@
 
 #![allow(dead_code)]
 
+use std::collections::HashMap;
+
 use excali_core::element::Element;
 use excali_scene::display::{FontFaceSource, SvgDocument};
 use excali_scene::export::{svg_document, SvgExportAppState, SvgExportOptions, TextMetrics};
@@ -123,6 +125,33 @@ pub fn chrome_border(markup: &str) -> String {
     }
     out.push_str(rest);
     out
+}
+
+/// The snapshots of a vitest `.snap` file by name, as vitest wrote them
+/// (between the backticks, `\\`, `` ` `` and `${` unescaped).
+pub fn parse_snapshots(text: &str) -> HashMap<String, String> {
+    let mut out = HashMap::new();
+    let mut rest = text;
+    while let Some(start) = rest.find("exports[`") {
+        rest = &rest[start + "exports[`".len()..];
+        let name_end = rest.find("`] = `").unwrap();
+        let name = rest[..name_end].to_owned();
+        rest = &rest[name_end + "`] = `".len()..];
+        let end = rest.find("\n`;").unwrap() + 1;
+        let body = rest[..end]
+            .replace("\\`", "`")
+            .replace("\\${", "${")
+            .replace("\\\\", "\\");
+        rest = &rest[end..];
+        out.insert(name, body);
+    }
+    out
+}
+
+/// Every run of whitespace as one space, none at the ends: how the
+/// snapshot tests compare documents.
+pub fn normalize(s: &str) -> String {
+    s.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// Where two strings first differ, with some context.
