@@ -437,7 +437,11 @@ jobs:
   # rendered through its ActionManager, its tooltips and clicks; and
   # editing-fixtures.mjs --check for excali-editor's editing.json (ex-712),
   # upstream's selection, group, element creation and edit action code on
-  # the scenes of the gestures <excali-editor> wires.
+  # the scenes of the gestures <excali-editor> wires; and
+  # color-picker.mjs --check for excali-ui's color-picker.json and
+  # src/color_picker/color_picker.css (ex-523), upstream's ColorPicker
+  # rendered by React with radix-ui into jsdom, its keyboard map, hex input,
+  # palettes and eye-dropper placement.
   # Runs on arm64: V8's float results for some shapes differ in the last bits
   # between x64 and arm64, and the committed goldens are the arm64 output
   # (macOS and Linux arm64 agree byte for byte).
@@ -522,6 +526,8 @@ jobs:
         run: node tools/goldens/main-menu.mjs --check
       - name: excali-ui footer fixture and stylesheet match upstream's Footer, ZoomActions, UndoRedoActions, HelpButton and ExitZenModeButton
         run: node tools/goldens/footer.mjs --check
+      - name: excali-ui colour picker fixture and stylesheet match upstream's ColorPicker, keyboard map, ColorInput and colors.ts
+        run: node tools/goldens/color-picker.mjs --check
       - name: excali-editor viewport fixture matches upstream's zoom, scroll constraints, zoom-to-fit, wheel handler and zoom actions
         run: node tools/goldens/viewport.mjs --check
       - name: excali-editor text editing fixture matches upstream's textWysiwyg, startTextEditing and redrawTextBoundingBox

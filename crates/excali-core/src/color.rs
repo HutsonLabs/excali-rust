@@ -37,6 +37,9 @@ pub struct TinyColor {
     b: f64,
     a: f64,
     ok: bool,
+    /// `getFormat()` is `"hex"` or `"hex8"`: the input was hex digits, not
+    /// a colour name.
+    hex: bool,
 }
 
 /// A component as `stringInputToObject` gives it: a regex capture (a
@@ -91,7 +94,7 @@ enum Parsed {
 impl TinyColor {
     /// `tinycolor(color)` for a string.
     pub fn parse(color: &str) -> TinyColor {
-        let Some(parsed) = string_input_to_object(color) else {
+        let Some((parsed, hex)) = string_input_to_object(color) else {
             return TinyColor::from_rgb((0.0, 0.0, 0.0), 1.0, false);
         };
         let (rgb, a) = match parsed {
@@ -106,7 +109,10 @@ impl TinyColor {
             ),
         };
         let a = a.map_or(1.0, |a| bound_alpha(a.parse_float()));
-        TinyColor::from_rgb(rgb, a, true)
+        TinyColor {
+            hex,
+            ..TinyColor::from_rgb(rgb, a, true)
+        }
     }
 
     /// The clamping at the end of `inputToRGB` (`tinycolor.js:363-369`) and
@@ -127,12 +133,20 @@ impl TinyColor {
             b: clamp(b),
             a,
             ok,
+            hex: false,
         }
     }
 
     /// `isValid()`: the input was a colour tinycolor recognises.
     pub fn is_valid(&self) -> bool {
         self.ok
+    }
+
+    /// `getFormat()` is `"hex"` or `"hex8"` (`stringInputToObject`,
+    /// `tinycolor.js:1125-1162`): hex digits, with or without `#`; a colour
+    /// name is `"name"` even though it resolves through hex.
+    pub fn is_hex_format(&self) -> bool {
+        self.hex
     }
 
     /// `getAlpha()`: 1 for an input that is not a colour.
@@ -338,6 +352,171 @@ pub const COLOR_PALETTE: ColorPalette = ColorPalette {
     orange: ["#fff4e6", "#ffd8a8", "#ffa94d", "#fd7e14", "#e8590c"],
     bronze: ["#f8f1ee", "#eaddd7", "#d2bab0", "#a18072", "#846358"],
 };
+
+/// `MAX_CUSTOM_COLORS_USED_IN_CANVAS` (`colors.ts:185`): how many
+/// most-used custom colours the picker offers.
+pub const MAX_CUSTOM_COLORS_USED_IN_CANVAS: usize = 5;
+/// `COLORS_PER_ROW` (`colors.ts:186`): the picker's grid width.
+pub const COLORS_PER_ROW: usize = 5;
+/// `DEFAULT_ELEMENT_STROKE_COLOR_INDEX` (`colors.ts:190`): the shade stroke
+/// picks and hotkeys use.
+pub const DEFAULT_ELEMENT_STROKE_COLOR_INDEX: usize = 4;
+/// `DEFAULT_ELEMENT_BACKGROUND_COLOR_INDEX` (`colors.ts:191`): the shade
+/// background picks and hotkeys use.
+pub const DEFAULT_ELEMENT_BACKGROUND_COLOR_INDEX: usize = 1;
+
+/// One palette entry: its name (a `colors.*` locale key) and colour.
+pub type PaletteEntry = (&'static str, PaletteColor);
+
+const fn stroke_shade(shades: ColorTuple) -> &'static str {
+    shades[DEFAULT_ELEMENT_STROKE_COLOR_INDEX]
+}
+
+const fn background_shade(shades: ColorTuple) -> &'static str {
+    shades[DEFAULT_ELEMENT_BACKGROUND_COLOR_INDEX]
+}
+
+/// `DEFAULT_ELEMENT_STROKE_PICKS` (`colors.ts:239-245`): the stroke
+/// picker's top picks, in strip order.
+pub const DEFAULT_ELEMENT_STROKE_PICKS: ColorTuple = [
+    COLOR_PALETTE.black,
+    stroke_shade(COLOR_PALETTE.red),
+    stroke_shade(COLOR_PALETTE.green),
+    stroke_shade(COLOR_PALETTE.blue),
+    stroke_shade(COLOR_PALETTE.yellow),
+];
+
+/// `DEFAULT_ELEMENT_BACKGROUND_PICKS` (`colors.ts:248-254`).
+pub const DEFAULT_ELEMENT_BACKGROUND_PICKS: ColorTuple = [
+    COLOR_PALETTE.transparent,
+    background_shade(COLOR_PALETTE.red),
+    background_shade(COLOR_PALETTE.green),
+    background_shade(COLOR_PALETTE.blue),
+    background_shade(COLOR_PALETTE.yellow),
+];
+
+/// `BUCKET_FILL_BACKGROUND_PICKS` (`colors.ts:259-265`): the background
+/// picks with white for transparent, a no-op fill.
+pub const BUCKET_FILL_BACKGROUND_PICKS: ColorTuple = [
+    COLOR_PALETTE.white,
+    background_shade(COLOR_PALETTE.red),
+    background_shade(COLOR_PALETTE.green),
+    background_shade(COLOR_PALETTE.blue),
+    background_shade(COLOR_PALETTE.yellow),
+];
+
+/// `STICKY_NOTE_STROKE_PICKS` (`colors.ts:270-271`).
+pub const STICKY_NOTE_STROKE_PICKS: ColorTuple = DEFAULT_ELEMENT_STROKE_PICKS;
+
+/// `STICKY_NOTE_BACKGROUND_PICKS` (`colors.ts:275-281`): classic note
+/// colours, never transparent.
+pub const STICKY_NOTE_BACKGROUND_PICKS: ColorTuple = [
+    crate::constants::DEFAULT_STICKY_NOTE_BG,
+    COLOR_PALETTE.pink[1],
+    COLOR_PALETTE.green[1],
+    COLOR_PALETTE.blue[1],
+    COLOR_PALETTE.orange[1],
+];
+
+/// `DEFAULT_CANVAS_BACKGROUND_PICKS` (`colors.ts:284-294`): white and the
+/// radix slate2, blue2, yellow2 and bronze2.
+pub const DEFAULT_CANVAS_BACKGROUND_PICKS: ColorTuple = [
+    COLOR_PALETTE.white,
+    "#f8f9fa",
+    "#f5faff",
+    "#fffce8",
+    "#fdf8f6",
+];
+
+/// The stroke and background palettes' shared shape (`colors.ts:299-319`):
+/// the 5×3 grid, row 1 transparent, white, gray, black, bronze, then
+/// `COMMON_ELEMENT_SHADES` (`colors.ts:214-225`) in its key order.
+const ELEMENT_COLOR_PALETTE: [PaletteEntry; 15] = {
+    use PaletteColor::{Shades, Single};
+    let p = COLOR_PALETTE;
+    [
+        ("transparent", Single(p.transparent)),
+        ("white", Single(p.white)),
+        ("gray", Shades(p.gray)),
+        ("black", Single(p.black)),
+        ("bronze", Shades(p.bronze)),
+        ("cyan", Shades(p.cyan)),
+        ("blue", Shades(p.blue)),
+        ("violet", Shades(p.violet)),
+        ("grape", Shades(p.grape)),
+        ("pink", Shades(p.pink)),
+        ("green", Shades(p.green)),
+        ("teal", Shades(p.teal)),
+        ("yellow", Shades(p.yellow)),
+        ("orange", Shades(p.orange)),
+        ("red", Shades(p.red)),
+    ]
+};
+
+/// `DEFAULT_ELEMENT_STROKE_COLOR_PALETTE` (`colors.ts:299-308`).
+pub const DEFAULT_ELEMENT_STROKE_COLOR_PALETTE: [PaletteEntry; 15] = ELEMENT_COLOR_PALETTE;
+
+/// `DEFAULT_ELEMENT_BACKGROUND_COLOR_PALETTE` (`colors.ts:311-319`).
+pub const DEFAULT_ELEMENT_BACKGROUND_COLOR_PALETTE: [PaletteEntry; 15] = ELEMENT_COLOR_PALETTE;
+
+/// `getAllColorsSpecificShade(index)` (`colors.ts:326-340`): shade `index`
+/// of palette rows 2 and 3.
+pub fn get_all_colors_specific_shade(index: usize) -> [&'static str; 10] {
+    let p = COLOR_PALETTE;
+    [
+        p.cyan, p.blue, p.violet, p.grape, p.pink, p.green, p.teal, p.yellow, p.orange, p.red,
+    ]
+    .map(|shades| shades[index])
+}
+
+/// `COLOR_OUTLINE_CONTRAST_THRESHOLD` (`colors.ts:408`): a swatch lighter
+/// than this gets an outline.
+pub const COLOR_OUTLINE_CONTRAST_THRESHOLD: f64 = 240.0;
+
+/// `isColorDark(color, threshold = 160)` (`colors.ts:416-434`): the YIQ
+/// brightness of the colour is below `threshold` (`None` is 160). No
+/// colour (`""`) and an invalid one count as dark (they default to
+/// black), a fully transparent one as light.
+pub fn is_color_dark(color: &str, threshold: Option<f64>) -> bool {
+    if color.is_empty() {
+        return true;
+    }
+    if is_transparent(color) {
+        return false;
+    }
+    let tc = TinyColor::parse(color);
+    if !tc.is_valid() {
+        return true;
+    }
+    let (r, g, b, _) = tc.to_rgb();
+    (r * 299.0 + g * 587.0 + b * 114.0) / 1000.0 < threshold.unwrap_or(160.0)
+}
+
+/// `String.prototype.trim`: `s` without the ECMAScript white space and
+/// line terminators around it (as the colour picker's hex input trims what
+/// is typed).
+pub fn js_trim(s: &str) -> &str {
+    s.trim_matches(is_whitespace_char)
+}
+
+/// `normalizeInputColor(color)` (`colors.ts:444-461`): the trimmed input
+/// when it is a colour, with `#` added to bare hex digits; `None` when it
+/// is not one.
+pub fn normalize_input_color(color: &str) -> Option<String> {
+    // String.prototype.trim
+    let color = color.trim_matches(is_whitespace_char);
+    if is_transparent(color) {
+        return Some(color.to_owned());
+    }
+    let tc = TinyColor::parse(color);
+    if !tc.is_valid() {
+        return None;
+    }
+    if tc.is_hex_format() && !color.starts_with('#') {
+        return Some(format!("#{color}"));
+    }
+    Some(color.to_owned())
+}
 
 /// `rgbToHex(r, g, b, a)` (`colors.ts:345-362`): `#rrggbb`, with a
 /// two-digit alpha `round(a * 255)` appended when `a` is given and below 1
@@ -553,21 +732,34 @@ fn hsv_to_rgb(h: &Unit, s: &Unit, v: &Unit) -> (f64, f64, f64) {
 // String input
 
 /// `stringInputToObject(color)` (`tinycolor.js:1065-1165`).
-fn string_input_to_object(color: &str) -> Option<Parsed> {
+/// The object `stringInputToObject` returns, and whether its format is
+/// `hex` or `hex8`.
+fn string_input_to_object(color: &str) -> Option<(Parsed, bool)> {
     let lower = color.trim_matches(is_whitespace_char).to_lowercase();
-    let color = match named_color(&lower) {
+    let named = named_color(&lower);
+    let color = match named {
         Some(hex) => hex,
         None if lower == "transparent" => {
-            return Some(Parsed::Rgb {
-                r: Unit::Num(0.0),
-                g: Unit::Num(0.0),
-                b: Unit::Num(0.0),
-                a: Some(Unit::Num(0.0)),
-            });
+            return Some((
+                Parsed::Rgb {
+                    r: Unit::Num(0.0),
+                    g: Unit::Num(0.0),
+                    b: Unit::Num(0.0),
+                    a: Some(Unit::Num(0.0)),
+                },
+                false,
+            ));
         }
         None => lower.as_str(),
     };
+    if let Some(parsed) = functional_input(color) {
+        return Some((parsed, false));
+    }
+    hex_input(color).map(|parsed| (parsed, named.is_none()))
+}
 
+/// The `rgb`, `rgba`, `hsl`, `hsla`, `hsv` and `hsva` notations.
+fn functional_input(color: &str) -> Option<Parsed> {
     let unit = |s: &str| Unit::Str(s.to_owned());
     if let Some(m) = permissive_match(color, "rgb", 3) {
         return Some(Parsed::Rgb {
@@ -617,7 +809,7 @@ fn string_input_to_object(color: &str) -> Option<Parsed> {
             a: Some(unit(m[3])),
         });
     }
-    hex_input(color)
+    None
 }
 
 /// The anchored `hex8`, `hex6`, `hex4` and `hex3` matchers

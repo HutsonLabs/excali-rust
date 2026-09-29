@@ -2220,6 +2220,28 @@
    "labels": []
   },
   {
+   "id": "ex-536",
+   "epic": "ex-e5",
+   "title": "Colour picker top-picks customisation: drag a colour onto the strip, reorder, context-menu reset, tip",
+   "priority": 2,
+   "blocked_by": [
+    "ex-523"
+   ],
+   "crates": [
+    "excali-ui"
+   ],
+   "acceptance": "customizableTopPicks: dragging a swatch or the active colour onto the strip pins it in appState.colorTopPicks, dragging a pick reorders, the strip's context menu resets it, the popup shows the tip; DOM and state held to upstream's colorTopPicksDnD.ts and TopPicksDnD/* at the pin.",
+   "evidence": [
+    "packages/excalidraw/components/ColorPicker/colorTopPicksDnD.ts",
+    "packages/excalidraw/components/TopPicksDnD/topPicksDnD.tsx",
+    "packages/excalidraw/components/TopPicksDnD/TopPicksContextMenu.tsx",
+    "packages/excalidraw/components/TopPicksDnD/TopPicksTip.tsx"
+   ],
+   "description": "Split from ex-523, which ports the picker without customizableTopPicks.",
+   "type": "task",
+   "labels": []
+  },
+  {
    "id": "ex-601",
    "epic": "ex-e6",
    "title": "term.hut: vendor the module and route .excalidraw to the editor in preview.js",

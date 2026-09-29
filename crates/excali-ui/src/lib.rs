@@ -23,6 +23,7 @@
 //! Targets: wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-canvas2d`, `excali-editor`.
 
+pub mod color_picker;
 pub mod dom;
 pub mod fonts;
 pub mod footer;
