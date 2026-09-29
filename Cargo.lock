@@ -553,9 +553,12 @@ dependencies = [
 name = "excali-ui"
 version = "26.9.1"
 dependencies = [
+ "excali-canvas2d",
  "excali-core",
+ "excali-scene",
  "excali-text",
  "js-sys",
+ "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",

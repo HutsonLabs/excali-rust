@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 02:22 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 02:46 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**144 issues** · 74 closed (51%) · 0 in progress · 0 blocked · 69 open
+**144 issues** · 75 closed (52%) · 0 in progress · 0 blocked · 68 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -132,7 +132,7 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
 ## ex-e5 · Phase 5: Web runtime and editor
 
-<span class="status open">open</span> 4/34 children closed
+<span class="status open">open</span> 5/34 children closed
 
 Canvas2D backend, interaction state machine, history, DOM chrome without a framework, keyboard shortcuts, the <excali-editor> custom element.
 
@@ -140,16 +140,16 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 |---|---|---|---|---|---|---|
 | `ex-501` | WASM build pipeline: wasm-bindgen --target web, wasm-opt, size check in CI | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-502` | excali-canvas2d: display list to CanvasRenderingContext2D via web-sys | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-503` | Layered canvases at device-pixel scale (static, new-element, interactive) and scroll snapping | task | P0 | <span class="status open">open</span> | yes |  |
-| `ex-504` | Per-element bitmap cache with padding rules, size caps and pixel snapping | task | P1 | <span class="status open">open</span> |  | `ex-503` |
-| `ex-505` | Viewport: zoom limits, wheel formula, scroll, coordinate transforms, zoom-to-fit | task | P0 | <span class="status open">open</span> |  | `ex-503` |
+| `ex-503` | Layered canvases at device-pixel scale (static, new-element, interactive) and scroll snapping | task | P0 | <span class="status closed">closed</span> |  |  |
+| `ex-504` | Per-element bitmap cache with padding rules, size caps and pixel snapping | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-505` | Viewport: zoom limits, wheel formula, scroll, coordinate transforms, zoom-to-fit | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-506` | Editor state machine: tools registry (keys, fillable, toggle), active tool, tool lock, pen mode | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-507` | Hit testing (collision.ts): thresholds, inside/outline rules, per-shape intersections | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-508` | Selection and transform handles: sizes by pointer type, resize, rotate, aspect lock, centre resize | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-509` | Snapping: point and gap snaps at 8/zoom, snap lines rendering | task | P1 | <span class="status open">open</span> |  | `ex-508` |
 | `ex-510` | Arrow binding: gap 5+sw/2, max distance 15..30 by zoom, fixed points, modes inside/orbit/skip, highlight | task | P0 | <span class="status open">open</span> |  | `ex-508` |
 | `ex-511` | Linear element editor: point handles (size 10), midpoints, segment length rule, label position | task | P1 | <span class="status open">open</span> |  | `ex-509` |
-| `ex-512` | Text editing overlay: textarea with dir=auto wrap=off, transform formula, 5% height buffer | task | P0 | <span class="status open">open</span> |  | `ex-503` |
+| `ex-512` | Text editing overlay: textarea with dir=auto wrap=off, transform formula, 5% height buffer | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-513` | History: store snapshots, element and appState deltas, undo/redo stacks, version bumps | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-514` | Actions registry as data: the 99 action names with predicates and key tests | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-515` | Keyboard handling: App.onKeyDown table, arrow nudges, tool letters, modifiers | task | P0 | <span class="status open">open</span> |  | `ex-514` |
@@ -171,7 +171,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-531` | Playwright parity suite against the checklist | task | P0 | <span class="status open">open</span> |  | `ex-530` |
 | `ex-532` | Theme tokens: light and dark CSS custom properties embedded and overridable by the host | task | P0 | <span class="status open">open</span> |  | `ex-516` |
 | `ex-533` | excali-math js::sin/cos match V8's libm trig bit for bit; remove the 1e-12 tolerance in excali-editor tests/transform.rs | task | P1 | <span class="status open">open</span> |  | `ex-508` |
-| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-503`, `ex-504`, `ex-505`, `ex-508`, `ex-509`, `ex-510` … |
+| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-504`, `ex-505`, `ex-508`, `ex-509`, `ex-510`, `ex-511` … |
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
 

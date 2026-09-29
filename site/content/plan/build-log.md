@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-503 · Layered canvases at device-pixel scale (static, new-element, interactive) and scroll snapping
+
+The editor now mounts upstream's three stacked canvases (static, new-element while a preview is shown, interactive) with their classes and stylesheet rules, each backed at CSS size x devicePixelRatio. Every layer paints at the scroll snapped to whole device pixels and bootstraps its clear as upstream does, and the new-element scene (`renderNewElementScene`) is ported. A new `canvas-layers` CI job checks backing sizes, stacking and snapped painting in Chromium at device pixel ratios 1 to 3. PR: [#84](https://github.com/HutsonLabs/excali-rust/pull/84).
+
 ## 2026-09-28 · ex-m4 · Milestone check: M4 not yet reached
 
 The M4 check ran on `main` at 4f151d0, with ex-401 to ex-410 merged and CI green. 1479 workspace tests pass, the 24 goldens `--check` steps are current, the raster fixtures match the local Chrome, and the release CLI renders all 4187 items of the 232 catalogue libraries with no failures. SVG export reproduces the four `export.test.ts` snapshots and 48 whole `exportToSvg` documents byte for byte. D2 is not met. The two SVG snapshots of `export.test.tsx` are not reproduced as documents. No exported fixture scene is compared with the PNG upstream draws in Chrome, and text rasterization is never compared. Two gap tasks are open: ex-g401 for the two SVG snapshots and ex-g402 for the PNG comparison. PR: [#83](https://github.com/HutsonLabs/excali-rust/pull/83).
