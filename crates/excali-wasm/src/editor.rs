@@ -133,6 +133,7 @@ use serde_json::{json, Map, Value};
 
 use crate::drag::drag_selected_elements;
 use crate::env::EditorEnv;
+use crate::cropping::CropPress;
 use crate::interact;
 use crate::linear::{LinearPress, LinearState};
 use crate::multi::MultiPoint;
@@ -341,6 +342,8 @@ pub(crate) enum Gesture {
     /// A press that finished a line or arrow drawn point by point; its
     /// release reverts the tool (`App.tsx:12594-12620`).
     Finalized,
+    /// A press on a crop handle of the image being cropped.
+    Crop(CropPress),
     /// A press handled whole on the press (Alt adding a point in the
     /// linear element editor); its release only commits.
     Inert,
@@ -391,6 +394,8 @@ pub(crate) struct SelectGesture {
     has_been_duplicated: bool,
     /// The press on the selected line or arrow, for its editor.
     linear: Option<LinearPress>,
+    /// `previousPointerMoveCoords`: the pointer at the last move.
+    last_point: [f64; 2],
 }
 
 /// `getSceneVersion`: the sum of the elements' versions.
@@ -438,6 +443,8 @@ pub struct Editor<P: TextMetricsProvider + Clone> {
     pub(crate) snap_cache: SnapCache,
     /// The line or arrow drawn point by point (`multiElement`).
     pub(crate) multi: Option<MultiPoint>,
+    /// Natural image sizes the host measured, by file id.
+    pub(crate) image_sizes: HashMap<String, (f64, f64)>,
 }
 
 const EMPTY_SCENE: &str =
@@ -480,6 +487,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             text_editor: None,
             snap_cache: SnapCache::default(),
             multi: None,
+            image_sizes: HashMap::new(),
         };
         editor.start(editor.file.clone());
         editor
@@ -682,6 +690,20 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 stop_propagation: true,
                 effects: Vec::new(),
             };
+        }
+        // image cropping's keys (App.tsx:5616-5636)
+        if !stroke.target.writable && !stroke.target.input_like {
+            let enter = stroke.key == "Enter";
+            if (enter || stroke.key == "Escape") && self.cropping_id().is_some() {
+                self.finish_image_cropping();
+                return KeyOutcome::default();
+            }
+            if enter {
+                if let Some(id) = self.selected_image() {
+                    self.start_image_cropping(&id);
+                    return KeyOutcome::default();
+                }
+            }
         }
         let mut scene = Scene::new(self.session.elements().to_vec());
         let mut app_state = self.session.app_state().clone();
@@ -1602,9 +1624,27 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                     hover_point_index: l.hover_point_index as i64,
                 }),
             );
-            if session.handle().is_some() {
+            if let Some(handle) = session.handle() {
                 let origin_in_grid =
                     get_grid_point(origin[0], origin[1], self.grid_size(input.ctrl_or_cmd));
+                // while cropping the handles crop (App.tsx:9555-9563)
+                if let Some(id) = self.cropping_id().filter(|c| selected == [c.clone()]) {
+                    let original = session
+                        .original_elements()
+                        .iter()
+                        .find(|e| e.base.id == id)
+                        .cloned();
+                    if let Some(original) = original {
+                        self.gesture = Some(Gesture::Crop(CropPress {
+                            id,
+                            handle,
+                            offset: session.offset(),
+                            origin_in_grid,
+                            original,
+                        }));
+                        return;
+                    }
+                }
                 self.gesture = Some(Gesture::Transform(session, origin_in_grid));
                 return;
             }
@@ -1659,6 +1699,13 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         } else {
             self.element_at(origin)
         };
+        // a press off the image being cropped ends the cropping
+        // (App.tsx:9718-9723)
+        if let Some(c) = self.cropping_id() {
+            if hit.as_deref() != Some(c.as_str()) {
+                self.finish_image_cropping();
+            }
+        }
         let was_added_to_selection = hit
             .as_ref()
             .is_some_and(|id| !self.selected_ids().contains(id));
@@ -1725,6 +1772,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             was_added_to_selection,
             has_been_duplicated: false,
             linear,
+            last_point: origin,
         }));
         self.report();
     }
@@ -1766,6 +1814,10 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             Some(Gesture::Select(g)) if g.box_origin.is_some() => self.box_select(input),
             Some(Gesture::Select(_)) => self.drag_selection(input),
             Some(Gesture::Transform(..)) => self.transform(input),
+            Some(Gesture::Crop(press)) => {
+                let press = press.clone();
+                self.crop_move(&press, input);
+            }
             Some(Gesture::Create(_)) => self.create_pointer_move(input),
             Some(Gesture::Erase { trail, pending, .. }) => {
                 let point = viewport_coords_to_scene_coords(
@@ -2215,6 +2267,19 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 }
             }
         }
+        // the crop moves over the image being cropped
+        if let Some(Gesture::Select(gesture)) = self.gesture.as_mut() {
+            let last = std::mem::replace(&mut gesture.last_point, point);
+            let hit = gesture.hit.clone();
+            if let (Some(c), Some(h)) = (self.cropping_id(), hit) {
+                if c == h && !input.alt_key && self.crop_region_drag(&c, last, point) {
+                    if let Some(Gesture::Select(gesture)) = self.gesture.as_mut() {
+                        gesture.dragged = true;
+                    }
+                    return;
+                }
+            }
+        }
         let Some(Gesture::Select(gesture)) = self.gesture.as_ref() else {
             return;
         };
@@ -2444,6 +2509,11 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 self.report();
             }
             Some(Gesture::Inert) => {
+                self.session.commit();
+                self.report();
+            }
+            Some(Gesture::Crop(_)) => {
+                self.session.store.schedule_capture();
                 self.session.commit();
                 self.report();
             }

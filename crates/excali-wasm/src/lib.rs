@@ -23,6 +23,7 @@
 pub mod drag;
 pub mod editor;
 pub mod env;
+mod cropping;
 mod interact;
 mod linear;
 mod multi;

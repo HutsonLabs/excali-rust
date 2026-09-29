@@ -368,6 +368,11 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         if self.linear_double_click(input, [x, y]) {
             return;
         }
+        // an image is cropped (App.tsx:7468-7471)
+        if let Some(id) = self.selected_image() {
+            self.start_image_cropping(&id);
+            return;
+        }
         let elements = self.session.elements().to_vec();
         let selected: Vec<Element> = {
             let ids = self.selected_ids();

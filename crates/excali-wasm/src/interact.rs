@@ -407,6 +407,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             ("originSnapOffset", Value::Null),
             ("selectedElementsAreBeingDragged", json!(false)),
             ("suggestedBinding", Value::Null),
+            ("isCropping", json!(false)),
         ]);
     }
 
