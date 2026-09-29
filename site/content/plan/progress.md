@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 01:47 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 02:22 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**141 issues** · 74 closed (52%) · 0 in progress · 0 blocked · 66 open
+**144 issues** · 74 closed (51%) · 0 in progress · 0 blocked · 69 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -110,7 +110,7 @@ Font metadata, measurement from font files, wrapping port, bound-text sizing, la
 
 ## ex-e4 · Phase 4: Headless rendering and export
 
-<span class="status open">open</span> 10/11 children closed
+<span class="status open">open</span> 10/13 children closed
 
 tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
@@ -126,11 +126,13 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 | `ex-408` | Spike: font subsetting for SVG export (allsorts, hb-subset, or ship full woff2) | spike | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-409` | excali-cli: validate, render (png), export (svg), lib (list/merge), with exit codes | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-410` | Corpus render: every catalogue library item renders to PNG without panic | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-m4` | M4: SVG/PNG export parity | milestone | P2 | <span class="status open">open</span> | yes |  |
+| `ex-g401` | SVG export: reproduce the two export.test.tsx snapshots (svg-embedded scene, transformed images) as whole documents | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-g402` | D2 PNG half: port's PNG export of the fixture scenes vs upstream's exportToCanvas in Chrome, within a tolerance recorded per fixture | task | P0 | <span class="status open">open</span> | yes |  |
+| `ex-m4` | M4: SVG/PNG export parity | milestone | P2 | <span class="status open">open</span> |  | `ex-g401`, `ex-g402` |
 
 ## ex-e5 · Phase 5: Web runtime and editor
 
-<span class="status open">open</span> 4/33 children closed
+<span class="status open">open</span> 4/34 children closed
 
 Canvas2D backend, interaction state machine, history, DOM chrome without a framework, keyboard shortcuts, the <excali-editor> custom element.
 
@@ -168,6 +170,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-530` | <excali-editor> custom element: load/save/export/importLibrary/getState, events, host adapter | task | P0 | <span class="status open">open</span> |  | `ex-513`, `ex-518`, `ex-519` |
 | `ex-531` | Playwright parity suite against the checklist | task | P0 | <span class="status open">open</span> |  | `ex-530` |
 | `ex-532` | Theme tokens: light and dark CSS custom properties embedded and overridable by the host | task | P0 | <span class="status open">open</span> |  | `ex-516` |
+| `ex-533` | excali-math js::sin/cos match V8's libm trig bit for bit; remove the 1e-12 tolerance in excali-editor tests/transform.rs | task | P1 | <span class="status open">open</span> |  | `ex-508` |
 | `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-503`, `ex-504`, `ex-505`, `ex-508`, `ex-509`, `ex-510` … |
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
@@ -197,7 +200,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 |---|---|---|---|---|---|---|
 | `ex-701` | Compact styles panel and tablet form factor | task | P1 | <span class="status open">open</span> |  | `ex-519` |
 | `ex-702` | Phone layout: mobile menu, bottom bar, mobile toolbar order | task | P1 | <span class="status open">open</span> |  | `ex-701` |
-| `ex-703` | Sticky notes: element, rendering (shadow, edge, footer), label fitting | task | P2 | <span class="status open">open</span> | yes |  |
+| `ex-703` | Sticky notes: element, rendering (shadow, edge, footer), label fitting | task | P2 | <span class="status open">open</span> |  | `ex-508` |
 | `ex-704` | Bucket fill tool | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-705` | Lasso selection | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-706` | Autoshape (draw-shape) recognition | task | P3 | <span class="status open">open</span> | yes |  |
