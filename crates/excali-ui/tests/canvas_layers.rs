@@ -33,9 +33,8 @@ use excali_text::text_measurements::TextMetricsProvider;
 use excali_ui::layers::{
     bootstrap_canvas, canvas_dimension_from_attribute, canvas_dimension_from_property,
     is_opaque_hex_color, normalized_canvas_dimensions, paint_interactive_layer,
-    paint_new_element_layer, paint_static_layer, snap_scroll_to_device_pixels, BackingSize,
-    Layer, LayerContext, SceneViewport, CANVAS_LAYER_CSS, DEFAULT_CANVAS_HEIGHT,
-    DEFAULT_CANVAS_WIDTH,
+    paint_new_element_layer, paint_static_layer, snap_scroll_to_device_pixels, BackingSize, Layer,
+    LayerContext, SceneViewport, CANVAS_LAYER_CSS, DEFAULT_CANVAS_HEIGHT, DEFAULT_CANVAS_WIDTH,
 };
 use serde_json::Value;
 
@@ -250,10 +249,17 @@ fn snapped_scroll_is_round_scroll_times_zoom_times_dpr_over_zoom_times_dpr() {
     }
     // the scene transform is dpr × zoom, and the snapped scroll puts the
     // scene origin on a whole device pixel
-    for (sx, sy, zoom, dpr) in [(3.3, -7.77, 1.5, 2.0), (0.3, 0.7, 0.73, 1.25), (-37.25, 113.5, 1.25, 1.75)] {
+    for (sx, sy, zoom, dpr) in [
+        (3.3, -7.77, 1.5, 2.0),
+        (0.3, 0.7, 0.73, 1.25),
+        (-37.25, 113.5, 1.25, 1.75),
+    ] {
         let v = SceneViewport::new(sx, sy, zoom, dpr).snapped();
         let t = v.transform();
-        assert_eq!(t, Transform::scale(dpr, dpr).concat(&Transform::scale(zoom, zoom)));
+        assert_eq!(
+            t,
+            Transform::scale(dpr, dpr).concat(&Transform::scale(zoom, zoom))
+        );
         for s in [v.scroll_x, v.scroll_y] {
             let device = s * zoom * dpr;
             assert!((device - device.round()).abs() < 1e-9, "{device}");
@@ -263,7 +269,13 @@ fn snapped_scroll_is_round_scroll_times_zoom_times_dpr_over_zoom_times_dpr() {
         assert!(((v.scroll_y - sy) * zoom * dpr).abs() <= 0.5 + 1e-9);
     }
     // no device pixels: unchanged
-    for (zoom, dpr) in [(0.0, 1.0), (1.0, 0.0), (-1.0, 1.0), (f64::NAN, 1.0), (1.0, f64::NAN)] {
+    for (zoom, dpr) in [
+        (0.0, 1.0),
+        (1.0, 0.0),
+        (-1.0, 1.0),
+        (f64::NAN, 1.0),
+        (1.0, f64::NAN),
+    ] {
         let v = SceneViewport::new(3.3, -7.77, zoom, dpr);
         assert!(v.is_snapped());
         assert_eq!((v.snapped().scroll_x, v.snapped().scroll_y), (3.3, -7.77));
@@ -325,7 +337,11 @@ fn backing_size_matches_upstreams_canvases() {
             "new-element" => Layer::NewElement,
             _ => Layer::Interactive,
         };
-        let size = layer.backing_size(num(&case["width"]), num(&case["height"]), num(&case["scale"]));
+        let size = layer.backing_size(
+            num(&case["width"]),
+            num(&case["height"]),
+            num(&case["scale"]),
+        );
         assert_eq!(
             (size.width as f64, size.height as f64),
             (num(&case["canvasWidth"]), num(&case["canvasHeight"])),
@@ -334,7 +350,12 @@ fn backing_size_matches_upstreams_canvases() {
         );
         let n = normalized_canvas_dimensions(size, num(&case["scale"]));
         let want = case["normalized"].as_array().unwrap();
-        assert_eq!((n.0, n.1), (num(&want[0]), num(&want[1])), "{}", case["name"]);
+        assert_eq!(
+            (n.0, n.1),
+            (num(&want[0]), num(&want[1])),
+            "{}",
+            case["name"]
+        );
     }
     for scene in cases("newElementScenes") {
         let size = Layer::NewElement.backing_size(
@@ -380,7 +401,9 @@ fn canvas_width_conversions_follow_the_html_canvas() {
     assert_eq!(a(0.4), 0);
     assert_eq!(a(-0.0), 0);
     assert_eq!(a(-1.0), 150);
-    assert_eq!(a(-0.5), 150);
+    // "-0.5": a minus sign and the digit 0, which is not negative
+    assert_eq!(a(-0.5), 0);
+    assert_eq!(a(-1001.25), 150);
     assert_eq!(a(f64::NAN), 150);
     assert_eq!(a(f64::INFINITY), 150);
     // String(1e-7) is "1e-7", String(1e21) "1e+21": the digits before the e
@@ -399,8 +422,17 @@ fn opaque_hex_colours_skip_the_clear() {
         assert!(is_opaque_hex_color(c), "{c}");
     }
     for c in [
-        "#ffff", "#ffffff80", "#ffffffff", "fff", "#ggg", "white", "", "transparent",
-        "#ffffff ", " #ffffff", "rgba(0,0,0,1)",
+        "#ffff",
+        "#ffffff80",
+        "#ffffffff",
+        "fff",
+        "#ggg",
+        "white",
+        "",
+        "transparent",
+        "#ffffff ",
+        " #ffffff",
+        "rgba(0,0,0,1)",
     ] {
         assert!(!is_opaque_hex_color(c), "{c}");
     }
@@ -483,7 +515,10 @@ fn every_layer_bootstraps_as_upstream() {
             .unwrap_or_else(|why| panic!("{name}: {why}"));
         // clears come before anything is drawn
         let first_draw = ctx.calls.iter().position(|c| matches!(c, Call::Draw(_)));
-        let last_clear = ctx.calls.iter().rposition(|c| matches!(c, Call::Clear { .. }));
+        let last_clear = ctx
+            .calls
+            .iter()
+            .rposition(|c| matches!(c, Call::Clear { .. }));
         if let (Some(d), Some(c)) = (first_draw, last_clear) {
             assert!(c < d, "{name}: a clear after a draw");
         }
@@ -567,7 +602,12 @@ fn every_new_element_scene_draws_what_upstream_draws() {
     assert!(all.len() >= 25);
     for scene in &all {
         let name = scene["name"].as_str().unwrap();
-        let elements: Vec<Element> = scene["elements"].as_array().unwrap().iter().map(element).collect();
+        let elements: Vec<Element> = scene["elements"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(element)
+            .collect();
         let new_element = match &scene["newElement"] {
             Value::Null => None,
             v => Some(element(v)),
@@ -576,7 +616,8 @@ fn every_new_element_scene_draws_what_upstream_draws() {
         let state = app_state(&scene["appState"]);
         let config = render_config(&scene["renderConfig"]);
         let scale = num(&scene["scale"]);
-        let size = Layer::NewElement.backing_size(num(&scene["width"]), num(&scene["height"]), scale);
+        let size =
+            Layer::NewElement.backing_size(num(&scene["width"]), num(&scene["height"]), scale);
         let drawing = render_new_element_scene(&NewElementScene {
             canvas_width: size.width as f64,
             canvas_height: size.height as f64,
@@ -597,7 +638,17 @@ fn every_new_element_scene_draws_what_upstream_draws() {
         match draws::compare(&list, &scene["events"], &scene["images"]) {
             Ok(n) => {
                 compared += n;
-                assert_eq!(ctx.draws(), n, "{name}: the layer paints the scene's draws");
+                let painted = scene["events"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .filter(|e| !matches!(e["op"].as_str(), Some("clear" | "clip" | "unclip")))
+                    .count();
+                assert_eq!(
+                    ctx.draws(),
+                    painted,
+                    "{name}: the layer paints the scene's draws"
+                );
             }
             Err(why) => failures.push(format!("{name}: {why}")),
         }
@@ -616,9 +667,21 @@ fn nothing_to_draw_clears_the_canvas_again_under_the_zoom() {
         .unwrap();
     let clears = upstream_clears(&scene["events"]);
     assert_eq!(clears.len(), 2);
-    assert!(draws::same_matrix(&clears[1].0, &Transform::scale(1.5, 1.5)));
+    assert!(draws::same_matrix(
+        &clears[1].0,
+        &Transform::scale(1.5, 1.5)
+    ));
     let mut ctx = Recording::default();
-    paint_new_element_layer(&mut ctx, BackingSize { width: 400, height: 300 }, 1.0, 1.5, None);
+    paint_new_element_layer(
+        &mut ctx,
+        BackingSize {
+            width: 400,
+            height: 300,
+        },
+        1.0,
+        1.5,
+        None,
+    );
     same_clears(&ctx.clears(), &clears).unwrap();
 }
 
@@ -639,7 +702,11 @@ fn invisibly_small_elements_are_upstreams() {
             continue;
         }
         let el = element(&scene["newElement"]);
-        assert_eq!(is_invisibly_small_element(&el), small.contains(name), "{name}");
+        assert_eq!(
+            is_invisibly_small_element(&el),
+            small.contains(name),
+            "{name}"
+        );
         // what upstream drew: only the bootstrap clear when invisibly small
         let events = scene["events"].as_array().unwrap();
         assert_eq!(events.len() == 1, small.contains(name), "{name}");

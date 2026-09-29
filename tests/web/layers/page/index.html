@@ -24,6 +24,53 @@
 <script type="module">
   import init, * as harness from "/canvas_layers.js";
 
+  // Pixel reads stay in the page (a backing store is millions of values).
+  const data = (layer) => {
+    const c = window.layers.canvas(layer);
+    return { width: c.width, height: c.height, rgba: c.getContext("2d").getImageData(0, 0, c.width, c.height).data };
+  };
+  const snapshots = [];
+  // Keeps the layer's pixels; returns their index for sameAs / shiftedFrom.
+  window.snapshot = (layer) => snapshots.push(data(layer)) - 1;
+  window.pixel = (layer, x, y) => {
+    const d = data(layer);
+    const i = (y * d.width + x) * 4;
+    return Array.from(d.rgba.slice(i, i + 4));
+  };
+  // The first pixel where the layer differs from snapshot `id`, or null.
+  window.sameAs = (layer, id) => {
+    const a = data(layer);
+    const b = snapshots[id];
+    if (a.width !== b.width || a.height !== b.height) return { size: [a.width, a.height, b.width, b.height] };
+    for (let i = 0; i < a.rgba.length; i++) {
+      if (a.rgba[i] !== b.rgba[i]) {
+        const p = i >> 2;
+        return { x: p % a.width, y: Math.floor(p / a.width) };
+      }
+    }
+    return null;
+  };
+  // Whether the layer is snapshot `id` moved right by `dx` whole pixels:
+  // the first mismatch (or null) and how many pixels were compared.
+  window.shiftedFrom = (layer, id, dx) => {
+    const a = data(layer);
+    const b = snapshots[id];
+    let compared = 0;
+    for (let y = 0; y < a.height; y++) {
+      for (let x = 0; x + dx < a.width; x++) {
+        const i = (y * a.width + x + dx) * 4;
+        const j = (y * b.width + x) * 4;
+        for (let k = 0; k < 4; k++) {
+          if (a.rgba[i + k] !== b.rgba[j + k]) return { mismatch: { x, y }, compared };
+        }
+        compared++;
+      }
+    }
+    return { mismatch: null, compared };
+  };
+  // Whether every pixel is transparent black; and whether anything is drawn.
+  window.blank = (layer) => data(layer).rgba.every((v) => v === 0);
+
   try {
     await init();
     const style = document.createElement("style");

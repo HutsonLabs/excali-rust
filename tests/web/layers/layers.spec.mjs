@@ -218,14 +218,11 @@ const SQUARE = {
 const ELLIPSE = { ...SQUARE, type: "ellipse", id: "ellipse", x: 60.37, y: 20.61, width: 90.5, height: 50.25, strokeColor: "#1e1e1e", strokeWidth: 2, backgroundColor: "#a5d8ff", roughness: 1, seed: 7 };
 const SCENE = JSON.stringify([SQUARE, ELLIPSE]);
 
-/** Straight RGBA of a layer's whole backing store. */
-const pixels = (page, layer) =>
-  page.evaluate((name) => {
-    const c = window.layers.canvas(name);
-    return Array.from(c.getContext("2d").getImageData(0, 0, c.width, c.height).data);
-  }, layer);
-
-const at = (data, width, x, y) => data.slice((y * width + x) * 4, (y * width + x) * 4 + 4);
+/** Page-side pixel helpers (layers/page/index.html). */
+const pixel = (page, layer, x, y) => page.evaluate(([l, px, py]) => window.pixel(l, px, py), [layer, x, y]);
+const snapshot = (page, layer) => page.evaluate((l) => window.snapshot(l), layer);
+const sameAs = (page, layer, id) => page.evaluate(([l, i]) => window.sameAs(l, i), [layer, id]);
+const blank = (page, layer) => page.evaluate((l) => window.blank(l), layer);
 
 for (const dpr of [1, 1.25, 2]) {
   test(`at devicePixelRatio ${dpr}: the static canvas draws at device-pixel scale at the snapped scroll`, async ({ browser }) => {
@@ -236,62 +233,53 @@ for (const dpr of [1, 1.25, 2]) {
 
     // the square covers device pixels [10·dpr, 30·dpr) at zoom 1, scroll 0
     await paint(0, 0, 1);
-    let data = await pixels(page, "static");
     const inside = Math.ceil(10 * dpr) + 1;
+    const lastInside = Math.floor(30 * dpr) - 2;
     const beyond = Math.floor(30 * dpr) + 1;
-    expect(at(data, width, inside, inside)).toEqual([255, 0, 0, 255]);
-    expect(at(data, width, Math.floor(30 * dpr) - 2, Math.floor(30 * dpr) - 2)).toEqual([255, 0, 0, 255]);
-    expect(at(data, width, beyond, beyond)).toEqual([255, 255, 255, 255]);
-    expect(at(data, width, Math.floor(10 * dpr) - 2, inside)).toEqual([255, 255, 255, 255]);
+    expect(await pixel(page, "static", inside, inside)).toEqual([255, 0, 0, 255]);
+    expect(await pixel(page, "static", lastInside, lastInside)).toEqual([255, 0, 0, 255]);
+    expect(await pixel(page, "static", beyond, beyond)).toEqual([255, 255, 255, 255]);
+    expect(await pixel(page, "static", Math.floor(10 * dpr) - 2, inside)).toEqual([255, 255, 255, 255]);
 
     for (const zoom of [1, 1.5, 0.73]) {
       const d = zoom * dpr;
       const snapped = (s) => Math.round(s * d) / d;
       // a fractional scroll paints what its snapped scroll paints
       await paint(3.3, -7.77, zoom);
-      const fractional = await pixels(page, "static");
+      const fractional = await snapshot(page, "static");
       await paint(snapped(3.3), snapped(-7.77), zoom);
-      expect(await pixels(page, "static"), `zoom ${zoom}: snapped`).toEqual(fractional);
+      expect(await sameAs(page, "static", fractional), `zoom ${zoom}: snapped`).toBeNull();
       // a tenth of a device pixel further (away from the rounding
       // boundary) lands on the same pixels
       const tenth = Math.round(3.3 * d + 0.1) === Math.round(3.3 * d) ? 0.1 : -0.1;
       await paint(3.3 + tenth / d, -7.77, zoom);
-      expect(await pixels(page, "static"), `zoom ${zoom}: a tenth further`).toEqual(fractional);
+      expect(await sameAs(page, "static", fractional), `zoom ${zoom}: a tenth further`).toBeNull();
       // one device pixel further moves the picture by exactly one pixel
       await paint(snapped(3.3) + 1 / d, snapped(-7.77), zoom);
-      const moved = await pixels(page, "static");
-      const height = Math.trunc(HEIGHT * dpr);
-      let compared = 0;
-      for (let y = 0; y < height; y += 3) {
-        for (let x = 0; x < width - 1; x += 2) {
-          const a = at(moved, width, x + 1, y);
-          const b = at(fractional, width, x, y);
-          if (a.join() !== b.join()) throw new Error(`zoom ${zoom}: (${x}, ${y}) moved ${a}, before ${b}`);
-          compared++;
-        }
-      }
-      expect(compared).toBeGreaterThan(1000);
+      const moved = await page.evaluate(([i]) => window.shiftedFrom("static", i, 1), [fractional]);
+      expect(moved.mismatch, `zoom ${zoom}: moved by one device pixel`).toBeNull();
+      expect(moved.compared).toBe((width - 1) * Math.trunc(HEIGHT * dpr));
     }
 
     // a translucent background is cleared before it is filled again, so
     // repainting does not accumulate it; transparent leaves nothing
     await paint(0, 0, 1, "#ff000080");
     await paint(0, 0, 1, "#ff000080");
-    data = await pixels(page, "static");
-    expect(at(data, width, 1, 1)[3]).toBe(128);
+    expect((await pixel(page, "static", 1, 1))[3]).toBe(128);
     await paint(0, 0, 1, "transparent");
-    data = await pixels(page, "static");
-    expect(at(data, width, 1, 1)).toEqual([0, 0, 0, 0]);
-    expect(at(data, width, inside, inside)).toEqual([255, 0, 0, 255]);
+    expect(await pixel(page, "static", 1, 1)).toEqual([0, 0, 0, 0]);
+    expect(await pixel(page, "static", inside, inside)).toEqual([255, 0, 0, 255]);
     await paint(0, 0, 1, null);
-    expect(at(await pixels(page, "static"), width, 1, 1)).toEqual([0, 0, 0, 0]);
+    expect(await pixel(page, "static", 1, 1)).toEqual([0, 0, 0, 0]);
+    // an opaque hex background repaints every pixel without a clear
+    await paint(0, 0, 1, "#abc");
+    expect(await pixel(page, "static", 1, 1)).toEqual([0xaa, 0xbb, 0xcc, 255]);
     expect(errors).toEqual([]);
     await context.close();
   });
 
   test(`at devicePixelRatio ${dpr}: the new-element and interactive canvases clear and draw at the snapped scroll`, async ({ browser }) => {
     const { context, page, errors } = await open(browser, dpr);
-    const width = Math.trunc(WIDTH * dpr);
     await page.evaluate(() => window.layers.showNewElement(undefined));
     const paint = (element, sx, sy, zoom) =>
       page.evaluate(([e, x, y, z]) => window.layers.paintNewElement(e ?? undefined, x, y, z), [element, sx, sy, zoom]);
@@ -299,22 +287,23 @@ for (const dpr of [1, 1.25, 2]) {
     const zoom = 1.5;
     const d = zoom * dpr;
     await paint(ellipse, 3.3, -7.77, zoom);
-    const fractional = await pixels(page, "new-element");
-    expect(fractional.some((v) => v !== 0)).toBe(true);
+    expect(await blank(page, "new-element")).toBe(false);
+    const fractional = await snapshot(page, "new-element");
     await paint(ellipse, Math.round(3.3 * d) / d, Math.round(-7.77 * d) / d, zoom);
-    expect(await pixels(page, "new-element")).toEqual(fractional);
+    expect(await sameAs(page, "new-element", fractional)).toBeNull();
     // a square at zoom 1 covers device pixels [10·dpr, 30·dpr), on a clear
     // canvas (no background on this layer)
     await paint(JSON.stringify(SQUARE), 0, 0, 1);
-    let data = await pixels(page, "new-element");
-    expect(at(data, width, Math.ceil(10 * dpr) + 1, Math.ceil(10 * dpr) + 1)).toEqual([255, 0, 0, 255]);
-    expect(at(data, width, 1, 1)).toEqual([0, 0, 0, 0]);
+    const inside = Math.ceil(10 * dpr) + 1;
+    expect(await pixel(page, "new-element", inside, inside)).toEqual([255, 0, 0, 255]);
+    expect(await pixel(page, "new-element", 1, 1)).toEqual([0, 0, 0, 0]);
     // nothing to draw clears it
     await paint(null, 0, 0, 1);
-    expect((await pixels(page, "new-element")).every((v) => v === 0)).toBe(true);
+    expect(await blank(page, "new-element")).toBe(true);
     // an invisibly small element draws nothing either
+    await paint(JSON.stringify(SQUARE), 0, 0, 1);
     await paint(JSON.stringify({ ...SQUARE, width: 0, height: 0 }), 0, 0, 1);
-    expect((await pixels(page, "new-element")).every((v) => v === 0)).toBe(true);
+    expect(await blank(page, "new-element")).toBe(true);
 
     // the interactive canvas's bootstrap clears what was on it
     await page.evaluate(() => {
@@ -324,8 +313,7 @@ for (const dpr of [1, 1.25, 2]) {
       ctx.fillRect(0, 0, c.width, c.height);
       window.layers.paintInteractive();
     });
-    data = await pixels(page, "interactive");
-    expect(data.every((v) => v === 0)).toBe(true);
+    expect(await blank(page, "interactive")).toBe(true);
     expect(errors).toEqual([]);
     await context.close();
   });

@@ -24,7 +24,9 @@
 //!   the markup upstream builds, [`display::SvgNode`] trees.
 //! - [`static_scene`]: `renderStaticScene`, the canvas's background, grid
 //!   and elements in upstream's order as a display list, drawing each
-//!   element with [`render_element`] (`renderElement`).
+//!   element with [`render_element`] (`renderElement`);
+//!   [`new_element_scene`]: `renderNewElementScene`, the element being
+//!   created alone on the canvas above it.
 //! - [`rough_canvas`]: roughjs's `RoughCanvas.draw`, producing display items.
 //! - [`rough_options`]: `generateRoughOptions` and `adjustRoughness`.
 //! - [`shape`]: the rough.js shapes of boxes, lines and arrows, and a
@@ -32,7 +34,7 @@
 //!   [`elbow_arrow`] and [`heading`]: the elbow arrow path and
 //!   `validateElbowPoints`.
 //!
-//! Upstream counterpart: `packages/element/src/shape.ts`, `bounds.ts`, `renderElement.ts`, `packages/excalidraw/renderer/staticScene.ts`, `packages/excalidraw/scene/export.ts`.
+//! Upstream counterpart: `packages/element/src/shape.ts`, `bounds.ts`, `renderElement.ts`, `packages/excalidraw/renderer/staticScene.ts`, `renderer/renderNewElementScene.ts`, `packages/excalidraw/scene/export.ts`.
 //!
 //! Targets: native, wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-core`, `excali-freehand`, `excali-rough`, `excali-text`.
@@ -47,6 +49,7 @@ pub mod freedraw;
 pub mod geometric_shape;
 pub mod heading;
 pub mod linear_element;
+pub mod new_element_scene;
 pub mod render_element;
 pub mod rough_canvas;
 pub mod rough_options;
