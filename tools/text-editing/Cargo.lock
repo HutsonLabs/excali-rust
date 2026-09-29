@@ -188,6 +188,7 @@ dependencies = [
  "excali-scene",
  "excali-text",
  "js-sys",
+ "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
