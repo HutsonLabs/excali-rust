@@ -226,6 +226,79 @@ mod path {
     }
 
     #[test]
+    fn ellipse_is_the_unit_arc_mapped_onto_the_ellipse() {
+        // HTML canvas ellipse(): the points (x + rx·cos θ, y + ry·sin θ)
+        // rotated by `rotation` about (x, y), joined to the current point by
+        // a line. The binding highlight strokes one
+        // (interactiveScene.ts:338-349).
+        let mut p = Path::new();
+        p.ellipse(70.0, 50.0, 70.0, 50.0, 0.0, 0.0, 2.0 * PI, false);
+        let canonical = p.canonical().commands;
+        assert_eq!(canonical[0], MoveTo(140.0, 50.0));
+        // four quarter turns, each ending on the ellipse
+        assert_eq!(canonical.len(), 5);
+        let ends: Vec<(f64, f64)> = canonical[1..]
+            .iter()
+            .map(|c| match *c {
+                CubicTo(_, _, _, _, x, y) => (x, y),
+                ref other => panic!("{other:?}"),
+            })
+            .collect();
+        for (end, expected) in
+            ends.iter()
+                .zip([(70.0, 100.0), (0.0, 50.0), (70.0, 0.0), (140.0, 50.0)])
+        {
+            assert_point(*end, expected);
+        }
+        // a circle's ellipse is the circle's arc
+        let mut circle = Path::new();
+        circle.ellipse(3.0, 4.0, 5.0, 5.0, 0.0, 0.0, 2.0 * PI, false);
+        let mut arc = Path::new();
+        arc.arc(3.0, 4.0, 5.0, 0.0, 2.0 * PI, false);
+        for (a, b) in circle
+            .canonical()
+            .commands
+            .iter()
+            .zip(&arc.canonical().commands)
+        {
+            match (*a, *b) {
+                (MoveTo(x, y), MoveTo(u, v)) => assert_point((x, y), (u, v)),
+                (CubicTo(a1, a2, a3, a4, a5, a6), CubicTo(b1, b2, b3, b4, b5, b6)) => {
+                    assert_point((a1, a2), (b1, b2));
+                    assert_point((a3, a4), (b3, b4));
+                    assert_point((a5, a6), (b5, b6));
+                }
+                other => panic!("{other:?}"),
+            }
+        }
+        // rotated a quarter turn: the start (rx, 0) lands on (0, rx)
+        let mut rotated = Path::new();
+        rotated.ellipse(0.0, 0.0, 20.0, 10.0, FRAC_PI_2, 0.0, 2.0 * PI, false);
+        match rotated.commands[0] {
+            LineTo(x, y) => assert_point((x, y), (0.0, 20.0)),
+            ref other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn ellipse_ignores_bad_arguments() {
+        // non-finite arguments return early; a negative radius throws an
+        // IndexSizeError
+        let add = |args: [f64; 7]| {
+            let mut p = Path::new();
+            p.ellipse(
+                args[0], args[1], args[2], args[3], args[4], args[5], args[6], false,
+            );
+            p
+        };
+        assert!(add([f64::NAN, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0]).is_empty());
+        assert!(add([0.0, 0.0, f64::INFINITY, 1.0, 0.0, 0.0, 1.0]).is_empty());
+        assert!(add([0.0, 0.0, 1.0, 1.0, 0.0, 0.0, f64::NAN]).is_empty());
+        assert!(add([0.0, 0.0, -1.0, 1.0, 0.0, 0.0, 1.0]).is_empty());
+        assert!(add([0.0, 0.0, 1.0, -1.0, 0.0, 0.0, 1.0]).is_empty());
+    }
+
+    #[test]
     fn canonical_starts_every_subpath() {
         // lineTo with no subpath "ensure[s] there is a subpath for (x, y)",
         // i.e. it is a moveTo; quadratic and bezier curves ensure a subpath

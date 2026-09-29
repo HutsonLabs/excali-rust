@@ -1,6 +1,7 @@
 //! Recording a display list's draws and holding them to the draws upstream
 //! made on the recording 2D context of `tools/goldens/lib/
-//! recording-context.mjs` (the static scene and canvas export goldens).
+//! recording-context.mjs` (the static scene, canvas export and interactive
+//! scene goldens).
 
 use excali_scene::display::{
     Clip, Color, DisplayList, FillRule, ImageItem, PaintState, Painter, Path, PathCommand, Rect,
@@ -160,6 +161,18 @@ pub fn path(value: &Value) -> Path {
             }
             "arc" => {
                 p.arc(a(1), a(2), a(3), a(4), a(5), c[6].as_bool().unwrap());
+            }
+            "ellipse" => {
+                p.ellipse(
+                    a(1),
+                    a(2),
+                    a(3),
+                    a(4),
+                    a(5),
+                    a(6),
+                    a(7),
+                    c[8].as_bool().unwrap(),
+                );
             }
             "closePath" => {
                 p.close();

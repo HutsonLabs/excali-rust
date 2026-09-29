@@ -398,7 +398,12 @@ jobs:
   # static-scene.mjs --check for excali-scene's static-scene.json (ex-402),
   # upstream's own renderStaticScene on a recording 2D context (every draw
   # of the background, grid, elements, link icons, pending nodes and frame
-  # clips), and frame-clip.mjs --check for excali-scene's frame-clip.json
+  # clips), and interactive-scene.mjs --check for excali-editor's
+  # interactive-scene.json (ex-713), upstream's own renderInteractiveScene
+  # on the recording 2D context (selection borders, transform and crop
+  # handles, the selection box, linear element handles, binding, frame and
+  # element highlights, snap lines, the text box), and
+  # frame-clip.mjs --check for excali-scene's frame-clip.json
   # (ex-403), upstream's own frame.ts clip decisions and element outlines
   # on the frame scenes, and canvas-layers.mjs --check for excali-ui's
   # canvas-layers.json (ex-503), upstream's own snapScrollToDevicePixels,
@@ -538,6 +543,8 @@ jobs:
         run: node tools/goldens/svg-export.mjs --check
       - name: excali-scene static scene fixture matches upstream's renderStaticScene
         run: node tools/goldens/static-scene.mjs --check
+      - name: excali-editor interactive scene fixture matches upstream's renderInteractiveScene
+        run: node tools/goldens/interactive-scene.mjs --check
       - name: excali-scene frame clipping fixture matches upstream's frame.ts
         run: node tools/goldens/frame-clip.mjs --check
       - name: excali-ui canvas layer fixture matches upstream's snapScrollToDevicePixels, bootstrapCanvas and renderNewElementScene
