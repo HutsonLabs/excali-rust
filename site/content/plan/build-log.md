@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-29 · ex-g402 · D2 PNG half: port's PNG export of the fixture scenes vs upstream's exportToCanvas in Chrome, within a tolerance recorded per fixture
+
+The port's full PNG export, text included, is now compared pixel by pixel with what upstream's own `exportToCanvas` draws in Chromium for 35 fixture scenes: canvas sizes exactly, every pixel within a per-scene tolerance, and everything outside the text boxes within 8 levels. The emoji-only smiley scene is excluded (no vendored face, ADR-004) but its size and the pixels outside its text are still checked. A macOS arm64 CI job redraws the references and reruns the comparison. PR: [#90](https://github.com/HutsonLabs/excali-rust/pull/90).
+
 ## 2026-09-29 · ex-508 · Selection and transform handles: sizes by pointer type, resize, rotate, aspect lock, centre resize
 
 The editor now has upstream's transform handles and resizing: handle layout by pointer type and zoom with omitted sides, the hit test that finds the handle under the pointer and its cursor, and resize and rotate for single and multiple elements, with aspect lock, centre resize, flips, labelled containers, images, text, lines and arrows. Each gesture is replayed move by move against 410 cases recorded from upstream's own code, and CI rechecks the fixture. Bound-arrow updates (ex-510), sticky-note layout (ex-703) and exact trig (ex-533) follow. PR: [#89](https://github.com/HutsonLabs/excali-rust/pull/89).
