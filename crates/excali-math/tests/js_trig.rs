@@ -1,15 +1,17 @@
-//! `Math.sin` and `Math.cos` as V8 computes them, on arguments where
-//! fdlibm (`src/base/ieee754.cc`, which `js::sin`/`js::cos` port) and Node
-//! 26's glibc-derived routines agree (ex-533 covers the arguments where they
-//! do not): the platform's `sin`/`cos` can be one ulp away (macOS
-//! libm gives `sin(4) = -0.7568024953079283` where V8 gives
+//! `Math.sin` and `Math.cos` as Node 26's V8 computes them: its own fdlibm
+//! (`src/base/ieee754.cc`, which `js::sin`/`js::cos` port with the fused
+//! multiply-adds clang emits on arm64; Node's gyp build does not set
+//! `v8_use_libm_trig_functions`, ADR-011). The libm crate's fdlibm is one
+//! ulp away on some arguments (`Math.cos(0.982953340331056)` is
+//! 0.5545673797180782 in Node 26 and 0.5545673797180781 there, ex-533), and
+//! the platform's `sin`/`cos` can be too (macOS libm gives `sin(4) = -0.7568024953079283` where V8 gives
 //! `-0.7568024953079282`), which moves a rotated point and so an exported
 //! document's size in its last digit.
 
 use excali_math::{js, point_from, point_rotate_rads, GlobalPoint, Radians};
 
 /// `[x, Math.cos(x), Math.sin(x)]` from Node 26 (V8).
-const V8: [[f64; 3]; 18] = [
+const V8: [[f64; 3]; 27] = [
     [4.0, -0.6536436208636119, -0.7568024953079282],
     [-4.0, -0.6536436208636119, 0.7568024953079282],
     [0.6, 0.8253356149096783, 0.5646424733950354],
@@ -28,6 +30,15 @@ const V8: [[f64; 3]; 18] = [
     [0.5, 0.8775825618903728, 0.479425538604203],
     [1.5, 0.0707372016677029, 0.9974949866040544],
     [0.9, 0.6216099682706644, 0.7833269096274834],
+    [0.982953340331056, 0.5545673797180782, 0.8321388233658041],
+    [1.7, -0.12884449429552464, 0.9916648104524686],
+    [-3.3, -0.9874797699088649, 0.1577456941432482],
+    [7.77, 0.08388294956272228, 0.9964756147406005],
+    [100.25, 0.9607883312760612, -0.2772828564548513],
+    [-0.25, 0.9689124217106447, -0.24740395925452294],
+    [std::f64::consts::PI, -1.0, 1.2246467991473532e-16],
+    [1e-9, 1.0, 1e-9],
+    [1e300, -0.5753861119575491, -0.8178819121159085],
 ];
 
 #[test]
