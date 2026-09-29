@@ -217,17 +217,10 @@ pub fn export_svg(scene: &LoadedScene, settings: &ExportSettings) -> Result<Stri
     state.export_scale = app.get("exportScale").and_then(Value::as_f64);
     state.export_padding = settings.padding;
     let metrics = Metrics(&fonts);
-    let document = svg_document(
-        &elements,
-        &state,
-        Some(&files),
-        &SvgExportOptions {
-            source: &settings.source,
-            exporting_frame: frame.as_ref(),
-            skip_inlining_fonts: !settings.inline_fonts,
-            text_metrics: &metrics,
-        },
-    );
+    let mut options = SvgExportOptions::new(&settings.source, &metrics);
+    options.exporting_frame = frame.as_ref();
+    options.skip_inlining_fonts = !settings.inline_fonts;
+    let document = svg_document(&elements, &state, Some(&files), &options);
     let root = export_to_svg(&document, &FontFiles::new(&settings.fonts_dir));
     Ok(to_svg_file(&root))
 }
