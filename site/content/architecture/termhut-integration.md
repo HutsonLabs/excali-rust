@@ -100,9 +100,17 @@ Create and Delete landed in term.hut PR #89 (ex-603, merge `ff0faff`, 2026-09-29
 
 ## Library import in term.hut
 
-- "Import library" in the pane header accepts a URL or a `.excalidrawlib` file (via `tauri-plugin-dialog`, already a term.hut dependency).
-- URLs are checked against the upstream allow-list before any fetch. A libraries.excalidraw.com link of the form `...#addLibrary=<url>&token=<id>` is parsed the same way upstream's `parseLibraryTokensFromUrl` parses it.
-- The personal library is stored under `~/.term-hut/excalidraw/library.excalidrawlib` (v2) on the host that owns the workspace, so it follows the anchored-workspace model.
+This landed in term.hut#90 (ex-604).
+
+- The drawing's pane header has an "Import library" button. It takes a libraries.excalidraw.com `#addLibrary=<url>&token=<id>` link, a library URL, or a `.excalidrawlib` file. The app picks the file with `tauri-plugin-dialog` and reads it with a local `fs_read_text`; a browser page uses its own file input.
+- The editor checks a URL, and it does so before anything is fetched: `libraryUrl` resolves the `#addLibrary` link as upstream's `parseLibraryTokensFromUrl` does, then applies upstream's allow-list. Only a URL that passes becomes a `library-fetch`, which term.hut answers with `fetch`. A refused URL is shown in a toast and nothing is written.
+- The personal library is `~/.term-hut/excalidraw/library.excalidrawlib` (v2) on the host that owns the workspace, so it follows the anchored-workspace model. Locally, `~` is `resolve_local_dir("~")`; on an SSH host, hut-server resolves `~/…` against the login home. The first import creates the directories and the file with `fs_create`, which never overwrites.
+- An import runs in three steps:
+  1. It loads the stored file into the editor with `importLibrary(text, { merge: false })`.
+  2. It merges the input with `{ merge: true }`, which is `mergeLibraryItems`.
+  3. It writes `exportLibrary()` through `fs_write_text` against the hash of what it read.
+
+  If another window wrote the library in the meantime, the write is a conflict; the import reads the file again and merges once more instead of overwriting it. A drawing opens with the stored library loaded.
 
 ## Size budget in this host
 
