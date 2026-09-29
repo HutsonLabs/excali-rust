@@ -14,9 +14,6 @@ excali-core = { path = "../excali-core" }
 excali-editor = { path = "../excali-editor" }
 excali-scene = { path = "../excali-scene" }
 excali-text = { path = "../excali-text" }
-# The app state's JSON values excali_ui::footer's help and zen-mode actions
-# write.
-serde_json = { workspace = true }
 # The browser's FontFace / document.fonts API behind excali_ui::fonts, and
 # the <canvas> elements, their wrapper, inline styles and the owner
 # window's devicePixelRatio behind excali_ui::layers; the key, mouse and
@@ -26,8 +23,9 @@ serde_json = { workspace = true }
 # the elements, events, focus and the tooltip's MutationObserver behind
 # excali_ui::dom and excali_ui::primitives; the elements
 # excali_ui::styles_panel mounts.
-# excali_ui::main_menu's app state patches are JSON values, as the
-# editor's app state is.
+# excali_ui::main_menu's app state patches and the app state
+# excali_ui::footer's help and zen-mode actions write are JSON values, as
+# the editor's app state is.
 # Versions from the evidence log (site/content/evidence/_index.md).
 serde_json = { workspace = true }
 js-sys = "0.3.106"
