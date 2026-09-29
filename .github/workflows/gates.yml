@@ -354,6 +354,11 @@ jobs:
   # resizeElements.ts (handle layouts, resizeTest, cursors, and pointer
   # gestures driven as App.tsx drives transformElements) on the scenes of
   # resize.test.tsx and seeded random scenes, and
+  # linear-editor-fixtures.mjs --check for excali-editor's
+  # linear-editor.json (ex-511), upstream's own LinearElementEditor (point
+  # handles, midpoints and the segment length rule, addMidpoint,
+  # deletePoints, addPoints, handleBoundTextDragging) on hand-written and
+  # seeded lines and arrows, and
   # binding-fixtures.mjs --check for excali-editor's binding.json (ex-510),
   # upstream's own binding.ts (fixed points, updateBoundPoint,
   # updateBoundElements, outline snapping, the binding strategies,
@@ -482,6 +487,8 @@ jobs:
         run: node tools/goldens/binding-fixtures.mjs --check
       - name: excali-editor snapping fixture matches upstream's snapping.ts and renderSnaps.ts
         run: node tools/goldens/snapping-fixtures.mjs --check
+      - name: excali-editor linear element editor fixture matches upstream's LinearElementEditor
+        run: node tools/goldens/linear-editor-fixtures.mjs --check
       - name: excali-scene export bounds, excali-svg document and excali-core embed link fixtures match upstream's exportToSvg and getEmbedLink
         run: node tools/goldens/svg-export.mjs --check
       - name: excali-scene static scene fixture matches upstream's renderStaticScene

@@ -778,8 +778,11 @@ const sceneCases = () => [
 // textElement.ts (getBoundTextMaxWidth for rectangle, ellipse, diamond and a
 // line that lists its text) and the anchoring of newElement.ts
 // (getAdjustedDimensions: every textAlign and verticalAlign, rotated, and
-// the free text branches). Arrow labels are left out: their position is
-// LinearElementEditor's (ex-511), which excali-text takes from its caller.
+// the free text branches). refresh-arrow-labels puts labels on arrows,
+// whose box LinearElementEditor.getBoundTextElementPosition gives
+// (excali-editor's ArrowLabelGeometry, ex-511): two points, an odd and an
+// even number of sharp points, a round curve, a labelPosition along the
+// path, an elbow arrow and a rotated arrow.
 
 const refreshCases = () => {
   const refresh = { opts: { repairBindings: true, refreshDimensions: true } };
@@ -852,6 +855,47 @@ const refreshCases = () => {
       }),
       savedText({ id: "orphan", index: "a4", containerId: "missing" }),
       savedText({ id: "empty", index: "a5", text: "", originalText: "", width: 0, height: 0 }),
+    ], refresh),
+    scene("refresh-arrow-labels", [
+      savedArrow({ id: "a2", index: "a0", x: 10, y: 20, width: 300, height: 40, points: [[0, 0], [300, 40]], boundElements: boundTo("t2") }),
+      label("t2", "a2", { index: "a1", text: long, originalText: long, textAlign: "center", verticalAlign: "middle" }),
+      savedArrow({
+        id: "a3",
+        index: "a2",
+        y: 200,
+        width: 200,
+        height: 100,
+        points: [[0, 0], [120, 100], [200, 0]],
+        boundElements: boundTo("t3"),
+      }),
+      label("t3", "a3", { index: "a3", text: "odd\npoints", originalText: "odd points", textAlign: "center", verticalAlign: "middle" }),
+      savedArrow({
+        id: "a4",
+        index: "a4",
+        y: 400,
+        width: 300,
+        height: 60,
+        points: [[0, 0], [100, 60], [200, 0], [300, 60]],
+        boundElements: boundTo("t4"),
+      }),
+      label("t4", "a4", { index: "a5", text: "middle segment", originalText: "middle segment", textAlign: "center", verticalAlign: "middle" }),
+      savedArrow({
+        id: "round",
+        index: "a6",
+        y: 600,
+        width: 240,
+        height: 90,
+        roundness: { type: 2 },
+        points: [[0, 0], [80, 90], [160, -10], [240, 40]],
+        boundElements: boundTo("rt"),
+      }),
+      label("rt", "round", { index: "a7", text: long, originalText: long, textAlign: "center", verticalAlign: "middle" }),
+      savedArrow({ id: "placed", index: "a8", y: 800, width: 400, height: 0, points: [[0, 0], [400, 0]], boundElements: boundTo("pt") }),
+      label("pt", "placed", { index: "a9", text: "a third", originalText: "a third", labelPosition: 0.3, textAlign: "center", verticalAlign: "middle" }),
+      savedElbow({ id: "elbow", index: "aA", x: 500, boundElements: boundTo("et") }),
+      label("et", "elbow", { index: "aB", text: "elbow label", originalText: "elbow label", textAlign: "center", verticalAlign: "middle" }),
+      savedArrow({ id: "turned", index: "aC", x: 500, y: 300, width: 150, height: 150, angle: 0.7, points: [[0, 0], [150, 150]], boundElements: boundTo("tt") }),
+      label("tt", "turned", { index: "aD", text: "turned", originalText: "turned", angle: 0.7, textAlign: "center", verticalAlign: "middle" }),
     ], refresh),
   ];
 };

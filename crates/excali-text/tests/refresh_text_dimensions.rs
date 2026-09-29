@@ -96,6 +96,14 @@ fn restore_hooks_are_reproduced() {
                 elements: &elements,
             });
             let got = answer.map_or(Value::Null, Value::Object);
+            if container.is_some_and(|c| c["type"] == "arrow") {
+                // an arrow label's box is excali-editor's (ex-511): without
+                // an ArrowLabelGeometry the label keeps its stored size, and
+                // excali-editor's tests/restore_arrow_labels.rs reproduces
+                // these hooks with SceneArrowGeometry
+                assert_eq!(got, Value::Null, "{} {}", case["id"], text["id"]);
+                continue;
+            }
             assert!(
                 same(&got, &hook["result"]),
                 "{} {}: got {got}, upstream {}",
@@ -109,7 +117,7 @@ fn restore_hooks_are_reproduced() {
         hooks >= 14,
         "the restore fixture records {hooks} refresh hooks"
     );
-    for ty in ["rectangle", "ellipse", "diamond", "line"] {
+    for ty in ["rectangle", "ellipse", "diamond", "line", "arrow"] {
         assert!(containers.contains(ty), "no recorded {ty} container");
     }
 }
@@ -155,6 +163,10 @@ fn restore_elements_with_text_env_matches_upstream() {
             continue;
         };
         if !recorded.iter().any(is_refresh) || case["call"] != "restoreElements" {
+            continue;
+        }
+        // arrow labels need excali-editor's geometry (restore_arrow_labels.rs)
+        if case["id"] == "refresh-arrow-labels" {
             continue;
         }
         checked += 1;

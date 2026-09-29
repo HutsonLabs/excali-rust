@@ -22,6 +22,10 @@ pub const COLOR_WHITE: &str = "#ffffff";
 /// computes the same filter for one colour.
 pub const DARK_THEME_FILTER: &str = "invert(93%) hue-rotate(180deg)";
 
+/// How far (px on screen) the pointer moves before a press becomes a drag
+/// (`DRAGGING_THRESHOLD`, `constants.ts:28`).
+pub const DRAGGING_THRESHOLD: f64 = 10.0;
+
 /// How close (px at zoom 1) a line's last point must come to its first for
 /// the line to be a closed loop (`LINE_CONFIRM_THRESHOLD`,
 /// `constants.ts:30`).
