@@ -260,10 +260,7 @@ fn a_drag_snaps_with_objects_snap_mode() {
     assert_eq!(app(&ed, "objectsSnapModeEnabled"), json!(true));
     drag_b_near_a(&mut ed, at);
     let lines = app(&ed, "snapLines");
-    assert!(
-        lines.as_array().is_some_and(|l| !l.is_empty()),
-        "{lines}"
-    );
+    assert!(lines.as_array().is_some_and(|l| !l.is_empty()), "{lines}");
     assert_eq!(xy(get(&ed, "b")), [200.0, 300.0]);
     ed.pointer_up(at(253.0, 350.0));
     assert_eq!(xy(get(&ed, "b")), [200.0, 300.0]);
@@ -381,7 +378,11 @@ fn a_dragged_element_moves_from_one_frame_to_another() {
         ),
         el("frame", "otherFrame", 300.0, 0.0, 150.0, json!({})),
     ]);
-    drag_element_into_frame(&mut ed, [300.0, 0.0, 150.0, 150.0], [50.0, 50.0, 20.0, 20.0]);
+    drag_element_into_frame(
+        &mut ed,
+        [300.0, 0.0, 150.0, 150.0],
+        [50.0, 50.0, 20.0, 20.0],
+    );
     assert_eq!(frame_of(&ed, "frameChild").as_deref(), Some("otherFrame"));
 }
 
@@ -420,7 +421,11 @@ fn a_drag_out_of_the_frame_leaves_it() {
             json!({ "frameId": "id0" }),
         ),
     ]);
-    drag_element_into_frame(&mut ed, [400.0, 400.0, 100.0, 100.0], [50.0, 50.0, 20.0, 20.0]);
+    drag_element_into_frame(
+        &mut ed,
+        [400.0, 400.0, 100.0, 100.0],
+        [50.0, 50.0, 20.0, 20.0],
+    );
     assert_eq!(frame_of(&ed, "frameChild"), None);
 }
 
@@ -873,10 +878,7 @@ fn a_midpoint_dragged_adds_a_point() {
     // linearElementEditor.test.tsx:214-245
     let mut ed = two_pointer("line");
     drag(&mut ed, [40.0, 20.0], [90.0, 70.0]);
-    assert_eq!(
-        line_points(&ed),
-        [[0.0, 0.0], [70.0, 50.0], [40.0, 0.0]]
-    );
+    assert_eq!(line_points(&ed), [[0.0, 0.0], [70.0, 50.0], [40.0, 0.0]]);
 }
 
 #[test]
@@ -941,10 +943,7 @@ fn alt_click_in_the_editor_adds_a_point() {
     double_click(&mut ed, [20.0, 20.0]);
     ed.pointer_down(alt(100.0, 50.0));
     ed.pointer_up(alt(100.0, 50.0));
-    assert_eq!(
-        line_points(&ed),
-        [[0.0, 0.0], [40.0, 0.0], [80.0, 30.0]]
-    );
+    assert_eq!(line_points(&ed), [[0.0, 0.0], [40.0, 0.0], [80.0, 30.0]]);
 }
 
 #[test]
@@ -1008,4 +1007,60 @@ fn an_elbow_segment_moved_and_reset_by_a_double_click() {
         points(live(&ed)[0]),
         [[0.0, 0.0], [125.0, 0.0], [125.0, 200.0], [250.0, 200.0]],
     );
+}
+
+// -- Binding highlight --------------------------------------------------------
+
+fn suggested(ed: &Ed) -> Value {
+    app(ed, "suggestedBinding")["element"]["id"].clone()
+}
+
+#[test]
+fn an_arrow_drawn_over_a_shape_suggests_its_binding() {
+    // pointDraggingUpdates (linearElementEditor.ts:2436-2466, 2560-2590):
+    // the element the dragged end would bind to is the highlight
+    // (interactiveScene.ts:1705-1720); the release clears it
+    let mut ed = editor_with(vec![filled("a", 100.0, 100.0, 100.0)]);
+    letter(&mut ed, "a");
+    ed.pointer_down(at(400.0, 150.0));
+    ed.pointer_move(at(300.0, 150.0));
+    assert_eq!(app(&ed, "suggestedBinding"), Value::Null);
+    ed.pointer_move(at(150.0, 150.0));
+    assert_eq!(suggested(&ed), "a");
+    ed.pointer_up(at(150.0, 150.0));
+    assert_eq!(app(&ed, "suggestedBinding"), Value::Null);
+}
+
+#[test]
+fn a_point_by_point_arrow_suggests_its_binding() {
+    let mut ed = editor_with(vec![filled("a", 100.0, 100.0, 100.0)]);
+    letter(&mut ed, "a");
+    ed.pointer_down(at(400.0, 150.0));
+    ed.pointer_up(at(400.0, 150.0));
+    ed.pointer_move(at(150.0, 150.0));
+    assert_eq!(suggested(&ed), "a");
+}
+
+#[test]
+fn a_dragged_arrow_end_suggests_its_binding() {
+    let mut ed = editor_with(vec![
+        filled("a", 100.0, 100.0, 100.0),
+        el(
+            "arrow",
+            "l",
+            300.0,
+            150.0,
+            100.0,
+            json!({ "height": 0, "points": [[0, 0], [100, 0]] }),
+        ),
+    ]);
+    click(&mut ed, [350.0, 150.0]);
+    ed.pointer_down(at(300.0, 150.0));
+    ed.pointer_move(at(150.0, 150.0));
+    assert_eq!(suggested(&ed), "a");
+    ed.pointer_up(at(150.0, 150.0));
+    assert_eq!(app(&ed, "suggestedBinding"), Value::Null);
+    // the end bound where it was dropped
+    let arrow = json!(get(&ed, "l").to_map());
+    assert_eq!(arrow["startBinding"]["elementId"], "a");
 }
