@@ -26,6 +26,14 @@
 //!   centre, outline distance, side headings, fixed points).
 //! - [`restore_env`]: [`restore_env::RoutingEnv`], the restore environment
 //!   that answers `restoreElements`' elbow arrow re-route with the router.
+//! - [`transform_handles`]: where a selection's resize and rotation
+//!   handles sit, by pointer type and zoom (`transformHandles.ts`);
+//!   [`resize_test`]: which handle a pointer is on and its cursor
+//!   (`resizeTest.ts`); [`resize_elements`]: resizing and rotating
+//!   elements, aspect lock and centre resize (`resizeElements.ts`);
+//!   [`transform`]: the gesture that drives them (`App.tsx`'s pointer-down
+//!   and `maybeHandleResize`); [`scene`]: the elements and
+//!   `mutateElement`.
 //! - [`tools`]: the tool registry (`TOOLS`, `findShapeByKey`), the active
 //!   tool, the tool lock and pen mode (`components/Tools.tsx`,
 //!   `setActiveTool`, `toggleLock`, `togglePenMode`).
@@ -43,8 +51,13 @@ pub mod geometry;
 pub mod history;
 mod js_value;
 pub mod mutate;
+pub mod resize_elements;
+pub mod resize_test;
 pub mod restore_env;
+pub mod scene;
 pub mod session;
 pub mod store;
 pub mod tools;
+pub mod transform;
+pub mod transform_handles;
 pub mod viewport;
