@@ -12,7 +12,10 @@ use excali_editor::binding::{
     get_binding_strategy_for_dragging_binding_element_endpoints, get_snap_outline_mid_point,
     BindingOpts, BindingStrategy,
 };
-use excali_editor::collision::hit_element;
+use excali_editor::collision::{get_hovered_element_for_binding, hit_element};
+use excali_editor::linear_element_editor::{
+    get_point_index_under_cursor, get_segment_midpoint_hit_coords, is_point_handle,
+};
 use excali_editor::frame::{
     add_elements_to_frame, get_common_frame_id, get_elements_in_resizing_frame, is_cursor_in_frame,
     is_in_frame, replace_all_elements_in_frame, update_frame_membership_of_selected_elements,
@@ -296,9 +299,91 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         {
             keys.push(("snapLines", json!([])));
         }
-        if self.set_keys(keys) {
+        let changed = self.set_keys(keys);
+        let hovered_linear = self.hover_linear(point);
+        let hovered_binding = self.hover_binding(point, &tool);
+        if changed || hovered_linear || hovered_binding {
             self.session.commit();
         }
+    }
+
+    /// The selected line or arrow under a still pointer
+    /// (`App.tsx:8557-8645`): the point handle it is over
+    /// (`hoverPointIndex`) and else the segment midpoint
+    /// (`segmentMidPointHoveredCoords`), which the interactive canvas
+    /// highlights. Returns whether they changed.
+    fn hover_linear(&mut self, point: [f64; 2]) -> bool {
+        let Some(mut state) = self.linear_state() else {
+            return false;
+        };
+        let Some(element) = self
+            .session
+            .elements()
+            .iter()
+            .find(|e| e.base.id == state.element_id)
+            .cloned()
+        else {
+            return false;
+        };
+        let zoom = self.session.app_state().zoom().unwrap_or(1.0);
+        let elements = self.session.elements();
+        let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
+        let map = ElementsMap::new(live.iter().copied());
+        let index = get_point_index_under_cursor(&element, &map, zoom, point[0], point[1]);
+        let on_handle = is_point_handle(&element, index);
+        let midpoint = if on_handle {
+            None
+        } else {
+            get_segment_midpoint_hit_coords(
+                &element,
+                state.segment_mid_point_hovered_coords,
+                point,
+                zoom,
+                state.is_editing,
+                &map,
+            )
+        };
+        if state.hover_point_index == index && state.segment_mid_point_hovered_coords == midpoint {
+            return false;
+        }
+        state.hover_point_index = index;
+        state.segment_mid_point_hovered_coords = midpoint;
+        self.set_linear_state(Some(&state));
+        true
+    }
+
+    /// Hovering with the arrow tool (`App.tsx:8110-8147`): the element an
+    /// arrow started here would bind to is suggested. Returns whether the
+    /// suggestion changed.
+    fn hover_binding(&mut self, point: [f64; 2], tool: &str) -> bool {
+        let app = self.session.app_state();
+        let new_element = !matches!(app.get("newElement"), None | Some(Value::Null));
+        let enabled = app
+            .get("isBindingEnabled")
+            .and_then(Value::as_bool)
+            .unwrap_or(true);
+        if tool != "arrow" || new_element || !enabled {
+            return false;
+        }
+        let zoom = app.zoom().unwrap_or(1.0);
+        let elbowed = app.get("currentItemArrowType").and_then(Value::as_str) == Some("elbow");
+        let snapping = app
+            .get("isMidpointSnappingEnabled")
+            .and_then(Value::as_bool)
+            .unwrap_or(true);
+        let elements = self.session.elements();
+        let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
+        let map = ElementsMap::new(live.iter().copied());
+        let value = match get_hovered_element_for_binding(point, &live, &map, zoom) {
+            Some(hovered) => {
+                let mid = snapping
+                    .then(|| get_snap_outline_mid_point(point, hovered, &map, zoom, elbowed))
+                    .flatten();
+                json!({ "element": Value::Object(hovered.to_map()), "midPoint": mid })
+            }
+            None => Value::Null,
+        };
+        self.set_keys(vec![("suggestedBinding", value)])
     }
 
     /// `originSnapOffset`, when set.

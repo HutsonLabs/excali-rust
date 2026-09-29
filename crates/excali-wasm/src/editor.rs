@@ -1678,6 +1678,17 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         // the selection element (`createGenericElementOnPointerDown`)
         let box_origin = (hit.is_none() && link.is_none())
             .then(|| get_grid_point(origin[0], origin[1], self.grid_size(input.ctrl_or_cmd)));
+        if let Some(corner) = box_origin {
+            // appState.selectionElement, which the interactive canvas draws
+            let id = self.session.env.random_id();
+            let seed = self.session.env.random_integer();
+            let now = RestoreEnv::now(&mut self.session.env);
+            let element =
+                new_element_for_tool("selection", self.session.app_state(), corner, None, &id, seed, now);
+            if let Some(element) = element {
+                self.set_keys(vec![("selectionElement", Value::Object(element.to_map()))]);
+            }
+        }
         self.gesture = Some(Gesture::Select(SelectGesture {
             origin,
             originals,
@@ -1939,6 +1950,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             return;
         };
         gesture.box_selected = true;
+        let press = gesture.origin;
         let corner = get_grid_point(point[0], point[1], grid);
         let elements = self.session.elements();
         let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
@@ -2002,8 +2014,36 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         patch.retain(|k, v| current.get(k) != Some(v));
         if !patch.is_empty() {
             self.session.set_state(patch);
-            self.session.commit();
         }
+        // the box follows the pointer (maybeDragNewGenericElement,
+        // App.tsx:13474-13497)
+        let selection = self
+            .session
+            .app_state()
+            .get("selectionElement")
+            .and_then(Value::as_object)
+            .and_then(|m| Element::from_map(m.clone()).ok());
+        if let Some(mut selection) = selection {
+            if let Some([x, y, width, height]) = drag_new_element(&DragNewElement {
+                element: &selection,
+                element_type: "selection",
+                origin: press,
+                pointer: point,
+                width: (point[0] - press[0]).abs(),
+                height: (point[1] - press[1]).abs(),
+                maintain_aspect_ratio: false,
+                resize_from_center: false,
+                width_aspect_ratio: None,
+                origin_offset: None,
+            }) {
+                selection.base.x = x;
+                selection.base.y = y;
+                selection.base.width = width;
+                selection.base.height = height;
+                self.set_keys(vec![("selectionElement", Value::Object(selection.to_map()))]);
+            }
+        }
+        self.session.commit();
         self.report();
     }
 
