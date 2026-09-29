@@ -539,6 +539,8 @@ jobs:
         run: node tools/goldens/linear-editor-fixtures.mjs --check
       - name: excali-editor flowchart fixture matches upstream's flowchart.ts
         run: node tools/goldens/flowchart-fixtures.mjs --check
+      - name: excali-editor arrow endpoint text fixture matches upstream's arrowEndpointText.ts and dragNewTextElement
+        run: node tools/goldens/arrow-endpoint-text-fixtures.mjs --check
       - name: excali-scene export bounds, excali-svg document and excali-core embed link fixtures match upstream's exportToSvg and getEmbedLink
         run: node tools/goldens/svg-export.mjs --check
       - name: excali-scene static scene fixture matches upstream's renderStaticScene
