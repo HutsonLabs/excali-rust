@@ -420,7 +420,10 @@ jobs:
   # and island) on hand-written and seeded selections; and icons.mjs
   # --check for excali-ui's icons.json and src/icons/generated.rs (ex-517),
   # every icons.tsx export rendered by React's renderToStaticMarkup with
-  # its size preset and mirror flag.
+  # its size preset and mirror flag; and toolbar.mjs --check for excali-ui's
+  # toolbar.json and src/toolbar/toolbar.css (ex-518), upstream's desktop
+  # Toolbar and extra-tools dropdown rendered by React with radix-ui into
+  # jsdom, per tool state.
   # Runs on arm64: V8's float results for some shapes differ in the last bits
   # between x64 and arm64, and the committed goldens are the arm64 output
   # (macOS and Linux arm64 agree byte for byte).
@@ -497,6 +500,8 @@ jobs:
         run: node tools/goldens/styles-panel.mjs --check
       - name: excali-ui icon set matches upstream's icons.tsx
         run: node tools/goldens/icons.mjs --check
+      - name: excali-ui shapes toolbar fixture and stylesheet match upstream's Toolbar and ExtraToolsDropdown
+        run: node tools/goldens/toolbar.mjs --check
       - name: excali-editor viewport fixture matches upstream's zoom, scroll constraints, zoom-to-fit, wheel handler and zoom actions
         run: node tools/goldens/viewport.mjs --check
       - name: excali-editor text editing fixture matches upstream's textWysiwyg, startTextEditing and redrawTextBoundingBox
