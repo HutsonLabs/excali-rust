@@ -8,6 +8,10 @@
 use std::collections::HashSet;
 
 use excali_core::element::{Element, ElementKind};
+use excali_editor::binding::{
+    get_binding_strategy_for_dragging_binding_element_endpoints, get_snap_outline_mid_point,
+    BindingOpts, BindingStrategy,
+};
 use excali_editor::collision::hit_element;
 use excali_editor::frame::{
     add_elements_to_frame, get_common_frame_id, get_elements_in_resizing_frame, is_cursor_in_frame,
@@ -168,16 +172,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 continue;
             }
             let boxed = selected.contains(&e.base.id) && Self::has_bounding_box(&[e]);
-            if !hit_element(
-                &mut self.hit_cache,
-                point,
-                e,
-                &map,
-                zoom,
-                true,
-                boxed,
-                None,
-            ) {
+            if !hit_element(&mut self.hit_cache, point, e, &map, zoom, true, boxed, None) {
                 continue;
             }
             // a frame's child is not hit from outside the frame
@@ -326,7 +321,87 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             ("snapLines", json!([])),
             ("originSnapOffset", Value::Null),
             ("selectedElementsAreBeingDragged", json!(false)),
+            ("suggestedBinding", Value::Null),
         ]);
+    }
+
+    /// `appState.suggestedBinding` while an arrow's end is dragged to
+    /// `point` (local) with the pointer at `pointer`
+    /// (`pointDraggingUpdates`, `linearElementEditor.ts:2386-2600`): the
+    /// element the end would bind to, with the side midpoint it snaps to
+    /// when midpoint snapping is on; `null` when it would unbind, as it was
+    /// when the binding stays.
+    pub(crate) fn suggest_binding(
+        &mut self,
+        arrow_id: &str,
+        index: usize,
+        point: [f64; 2],
+        pointer: [f64; 2],
+        origin: [f64; 2],
+        new_arrow: bool,
+        alt: bool,
+    ) {
+        let enabled = self
+            .session
+            .app_state()
+            .get("isBindingEnabled")
+            .and_then(Value::as_bool)
+            .unwrap_or(true);
+        let elements = self.session.elements().to_vec();
+        let Some(arrow) = elements
+            .iter()
+            .find(|e| e.base.id == arrow_id && matches!(e.kind, ElementKind::Arrow(_)))
+        else {
+            return;
+        };
+        let last = arrow.kind.points().map_or(0, <[_]>::len).saturating_sub(1);
+        if !enabled || (index != 0 && index != last) {
+            return;
+        }
+        let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
+        let map = ElementsMap::new(live.iter().copied());
+        let state = self.binding_app_state(origin, alt);
+        let Ok((start, end)) = get_binding_strategy_for_dragging_binding_element_endpoints(
+            arrow,
+            &[(index, point)],
+            pointer,
+            &map,
+            &live,
+            &state,
+            &BindingOpts {
+                new_arrow,
+                alt_key: alt,
+                ..BindingOpts::default()
+            },
+        ) else {
+            return;
+        };
+        let strategy = if index == 0 { start } else { end };
+        let value = match strategy {
+            BindingStrategy::Keep => return,
+            BindingStrategy::Unbind => Value::Null,
+            BindingStrategy::Bind { element, .. } => {
+                let Some(bindable) = map.get(&element) else {
+                    return;
+                };
+                let snapping = self
+                    .session
+                    .app_state()
+                    .get("isMidpointSnappingEnabled")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(true);
+                let elbowed = matches!(&arrow.kind, ElementKind::Arrow(a) if a.elbowed);
+                let zoom = self.session.app_state().zoom().unwrap_or(1.0);
+                let mid = snapping
+                    .then(|| get_snap_outline_mid_point(pointer, bindable, &map, zoom, elbowed))
+                    .flatten();
+                json!({
+                    "element": Value::Object(bindable.to_map()),
+                    "midPoint": mid,
+                })
+            }
+        };
+        self.set_keys(vec![("suggestedBinding", value)]);
     }
 
     /// The frame membership after a drag of the selection
@@ -363,7 +438,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                     .filter(|&i| is_in_frame(&next, i, &membership))
                     .collect();
                 if let Some(frame) = next.iter().find(|e| &e.base.id == frame_id).cloned() {
-                    let ids: Vec<String> = to_add.iter().map(|&i| next[i].base.id.clone()).collect();
+                    let ids: Vec<String> =
+                        to_add.iter().map(|&i| next[i].base.id.clone()).collect();
                     let groups_left = self.leave_editing_group(&mut next, &ids, editing.as_deref());
                     let to_add: Vec<usize> = ids
                         .iter()
@@ -498,7 +574,11 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// (`App.tsx:13574-13588`, `:13800-13817`).
     pub(crate) fn elements_in_resizing_frame(&self, id: &str) -> Vec<String> {
         let elements = self.session.elements();
-        let live: Vec<Element> = elements.iter().filter(|e| !e.base.is_deleted).cloned().collect();
+        let live: Vec<Element> = elements
+            .iter()
+            .filter(|e| !e.base.is_deleted)
+            .cloned()
+            .collect();
         let Some(frame) = live.iter().find(|e| e.base.id == id) else {
             return Vec::new();
         };

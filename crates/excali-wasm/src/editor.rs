@@ -1758,6 +1758,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         let Some(Gesture::Create(gesture)) = self.gesture.as_mut() else {
             return;
         };
+        let origin = gesture.origin;
         let Some(element) = self
             .session
             .elements()
@@ -1889,10 +1890,15 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 }
             }
         };
+        let dragged_end = update.points.as_ref().and_then(|p| p.last().copied());
         scene.mutate_element(&element.base.id, update, &mut self.session.env);
         let app_state = self.session.app_state().clone();
         self.apply(scene, app_state);
         let id = element.base.id.clone();
+        if let (Some(point), ElementKind::Arrow(_)) = (dragged_end, &element.kind) {
+            let last = element.kind.points().map_or(1, <[_]>::len) - 1;
+            self.suggest_binding(&id, last, point, pointer, origin, true, input.alt_key);
+        }
         let new_element = self.element_value(Some(&id));
         let mut keys = vec![("newElement", new_element)];
         // what a frame being drawn would take in (App.tsx:13574-13588)

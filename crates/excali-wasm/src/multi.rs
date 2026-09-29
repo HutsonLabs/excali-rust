@@ -34,7 +34,9 @@ use excali_editor::binding::{
     BindingOpts, BindingStrategy,
 };
 use excali_editor::collision::is_point_in_element;
-use excali_editor::linear_element_editor::{create_point_at, get_point_at_index_global_coordinates};
+use excali_editor::linear_element_editor::{
+    create_point_at, get_point_at_index_global_coordinates, move_points, PointUpdate,
+};
 use excali_editor::mutate::bump_version;
 use excali_editor::new_element::get_locked_linear_cursor_align_size;
 use excali_editor::scene::{ElementUpdate, Scene};
@@ -181,7 +183,30 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             if next[last] == point {
                 return;
             }
-            next[last] = point;
+            // movePoints: an elbow arrow re-routes between its ends
+            let mut scene = Scene::new(self.session.elements().to_vec());
+            move_points(
+                &mut scene,
+                &mut self.session.env,
+                &element.base.id,
+                &[(last, PointUpdate::to(point))],
+                Default::default(),
+            );
+            let app_state = self.session.app_state().clone();
+            self.apply(scene, app_state);
+            let origin = [element.base.x, element.base.y];
+            self.suggest_binding(
+                &element.base.id,
+                last,
+                point,
+                pointer,
+                origin,
+                true,
+                input.alt_key,
+            );
+            self.sync_multi_keys();
+            self.session.commit();
+            return self.report();
         }
         let mut scene = Scene::new(self.session.elements().to_vec());
         scene.mutate_element(
@@ -232,9 +257,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             .as_ref()
             .and_then(|m| m.last_committed)
             .is_some_and(|c| distance(local, points[c]) < LINE_CONFIRM_THRESHOLD);
-        if self.auto_confirms(&element, &points, origin)
-            || (points.len() > 1 && in_commit_zone)
-        {
+        if self.auto_confirms(&element, &points, origin) || (points.len() > 1 && in_commit_zone) {
             self.finalize(Some((origin, input)));
             self.gesture = Some(Gesture::Finalized);
             return;
@@ -249,7 +272,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         ids.insert(element.base.id.clone(), Value::Bool(true));
         self.set_keys(vec![("selectedElementIds", Value::Object(ids))]);
         self.session.commit();
-        let origin_in_grid = get_grid_point(origin[0], origin[1], self.grid_size(input.ctrl_or_cmd));
+        let origin_in_grid =
+            get_grid_point(origin[0], origin[1], self.grid_size(input.ctrl_or_cmd));
         self.gesture = Some(Gesture::Create(CreateGesture {
             id: element.base.id.clone(),
             tool: tool.to_owned(),
@@ -495,8 +519,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         let Some(mut element) = scene.get(id).cloned() else {
             return;
         };
-        if element.kind.points().map_or(0, <[_]>::len) < 2 || is_invisibly_small_element(&element)
-        {
+        if element.kind.points().map_or(0, <[_]>::len) < 2 || is_invisibly_small_element(&element) {
             element.base.is_deleted = true;
             bump_version(&mut element, None, &mut self.session.env);
             scene.replace_element(element);

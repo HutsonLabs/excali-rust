@@ -474,6 +474,23 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 )
             })
             .collect();
+        // the binding the dragged end suggests, before it moves
+        // (pointDraggingUpdates)
+        let start = selected.contains(&0);
+        let end = selected.contains(&(pts.len() - 1));
+        if start != end {
+            let index = if start { 0 } else { pts.len() - 1 };
+            let p = pts[index];
+            self.suggest_binding(
+                &press.id,
+                index,
+                [p[0] + dx, p[1] + dy],
+                pointer,
+                press.origin,
+                false,
+                input.alt_key,
+            );
+        }
         let mut scene = scene;
         move_points(
             &mut scene,
@@ -488,8 +505,6 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             .linear_element(&press.id)
             .and_then(|e| e.kind.points().map(<[_]>::len))
             .unwrap_or(pts.len());
-        let start = selected.contains(&0);
-        let end = selected.contains(&(pts.len() - 1));
         if elbowed {
             selected = vec![if end { after - 1 } else { 0 }];
             last_clicked = selected[0] as isize;
