@@ -10,7 +10,8 @@ publish = false
 
 # excali-core, excali-math, excali-rough and excali-text are reached through
 # excali-scene (the crate table of site/content/architecture/overview.md):
-# excali-text measures and wraps text a resize rewraps, excali-rough draws
+# excali-text measures and wraps text a resize rewraps and text editing and
+# bound text layout lay out (text_editing, text_layout), excali-rough draws
 # the curve a resized line's box is read from
 # (getResizedElementAbsoluteCoords); serde_json carries the element maps
 # restore hands to the router (excali_core::restore::RestoreEnv).
@@ -20,6 +21,7 @@ excali-math = { path = "../excali-math" }
 excali-rough = { path = "../excali-rough" }
 excali-scene = { path = "../excali-scene" }
 excali-text = { path = "../excali-text" }
+serde = { workspace = true }
 serde_json = { workspace = true }
 indexmap = { workspace = true }
 

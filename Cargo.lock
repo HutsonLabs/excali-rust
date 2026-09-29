@@ -465,6 +465,7 @@ dependencies = [
  "excali-text",
  "flate2",
  "indexmap",
+ "serde",
  "serde_json",
  "sha2",
 ]

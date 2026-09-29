@@ -148,16 +148,64 @@ impl<E: HistoryEnv> Session<E> {
     }
 
     /// `scene.replaceAllElements(elements)`: the elements with invalid
-    /// fractional indices synced (bumping their versions).
-    fn replace_all_elements(&mut self, mut elements: Vec<Element>) -> Result<(), SessionError> {
+    /// fractional indices synced (bumping their versions). Nothing is
+    /// captured until the next [`Session::commit`].
+    pub fn replace_all_elements(&mut self, mut elements: Vec<Element>) -> Result<(), SessionError> {
         sync_invalid_indices(&mut elements, &mut DynStamp(&mut self.env))
             .map_err(SessionError::Indices)?;
         self.elements = elements;
         Ok(())
     }
 
-    /// `setState(appState)`: the keys merged into the app state.
-    fn set_state(&mut self, app_state: Map<String, Value>) {
+    /// `scene.insertElementsAtIndex(elements, index)` (`Scene.ts:342-371`):
+    /// the elements inserted at `index` (the end for `None`), their
+    /// fractional indices generated between their neighbours'
+    /// (`syncMovedIndices`), then the scene replaced.
+    pub fn insert_elements_at_index(
+        &mut self,
+        inserted: Vec<Element>,
+        index: Option<usize>,
+    ) -> Result<(), SessionError> {
+        if inserted.is_empty() {
+            return Ok(());
+        }
+        let index = index
+            .unwrap_or(self.elements.len())
+            .min(self.elements.len());
+        let moved: std::collections::HashSet<String> =
+            inserted.iter().map(|e| e.base.id.clone()).collect();
+        let mut next = self.elements[..index].to_vec();
+        next.extend(inserted);
+        next.extend_from_slice(&self.elements[index..]);
+        excali_core::fractional_index::sync_moved_indices(
+            &mut next,
+            &moved,
+            &mut DynStamp(&mut self.env),
+        )
+        .map_err(SessionError::Indices)?;
+        self.replace_all_elements(next)
+    }
+
+    /// The scene's elements as an ordered map for `f` to change in place
+    /// (`scene.mutateElement`), with the environment for the version
+    /// stamps; the elements are written back in their order. `f` must not
+    /// add or remove elements.
+    pub fn edit_elements<R>(&mut self, f: impl FnOnce(&mut SceneElementsMap, &mut E) -> R) -> R {
+        let mut map = self.elements_map();
+        let result = f(&mut map, &mut self.env);
+        for element in &mut self.elements {
+            if let Some(next) = map.get(&element.base.id) {
+                if next != element {
+                    *element = next.clone();
+                }
+            }
+        }
+        result
+    }
+
+    /// `setState(appState)`: the keys merged into the app state. Nothing is
+    /// captured until the next [`Session::commit`].
+    pub fn set_state(&mut self, app_state: Map<String, Value>) {
         for (key, value) in app_state {
             self.app_state.insert(key, value);
         }

@@ -58,6 +58,13 @@
 //!   coordinate transforms, scroll locks, the wheel, the zoom actions and
 //!   zoom-to-fit (`viewport.ts`, `App.wheel.ts`, `App.viewport.ts`,
 //!   `actionCanvas.tsx`).
+//! - [`text_layout`]: laying out bound text after an edit
+//!   (`redrawTextBoundingBox`, the sticky note fit, arrow label
+//!   positions, the original container heights), the layout undo and redo
+//!   run through `HistoryEnv::redraw_text_bounding_box`.
+//! - [`text_editing`]: the text editor overlay (`textWysiwyg.tsx`) and
+//!   `App.startTextEditing` / `handleTextWysiwyg`: creating or picking the
+//!   text, the textarea's style, typing, indenting, submitting.
 
 pub mod actions;
 mod binary_heap;
@@ -79,6 +86,8 @@ pub mod restore_env;
 pub mod scene;
 pub mod session;
 pub mod store;
+pub mod text_editing;
+pub mod text_layout;
 pub mod tools;
 pub mod transform;
 pub mod transform_handles;
