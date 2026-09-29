@@ -1013,6 +1013,19 @@ const extraCases = () => {
       ]);
     });
   }
+  // a container whose boundElements still lists a deleted label: upstream
+  // reads it with scene.getElement, deleted or not, and turns and moves it
+  add("rotate-deleted-label", (up) => {
+    const r = el(up, { type: "rectangle", x: 10, y: 20, width: 200, height: 100 });
+    const elements = [r];
+    const label = bindLabel(up, elements, r, "deleted label");
+    label.isDeleted = true;
+    return session(up, "rotate-deleted-label", elements, [
+      { begin: { selected: [r.id], handle: "rotation" } },
+      { move: [80, 40] },
+      { move: [-90, 200] },
+    ]);
+  });
   // rotating a bound arrow unbinds it; rotating its label follows
   add("rotate-bound-arrow", (up) => {
     const a = el(up, {
