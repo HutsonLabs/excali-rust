@@ -1029,7 +1029,7 @@ fn restored_zoom(zoom: Option<&Value>) -> Result<f64, TypeError> {
             _ => number(DEFAULT_ZOOM),
         }
     };
-    let multiplier = 10f64.powf(6.0);
+    let multiplier = math::pow(10f64, 6.0);
     let sum = js::add_number(&value, f64::EPSILON)?;
     let rounded = math::round(sum * multiplier) / multiplier;
     Ok(clamp(rounded, MIN_ZOOM, MAX_ZOOM))

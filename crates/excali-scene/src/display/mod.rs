@@ -105,6 +105,12 @@ pub use svg::{SvgNode, SvgTag, SvgValue};
 pub use text::{Direction, Font, TextAlign, TextRun};
 pub use transform::Transform;
 
+/// The platform-independent transcendental functions (`excali_math::js`,
+/// ex-009): a backend that needs `sin`, `atan2` or `pow` to paint the list
+/// (arcs, stroking) calls these, which answer the same on every platform,
+/// and still reaches the scene only through this module (ADR-008).
+pub use excali_math::js;
+
 /// One draw, or a group of them.
 #[derive(Clone, Debug, PartialEq)]
 pub enum DisplayItem {

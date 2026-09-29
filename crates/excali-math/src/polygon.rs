@@ -5,6 +5,7 @@
 //! TypeError. The port does not panic there: an empty polygon is open, stays
 //! empty when closed, and has zero area.
 
+use crate::js;
 use std::f64::consts::PI;
 
 use crate::point::points_equal_with;
@@ -195,8 +196,8 @@ pub fn simplify_convex_polygon<S: Space>(
         let prev = polygon[(i + n - 1) % n];
         let curr = polygon[i];
         let next = polygon[(i + 1) % n];
-        let in_angle = (curr.y - prev.y).atan2(curr.x - prev.x);
-        let out_angle = (next.y - curr.y).atan2(next.x - curr.x);
+        let in_angle = js::atan2(curr.y - prev.y, curr.x - prev.x);
+        let out_angle = js::atan2(next.y - curr.y, next.x - curr.x);
         normalize_turn(out_angle - in_angle).abs()
     };
 

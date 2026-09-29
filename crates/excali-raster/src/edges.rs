@@ -19,6 +19,7 @@
 //! `SkPathBuilder.cpp`, `SkMatrix.cpp`; Blink `canvas_path.cc`,
 //! `path_builder.cc`), so the scan converter sees Chrome's coordinates.
 
+use excali_scene::display::js;
 use excali_scene::display::{Path, PathCommand, Transform};
 
 pub(crate) type P = (f64, f64);
@@ -140,7 +141,7 @@ struct ArcTo {
 }
 
 fn sin_snap(r: f32) -> f32 {
-    let v = r.sin();
+    let v = js::sin_f32(r);
     if v.abs() <= NEARLY_ZERO {
         0.0
     } else {
@@ -149,7 +150,7 @@ fn sin_snap(r: f32) -> f32 {
 }
 
 fn cos_snap(r: f32) -> f32 {
-    let v = r.cos();
+    let v = js::cos_f32(r);
     if v.abs() <= NEARLY_ZERO {
         0.0
     } else {
@@ -305,7 +306,10 @@ fn sk_arc_to(oval: [f32; 4], start_deg: f32, sweep_deg: f32) -> ArcTo {
     if start_v == stop_v {
         let end = deg_to_rad(start_deg + sweep_deg);
         return ArcTo {
-            start: (cx + half_w * end.cos(), cy + half_h * end.sin()),
+            start: (
+                cx + half_w * js::cos_f32(end),
+                cy + half_h * js::sin_f32(end),
+            ),
             conics: Vec::new(),
         };
     }
@@ -860,9 +864,13 @@ mod tests {
         // 1.9 rad: one quadrant and the remainder.
         let a = blink_arc(0.0, 0.0, 1.0, 0.0, 1.9);
         assert_eq!(a.conics.len(), 2);
-        assert!(close(a.conics[1].1, (1.9f32.cos(), 1.9f32.sin())));
+        assert!(close(
+            a.conics[1].1,
+            (js::cos_f32(1.9f32), js::sin_f32(1.9f32))
+        ));
         assert!(
-            (a.conics[1].2 - ((1.9f32 - std::f32::consts::FRAC_PI_2) / 2.0).cos()).abs() < 1e-5
+            (a.conics[1].2 - js::cos_f32((1.9f32 - std::f32::consts::FRAC_PI_2) / 2.0)).abs()
+                < 1e-5
         );
         // Anticlockwise by π: two quadrants through the top.
         let a = blink_arc(0.0, 0.0, 1.0, 0.0, -std::f64::consts::PI);

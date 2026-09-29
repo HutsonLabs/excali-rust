@@ -231,8 +231,8 @@ pub fn arc(
             ops.extend(double_line(
                 cx,
                 cy,
-                cx + rx * strt.cos(),
-                cy + ry * strt.sin(),
+                cx + rx * js::cos(strt),
+                cy + ry * js::sin(strt),
                 o,
                 rng,
                 false,
@@ -240,15 +240,18 @@ pub fn arc(
             ops.extend(double_line(
                 cx,
                 cy,
-                cx + rx * stp.cos(),
-                cy + ry * stp.sin(),
+                cx + rx * js::cos(stp),
+                cy + ry * js::sin(stp),
                 o,
                 rng,
                 false,
             ));
         } else {
             ops.push(Op::LineTo([cx, cy]));
-            ops.push(Op::LineTo([cx + rx * strt.cos(), cy + ry * strt.sin()]));
+            ops.push(Op::LineTo([
+                cx + rx * js::cos(strt),
+                cy + ry * js::sin(strt),
+            ]));
         }
     }
     OpSet::path(ops)
@@ -370,14 +373,14 @@ pub fn pattern_fill_arc(
     let mut points: Vec<Point> = Vec::new();
     let mut angle = strt;
     while angle <= stp {
-        points.push([cx + rx * angle.cos(), cy + ry * angle.sin()]);
+        points.push([cx + rx * js::cos(angle), cy + ry * js::sin(angle)]);
         let next = angle + increment;
         if next <= angle || next.is_nan() {
             break;
         }
         angle = next;
     }
-    points.push([cx + rx * stp.cos(), cy + ry * stp.sin()]);
+    points.push([cx + rx * js::cos(stp), cy + ry * js::sin(stp)]);
     points.push([cx, cy]);
     pattern_fill_polygons(&mut [points], o, rng)
 }
@@ -592,42 +595,42 @@ fn compute_ellipse_points(
     let mut all_points = Vec::new();
     if core_only {
         let increment = increment / 4.0;
-        all_points.push([cx + rx * (-increment).cos(), cy + ry * (-increment).sin()]);
+        all_points.push([cx + rx * js::cos(-increment), cy + ry * js::sin(-increment)]);
         let mut angle = 0.0;
         while angle <= PI * 2.0 {
-            let p = [cx + rx * f64::cos(angle), cy + ry * f64::sin(angle)];
+            let p = [cx + rx * js::cos(angle), cy + ry * js::sin(angle)];
             core_points.push(p);
             all_points.push(p);
             angle += increment;
         }
-        all_points.push([cx + rx * 0f64.cos(), cy + ry * 0f64.sin()]);
-        all_points.push([cx + rx * increment.cos(), cy + ry * increment.sin()]);
+        all_points.push([cx + rx * js::cos(0f64), cy + ry * js::sin(0f64)]);
+        all_points.push([cx + rx * js::cos(increment), cy + ry * js::sin(increment)]);
     } else {
         let rad_offset = offset_opt(0.5, o, rng, 1.0) - (PI / 2.0);
         let jitter = |rng: &mut Random| offset_opt(off, o, rng, 1.0);
-        let x = jitter(rng) + cx + 0.9 * rx * (rad_offset - increment).cos();
-        let y = jitter(rng) + cy + 0.9 * ry * (rad_offset - increment).sin();
+        let x = jitter(rng) + cx + 0.9 * rx * js::cos(rad_offset - increment);
+        let y = jitter(rng) + cy + 0.9 * ry * js::sin(rad_offset - increment);
         all_points.push([x, y]);
         let end_angle = PI * 2.0 + rad_offset - 0.01;
         let mut angle = rad_offset;
         while angle < end_angle {
-            let x = jitter(rng) + cx + rx * angle.cos();
-            let y = jitter(rng) + cy + ry * angle.sin();
+            let x = jitter(rng) + cx + rx * js::cos(angle);
+            let y = jitter(rng) + cy + ry * js::sin(angle);
             core_points.push([x, y]);
             all_points.push([x, y]);
             angle += increment;
         }
         let a = rad_offset + PI * 2.0 + overlap * 0.5;
-        let x = jitter(rng) + cx + rx * a.cos();
-        let y = jitter(rng) + cy + ry * a.sin();
+        let x = jitter(rng) + cx + rx * js::cos(a);
+        let y = jitter(rng) + cy + ry * js::sin(a);
         all_points.push([x, y]);
         let a = rad_offset + overlap;
-        let x = jitter(rng) + cx + 0.98 * rx * a.cos();
-        let y = jitter(rng) + cy + 0.98 * ry * a.sin();
+        let x = jitter(rng) + cx + 0.98 * rx * js::cos(a);
+        let y = jitter(rng) + cy + 0.98 * ry * js::sin(a);
         all_points.push([x, y]);
         let a = rad_offset + overlap * 0.5;
-        let x = jitter(rng) + cx + 0.9 * rx * a.cos();
-        let y = jitter(rng) + cy + 0.9 * ry * a.sin();
+        let x = jitter(rng) + cx + 0.9 * rx * js::cos(a);
+        let y = jitter(rng) + cy + 0.9 * ry * js::sin(a);
         all_points.push([x, y]);
     }
     (all_points, core_points)
@@ -650,18 +653,18 @@ fn arc_ops(
     let rad_offset = strt + offset_opt(0.1, o, rng, 1.0);
     let mut points: Vec<Point> = Vec::new();
     let jitter = |rng: &mut Random| offset_opt(off, o, rng, 1.0);
-    let x = jitter(rng) + cx + 0.9 * rx * (rad_offset - increment).cos();
-    let y = jitter(rng) + cy + 0.9 * ry * (rad_offset - increment).sin();
+    let x = jitter(rng) + cx + 0.9 * rx * js::cos(rad_offset - increment);
+    let y = jitter(rng) + cy + 0.9 * ry * js::sin(rad_offset - increment);
     points.push([x, y]);
     let mut angle = rad_offset;
     while angle <= stp {
-        let x = jitter(rng) + cx + rx * angle.cos();
-        let y = jitter(rng) + cy + ry * angle.sin();
+        let x = jitter(rng) + cx + rx * js::cos(angle);
+        let y = jitter(rng) + cy + ry * js::sin(angle);
         points.push([x, y]);
         angle += increment;
     }
-    points.push([cx + rx * stp.cos(), cy + ry * stp.sin()]);
-    points.push([cx + rx * stp.cos(), cy + ry * stp.sin()]);
+    points.push([cx + rx * js::cos(stp), cy + ry * js::sin(stp)]);
+    points.push([cx + rx * js::cos(stp), cy + ry * js::sin(stp)]);
     curve_ops(&points, o, rng)
 }
 

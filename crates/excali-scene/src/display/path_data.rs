@@ -28,6 +28,7 @@
 //! adds nothing. Excalidraw's own path data (`getSvgPathFromStroke`) uses
 //! only `M`, `Q`, `L` and `Z`.
 
+use excali_math::js;
 use std::f64::consts::{FRAC_PI_2, TAU};
 
 use super::path::Path;
@@ -293,7 +294,7 @@ impl Builder {
             return;
         }
         let phi = rotation.to_radians();
-        let (sin_phi, cos_phi) = phi.sin_cos();
+        let (sin_phi, cos_phi) = (js::sin(phi), js::cos(phi));
         let dx = (x1 - x2) / 2.0;
         let dy = (y1 - y2) / 2.0;
         let x1p = cos_phi * dx + sin_phi * dy;
@@ -315,7 +316,7 @@ impl Builder {
         let cx = cos_phi * cxp - sin_phi * cyp + (x1 + x2) / 2.0;
         let cy = sin_phi * cxp + cos_phi * cyp + (y1 + y2) / 2.0;
         let angle = |ux: f64, uy: f64, vx: f64, vy: f64| {
-            let a = (ux * vy - uy * vx).atan2(ux * vx + uy * vy);
+            let a = js::atan2(ux * vy - uy * vx, ux * vx + uy * vy);
             if a.is_nan() {
                 0.0
             } else {
@@ -333,16 +334,16 @@ impl Builder {
         }
         let segments = (delta.abs() / FRAC_PI_2).ceil().max(1.0) as usize;
         let step = delta / segments as f64;
-        let k = 4.0 / 3.0 * (step / 4.0).tan();
+        let k = 4.0 / 3.0 * js::tan(step / 4.0);
         let point = |t: f64| {
-            let (s, c) = t.sin_cos();
+            let (s, c) = (js::sin(t), js::cos(t));
             (
                 cx + rx * c * cos_phi - ry * s * sin_phi,
                 cy + rx * c * sin_phi + ry * s * cos_phi,
             )
         };
         let derivative = |t: f64| {
-            let (s, c) = t.sin_cos();
+            let (s, c) = (js::sin(t), js::cos(t));
             (
                 -rx * s * cos_phi - ry * c * sin_phi,
                 -rx * s * sin_phi + ry * c * cos_phi,

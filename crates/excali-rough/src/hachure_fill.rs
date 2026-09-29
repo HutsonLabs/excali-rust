@@ -124,7 +124,7 @@ pub(crate) fn hachure_lines_in(
 /// `(Math.PI / 180) * degrees`, then its cosine and sine.
 fn cos_sin(degrees: f64) -> (f64, f64) {
     let angle = (std::f64::consts::PI / 180.0) * degrees;
-    (angle.cos(), angle.sin())
+    (js::cos(angle), js::sin(angle))
 }
 
 /// `rotatePoints(polygon, [0, 0], degrees)`: every entry, so a point that

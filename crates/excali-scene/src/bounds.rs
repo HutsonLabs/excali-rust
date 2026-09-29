@@ -301,7 +301,7 @@ pub fn get_arrowhead_points(
                 point_rotate_rads(
                     point_from(tx + min_size * 2.0, ty),
                     tip,
-                    Radians((py - ty).atan2(px - tx)),
+                    Radians(js::atan2(py - ty, px - tx)),
                 )
             }
             ArrowheadPosition::End => {
@@ -309,7 +309,7 @@ pub fn get_arrowhead_points(
                 point_rotate_rads(
                     point_from(tx - min_size * 2.0, ty),
                     tip,
-                    Radians((ty - py).atan2(tx - px)),
+                    Radians(js::atan2(ty - py, tx - px)),
                 )
             }
         };

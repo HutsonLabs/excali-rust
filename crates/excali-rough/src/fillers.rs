@@ -128,8 +128,8 @@ fn zigzag(list: &mut PolygonList, o: &Options, rng: &mut Random) -> OpSet {
     };
     let lines = with_copy(rng, o.seed, |r| polygon_hachure_lines(list, &o2, r));
     let zigzag_angle = (PI / 180.0) * o.hachure_angle;
-    let dgx = gap * 0.5 * zigzag_angle.cos();
-    let dgy = gap * 0.5 * zigzag_angle.sin();
+    let dgx = gap * 0.5 * js::cos(zigzag_angle);
+    let dgy = gap * 0.5 * js::sin(zigzag_angle);
     let mut zigzag_lines = Vec::new();
     for line in &lines {
         let length = line_length(line);
@@ -151,7 +151,7 @@ fn left_to_right(line: &Line) -> ([f64; 2], f64) {
         p1 = line[1];
         p2 = line[0];
     }
-    let alpha = ((p2[1] - p1[1]) / (p2[0] - p1[0])).atan();
+    let alpha = js::atan((p2[1] - p1[1]) / (p2[0] - p1[0]));
     (p1, alpha)
 }
 
@@ -186,7 +186,7 @@ fn dashed(list: &mut PolygonList, o: &Options, rng: &mut Random) -> OpSet {
         let count = (length / (offset + gap)).floor();
         let start_offset = (length + gap - (count * (offset + gap))) / 2.0;
         let (p1, alpha) = left_to_right(line);
-        let (cos, sin) = (alpha.cos(), alpha.sin());
+        let (cos, sin) = (js::cos(alpha), js::sin(alpha));
         for i in 0..loop_count(count) {
             let lstart = i as f64 * (offset + gap);
             let lend = lstart + offset;
@@ -231,11 +231,17 @@ fn zigzag_line(list: &mut PolygonList, o: &Options, rng: &mut Random) -> OpSet {
                 let lstart = i * 2.0 * zo;
                 let lend = (i + 1.0) * 2.0 * zo;
                 let dz = (2.0 * zo.powi(2)).sqrt();
-                let start = [p1[0] + (lstart * alpha.cos()), p1[1] + lstart * alpha.sin()];
-                let end = [p1[0] + (lend * alpha.cos()), p1[1] + (lend * alpha.sin())];
+                let start = [
+                    p1[0] + (lstart * js::cos(alpha)),
+                    p1[1] + lstart * js::sin(alpha),
+                ];
+                let end = [
+                    p1[0] + (lend * js::cos(alpha)),
+                    p1[1] + (lend * js::sin(alpha)),
+                ];
                 let middle = [
-                    start[0] + dz * (alpha + PI / 4.0).cos(),
-                    start[1] + dz * (alpha + PI / 4.0).sin(),
+                    start[0] + dz * js::cos(alpha + PI / 4.0),
+                    start[1] + dz * js::sin(alpha + PI / 4.0),
                 ];
                 ops.extend(double_line_fill_ops(
                     start[0], start[1], middle[0], middle[1], &o, rng,

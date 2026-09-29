@@ -16,6 +16,7 @@
 //! `distanceToElement`; the port's cache counts the outline tests it runs),
 //! and pin `App.getElementHitThreshold` (`App.tsx:6927-6934`).
 
+use excali_math::js;
 use std::collections::HashSet;
 
 use excali_core::constants::DEFAULT_COLLISION_THRESHOLD;
@@ -442,7 +443,7 @@ fn inside(case_id: &str, at: [f64; 2]) -> bool {
 }
 
 fn rotate(p: [f64; 2], c: [f64; 2], angle: f64) -> [f64; 2] {
-    let (s, co) = angle.sin_cos();
+    let (s, co) = (js::sin(angle), js::cos(angle));
     [
         (p[0] - c[0]) * co - (p[1] - c[1]) * s + c[0],
         (p[0] - c[0]) * s + (p[1] - c[1]) * co + c[1],

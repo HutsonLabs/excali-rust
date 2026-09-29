@@ -11,6 +11,7 @@
 //! cap and join edges and changes the outline's convexity. Arithmetic is
 //! `f32`, as Skia's.
 
+use excali_scene::display::js;
 use std::f32::consts::FRAC_1_SQRT_2;
 
 use crate::edges::Seg;
@@ -266,18 +267,18 @@ fn solve_cubic_poly(coeff: [f32; 4]) -> Vec<f32> {
     let r2_minus_q3 = r * r - q3;
     let adiv3 = a / 3.0;
     if r2_minus_q3 < 0.0 {
-        let theta = sk_pin(r / q3.sqrt(), -1.0, 1.0).acos();
+        let theta = js::acos_f32(sk_pin(r / q3.sqrt(), -1.0, 1.0));
         let neg2_root_q = -2.0 * q.sqrt();
         let pi = std::f32::consts::PI;
         let mut t = [
-            sk_pin(neg2_root_q * (theta / 3.0).cos() - adiv3, 0.0, 1.0),
+            sk_pin(neg2_root_q * js::cos_f32(theta / 3.0) - adiv3, 0.0, 1.0),
             sk_pin(
-                neg2_root_q * ((theta + 2.0 * pi) / 3.0).cos() - adiv3,
+                neg2_root_q * js::cos_f32((theta + 2.0 * pi) / 3.0) - adiv3,
                 0.0,
                 1.0,
             ),
             sk_pin(
-                neg2_root_q * ((theta - 2.0 * pi) / 3.0).cos() - adiv3,
+                neg2_root_q * js::cos_f32((theta - 2.0 * pi) / 3.0) - adiv3,
                 0.0,
                 1.0,
             ),
@@ -293,7 +294,7 @@ fn solve_cubic_poly(coeff: [f32; 4]) -> Vec<f32> {
         out
     } else {
         let mut a2 = r.abs() + r2_minus_q3.sqrt();
-        a2 = a2.powf(0.333_333_3);
+        a2 = js::pow_f32(a2, 0.333_333_3);
         if r > 0.0 {
             a2 = -a2;
         }

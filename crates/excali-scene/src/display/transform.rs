@@ -1,5 +1,7 @@
 //! 2D affine matrices with the canvas's composition rule.
 
+use excali_math::js;
+
 /// A 2D affine matrix in the canvas's `[a b c d e f]` layout: a point
 /// `(x, y)` maps to `(a·x + c·y + e, b·x + d·y + f)`, as
 /// `CanvasRenderingContext2D.setTransform(a, b, c, d, e, f)` defines it.
@@ -41,7 +43,7 @@ impl Transform {
     /// The matrix `rotate(angle)` multiplies in: `angle` in radians,
     /// clockwise on screen (the canvas's y axis points down).
     pub fn rotate(angle: f64) -> Self {
-        let (sin, cos) = angle.sin_cos();
+        let (sin, cos) = (js::sin(angle), js::cos(angle));
         Self::new(cos, sin, -sin, cos, 0.0, 0.0)
     }
 

@@ -245,7 +245,7 @@ fn css_invert(r: f64, g: f64, b: f64, percent: f64) -> (f64, f64, f64) {
 fn css_hue_rotate((red, green, blue): (f64, f64, f64), degrees: f64) -> (f64, f64, f64) {
     let (r, g, b) = (red / 255.0, green / 255.0, blue / 255.0);
     let a = excali_math::degrees_to_radians(excali_math::Degrees(degrees)).0;
-    let (c, s) = (a.cos(), a.sin());
+    let (c, s) = (js::cos(a), js::sin(a));
     let m = [
         0.213 + c * 0.787 - s * 0.213,
         0.715 - c * 0.715 - s * 0.715,

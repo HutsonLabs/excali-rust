@@ -21,7 +21,7 @@ pub fn normalize_radians(angle: Radians) -> Radians {
 pub fn cartesian2_polar<S: Space>(p: Point<S>) -> PolarCoords {
     PolarCoords {
         radius: js::hypot(p.x, p.y),
-        angle: normalize_radians(Radians(p.y.atan2(p.x))),
+        angle: normalize_radians(Radians(js::atan2(p.y, p.x))),
     }
 }
 
@@ -38,7 +38,7 @@ pub fn radians_to_degrees(radians: Radians) -> Degrees {
 /// `isRightAngleRads(rads)`: whether the angle is a multiple of π/2
 /// (`angle.ts:43`).
 pub fn is_right_angle_rads(rads: Radians) -> bool {
-    (2.0 * rads.0).sin().abs() < PRECISION
+    js::sin(2.0 * rads.0).abs() < PRECISION
 }
 
 /// `radiansBetweenAngles(a, min, max)`: whether `a` lies in the arc from

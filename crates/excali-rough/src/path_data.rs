@@ -9,6 +9,7 @@
 //! absolute path to `M`, `L`, `C` and `Z`, turning quadratics, smooth curves
 //! and arcs into cubics.
 
+use excali_math::js;
 use std::fmt;
 
 use crate::Point;
@@ -445,8 +446,8 @@ fn deg_to_rad(degrees: f64) -> f64 {
 }
 
 fn rotate(x: f64, y: f64, angle_rad: f64) -> Point {
-    let big_x = x * angle_rad.cos() - y * angle_rad.sin();
-    let big_y = x * angle_rad.sin() + y * angle_rad.cos();
+    let big_x = x * js::cos(angle_rad) - y * js::sin(angle_rad);
+    let big_y = x * js::sin(angle_rad) + y * js::cos(angle_rad);
     [big_x, big_y]
 }
 
@@ -533,8 +534,8 @@ fn arc_points(
         let k = sign * (left / right).abs().sqrt();
         cx = k * r1 * y / r2 + (x1 + x2) / 2.0;
         cy = k * -r2 * x / r1 + (y1 + y2) / 2.0;
-        f1 = to_fixed_9((y1 - cy) / r2).asin();
-        f2 = to_fixed_9((y2 - cy) / r2).asin();
+        f1 = js::asin(to_fixed_9((y1 - cy) / r2));
+        f2 = js::asin(to_fixed_9((y2 - cy) / r2));
         if x1 < cx {
             f1 = PI - f1;
         }
@@ -565,8 +566,8 @@ fn arc_points(
         } else {
             f2 = f1 - (PI * 120.0 / 180.0);
         }
-        x2 = cx + r1 * f2.cos();
-        y2 = cy + r2 * f2.sin();
+        x2 = cx + r1 * js::cos(f2);
+        y2 = cy + r2 * js::sin(f2);
         params = arc_points(
             x2,
             y2,
@@ -581,11 +582,11 @@ fn arc_points(
         );
     }
     df = f2 - f1;
-    let c1 = f1.cos();
-    let s1 = f1.sin();
-    let c2 = f2.cos();
-    let s2 = f2.sin();
-    let t = (df / 4.0).tan();
+    let c1 = js::cos(f1);
+    let s1 = js::sin(f1);
+    let c2 = js::cos(f2);
+    let s2 = js::sin(f2);
+    let t = js::tan(df / 4.0);
     let hx = 4.0 / 3.0 * r1 * t;
     let hy = 4.0 / 3.0 * r2 * t;
     let m1 = [x1, y1];

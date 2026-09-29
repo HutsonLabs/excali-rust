@@ -10,6 +10,7 @@ publish = false
 
 [dependencies]
 excali-core = { path = "../excali-core" }
+# excali_math::js: V8's Math.sin and Math.cos for rotated text (ex-009).
 excali-math = { path = "../excali-math" }
 icu_normalizer = { workspace = true }
 icu_properties = { workspace = true }
