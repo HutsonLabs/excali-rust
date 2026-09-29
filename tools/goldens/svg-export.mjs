@@ -60,6 +60,10 @@ import { JSDOM } from "jsdom";
 import { format } from "./lib/format.mjs";
 import { loadUpstream, REPO_ROOT, verifyUpstream } from "./lib/upstream.mjs";
 
+// The sticky note's date (formatted by toLocaleDateString) depends on the
+// time zone; pin it so every machine writes the same documents.
+process.env.TZ = "UTC";
+
 export const SCENE_DIR = join(REPO_ROOT, "crates", "excali-scene", "tests", "fixtures");
 export const SVG_DIR = join(REPO_ROOT, "crates", "excali-svg", "tests", "fixtures");
 export const CORE_DIR = join(REPO_ROOT, "crates", "excali-core", "tests", "fixtures");
