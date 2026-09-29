@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 10:18 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 10:42 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**147 issues** · 88 closed (60%) · 0 in progress · 0 blocked · 58 open
+**147 issues** · 88 closed (60%) · 1 in progress · 0 blocked · 57 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -157,7 +157,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-516` | excali-ui DOM builder and primitives: Island, Stack, Button, ToolIcon, RadioGroup, Range, TextField, Popover, Dialog, Tooltip | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-517` | Icons module generated from upstream icons.tsx (MIT) with tabler 24/20 presets | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-518` | Shapes toolbar (desktop order) and extra-tools dropdown | task | P0 | <span class="status open">open</span> |  | `ex-517` |
-| `ex-519` | Styles panel, full mode: all sixteen groups with visibility predicates | task | P0 | <span class="status open">open</span> | yes |  |
+| `ex-519` | Styles panel, full mode: all sixteen groups with visibility predicates | task | P0 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-520` | Main menu with default items and preferences submenu | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-521` | Footer: zoom actions, undo/redo, help button, exit zen | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-522` | Help dialog with the three shortcut islands | task | P2 | <span class="status open">open</span> | yes |  |
