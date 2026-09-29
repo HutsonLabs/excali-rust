@@ -1,0 +1,582 @@
+//! The canvas interactions ex-712 left out (ex-713), driven through
+//! [`Editor`] with the pointer and keys and checked against upstream at
+//! the pin: snapping while dragging, drawing and resizing
+//! (`snapDraggedElements`, `snapNewElement`, `snapResizingElements`),
+//! frame membership (`getTopLayerFrameAtSceneCoords`,
+//! `addElementsToFrame`, `updateFrameMembershipOfSelectedElements`,
+//! `getElementsInNewFrame`), Alt+drag duplication
+//! (`duplicateDraggedSelection`), point-by-point line and arrow drawing
+//! (`multiElement`, `actionFinalize`), the text tool's drag and the
+//! double-click's linear element editor.
+//!
+//! Where upstream has a test of the gesture, the case repeats it with its
+//! numbers and cites it; otherwise the expected values follow from the
+//! upstream code path cited.
+//!
+//! The viewport is 1000 × 1000 at the page's origin, so client
+//! coordinates are scene coordinates at scroll 0 and zoom 1. Text is
+//! measured with upstream's test metric (10 px per code unit).
+
+use excali_core::element::Element;
+use excali_editor::keyboard::Keystroke;
+use excali_text::text_measurements::CharCountTextMetrics;
+use excali_wasm::editor::{Editor, PointerInput};
+use excali_wasm::env::EditorEnv;
+use serde_json::{json, Value};
+
+type Ed = Editor<CharCountTextMetrics>;
+
+/// An element as `API.createElement` makes it (`tests/helpers/api.ts:
+/// 160-360`): at `(x, y)`, `width` wide and as high, transparent unless a
+/// background is given.
+fn el(ty: &str, id: &str, x: f64, y: f64, width: f64, extra: Value) -> Value {
+    let mut e = json!({
+        "id": id, "type": ty, "x": x, "y": y, "width": width, "height": width,
+        "angle": 0, "strokeColor": "#1e1e1e", "backgroundColor": "transparent",
+        "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1,
+        "opacity": 100, "groupIds": [], "frameId": null, "roundness": null, "seed": 1,
+        "version": 1, "versionNonce": 1, "isDeleted": false, "boundElements": null,
+        "updated": 1, "link": null, "locked": false,
+    });
+    if ty == "frame" {
+        e["name"] = Value::Null;
+    }
+    for (k, v) in extra.as_object().cloned().unwrap_or_default() {
+        e[k] = v;
+    }
+    e
+}
+
+/// A filled rectangle (hit anywhere inside).
+fn filled(id: &str, x: f64, y: f64, width: f64) -> Value {
+    el(
+        "rectangle",
+        id,
+        x,
+        y,
+        width,
+        json!({ "backgroundColor": "#ffc9c9" }),
+    )
+}
+
+fn editor_with(elements: Vec<Value>) -> Ed {
+    let env = EditorEnv::new(CharCountTextMetrics, 7, || 1.0);
+    let mut ed = Editor::new(env, "https://term.hut", false);
+    ed.set_viewport(1000.0, 1000.0, 0.0, 0.0);
+    let scene = json!({
+        "type": "excalidraw", "version": 2, "source": "https://excalidraw.com",
+        "elements": elements,
+        "appState": { "gridSize": 20, "viewBackgroundColor": "#ffffff" },
+        "files": {},
+    });
+    ed.load(&scene.to_string()).expect("the scene loads");
+    ed.take_events();
+    ed
+}
+
+fn live(ed: &Ed) -> Vec<&Element> {
+    ed.elements()
+        .iter()
+        .filter(|e| !e.base.is_deleted)
+        .collect()
+}
+
+fn ids(ed: &Ed) -> Vec<String> {
+    live(ed).iter().map(|e| e.base.id.clone()).collect()
+}
+
+fn get<'a>(ed: &'a Ed, id: &str) -> &'a Element {
+    live(ed)
+        .into_iter()
+        .find(|e| e.base.id == id)
+        .unwrap_or_else(|| panic!("no element {id}"))
+}
+
+fn app(ed: &Ed, key: &str) -> Value {
+    ed.app_state().get(key).cloned().unwrap_or(Value::Null)
+}
+
+fn tool(ed: &Ed) -> Value {
+    ed.state()["activeTool"].clone()
+}
+
+fn key(ed: &mut Ed, stroke: Keystroke) {
+    ed.key_down(&stroke);
+    ed.key_up(&stroke);
+}
+
+fn letter(ed: &mut Ed, k: &str) {
+    let code = format!("Key{}", k.to_uppercase());
+    key(ed, Keystroke::new(k, &code));
+}
+
+/// Alt+S: `actionToggleObjectsSnapMode`.
+fn toggle_snapping(ed: &mut Ed) {
+    key(ed, Keystroke::new("s", "KeyS").alt());
+}
+
+fn at(x: f64, y: f64) -> PointerInput {
+    PointerInput::at(x, y)
+}
+
+fn alt(x: f64, y: f64) -> PointerInput {
+    PointerInput {
+        alt_key: true,
+        ..at(x, y)
+    }
+}
+
+fn ctrl(x: f64, y: f64) -> PointerInput {
+    PointerInput {
+        ctrl_or_cmd: true,
+        ..at(x, y)
+    }
+}
+
+fn click(ed: &mut Ed, p: [f64; 2]) {
+    ed.pointer_down(at(p[0], p[1]));
+    ed.pointer_up(at(p[0], p[1]));
+}
+
+/// `mouse.downAt(from); mouse.moveTo(to); mouse.upAt(to)`: one move.
+fn drag(ed: &mut Ed, from: [f64; 2], to: [f64; 2]) {
+    ed.pointer_down(at(from[0], from[1]));
+    ed.pointer_move(at(to[0], to[1]));
+    ed.pointer_up(at(to[0], to[1]));
+}
+
+fn xy(e: &Element) -> [f64; 2] {
+    [e.base.x, e.base.y]
+}
+
+fn frame_of(ed: &Ed, id: &str) -> Option<String> {
+    get(ed, id).base.frame_id.clone()
+}
+
+fn created(ed: &Ed, before: &[&str]) -> Element {
+    let new: Vec<&Element> = live(ed)
+        .into_iter()
+        .filter(|e| !before.contains(&e.base.id.as_str()))
+        .collect();
+    assert_eq!(new.len(), 1, "one new element: {new:?}");
+    new[0].clone()
+}
+
+// -- Alt+drag -----------------------------------------------------------------
+
+#[test]
+fn alt_drag_duplicates_the_selection() {
+    // move.test.tsx:147-195, "duplicate element on move when ALT is clicked"
+    let mut ed = editor_with(vec![]);
+    letter(&mut ed, "r");
+    ed.pointer_down(at(30.0, 20.0));
+    ed.pointer_move(at(60.0, 70.0));
+    ed.pointer_up(at(60.0, 70.0));
+    assert_eq!(live(&ed).len(), 1);
+    assert_eq!(xy(live(&ed)[0]), [30.0, 20.0]);
+    let original = live(&ed)[0].base.id.clone();
+
+    ed.pointer_down(at(50.0, 20.0));
+    ed.pointer_move(alt(20.0, 40.0));
+    // another move with Alt does not duplicate again
+    ed.pointer_move(alt(20.0, 40.0));
+    ed.pointer_move(at(10.0, 60.0));
+    ed.pointer_up(at(10.0, 60.0));
+
+    let elements = live(&ed);
+    assert_eq!(elements.len(), 2);
+    // the original stays where it was, the duplicate is dragged on
+    assert_eq!(elements[0].base.id, original);
+    assert_eq!(xy(elements[0]), [30.0, 20.0]);
+    assert_eq!(xy(elements[1]), [-10.0, 60.0]);
+    assert_ne!(elements[1].base.seed, elements[0].base.seed);
+    // the duplicate is the selection
+    let selected = app(&ed, "selectedElementIds");
+    assert_eq!(selected, json!({ elements[1].base.id.clone(): true }));
+    // one undo step removes the duplicate and the move
+    key(&mut ed, Keystroke::new("z", "KeyZ").ctrl());
+    assert_eq!(live(&ed).len(), 1);
+    assert_eq!(xy(live(&ed)[0]), [30.0, 20.0]);
+}
+
+// -- Dragging -----------------------------------------------------------------
+
+#[test]
+fn shift_drag_moves_along_one_axis() {
+    // App.tsx:11070-11088: with Shift the smaller of the two offsets is 0
+    let mut ed = editor_with(vec![filled("a", 100.0, 100.0, 100.0)]);
+    click(&mut ed, [150.0, 150.0]);
+    ed.pointer_down(at(150.0, 150.0));
+    ed.pointer_move(at(190.0, 160.0).shift());
+    ed.pointer_up(at(190.0, 160.0).shift());
+    assert_eq!(xy(get(&ed, "a")), [140.0, 100.0]);
+}
+
+/// `b` dragged by (-97, 0): its left edge ends 3 px right of `a`'s right
+/// edge.
+fn drag_b_near_a(ed: &mut Ed, input: fn(f64, f64) -> PointerInput) {
+    click(ed, [350.0, 350.0]);
+    ed.pointer_down(at(350.0, 350.0));
+    ed.pointer_move(input(253.0, 350.0));
+}
+
+fn two() -> Ed {
+    editor_with(vec![
+        filled("a", 100.0, 100.0, 100.0),
+        filled("b", 300.0, 300.0, 100.0),
+    ])
+}
+
+#[test]
+fn a_drag_does_not_snap_by_default() {
+    let mut ed = two();
+    drag_b_near_a(&mut ed, at);
+    assert_eq!(app(&ed, "snapLines"), json!([]));
+    ed.pointer_up(at(253.0, 350.0));
+    assert_eq!(xy(get(&ed, "b")), [203.0, 300.0]);
+}
+
+#[test]
+fn a_drag_snaps_with_objects_snap_mode() {
+    // snapDraggedElements (snapping.ts:692-864) through App.tsx:11190-11216:
+    // b's left edge (203) is within SNAP_DISTANCE (8) of a's right edge
+    // (200), so the drag moves 3 px further
+    let mut ed = two();
+    toggle_snapping(&mut ed);
+    assert_eq!(app(&ed, "objectsSnapModeEnabled"), json!(true));
+    drag_b_near_a(&mut ed, at);
+    let lines = app(&ed, "snapLines");
+    assert!(
+        lines.as_array().is_some_and(|l| !l.is_empty()),
+        "{lines}"
+    );
+    assert_eq!(xy(get(&ed, "b")), [200.0, 300.0]);
+    ed.pointer_up(at(253.0, 350.0));
+    assert_eq!(xy(get(&ed, "b")), [200.0, 300.0]);
+    // the release clears the lines (App.tsx:11546-11565)
+    assert_eq!(app(&ed, "snapLines"), json!([]));
+}
+
+#[test]
+fn ctrl_snaps_while_the_mode_is_off() {
+    // isSnappingEnabled (snapping.ts:162-190): the mode off, Ctrl/Cmd held
+    // and no grid
+    let mut ed = two();
+    drag_b_near_a(&mut ed, ctrl);
+    ed.pointer_up(ctrl(253.0, 350.0));
+    assert_eq!(xy(get(&ed, "b")), [200.0, 300.0]);
+}
+
+#[test]
+fn a_shape_drawn_snaps_its_dragged_corner() {
+    // maybeDragNewGenericElement (App.tsx:13468-13580) with snapNewElement
+    // (snapping.ts:1302-1363): the corner (203, 350) snaps to x = 200
+    let mut ed = editor_with(vec![filled("a", 100.0, 100.0, 100.0)]);
+    toggle_snapping(&mut ed);
+    letter(&mut ed, "r");
+    drag(&mut ed, [300.0, 300.0], [203.0, 350.0]);
+    let r = created(&ed, &["a"]);
+    assert_eq!(
+        [r.base.x, r.base.y, r.base.width, r.base.height],
+        [200.0, 300.0, 100.0, 50.0]
+    );
+}
+
+#[test]
+fn a_shape_tool_snaps_its_origin_while_hovering() {
+    // getSnapLinesAtPointer on the move before the press (App.tsx:
+    // 8035-8066) gives originSnapOffset, which dragNewElement adds
+    // (dragElements.ts:392-396)
+    let mut ed = editor_with(vec![filled("a", 100.0, 100.0, 100.0)]);
+    toggle_snapping(&mut ed);
+    letter(&mut ed, "r");
+    ed.pointer_move(at(203.0, 400.0));
+    assert!(app(&ed, "snapLines")
+        .as_array()
+        .is_some_and(|l| !l.is_empty()));
+    assert_eq!(app(&ed, "originSnapOffset"), json!({ "x": -3.0, "y": 0.0 }));
+    drag(&mut ed, [203.0, 400.0], [253.0, 450.0]);
+    let r = created(&ed, &["a"]);
+    assert_eq!(
+        [r.base.x, r.base.y, r.base.width, r.base.height],
+        [200.0, 400.0, 50.0, 50.0]
+    );
+}
+
+#[test]
+fn a_resize_snaps_the_moved_corner() {
+    // maybeHandleResize (App.tsx:13684-13800) with snapResizingElements
+    // (snapping.ts:1160-1300): a's south-east corner at x = 297 snaps to b's
+    // left edge
+    let mut ed = two();
+    toggle_snapping(&mut ed);
+    click(&mut ed, [150.0, 150.0]);
+    drag(&mut ed, [206.0, 206.0], [303.0, 250.0]);
+    let a = get(&ed, "a");
+    assert_eq!(
+        [a.base.x, a.base.y, a.base.width, a.base.height],
+        [100.0, 100.0, 200.0, 144.0]
+    );
+    assert_eq!(app(&ed, "snapLines"), json!([]));
+}
+
+// -- Frames -------------------------------------------------------------------
+
+/// frame.test.tsx's `frame`: id0 at (0, 0), 150 × 150.
+fn frame() -> Value {
+    el("frame", "id0", 0.0, 0.0, 150.0, json!({}))
+}
+
+fn rect2() -> Value {
+    el("rectangle", "id2", 200.0, 0.0, 50.0, json!({}))
+}
+
+/// frame.test.tsx's `dragElementIntoFrame`.
+fn drag_element_into_frame(ed: &mut Ed, frame: [f64; 4], element: [f64; 4]) {
+    click(ed, [element[0], element[1]]);
+    ed.pointer_down(at(
+        element[0] + element[2] / 2.0,
+        element[1] + element[3] / 2.0,
+    ));
+    ed.pointer_move(at(frame[0] + frame[2] / 2.0, frame[1] + frame[3] / 2.0));
+    let p = [frame[0] + frame[2] / 2.0, frame[1] + frame[3] / 2.0];
+    ed.pointer_up(at(p[0], p[1]));
+}
+
+#[test]
+fn a_dragged_element_joins_the_frame() {
+    // frame.test.tsx:689-695
+    let mut ed = editor_with(vec![rect2(), frame()]);
+    drag_element_into_frame(&mut ed, [0.0, 0.0, 150.0, 150.0], [200.0, 0.0, 50.0, 50.0]);
+    assert_eq!(frame_of(&ed, "id2").as_deref(), Some("id0"));
+    assert_eq!(app(&ed, "frameToHighlight"), Value::Null);
+}
+
+#[test]
+fn a_dragged_element_moves_from_one_frame_to_another() {
+    // frame.test.tsx:697-723
+    let mut ed = editor_with(vec![
+        frame(),
+        el(
+            "rectangle",
+            "frameChild",
+            50.0,
+            50.0,
+            20.0,
+            json!({ "frameId": "id0" }),
+        ),
+        el("frame", "otherFrame", 300.0, 0.0, 150.0, json!({})),
+    ]);
+    drag_element_into_frame(&mut ed, [300.0, 0.0, 150.0, 150.0], [50.0, 50.0, 20.0, 20.0]);
+    assert_eq!(frame_of(&ed, "frameChild").as_deref(), Some("otherFrame"));
+}
+
+#[test]
+fn a_dragged_element_is_layered_above_the_highest_frame_child() {
+    // frame.test.tsx:725-748
+    let mut ed = editor_with(vec![
+        frame(),
+        el(
+            "rectangle",
+            "frameChild",
+            10.0,
+            10.0,
+            20.0,
+            json!({ "frameId": "id0" }),
+        ),
+        rect2(),
+    ]);
+    drag_element_into_frame(&mut ed, [0.0, 0.0, 150.0, 150.0], [200.0, 0.0, 50.0, 50.0]);
+    assert_eq!(frame_of(&ed, "id2").as_deref(), Some("id0"));
+    assert_eq!(ids(&ed), ["id0", "frameChild", "id2"]);
+}
+
+#[test]
+fn a_drag_out_of_the_frame_leaves_it() {
+    // updateFrameMembershipOfSelectedElements (frame.ts:697-745) on the
+    // release (App.tsx:12094-12181): no frame under the pointer
+    let mut ed = editor_with(vec![
+        frame(),
+        el(
+            "rectangle",
+            "frameChild",
+            50.0,
+            50.0,
+            20.0,
+            json!({ "frameId": "id0" }),
+        ),
+    ]);
+    drag_element_into_frame(&mut ed, [400.0, 400.0, 100.0, 100.0], [50.0, 50.0, 20.0, 20.0]);
+    assert_eq!(frame_of(&ed, "frameChild"), None);
+}
+
+#[test]
+fn no_drag_into_a_frame_behind_a_non_frame_element() {
+    // frame.test.tsx:964-982
+    let mut ed = editor_with(vec![frame(), filled("cover", 10.0, 10.0, 80.0), rect2()]);
+    click(&mut ed, [200.0, 0.0]);
+    drag(&mut ed, [225.0, 25.0], [20.0, 20.0]);
+    assert_eq!(frame_of(&ed, "id2"), None);
+}
+
+#[test]
+fn a_drag_into_a_frame_over_a_non_frame_element() {
+    // frame.test.tsx:984-1002
+    let mut ed = editor_with(vec![filled("cover", 10.0, 10.0, 80.0), rect2(), frame()]);
+    click(&mut ed, [200.0, 0.0]);
+    drag(&mut ed, [225.0, 25.0], [20.0, 20.0]);
+    assert_eq!(frame_of(&ed, "id2").as_deref(), Some("id0"));
+}
+
+#[test]
+fn a_frame_child_dragged_under_a_cover_stays_in_its_frame() {
+    // frame.test.tsx:1004-1036
+    let mut ed = editor_with(vec![
+        el(
+            "rectangle",
+            "frameChild",
+            100.0,
+            20.0,
+            20.0,
+            json!({ "frameId": "id0" }),
+        ),
+        frame(),
+        filled("cover", 10.0, 10.0, 80.0),
+    ]);
+    click(&mut ed, [100.0, 20.0]);
+    ed.pointer_down(at(110.0, 30.0));
+    ed.pointer_move(at(20.0, 20.0));
+    assert_eq!(app(&ed, "frameToHighlight"), json!("id0"));
+    ed.pointer_up(at(20.0, 20.0));
+    assert_eq!(frame_of(&ed, "frameChild").as_deref(), Some("id0"));
+}
+
+#[test]
+fn a_new_element_joins_the_frame_over_a_non_frame_element() {
+    // frame.test.tsx:189-212
+    let mut ed = editor_with(vec![filled("cover", 10.0, 10.0, 80.0), frame()]);
+    letter(&mut ed, "r");
+    drag(&mut ed, [20.0, 20.0], [40.0, 40.0]);
+    let r = created(&ed, &["cover", "id0"]);
+    assert_eq!(r.base.frame_id.as_deref(), Some("id0"));
+}
+
+#[test]
+fn a_new_element_behind_a_non_frame_element_stays_out() {
+    // frame.test.tsx:159-187
+    let mut ed = editor_with(vec![frame(), filled("cover", 10.0, 10.0, 80.0)]);
+    letter(&mut ed, "r");
+    drag(&mut ed, [20.0, 20.0], [40.0, 40.0]);
+    let r = created(&ed, &["cover", "id0"]);
+    assert_eq!(r.base.frame_id, None);
+    assert_eq!(ids(&ed), ["id0".to_owned(), "cover".into(), r.base.id]);
+}
+
+#[test]
+fn a_new_element_goes_behind_a_locked_frame() {
+    // frame.test.tsx:270-293
+    let mut ed = editor_with(vec![
+        frame(),
+        el(
+            "frame",
+            "lockedFrame",
+            10.0,
+            10.0,
+            80.0,
+            json!({ "locked": true }),
+        ),
+    ]);
+    letter(&mut ed, "r");
+    drag(&mut ed, [20.0, 20.0], [40.0, 40.0]);
+    let r = created(&ed, &["id0", "lockedFrame"]);
+    assert_eq!(r.base.frame_id.as_deref(), Some("id0"));
+}
+
+#[test]
+fn a_new_frame_child_is_inserted_below_its_frame() {
+    // frame.test.tsx:295-337
+    let mut ed = editor_with(vec![
+        el(
+            "rectangle",
+            "frameChildUnderCursor",
+            10.0,
+            10.0,
+            80.0,
+            json!({ "backgroundColor": "#ffc9c9", "frameId": "id0" }),
+        ),
+        el(
+            "rectangle",
+            "otherFrameChild",
+            100.0,
+            20.0,
+            20.0,
+            json!({ "frameId": "id0" }),
+        ),
+        frame(),
+    ]);
+    letter(&mut ed, "r");
+    drag(&mut ed, [20.0, 20.0], [40.0, 40.0]);
+    let r = created(&ed, &["frameChildUnderCursor", "otherFrameChild", "id0"]);
+    assert_eq!(r.base.frame_id.as_deref(), Some("id0"));
+    assert_eq!(
+        ids(&ed),
+        [
+            "frameChildUnderCursor".to_owned(),
+            "otherFrameChild".into(),
+            r.base.id,
+            "id0".into()
+        ]
+    );
+}
+
+#[test]
+fn the_target_frame_is_highlighted_while_drawing() {
+    // frame.test.tsx:214-239
+    let mut ed = editor_with(vec![frame()]);
+    letter(&mut ed, "r");
+    ed.pointer_move(at(20.0, 20.0));
+    assert_eq!(app(&ed, "frameToHighlight"), json!("id0"));
+    ed.pointer_move(at(200.0, 200.0));
+    assert_eq!(app(&ed, "frameToHighlight"), Value::Null);
+    ed.pointer_down(at(20.0, 20.0));
+    ed.pointer_move(at(40.0, 40.0));
+    assert_eq!(app(&ed, "frameToHighlight"), json!("id0"));
+    ed.pointer_up(at(40.0, 40.0));
+    assert_eq!(app(&ed, "frameToHighlight"), Value::Null);
+}
+
+#[test]
+fn a_new_frame_takes_in_the_elements_inside_it() {
+    // onPointerUpFromPointerDownHandler (App.tsx:12022-12036):
+    // getElementsInNewFrame (frame.ts:380-393) then addElementsToFrame; the
+    // elements wholly inside, while drawing highlighted
+    // (App.tsx:13574-13588, getElementsInResizingFrame)
+    let mut ed = editor_with(vec![
+        filled("inside", 100.0, 100.0, 50.0),
+        filled("across", 250.0, 100.0, 100.0),
+    ]);
+    letter(&mut ed, "f");
+    ed.pointer_down(at(50.0, 50.0));
+    ed.pointer_move(at(300.0, 300.0));
+    assert_eq!(app(&ed, "elementsToHighlight"), json!(["inside"]));
+    ed.pointer_up(at(300.0, 300.0));
+    let f = created(&ed, &["inside", "across"]);
+    assert_eq!(frame_of(&ed, "inside"), Some(f.base.id.clone()));
+    assert_eq!(frame_of(&ed, "across"), None);
+    assert_eq!(app(&ed, "elementsToHighlight"), Value::Null);
+}
+
+#[test]
+fn a_resized_frame_takes_in_what_it_now_covers() {
+    // the resize branch of onPointerUpFromPointerDownHandler
+    // (App.tsx:12200-12226): replaceAllElementsInFrame with
+    // getElementsInResizingFrame
+    let mut ed = editor_with(vec![frame(), filled("r", 200.0, 20.0, 50.0)]);
+    // select the frame by its outline
+    click(&mut ed, [0.0, 75.0]);
+    assert_eq!(app(&ed, "selectedElementIds"), json!({ "id0": true }));
+    // its south-east handle spans (152, 152)-(160, 160)
+    drag(&mut ed, [156.0, 156.0], [306.0, 156.0]);
+    assert_eq!(get(&ed, "id0").base.width, 300.0);
+    assert_eq!(frame_of(&ed, "r").as_deref(), Some("id0"));
+}
