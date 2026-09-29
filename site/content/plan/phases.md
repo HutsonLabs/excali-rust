@@ -87,7 +87,7 @@ Each phase is an epic in the tracker (`ex-e0` … `ex-e8`). A milestone is reach
 - Keyboard: every shortcut in the [table](../../design-system/shortcuts/).
 - Public JS API of the custom element: `load(json)`, `save() → json`, `export(kind, opts)`, `importLibrary(json | url)`, `getState()`, events `change`, `save-request`, `open-link`; host adapter hooks for file dialogs and fetch.
 
-**Milestone M5.** D3 for desktop; a Playwright suite drives the element in Chromium against a parity checklist; WASM size within budget.
+**Milestone M5.** D3 for desktop; a Playwright suite drives the element in Chromium against the [parity checklist](@/plan/parity.md); WASM size within budget.
 
 ## Phase 6 — Host integration (`ex-e6`)
 
@@ -101,7 +101,7 @@ Each phase is an epic in the tracker (`ex-e0` … `ex-e8`). A milestone is reach
 
 Tablet and phone layouts; compact styles panel; sticky notes, bucket fill, lasso, autoshape, image crop, frames with names, search; accessibility (focus order, ARIA on controls, reduced motion); performance budgets (60 fps pan at 1,000 elements on a 2020 laptop; first paint under 300 ms after module load); locale loader with the upstream JSON files.
 
-**Milestone M7.** Parity checklist at 100% for the v1 scope; budgets met in CI on a pinned runner.
+**Milestone M7.** [Parity checklist](@/plan/parity.md) at 100% for the v1 scope; budgets met in CI on a pinned runner.
 
 ## Phase 8 — Release (`ex-e8`)
 

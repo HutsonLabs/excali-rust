@@ -107,7 +107,8 @@ jobs:
   # that loading a scene's fonts fetches exactly the range-split files its
   # text needs (sceneFontFiles), for every scene of the font-assets goldens,
   # and that <excali-editor> works from plain JS as the term.hut integration
-  # page documents (ex-530).
+  # page documents (ex-530), and the parity suite: one test per row of the
+  # parity checklist, site/content/plan/parity.md (ex-531).
   web-runtime:
     runs-on: ubuntu-latest
     steps:
@@ -161,10 +162,11 @@ jobs:
           sudo apt-get remove -y 'fonts-liberation*'
           fc-cache -f
           if fc-list | grep -qi liberation; then fc-list | grep -i liberation; exit 1; fi
-      # specs/fonts.spec.mjs (ex-307) and specs/editor.spec.mjs (ex-530: the
+      # specs/fonts.spec.mjs (ex-307), specs/editor.spec.mjs (ex-530: the
       # <excali-editor> API from plain JS, undo re-laying out bound text and
-      # bound arrows)
-      - name: scene fonts load by unicode range; the editor element
+      # bound arrows) and specs/parity.spec.mjs (ex-531: a test per row of
+      # the parity checklist, gap rows as expected failures)
+      - name: scene fonts load by unicode range; the editor element; the parity checklist
         working-directory: tests/web
         run: npx playwright test
         env:
