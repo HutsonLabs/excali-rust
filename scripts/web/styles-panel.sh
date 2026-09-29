@@ -1,8 +1,8 @@
 #!/bin/sh
-# The full styles panel in the browser (ex-519): excali_ui::styles_panel
-# (SelectedShapeActions inside LayerUI's section and island) mounted with
-# web-sys in Chromium and held to upstream's tree for every case of
-# crates/excali-ui/tests/fixtures/styles-panel.json.
+# The styles panel in the browser (ex-519, ex-701): excali_ui::styles_panel
+# (SelectedShapeActions or CompactShapeActions inside LayerUI's section and
+# island) mounted with web-sys in Chromium and held to upstream's trees for
+# every case of crates/excali-ui/tests/fixtures/styles-panel.json.
 #
 #   scripts/web/styles-panel.sh
 #
@@ -51,4 +51,4 @@ wasm-bindgen --target web --no-typescript --out-dir "$harness" --out-name styles
   cd "$root/tests/web"
   STYLES_PANEL_HARNESS="$harness" ./node_modules/.bin/playwright test --config playwright.styles-panel.config.mjs
 )
-echo "styles-panel: every case mounts upstream's tree in Chromium"
+echo "styles-panel: every case mounts upstream's full and compact trees in Chromium"

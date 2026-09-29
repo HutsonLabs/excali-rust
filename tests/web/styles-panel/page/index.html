@@ -1,17 +1,21 @@
 <!doctype html>
 <!--
-  The full styles panel's page (ex-519), served with the wasm harness
+  The styles panel's page (ex-519, ex-701), served with the wasm harness
   tools/styles-panel (scripts/web/styles-panel.sh builds it) by
   playwright.styles-panel.config.mjs.
 
   window.panel.mount(scene, appState, rtl) mounts excali_ui::styles_panel
   into #app (emptied first) with the document direction set;
-  window.panel.show(scene, appState) answers showSelectedShapeActions.
+  window.panel.mountCompact(scene, appState, rtl, containerId) mounts the
+  compact panel the same way (its triggers mount it again with the popup
+  they open); window.panel.show(scene, appState) answers
+  showSelectedShapeActions; window.panel.formFactor(w, h) and
+  window.panel.mode(w, h, desktopUIMode) the form factor rules.
 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>excali-ui full styles panel</title>
+<title>excali-ui styles panel</title>
 <style>
   html, body { margin: 0; padding: 0; }
 </style>
@@ -19,7 +23,7 @@
 <body>
 <div id="app"></div>
 <script type="module">
-  import init, { mount_panel, show_panel } from "/styles_panel.js";
+  import init, { form_factor, mount_compact_panel, mount_panel, show_panel, styles_panel_mode } from "/styles_panel.js";
 
   init()
     .then(() => {
@@ -31,7 +35,14 @@
           mount_panel(app, JSON.stringify(scene), JSON.stringify(appState), rtl, containerId);
           return app.firstElementChild;
         },
+        mountCompact(scene, appState, rtl, containerId) {
+          document.documentElement.setAttribute("dir", rtl ? "rtl" : "ltr");
+          mount_compact_panel(app, JSON.stringify(scene), JSON.stringify(appState), rtl, containerId);
+          return app.firstElementChild;
+        },
         show: (scene, appState) => show_panel(JSON.stringify(scene), JSON.stringify(appState)),
+        formFactor: (w, h) => form_factor(w, h),
+        mode: (w, h, desktopUIMode) => styles_panel_mode(w, h, desktopUIMode),
       };
       window.harnessReady = true;
     })
