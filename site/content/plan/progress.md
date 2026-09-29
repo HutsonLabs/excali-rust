@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 00:30 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 01:02 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**141 issues** · 71 closed (50%) · 0 in progress · 0 blocked · 69 open
+**141 issues** · 72 closed (51%) · 0 in progress · 0 blocked · 68 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -52,7 +52,7 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 | `ex-113` | Clipboard JSON format (excalidraw/clipboard) parse and emit | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-114` | Corpus test: 232 catalogue libraries round-trip | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-115` | JSON Schema generation for .excalidraw and .excalidrawlib (schemars) | task | P3 | <span class="status closed">closed</span> |  |  |
-| `ex-116` | Restore: legacy arrow binding migration (bindings without mode) through RestoreEnv::migrate_legacy_binding | task | P0 | <span class="status open">open</span> |  | `ex-507`, `ex-510` |
+| `ex-116` | Restore: legacy arrow binding migration (bindings without mode) through RestoreEnv::migrate_legacy_binding | task | P0 | <span class="status open">open</span> |  | `ex-510` |
 | `ex-117` | Typed element model: keep field values of a type the model has no form for (string strokeWidth) as upstream's restore does | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-g101` | D1 conformance: upstream diagramFixture document round-trips through Document and restore against an upstream golden | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-m1` | M1: round trip of all fixtures and 232 catalogue libraries | milestone | P2 | <span class="status open">open</span> |  | `ex-116` |
@@ -130,7 +130,7 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
 ## ex-e5 · Phase 5: Web runtime and editor
 
-<span class="status open">open</span> 2/33 children closed
+<span class="status open">open</span> 3/33 children closed
 
 Canvas2D backend, interaction state machine, history, DOM chrome without a framework, keyboard shortcuts, the <excali-editor> custom element.
 
@@ -142,8 +142,8 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-504` | Per-element bitmap cache with padding rules, size caps and pixel snapping | task | P1 | <span class="status open">open</span> |  | `ex-503` |
 | `ex-505` | Viewport: zoom limits, wheel formula, scroll, coordinate transforms, zoom-to-fit | task | P0 | <span class="status open">open</span> |  | `ex-503` |
 | `ex-506` | Editor state machine: tools registry (keys, fillable, toggle), active tool, tool lock, pen mode | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-507` | Hit testing (collision.ts): thresholds, inside/outline rules, per-shape intersections | task | P0 | <span class="status open">open</span> | yes |  |
-| `ex-508` | Selection and transform handles: sizes by pointer type, resize, rotate, aspect lock, centre resize | task | P0 | <span class="status open">open</span> |  | `ex-507` |
+| `ex-507` | Hit testing (collision.ts): thresholds, inside/outline rules, per-shape intersections | task | P0 | <span class="status closed">closed</span> |  |  |
+| `ex-508` | Selection and transform handles: sizes by pointer type, resize, rotate, aspect lock, centre resize | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-509` | Snapping: point and gap snaps at 8/zoom, snap lines rendering | task | P1 | <span class="status open">open</span> |  | `ex-508` |
 | `ex-510` | Arrow binding: gap 5+sw/2, max distance 15..30 by zoom, fixed points, modes inside/orbit/skip, highlight | task | P0 | <span class="status open">open</span> |  | `ex-508` |
 | `ex-511` | Linear element editor: point handles (size 10), midpoints, segment length rule, label position | task | P1 | <span class="status open">open</span> |  | `ex-509` |
@@ -168,7 +168,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-530` | <excali-editor> custom element: load/save/export/importLibrary/getState, events, host adapter | task | P0 | <span class="status open">open</span> |  | `ex-513`, `ex-518`, `ex-519` |
 | `ex-531` | Playwright parity suite against the checklist | task | P0 | <span class="status open">open</span> |  | `ex-530` |
 | `ex-532` | Theme tokens: light and dark CSS custom properties embedded and overridable by the host | task | P0 | <span class="status open">open</span> |  | `ex-516` |
-| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-502`, `ex-503`, `ex-504`, `ex-505`, `ex-507`, `ex-508` … |
+| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-502`, `ex-503`, `ex-504`, `ex-505`, `ex-508`, `ex-509` … |
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
 
@@ -198,8 +198,8 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 | `ex-701` | Compact styles panel and tablet form factor | task | P1 | <span class="status open">open</span> |  | `ex-519` |
 | `ex-702` | Phone layout: mobile menu, bottom bar, mobile toolbar order | task | P1 | <span class="status open">open</span> |  | `ex-701` |
 | `ex-703` | Sticky notes: element, rendering (shadow, edge, footer), label fitting | task | P2 | <span class="status open">open</span> | yes |  |
-| `ex-704` | Bucket fill tool | task | P2 | <span class="status open">open</span> |  | `ex-507` |
-| `ex-705` | Lasso selection | task | P2 | <span class="status open">open</span> |  | `ex-507` |
+| `ex-704` | Bucket fill tool | task | P2 | <span class="status open">open</span> | yes |  |
+| `ex-705` | Lasso selection | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-706` | Autoshape (draw-shape) recognition | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-707` | Image crop editor | task | P2 | <span class="status open">open</span> |  | `ex-508` |
 | `ex-708` | Search sidebar (frames and texts) | task | P3 | <span class="status open">open</span> |  | `ex-526` |
