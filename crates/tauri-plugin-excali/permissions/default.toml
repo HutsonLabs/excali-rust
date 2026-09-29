@@ -1,0 +1,15 @@
+"$schema" = "schemas/schema.json"
+
+[default]
+description = """
+Every command of the plugin: the open and save dialogs, the headless
+export, the allow-listed library fetch and validation. `save` and `export`
+write only paths the plugin's own dialogs returned.
+"""
+permissions = [
+  "allow-open",
+  "allow-save",
+  "allow-export",
+  "allow-library-fetch",
+  "allow-validate",
+]
