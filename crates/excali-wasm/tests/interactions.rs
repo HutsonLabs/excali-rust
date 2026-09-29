@@ -932,7 +932,7 @@ fn shift_keeps_the_angle_of_a_dragged_endpoint() {
 }
 
 fn js_atan2(y: f64, x: f64) -> f64 {
-    y.atan2(x)
+    excali_math::js::atan2(y, x)
 }
 
 #[test]
