@@ -18,6 +18,12 @@ Three things, all in `ui/`:
 2. `ui/src/preview.js` routes `excalidraw` to a new `excalidrawEditor.js` (editable) instead of `excalidrawView.js`, keeping the JSON source toggle it already has for `TEXT_BACKED` types. The old view stays as the fallback when the module fails to load.
 3. `ui/src/excalidrawEditor.js` (new, small) mounts `<excali-editor>`, wires save to `fs_write_text` with the code editor's dirty and conflict handling, and adds "Import library" to the pane header.
 
+The first two landed in term.hut PR #87 (ex-601, merge `7330c73`, 2026-09-29):
+
+- `ui/vendor/excali/` is written by term.hut's `scripts/vendor-excali.sh <excali-rust checkout>`, which runs `scripts/web/build.sh` and adds `LICENSE`, `SOURCE.json` (repository, commit, version) and `SHA256SUMS`. `ui/test/excaliVendor.test.js` holds the directory to those checksums. The release in it is 26.9.1 at `2da1897`.
+- `fonts/Xiaolai`, upstream's CJK fallback, is not vendored. It is 12 MB of the release's 14 MB of fonts, which would triple term.hut's dmg (`PRODUCT.md`: ~5.4 MB, "should stay in that class"). The font registry is compiled into the module, so a missing face only fails its own unicode range, and CJK text falls back to the webview's system font. The vendored directory is 3.0 MB.
+- `preview.js` routes `excalidraw` to a `drawing` view (`excalidrawEditor.js`), which loads the module when the first drawing opens. `TEXT_BACKED` keeps the JSON toggle. The read-only `excalidrawView.js` canvas is what the `excalidrawReadOnly` setting shows (Settings ▸ Editor ▸ Read-only drawings, off by default), and it is also the fallback when the module fails to load. `save-request` and the pane header's Save button write `ed.save()` with `fs_write_text`. Dirty state and conflict handling are ex-602.
+
 Nothing changes in `src-tauri` for the basic flow. Library import from a URL uses term.hut's existing HTTP path or the plugin's allow-listed fetch.
 
 ## Module contract
