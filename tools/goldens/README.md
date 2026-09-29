@@ -828,6 +828,52 @@ node tools/goldens/viewport.mjs --check   # exit 1 if it is stale
 CI runs `--check` in the `goldens` job, and `test/viewport.test.mjs` checks
 that two runs are byte-identical and restates the zoom rules independently.
 
+## Transform fixture
+
+`transform-fixtures.mjs` writes
+`crates/excali-editor/tests/fixtures/transform.json` for excali-editor's
+transform handles, resizing and rotation (ex-508): upstream's
+`packages/element/src/transformHandles.ts`, `resizeTest.ts` and
+`resizeElements.ts`:
+
+- `handles-*`: `getTransformHandles` for every element kind (rotated or
+  not, small and large, locked, elbow arrows, two-point lines in every
+  direction, frames, images, a labelled arrow) at zooms 0.5, 1 and 3, for
+  mouse, pen and touch, with the default, no, desktop, frame and a custom
+  set of omitted handles; `handles-from-coords`: seeded
+  `getTransformHandlesFromCoords` calls with margins and spacings;
+- `resize-test-*`: `resizeTest` and `getElementWithTransformHandleType` on
+  probes at every handle, along every side and away from the element, for
+  desktop and phone editors; `handle-type-from-coords`:
+  `getTransformHandleTypeFromCoords` on selection boxes;
+- `cursors`, `has-bounding-box`, `resize-offset`:
+  `getCursorForResizingElement`, `hasBoundingBox`, `getResizeOffsetXY` and
+  `getResizeArrowDirection`;
+- gestures (`kind: "session"`): the pointer pressed on a handle and moved,
+  as `App.tsx` runs it (`handleSelectionOnPointerDown`,
+  `maybeHandleResize` without snapping), recording every element each move
+  changes: the scenes of `packages/element/tests/resize.test.tsx`
+  (`upstream-*`), rotation, rotated elements on every handle and modifier,
+  sticky notes, zoom and pointer types, the grid, groups, frames, bound and
+  elbow arrows, and 160 seeded random scenes (`random-*`).
+
+`transformElements` calls `updateBoundElements` (binding.ts, ex-510) and,
+through `updateStickyNoteLayout`, `getStickyNoteLayout` (stickyNote.ts,
+ex-703). Their call sites are rewritten (the `patch` option of
+`loadUpstream`) to record each call's arguments and what it changed, which
+the Rust test checks and replays through its `TransformEnv`. Text is
+measured as `text.length * 10`, and the character width cache starts every
+gesture with no font in it.
+
+```sh
+node tools/goldens/transform-fixtures.mjs           # write the fixture
+node tools/goldens/transform-fixtures.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and
+`test/transform-fixtures.test.mjs` checks that two runs are byte-identical and
+that the fixture holds `resize.test.tsx`'s answers.
+
 ## Image element fixture
 
 `image-elements.mjs` writes `crates/excali-scene/tests/fixtures/image-elements.json`

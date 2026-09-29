@@ -159,15 +159,28 @@ fn same_handles(actual: &TransformHandles, expected: &Value, context: &str) {
 
 // -- JSON comparison --------------------------------------------------------------
 
+/// Two numbers as the same double, or within rounding of the last bits.
+///
+/// Node 26's V8 computes `Math.sin` and `Math.cos` with its glibc-derived
+/// routines (`v8_use_libm_trig_functions`); `excali_math::js` ports fdlibm,
+/// which is one ulp away on a few arguments (`Math.cos(0.982953340331056)`
+/// is 0.5545673797180782 in Node 26 and 0.5545673797180781 in fdlibm). A
+/// rotated element's numbers can therefore differ in the last bits; the
+/// tolerance is a millionth of a millionth, relative, so any real
+/// difference still fails.
+fn same_number(a: f64, e: f64) -> bool {
+    a == e || (a - e).abs() <= 1e-12 * a.abs().max(e.abs()).max(1.0)
+}
+
 /// Upstream's element and the port's, key for key and number for number
-/// (`-0` and `0` are one number, as `JSON.stringify` writes them).
-/// `versionNonce` and `updated` come from upstream's random generator and
-/// clock and are not compared.
+/// ([`same_number`]; `-0` and `0` are one number, as `JSON.stringify`
+/// writes them). `versionNonce` and `updated` come from upstream's random
+/// generator and clock and are not compared.
 fn same_json(actual: &Value, expected: &Value, path: &str) -> Result<(), String> {
     match (actual, expected) {
         (Value::Number(a), Value::Number(e)) => {
             let (a, e) = (a.as_f64().expect("f64"), e.as_f64().expect("f64"));
-            if a == e {
+            if same_number(a, e) {
                 Ok(())
             } else {
                 Err(format!("{path}: {a} != {e} (expected)"))
@@ -175,7 +188,11 @@ fn same_json(actual: &Value, expected: &Value, path: &str) -> Result<(), String>
         }
         (Value::Array(a), Value::Array(e)) => {
             if a.len() != e.len() {
-                return Err(format!("{path}: {} items != {} (expected)", a.len(), e.len()));
+                return Err(format!(
+                    "{path}: {} items != {} (expected)",
+                    a.len(),
+                    e.len()
+                ));
             }
             for (i, (a, e)) in a.iter().zip(e).enumerate() {
                 same_json(a, e, &format!("{path}[{i}]"))?;
@@ -189,7 +206,9 @@ fn same_json(actual: &Value, expected: &Value, path: &str) -> Result<(), String>
                 }
                 match (a.get(key), e.get(key)) {
                     (Some(av), Some(ev)) => same_json(av, ev, &format!("{path}.{key}"))?,
-                    (None, Some(ev)) => return Err(format!("{path}.{key}: missing, expected {ev}")),
+                    (None, Some(ev)) => {
+                        return Err(format!("{path}.{key}: missing, expected {ev}"))
+                    }
                     (Some(av), None) => return Err(format!("{path}.{key}: {av}, expected no key")),
                     (None, None) => unreachable!(),
                 }
@@ -240,12 +259,22 @@ impl TransformEnv for ReplayEnv {
         changed: &str,
         simultaneously_updated: Option<&[String]>,
     ) {
-        let hook = self
-            .hooks
-            .pop_front()
-            .unwrap_or_else(|| panic!("{}: updateBoundElements({changed}) not called upstream", self.context));
-        assert_eq!(hook["hook"], "updateBoundElements", "{}: hook order", self.context);
-        assert_eq!(hook["changed"], changed, "{}: updateBoundElements element", self.context);
+        let hook = self.hooks.pop_front().unwrap_or_else(|| {
+            panic!(
+                "{}: updateBoundElements({changed}) not called upstream",
+                self.context
+            )
+        });
+        assert_eq!(
+            hook["hook"], "updateBoundElements",
+            "{}: hook order",
+            self.context
+        );
+        assert_eq!(
+            hook["changed"], changed,
+            "{}: updateBoundElements element",
+            self.context
+        );
         let expected: Option<Vec<String>> = hook["simultaneouslyUpdated"].as_array().map(|ids| {
             ids.iter()
                 .map(|id| id.as_str().expect("an id").to_string())
@@ -272,7 +301,11 @@ impl TransformEnv for ReplayEnv {
             .hooks
             .pop_front()
             .unwrap_or_else(|| panic!("{}: getStickyNoteLayout not called upstream", self.context));
-        assert_eq!(hook["hook"], "stickyNoteLayout", "{}: hook order", self.context);
+        assert_eq!(
+            hook["hook"], "stickyNoteLayout",
+            "{}: hook order",
+            self.context
+        );
         let ctx = format!("{}: getStickyNoteLayout argument", self.context);
         same_json(
             &Value::Object(container.to_map()),
@@ -281,13 +314,25 @@ impl TransformEnv for ReplayEnv {
         )
         .unwrap_or_else(|e| panic!("{e}"));
         match text {
-            Some(text) => same_json(&Value::Object(text.to_map()), &hook["text"], &format!("{ctx} text"))
-                .unwrap_or_else(|e| panic!("{e}")),
+            Some(text) => same_json(
+                &Value::Object(text.to_map()),
+                &hook["text"],
+                &format!("{ctx} text"),
+            )
+            .unwrap_or_else(|e| panic!("{e}")),
             None => assert!(hook["text"].is_null(), "{ctx}: text"),
         }
         let o = &hook["opts"];
-        assert_eq!(opts.base_height, opt_num(&o["baseHeight"]), "{ctx}: baseHeight");
-        assert_eq!(opts.base_font_size, opt_num(&o["baseFontSize"]), "{ctx}: baseFontSize");
+        assert_eq!(
+            opts.base_height,
+            opt_num(&o["baseHeight"]),
+            "{ctx}: baseHeight"
+        );
+        assert_eq!(
+            opts.base_font_size,
+            opt_num(&o["baseFontSize"]),
+            "{ctx}: baseFontSize"
+        );
         let anchor = o["anchor"].as_str().map(|a| match a {
             "top" => StickyNoteLayoutAnchor::Top,
             "center" => StickyNoteLayoutAnchor::Center,
@@ -335,14 +380,16 @@ fn apply_changes(expected: &mut [Value], changed: &Value) {
 }
 
 fn compare_scene(scene: &Scene, expected: &[Value], context: &str) {
-    assert_eq!(scene.elements().len(), expected.len(), "{context}: element count");
+    assert_eq!(
+        scene.elements().len(),
+        expected.len(),
+        "{context}: element count"
+    );
     for (actual, expected) in scene.elements().iter().zip(expected) {
-        same_json(
-            &Value::Object(actual.to_map()),
-            expected,
-            &format!("{context} {}", actual.base.id),
-        )
-        .unwrap_or_else(|e| panic!("{e}"));
+        let actual = Value::Object(actual.to_map());
+        let id = &expected["id"];
+        same_json(&actual, expected, &format!("{context} {id}"))
+            .unwrap_or_else(|e| panic!("{e}\n  port:     {actual}\n  upstream: {expected}"));
     }
 }
 
@@ -378,18 +425,34 @@ fn replay(case: &Value) -> Vec<Vec<Value>> {
                 );
                 let r = &step["result"];
                 assert_eq!(s.handle(), handle_type(&r["handle"]), "{context}: handle");
-                assert_eq!(s.offset(), point(&r["offset"]), "{context}: offset");
-                assert_eq!(s.center(), point(&r["center"]), "{context}: center");
+                for (what, actual, expected) in [
+                    ("offset", s.offset(), point(&r["offset"])),
+                    ("center", s.center(), point(&r["center"])),
+                ] {
+                    assert!(
+                        same_number(actual[0], expected[0]) && same_number(actual[1], expected[1]),
+                        "{context}: {what} {actual:?} != {expected:?}"
+                    );
+                }
                 let arrow_direction = match r["arrowDirection"].as_str().expect("direction") {
                     "origin" => ArrowDirection::Origin,
                     _ => ArrowDirection::End,
                 };
-                assert_eq!(s.arrow_direction(), arrow_direction, "{context}: arrow direction");
+                assert_eq!(
+                    s.arrow_direction(),
+                    arrow_direction,
+                    "{context}: arrow direction"
+                );
                 env.char_widths = CharWidthCache::new();
                 session = Some(s);
             }
             "move" => {
-                env.hooks = step["hooks"].as_array().expect("hooks").iter().cloned().collect();
+                env.hooks = step["hooks"]
+                    .as_array()
+                    .expect("hooks")
+                    .iter()
+                    .cloned()
+                    .collect();
                 let result = session.as_ref().expect("a gesture").update(
                     &mut scene,
                     &mut env,
@@ -401,8 +464,16 @@ fn replay(case: &Value) -> Vec<Vec<Value>> {
                     },
                     opt_num(&step["gridSize"]),
                 );
-                assert_eq!(result, step["result"] == true, "{context}: transformElements result");
-                assert!(env.hooks.is_empty(), "{context}: hooks upstream made that the port did not: {:?}", env.hooks);
+                assert_eq!(
+                    result,
+                    step["result"] == true,
+                    "{context}: transformElements result"
+                );
+                assert!(
+                    env.hooks.is_empty(),
+                    "{context}: hooks upstream made that the port did not: {:?}",
+                    env.hooks
+                );
                 apply_changes(&mut expected, &step["changed"]);
                 compare_scene(&scene, &expected, &context);
             }
@@ -411,7 +482,12 @@ fn replay(case: &Value) -> Vec<Vec<Value>> {
                 env.char_widths = CharWidthCache::new();
             }
             "resizeSingle" => {
-                env.hooks = step["hooks"].as_array().expect("hooks").iter().cloned().collect();
+                env.hooks = step["hooks"]
+                    .as_array()
+                    .expect("hooks")
+                    .iter()
+                    .cloned()
+                    .collect();
                 let originals: Vec<Element> = if step["orig"] == "snapshot" {
                     snapshot.clone().expect("a snapshot")
                 } else {
@@ -432,7 +508,10 @@ fn replay(case: &Value) -> Vec<Vec<Value>> {
                         should_resize_from_center: options["shouldResizeFromCenter"] == true,
                     },
                 );
-                assert!(env.hooks.is_empty(), "{context}: hooks upstream made that the port did not");
+                assert!(
+                    env.hooks.is_empty(),
+                    "{context}: hooks upstream made that the port did not"
+                );
                 apply_changes(&mut expected, &step["changed"]);
                 compare_scene(&scene, &expected, &context);
             }
@@ -448,7 +527,10 @@ fn replay(case: &Value) -> Vec<Vec<Value>> {
 #[test]
 fn fixture_covers_every_kind_and_hook() {
     let cases = cases();
-    let kinds: HashSet<&str> = cases.iter().map(|c| c["kind"].as_str().expect("kind")).collect();
+    let kinds: HashSet<&str> = cases
+        .iter()
+        .map(|c| c["kind"].as_str().expect("kind"))
+        .collect();
     for kind in [
         "handles",
         "handlesFromCoords",
@@ -474,7 +556,11 @@ fn fixture_covers_every_kind_and_hook() {
             }
             for h in s["hooks"].as_array().into_iter().flatten() {
                 let with_changes = h["changes"].as_array().is_some_and(|c| !c.is_empty());
-                hooks.insert(format!("{}{}", h["hook"], if with_changes { "+" } else { "" }));
+                hooks.insert(format!(
+                    "{}{}",
+                    h["hook"],
+                    if with_changes { "+" } else { "" }
+                ));
             }
         }
     }
@@ -489,8 +575,17 @@ fn fixture_covers_every_kind_and_hook() {
         assert!(handles.contains(&format!("\"{h}\"")), "no gesture on {h}");
     }
     for t in [
-        "rectangle", "diamond", "ellipse", "image", "text", "line", "arrow", "freedraw", "stickynote",
-        "frame", "magicframe",
+        "rectangle",
+        "diamond",
+        "ellipse",
+        "image",
+        "text",
+        "line",
+        "arrow",
+        "freedraw",
+        "stickynote",
+        "frame",
+        "magicframe",
     ] {
         assert!(types.contains(t), "no gesture on a {t}");
     }
@@ -517,7 +612,10 @@ fn transform_handles_match_upstream() {
             same_handles(
                 &handles,
                 &v["result"],
-                &format!("{id} zoom {} {} omit {}", v["zoom"], v["pointerType"], v["omitSides"]),
+                &format!(
+                    "{id} zoom {} {} omit {}",
+                    v["zoom"], v["pointerType"], v["omitSides"]
+                ),
             );
         }
     }
@@ -526,15 +624,32 @@ fn transform_handles_match_upstream() {
 #[test]
 fn transform_handles_from_coords_match_upstream() {
     let case = case("handles-from-coords");
-    for (i, v) in case["variants"].as_array().expect("variants").iter().enumerate() {
+    for (i, v) in case["variants"]
+        .as_array()
+        .expect("variants")
+        .iter()
+        .enumerate()
+    {
         let c = v["coords"].as_array().expect("coords");
-        let coords = [num(&c[0]), num(&c[1]), num(&c[2]), num(&c[3]), num(&c[4]), num(&c[5])];
+        let coords = [
+            num(&c[0]),
+            num(&c[1]),
+            num(&c[2]),
+            num(&c[3]),
+            num(&c[4]),
+            num(&c[5]),
+        ];
         let handles = get_transform_handles_from_coords(
             coords,
             num(&v["angle"]),
             num(&v["zoom"]),
             pointer_type(&v["pointerType"]),
-            &omit_sides(&v["omitSides"]),
+            // getTransformHandlesFromCoords' own default is `{}`
+            &if v["omitSides"] == "default" {
+                OmitSides::default()
+            } else {
+                omit_sides(&v["omitSides"])
+            },
             opt_num(&v["margin"]),
             opt_num(&v["spacing"]),
         );
@@ -689,7 +804,10 @@ fn resize_offsets_and_arrow_directions_match_upstream() {
 
 #[test]
 fn gestures_match_upstream() {
-    let sessions: Vec<Value> = cases().into_iter().filter(|c| c["kind"] == "session").collect();
+    let sessions: Vec<Value> = cases()
+        .into_iter()
+        .filter(|c| c["kind"] == "session")
+        .collect();
     assert!(sessions.len() > 250, "only {} gestures", sessions.len());
     for case in &sessions {
         replay(case);
@@ -707,12 +825,20 @@ fn close(a: f64, b: f64) -> bool {
 }
 
 fn xywh(e: &Value) -> [f64; 4] {
-    [num(&e["x"]), num(&e["y"]), num(&e["width"]), num(&e["height"])]
+    [
+        num(&e["x"]),
+        num(&e["y"]),
+        num(&e["width"]),
+        num(&e["height"]),
+    ]
 }
 
 fn assert_close(actual: [f64; 4], expected: [f64; 4], context: &str) {
     for i in 0..4 {
-        assert!(close(actual[i], expected[i]), "{context}: {actual:?} != {expected:?}");
+        assert!(
+            close(actual[i], expected[i]),
+            "{context}: {actual:?} != {expected:?}"
+        );
     }
 }
 
@@ -766,7 +892,11 @@ fn generic_element_aspect_ratio_and_center() {
 /// centred at font size 20.
 #[test]
 fn generic_element_label_stays_centred() {
-    for state in replay(&case("upstream-generic-label")).iter().skip(1).step_by(2) {
+    for state in replay(&case("upstream-generic-label"))
+        .iter()
+        .skip(1)
+        .step_by(2)
+    {
         let [rx, ry, rw, rh] = xywh(&state[0]);
         let [lx, ly, lw, lh] = xywh(&state[1]);
         assert!(close(lx + lw / 2.0, rx + rw / 2.0));
@@ -787,7 +917,11 @@ fn labelled_containers_flip() {
             );
             let state = final_state(&id);
             let [x, y, w, h] = xywh(&state[0]);
-            assert_close([x, y, w, h], [-300.0, 0.0, 300.0, if proportional { 150.0 } else { 100.0 }], &id);
+            assert_close(
+                [x, y, w, h],
+                [-300.0, 0.0, 300.0, if proportional { 150.0 } else { 100.0 }],
+                &id,
+            );
             let [lx, ly, lw, lh] = xywh(&state[1]);
             assert!((lx + lw / 2.0 - (x + w / 2.0)).abs() < 0.5, "{id}");
             assert!((ly + lh / 2.0 - (y + h / 2.0)).abs() < 0.5, "{id}");
@@ -871,10 +1005,22 @@ fn text_resizes_and_rewraps() {
 fn multiple_generic_elements_scale_together() {
     let state = final_state("upstream-multi-generic");
     let scale = f64::max(1.0 + 50.0 / 220.0, 1.0 + 30.0 / 160.0);
-    assert_close(xywh(&state[0]), [0.0, 0.0, 100.0 * scale, 80.0 * scale], "rectangle");
+    assert_close(
+        xywh(&state[0]),
+        [0.0, 0.0, 100.0 * scale, 80.0 * scale],
+        "rectangle",
+    );
     assert!(close(num(&state[1]["fontSize"]), 20.0 * scale));
-    assert_close(xywh(&state[2]), [140.0 * scale, 40.0 * scale, 80.0 * scale, 80.0 * scale], "diamond");
-    assert_close(xywh(&state[3]), [40.0 * scale, 100.0 * scale, 80.0 * scale, 60.0 * scale], "ellipse");
+    assert_close(
+        xywh(&state[2]),
+        [140.0 * scale, 40.0 * scale, 80.0 * scale, 80.0 * scale],
+        "diamond",
+    );
+    assert_close(
+        xywh(&state[3]),
+        [40.0 * scale, 100.0 * scale, 80.0 * scale, 60.0 * scale],
+        "ellipse",
+    );
 }
 
 /// "multiple selection flips while resizing" (resize.test.tsx:1454-1559).
@@ -886,16 +1032,26 @@ fn multiple_selection_flips() {
     let image = &state[0];
     assert_close(
         xywh(image),
-        [160.0 * scale_x, 100.0 * scale_y, 100.0 * -scale_x, 100.0 * scale_y],
+        [
+            160.0 * scale_x,
+            100.0 * scale_y,
+            100.0 * -scale_x,
+            100.0 * scale_y,
+        ],
         "image",
     );
-    assert!(close(num(&image["angle"]), std::f64::consts::PI * 5.0 / 6.0));
+    assert!(close(
+        num(&image["angle"]),
+        std::f64::consts::PI * 5.0 / 6.0
+    ));
     assert_eq!(image["scale"], serde_json::json!([-1, 1]));
     let rectangle = &state[2];
     assert_eq!(num(&rectangle["angle"]), std::f64::consts::PI * 11.0 / 6.0);
+    // the arrow drawn from (380, 240) by (-60, -80) is mirrored across the
+    // anchor and scaled with everything else
     let arrow = state.iter().find(|e| e["type"] == "arrow").expect("arrow");
-    assert!(close(num(&arrow["points"][1][0]), 63.40354208105561));
-    assert!(close(num(&arrow["points"][1][1]), -84.53805610807356));
+    assert!(close(num(&arrow["points"][1][0]), 60.0 * scale_y));
+    assert!(close(num(&arrow["points"][1][1]), -80.0 * scale_y));
 }
 
 /// "flips the fixed point binding on negative resize for group selection"
@@ -919,7 +1075,10 @@ fn rotation_snaps_and_is_refused_where_upstream_refuses() {
     let step = std::f64::consts::PI / 12.0;
     for state in &states[1..] {
         let angle = num(&state[0]["angle"]);
-        assert!(((angle / step).round() * step - angle).abs() < 1e-9, "{angle}");
+        assert!(
+            ((angle / step).round() * step - angle).abs() < 1e-9,
+            "{angle}"
+        );
         assert_eq!(state[1]["angle"], state[0]["angle"]);
     }
     let c = case("frame-rotate-multi-refused");
@@ -936,7 +1095,13 @@ fn rotation_snaps_and_is_refused_where_upstream_refuses() {
 /// (`getStickyNoteMinSize`).
 #[test]
 fn sticky_notes_ask_for_their_layout() {
-    for id in ["sticky-corner", "sticky-edge-e", "sticky-edge-n", "sticky-flip", "sticky-multi"] {
+    for id in [
+        "sticky-corner",
+        "sticky-edge-e",
+        "sticky-edge-n",
+        "sticky-flip",
+        "sticky-multi",
+    ] {
         let c = case(id);
         let asked = c["steps"]
             .as_array()
@@ -961,5 +1126,10 @@ fn handle_sizes_by_pointer_type() {
     let r = element(&case("handles-00-rectangle")["elements"][0]);
     let map = ElementsMap::new([&r]);
     let handles = get_transform_handles(&r, 1.0, &map, PointerType::Touch, &OmitSides::default());
-    assert_eq!(handles.get(TransformHandleType::Rotation).expect("rotation")[2], 28.0);
+    assert_eq!(
+        handles
+            .get(TransformHandleType::Rotation)
+            .expect("rotation")[2],
+        28.0
+    );
 }

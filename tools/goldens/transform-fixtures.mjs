@@ -92,8 +92,15 @@
 //   groups, frames, bound arrows and elbow arrows.
 // - random-*: seeded random scenes, selections, handles and pointer paths.
 //
-// Text is measured with upstream's test metric (text.length * 10) and the
-// per-character width cache is cleared before each gesture.
+// Text is measured with upstream's test metric (text.length * 10), and the
+// per-character width cache starts each gesture empty of every font (as on
+// a fresh page; the patched charWidth.reset()), so a gesture's minimum label
+// widths (getApproxMinLineWidth) depend on that gesture alone.
+//
+// Where UI.resize would press a side handle that is not laid out (a side
+// too short, or a multi-selection, whose side handles are omitted), the
+// pointer goes down on the middle of that side of the selection border,
+// where the editor resizes from sides.
 //
 // Deterministic: upstream runs in its test mode (import.meta.env.MODE
 // "test"; ids id0.., timestamps 1), reseed(1) before each case, and random
@@ -183,6 +190,17 @@ const PATCH = {
       replaceAll(source, "updateBoundElements(\n", `${PROBE}.updateBoundElements(updateBoundElements, \n`, 1),
       "const layout = getStickyNoteLayout(container, textElement, layoutOpts);",
       `const layout = ${PROBE}.stickyNoteLayout(getStickyNoteLayout, container, textElement, layoutOpts);`,
+      1,
+    ),
+  // charWidth.reset() forgets every font, as a fresh page starts: no
+  // cache at all (getMaxCharWidth 0), where clearCache leaves an empty one
+  // (getMaxCharWidth -Infinity). The fixture resets before each gesture
+  // and the Rust test starts each gesture with a new CharWidthCache.
+  "packages/element/src/textMeasurements": (source) =>
+    replaceAll(
+      source,
+      "    clearCache,\n  };",
+      "    clearCache,\n    reset: () => {\n      for (const font of Object.keys(cachedCharWidth)) delete cachedCharWidth[font];\n    },\n  };",
       1,
     ),
 };
@@ -283,10 +301,8 @@ const probe = {
 
 // -- scenes ----------------------------------------------------------------------
 
-const textFonts = new Set();
-const clearCharWidths = (up) => {
-  for (const font of textFonts) up.charWidth.clearCache(font);
-};
+/** A pristine character width cache (see the textMeasurements patch). */
+const clearCharWidths = (up) => up.charWidth.reset();
 
 /** A text element measured as newTextElement measures it. */
 const text = (up, opts) =>
@@ -370,13 +386,16 @@ const uiHandlePoint = (up, elements, selected, handle, zoom = 1) => {
   }
   if (!coords && handle.length === 1) {
     // no side handle (too small, or a multi-selection, whose side handles
-    // are omitted): press on the middle of that side, which resizeTest and
-    // getTransformHandleTypeFromCoords find on the selection border
+    // are omitted): press on the middle of that side of the selection
+    // border, where resizeTest and getTransformHandleTypeFromCoords look
+    // (the box pushed out by SIDE_RESIZING_THRESHOLD / zoom, not for one
+    // image); on the line, not at the edge of its threshold
     const [x1, y1, x2, y2] =
       sel.length === 1 ? up.getElementAbsoluteCoords(sel[0], up.arrayToMap(elements)) : up.getCommonBounds(sel);
     const cx = (x1 + x2) / 2;
     const cy = (y1 + y2) / 2;
-    const side = { n: [cx, y1], s: [cx, y2], w: [x1, cy], e: [x2, cy] }[handle];
+    const out = sel.length === 1 && up.isImageElement(sel[0]) ? 0 : 4 / zoom;
+    const side = { n: [cx, y1 - out], s: [cx, y2 + out], w: [x1 - out, cy], e: [x2 + out, cy] }[handle];
     const angle = sel.length === 1 ? sel[0].angle : 0;
     return [
       (side[0] - cx) * Math.cos(angle) - (side[1] - cy) * Math.sin(angle) + cx,
@@ -396,8 +415,9 @@ const uiHandlePoint = (up, elements, selected, handle, zoom = 1) => {
  * gridSize } | { resizeSingle } | { snapshot: true }.
  */
 const session = (up, id, elements, script) => {
-  const initial = clone(elements);
   const scene = new up.Scene(elements, { skipValidation: true });
+  // the scene syncs fractional indices as it takes the elements
+  const initial = clone(scene.getElementsIncludingDeleted());
   const steps = [];
   let state = null;
   let snapshot = null;
@@ -1965,12 +1985,7 @@ const main = async () => {
     define: { "import.meta.env.MODE": '"test"' },
     patch: PATCH,
   });
-  up.setCustomTextMetricsProvider({
-    getLineWidth: (value, font) => {
-      textFonts.add(font);
-      return value.length * 10;
-    },
-  });
+  up.setCustomTextMetricsProvider({ getLineWidth: (value) => value.length * 10 });
   const text = deterministic(() => buildFixture(up, upstream.commit));
   const path = join(args.out, FIXTURE);
   const where = relative(process.cwd(), path) || path;
