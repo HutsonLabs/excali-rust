@@ -2242,6 +2242,29 @@
    "labels": []
   },
   {
+   "id": "ex-537",
+   "epic": "ex-e5",
+   "title": "Library sidebar header menu: load and save library files, the reset and remove confirm dialogs, the publish dialog",
+   "priority": 2,
+   "blocked_by": [
+    "ex-526"
+   ],
+   "crates": [
+    "excali-ui",
+    "excali-wasm"
+   ],
+   "acceptance": "In <excali-editor>, the library header menu's Open merges a picked .excalidrawlib (errors.importLibraryError on failure), Save to... saves the selected items or the whole library as a .excalidrawlib, Reset library and Remove ask with upstream's ConfirmDialog (confirmDialog.resetLibrary / removeItemsFromLib) before clearing or removing, and Rename or publish opens PublishLibrary; DOM and behaviour held to upstream's LibraryMenuHeaderContent.tsx, ConfirmDialog.tsx and PublishLibrary.tsx at the pin.",
+   "evidence": [
+    "packages/excalidraw/components/LibraryMenuHeaderContent.tsx:37-190",
+    "packages/excalidraw/components/ConfirmDialog.tsx",
+    "packages/excalidraw/components/PublishLibrary.tsx",
+    "packages/excalidraw/data/json.ts:147-160 (saveLibraryAsJSON)"
+   ],
+   "description": "Split from ex-526, which ports the sidebar, the menu's entries and their effects (excali_ui::library_sidebar::LibraryEffect::{LoadLibrary, ExportLibrary, ConfirmReset, ConfirmRemove, Publish}) and wires the sidebar into <excali-editor> without the file dialogs and the confirm and publish dialogs.",
+   "type": "task",
+   "labels": []
+  },
+  {
    "id": "ex-601",
    "epic": "ex-e6",
    "title": "term.hut: vendor the module and route .excalidraw to the editor in preview.js",
