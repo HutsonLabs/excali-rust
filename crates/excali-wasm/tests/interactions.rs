@@ -1064,3 +1064,51 @@ fn a_dragged_arrow_end_suggests_its_binding() {
     let arrow = json!(get(&ed, "l").to_map());
     assert_eq!(arrow["startBinding"]["elementId"], "a");
 }
+
+// -- What the interactive canvas reads ------------------------------------------
+
+#[test]
+fn the_selection_box_is_the_selection_element() {
+    // createGenericElementOnPointerDown("selection") and
+    // maybeDragNewGenericElement (App.tsx:10536-10600, 13474-13497): the box
+    // spans the press and the pointer; the release drops it
+    let mut ed = editor_with(vec![filled("a", 100.0, 100.0, 50.0)]);
+    ed.pointer_down(at(300.0, 300.0));
+    ed.pointer_move(at(250.0, 380.0));
+    let s = app(&ed, "selectionElement");
+    assert_eq!(s["type"], "selection");
+    assert_eq!(
+        [&s["x"], &s["y"], &s["width"], &s["height"]],
+        [&json!(250.0), &json!(300.0), &json!(50.0), &json!(80.0)]
+    );
+    ed.pointer_up(at(250.0, 380.0));
+    assert_eq!(app(&ed, "selectionElement"), Value::Null);
+}
+
+#[test]
+fn hovering_a_selected_line_marks_its_point_and_midpoint() {
+    // App.tsx:8557-8645: hoverPointIndex, segmentMidPointHoveredCoords
+    let mut ed = two_pointer("line");
+    ed.pointer_move(at(61.0, 21.0));
+    assert_eq!(app(&ed, "selectedLinearElement")["hoverPointIndex"], 1);
+    ed.pointer_move(at(40.0, 21.0));
+    let l = app(&ed, "selectedLinearElement");
+    assert_eq!(l["hoverPointIndex"], -1);
+    assert_eq!(l["segmentMidPointHoveredCoords"], json!([40.0, 20.0]));
+    ed.pointer_move(at(300.0, 300.0));
+    assert_eq!(
+        app(&ed, "selectedLinearElement")["segmentMidPointHoveredCoords"],
+        Value::Null
+    );
+}
+
+#[test]
+fn hovering_a_shape_with_the_arrow_tool_suggests_it() {
+    // App.tsx:8110-8147
+    let mut ed = editor_with(vec![filled("a", 100.0, 100.0, 100.0)]);
+    letter(&mut ed, "a");
+    ed.pointer_move(at(150.0, 150.0));
+    assert_eq!(suggested(&ed), "a");
+    ed.pointer_move(at(400.0, 400.0));
+    assert_eq!(app(&ed, "suggestedBinding"), Value::Null);
+}
