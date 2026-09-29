@@ -4,15 +4,15 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 21:37 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 22:51 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**150 issues** · 108 closed (72%) · 1 in progress · 0 blocked · 40 open
+**151 issues** · 111 closed (74%) · 2 in progress · 0 blocked · 37 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
 ## ex-e0 · Phase 0: Foundations
 
-<span class="status open">open</span> 11/11 children closed
+<span class="status open">open</span> 12/12 children closed
 
 Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo workspace and CI. Everything later phases depend on to be reproducible.
 
@@ -27,6 +27,7 @@ Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo work
 | `ex-007` | scripts/site/zola.sh works on macOS (bash 3.2, shasum) with the aarch64-apple-darwin digest pinned | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-008` | Record the owner decisions of 2026-09-27 (calendar versioning, agent-closed milestones, fonts, strictly a port) | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-009` | Platform-independent float maths: excali_math::js for every transcendental, std methods disallowed by clippy | task | P0 | <span class="status closed">closed</span> |  |  |
+| `ex-010` | Close issues after merge and run PR CI on the affected crates only (owner decision 2026-09-29) | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-g001` | Attribution gate self-test in CI: a planted attribution line must fail the gate | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-m0` | M0: site live, gates enforced, workspace green | milestone | P2 | <span class="status closed">closed</span> |  |  |
 
@@ -180,7 +181,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
 
-<span class="status open">open</span> 4/8 children closed
+<span class="status open">open</span> 6/8 children closed
 
 Vendored module in term.hut with CRUD and library import; tauri-plugin-excali with dialogs, headless export and allow-listed fetch; example app.
 
@@ -188,12 +189,12 @@ Vendored module in term.hut with CRUD and library import; tauri-plugin-excali wi
 |---|---|---|---|---|---|---|
 | `ex-601` | term.hut: vendor the module and route .excalidraw to the editor in preview.js | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-602` | term.hut: save through fs_write_text with dirty state and conflict handling | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-603` | term.hut: New drawing and delete flows in the tree | task | P1 | <span class="status in_progress">in progress</span> |  |  |
-| `ex-604` | term.hut: Import library from URL or file with the allow-list | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-603` | term.hut: New drawing and delete flows in the tree | task | P1 | <span class="status closed">closed</span> |  |  |
+| `ex-604` | term.hut: Import library from URL or file with the allow-list | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-605` | tauri-plugin-excali: dialogs, headless export, allow-listed library fetch, capability file | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-606` | Example Tauri app embedding the editor | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-607` | Integration docs: CSP, capabilities, module loading without a bundler | task | P2 | <span class="status open">open</span> | yes |  |
-| `ex-m6` | M6: term.hut CRUD and library import end to end | milestone | P2 | <span class="status open">open</span> |  | `ex-603`, `ex-604`, `ex-607` |
+| `ex-m6` | M6: term.hut CRUD and library import end to end | milestone | P2 | <span class="status open">open</span> |  | `ex-607` |
 
 ## ex-e7 · Phase 7: Parity and polish
 
@@ -203,7 +204,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 
 | id | title | type | P | status | ready | blocked by |
 |---|---|---|---|---|---|---|
-| `ex-701` | Compact styles panel and tablet form factor | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-701` | Compact styles panel and tablet form factor | task | P1 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-702` | Phone layout: mobile menu, bottom bar, mobile toolbar order | task | P1 | <span class="status open">open</span> |  | `ex-701` |
 | `ex-703` | Sticky notes: element, rendering (shadow, edge, footer), label fitting | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-704` | Bucket fill tool | task | P2 | <span class="status open">open</span> | yes |  |
@@ -212,7 +213,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 | `ex-707` | Image crop editor | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-708` | Search sidebar (frames and texts) | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-709` | Accessibility: focus order, ARIA on controls, reduced motion, RTL mirroring of icons | task | P2 | <span class="status open">open</span> | yes |  |
-| `ex-710` | Performance budgets in CI (pan at 1,000 elements, first paint) | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-710` | Performance budgets in CI (pan at 1,000 elements, first paint) | task | P1 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-711` | Locale loader using upstream JSON files (58 locales, 633 keys) | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-712` | Parity checklist to 100% for the v1 scope | task | P0 | <span class="status open">open</span> |  | `ex-522`, `ex-527`, `ex-528`, `ex-529` |
 | `ex-713` | <excali-editor>: the interactive canvas and the App interactions ex-712 reduced | task | P1 | <span class="status open">open</span> | yes |  |
