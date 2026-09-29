@@ -116,7 +116,8 @@ pub fn embeds_scene(scene: &LoadedScene, settings: &ExportSettings) -> bool {
     truthy(settings.app_state(scene).get("exportEmbedScene"))
 }
 
-fn truthy(value: Option<&Value>) -> bool {
+/// JavaScript truthiness of an app state value.
+pub(crate) fn truthy(value: Option<&Value>) -> bool {
     match value {
         None | Some(Value::Null) => false,
         Some(Value::Bool(b)) => *b,

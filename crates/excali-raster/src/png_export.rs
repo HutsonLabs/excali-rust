@@ -9,7 +9,7 @@
 //! demultiplication). Pixel data aside, a PNG decoder sees the same
 //! image, and upstream's `decodePngMetadata` the same scene.
 
-use excali_scene::display::CanvasDocument;
+use excali_scene::display::{CanvasDocument, PngPayload};
 use tiny_skia::Pixmap;
 
 use crate::{render, ImageStore, TextRasterizer};
@@ -60,12 +60,26 @@ pub const MAX_CANVAS_AREA: u64 = 268_435_456;
 
 /// Paint `doc` on a transparent canvas of its size and encode it: `IHDR`
 /// (8-bit RGBA), the image data, the scene's `tEXt` chunk when it has one,
-/// `IEND`.
+/// `IEND`. [`paint_canvas`] then [`encode_png`].
 pub fn export_png<I: ImageStore, T: TextRasterizer>(
     doc: &CanvasDocument,
     images: &I,
     text: &mut T,
 ) -> Result<Vec<u8>, PngExportError> {
+    let pixmap = paint_canvas(doc, images, text)?;
+    encode_png(&pixmap, doc.payload.as_ref())
+}
+
+/// The canvas `doc` describes, painted: a transparent pixmap of its size
+/// with the list drawn on it, as a caller that draws the canvas somewhere
+/// else (`ctx.drawImage(canvas, ...)`) holds it. A canvas without pixels
+/// or past the browser limits is [`PngExportError::CanvasTooBig`], checked
+/// before anything is allocated.
+pub fn paint_canvas<I: ImageStore, T: TextRasterizer>(
+    doc: &CanvasDocument,
+    images: &I,
+    text: &mut T,
+) -> Result<Pixmap, PngExportError> {
     if doc.width == 0
         || doc.height == 0
         || doc.width > MAX_CANVAS_SIDE
@@ -76,7 +90,15 @@ pub fn export_png<I: ImageStore, T: TextRasterizer>(
     }
     let mut pixmap = Pixmap::new(doc.width, doc.height).ok_or(PngExportError::CanvasTooBig)?;
     render(&doc.list, &mut pixmap, images, text);
+    Ok(pixmap)
+}
 
+/// `canvas.toBlob()` of a painted canvas: 8-bit RGBA, each pixel's
+/// unpremultiplied colour, with `payload`'s `tEXt` chunk before `IEND`.
+pub fn encode_png(
+    pixmap: &Pixmap,
+    payload: Option<&PngPayload>,
+) -> Result<Vec<u8>, PngExportError> {
     let mut rgba = Vec::with_capacity(pixmap.data().len());
     for p in pixmap.pixels() {
         let c = p.demultiply();
@@ -85,12 +107,12 @@ pub fn export_png<I: ImageStore, T: TextRasterizer>(
 
     let mut out = Vec::new();
     {
-        let mut encoder = png::Encoder::new(&mut out, doc.width, doc.height);
+        let mut encoder = png::Encoder::new(&mut out, pixmap.width(), pixmap.height());
         encoder.set_color(png::ColorType::Rgba);
         encoder.set_depth(png::BitDepth::Eight);
         let mut writer = encoder.write_header()?;
         writer.write_image_data(&rgba)?;
-        if let Some(payload) = &doc.payload {
+        if let Some(payload) = payload {
             // chunks.splice(-1, 0, metadataChunk): before IEND, which
             // finish() writes
             writer.write_chunk(png::chunk::tEXt, &payload.chunk_data())?;

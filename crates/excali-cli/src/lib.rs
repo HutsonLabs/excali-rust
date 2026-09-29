@@ -16,7 +16,10 @@
 //! - `lib list` and `lib merge`: a library's items, and libraries imported
 //!   one into another as `mergeLibraryItems` merges them
 //!   (`data/library.ts:145-157`), written by `serializeLibraryAsJSON`
-//!   (`data/json.ts:137-145`) — [`library`].
+//!   (`data/json.ts:137-145`) — [`library`];
+//! - `lib preview`: the preview image the publish dialog makes of a
+//!   library (`generatePreviewImage`, `components/PublishLibrary.tsx:38-105`),
+//!   every item drawn by the utils `exportToCanvas` — [`preview`].
 //!
 //! The commands and exit codes are documented in
 //! `site/content/architecture/cli.md` ([`cli`]).
@@ -32,3 +35,4 @@ pub mod export;
 pub mod fonts;
 pub mod input;
 pub mod library;
+pub mod preview;
