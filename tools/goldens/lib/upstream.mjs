@@ -8,7 +8,7 @@
 // so the numbers in the goldens are the numbers upstream's code computes.
 
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -193,7 +193,8 @@ const redirectedModules = (upstream, redirects) => ({
 /**
  * Exports module-private functions of checkout modules so a generator can
  * call them directly: `exposed` maps a checkout module path from the root
- * without extension (e.g. `packages/excalidraw/data/restore`) to the names
+ * without extension (e.g. `packages/excalidraw/data/restore`; the `.tsx`
+ * module when one exists, else the `.ts`) to the names
  * to export. The module's source is loaded unchanged with one line
  * appended, `export { name, ... };`, so the functions are upstream's own.
  *
@@ -209,16 +210,18 @@ const exposedModules = (upstream, exposed, patched = {}) => ({
     if (!modules.size) return;
     const files = new Map(
       [...modules].map((module) => [
-        join(upstream, `${module}.ts`),
+        existsSync(join(upstream, `${module}.tsx`))
+          ? join(upstream, `${module}.tsx`)
+          : join(upstream, `${module}.ts`),
         { names: exposed[module] ?? [], patch: patched[module] ?? ((source) => source) },
       ]),
     );
-    build.onLoad({ filter: /\.ts$/ }, (args) => {
+    build.onLoad({ filter: /\.tsx?$/ }, (args) => {
       const file = files.get(args.path);
       if (!file) return undefined;
       const source = file.patch(readFileSync(args.path, "utf8"));
       const exports = file.names.length ? `\nexport { ${file.names.join(", ")} };\n` : "";
-      return { contents: `${source}${exports}`, loader: "ts" };
+      return { contents: `${source}${exports}`, loader: args.path.endsWith(".tsx") ? "tsx" : "ts" };
     });
   },
 });
