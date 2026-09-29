@@ -1019,6 +1019,30 @@ const extraCases = () => {
       ]);
     });
   }
+  // the parity checklist's resize-handle and rotate-handle rows (ex-712):
+  // a 100 x 100 rectangle at (100, 100), the gestures Playwright's
+  // mouse.move(x, y, { steps: 4 }) sends, and the same paths on whole
+  // pixels, as a browser rounding clientX would give them
+  for (const [suffix, moves] of [
+    ["", [[218.5, 213.5], [231, 221], [243.5, 228.5], [256, 236]]],
+    ["-pixels", [[218, 213], [231, 221], [243, 228], [256, 236]]],
+  ]) {
+    const id = `parity-resize-handle${suffix}`;
+    add(id, (up) => {
+      const r = el(up, { type: "rectangle", x: 100, y: 100, width: 100, height: 100 });
+      return session(up, id, [r], [
+        { begin: { selected: [r.id], origin: [206, 206] } },
+        ...moves.map((to) => ({ move: { to } })),
+      ]);
+    });
+  }
+  add("parity-rotate-handle", (up) => {
+    const r = el(up, { type: "rectangle", x: 100, y: 100, width: 100, height: 100 });
+    return session(up, "parity-rotate-handle", [r], [
+      { begin: { selected: [r.id], origin: [150, 78] } },
+      ...[[187.5, 96], [225, 114], [262.5, 132], [300, 150]].map((to) => ({ move: { to } })),
+    ]);
+  });
   // a container whose boundElements still lists a deleted label: upstream
   // reads it with scene.getElement, deleted or not, and turns and moves it
   add("rotate-deleted-label", (up) => {

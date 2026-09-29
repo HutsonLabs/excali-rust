@@ -442,11 +442,20 @@ fn listen_active(
     Ok(())
 }
 
+/// A number property of an event: `clientX` and `clientY` are doubles,
+/// fractional in Chromium, where web-sys reads them as integers.
+fn number(event: &Event, key: &str) -> f64 {
+    js_sys::Reflect::get(event, &JsValue::from_str(key))
+        .ok()
+        .and_then(|v| v.as_f64())
+        .unwrap_or(0.0)
+}
+
 /// A pointer event as the editor reads it; Cmd is the modifier on a Mac.
 fn pointer_input(event: &PointerEvent) -> PointerInput {
     PointerInput {
-        client_x: f64::from(event.client_x()),
-        client_y: f64::from(event.client_y()),
+        client_x: number(event, "clientX"),
+        client_y: number(event, "clientY"),
         button: event.button(),
         shift_key: event.shift_key(),
         alt_key: event.alt_key(),

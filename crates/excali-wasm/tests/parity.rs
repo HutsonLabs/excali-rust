@@ -231,7 +231,10 @@ fn select_box() {
     drag(&mut ed, [50.0, 50.0], [450.0, 250.0]);
     assert_eq!(selected(&ed), ["a", "b"]);
     // the box itself is gone and nothing moved
-    assert!(ed.app_state().get("selectionElement").is_none_or(Value::is_null));
+    assert!(ed
+        .app_state()
+        .get("selectionElement")
+        .is_none_or(Value::is_null));
     assert_eq!(get(&ed, "a").base.x, 100.0);
     // a new box without Shift replaces the selection; with Shift adds to it
     drag(&mut ed, [550.0, 350.0], [750.0, 550.0]);
@@ -296,8 +299,9 @@ fn rotate_handle() {
     click(&mut ed, [150.0, 150.0]);
     drag(&mut ed, [150.0, 78.0], [300.0, 150.0]);
     let a = get(&ed, "a");
-    // rotateSingleElement: atan2 from the centre, plus 90 degrees
-    let want = (150.0f64 - 150.0).atan2(300.0 - 150.0) + std::f64::consts::FRAC_PI_2;
-    assert!((a.base.angle.0 - want).abs() < 1e-9, "{}", a.base.angle.0);
+    // rotateSingleElement: the angle from the centre plus 90 degrees, as
+    // upstream computes it for this gesture (excali-editor's transform.json,
+    // case parity-rotate-handle)
+    assert_eq!(a.base.angle.0, std::f64::consts::FRAC_PI_2);
     assert_eq!((a.base.width, a.base.height), (100.0, 100.0));
 }

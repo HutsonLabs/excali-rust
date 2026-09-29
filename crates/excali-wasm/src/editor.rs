@@ -47,14 +47,19 @@ use excali_core::library_url::{parse_library_tokens_from_url, validate_library_u
 use excali_core::restore::{LegacyBinding, LegacyBindingRequest, RestoreEnv};
 use excali_editor::actions::{ActionEnv, ActionManager, ActionName, AppProps, KeyDownOutcome};
 use excali_editor::collision::{hit_element, HitTestCache};
+use excali_editor::edit_actions::{select_all, ActionResult};
+use excali_editor::groups::select_groups_for_selected_elements;
 use excali_editor::keyboard::{
     get_selected_elements, on_key_down, on_key_up, pan_starts, KeyEffect, KeyOutcome,
     KeyboardEditor, KeyboardState, Keystroke, PanStart,
 };
 use excali_editor::restore_env::RoutingEnv;
 use excali_editor::scene::Scene;
+use excali_editor::selection::{get_elements_within_selection, BoxSelectionMode};
 use excali_editor::session::Session;
-use excali_editor::tools::ToolState;
+use excali_editor::tools::{PointerType, ToolState};
+use excali_editor::transform::{get_grid_point, TransformModifiers, TransformSession};
+use excali_editor::transform_handles::EditorInterface;
 use excali_editor::viewport::{
     handle_wheel, perform_zoom_action, translate, viewport_coords_to_scene_coords, InputDevice,
     Offsets, TranslateOptions, Viewport, ViewportState, ViewportUpdate, WheelContext, WheelEvent,
@@ -253,6 +258,9 @@ enum Gesture {
     Pan { last: [f64; 2] },
     /// The selection tool's press (`pointerDownState`).
     Select(SelectGesture),
+    /// A press on a resize or rotation handle of the selection
+    /// (`pointerDownState.resize`, `maybeHandleResize`).
+    Transform(TransformSession),
 }
 
 /// The selection tool's press (`pointerDownState`).
@@ -269,6 +277,11 @@ struct SelectGesture {
     /// `previousSelectedElementIds`.
     previous_selection: Value,
     dragged: bool,
+    /// The selection box's corner at the press (`selectionElement`, on
+    /// the grid), while no element was hit.
+    box_origin: Option<[f64; 2]>,
+    /// The box has been dragged (`boxSelection.hasOccurred`).
+    box_selected: bool,
 }
 
 /// `getSceneVersion`: the sum of the elements' versions.
@@ -617,16 +630,47 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             self.zoom(action);
         } else {
             let mut app_state = self.session.app_state().clone();
-            match name {
+            let result = match name {
+                ActionName::SelectAll => select_all(self.session.elements(), &app_state),
                 ActionName::ToggleShortcuts => {
                     toggle_shortcuts(&mut app_state);
+                    None
                 }
-                ActionName::ZenMode => toggle_zen_mode(&mut app_state),
+                ActionName::ZenMode => {
+                    toggle_zen_mode(&mut app_state);
+                    None
+                }
                 _ => return,
+            };
+            if let Some(result) = result {
+                return self.apply_action(result);
             }
             let scene = Scene::new(self.session.elements().to_vec());
             self.apply(scene, app_state);
         }
+        self.report();
+    }
+
+    /// An action's result written back (`syncActionResult`): the
+    /// elements, the app state keys, and a capture when it asks for one.
+    fn apply_action(&mut self, result: ActionResult) {
+        if let Some(elements) = result.elements {
+            // Ok: the actions keep the fractional indices valid
+            let _ = self.session.replace_all_elements(elements);
+        }
+        let current = self.session.app_state().as_map();
+        let patch: Map<String, Value> = result
+            .app_state
+            .into_iter()
+            .filter(|(k, v)| current.get(k) != Some(v))
+            .collect();
+        if !patch.is_empty() {
+            self.session.set_state(patch);
+        }
+        if result.capture {
+            self.session.store.schedule_capture();
+        }
+        self.session.commit();
         self.report();
     }
 
@@ -848,6 +892,24 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// (`handleSelectionOnPointerDown`), or starts a link click.
     fn select_pointer_down(&mut self, input: PointerInput) {
         let origin = self.scene_point(input.client_x, input.client_y);
+        // a handle of the selection (`handleSelectionOnPointerDown`)
+        let selected = self.selected_ids();
+        if !selected.is_empty() {
+            let scene = Scene::new(self.session.elements().to_vec());
+            let session = TransformSession::begin(
+                &scene,
+                &selected,
+                origin,
+                self.session.app_state().zoom().unwrap_or(1.0),
+                PointerType::Mouse,
+                &EditorInterface::desktop(),
+                None,
+            );
+            if session.handle().is_some() {
+                self.gesture = Some(Gesture::Transform(session));
+                return;
+            }
+        }
         let previous_selection = self
             .session
             .app_state()
@@ -879,6 +941,9 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             self.set_selection(&selected);
             self.session.commit();
         }
+        // the selection element (`createGenericElementOnPointerDown`)
+        let box_origin = (hit.is_none() && link.is_none())
+            .then(|| get_grid_point(origin[0], origin[1], self.grid_size(input.ctrl_or_cmd)));
         self.gesture = Some(Gesture::Select(SelectGesture {
             origin,
             originals,
@@ -886,6 +951,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             link,
             previous_selection,
             dragged: false,
+            box_origin,
+            box_selected: false,
         }));
         self.report();
     }
@@ -908,8 +975,136 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 let translation = translate(&state, Some(update), TranslateOptions::default());
                 self.set_viewport_to(translation.viewport);
             }
+            Some(Gesture::Select(g)) if g.box_origin.is_some() => self.box_select(input),
             Some(Gesture::Select(_)) => self.drag_selection(input),
+            Some(Gesture::Transform(_)) => self.transform(input),
             None => {}
+        }
+    }
+
+    /// `getEffectiveGridSize()`: the grid size in grid mode, none with
+    /// Ctrl/Cmd held.
+    fn grid_size(&self, ctrl_or_cmd: bool) -> Option<f64> {
+        if ctrl_or_cmd {
+            return None;
+        }
+        self.props
+            .grid_mode_enabled
+            .or_else(|| self.session.app_state().grid_mode_enabled())
+            .unwrap_or(false)
+            .then(|| self.session.app_state().grid_size())
+            .flatten()
+    }
+
+    /// A move while box selecting (`App.onPointerMove`, `:11368-11470`):
+    /// the box grows to the pointer (`dragNewElement` on the grid) and the
+    /// selection becomes what it takes, with the previous selection kept
+    /// when Shift is held or nothing was selected, groups taken whole.
+    fn box_select(&mut self, input: PointerInput) {
+        let point = self.scene_point(input.client_x, input.client_y);
+        let grid = self.grid_size(input.ctrl_or_cmd);
+        let Some(Gesture::Select(gesture)) = self.gesture.as_mut() else {
+            return;
+        };
+        let Some(origin) = gesture.box_origin else {
+            return;
+        };
+        gesture.box_selected = true;
+        let corner = get_grid_point(point[0], point[1], grid);
+        let elements = self.session.elements();
+        let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
+        let map = ElementsMap::new(live.iter().copied());
+        let mode = BoxSelectionMode::from_name(
+            self.session
+                .app_state()
+                .get("boxSelectionMode")
+                .and_then(Value::as_str)
+                .unwrap_or("contain"),
+        );
+        let within: Vec<String> = get_elements_within_selection(
+            &live,
+            [origin[0], origin[1], corner[0], corner[1]],
+            &map,
+            false,
+            mode,
+        )
+        .iter()
+        .map(|e| e.base.id.clone())
+        .collect();
+        let current = self.selected_ids();
+        let reuse = input.shift_key || current.is_empty();
+        let mut next: Map<String, Value> = if reuse {
+            self.session
+                .app_state()
+                .get("selectedElementIds")
+                .and_then(Value::as_object)
+                .cloned()
+                .unwrap_or_default()
+        } else {
+            Map::new()
+        };
+        for id in within {
+            next.insert(id, Value::Bool(true));
+        }
+        let editing = if reuse {
+            self.session
+                .app_state()
+                .get("editingGroupId")
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+        } else {
+            None
+        };
+        let groups = select_groups_for_selected_elements(&next, editing.as_deref(), &live);
+        let mut patch = Map::new();
+        patch.insert(
+            "selectedElementIds".into(),
+            Value::Object(groups.selected_element_ids),
+        );
+        patch.insert(
+            "selectedGroupIds".into(),
+            Value::Object(groups.selected_group_ids),
+        );
+        patch.insert(
+            "editingGroupId".into(),
+            groups.editing_group_id.map_or(Value::Null, Value::String),
+        );
+        let current = self.session.app_state().as_map();
+        patch.retain(|k, v| current.get(k) != Some(v));
+        if !patch.is_empty() {
+            self.session.set_state(patch);
+            self.session.commit();
+        }
+        self.report();
+    }
+
+    /// A move on a handle: `maybeHandleResize` through the transform
+    /// session, the pointer on the grid unless Ctrl/Cmd is held; Shift
+    /// keeps the aspect ratio and snaps the angle, Alt resizes from the
+    /// centre.
+    fn transform(&mut self, input: PointerInput) {
+        let point = self.scene_point(input.client_x, input.client_y);
+        let grid = self.grid_size(false);
+        let Some(Gesture::Transform(session)) = self.gesture.as_ref() else {
+            return;
+        };
+        let session = session.clone();
+        let mut scene = Scene::new(self.session.elements().to_vec());
+        let app_state = self.session.app_state().clone();
+        let transformed = session.update(
+            &mut scene,
+            &mut self.session.env,
+            point,
+            TransformModifiers {
+                shift: input.shift_key,
+                alt: input.alt_key,
+                ctrl: input.ctrl_or_cmd,
+            },
+            grid,
+        );
+        if transformed {
+            self.apply(scene, app_state);
+            self.report();
         }
     }
 
@@ -928,13 +1123,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         gesture.dragged = true;
         let originals = gesture.originals.clone();
         let selected = self.selected_ids();
-        let grid = self
-            .props
-            .grid_mode_enabled
-            .or_else(|| self.session.app_state().grid_mode_enabled())
-            .unwrap_or(false)
-            .then(|| self.session.app_state().grid_size())
-            .flatten();
+        let grid = self.grid_size(input.ctrl_or_cmd);
         let mut scene = Scene::new(self.session.elements().to_vec());
         let app_state = self.session.app_state().clone();
         drag_selected_elements(
@@ -955,6 +1144,11 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         match self.gesture.take() {
             None | Some(Gesture::Pan { .. }) => {}
             Some(Gesture::Select(gesture)) => self.select_pointer_up(input, gesture),
+            Some(Gesture::Transform(_)) => {
+                self.session.store.schedule_capture();
+                self.session.commit();
+                self.report();
+            }
         }
     }
 
