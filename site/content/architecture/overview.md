@@ -40,7 +40,7 @@ Build from primitives up. Each crate below is a pure layer over the one beneath 
 
 | Crate | Upstream counterpart | May depend on | Targets |
 |---|---|---|---|
-| `excali-math` | `packages/math` | `std`, `libm` (fdlibm `sin`/`cos`, the code behind V8's `Math.sin`/`Math.cos`) | native, wasm32 |
+| `excali-math` | `packages/math`; V8's `Math` functions (`excali_math::js`) | `std`, `pxfm` (the correctly rounded `pow`, [ADR-011](../../decisions/adr-011-platform-independent-float-maths/)) | native, wasm32 |
 | `excali-core` | `packages/element/src/types.ts`, `packages/excalidraw/data/*`, `packages/fractional-indexing` | `excali-math`, `serde`, `serde_json`, `flate2`, `png` (chunk read/write), `base64`, `nanoid` | native, wasm32 |
 | `excali-rough` | `roughjs` 4.6.4 as used by `packages/element/src/shape.ts` | `excali-math`; `serde_json` and `sha2` only behind the test-only `goldens` feature (the golden harness) | native, wasm32 |
 | `excali-freehand` | `perfect-freehand` 1.2.0 and `packages/laser-pointer` | `excali-math` | native, wasm32 |
@@ -56,6 +56,10 @@ Build from primitives up. Each crate below is a pure layer over the one beneath 
 | `tauri-plugin-excali` | none (new) | `excali-raster`, `excali-core`, `tauri`, `tauri-plugin-dialog` | native |
 
 The dependency direction is enforced in CI: `excali-core`, `excali-math`, `excali-rough`, `excali-freehand`, `excali-text`, `excali-scene` and `excali-editor` are built with `--target wasm32-unknown-unknown` and must not pull `std::fs`, `tokio` or `web-sys`.
+
+## Float maths
+
+Every transcendental function goes through `excali_math::js`, never through the `f64`/`f32` methods ([ADR-011](../../decisions/adr-011-platform-independent-float-maths/)). Upstream's numbers come from V8, whose `Math.sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `exp`, `log`, `log2`, `log10` and `cbrt` are its own fdlibm (`src/base/ieee754.cc`) on every OS; Rust's methods call the platform's libm, which is an ulp away on a few percent of arguments, differently on macOS and glibc. `excali_math::js` ports V8's code with the fused multiply-adds clang puts in it on arm64 (where the goldens are generated), keeps V8's `Math.hypot`, and answers `pow` with V8's special cases and the correctly rounded power (V8 itself calls the platform's `pow`). The results are the same doubles on every platform, so goldens compare them exactly. The workspace `clippy.toml` disallows the std methods (`sin`, `cos`, `tan`, `sin_cos`, `asin`, `acos`, `atan`, `atan2`, `exp`, `ln`, `log`, `log2`, `log10`, `powf`, `hypot`, `cbrt` and the hyperbolic and `exp2`/`exp_m1`/`ln_1p` ones) in every crate and `tools/` harness; `sqrt`, `floor`, `ceil`, `round`, `abs`, `mul_add` and `powi` stay allowed. Backends reach the functions through `excali_scene::display::js`, so they still see the scene only through the display list. CI runs the tests on Linux x86-64, Linux arm64 and macOS arm64.
 
 ## Data flow
 
