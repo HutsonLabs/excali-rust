@@ -39,5 +39,46 @@ class ContactSheetsTest(unittest.TestCase):
         self.assertIn('<img src="a/ok.png"', page)
 
 
+    def ok(self, n, items=1):
+        return {"path": f"libraries/a/{n}.excalidrawlib.gz", "sheet": f"a/{n}.png", "items": [{}] * items}
+
+    def test_a_full_catalogue_with_items_is_not_a_problem(self):
+        entries = [self.ok(i) for i in range(contact_sheets.EXPECTED_LIBRARIES)]
+        self.assertEqual(contact_sheets.problems(entries), [])
+
+    def test_rendering_no_libraries_is_a_problem(self):
+        found = contact_sheets.problems([])
+        self.assertTrue(any("0 libraries rendered, expected 232" in p for p in found), found)
+        self.assertTrue(any("no items rendered" in p for p in found), found)
+
+    def test_a_short_catalogue_is_a_problem(self):
+        entries = [self.ok(i) for i in range(5)]
+        self.assertEqual(contact_sheets.problems(entries), ["5 libraries rendered, expected 232"])
+
+    def test_a_library_with_no_items_is_a_problem(self):
+        entries = [self.ok(i) for i in range(contact_sheets.EXPECTED_LIBRARIES)]
+        entries[3] = self.ok(3, items=0)
+        self.assertEqual(
+            contact_sheets.problems(entries), ["libraries/a/3.excalidrawlib.gz: no items rendered"]
+        )
+
+    def test_a_failed_library_is_a_problem(self):
+        entries = [self.ok(i) for i in range(contact_sheets.EXPECTED_LIBRARIES)]
+        entries[0] = {"path": "libraries/a/0.excalidrawlib.gz", "error": "exit 4: boom"}
+        self.assertEqual(
+            contact_sheets.problems(entries), ["libraries/a/0.excalidrawlib.gz: exit 4: boom"]
+        )
+
+    def test_main_fails_when_the_manifest_yields_no_libraries(self):
+        import tempfile
+        from unittest import mock
+
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(
+            contact_sheets, "catalogue", return_value=[]
+        ):
+            code = contact_sheets.main(["--excali", "/nonexistent/excali", "--out", tmp])
+            self.assertEqual(code, 1)
+            self.assertEqual(json.loads((Path(tmp) / "report.json").read_text()), [])
+
 if __name__ == "__main__":
     unittest.main()
