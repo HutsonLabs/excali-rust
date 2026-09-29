@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-29 · ex-116 · Restore: legacy arrow binding migration (bindings without mode) through RestoreEnv::migrate_legacy_binding
+
+Files saved before upstream's binding format gained `mode` no longer lose their arrow bindings on load. When a legacy binding's target exists, excali-editor answers `RestoreEnv::migrate_legacy_binding` as upstream's `restoreElement` does: it finds the arrow end, tests whether it lies inside the shape, projects it onto the diagonal at the default zoom, and computes the fixed point. All 32 new geometry cases in `restore-element.json` match upstream's own `restoreElement` output with no answer injected, and so do the 51 catalogue libraries that contain legacy bindings. The ADR-008 exception for this is removed. PR: [#95](https://github.com/HutsonLabs/excali-rust/pull/95).
+
 ## 2026-09-29 · ex-m0 · Milestone check: M0 reached (recheck)
 
 The M0 check ran again on `main` at b98ca56. Pages built, deployed and passed its smoke for that commit, and the site returns 200. `scripts/bootstrap.sh` completes in a fresh clone under macOS `/bin/bash` 3.2, with the Zola digest verified and upstream checked out at 438d898. The CI `attribution` job plants 11 violations in a scratch repository and the gate rejects every one, while a clean control passes. `cargo test --workspace --locked` passes 1679 tests with none failed or ignored. No gap tasks. PR: [#94](https://github.com/HutsonLabs/excali-rust/pull/94).
