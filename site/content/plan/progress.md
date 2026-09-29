@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 11:19 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 11:44 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**147 issues** · 89 closed (61%) · 1 in progress · 0 blocked · 56 open
+**147 issues** · 90 closed (61%) · 0 in progress · 0 blocked · 56 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -133,7 +133,7 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
 ## ex-e5 · Phase 5: Web runtime and editor
 
-<span class="status open">open</span> 14/36 children closed
+<span class="status open">open</span> 15/36 children closed
 
 Canvas2D backend, interaction state machine, history, DOM chrome without a framework, keyboard shortcuts, the <excali-editor> custom element.
 
@@ -170,7 +170,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-529` | Stats panel (general and element properties) | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-530` | <excali-editor> custom element: load/save/export/importLibrary/getState, events, host adapter | task | P0 | <span class="status open">open</span> |  | `ex-518` |
 | `ex-531` | Playwright parity suite against the checklist | task | P0 | <span class="status open">open</span> |  | `ex-530` |
-| `ex-532` | Theme tokens: light and dark CSS custom properties embedded and overridable by the host | task | P0 | <span class="status in_progress">in progress</span> |  |  |
+| `ex-532` | Theme tokens: light and dark CSS custom properties embedded and overridable by the host | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-533` | excali-math js::sin/cos match V8's libm trig bit for bit; remove the 1e-12 tolerance in excali-editor tests/transform.rs | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-534` | Flowchart creator and navigator (flowchart.ts): Ctrl+Arrow pending nodes and arrows, Alt+Arrow navigation | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-535` | Element type conversion: convertElementTypes and the Tab / Shift+Tab convert popup | task | P2 | <span class="status open">open</span> | yes |  |
