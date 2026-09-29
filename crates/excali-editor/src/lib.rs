@@ -75,6 +75,10 @@
 //!   (`redrawTextBoundingBox`, the sticky note fit, arrow label
 //!   positions, the original container heights), the layout undo and redo
 //!   run through `HistoryEnv::redraw_text_bounding_box`.
+//! - [`interactive_scene`]: the interactive canvas as a display list
+//!   (`renderInteractiveScene`, `renderSnaps`): selection borders and
+//!   transform handles, the selection box, linear element point handles,
+//!   binding, frame and element highlights, snap lines and the text box.
 //! - [`text_editing`]: the text editor overlay (`textWysiwyg.tsx`) and
 //!   `App.startTextEditing` / `handleTextWysiwyg`: creating or picking the
 //!   text, the textarea's style, typing, indenting, submitting.
@@ -94,6 +98,7 @@ pub mod frame;
 pub mod geometry;
 pub mod groups;
 pub mod history;
+pub mod interactive_scene;
 mod js_value;
 pub mod keyboard;
 pub mod linear_element_editor;

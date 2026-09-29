@@ -132,6 +132,65 @@ impl Path {
         self
     }
 
+    /// `ellipse(x, y, radiusX, radiusY, rotation, start, end,
+    /// anticlockwise)` (HTML canvas, "The ellipse(...) method"): the arc of
+    /// the ellipse `arc(0, 0, 1, start, end, anticlockwise)` makes of the
+    /// unit circle, mapped by `translate(x, y) · rotate(rotation) ·
+    /// scale(radiusX, radiusY)`, joined to the current point by a line (or
+    /// starting a subpath when there is none), as the method adds it. The
+    /// arc is written as the cubic Béziers [`Path::canonical`] makes of the
+    /// circle's arc, mapped point by point: an affine map of a Bézier curve
+    /// is the Bézier curve of the mapped points, so the curve is the
+    /// ellipse to the precision the canonical arc is the circle.
+    ///
+    /// Non-finite arguments add nothing (the method returns early), and
+    /// neither does a negative radius (the method throws an
+    /// `IndexSizeError`).
+    #[allow(clippy::too_many_arguments)]
+    pub fn ellipse(
+        &mut self,
+        x: f64,
+        y: f64,
+        radius_x: f64,
+        radius_y: f64,
+        rotation: f64,
+        start: f64,
+        end: f64,
+        anticlockwise: bool,
+    ) -> &mut Self {
+        if ![x, y, radius_x, radius_y, rotation, start, end]
+            .iter()
+            .all(|v| v.is_finite())
+            || radius_x < 0.0
+            || radius_y < 0.0
+        {
+            return self;
+        }
+        let mut unit = Path::new();
+        unit.arc(0.0, 0.0, 1.0, start, end, anticlockwise);
+        let m = super::Transform::translate(x, y)
+            .concat(&super::Transform::rotate(rotation))
+            .concat(&super::Transform::scale(radius_x, radius_y));
+        for command in unit.canonical().commands {
+            match command {
+                // the arc's start, joined to the current point
+                PathCommand::MoveTo(px, py) | PathCommand::LineTo(px, py) => {
+                    let (px, py) = m.apply(px, py);
+                    self.line_to(px, py);
+                }
+                PathCommand::CubicTo(c1x, c1y, c2x, c2y, px, py) => {
+                    let (c1x, c1y) = m.apply(c1x, c1y);
+                    let (c2x, c2y) = m.apply(c2x, c2y);
+                    let (px, py) = m.apply(px, py);
+                    self.cubic_to(c1x, c1y, c2x, c2y, px, py);
+                }
+                // the canonical arc is lines and cubics only
+                _ => {}
+            }
+        }
+        self
+    }
+
     /// The path `rect(x, y, w, h)` builds: a closed subpath through the four
     /// corners, then a new subpath at `(x, y)` (HTML canvas, "The rect(x, y,
     /// w, h) method"). An infinite or NaN argument adds nothing: the method
