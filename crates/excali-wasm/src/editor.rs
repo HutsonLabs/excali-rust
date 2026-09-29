@@ -44,12 +44,29 @@
 //!   file [`Editor::save`] would write differs from the one loaded or last
 //!   saved.
 //!
-//! Reduced from upstream (ex-713): a line or arrow is drawn by dragging
-//! only (no point-by-point `multiElement` drawing); nothing snaps
-//! (`snapDraggedElements`, `snapNewElement`, `snapResizingElements`);
-//! drawing, dragging and resizing leave frame membership as it was; Alt+drag
-//! does not duplicate; the interactive canvas (selection outlines, handles,
-//! the box) is not painted.
+//! - The interaction state the interactive canvas draws
+//!   ([`Editor::interactive_scene`], `renderInteractiveScene`): the
+//!   selection box (`selectionElement`), snap lines, the frame and
+//!   elements to highlight, the suggested binding, the linear element
+//!   editor's hovered and selected points, the locked element pressed
+//!   (`activeLockedId`), the image being cropped.
+//! - ex-713's interactions: dragging, drawing and resizing snap to the
+//!   other elements when snapping is on (`snapDraggedElements`,
+//!   `snapNewElement`, `snapResizingElements`, and the pointer's snap
+//!   before a press); frame membership follows drawing, dragging and
+//!   resizing (`crate::interact`); Alt+drag duplicates
+//!   (`duplicateDraggedSelection`); a click with the line or arrow tool
+//!   draws point by point, Enter or Escape finalizing
+//!   (`crate::multi`); the selected line or arrow's points and midpoints,
+//!   the line editor and elbow arrow segments (`crate::linear`); image
+//!   cropping (`crate::cropping`).
+//!
+//! Reduced from upstream: an arrow's end binds on the release of a drag
+//! rather than live while it moves; a press on an arrow's label does not
+//! drag the label along the arrow; the focus point handles of bound arrow
+//! ends are not offered; hovering with Alt in the line editor does not
+//! preview the next point; the renderer's preview of a dragged element's
+//! layer above a frame's children (`getRenderableElements`) is not drawn.
 //!
 //! The history's leaf layouts are the real ones ([`EditorEnv`]), so an
 //! undo re-wraps and re-centres bound text and re-routes bound arrows.
