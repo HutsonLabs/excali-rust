@@ -88,6 +88,7 @@ mod binary_heap;
 pub mod binding;
 pub mod binding_highlight;
 pub mod collision;
+pub mod crop;
 pub mod delta;
 pub mod distance;
 pub mod edit_actions;
