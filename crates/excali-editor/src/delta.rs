@@ -22,10 +22,16 @@
 //!
 //! Upstream checks some invariants in development and test builds only
 //! (`isDevEnv() || isTestEnv()`): the shape of each element delta
-//! (`ElementsDelta.validate`) is checked here with `debug_assert!`; the
-//! other checks (a delta that cannot be applied, layout touching an element
-//! the delta does not reach) return a [`DeltaError`] in every build, where
-//! upstream's production build logs and carries on.
+//! (`ElementsDelta.validate`) is checked here with `debug_assert!`. The
+//! other failures return a [`DeltaError`] only when
+//! [`HistoryEnv::dev_checks`] is on (debug builds by default); otherwise
+//! they are handled as upstream's production build does: a delta that
+//! cannot be applied leaves the elements as they were and reports a
+//! visible change (`delta.ts:1431-1443`), a layout error is ignored with
+//! the elements laid out so far (`delta.ts:2034-2057`), the check that
+//! layout touched only elements the delta reaches is skipped
+//! (`delta.ts:1500-1524`), and a failed reorder keeps the elements
+//! unordered and reports a visible change (`delta.ts:1543-1552`).
 
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
@@ -1294,10 +1300,21 @@ impl ElementsDelta {
             direction: None,
             affected: SceneElementsMap::new(),
         };
-        let added = applier.apply_deltas(&self.added, env)?;
-        let removed = applier.apply_deltas(&self.removed, env)?;
-        let updated = applier.apply_deltas(&self.updated, env)?;
-        applier.resolve_conflicts(self, env)?;
+        let dev_checks = env.dev_checks();
+        let applied = (|| {
+            let added = applier.apply_deltas(&self.added, env)?;
+            let removed = applier.apply_deltas(&self.removed, env)?;
+            let updated = applier.apply_deltas(&self.updated, env)?;
+            applier.resolve_conflicts(self, env)?;
+            Ok((added, removed, updated))
+        })();
+        let (added, removed, updated) = match applied {
+            Ok(applied) => applied,
+            Err(e) if dev_checks => return Err(e),
+            // the previous elements, with a visible change so that history
+            // does not skip past this entry (`delta.ts:1431-1443`)
+            Err(_) => return Ok((elements.clone(), true)),
+        };
         let affected = std::mem::take(&mut applier.affected);
 
         let mut changed = SceneElementsMap::new();
@@ -1341,10 +1358,16 @@ impl ElementsDelta {
         let mut contains_visible_difference = false;
         let mut next = applier.next;
         if applier.contains_zindex_difference {
-            let (reordered, moved) = reorder_elements(next, &changed, env)?;
-            next = reordered;
-            if moved {
-                contains_visible_difference = true;
+            match reorder_elements(&next, &changed, env) {
+                Ok((reordered, moved)) => {
+                    next = reordered;
+                    if moved {
+                        contains_visible_difference = true;
+                    }
+                }
+                Err(e) if dev_checks => return Err(e),
+                // upstream's outer catch (`delta.ts:1543-1552`)
+                Err(_) => return Ok((next, true)),
             }
         }
         // the changed elements as they are now (a reorder changes indices)
@@ -1354,15 +1377,21 @@ impl ElementsDelta {
             }
         }
 
-        let versions_before: HashMap<String, f64> = next
-            .iter()
-            .map(|(id, e)| (id.clone(), e.base.version))
-            .collect();
-        redraw_elements(&mut next, &mut changed, env).map_err(DeltaError::Redraw)?;
-        for (id, element) in &next {
-            if versions_before.get(id) != Some(&element.base.version) && !seen.contains(id) {
-                return Err(DeltaError::UntrackedRedraw(id.clone()));
+        if dev_checks {
+            let versions_before: HashMap<String, f64> = next
+                .iter()
+                .map(|(id, e)| (id.clone(), e.base.version))
+                .collect();
+            redraw_elements(&mut next, &mut changed, env).map_err(DeltaError::Redraw)?;
+            for (id, element) in &next {
+                if versions_before.get(id) != Some(&element.base.version) && !seen.contains(id) {
+                    return Err(DeltaError::UntrackedRedraw(id.clone()));
+                }
             }
+        } else {
+            // `redrawElements` logs and returns the elements laid out so far
+            // (`delta.ts:2034-2057`)
+            let _ = redraw_elements(&mut next, &mut changed, env);
         }
 
         if !contains_visible_difference {
@@ -1529,11 +1558,11 @@ fn redraw_bound_arrows(
 /// `reorderElements`: the elements in fractional index order with the
 /// changed elements that moved given new indices, and whether any moved.
 fn reorder_elements(
-    elements: SceneElementsMap,
+    elements: &SceneElementsMap,
     changed: &SceneElementsMap,
     env: &mut dyn HistoryEnv,
 ) -> Result<(SceneElementsMap, bool), DeltaError> {
-    let unordered: Vec<Element> = elements.into_values().collect();
+    let unordered: Vec<Element> = elements.values().cloned().collect();
     let mut ordered = unordered.clone();
     order_by_fractional_index(&mut ordered);
     let moved: HashSet<String> = unordered

@@ -39,6 +39,9 @@ pub struct TestEnv {
     pub arrow_layout: Option<ArrowLayout>,
     pub text_redraws: Vec<(String, String)>,
     pub bound_updates: Vec<(String, Vec<String>)>,
+    /// Upstream's production build (`isTestEnv() || isDevEnv()` false):
+    /// applying a delta carries on past errors instead of failing.
+    pub production: bool,
 }
 
 /// `redrawTextBoundingBox(text, container)` over the scene.
@@ -87,6 +90,10 @@ impl ChangeStamp for Stamp<'_> {
 }
 
 impl HistoryEnv for TestEnv {
+    fn dev_checks(&self) -> bool {
+        !self.production
+    }
+
     fn random_id(&mut self) -> String {
         self.ids += 1;
         format!("delta-{}", self.ids)

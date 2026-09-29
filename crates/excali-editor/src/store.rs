@@ -99,6 +99,15 @@ pub trait HistoryEnv: ChangeStamp {
         element_id: &str,
         changed: &SceneElementsMap,
     ) -> Result<(), String>;
+
+    /// `isTestEnv() || isDevEnv()`: whether applying a delta fails on an
+    /// error (a delta that cannot be applied, a layout error, layout
+    /// touching an element the delta does not reach) instead of carrying
+    /// on as upstream's production build does (`delta.ts:1431-1443`,
+    /// `1500-1552`, `2034-2057`). Debug builds check, release builds do not.
+    fn dev_checks(&self) -> bool {
+        cfg!(debug_assertions)
+    }
 }
 
 /// A [`ChangeStamp`] over a borrowed trait object, for the generic

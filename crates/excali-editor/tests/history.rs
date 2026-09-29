@@ -2645,6 +2645,64 @@ fn should_redraw_remotely_added_bound_text_when_its_container_is_updated_through
     }
 }
 
+/// `redrawTextBoundingBox` throwing.
+fn failing_text_layout(
+    _: &mut dyn excali_core::fractional_index::ChangeStamp,
+    _: &mut excali_core::fractional_index::SceneElementsMap,
+    _: &str,
+    _: &str,
+) -> Result<(), String> {
+    Err("text layout failed".into())
+}
+
+/// Upstream's production build: a layout error during undo/redo is logged
+/// and the entry still applies, as a visible change (`delta.ts:2034-2057`,
+/// `1543-1552`); in development and tests it throws.
+#[test]
+fn undo_and_redo_apply_despite_a_layout_error_in_production() {
+    for production in [true, false] {
+        let mut env = TestEnv::with_layout();
+        env.text_layout = Some(failing_text_layout);
+        env.production = production;
+        let mut s = Session::new(env, AppState::default());
+        s.initialize_scene(vec![], obj(json!({})))
+            .expect("initializeScene");
+        let mut app = App { s };
+        let c = app.with(
+            &container(),
+            json!({"boundElements": [{"id": "text", "type": "text"}]}),
+        );
+        let t = app.with(&label(), json!({"containerId": "container"}));
+        app.update_scene(Some(vec![c, t]), None, Some(Never));
+
+        let local = app.updated("container", json!({"x": 200}));
+        app.update_scene(Some(local), None, Some(Immediately));
+        assert_eq!(app.stacks(), (1, 0));
+        let label_before = app.get("text");
+
+        if !production {
+            let error = app.s.undo().unwrap_err();
+            assert!(error.to_string().contains("text layout failed"), "{error}");
+            continue;
+        }
+
+        app.env().text_redraws.clear();
+        app.undo();
+        // visible, so not skipped: the entry moved to the redo stack
+        assert_eq!(app.stacks(), (0, 1));
+        assert_eq!(app.get("container").base.x, 10.0);
+        assert_eq!(app.get("text"), label_before);
+        assert_eq!(
+            app.env().text_redraws,
+            [("text".to_string(), "container".to_string())]
+        );
+
+        app.redo();
+        assert_eq!(app.stacks(), (1, 0));
+        assert_eq!(app.get("container").base.x, 200.0);
+    }
+}
+
 // TODO upstream (#7348): this leads to empty undo/redo and could be
 // confusing - instead we might consider redrawing container based on the
 // text dimensions

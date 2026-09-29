@@ -462,6 +462,129 @@ fn guards_against_untracked_layout_mutations() {
 }
 
 #[test]
+fn skips_the_untracked_layout_guard_in_production() {
+    let mut env = TestEnv {
+        arrow_layout: Some(move_unrelated),
+        production: true,
+        ..TestEnv::default()
+    };
+    let element = indexed(rect("changed", 0.0, 0.0), "a0");
+    let unrelated = indexed(rect("unrelated", 0.0, 0.0), "a1");
+    let before = map(&[element.clone(), unrelated.clone()]);
+    let after = map(&[
+        with(&element, json!({"strokeColor": "red"}), &mut env),
+        unrelated,
+    ]);
+    let (next, visible) = apply(&before, &after, &mut env);
+    assert!(visible);
+    assert_eq!(next["changed"].base.stroke_color, "red");
+    // the layout ran and its change is kept, unchecked
+    assert_eq!(next["unrelated"].base.x, 1.0);
+}
+
+/// A layout that fails, as upstream's throws.
+fn failing_text_layout(
+    _: &mut dyn ChangeStamp,
+    _: &mut SceneElementsMap,
+    _: &str,
+    _: &str,
+) -> Result<(), String> {
+    Err("text layout failed".into())
+}
+
+fn failing_arrow_layout(
+    _: &mut dyn ChangeStamp,
+    _: &mut SceneElementsMap,
+    _: &str,
+    _: &SceneElementsMap,
+) -> Result<(), String> {
+    Err("arrow layout failed".into())
+}
+
+/// A container moved with its label: the text layout runs for the pair.
+fn moved_container(env: &mut TestEnv) -> (SceneElementsMap, SceneElementsMap) {
+    let container = indexed(container_of("c", "t"), "a0");
+    let label = indexed(contained("t", "c"), "a1");
+    let before = map(&[container.clone(), label.clone()]);
+    let after = map(&[with(&container, json!({"x": 50}), env), label]);
+    (before, after)
+}
+
+#[test]
+fn fails_on_a_layout_error_in_development() {
+    let mut env = TestEnv {
+        text_layout: Some(failing_text_layout),
+        ..TestEnv::default()
+    };
+    let (before, after) = moved_container(&mut env);
+    let mut delta = ElementsDelta::calculate(&before, &after, &mut env);
+    let error = delta
+        .apply_to(&before, &snapshot(&before), &history_options(), &mut env)
+        .unwrap_err();
+    assert_eq!(
+        error.to_string(),
+        "Couldn't redraw elements: text layout failed"
+    );
+}
+
+#[test]
+fn ignores_a_layout_error_in_production() {
+    // redrawElements logs and returns the elements (delta.ts:2034-2057)
+    let mut env = TestEnv {
+        text_layout: Some(failing_text_layout),
+        arrow_layout: Some(failing_arrow_layout),
+        production: true,
+        ..TestEnv::default()
+    };
+    let (before, after) = moved_container(&mut env);
+    let (next, visible) = apply(&before, &after, &mut env);
+    assert!(visible);
+    assert_eq!(next["c"].base.x, 50.0);
+    assert_eq!(next["t"], before["t"]);
+    assert_eq!(env.text_redraws, [("t".to_string(), "c".to_string())]);
+}
+
+/// A delta whose `x` is not a number, which no element can take.
+fn unappliable() -> ElementsDelta {
+    let mut updated = IndexMap::new();
+    updated.insert(
+        "r".to_string(),
+        delta(
+            json!({"x": 0, "version": 1}),
+            json!({"x": "oops", "version": 2}),
+        ),
+    );
+    ElementsDelta::create(IndexMap::new(), IndexMap::new(), updated, false)
+}
+
+#[test]
+fn fails_on_a_delta_that_cannot_be_applied_in_development() {
+    let mut env = TestEnv::default();
+    let before = map(&[indexed(rect("r", 0.0, 0.0), "a0")]);
+    let error = unappliable()
+        .apply_to(&before, &snapshot(&before), &history_options(), &mut env)
+        .unwrap_err();
+    assert!(error
+        .to_string()
+        .starts_with("Couldn't apply delta to element \"r\""));
+}
+
+#[test]
+fn keeps_the_elements_of_a_delta_that_cannot_be_applied_in_production() {
+    // `return [elements, true]` (delta.ts:1431-1443)
+    let mut env = TestEnv {
+        production: true,
+        ..TestEnv::default()
+    };
+    let before = map(&[indexed(rect("r", 0.0, 0.0), "a0")]);
+    let (next, visible) = unappliable()
+        .apply_to(&before, &snapshot(&before), &history_options(), &mut env)
+        .expect("applyTo");
+    assert!(visible);
+    assert_eq!(next, before);
+}
+
+#[test]
 fn keeps_an_empty_text_elements_arrow_bindings_visible() {
     let mut env = TestEnv::default();
     let mut label = indexed(text("label", "", 0.0, 0.0), "a0");
