@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-29 · ex-510 · Arrow binding: gap 5+sw/2, max distance 15..30 by zoom, fixed points, modes inside/orbit/skip, highlight
+
+Arrows now stay attached to shapes. When a bound shape moves, resizes or is undone and redone, the port moves the arrow ends itself with a port of upstream's `binding.ts`: fixed points, outline and corner snapping, binding and unbinding, and the inside, orbit and skip strategies. It also describes the binding highlight around the target shape. Thousands of queries, operations and highlights match upstream's own output, as do all 1,307 `updateBoundElements` hooks in the transform fixtures and upstream's history arrow tests. PR: [#93](https://github.com/HutsonLabs/excali-rust/pull/93).
+
 ## 2026-09-29 · ex-m4 · Milestone check: M4 reached
 
 The M4 check ran again on `main` at ae23249, after ex-g401 and ex-g402 merged. 1669 workspace tests pass with none ignored, the 27 goldens `--check` steps are current, and the raster fixtures match the local Chrome. D2 holds. SVG export equals upstream's `export.test.ts` and `export.test.tsx` snapshots and 48 whole `exportToSvg` documents byte for byte. The PNG export of 34 fixture scenes, text included, matches what upstream's own `exportToCanvas` draws in Chromium within the tolerance recorded for each scene. The emoji-only smiley scene is excluded because no vendored face has the emoji (ADR-004), but its size and the pixels outside its text are still checked. The release CLI renders all 4187 items of the 232 catalogue libraries with no failures. No gap tasks. PR: [#92](https://github.com/HutsonLabs/excali-rust/pull/92).
