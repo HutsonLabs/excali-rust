@@ -84,6 +84,7 @@
 //!   text, the textarea's style, typing, indenting, submitting.
 
 pub mod actions;
+pub mod arrow_endpoint_text;
 mod binary_heap;
 pub mod binding;
 pub mod binding_highlight;
