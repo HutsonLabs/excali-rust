@@ -260,3 +260,58 @@ test("a pointer down on the canvas submits the edit", async ({ page }) => {
   expect(got.editor.open).toBe(false);
   expect(await page.locator("textarea").count()).toBe(0);
 });
+
+// app.scene.onUpdate (textWysiwyg.tsx:1053-1061): after a scene change the
+// textarea is restyled and focused again (preventScroll), unless the focus
+// is inside a properties popover (.properties-content).
+test("a scene update takes the focus back to the textarea, but not from a properties popover", async ({ page }) => {
+  const session = FIXTURE.sessions.find((s) => s.name === "container-moved-while-editing");
+  await open(page, session);
+  await settle(page);
+  await page.evaluate(() => {
+    const panel = document.createElement("div");
+    panel.innerHTML =
+      '<div class="App-menu__left"><button id="panel-button">stroke</button></div>' +
+      '<div class="properties-content"><input id="popover-input" type="text"></div>';
+    document.body.append(panel);
+  });
+  const active = () => page.evaluate(() => document.activeElement?.id || document.activeElement?.tagName);
+  const textareaLeft = () => page.evaluate(() => document.querySelector("textarea")?.style.left);
+
+  // the styles panel: the blur submit is suspended and the focus leaves
+  await page.click("#panel-button");
+  await page.evaluate(() => document.getElementById("panel-button").focus());
+  await settle(page);
+  expect(await active()).toBe("panel-button");
+  expect(await page.locator("textarea").count(), "the edit is not submitted").toBe(1);
+  const before = await textareaLeft();
+  await page.evaluate(() => window.editing.mutate("r", JSON.stringify({ x: 300, y: 200 })));
+  await settle(page);
+  expect(await textareaLeft(), "restyled").not.toBe(before);
+  expect(await active(), "focused again").toBe("TEXTAREA");
+  const box = await page.evaluate(() => {
+    const b = document.querySelector(".excalidraw-textEditorContainer");
+    return [b.scrollLeft, b.scrollTop];
+  });
+  expect(box, "without scrolling the editor's box").toEqual([0, 0]);
+  // the selection the textarea had (the whole label) is typed over
+  const want = await page.evaluate(() => {
+    const t = document.querySelector("textarea");
+    return `${t.value.slice(0, t.selectionStart)}z${t.value.slice(t.selectionEnd)}`;
+  });
+  await page.keyboard.type("z");
+  await settle(page);
+  expect(await page.evaluate(() => document.querySelector("textarea").value), "typing reaches the textarea").toBe(want);
+  expect((await read(page)).editor.value, "and the editor").toBe(want);
+
+  // a properties popover keeps the focus
+  await page.click("#popover-input");
+  await settle(page);
+  expect(await active()).toBe("popover-input");
+  const moved = await textareaLeft();
+  await page.evaluate(() => window.editing.mutate("r", JSON.stringify({ x: 400, y: 250 })));
+  await settle(page);
+  expect(await textareaLeft(), "restyled").not.toBe(moved);
+  expect(await active(), "not focused again").toBe("popover-input");
+  expect(await page.locator("textarea").count(), "the edit is not submitted").toBe(1);
+});

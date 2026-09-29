@@ -11,8 +11,8 @@
 
 use excali_ui::text_editor::{
     caret_boundary_offsets, classify_pointer_down, closest_caret_offset, css_property_name,
-    is_darwin, rearms_on_pointer_up, PointerDownAction, PointerDownTarget, TEXTAREA_ATTRIBUTES,
-    TEXT_EDITOR_CSS,
+    is_darwin, rearms_on_pointer_up, refocuses_on_scene_update, PointerDownAction,
+    PointerDownTarget, TEXTAREA_ATTRIBUTES, TEXT_EDITOR_CSS,
 };
 use serde_json::Value;
 
@@ -177,6 +177,55 @@ fn pointer_downs_outside_the_editor() {
         canvas: true,
         ..t()
     }));
+}
+
+#[test]
+fn a_scene_update_refocuses_the_textarea_unless_a_properties_popover_has_the_focus() {
+    let t = PointerDownTarget::default;
+    // nothing focused (the body), a button, the canvas, the textarea itself
+    for active in [
+        t(),
+        PointerDownTarget {
+            canvas: true,
+            ..t()
+        },
+        PointerDownTarget {
+            textarea: true,
+            writable: true,
+            ..t()
+        },
+        // the styles panel and a properties trigger: the focus comes back
+        // (unlike the pointer up, which keeps the blur submit suspended)
+        PointerDownTarget {
+            in_actions_menu: true,
+            ..t()
+        },
+        PointerDownTarget {
+            properties_trigger: true,
+            ..t()
+        },
+    ] {
+        assert!(refocuses_on_scene_update(&active), "{active:?}");
+    }
+    // `activeElement.closest(".properties-content")`: a popover is open
+    for active in [
+        PointerDownTarget {
+            in_properties_content: true,
+            ..t()
+        },
+        PointerDownTarget {
+            in_properties_content: true,
+            writable: true,
+            ..t()
+        },
+        PointerDownTarget {
+            in_properties_content: true,
+            in_actions_menu: true,
+            ..t()
+        },
+    ] {
+        assert!(!refocuses_on_scene_update(&active), "{active:?}");
+    }
 }
 
 #[test]
