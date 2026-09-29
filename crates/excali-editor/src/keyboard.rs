@@ -29,7 +29,8 @@ use excali_core::element::{BindMode, BoundElementType, Element, ElementKind, Fix
 use serde_json::{json, Map, Value};
 
 use crate::actions::{
-    ActionContext, ActionEnv, ActionManager, ActionName, AppProps, KeyDownOutcome, KeyEvent,
+    has_background, ActionContext, ActionEnv, ActionManager, ActionName, AppProps, KeyDownOutcome,
+    KeyEvent,
 };
 use crate::binding::{
     bind_or_unbind_binding_elements, calculate_fixed_point_for_non_elbow_arrow_binding,
@@ -440,24 +441,6 @@ fn is_text_container(e: &Element) -> bool {
 
 fn is_frame_like(e: &Element) -> bool {
     matches!(e.kind, ElementKind::Frame(_) | ElementKind::MagicFrame(_))
-}
-
-/// `hasBackground(type)` (`element/src/comparisons.ts:3-14`), for element
-/// and tool types.
-fn has_background(ty: &str) -> bool {
-    matches!(
-        ty,
-        "rectangle"
-            | "stickynote"
-            | "iframe"
-            | "embeddable"
-            | "ellipse"
-            | "diamond"
-            | "line"
-            | "freedraw"
-            | "autoshape"
-            | "bucketfill"
-    )
 }
 
 fn type_name(e: &Element) -> &'static str {

@@ -1,0 +1,43 @@
+<!doctype html>
+<!--
+  The full styles panel's page (ex-519), served with the wasm harness
+  tools/styles-panel (scripts/web/styles-panel.sh builds it) by
+  playwright.styles-panel.config.mjs.
+
+  window.panel.mount(scene, appState, rtl) mounts excali_ui::styles_panel
+  into #app (emptied first) with the document direction set;
+  window.panel.show(scene, appState) answers showSelectedShapeActions.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>excali-ui full styles panel</title>
+<style>
+  html, body { margin: 0; padding: 0; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+  import init, { mount_panel, show_panel } from "/styles_panel.js";
+
+  init()
+    .then(() => {
+      const app = document.getElementById("app");
+      window.panel = {
+        mount(scene, appState, rtl, containerId) {
+          app.replaceChildren();
+          document.documentElement.setAttribute("dir", rtl ? "rtl" : "ltr");
+          mount_panel(app, JSON.stringify(scene), JSON.stringify(appState), rtl, containerId);
+          return app.firstElementChild;
+        },
+        show: (scene, appState) => show_panel(JSON.stringify(scene), JSON.stringify(appState)),
+      };
+      window.harnessReady = true;
+    })
+    .catch((e) => {
+      window.harnessError = String(e);
+    });
+</script>
+</body>
+</html>

@@ -602,6 +602,57 @@ jobs:
             tests/web/playwright-report-primitives/
             tests/web/test-results-primitives/
           retention-days: 14
+  # ex-519: the full styles panel. scripts/web/styles-panel.sh builds the
+  # wasm harness tools/styles-panel (excali_ui::styles_panel mounted with
+  # web-sys) and runs the Playwright suite tests/web/styles-panel in
+  # Chromium: every case of excali-ui's styles-panel.json mounts upstream's
+  # tree, and showSelectedShapeActions holds.
+  styles-panel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            tools/styles-panel
+      - name: harness fmt
+        run: cargo fmt --manifest-path tools/styles-panel/Cargo.toml --check
+      - name: harness clippy (native and wasm32)
+        run: |
+          cargo clippy --manifest-path tools/styles-panel/Cargo.toml --all-targets --locked -- -D warnings
+          cargo clippy --manifest-path tools/styles-panel/Cargo.toml --target wasm32-unknown-unknown --locked -- -D warnings
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: |
+          want="$(awk '/^name = "wasm-bindgen"$/ { getline; gsub(/"/, "", $3); print $3; exit }' Cargo.lock)"
+          if [ "$(wasm-bindgen --version 2>/dev/null | awk '{ print $2 }')" != "$want" ]; then
+            cargo install --locked wasm-bindgen-cli --version "$want"
+          fi
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tests/web/package-lock.json
+      - name: install
+        working-directory: tests/web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: every styles panel case in Chromium
+        run: scripts/web/styles-panel.sh
+        env:
+          CI: "1"
+      - name: keep the Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: styles-panel
+          path: |
+            tests/web/playwright-report-styles-panel/
+            tests/web/test-results-styles-panel/
+          retention-days: 14
   msrv:
     runs-on: ubuntu-latest
     steps:

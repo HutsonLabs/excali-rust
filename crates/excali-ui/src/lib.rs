@@ -10,7 +10,9 @@
 //! as `App.onKeyDown` reads them (`common/src/utils.ts`); for [`text_editor`]
 //! the DOM half of the text editor overlay (`wysiwyg/textWysiwyg.tsx`); for
 //! [`theme`] the light and dark tokens of `css/theme.scss` and the
-//! container's `theme--dark` class.
+//! container's `theme--dark` class; for
+//! [`styles_panel`] the full styles panel (`components/Actions.tsx`,
+//! `LayerUI.tsx`).
 //!
 //! Targets: wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-canvas2d`, `excali-editor`.
@@ -20,5 +22,6 @@ pub mod fonts;
 pub mod keyboard;
 pub mod layers;
 pub mod primitives;
+pub mod styles_panel;
 pub mod text_editor;
 pub mod theme;

@@ -21,7 +21,8 @@ excali-text = { path = "../excali-text" }
 # clipboard, focus and pointer events, the window's timers, the canvas's
 # ResizeObserver and caret measurement (Range) behind excali_ui::text_editor;
 # the elements, events, focus and the tooltip's MutationObserver behind
-# excali_ui::dom and excali_ui::primitives.
+# excali_ui::dom and excali_ui::primitives; the elements
+# excali_ui::styles_panel mounts.
 # Versions from the evidence log (site/content/evidence/_index.md).
 js-sys = "0.3.106"
 wasm-bindgen = "0.2.129"

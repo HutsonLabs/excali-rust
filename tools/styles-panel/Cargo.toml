@@ -1,0 +1,35 @@
+# ex-519: the full styles panel's browser harness. A wasm module (built by
+# scripts/web/styles-panel.sh with wasm-bindgen --target web) that mounts
+# excali_ui::styles_panel (SelectedShapeActions inside LayerUI's section
+# and island) for a scene and app state, so the Playwright suite
+# tests/web/styles-panel can hold the DOM Chromium builds to upstream's.
+#
+# Not a workspace member: it is test tooling, not a product crate, so the
+# crate graph of site/content/architecture/overview.md (and its gate) and the
+# release's excali-wasm module stay as they are. The empty [workspace] table
+# keeps this package out of the root workspace.
+[package]
+name = "styles-panel"
+description = "Test harness: excali-ui's full styles panel in the browser (ex-519)."
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+excali-core = { path = "../../crates/excali-core" }
+excali-editor = { path = "../../crates/excali-editor" }
+excali-ui = { path = "../../crates/excali-ui" }
+serde_json = { version = "1.0.151", features = ["preserve_order", "float_roundtrip"] }
+# The wasm-bindgen the workspace's Cargo.lock pins, so the CLI installed for
+# scripts/web/build.sh generates this module's glue too.
+wasm-bindgen = "=0.2.129"
+web-sys = { version = "0.3.106", features = ["Document", "Element", "Node", "Window"] }
+
+[profile.release]
+opt-level = "s"

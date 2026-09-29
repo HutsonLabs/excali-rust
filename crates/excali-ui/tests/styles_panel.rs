@@ -204,7 +204,9 @@ fn expected_tree(value: &Value) -> Value {
                             })
                             .collect(),
                     ),
-                    "children" => Value::Array(v.as_array().unwrap().iter().map(expected_tree).collect()),
+                    "children" => {
+                        Value::Array(v.as_array().unwrap().iter().map(expected_tree).collect())
+                    }
                     _ => v.clone(),
                 };
                 out.insert(k.clone(), v);
@@ -230,7 +232,10 @@ fn fixture_covers_every_predicate_both_ways() {
     let keys: Vec<&String> = cases[0]["predicates"].as_object().unwrap().keys().collect();
     assert_eq!(keys.len(), 23);
     for key in keys {
-        let on = cases.iter().filter(|c| c["predicates"][key] == json!(true)).count();
+        let on = cases
+            .iter()
+            .filter(|c| c["predicates"][key] == json!(true))
+            .count();
         assert!(on > 0 && on < cases.len(), "{key}: {on} of {}", cases.len());
     }
     let shown = cases.iter().filter(|c| c["show"] == json!(true)).count();
@@ -255,7 +260,12 @@ fn predicates_match_upstream() {
             failures.push(format!("{}: {}", c.id, diff.join(", ")));
         }
     }
-    assert!(failures.is_empty(), "{} cases differ:\n{}", failures.len(), failures.join("\n"));
+    assert!(
+        failures.is_empty(),
+        "{} cases differ:\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
 }
 
 #[test]
@@ -279,10 +289,18 @@ fn panel_tree_matches_upstream() {
         let got = node_json(&selected_shape_actions(&c.ctx(), c.rtl));
         let expected = expected_tree(&case["tree"][0]);
         if got != expected {
-            failures.push(format!("{}:\n  got      {got}\n  expected {expected}", c.id));
+            failures.push(format!(
+                "{}:\n  got      {got}\n  expected {expected}",
+                c.id
+            ));
         }
     }
-    assert!(failures.is_empty(), "{} cases differ:\n{}", failures.len(), failures.join("\n"));
+    assert!(
+        failures.is_empty(),
+        "{} cases differ:\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
 }
 
 /// The tree renders the controls of ex-514's `full_styles_panel` whose
@@ -294,10 +312,11 @@ fn panel_tree_agrees_with_the_registry_layout() {
         let c = Case::new(case);
         let ctx = c.ctx();
         let predicates = get_shape_action_predicates(&ctx);
-        let bucket_fill = c.app_state.get("activeTool").and_then(|t| t.get("type"))
-            == Some(&json!("bucketfill"));
+        let bucket_fill =
+            c.app_state.get("activeTool").and_then(|t| t.get("type")) == Some(&json!("bucketfill"));
         let layout = full_styles_panel(bucket_fill, c.rtl);
-        let expected = render_styles_panel(&layout, |g: PanelGate| predicates.gate(g), &manager, &ctx);
+        let expected =
+            render_styles_panel(&layout, |g: PanelGate| predicates.gate(g), &manager, &ctx);
         let mut got = Vec::new();
         actions_of(&selected_shape_actions(&ctx, c.rtl), &mut got);
         assert_eq!(got, expected, "{}", c.id);
@@ -330,8 +349,17 @@ fn section_and_island_match_upstream() {
     for case in fixture["wrapper"].as_array().unwrap() {
         let height = case["height"].as_f64().unwrap();
         let zen = case["zenModeEnabled"].as_bool().unwrap();
-        let got = node_json(&shape_actions_section(height, zen, container_id, PanelNode::Panel));
-        assert_eq!(got, expected_tree(&case["tree"][0]), "height {height}, zen {zen}");
+        let got = node_json(&shape_actions_section(
+            height,
+            zen,
+            container_id,
+            PanelNode::Panel,
+        ));
+        assert_eq!(
+            got,
+            expected_tree(&case["tree"][0]),
+            "height {height}, zen {zen}"
+        );
     }
 }
 
@@ -339,5 +367,74 @@ fn section_and_island_match_upstream() {
 fn legends_are_upstream_english() {
     for (key, text) in fixture()["locale"].as_object().unwrap() {
         assert_eq!(legend_text(key), text.as_str().unwrap(), "{key}");
+    }
+}
+
+/// The mockup group a panel action belongs to, by its legend
+/// (`site/static/mockups`).
+fn mockup_group(action: ActionName) -> &'static str {
+    use ActionName as N;
+    match action {
+        N::ChangeStrokeColor => "Stroke",
+        N::ChangeBackgroundColor => "Background",
+        N::ChangeFillStyle => "Fill",
+        N::ChangeStrokeWidth => "Stroke width",
+        N::ChangeStrokeStyle => "Stroke style",
+        N::ChangeSloppiness => "Sloppiness",
+        N::ChangeRoundness => "Edges",
+        N::ChangeArrowType => "Arrow type",
+        N::ChangeArrowhead => "Arrowheads",
+        N::ChangeOpacity => "Opacity",
+        N::SendToBack | N::SendBackward | N::BringForward | N::BringToFront => "Layers",
+        N::AlignLeft
+        | N::AlignHorizontallyCentered
+        | N::AlignRight
+        | N::AlignTop
+        | N::AlignVerticallyCentered
+        | N::AlignBottom
+        | N::DistributeHorizontally
+        | N::DistributeVertically => "Align",
+        N::DuplicateSelection
+        | N::DeleteSelectedElements
+        | N::Group
+        | N::Ungroup
+        | N::Hyperlink
+        | N::CropEditor
+        | N::ToggleLinearEditor => "Actions",
+        other => panic!("{other:?} is in no mockup group"),
+    }
+}
+
+/// The legends of a mockup's visible panel fieldsets, in order.
+fn mockup_legends(html: &str) -> Vec<&str> {
+    html.split("<fieldset")
+        .skip(1)
+        .filter(|f| !f.starts_with(" style=\"display:none\""))
+        .filter_map(|f| f.split("<legend>").nth(1)?.split('<').next())
+        .collect()
+}
+
+/// Mockup 01 (a rectangle with a background selected) and mockup 02 (an
+/// arrow selected) show the groups the panel renders, in its order.
+#[test]
+fn panel_groups_match_the_mockups() {
+    let mockups = [
+        (
+            "select-r2",
+            include_str!("../../../site/static/mockups/01-desktop-light.html"),
+        ),
+        (
+            "select-a1",
+            include_str!("../../../site/static/mockups/02-desktop-dark.html"),
+        ),
+    ];
+    for (id, html) in mockups {
+        let case = cases().iter().find(|c| c["id"] == json!(id)).unwrap();
+        let c = Case::new(case);
+        let mut actions = Vec::new();
+        actions_of(&selected_shape_actions(&c.ctx(), false), &mut actions);
+        let mut groups: Vec<&str> = actions.into_iter().map(mockup_group).collect();
+        groups.dedup();
+        assert_eq!(groups, mockup_legends(html), "{id}");
     }
 }
