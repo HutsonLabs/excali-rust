@@ -1165,6 +1165,11 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// `getElementAtPosition(x, y)`: the topmost element hit, bound text
     /// counting as its container's.
     pub(crate) fn element_at(&mut self, point: [f64; 2]) -> Option<String> {
+        self.element_at_with(point, false)
+    }
+
+    /// `getElementAtPosition(x, y, { includeLockedElements })`.
+    pub(crate) fn element_at_with(&mut self, point: [f64; 2], include_locked: bool) -> Option<String> {
         let zoom = self.session.app_state().zoom().unwrap_or(1.0);
         let selected: Vec<String> = self.selected_ids();
         let elements = self.session.elements();
@@ -1178,7 +1183,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         let with_box = Self::has_bounding_box(&selected_elements);
         live.iter()
             .rev()
-            .filter(|e| !is_bound_text(e))
+            .filter(|e| !is_bound_text(e) && (include_locked || !e.base.locked))
             .find(|e| {
                 hit_element(
                     &mut self.hit_cache,
@@ -1219,7 +1224,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// `selectGroupsForSelectedElements`), and the hyperlink popup closes.
     pub fn open_context_menu(&mut self, client_x: f64, client_y: f64) -> ContextMenuKind {
         let point = self.scene_point(client_x, client_y);
-        let hit = self.element_at(point);
+        let hit = self.element_at_with(point, true);
         let selected_ids = self.selected_ids();
         let hitting_box = {
             let selected: Vec<&Element> = self
@@ -1629,7 +1634,25 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             None => None,
         };
         let link = self.link_at(origin);
-        let hit = if link.is_some() {
+        // a locked element on top takes the press, unless an element under
+        // it is selected (App.tsx:9662-9708)
+        let selected_now = self.selected_ids();
+        let on_top = self.element_at_with(origin, true);
+        let locked_on_top = on_top.as_ref().is_some_and(|id| self.is_locked(id));
+        let active_locked = self
+            .session
+            .app_state()
+            .get("activeLockedId")
+            .and_then(Value::as_str)
+            .map(str::to_owned);
+        if on_top.is_none() || on_top != active_locked {
+            self.set_keys(vec![("activeLockedId", Value::Null)]);
+        }
+        let covered_selected = self
+            .elements_at(origin, false)
+            .iter()
+            .any(|id| selected_now.contains(id));
+        let hit = if link.is_some() || (locked_on_top && !covered_selected) {
             None
         } else if let Some(press) = linear.as_ref().filter(|p| p.hit) {
             Some(press.id.clone())
@@ -1704,6 +1727,14 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             linear,
         }));
         self.report();
+    }
+
+    /// Whether `id` is a locked element.
+    fn is_locked(&self, id: &str) -> bool {
+        self.session
+            .elements()
+            .iter()
+            .any(|e| e.base.id == id && e.base.locked)
     }
 
     /// Whether `id` is a line or an arrow in the scene.
@@ -2719,6 +2750,29 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 self.linear_pointer_up(press, input);
             }
         }
+        // a click on a locked element marks it (App.tsx:11578-11614)
+        let hits_selected = self
+            .elements_at(gesture.origin, false)
+            .iter()
+            .any(|id| self.selected_ids().contains(id));
+        let active_locked = if !gesture.box_selected && !hits_selected {
+            self.element_at_with(point, true).and_then(|id| {
+                let e = self.session.elements().iter().find(|e| e.base.id == id)?;
+                e.base.locked.then(|| {
+                    e.base
+                        .group_ids
+                        .last()
+                        .cloned()
+                        .unwrap_or_else(|| e.base.id.clone())
+                })
+            })
+        } else {
+            None
+        };
+        self.set_keys(vec![(
+            "activeLockedId",
+            active_locked.map_or(Value::Null, Value::String),
+        )]);
         let selection = self
             .session
             .app_state()
