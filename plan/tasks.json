@@ -1697,7 +1697,7 @@
    "crates": [
     "excali-editor"
    ],
-   "acceptance": "binding.ts core behaviours ported; normalizeFixedPoint 0.5001 rule.",
+   "acceptance": "binding.ts core behaviours ported; normalizeFixedPoint 0.5001 rule. Also the arrow half of layout after undo/redo: `updateBoundElements` (binding.ts:1321) implemented as `HistoryEnv::update_bound_elements` (crates/excali-editor/src/store.rs), which `ElementsDelta.redrawElements` calls for every changed, non-deleted bindable element (delta.rs `redraw_elements`, ported in ex-513); the history.test.tsx arrow cases ported in ex-513 ('should redraw arrows on undo' :2268, :4578, :4734, and 'should update bound element points when rectangle was remotely moved and arrow is added back through the history' :5107, points rounded to [500, -400]) pass with it in place of the tests/support stand-in.",
    "evidence": [
     "site/content/research/rendering.md section 5 (binding)",
     "site/content/research/data-model.md section 7"
@@ -1737,7 +1737,7 @@
    "crates": [
     "excali-ui"
    ],
-   "acceptance": "Editing a text element in the browser produces the same element fields as upstream for the fixture cases.",
+   "acceptance": "Editing a text element in the browser produces the same element fields as upstream for the fixture cases. Also the text half of layout after undo/redo: `redrawTextBoundingBox` (textElement.ts:51-152, including arrow labels and `updateStickyNoteLayout`) implemented as `HistoryEnv::redraw_text_bounding_box` (crates/excali-editor/src/store.rs), which `ElementsDelta.redrawElements` calls for each container and bound text pair it selects (delta.rs `redraw_elements`, ported in ex-513); the history.test.tsx bound-text cases :4332 and :4450 ported in ex-513 pass with it in place of the tests/support stand-in.",
    "evidence": [
     "site/content/research/rendering.md section 5 (text editing)"
    ],
@@ -2090,7 +2090,7 @@
    "crates": [
     "excali-wasm"
    ],
-   "acceptance": "API documented on the term.hut integration page works from plain JS with no bundler.",
+   "acceptance": "API documented on the term.hut integration page works from plain JS with no bundler. The custom element's `HistoryEnv` wires the real leaf layout (`redraw_text_bounding_box` from ex-512, `update_bound_elements` from ex-510), so that undo/redo in the browser re-wraps bound text and re-routes bound arrows; a browser test undoes a container move and a bound-rectangle move and checks the label and arrow positions.",
    "evidence": [
     "site/content/architecture/termhut-integration.md"
    ],

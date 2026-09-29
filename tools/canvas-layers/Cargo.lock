@@ -166,6 +166,7 @@ name = "excali-text"
 version = "26.9.1"
 dependencies = [
  "excali-core",
+ "excali-math",
  "icu_normalizer",
  "icu_properties",
  "rustybuzz",

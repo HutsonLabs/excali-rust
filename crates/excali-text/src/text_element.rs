@@ -24,6 +24,7 @@ use excali_core::constants::{
     DEFAULT_FONT_SIZE, STICKY_NOTE_BODY_INSET_Y, STICKY_NOTE_PADDING,
 };
 use excali_core::element::{Element, ElementKind, ElementType, TextAlign, VerticalAlign};
+use excali_math::js;
 
 /// `LinearElementEditor.getBoundTextElementPosition(arrow, text,
 /// elementsMap)` (`linearElementEditor.ts:2068-2131`): the top-left corner
@@ -215,8 +216,9 @@ fn point_rotate_rads(point: [f64; 2], center: [f64; 2], angle: f64) -> [f64; 2] 
     let [x, y] = point;
     let [cx, cy] = center;
     [
-        (x - cx) * angle.cos() - (y - cy) * angle.sin() + cx,
-        (x - cx) * angle.sin() + (y - cy) * angle.cos() + cy,
+        // V8's fdlibm trig, not the platform's (one ulp apart on glibc).
+        (x - cx) * js::cos(angle) - (y - cy) * js::sin(angle) + cx,
+        (x - cx) * js::sin(angle) + (y - cy) * js::cos(angle) + cy,
     ]
 }
 

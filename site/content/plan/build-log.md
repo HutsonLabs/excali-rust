@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-513 · History: store snapshots, element and appState deltas, undo/redo stacks, version bumps
+
+The editor now has upstream's undo and redo. Every change to an element bumps its `version`, `versionNonce` and `updated`. The store captures element and appState deltas, and the undo and redo stacks skip entries that change nothing visible. After an undo or redo, bound text and bound arrows are laid out again. The idsToCheck guard and failures on apply or layout errors run only in dev builds, as upstream does, and production builds carry on the way upstream's do. Rotated bound text now uses V8's fdlibm `sin` and `cos`, so its coordinates match upstream bit for bit on Linux as well as macOS. The cases from upstream's `history.test.tsx` and `delta.test.tsx` are ported; the workspace runs 1601 tests with none failing or ignored. PR: [#87](https://github.com/HutsonLabs/excali-rust/pull/87).
+
 ## 2026-09-28 · ex-g401 · SVG export: the two export.test.tsx snapshots reproduced as whole documents
 
 SVG export now matches upstream's two `export.test.tsx` snapshots as whole documents, byte for byte: the svg-embedded scene export and the SVG with transformed (rotated and flipped) images. The snapshot parsing is shared with the existing `export.test.ts` snapshot tests. That closes the first of the two M4 gap tasks. PR: [#86](https://github.com/HutsonLabs/excali-rust/pull/86).
