@@ -93,8 +93,8 @@ The suite's first test fails when a row has no test, a test has no row, or a sta
 
 | Row | Behaviour (upstream at the pin) | Upstream | Issue | Status |
 |---|---|---|---|---|
-| ui-main-menu | The hamburger (`main-menu-trigger`) opens the main menu. | `excalidraw/components/main-menu/MainMenu.tsx:51` | ex-520 | gap |
-| ui-styles-panel | Selecting an element shows the styles panel (`.App-menu__left` with the stroke colour picker). | `excalidraw/components/Actions.tsx` (`SelectedShapeActions`), `excalidraw/components/LayerUI.tsx` | ex-519 | gap |
+| ui-main-menu | The hamburger (`main-menu-trigger`) opens the main menu. | `excalidraw/components/main-menu/MainMenu.tsx:51` | ex-520 | pass |
+| ui-styles-panel | Selecting an element shows the styles panel (`.App-menu__left`) with the stroke colour picker's trigger (`.color-picker__button`, labelled Stroke). | `excalidraw/components/Actions.tsx` (`SelectedShapeActions`), `excalidraw/components/LayerUI.tsx`, `excalidraw/actions/actionProperties.tsx:413` (`ColorPicker`), `excalidraw/components/ColorPicker/ColorPicker.tsx:306` | ex-523 | gap |
 | ui-footer-zoom | The footer has the zoom actions (`.zoom-actions`) showing 100%. | `excalidraw/components/Actions.tsx:877` (`ZoomActions`), `common/src/constants.ts:114` | ex-521 | pass |
 | ui-help-dialog | `?` opens the help dialog (`.HelpDialog`). | `excalidraw/actions/actionMenu.tsx:34`, `excalidraw/components/HelpDialog.tsx:141` | ex-522 | gap |
 | ui-context-menu | A right-click on the canvas opens the context menu (`.context-menu`). | `excalidraw/components/App.tsx:13363` (`handleCanvasContextMenu`), `excalidraw/components/ContextMenu.tsx:68` | ex-525 | gap |

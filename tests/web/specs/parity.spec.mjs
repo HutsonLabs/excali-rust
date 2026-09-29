@@ -698,7 +698,9 @@ const ROWS = {
   "ui-styles-panel": async ({ page }) => {
     await mount(page, sceneText([rect("a", 100, 100)]));
     await click(page, [150, 150]);
-    await expect(page.locator("excali-editor .App-menu__left")).toBeVisible(SHORT);
+    const panel = page.locator("excali-editor .App-menu__left");
+    await expect(panel).toBeVisible(SHORT);
+    await expect(panel.locator('button.color-picker__button[aria-label="Stroke"]')).toBeVisible(SHORT);
   },
 
   "ui-footer-zoom": async ({ page }) => {
