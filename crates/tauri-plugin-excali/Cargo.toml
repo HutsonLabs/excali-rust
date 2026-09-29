@@ -7,6 +7,29 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 publish = false
+links = "tauri-plugin-excali"
+
+[dependencies]
+excali-cli = { path = "../excali-cli" }
+excali-core = { path = "../excali-core" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tauri = { version = "2.12.0", default-features = false }
+tauri-plugin-dialog = "2.8.0"
+url = { workspace = true }
+ureq = "3.4.2"
+
+# tauri's mock runtime runs the commands through the IPC and the ACL
+# (tests/commands.rs); dynamic-acl builds the runtime authority from the
+# plugin's permission files and capability, which toml reads. png decodes
+# the exports.
+[dev-dependencies]
+tauri = { version = "2.12.0", default-features = false, features = ["test", "dynamic-acl"] }
+toml = "1.1.6"
+png = "0.18.1"
+
+[build-dependencies]
+tauri-plugin = { version = "2.7.0", features = ["build"] }
 
 [lints]
 workspace = true
