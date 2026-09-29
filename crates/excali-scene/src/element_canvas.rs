@@ -349,7 +349,7 @@ impl<S> ElementCanvasCache<S> {
         config: &StaticCanvasRenderConfig,
         app_state: &StaticCanvasAppState,
         device_pixel_ratio: f64,
-        make_surface: impl FnOnce(&ElementCanvas) -> S,
+        make_surface: impl FnOnce(ElementCanvas) -> S,
     ) -> Result<Option<&ElementBitmap<S>>, RenderError> {
         let id = element.base.id.as_str();
         let stale = match self.entries.get(id) {
@@ -370,12 +370,18 @@ impl<S> ElementCanvasCache<S> {
             else {
                 return Ok(None);
             };
-            let surface = make_surface(&canvas);
+            let (key, width, height, scale) = (
+                canvas.key.clone(),
+                canvas.width,
+                canvas.height,
+                canvas.scale,
+            );
+            let surface = make_surface(canvas);
             let bitmap = ElementBitmap {
-                key: canvas.key,
-                width: canvas.width,
-                height: canvas.height,
-                scale: canvas.scale,
+                key,
+                width,
+                height,
+                scale,
                 surface,
             };
             self.entries.insert(id.to_owned(), bitmap);
@@ -603,7 +609,7 @@ pub fn render_element_cached<S>(
     base: Transform,
     render_state: Option<ElementRenderState>,
     cache: &mut ElementCanvasCache<S>,
-    make_surface: impl FnOnce(&ElementCanvas) -> S,
+    make_surface: impl FnOnce(ElementCanvas) -> S,
 ) -> Result<Option<ElementDraw>, RenderError> {
     let state = render_state.unwrap_or_else(|| {
         resolve_element_render_state(element, elements_map, config, all_elements_map)

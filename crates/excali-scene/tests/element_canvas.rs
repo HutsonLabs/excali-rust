@@ -173,10 +173,10 @@ impl Run {
             base,
             None,
             &mut self.cache,
-            |canvas: &ElementCanvas| {
+            |canvas: ElementCanvas| {
                 *made += 1;
                 Surface {
-                    canvas: canvas.clone(),
+                    canvas,
                     serial: *made,
                 }
             },

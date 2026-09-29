@@ -106,11 +106,12 @@ fn a_pan_makes_no_bitmap() {
 fn a_drag_remakes_what_it_changed() {
     let mut ed = editor();
     made(&mut ed);
-    // `a` is 60, 300, 100 x 100 and holds no binding
+    // `a` (60, 300, 100 x 100) is where the arrow `link` starts: the drag
+    // moves both
     ed.pointer_down(PointerInput::at(110.0, 350.0));
     ed.pointer_move(PointerInput::at(130.0, 360.0));
     ed.pointer_up(PointerInput::at(130.0, 360.0));
-    assert_eq!(made(&mut ed), ids(&["a"]));
+    assert_eq!(made(&mut ed), ids(&["a", "link"]));
     assert!(made(&mut ed).is_empty());
 }
 

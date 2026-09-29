@@ -96,10 +96,16 @@ pub fn register_fonts(base_url: &str) -> Result<u32, JsError> {
 /// [`register_fonts`] has not run or a family fails to load.
 #[wasm_bindgen(js_name = loadSceneFonts)]
 pub async fn load_scene_fonts(scene_json: String) -> Result<Vec<String>, JsError> {
+    let elements = scene_elements(&scene_json).map_err(|e| JsError::new(&e))?;
+    load_elements_fonts(elements).await
+}
+
+/// [`load_scene_fonts`] of `elements`: what `<excali-editor>`'s `load()`
+/// awaits for the scene it holds, without writing and parsing it again.
+pub(crate) async fn load_elements_fonts(elements: Vec<Element>) -> Result<Vec<String>, JsError> {
     let fonts = FONTS
         .with(|f| f.borrow().clone())
         .ok_or_else(|| JsError::new("loadSceneFonts: call registerFonts first"))?;
-    let elements = scene_elements(&scene_json).map_err(|e| JsError::new(&e))?;
     let loaded = fonts.load_scene_fonts(&elements).await;
     if let Some((family, e)) = loaded.failed.first() {
         return Err(JsError::new(&format!(

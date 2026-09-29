@@ -14,7 +14,8 @@
 # (ex-307), the Canvas 2D backend against excali-raster on the fixture
 # display lists in Chromium (ex-502), the catalogue render with its
 # contact sheets (ex-410), and the layered canvases at device-pixel scale
-# in Chromium (ex-503), and the example Tauri app in WKWebView (ex-606).
+# in Chromium (ex-503), the example Tauri app in WKWebView (ex-606), and the
+# performance budgets on a pinned macOS arm64 runner (ex-710).
 #
 # The toolchain comes from rust-toolchain.toml; rustup installs it (with
 # rustfmt, clippy and the wasm32 target) on the first cargo call.
@@ -234,6 +235,54 @@ jobs:
           path: |
             tests/web/playwright-report/
             tests/web/test-results/
+          retention-days: 14
+  # ex-710: the performance budgets (site/content/plan/phases.md#budgets),
+  # first paint after module load and a pan frame at 1,000 elements, on a
+  # pinned runner: macos-15 arm64 (an Apple M1, the 2020 laptop the phase
+  # names) and Playwright's Chromium. scripts/web/perf.sh builds the
+  # release, runs tests/web/perf and fails when a measurement is over its
+  # budget (scripts/gates/perf_budget.py).
+  web-perf:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: |
+          want="$(awk '/^name = "wasm-bindgen"$/ { getline; gsub(/"/, "", $3); print $3; exit }' Cargo.lock)"
+          if [ "$(wasm-bindgen --version 2>/dev/null | awk '{ print $2 }')" != "$want" ]; then
+            cargo install --locked wasm-bindgen-cli --version "$want"
+          fi
+      - name: binaryen (pinned) cache
+        uses: actions/cache@v6
+        with:
+          path: .tools/binaryen-version_133
+          key: binaryen-version_133-${{ runner.os }}-${{ runner.arch }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tests/web/package-lock.json
+      - name: install
+        working-directory: tests/web
+        run: npm ci
+      - name: install chromium
+        working-directory: tests/web
+        run: npx playwright install chromium
+      - name: first paint and pan at 1,000 elements within budget
+        run: scripts/web/perf.sh
+        env:
+          CI: "1"
+      - name: keep the measurements
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-perf
+          path: |
+            tests/web/test-results-perf/
+            tests/web/playwright-report-perf/
           retention-days: 14
   # ex-217: the golden harness (excali_rough::goldens, cargo feature
   # `goldens`) and every parity target that compares with goldens/ through it,

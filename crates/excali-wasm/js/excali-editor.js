@@ -1,7 +1,7 @@
 
 // <excali-editor> (ex-530): the custom element shim. scripts/web/build.sh
 // appends this file to wasm-bindgen's excali_editor.js, so the module is one
-// plain ES module and EditorCore, registerFonts and loadSceneFonts above are
+// plain ES module and EditorCore and registerFonts above are
 // in scope. The API is the one on the term.hut integration page
 // (site/content/architecture/termhut-integration.md); the editor itself is
 // excali_wasm::web::EditorCore.
@@ -68,7 +68,7 @@ class ExcaliEditorElement extends HTMLElement {
     const core = this.#editor();
     core.load(String(text));
     try {
-      await loadSceneFonts(core.sceneJson());
+      await core.loadFonts();
       core.repaint();
     } catch {
       // a family that fails to load leaves the fallback font

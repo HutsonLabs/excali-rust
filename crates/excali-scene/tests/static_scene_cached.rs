@@ -25,8 +25,8 @@ use excali_scene::element_canvas::{
     render_element_cached, ElementCanvas, ElementCanvasCache, ElementDraw,
 };
 use excali_scene::static_scene::{
-    render_static_scene, render_static_scene_cached, StaticCanvasAppState, StaticCanvasRenderConfig,
-    StaticScene,
+    render_static_scene, render_static_scene_cached, StaticCanvasAppState,
+    StaticCanvasRenderConfig, StaticScene,
 };
 use excali_text::text_measurements::TextMetricsProvider;
 use serde_json::{json, Value};
@@ -58,31 +58,48 @@ fn element(fields: Value) -> Element {
 /// freedraw stroke and a frame holding the ellipse.
 fn scene() -> Vec<Element> {
     vec![
-        element(json!({"id": "frame", "type": "frame", "x": 200, "y": 0, "width": 150,
-            "height": 120, "index": "a0", "name": "F", "backgroundColor": "transparent"})),
-        element(json!({"id": "rect", "type": "rectangle", "x": 10.25, "y": 20.5, "width": 80,
-            "height": 40, "index": "a1", "roundness": {"type": 3}})),
-        element(json!({"id": "ell", "type": "ellipse", "x": 220, "y": 30, "width": 60,
-            "height": 50, "index": "a2", "frameId": "frame", "fillStyle": "cross-hatch"})),
-        element(json!({"id": "box", "type": "rectangle", "x": 10, "y": 100, "width": 100,
-            "height": 50, "index": "a3", "boundElements": [{"id": "label", "type": "text"}]})),
-        element(json!({"id": "label", "type": "text", "x": 35, "y": 112.5, "width": 50,
+        element(
+            json!({"id": "frame", "type": "frame", "x": 200, "y": 0, "width": 150,
+            "height": 120, "index": "a0", "name": "F", "backgroundColor": "transparent"}),
+        ),
+        element(
+            json!({"id": "rect", "type": "rectangle", "x": 10.25, "y": 20.5, "width": 80,
+            "height": 40, "index": "a1", "roundness": {"type": 3}}),
+        ),
+        element(
+            json!({"id": "ell", "type": "ellipse", "x": 220, "y": 30, "width": 60,
+            "height": 50, "index": "a2", "frameId": "frame", "fillStyle": "cross-hatch"}),
+        ),
+        element(
+            json!({"id": "box", "type": "rectangle", "x": 10, "y": 100, "width": 100,
+            "height": 50, "index": "a3", "boundElements": [{"id": "label", "type": "text"}]}),
+        ),
+        element(
+            json!({"id": "label", "type": "text", "x": 35, "y": 112.5, "width": 50,
             "height": 25, "index": "a4", "text": "label", "originalText": "label",
             "fontSize": 20, "fontFamily": 5, "textAlign": "center", "verticalAlign": "middle",
             "containerId": "box", "autoResize": true, "lineHeight": 1.25,
-            "backgroundColor": "transparent"})),
-        element(json!({"id": "free", "type": "text", "x": 400, "y": 10, "width": 40,
+            "backgroundColor": "transparent"}),
+        ),
+        element(
+            json!({"id": "free", "type": "text", "x": 400, "y": 10, "width": 40,
             "height": 25, "index": "a5", "text": "hi", "originalText": "hi", "fontSize": 20,
             "fontFamily": 5, "textAlign": "left", "verticalAlign": "top", "containerId": null,
-            "autoResize": true, "lineHeight": 1.25, "backgroundColor": "transparent"})),
-        element(json!({"id": "arrow", "type": "arrow", "x": 120, "y": 200, "width": 100,
+            "autoResize": true, "lineHeight": 1.25, "backgroundColor": "transparent"}),
+        ),
+        element(
+            json!({"id": "arrow", "type": "arrow", "x": 120, "y": 200, "width": 100,
             "height": 30, "index": "a6", "points": [[0, 0], [50, 30], [100, 0]],
             "lastCommittedPoint": null, "startBinding": null, "endBinding": null,
             "startArrowhead": null, "endArrowhead": "arrow", "elbowed": false,
-            "roundness": {"type": 2}})),
-        element(json!({"id": "pen", "type": "freedraw", "x": 300, "y": 200, "width": 40,
+            "roundness": {"type": 2}}),
+        ),
+        element(
+            json!({"id": "pen", "type": "freedraw", "x": 300, "y": 200, "width": 40,
             "height": 20, "index": "a7", "points": [[0, 0], [10, 5], [20, 20], [40, 10]],
-            "pressures": [], "simulatePressure": true, "lastCommittedPoint": null})),
+            "pressures": [], "simulatePressure": true, "lastCommittedPoint": null,
+            "strokeOptions": {"variability": "variable", "streamline": 0.5}}),
+        ),
     ]
 }
 
@@ -126,7 +143,7 @@ fn render(
             text_metrics: &TenPxPerCodeUnit,
         },
         cache,
-        &mut |element: &Element, _: &ElementCanvas| {
+        &mut |element: &Element, _: ElementCanvas| {
             made.push(element.base.id.clone());
             element.base.id.clone()
         },
@@ -134,7 +151,11 @@ fn render(
     Frame { list, made }
 }
 
-fn vector(elements: &[Element], state: &StaticCanvasAppState, config: &StaticCanvasRenderConfig) -> DisplayList {
+fn vector(
+    elements: &[Element],
+    state: &StaticCanvasAppState,
+    config: &StaticCanvasRenderConfig,
+) -> DisplayList {
     let visible: Vec<&Element> = elements.iter().collect();
     let map = ElementsMap::new(visible.iter().copied());
     render_static_scene(&StaticScene {
@@ -177,7 +198,12 @@ fn all_blits(list: &DisplayList) -> Vec<Blit> {
 fn every_element_but_a_frame_is_drawn_from_its_bitmap() {
     let elements = scene();
     let mut cache = ElementCanvasCache::new();
-    let frame = render(&elements, &app_state(12.3, -4.7), &editor_config(), &mut cache);
+    let frame = render(
+        &elements,
+        &app_state(12.3, -4.7),
+        &editor_config(),
+        &mut cache,
+    );
     let ids: Vec<String> = all_blits(&frame.list).into_iter().map(|b| b.id).collect();
     // the label right after its container; the frame is drawn as vectors
     let want = ["rect", "ell", "box", "label", "free", "arrow", "pen"];
@@ -193,8 +219,10 @@ fn each_blit_is_render_element_cached_on_the_scene_matrix() {
     let config = editor_config();
     let mut cache = ElementCanvasCache::new();
     let frame = render(&elements, &state, &config, &mut cache);
-    let got: HashMap<String, Blit> =
-        all_blits(&frame.list).into_iter().map(|b| (b.id.clone(), b)).collect();
+    let got: HashMap<String, Blit> = all_blits(&frame.list)
+        .into_iter()
+        .map(|b| (b.id.clone(), b))
+        .collect();
 
     let visible: Vec<&Element> = elements.iter().collect();
     let map = ElementsMap::new(visible.iter().copied());
@@ -214,7 +242,16 @@ fn each_blit_is_render_element_cached_on_the_scene_matrix() {
     let mut fresh = ElementCanvasCache::new();
     for e in elements.iter().filter(|e| e.base.id != "frame") {
         let draw = render_element_cached(
-            e, &map, &map, &config, &snapped, SCALE, base, None, &mut fresh, |_| (),
+            e,
+            &map,
+            &map,
+            &config,
+            &snapped,
+            SCALE,
+            base,
+            None,
+            &mut fresh,
+            |_| (),
         )
         .unwrap()
         .unwrap();
@@ -232,7 +269,10 @@ fn a_pan_reuses_every_bitmap() {
     let mut cache = ElementCanvasCache::new();
     let first = render(&elements, &app_state(0.0, 0.0), &config, &mut cache);
     assert_eq!(first.made.len(), 7);
-    for (i, (x, y)) in [(3.0, 2.0), (-40.5, 17.25), (1000.0, -800.0)].into_iter().enumerate() {
+    for (i, (x, y)) in [(3.0, 2.0), (-40.5, 17.25), (1000.0, -800.0)]
+        .into_iter()
+        .enumerate()
+    {
         let panned = render(&elements, &app_state(x, y), &config, &mut cache);
         assert!(panned.made.is_empty(), "pan {i} made {:?}", panned.made);
         assert_eq!(all_blits(&panned.list).len(), 7);
@@ -263,7 +303,10 @@ fn a_zoom_or_theme_change_remakes_every_bitmap() {
         zoom: 2.0,
         ..app_state(0.0, 0.0)
     };
-    assert_eq!(render(&elements, &zoomed, &config, &mut cache).made.len(), 7);
+    assert_eq!(
+        render(&elements, &zoomed, &config, &mut cache).made.len(),
+        7
+    );
     let dark = StaticCanvasAppState {
         theme: excali_scene::shape::Theme::Dark,
         ..zoomed
@@ -295,7 +338,10 @@ fn without_elements_the_scene_is_the_vector_scene() {
     };
     let state = app_state(5.0, 5.0);
     let mut cache = ElementCanvasCache::new();
-    assert_eq!(render(&[], &state, &config, &mut cache).list, vector(&[], &state, &config));
+    assert_eq!(
+        render(&[], &state, &config, &mut cache).list,
+        vector(&[], &state, &config)
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -305,7 +351,14 @@ fn without_elements_the_scene_is_the_vector_scene() {
 struct Recorder(Vec<String>);
 
 impl Painter for Recorder {
-    fn fill(&mut self, _: &Path, _: &excali_scene::display::Color, _: Rgba, _: FillRule, _: &PaintState) {
+    fn fill(
+        &mut self,
+        _: &Path,
+        _: &excali_scene::display::Color,
+        _: Rgba,
+        _: FillRule,
+        _: &PaintState,
+    ) {
         self.0.push("fill".into());
     }
     fn stroke(&mut self, _: &Path, _: &Stroke, _: Rgba, _: &PaintState) {

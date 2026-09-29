@@ -13,7 +13,7 @@
 // frame's time runs from dispatching the wheel event to the static canvas
 // read back with one getImageData, which makes Chromium execute the frame's
 // deferred drawing; the budget holds the 95th percentile of the measured
-// frames after a warm-up.
+// frames after a warm-up. First paint is the median of five fresh loads.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
@@ -22,8 +22,9 @@ import { expect, test } from "@playwright/test";
 import { COUNT, sceneJson } from "./scene.mjs";
 
 const RESULTS = resolve(process.env.PERF_RESULTS || join("test-results-perf", "perf.json"));
-const WARMUP = Number(process.env.PERF_WARMUP || 20);
-const FRAMES = Number(process.env.PERF_FRAMES || 240);
+const WARMUP = 20;
+const FRAMES = 240;
+const FIRST_PAINT_RUNS = 5;
 
 /** Merges `entry` into the results file. */
 const record = (entry) => {
@@ -69,21 +70,34 @@ test("the scene holds 1,000 elements, all in the viewport", async ({ page }) => 
   expect(errors).toEqual([]);
 });
 
-test("first paint after module load", async ({ page }) => {
-  const errors = await open(page);
-  const first = await page.evaluate(() => window.firstPaint);
-  // the static canvas holds the scene: not all background
-  const inked = await page.evaluate(() => {
-    const canvas = window.ed.querySelector("canvas.static");
-    const { data } = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
-    let n = 0;
-    for (let i = 0; i < data.length; i += 4) if (data[i] < 200) n++;
-    return n;
+test("first paint after module load", async ({ browser }) => {
+  // the median of fresh loads, each in a new page, so one slow start on a
+  // shared runner does not decide the budget
+  const runs = [];
+  for (let i = 0; i < FIRST_PAINT_RUNS; i++) {
+    const page = await browser.newPage();
+    const errors = await open(page);
+    const first = await page.evaluate(() => window.firstPaint);
+    // the static canvas holds the scene: not all background
+    const inked = await page.evaluate(() => {
+      const canvas = window.ed.querySelector("canvas.static");
+      const { data } = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
+      let n = 0;
+      for (let k = 0; k < data.length; k += 4) if (data[k] < 200) n++;
+      return n;
+    });
+    expect(inked).toBeGreaterThan(10_000);
+    expect(first.ms).toBeGreaterThan(0);
+    expect(errors).toEqual([]);
+    runs.push(first);
+    await page.close();
+  }
+  const ms = runs.map((r) => r.ms);
+  record({
+    firstPaintMs: Number(percentile(ms, 50).toFixed(2)),
+    firstPaintRunsMs: ms.map((v) => Number(v.toFixed(2))),
+    fontsLoadedMs: Number(percentile(runs.map((r) => r.fontsMs), 50).toFixed(2)),
   });
-  expect(inked).toBeGreaterThan(10_000);
-  expect(first.ms).toBeGreaterThan(0);
-  expect(errors).toEqual([]);
-  record({ firstPaintMs: Number(first.ms.toFixed(2)), fontsLoadedMs: Number(first.fontsMs.toFixed(2)) });
 });
 
 test("pan at 1,000 elements", async ({ page }) => {

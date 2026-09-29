@@ -73,6 +73,7 @@
 //! The history's leaf layouts are the real ones ([`EditorEnv`]), so an
 //! undo re-wraps and re-centres bound text and re-routes bound arrows.
 
+use std::cell::OnceCell;
 use std::collections::{HashMap, HashSet};
 
 use excali_core::app_state::{AppState, AppStateEnv};
@@ -142,15 +143,19 @@ use excali_editor::viewport::{
     ZoomAction, ZoomToFit,
 };
 use excali_math::js;
-use excali_scene::bounds::{get_common_bounds, get_element_absolute_coords, ElementsMap};
+use excali_scene::bounds::{
+    get_common_bounds, get_container_element, get_element_absolute_coords, ElementsMap,
+};
 use excali_scene::canvas_export::{export_canvas_png, CanvasExportOptions, CanvasSizing};
-use excali_scene::display::{CanvasDocument, DisplayList};
+use excali_scene::display::{bitmap_id, CanvasDocument, DisplayList};
+use excali_scene::element_canvas::{ElementCanvas, ElementCanvasCache};
 use excali_scene::export::{svg_document, SvgExportAppState, SvgExportOptions};
 use excali_scene::new_element_scene::is_invisibly_small_element;
 use excali_scene::render_element::get_link_handle_from_coords;
 use excali_scene::shape::Theme;
 use excali_scene::static_scene::{
-    render_static_scene, StaticCanvasAppState, StaticCanvasRenderConfig, StaticScene,
+    render_static_scene, render_static_scene_cached, StaticCanvasAppState,
+    StaticCanvasRenderConfig, StaticScene,
 };
 use excali_svg::{export_to_svg, to_svg_file, FontContent};
 use excali_text::text_measurements::TextMetricsProvider;
@@ -476,7 +481,7 @@ pub struct Editor<P: TextMetricsProvider + Clone> {
     /// `getExportSource()`: the page's origin.
     pub(crate) source: String,
     /// What [`Editor::save`] wrote, or the load gave.
-    pub(crate) clean: String,
+    pub(crate) clean: Clean,
     /// The viewport keys the host measured (`width`, `height`,
     /// `offsetLeft`, `offsetTop`), kept across loads.
     pub(crate) viewport: Map<String, Value>,
@@ -500,6 +505,39 @@ pub struct Editor<P: TextMetricsProvider + Clone> {
     /// `searchMenu` ran with the search tab open: the host focuses the
     /// search field ([`Editor::take_search_focus_request`]).
     pub(crate) search_focus_requested: bool,
+    /// `elementWithCanvasCache`: what each element's bitmap was made for;
+    /// the host holds the bitmaps themselves ([`Editor::static_frame`]).
+    pub(crate) bitmaps: ElementCanvasCache<()>,
+    /// The bitmap ids the host holds.
+    pub(crate) host_bitmaps: HashSet<String>,
+}
+
+/// The clean state [`Editor::dirty`] compares with.
+#[derive(Clone, Debug)]
+pub(crate) enum Clean {
+    /// The file [`Editor::save`] wrote.
+    Text(String),
+    /// The scene as loaded; its file is written the first time it is
+    /// compared with a changed scene.
+    Loaded {
+        elements: Vec<Element>,
+        app_state: AppState,
+        text: OnceCell<String>,
+    },
+}
+
+/// The static canvas's frame in the editor ([`Editor::static_frame`]).
+#[derive(Clone, Debug)]
+pub struct StaticFrame {
+    /// What to paint, the elements as [`excali_scene::display::Blit`]s of
+    /// their bitmaps.
+    pub list: DisplayList,
+    /// The bitmaps to make before painting `list`: the id the list draws
+    /// each by (`excali_scene::display::bitmap_id`) and its drawing. One the
+    /// host already holds under that id is replaced.
+    pub new_bitmaps: Vec<(String, ElementCanvas)>,
+    /// The bitmaps no element needs any more, sorted, for the host to free.
+    pub dropped_bitmaps: Vec<String>,
 }
 
 const EMPTY_SCENE: &str =
@@ -533,7 +571,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 ..ActionEnv::default()
             },
             source: source.to_owned(),
-            clean: String::new(),
+            clean: Clean::Text(String::new()),
             viewport: Map::new(),
             gesture: None,
             last_pointer: [0.0, 0.0],
@@ -546,6 +584,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             multi: None,
             image_sizes: HashMap::new(),
             search_focus_requested: false,
+            bitmaps: ElementCanvasCache::new(),
+            host_bitmaps: HashSet::new(),
         };
         editor.start(editor.file.clone());
         editor
@@ -562,12 +602,19 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             .session
             .initialize_scene(file.elements.clone(), app_state);
         self.file = file;
+        // new element objects: upstream's WeakMap has no bitmap for them
+        self.bitmaps = ElementCanvasCache::new();
         self.tools = ToolState::default();
         self.keyboard = KeyboardState::default();
         self.convert_popup.reset();
         self.flowchart.clear();
         self.gesture = None;
-        self.clean = self.serialize();
+        // written when first compared: a load does not wait for it
+        self.clean = Clean::Loaded {
+            elements: self.session.elements().to_vec(),
+            app_state: self.session.app_state().clone(),
+            text: OnceCell::new(),
+        };
         self.reported = (scene_version(self.session.elements()), false);
     }
 
@@ -586,9 +633,14 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     }
 
     fn serialize(&self) -> String {
+        self.serialize_scene(self.session.elements(), self.session.app_state())
+    }
+
+    /// The loaded file with `elements` and `app_state`, written.
+    fn serialize_scene(&self, elements: &[Element], app_state: &AppState) -> String {
         let mut file = self.file.clone();
-        file.elements = self.session.elements().to_vec();
-        file.app_state = self.session.app_state().clone();
+        file.elements = elements.to_vec();
+        file.app_state = app_state.clone();
         file.to_document(&self.source).to_json()
     }
 
@@ -596,7 +648,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// upstream's key order). What it returns is the new clean state.
     pub fn save(&mut self) -> String {
         let text = self.serialize();
-        self.clean.clone_from(&text);
+        self.clean = Clean::Text(text.clone());
         self.report();
         text
     }
@@ -609,7 +661,23 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// Whether the file [`Editor::save`] would write differs from the clean
     /// one.
     pub fn dirty(&self) -> bool {
-        self.serialize() != self.clean
+        match &self.clean {
+            Clean::Text(text) => self.serialize() != *text,
+            Clean::Loaded {
+                elements,
+                app_state,
+                text,
+            } => {
+                // the scene as loaded writes the clean file
+                if self.session.elements() == elements.as_slice()
+                    && self.session.app_state() == app_state
+                {
+                    return false;
+                }
+                let clean = text.get_or_init(|| self.serialize_scene(elements, app_state));
+                self.serialize() != *clean
+            }
+        }
     }
 
     /// The elements, deleted ones included, in order.
@@ -3388,12 +3456,100 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     }
 
     /// The static canvas's display list at `width` × `height` device
-    /// pixels and device pixel ratio `scale` (`renderStaticScene`).
+    /// pixels and device pixel ratio `scale` (`renderStaticScene`), every
+    /// element drawn as vectors, as an export draws it.
     pub fn static_scene(&self, width: f64, height: f64, scale: f64) -> DisplayList {
         let elements = self.session.elements();
         let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
         let map = ElementsMap::new(live.iter().copied());
         let all = ElementsMap::new(elements.iter());
+        let (state, config) = self.static_state();
+        render_static_scene(&StaticScene {
+            canvas_width: width,
+            canvas_height: height,
+            scale,
+            elements_map: &map,
+            all_elements_map: &all,
+            visible_elements: &live,
+            app_state: &state,
+            render_config: &config,
+            text_metrics: &self.session.env.layouter.provider,
+        })
+    }
+
+    /// The static canvas's frame as the editor draws it
+    /// (`renderStaticScene` with `renderElement`'s editor path,
+    /// `renderElement.ts:963-1009`): every element but a frame blitted from
+    /// a bitmap of its own, made once and again only when the element, the
+    /// zoom or the theme changes (`generateElementWithCanvas`,
+    /// `:682-728`), so a pan makes none. The bitmaps of elements no longer
+    /// in the scene are dropped, as the WeakMap lets them go.
+    pub fn static_frame(&mut self, width: f64, height: f64, scale: f64) -> StaticFrame {
+        let (state, config) = self.static_state();
+        let elements = self.session.elements();
+        let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
+        let map = ElementsMap::new(live.iter().copied());
+        let all = ElementsMap::new(elements.iter());
+        let mut new_bitmaps = Vec::new();
+        let list = render_static_scene_cached(
+            &StaticScene {
+                canvas_width: width,
+                canvas_height: height,
+                scale,
+                elements_map: &map,
+                all_elements_map: &all,
+                visible_elements: &live,
+                app_state: &state,
+                render_config: &config,
+                text_metrics: &self.session.env.layouter.provider,
+            },
+            &mut self.bitmaps,
+            &mut |element: &Element, canvas: ElementCanvas| {
+                new_bitmaps.push((bitmap_id(&element.base.id), canvas));
+            },
+        );
+        let keep: HashSet<&str> = elements
+            .iter()
+            .chain(config.pending_flowchart_nodes.iter())
+            .map(|e| e.base.id.as_str())
+            .collect();
+        self.bitmaps.retain(|id| keep.contains(id));
+        let held: HashSet<String> = elements
+            .iter()
+            .chain(config.pending_flowchart_nodes.iter())
+            .filter(|e| self.bitmaps.get(&e.base.id).is_some())
+            .map(|e| bitmap_id(&e.base.id))
+            .collect();
+        let mut dropped_bitmaps: Vec<String> =
+            self.host_bitmaps.difference(&held).cloned().collect();
+        dropped_bitmaps.sort();
+        self.host_bitmaps = held;
+        StaticFrame {
+            list,
+            new_bitmaps,
+            dropped_bitmaps,
+        }
+    }
+
+    /// `Fonts.onLoaded` (`packages/excalidraw/fonts/Fonts.ts:106-150`):
+    /// the bitmap of every text element and of its container is made again
+    /// on the next frame (`ShapeCache.delete`), now in the loaded font.
+    pub fn fonts_loaded(&mut self) {
+        let elements = self.session.elements();
+        let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
+        let map = ElementsMap::new(live.iter().copied());
+        for element in &live {
+            if let ElementKind::Text(_) = element.kind {
+                self.bitmaps.delete(&element.base.id);
+                if let Some(container) = get_container_element(element, &map) {
+                    self.bitmaps.delete(&container.base.id);
+                }
+            }
+        }
+    }
+
+    /// The static scene's app state and render config.
+    fn static_state(&self) -> (StaticCanvasAppState, StaticCanvasRenderConfig) {
         let app = self.session.app_state();
         let dark = app.get("theme").and_then(Value::as_str) == Some("dark");
         let state = StaticCanvasAppState {
@@ -3411,17 +3567,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             clock: self.session.env.render_clock(),
             ..StaticCanvasRenderConfig::default()
         };
-        render_static_scene(&StaticScene {
-            canvas_width: width,
-            canvas_height: height,
-            scale,
-            elements_map: &map,
-            all_elements_map: &all,
-            visible_elements: &live,
-            app_state: &state,
-            render_config: &config,
-            text_metrics: &self.session.env.layouter.provider,
-        })
+        (state, config)
     }
 }
 

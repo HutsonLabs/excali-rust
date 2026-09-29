@@ -236,6 +236,26 @@ impl CanvasLayers {
         );
     }
 
+    /// Makes the static canvas's bitmap `id` (`generateElementCanvas`): a
+    /// canvas of `width` × `height` device pixels holding `content`, which
+    /// the static frame's blits of `id` draw. Replaces one of that id.
+    pub fn set_static_bitmap(&mut self, id: &str, width: f64, height: f64, content: &DisplayList) {
+        let painter = &mut self.static_layer.painter;
+        match painter.rasterize(width, height, content) {
+            Some(canvas) => {
+                painter.bitmaps.insert(id.to_owned(), canvas);
+            }
+            None => {
+                painter.bitmaps.remove(id);
+            }
+        }
+    }
+
+    /// Frees the static canvas's bitmap `id`.
+    pub fn drop_static_bitmap(&mut self, id: &str) {
+        self.static_layer.painter.bitmaps.remove(id);
+    }
+
     /// The new-element canvas's frame, when it is mounted:
     /// [`super::paint_new_element_layer`].
     pub fn paint_new_element(&mut self, zoom: f64, drawing: Option<&DisplayList>) {
