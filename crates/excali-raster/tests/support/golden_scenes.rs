@@ -3,8 +3,10 @@
 //! `exportToCanvas` through `tools/goldens/png-export.mjs`) as the documents
 //! a PNG export renders: the editor's `exportCanvas("png")` for an editor
 //! scene, the utils `exportToCanvas` plus `exportToBlob`'s embedded scene
-//! for a utils scene. Shared by the PNG export tests and the `png_export`
-//! example.
+//! for a utils scene. Shared by the PNG export tests, the `png_export`
+//! example, and excali-cli's comparison with Chrome
+//! (`crates/excali-cli/tests/chrome_export.rs`), which exports the same
+//! scenes with the vendored fonts' metrics and the decoded image files.
 
 use excali_core::element::Element;
 use excali_scene::canvas_export::{
@@ -43,8 +45,20 @@ fn object(value: &Value) -> Map<String, Value> {
 }
 
 /// The document the port exports for `scene`, with the scene embedded when
-/// upstream embeds it.
+/// upstream embeds it, measured and loading images as the generator did.
+#[allow(dead_code)]
 pub fn document(scene: &Value, source: &str) -> CanvasDocument {
+    document_with(scene, source, &TenPxPerCodeUnit, &loads)
+}
+
+/// [`document`] with frame names and labels measured by `metrics` and
+/// the files that load as images answered by `image_loads`.
+pub fn document_with(
+    scene: &Value,
+    source: &str,
+    metrics: &dyn TextMetricsProvider,
+    image_loads: &dyn Fn(&str) -> bool,
+) -> CanvasDocument {
     let all: Vec<Element> = scene["elements"]
         .as_array()
         .unwrap()
@@ -86,8 +100,8 @@ pub fn document(scene: &Value, source: &str) -> CanvasDocument {
         } else {
             CanvasSizing::ExportScale
         },
-        text_metrics: &TenPxPerCodeUnit,
-        image_loads: &loads,
+        text_metrics: metrics,
+        image_loads,
     };
     if !utils {
         return export_canvas_png(&all, &app_state, &files, &options, source).unwrap();

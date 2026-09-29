@@ -30,9 +30,13 @@ excali-text = { path = "../excali-text" }
 clap = { version = "4.6.7", features = ["derive", "env"] }
 serde_json = { workspace = true }
 
-# png reads the PNGs the tests render.
+# png reads the PNGs the tests render. The comparison with Chrome
+# (tests/chrome_export.rs) decodes the references and writes diff images
+# with tiny-skia's png-format and hashes them with sha2.
 [dev-dependencies]
 png = "0.18.1"
+sha2 = { workspace = true }
+tiny-skia = { version = "0.12.0", default-features = false, features = ["std", "simd", "png-format"] }
 
 [lints]
 workspace = true
