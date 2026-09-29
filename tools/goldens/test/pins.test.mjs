@@ -45,6 +45,13 @@ test("pins agree with upstream's package.json files", () => {
       assert.equal(testEnvironment[name], version, `${name} differs from upstream's test environment`);
       continue;
     }
+    // React is a peer dependency of the package; the version upstream runs
+    // it on is the app's (excalidraw-app/package.json), for ui-primitives.
+    if (name === "react" || name === "react-dom") {
+      const app = readJson(join(upstream, "excalidraw-app", "package.json")).dependencies;
+      assert.equal(app[name], version, `${name} differs from upstream's app`);
+      continue;
+    }
     assert.equal(declared[name], version, `${name} differs from upstream`);
   }
 });
@@ -123,5 +130,23 @@ test("installed modules are the pinned versions", () => {
   for (const [name, version] of Object.entries(RENDERING)) {
     const installed = readJson(join(TOOL_DIR, "node_modules", name, "package.json"));
     assert.equal(installed.version, version, `${name} (run npm ci in tools/goldens)`);
+  }
+});
+
+// ui-primitives.mjs renders upstream's components with React 19.0.0 and
+// compiles their SCSS with sass 1.51.0 (excalidraw-app/package.json:36-37,
+// packages/excalidraw/package.json:95,115).
+const UI = { react: "19.0.0", "react-dom": "19.0.0", clsx: "1.1.1", sass: "1.51.0", scheduler: "0.25.0" };
+
+test("ui primitive packages are upstream's tarballs", () => {
+  const upstream = yarnIntegrity();
+  for (const [name, version] of Object.entries(UI)) {
+    if (name !== "scheduler") assert.equal(pkg.dependencies[name], version, name);
+    const entry = lock.packages[`node_modules/${name}`];
+    assert.ok(entry, `lockfile has ${name}`);
+    assert.equal(entry.version, version, name);
+    const key = `${name}@${entry.version}`;
+    assert.ok(upstream.has(key), `upstream yarn.lock has ${key}`);
+    assert.equal(entry.integrity, upstream.get(key), `${key} integrity`);
   }
 });
