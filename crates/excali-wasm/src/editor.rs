@@ -128,6 +128,7 @@ use serde_json::{json, Map, Value};
 
 use crate::drag::drag_selected_elements;
 use crate::interact;
+use crate::multi::MultiPoint;
 use excali_editor::binding::update_bound_elements;
 use excali_editor::frame::{
     add_elements_to_frame, get_elements_in_new_frame, get_frame_children_insertion_index,
@@ -331,21 +332,26 @@ pub(crate) enum Gesture {
     /// The text tool's press on an empty container's centre, decided on
     /// release (`AppTextTool.pending`).
     TextLabel { container: String, origin: [f64; 2] },
+    /// A press that finished a line or arrow drawn point by point; its
+    /// release reverts the tool (`App.tsx:12594-12620`).
+    Finalized,
 }
 
 /// The element a drawing tool's press created (`appState.newElement`) and
 /// the press (`pointerDownState`).
 #[derive(Clone, Debug)]
 pub(crate) struct CreateGesture {
-    id: String,
+    pub(crate) id: String,
     /// `activeTool.type`.
-    tool: String,
+    pub(crate) tool: String,
     /// `pointerDownState.origin`.
-    origin: [f64; 2],
+    pub(crate) origin: [f64; 2],
     /// `pointerDownState.originInGrid`.
-    origin_in_grid: [f64; 2],
+    pub(crate) origin_in_grid: [f64; 2],
     /// `pointerDownState.drag.hasOccurred` (linear elements).
-    dragged: bool,
+    pub(crate) dragged: bool,
+    /// A press while drawing point by point (`multiElement`).
+    pub(crate) multi: bool,
 }
 
 /// The selection tool's press (`pointerDownState`).
@@ -419,6 +425,8 @@ pub struct Editor<P: TextMetricsProvider + Clone> {
     pub(crate) text_editor: Option<TextEditor>,
     /// `SnapCache`: the reference points and gaps of the gesture.
     pub(crate) snap_cache: SnapCache,
+    /// The line or arrow drawn point by point (`multiElement`).
+    pub(crate) multi: Option<MultiPoint>,
 }
 
 const EMPTY_SCENE: &str =
@@ -460,6 +468,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             reported: (0.0, false),
             text_editor: None,
             snap_cache: SnapCache::default(),
+            multi: None,
         };
         editor.start(editor.file.clone());
         editor
@@ -835,6 +844,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         match name {
             ActionName::Undo => return self.undo(),
             ActionName::Redo => return self.redo(),
+            ActionName::Finalize => return self.finalize(None),
             _ => {}
         }
         if let Some(action) = ZoomAction::from_name(name.as_str()) {
@@ -1410,6 +1420,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                     pending: Vec::new(),
                 });
             }
+            "arrow" | "line" if self.multi.is_some() => self.multi_pointer_down(input, &tool),
             "rectangle" | "diamond" | "ellipse" | "arrow" | "line" | "freedraw" | "frame" => {
                 self.create_pointer_down(input, &tool)
             }
@@ -1434,7 +1445,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
 
     /// The binding state of the app (`isBindingEnabled`, the grid, the
     /// zoom), a new arrow's press at `origin`.
-    fn binding_app_state(&self, origin: [f64; 2], alt: bool) -> BindingAppState {
+    pub(crate) fn binding_app_state(&self, origin: [f64; 2], alt: bool) -> BindingAppState {
         let app = self.session.app_state();
         let flag = |k: &str, d: bool| app.get(k).and_then(Value::as_bool).unwrap_or(d);
         BindingAppState {
@@ -1544,6 +1555,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             origin,
             origin_in_grid,
             dragged: false,
+            multi: false,
         }));
         self.report();
     }
@@ -1663,7 +1675,9 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 *pending = trail.add_point_to_path(point.0, point.1, input.alt_key, &visible, zoom);
             }
             Some(Gesture::TextCreate { .. } | Gesture::TextLabel { .. }) => {}
+            None if self.multi.is_some() => self.multi_hover(input),
             None => self.hover(input),
+            Some(Gesture::Finalized) => {}
         }
     }
 
@@ -2246,6 +2260,19 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 self.session.commit();
                 self.report();
             }
+            Some(Gesture::Finalized) => {
+                // the release of the press that finished the element
+                // reverts the tool (App.tsx:12594-12620)
+                if !self.tools.is_tool_locked() {
+                    self.tools.active_tool = self.tools.tool_after_finalize();
+                }
+                self.set_keys(vec![
+                    ("newElement", Value::Null),
+                    ("suggestedBinding", Value::Null),
+                ]);
+                self.session.commit();
+                self.report();
+            }
             Some(Gesture::Create(gesture)) => self.create_pointer_up(input, gesture),
             Some(Gesture::Erase { start, pending, .. }) => {
                 self.erase_pointer_up(input, start, pending);
@@ -2302,10 +2329,18 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 pointer[0] - gesture.origin[0],
                 pointer[1] - gesture.origin[1],
             ) * zoom;
+            if gesture.multi {
+                // the point is committed (App.tsx:11728-11745)
+                let last = element.kind.points().map_or(0, <[_]>::len).saturating_sub(1);
+                if let Some(m) = self.multi.as_mut() {
+                    m.last_committed = Some(last);
+                }
+                self.session.commit();
+                return self.report();
+            }
             if !gesture.dragged || distance < MINIMUM_ARROW_SIZE {
-                // upstream starts drawing point by point here; the element
-                // does not, and drops the element
-                return self.discard_new_element(&element.base.id);
+                // the element is drawn point by point from here
+                return self.start_multi_point(&element.base.id);
             }
             if gesture.tool == "arrow" {
                 let map = scene.elements_map();
