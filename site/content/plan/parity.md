@@ -36,6 +36,7 @@ The suite's first test fails when a row has no test, a test has no row, or a sta
 | view-wheel-scroll | The wheel scrolls the canvas: after scrolling down 100 px an element 100 px lower is under the pointer. | `excalidraw/components/App.wheel.ts` (`AppWheel`) | ex-505 | pass |
 | view-hand-pan | With the hand tool (H), dragging pans the canvas. | `excalidraw/components/App.pan.ts` (`AppPan`) | ex-505 | pass |
 | view-space-pan | Holding Space while dragging pans the canvas. | `excalidraw/components/App.tsx:5989`, `excalidraw/components/App.pan.ts` | ex-505 | pass |
+| view-interactive | Selecting an element paints its selection outline and transform handles on the interactive canvas. | `excalidraw/renderer/interactiveScene.ts:1614` (`_renderInteractiveScene`), `excalidraw/renderer/interactiveScene.ts:1328` (`renderTransformHandles`) | ex-713 | pass |
 
 ## Tools
 
@@ -49,6 +50,7 @@ The suite's first test fails when a row has no test, a test has no row, or a sta
 | tool-ellipse | O and a drag create an ellipse; its roundness is the current item's, proportional by default (`getCurrentItemRoundness` makes no exception for the ellipse, whose shape does not draw it). | `excalidraw/components/App.tsx:10508` (`getCurrentItemRoundness`), `excalidraw/appState.ts:44`, `excalidraw/components/App.tsx:10534` | ex-506 | pass |
 | tool-arrow | A and a drag create a two-point arrow ending in an `arrow` arrowhead. | `excalidraw/appState.ts:33` (`currentItemEndArrowhead`), `excalidraw/components/App.tsx:10198`, `element/src/newElement.ts:604` | ex-506 | pass |
 | tool-line | L and a drag create a two-point line with no arrowheads. | `excalidraw/components/App.tsx:10198`, `element/src/newElement.ts:604` | ex-506 | pass |
+| tool-arrow-points | A, a click, a move, a click, a move, a click and Enter draw a three-point arrow point by point. | `excalidraw/tests/multiPointCreate.test.tsx:88-128`, `excalidraw/components/App.tsx:10211` (`handleLinearElementOnPointerDown`), `excalidraw/actions/actionFinalize.tsx:54` | ex-713 | pass |
 | tool-freedraw | P and a drag create a freedraw element through the pointer's points. | `excalidraw/components/App.tsx:9988`, `element/src/newElement.ts:583` | ex-506 | pass |
 | tool-text | T, a click, typing and Escape create a text element at font size 20 in Excalifont (5). | `common/src/constants.ts:223` (`DEFAULT_FONT_SIZE`), `common/src/constants.ts:268` (`DEFAULT_FONT_FAMILY`), `excalidraw/components/App.tsx:7044` (`startTextEditing`) | ex-512 | pass |
 | tool-eraser | E and a drag across an element delete it. | `excalidraw/components/App.tsx:8530` (`handleEraser`) | ex-506 | pass |
@@ -65,6 +67,10 @@ The suite's first test fails when a row has no test, a test has no row, or a sta
 | select-all | Ctrl/Cmd+A selects every element. | `excalidraw/actions/actionSelectAll.ts:21` | ex-514 | pass |
 | move-drag | Dragging a selected element moves it by the pointer's offset. | `element/src/dragElements.ts:39` (`dragSelectedElements`) | ex-530 | pass |
 | move-nudge | The arrow keys move the selection by 1, and by 5 with Shift. | `common/src/constants.ts:31-32`, `excalidraw/components/App.tsx` (`onKeyDown`) | ex-515 | pass |
+| move-alt-duplicate | Alt while dragging leaves the element where it was and drags a copy. | `excalidraw/tests/move.test.tsx:147-195`, `excalidraw/components/App.duplicate.ts:163` (`duplicateDraggedSelection`) | ex-713 | pass |
+| move-snap | With object snapping on (Alt+S) a dragged element snaps to another's edge within 8 px. | `excalidraw/snapping.ts:692` (`snapDraggedElements`), `excalidraw/actions/actionToggleObjectsSnapMode.tsx:9` | ex-713 | pass |
+| move-into-frame | Dragging an element into a frame makes it the frame's child. | `element/tests/frame.test.tsx:689-695`, `element/src/frame.ts:544` (`addElementsToFrame`), `excalidraw/components/App.tsx:12092-12181` | ex-713 | pass |
+| linear-editor | Double-clicking a line opens its editor; dragging a segment's midpoint adds a point there. | `element/tests/linearElementEditor.test.tsx:411-418`, `element/tests/linearElementEditor.test.tsx:500-530`, `element/src/linearElementEditor.ts:1781` (`addMidpoint`) | ex-713 | pass |
 | resize-handle | Dragging the south-east handle of a 100 × 100 rectangle by (50, 30) makes it 150 × 130. | `element/src/transformHandles.ts:133` (`getTransformHandlesFromCoords`), `element/src/resizeElements.ts` | ex-508 | pass |
 | rotate-handle | Dragging the rotation handle rotates the element. | `element/src/transformHandles.ts:133`, `element/src/resizeElements.ts:210` (`rotateSingleElement`) | ex-508 | pass |
 
