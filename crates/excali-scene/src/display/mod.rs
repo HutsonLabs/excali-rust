@@ -75,6 +75,7 @@
 //! Numbers are printed as JavaScript prints them ([`number_to_string`],
 //! [`to_fixed`]).
 
+mod blit;
 mod builtin;
 mod css_color;
 mod document;
@@ -88,6 +89,7 @@ mod svg;
 mod text;
 mod transform;
 
+pub use blit::{bitmap_id, Blit};
 pub use builtin::encode_uri_component;
 pub use builtin::{
     builtin_image, builtin_image_by_id, BuiltinImage, BUILTIN_IMAGE_NAMES, ELEMENT_LINK_ID,

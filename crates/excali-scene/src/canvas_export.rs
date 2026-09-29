@@ -415,6 +415,8 @@ pub fn export_to_canvas(
             .get("editingGroupId")
             .and_then(Value::as_str)
             .map(str::to_owned),
+        // exporting: no zoom gesture
+        should_cache_ignore_zoom: false,
     };
     let render_config = StaticCanvasRenderConfig {
         canvas_background_color: opts.view_background_color.clone(),

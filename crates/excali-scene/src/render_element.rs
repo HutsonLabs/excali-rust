@@ -32,13 +32,14 @@
 //!   crop and the dark theme filter for SVG images in dark mode, or
 //!   upstream's placeholder (`drawImagePlaceholder`, `:361-385`).
 //!
-//! The port draws every element as vectors, the path upstream takes when
-//! exporting (`renderConfig.isExporting`). In the editor upstream draws
-//! each element once into a bitmap of its own and blits that
-//! (`generateElementWithCanvas`, `drawElementFromCanvas`, `:687-934`),
+//! [`render_element`] draws every element as vectors, the path upstream
+//! takes when exporting (`renderConfig.isExporting`). In the editor
+//! upstream draws each element once into a bitmap of its own and blits
+//! that (`generateElementWithCanvas`, `drawElementFromCanvas`, `:687-934`),
 //! which differs only by the bitmap's resampling and its snapping to whole
-//! device pixels. The element's render offset is a translation in both
-//! modes, as the export path applies it.
+//! device pixels: that path is [`crate::element_canvas`], built on the same
+//! `drawElementOnCanvas`. Here the element's render offset is a
+//! translation, as the export path applies it.
 //!
 //! Not drawn here: sticky notes (their shadow, fill, edge and footer are
 //! ex-703's; [`RenderError::StickyNote`]) and the frame clip of a frame's
@@ -72,6 +73,7 @@ use crate::display::{
     Clip, Color, Direction, DisplayItem, FillRule, Font, Group, ImageFilter, ImageItem, LineCap,
     LineJoin, Path, Rect, Stroke, TextAlign, TextRun, Transform,
 };
+use crate::element_canvas::get_canvas_padding;
 // The built-in images live with the display list, where backends resolve
 // them; re-exported here, where the element drawing names them.
 pub use crate::display::{
@@ -342,18 +344,8 @@ pub(crate) fn rotate(angle: f64) -> Transform {
 }
 
 /// `distance(x, y)` (`common/src/utils.ts`): `Math.abs(x - y)`.
-fn distance(x: f64, y: f64) -> f64 {
+pub(crate) fn distance(x: f64, y: f64) -> f64 {
     (x - y).abs()
-}
-
-/// `getCanvasPadding(element)` (`renderElement.ts:102-116`).
-fn get_canvas_padding(element: &Element) -> f64 {
-    match &element.kind {
-        ElementKind::Freedraw(_) => element.base.stroke_width * 12.0,
-        ElementKind::Text(text) => text.font_size / 2.0,
-        ElementKind::Arrow(arrow) if arrow.linear.end_arrowhead.is_some() => 40.0,
-        _ => 20.0,
-    }
 }
 
 /// `renderElement(element, …, renderState)` (`renderElement.ts:963-1009`):
@@ -371,17 +363,7 @@ pub fn render_element(
     let state = render_state.unwrap_or_else(|| {
         resolve_element_render_state(element, elements_map, config, all_elements_map)
     });
-    let id = element.base.id.as_str();
-    let reduce_alpha_for_selection = app_state.open_dialog.as_deref()
-        == Some(ELEMENT_LINK_SELECTOR_DIALOG)
-        && !app_state.selected_element_ids.contains(id)
-        && !app_state.hovered_element_ids.contains(id);
-    let opacity = state.opacity
-        * if reduce_alpha_for_selection {
-            DEFAULT_REDUCED_GLOBAL_ALPHA
-        } else {
-            1.0
-        };
+    let opacity = element_alpha(element, app_state, &state);
     let [ox, oy] = state.offset;
     // `offset.x || offset.y`: zero and NaN are falsy
     let transform = if (ox != 0.0 && !ox.is_nan()) || (oy != 0.0 && !oy.is_nan()) {
@@ -396,6 +378,27 @@ pub fn render_element(
         clip: None,
         items,
     }))
+}
+
+/// The `globalAlpha` renderElement sets (`:978-986`): the render state's
+/// opacity, reduced to `DEFAULT_REDUCED_GLOBAL_ALPHA` for an element
+/// neither selected nor hovered while the element link selector is open.
+pub(crate) fn element_alpha(
+    element: &Element,
+    app_state: &StaticCanvasAppState,
+    state: &ElementRenderState,
+) -> f64 {
+    let id = element.base.id.as_str();
+    let reduce_alpha_for_selection = app_state.open_dialog.as_deref()
+        == Some(ELEMENT_LINK_SELECTOR_DIALOG)
+        && !app_state.selected_element_ids.contains(id)
+        && !app_state.hovered_element_ids.contains(id);
+    state.opacity
+        * if reduce_alpha_for_selection {
+            DEFAULT_REDUCED_GLOBAL_ALPHA
+        } else {
+            1.0
+        }
 }
 
 /// `drawElement` (`renderElement.ts:1011-1273`) on the vector path.
@@ -513,7 +516,7 @@ fn draw_element(
 
 /// `drawElementOnCanvas` (`renderElement.ts:431-680`): the element in its
 /// own coordinates.
-fn draw_element_on_canvas(
+pub(crate) fn draw_element_on_canvas(
     element: &Element,
     config: &StaticCanvasRenderConfig,
 ) -> Result<Vec<DisplayItem>, RenderError> {

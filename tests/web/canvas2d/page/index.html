@@ -4,6 +4,10 @@
   harness tools/canvas2d-fixtures (scripts/web/canvas2d-fixtures.sh builds
   it) by playwright.canvas2d.config.mjs.
 
+  blitAndDirect() (ex-504) returns the pixels of a bitmap blitted by
+  excali_canvas2d::blit at a whole device pixel with smoothing off and of
+  the same list painted directly there.
+
   drawFixture(json) paints one fixture display list twice on fresh canvases:
   with excali_canvas2d (the harness: the Rust fixture loader, paint_scaled,
   WebCanvas), and with raster_references.js, the independent reading that
@@ -26,7 +30,7 @@
 <body>
 <script src="/raster_references.js"></script>
 <script type="module">
-  import init, { FixturePainter } from "/excali_canvas2d_fixtures.js";
+  import init, { FixturePainter, blitBitmap, paintTranslated } from "/excali_canvas2d_fixtures.js";
 
   const CRC_TABLE = (() => {
     const t = new Uint32Array(256);
@@ -198,6 +202,20 @@
       diff: compare(premultiplied(backend), expected, backend.width, channel),
       blank: compare(new Uint8Array(expected.length), expected, backend.width, channel),
     };
+  };
+
+  // ex-504: a list rasterised into a bitmap and blitted at a whole device
+  // pixel with smoothing off, and the same list painted directly there.
+  window.blitAndDirect = () => {
+    const pixels = (paint) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 64;
+      canvas.height = 48;
+      const ctx = canvas.getContext("2d");
+      paint(ctx);
+      return Array.from(ctx.getImageData(0, 0, 64, 48).data);
+    };
+    return { blitted: pixels(blitBitmap), direct: pixels(paintTranslated) };
   };
 
   window.builtinImageIds = () => {

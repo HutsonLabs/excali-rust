@@ -119,6 +119,10 @@ pub struct StaticCanvasAppState {
     pub frame_to_highlight: Option<Element>,
     pub selected_elements_are_being_dragged: bool,
     pub editing_group_id: Option<String>,
+    /// `shouldCacheIgnoreZoom`: a zoom gesture is running, so the
+    /// per-element bitmaps keep their zoom and are not snapped
+    /// ([`crate::element_canvas`]).
+    pub should_cache_ignore_zoom: bool,
 }
 
 impl Default for StaticCanvasAppState {
@@ -140,6 +144,7 @@ impl Default for StaticCanvasAppState {
             frame_to_highlight: None,
             selected_elements_are_being_dragged: false,
             editing_group_id: None,
+            should_cache_ignore_zoom: false,
         }
     }
 }

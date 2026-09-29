@@ -576,6 +576,7 @@ fn app_state(value: &Value) -> StaticCanvasAppState {
             .as_bool()
             .unwrap(),
         editing_group_id: value["editingGroupId"].as_str().map(str::to_owned),
+        should_cache_ignore_zoom: false,
     }
 }
 

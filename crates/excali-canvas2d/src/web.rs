@@ -2,10 +2,11 @@
 
 use std::collections::HashMap;
 
-use excali_scene::display::{builtin_image, Rect, Transform, BUILTIN_IMAGE_NAMES};
-use web_sys::{CanvasRenderingContext2d, CanvasWindingRule, HtmlImageElement};
+use excali_scene::display::{builtin_image, DisplayList, Rect, Transform, BUILTIN_IMAGE_NAMES};
+use web_sys::wasm_bindgen::JsCast;
+use web_sys::{CanvasRenderingContext2d, CanvasWindingRule, HtmlCanvasElement, HtmlImageElement};
 
-use crate::Context2d;
+use crate::{paint, Context2d};
 
 /// A browser 2D context and the images the display list names, keyed by
 /// id (upstream's `imageCache`, keyed by `fileId`). [`WebCanvas::new`]
@@ -20,9 +21,14 @@ use crate::Context2d;
 /// image, `setTransform` with a non-finite value); upstream's own call
 /// would throw out of the render at that point, and here the draw is
 /// skipped instead, leaving the canvas as the rejected call leaves it.
+///
+/// [`WebCanvas::bitmaps`] holds canvases by id (the scene's cached
+/// bitmaps, `excali_scene::display::bitmap_id`), which [`Context2d::image_size`]
+/// and [`Context2d::draw_image`] look up before the images.
 pub struct WebCanvas {
     pub context: CanvasRenderingContext2d,
     pub images: HashMap<String, HtmlImageElement>,
+    pub bitmaps: HashMap<String, HtmlCanvasElement>,
 }
 
 impl WebCanvas {
@@ -39,7 +45,37 @@ impl WebCanvas {
                 images.insert(builtin.id.to_owned(), image);
             }
         }
-        Self { context, images }
+        Self {
+            context,
+            images,
+            bitmaps: HashMap::new(),
+        }
+    }
+
+    /// A new canvas of `width` × `height` device pixels in this canvas's
+    /// document with `list` painted into it from its identity matrix, as
+    /// `generateElementCanvas` draws a bitmap (`renderElement.ts:271-339`),
+    /// with this canvas's images. `None` outside a document or when the
+    /// canvas has no 2D context.
+    pub fn rasterize(
+        &self,
+        width: f64,
+        height: f64,
+        list: &DisplayList,
+    ) -> Option<HtmlCanvasElement> {
+        let document = self.context.canvas()?.owner_document()?;
+        let canvas: HtmlCanvasElement = document.create_element("canvas").ok()?.dyn_into().ok()?;
+        // `canvas.width = width`: whole pixels
+        canvas.set_width(width as u32);
+        canvas.set_height(height as u32);
+        let context: CanvasRenderingContext2d = canvas.get_context("2d").ok()??.dyn_into().ok()?;
+        let mut target = WebCanvas {
+            context,
+            images: self.images.clone(),
+            bitmaps: HashMap::new(),
+        };
+        paint(list, &mut target);
+        Some(canvas)
     }
 }
 
@@ -187,6 +223,9 @@ impl Context2d for WebCanvas {
     }
 
     fn image_size(&self, id: &str) -> Option<(f64, f64)> {
+        if let Some(canvas) = self.bitmaps.get(id) {
+            return Some((f64::from(canvas.width()), f64::from(canvas.height())));
+        }
         let image = self.images.get(id)?;
         if !image.complete() || image.natural_width() == 0 {
             return None;
@@ -198,6 +237,24 @@ impl Context2d for WebCanvas {
     }
 
     fn draw_image(&mut self, id: &str, source: &Rect, dest: &Rect) {
+        if let Some(canvas) = self.bitmaps.get(id) {
+            // InvalidStateError for a canvas of width or height 0: nothing
+            // is drawn.
+            let _ = self
+                .context
+                .draw_image_with_html_canvas_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+                    canvas,
+                    source.x,
+                    source.y,
+                    source.width,
+                    source.height,
+                    dest.x,
+                    dest.y,
+                    dest.width,
+                    dest.height,
+                );
+            return;
+        }
         let Some(image) = self.images.get(id) else {
             return;
         };

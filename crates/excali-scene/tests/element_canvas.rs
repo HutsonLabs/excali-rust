@@ -24,8 +24,7 @@ use excali_scene::bounds::ElementsMap;
 use excali_scene::display::{Blit, FillRule, Transform};
 use excali_scene::element_canvas::{
     can_snap_element, capped_element_canvas_size, get_canvas_padding, render_element_cached,
-    ElementCanvas, ElementCanvasCache, ElementDraw, AREA_LIMIT, SNAP_TIE_BIAS,
-    WIDTH_HEIGHT_LIMIT,
+    ElementCanvas, ElementCanvasCache, ElementDraw, AREA_LIMIT, SNAP_TIE_BIAS, WIDTH_HEIGHT_LIMIT,
 };
 use excali_scene::render_element::ElementRenderOverride;
 use excali_scene::shape::Theme;
@@ -211,14 +210,25 @@ fn check_cached(case: &Value, run: &Run, images: &Value) -> Result<(), String> {
     if theme(&expected["theme"]) != canvas.key.theme {
         return Err(format!("theme {:?}", canvas.key.theme));
     }
-    let crop = canvas.key.image_crop.map(|c| {
-        serde_json::json!({
-            "x": c.x, "y": c.y, "width": c.width, "height": c.height,
-            "naturalWidth": c.natural_width, "naturalHeight": c.natural_height,
-        })
-    });
-    if expected["imageCrop"] != crop.unwrap_or(Value::Null) {
-        return Err(format!("imageCrop {:?}", canvas.key.image_crop));
+    let crop = &expected["imageCrop"];
+    let crop_matches = match canvas.key.image_crop {
+        None => crop.is_null(),
+        Some(c) => [
+            ("x", c.x),
+            ("y", c.y),
+            ("width", c.width),
+            ("height", c.height),
+            ("naturalWidth", c.natural_width),
+            ("naturalHeight", c.natural_height),
+        ]
+        .iter()
+        .all(|(name, v)| same(&crop[*name], *v)),
+    };
+    if !crop_matches {
+        return Err(format!(
+            "imageCrop {:?}, expected {crop}",
+            canvas.key.image_crop
+        ));
     }
     compare(&canvas.content, &expected["events"], images)
         .map(|_| ())
@@ -262,7 +272,10 @@ fn check_blit(case: &Value, draw: Option<&ElementDraw>) -> Result<(), String> {
     }
     let e = events.iter().find(|e| e["op"] == "blit").unwrap();
     if !same_transform(&e["m"], &blit.transform) {
-        return Err(format!("blit matrix {:?}, expected {}", blit.transform, e["m"]));
+        return Err(format!(
+            "blit matrix {:?}, expected {}",
+            blit.transform, e["m"]
+        ));
     }
     let args = e["args"].as_array().unwrap();
     let dest = [blit.dest.x, blit.dest.y, blit.dest.width, blit.dest.height];
@@ -274,7 +287,10 @@ fn check_blit(case: &Value, draw: Option<&ElementDraw>) -> Result<(), String> {
     }
     // the context's smoothing is on unless the blit turns it off
     if e["smoothing"].as_bool() != Some(blit.smoothing.unwrap_or(true)) {
-        return Err(format!("smoothing {:?}, expected {}", blit.smoothing, e["smoothing"]));
+        return Err(format!(
+            "smoothing {:?}, expected {}",
+            blit.smoothing, e["smoothing"]
+        ));
     }
     Ok(())
 }
@@ -327,7 +343,8 @@ fn every_sequence_regenerates_when_upstream_does() {
             let all = elements(&step["elements"]);
             let state = app_state(&step["appState"]);
             let scale = step["scale"].as_f64().unwrap();
-            let base = Transform::scale(scale, scale).concat(&Transform::scale(state.zoom, state.zoom));
+            let base =
+                Transform::scale(scale, scale).concat(&Transform::scale(state.zoom, state.zoom));
             run.draw(&all, id, &state, &config, scale, base);
             let now = run.cache.get(id).map(|e| e.surface.serial);
             let regenerated = now != before;
@@ -342,7 +359,10 @@ fn every_sequence_regenerates_when_upstream_does() {
             if let Some(entry) = run.cache.get(id) {
                 let key = &entry.surface.canvas.key;
                 if !same(&cached["zoomValue"], key.zoom_value)
-                    || !same(&cached["containingFrameOpacity"], key.containing_frame_opacity)
+                    || !same(
+                        &cached["containingFrameOpacity"],
+                        key.containing_frame_opacity,
+                    )
                     || theme(&cached["theme"]) != key.theme
                 {
                     failures.push(format!("{name} / {label}: key {key:?}, expected {cached}"));
@@ -366,7 +386,10 @@ fn padding_by_type() {
             .find(|c| c["name"] == case)
             .unwrap();
         let all = elements(&case["elements"]);
-        let element = all.iter().find(|e| e.base.id == case["draw"].as_str().unwrap()).unwrap();
+        let element = all
+            .iter()
+            .find(|e| e.base.id == case["draw"].as_str().unwrap())
+            .unwrap();
         (get_canvas_padding(element), element.clone())
     };
     // freedraw: strokeWidth × 12
@@ -376,7 +399,9 @@ fn padding_by_type() {
     assert_eq!(padding("freedraw-thin").0, 12.0);
     // text: fontSize / 2
     let (p, e) = padding("text");
-    let ElementKind::Text(text) = &e.kind else { panic!() };
+    let ElementKind::Text(text) = &e.kind else {
+        panic!()
+    };
     assert_eq!(p, text.font_size / 2.0);
     assert_eq!(padding("text-rtl").0, 18.0);
     // arrows: 40 with an end arrowhead, else 20; upstream tests
@@ -385,7 +410,13 @@ fn padding_by_type() {
     assert_eq!(padding("arrow-no-arrowhead").0, 20.0);
     assert_eq!(padding("arrow-start-arrowhead-only").0, 20.0);
     // everything else: 20
-    for case in ["rectangle", "ellipse", "diamond", "line-left-of-origin", "image"] {
+    for case in [
+        "rectangle",
+        "ellipse",
+        "diamond",
+        "line-left-of-origin",
+        "image",
+    ] {
         assert_eq!(padding(case).0, 20.0, "{case}");
     }
 }
@@ -399,7 +430,10 @@ fn canvas_size_is_capped_at_the_side_and_area_limits() {
     for case in doc["cases"].as_array().unwrap() {
         let all = elements(&case["elements"]);
         let map = ElementsMap::new(&all);
-        let element = all.iter().find(|e| e.base.id == case["draw"].as_str().unwrap()).unwrap();
+        let element = all
+            .iter()
+            .find(|e| e.base.id == case["draw"].as_str().unwrap())
+            .unwrap();
         let zoom = case["appState"]["zoom"]["value"].as_f64().unwrap();
         let size = capped_element_canvas_size(element, &map, zoom, case["scale"].as_f64().unwrap());
         assert!(size.width <= WIDTH_HEIGHT_LIMIT && size.height <= WIDTH_HEIGHT_LIMIT);

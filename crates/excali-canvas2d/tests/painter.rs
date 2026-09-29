@@ -13,9 +13,9 @@ use std::f64::consts::FRAC_PI_2;
 
 use excali_canvas2d::{blit, paint, Context2d};
 use excali_scene::display::{
-    bitmap_id, Blit, Clip, Color, Dash, Direction, DisplayItem, DisplayList, FillRule, Font, Group, ImageFilter,
-    ImageItem, LineCap, LineJoin, PaintState, Path, Rect, Rgba, Stroke, TextAlign, TextRun,
-    Transform,
+    bitmap_id, Blit, Clip, Color, Dash, Direction, DisplayItem, DisplayList, FillRule, Font, Group,
+    ImageFilter, ImageItem, LineCap, LineJoin, PaintState, Path, Rect, Rgba, Stroke, TextAlign,
+    TextRun, Transform,
 };
 
 #[derive(Default)]
@@ -590,7 +590,7 @@ fn no_element_knowledge() {
         ["excali-scene"],
         "workspace dependencies: {internal:?}"
     );
-    const ALLOWED: [&str; 1] = ["HtmlImageElement"];
+    const ALLOWED: [&str; 2] = ["HtmlCanvasElement", "HtmlImageElement"];
     let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/src");
     let mut sources = 0;
     for entry in std::fs::read_dir(dir).unwrap() {

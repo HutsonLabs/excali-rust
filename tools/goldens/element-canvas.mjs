@@ -406,8 +406,9 @@ const runSequence = (up, window, q) => {
       up.ShapeCache.delete(target);
     }
     if (step.crop !== undefined && step.crop !== "same") {
-      // the crop action assigns a new crop object in place
-      Object.assign(target, { crop: plain(step.crop), version: target.version + 1, versionNonce: target.versionNonce + 1 });
+      // a new crop object assigned in place, nothing else changed: the
+      // cache's own crop comparison (the object stays the WeakMap key)
+      target.crop = plain(step.crop);
     }
     const { element } = draw(up, window, { elements, id: q.draw, scale, appState, renderConfig: renderConfig });
     const entry = up.elementWithCanvasCache.get(element) ?? null;
