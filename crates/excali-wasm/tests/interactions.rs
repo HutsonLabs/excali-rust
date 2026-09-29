@@ -1157,3 +1157,123 @@ fn a_locked_element_covers_the_element_below() {
     assert_eq!(xy(get(&ed, "l")), [0.0, 0.0]);
     assert_eq!(xy(get(&ed, "r")), [0.0, 0.0]);
 }
+
+// -- Cropping -------------------------------------------------------------------
+
+/// A PNG's signature and header: 400 × 200 pixels.
+const PNG_400_200: &str = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAADICAYAAADGFbfi";
+
+/// cropElement.test.tsx's scene (`:40-52`): a 200 × 100 image at (0, 0),
+/// selected; its file 400 × 200.
+fn image_scene() -> Ed {
+    let env = EditorEnv::new(CharCountTextMetrics, 7, || 1.0);
+    let mut ed = Editor::new(env, "https://term.hut", false);
+    ed.set_viewport(1000.0, 1000.0, 0.0, 0.0);
+    let image = el(
+        "image",
+        "img",
+        0.0,
+        0.0,
+        200.0,
+        json!({
+            "height": 100, "fileId": "f1", "status": "saved", "scale": [1, 1], "crop": null,
+        }),
+    );
+    let scene = json!({
+        "type": "excalidraw", "version": 2, "source": "https://excalidraw.com",
+        "elements": [image],
+        "appState": { "gridSize": 20, "viewBackgroundColor": "#ffffff" },
+        "files": { "f1": {
+            "mimeType": "image/png", "id": "f1", "dataURL": PNG_400_200, "created": 1,
+        } },
+    });
+    ed.load(&scene.to_string()).expect("the scene loads");
+    click(&mut ed, [100.0, 50.0]);
+    assert_eq!(app(&ed, "selectedElementIds"), json!({ "img": true }));
+    ed
+}
+
+fn cropping(ed: &Ed) -> Value {
+    app(ed, "croppingElementId")
+}
+
+#[test]
+fn a_double_click_on_an_image_crops_it() {
+    // cropElement.test.tsx:88-95
+    let mut ed = image_scene();
+    assert_eq!(cropping(&ed), Value::Null);
+    double_click(&mut ed, [100.0, 50.0]);
+    assert_eq!(cropping(&ed), "img");
+}
+
+#[test]
+fn enter_crops_the_selected_image_and_escape_ends() {
+    // cropElement.test.tsx:97-103, 113-119
+    let mut ed = image_scene();
+    enter(&mut ed);
+    assert_eq!(cropping(&ed), "img");
+    escape(&mut ed);
+    assert_eq!(cropping(&ed), Value::Null);
+}
+
+#[test]
+fn a_click_outside_ends_cropping() {
+    // cropElement.test.tsx:105-111
+    let mut ed = image_scene();
+    enter(&mut ed);
+    click(&mut ed, [-20.0, -20.0]);
+    assert_eq!(cropping(&ed), Value::Null);
+}
+
+#[test]
+fn a_crop_handle_dragged_crops() {
+    // maybeHandleCrop (App.tsx:13590-13680): cropElement with the pointer
+    // less the press's offset from the handle's corner
+    use excali_editor::crop::crop_element;
+    use excali_editor::transform_handles::{TransformHandleDirection, TransformHandleType};
+    let mut ed = image_scene();
+    enter(&mut ed);
+    let before = get(&ed, "img").clone();
+    // the south-east handle of (0, 0)-(200, 100) spans (202, 102)-(210, 110)
+    drag(&mut ed, [206.0, 106.0], [156.0, 76.0]);
+    let map = excali_scene::bounds::ElementsMap::new(std::iter::once(&before));
+    let want = crop_element(
+        &before,
+        &map,
+        TransformHandleType::Resize(TransformHandleDirection::Se),
+        400.0,
+        200.0,
+        150.0,
+        70.0,
+        None,
+    );
+    let got = get(&ed, "img");
+    assert_eq!(
+        [got.base.x, got.base.y, got.base.width, got.base.height],
+        [want.x, want.y, want.width, want.height]
+    );
+    assert_eq!(json!(got.to_map())["crop"]["width"], json!(want.crop.as_ref().unwrap().width));
+    assert!(got.base.width < 200.0);
+    // still cropping, one undo step
+    assert_eq!(cropping(&ed), "img");
+    key(&mut ed, Keystroke::new("z", "KeyZ").ctrl());
+    assert_eq!(get(&ed, "img").base.width, 200.0);
+}
+
+#[test]
+fn a_drag_inside_a_cropped_image_moves_the_crop() {
+    // App.tsx:11095-11184: the drag moves the crop over the image, in the
+    // image's pixels (natural / uncropped size), clamped to the image
+    let mut ed = image_scene();
+    enter(&mut ed);
+    drag(&mut ed, [206.0, 106.0], [156.0, 76.0]);
+    let crop = json!(get(&ed, "img").to_map())["crop"].clone();
+    let (x0, w) = (crop["x"].as_f64().unwrap(), crop["width"].as_f64().unwrap());
+    assert_eq!(x0, 0.0);
+    // right by 10 px of a 200 px wide uncropped image of 400 px: the crop
+    // goes 20 px left, clamped at 0; left by 10 moves it 20 px right
+    drag(&mut ed, [50.0, 30.0], [40.0, 30.0]);
+    let crop = json!(get(&ed, "img").to_map())["crop"].clone();
+    assert_eq!(crop["x"], json!(20.0f64.min(400.0 - w)));
+    assert_eq!(xy(get(&ed, "img")), [0.0, 0.0]);
+}
