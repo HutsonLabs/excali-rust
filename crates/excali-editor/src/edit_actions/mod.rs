@@ -47,6 +47,7 @@ use crate::scene::MutationEnv;
 pub use clipboard::{copy_selected, paste_elements};
 pub use delete::delete_selected;
 pub use duplicate::duplicate_selection;
+pub(crate) use grouping::get_frame_children_insertion_index;
 pub use grouping::{group, ungroup};
 pub use library::{
     distribute_library_items_on_square_grid, duplicate_library_items, insert_library_items,

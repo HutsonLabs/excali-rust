@@ -222,10 +222,11 @@ impl LinkDirection {
 }
 
 /// The flowchart session flags the keys read (`FlowChartCreator
-/// .isCreatingChart`, `FlowChartNavigator.isExploring`). The creator's and
-/// navigator's geometry (`flowchart.ts`) is the host's: it answers
-/// [`KeyEffect::FlowchartCreate`] and [`KeyEffect::FlowchartNavigate`] and
-/// sets `is_exploring` when the navigator found a node.
+/// .isCreatingChart`, `FlowChartNavigator.isExploring`). The host answers
+/// [`KeyEffect::FlowchartCreate`], [`KeyEffect::FlowchartNavigate`] and the
+/// keyup effects with [`crate::flowchart::AppFlowchart::answer`]
+/// (`flowchart.ts`), which keeps these flags in step with the creator and
+/// the navigator.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct FlowchartKeys {
     pub is_creating_chart: bool,

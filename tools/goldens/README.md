@@ -827,6 +827,31 @@ CI runs `--check` in the `goldens` job, and
 `test/linear-editor-fixtures.test.mjs` checks that two runs are
 byte-identical and that the fixture holds the handle and midpoint rules.
 
+## Flowchart fixture
+
+`flowchart-fixtures.mjs` writes
+`crates/excali-editor/tests/fixtures/flowchart.json` for excali-editor's
+flowchart creator and navigator (ex-534): upstream's
+`packages/element/src/flowchart.ts` on seeded inputs of the module-private
+`findNearestFreeSlot` and `placeCluster`; `FlowChartCreator.createNodes` step
+by step (growing, turning, clearing) from rectangles, diamonds, ellipses and
+sticky notes, next to flowcharts upstream's own creator grew, inside, across
+and outside a frame, and on forty seeded random scenes, recording the pending
+nodes and arrows whole and the scene elements the step changed;
+`FlowChartNavigator.exploreByDirection` step by step on a tree, hand-bound
+arrows and forty seeded flowcharts; and `isNodeInFlowchart`. Upstream runs in
+its test mode, `reseed(1)` before each case's steps, and the ids a scene was
+built with are renamed so the steps' `id0`, `id1`, ... are new.
+
+```sh
+node tools/goldens/flowchart-fixtures.mjs           # write the fixture
+node tools/goldens/flowchart-fixtures.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and
+`test/flowchart-fixtures.test.mjs` checks that two runs are byte-identical
+and that the fixture covers creation, the frame rule and the walk.
+
 ## Viewport fixture
 
 `viewport.mjs` writes `crates/excali-editor/tests/fixtures/viewport.json` for

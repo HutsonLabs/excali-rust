@@ -79,6 +79,7 @@ use excali_editor::edit_actions::{
     send_to_back, ungroup, ActionResult,
 };
 use excali_editor::eraser::EraserTrail;
+use excali_editor::flowchart::{insertion_index, insertion_runs, AppFlowchart, FlowchartOperation};
 use excali_editor::groups::select_groups_for_selected_elements;
 use excali_editor::keyboard::{
     get_selected_elements, on_clipboard_event, on_key_down, on_key_up, pan_starts,
@@ -101,9 +102,9 @@ use excali_editor::tools::{PointerType, ToolState};
 use excali_editor::transform::{get_grid_point, TransformModifiers, TransformSession};
 use excali_editor::transform_handles::EditorInterface;
 use excali_editor::viewport::{
-    handle_wheel, perform_zoom_action, translate, viewport_coords_to_scene_coords, InputDevice,
-    Offsets, TranslateOptions, Viewport, ViewportState, ViewportUpdate, WheelContext, WheelEvent,
-    WheelTarget, ZoomAction,
+    handle_wheel, perform_zoom_action, translate, viewport_coords_to_scene_coords,
+    zoom_to_fit_bounds, InputDevice, Offsets, TranslateOptions, Viewport, ViewportState,
+    ViewportUpdate, WheelContext, WheelEvent, WheelTarget, ZoomAction, ZoomToFit,
 };
 use excali_math::js;
 use excali_scene::bounds::{get_common_bounds, get_element_absolute_coords, ElementsMap};
@@ -376,6 +377,9 @@ pub struct Editor<P: TextMetricsProvider + Clone> {
     pub(crate) library: Vec<LibraryItem>,
     pub(crate) tools: ToolState,
     pub(crate) keyboard: KeyboardState,
+    /// `App.flowchart`: the pending nodes of Ctrl+Arrow and the Alt+Arrow
+    /// walk.
+    pub(crate) flowchart: AppFlowchart,
     pub(crate) actions: ActionManager,
     pub(crate) props: AppProps,
     pub(crate) action_env: ActionEnv,
@@ -419,6 +423,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             library: Vec::new(),
             tools: ToolState::default(),
             keyboard: KeyboardState::default(),
+            flowchart: AppFlowchart::default(),
             actions: ActionManager::new(),
             props,
             action_env: ActionEnv {
@@ -452,6 +457,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         self.file = file;
         self.tools = ToolState::default();
         self.keyboard = KeyboardState::default();
+        self.flowchart.clear();
         self.gesture = None;
         self.clean = self.serialize();
         self.reported = (scene_version(self.session.elements()), false);
@@ -650,7 +656,9 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             };
             on_key_down(&mut ed, &mut self.session.env, stroke)
         };
+        let ops = self.answer_flowchart(&out, &mut scene, &app_state);
         self.apply(scene, app_state);
+        self.apply_flowchart(ops);
         for effect in &out.effects {
             match effect {
                 KeyEffect::Action(KeyDownOutcome::Perform(name)) => self.perform_action(*name),
@@ -678,9 +686,115 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             };
             on_key_up(&mut ed, &mut self.session.env, stroke)
         };
+        let ops = self.answer_flowchart(&out, &mut scene, &app_state);
+        self.flowchart.after_key_up(&self.keyboard.flowchart);
         self.apply(scene, app_state);
+        self.apply_flowchart(ops);
         self.report();
         out
+    }
+
+    /// `AppFlowchart.resolveKeyboardEventToOperation`: the creator and the
+    /// navigator answer the keyboard's flowchart effects on the working
+    /// scene (a Ctrl+Arrow binds the new arrows to the start node there).
+    fn answer_flowchart(
+        &mut self,
+        out: &KeyOutcome,
+        scene: &mut Scene,
+        app_state: &AppState,
+    ) -> Vec<FlowchartOperation> {
+        out.effects
+            .iter()
+            .filter_map(|effect| {
+                self.flowchart.answer(
+                    effect,
+                    scene,
+                    app_state,
+                    &mut self.keyboard.flowchart,
+                    &mut self.session.env,
+                )
+            })
+            .collect()
+    }
+
+    /// `AppFlowchart.handleKeyEvent`'s cases (`App.flowchart.ts:53-100`).
+    fn apply_flowchart(&mut self, ops: Vec<FlowchartOperation>) {
+        for op in ops {
+            match op {
+                FlowchartOperation::Canceled => {}
+                FlowchartOperation::Creating { pending } => self.reveal_if_hidden(&pending),
+                FlowchartOperation::Navigating { node_id } => {
+                    if let Some(id) = node_id {
+                        self.select_and_reveal(&id);
+                    }
+                }
+                FlowchartOperation::Committed { nodes } => {
+                    // one update: the inserted nodes, the selection and the
+                    // capture (syncActionResult IMMEDIATELY)
+                    self.session.store.schedule_capture();
+                    let first = nodes.first().map(|n| n.base.id.clone());
+                    // insertNewElements: each run of one frame above the
+                    // frame's children, the rest on top
+                    for run in insertion_runs(nodes) {
+                        let at = insertion_index(self.session.elements(), &run);
+                        // Ok: the indices are generated between neighbours
+                        let _ = self.session.insert_elements_at_index(run, at);
+                    }
+                    if let Some(id) = first {
+                        self.select_and_reveal(&id);
+                    }
+                    self.session.commit();
+                }
+                FlowchartOperation::NavigationEnded => {
+                    self.session.store.schedule_capture();
+                    self.session.commit();
+                }
+            }
+        }
+    }
+
+    /// `AppFlowchart.selectAndReveal(node)`: the node selected alone, then
+    /// revealed.
+    fn select_and_reveal(&mut self, id: &str) {
+        let Some(node) = self
+            .session
+            .elements()
+            .iter()
+            .find(|e| e.base.id == id)
+            .cloned()
+        else {
+            return;
+        };
+        let mut patch = Map::new();
+        patch.insert("selectedElementIds".into(), json!({ id: true }));
+        self.session.set_state(patch);
+        self.reveal_if_hidden(&[node]);
+        self.session.commit();
+    }
+
+    /// `App.revealIfHidden(elements)` (`App.tsx:5286-5307`): unless their
+    /// common bounds lie in the viewport (`isElementCompletelyInViewport`),
+    /// the viewport fits them, scaling down only. The port does not animate
+    /// the move, and fits within the whole canvas (upstream leaves out the
+    /// UI's insets, `offsets: { ui: true }`).
+    fn reveal_if_hidden(&mut self, elements: &[Element]) {
+        if elements.is_empty() {
+            return;
+        }
+        let refs: Vec<&Element> = elements.iter().collect();
+        let [x1, y1, x2, y2] = get_common_bounds(&refs);
+        let state = self.viewport_state();
+        let top_left = viewport_coords_to_scene_coords(state.offset_left, state.offset_top, &state);
+        let bottom_right = viewport_coords_to_scene_coords(
+            state.offset_left + state.width,
+            state.offset_top + state.height,
+            &state,
+        );
+        if x1 >= top_left.0 && y1 >= top_left.1 && x2 <= bottom_right.0 && y2 <= bottom_right.1 {
+            return;
+        }
+        let viewport = zoom_to_fit_bounds(&ZoomToFit::new([x1, y1, x2, y2]), &state);
+        self.set_viewport_to(viewport);
     }
 
     /// Whether there is something to undo (`!history.isUndoStackEmpty`).
@@ -2171,7 +2285,10 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             theme: if dark { Theme::Dark } else { Theme::Light },
             ..StaticCanvasAppState::default()
         };
-        let config = StaticCanvasRenderConfig::default();
+        let config = StaticCanvasRenderConfig {
+            pending_flowchart_nodes: self.flowchart.pending_nodes().to_vec(),
+            ..StaticCanvasRenderConfig::default()
+        };
         render_static_scene(&StaticScene {
             canvas_width: width,
             canvas_height: height,

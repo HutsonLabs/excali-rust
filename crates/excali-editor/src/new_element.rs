@@ -62,7 +62,7 @@ fn roundness(kind: Option<u8>) -> Value {
 /// `_newElementBase(type, opts)`: the keys every element has, in
 /// upstream's order, `opts` holding the constructor options given
 /// (missing ones take `DEFAULT_ELEMENT_PROPS`).
-fn new_element_base(
+pub(crate) fn new_element_base(
     ty: &str,
     opts: &Map<String, Value>,
     id: &str,

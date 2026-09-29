@@ -211,7 +211,10 @@ fn get_common_frame_id(elements: &[&Element]) -> Option<String> {
 }
 
 /// `getFrameChildrenInsertionIndex(elements, frameId)` (`frame.ts:521-538`).
-fn get_frame_children_insertion_index(elements: &[&Element], frame: &str) -> Option<usize> {
+pub(crate) fn get_frame_children_insertion_index(
+    elements: &[&Element],
+    frame: &str,
+) -> Option<usize> {
     for (index, element) in elements.iter().enumerate().rev() {
         if element.base.id == frame {
             return Some(index);
