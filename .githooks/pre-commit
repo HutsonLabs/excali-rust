@@ -6,7 +6,7 @@
 #    Only in the main clone: the beads database lives there, and a linked
 #    worktree (one per builder branch) staging a snapshot of it would carry
 #    unrelated tracker state into the branch and conflict with main. The
-#    integrator exports into its worktree explicitly when it closes an issue.
+#    integrator closes issues from the main clone after a merge (ex-010).
 # 2. Scan every staged file for attribution and invisible watermarks.
 set -e
 root="$(git rev-parse --show-toplevel)"

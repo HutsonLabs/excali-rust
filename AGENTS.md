@@ -8,7 +8,7 @@ Read `site/content/plan/agent-workflow.md` (or the published Plan → Agent work
 4. Tests with every change. No skipped tests.
 5. PR body has an `## Evidence` section (paths, URLs with dates, commands and results).
 6. Hooks and CI run `scripts/gates/attribution.py`. Commits are authored by the responsible human; no tool attribution, trailers, session links or invisible characters. Do not install `bd hooks`.
-7. `bd close <id> --reason "..."` in the merge commit; blocked on a human → `bd note`, label `needs-human`, `bd unclaim`.
+7. PRs carry code, tests and docs only: never `.beads/issues.jsonl`, `site/content/plan/progress.md` or `site/content/plan/build-log.md` (`scripts/gates/tracker_files.py` fails the PR). After the merge the integrator, from the main clone, runs `bd close <id> --reason "..."` and `bd update <id> --external-ref <PR URL>`, adds the build-log entry and pushes one commit `<id>: close in tracker, build log` to main. Blocked on a human → `bd note`, label `needs-human`, `bd unclaim`.
 
 Task graph changes go in `plan/tasks.json`, then `scripts/tasks/seed.py`.
 

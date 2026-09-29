@@ -394,5 +394,60 @@ class OwnerDecisionsOnTheSite(unittest.TestCase):
         self.assertTrue((CONTENT / "decisions" / "adr-009-calendar-versioning.md").exists())
 
 
+class PostMergeCloseAndAffectedCi(unittest.TestCase):
+    """Owner decision 2026-09-29 (ex-010): issues close after the merge, on
+    main, and PR CI runs the affected crates only."""
+
+    TRACKER = (".beads/issues.jsonl", "site/content/plan/progress.md", "site/content/plan/build-log.md")
+
+    def test_ex_010_records_the_decision(self):
+        t = item("ex-010")
+        self.assertEqual(t["epic"], "ex-e0")
+        self.assertEqual(t["priority"], 0)
+        self.assertIn("Owner decision 2026-09-29: close issues after merge; PR CI runs affected crates only, full suite on main", t["description"])
+
+    def test_loop_closes_after_the_merge(self):
+        text = (CONTENT / "plan" / "agent-workflow.md").read_text()
+        close = text.split("8. **Close after the merge.**", 1)[1].split("\n9. ", 1)[0]
+        self.assertIn("bd close <id>", close)
+        self.assertIn("--external-ref <PR URL>", close)
+        self.assertIn("<id>: close in tracker, build log", close)
+        self.assertIn("main clone", close)
+        self.assertNotIn("same commit that merges", text)
+        rules = text.split("## Rules that do not bend", 1)[1].split("\n## ", 1)[0]
+        for f in self.TRACKER:
+            self.assertIn(f, rules)
+        self.assertIn("scripts/gates/tracker_files.py", rules)
+        self.assertIn("scripts/gates/affected.py", text)
+        self.assertIn("tracker", text.split("## Parallelism", 1)[1].split("\n## ", 1)[0])
+
+    def test_agents_md_step_7(self):
+        text = (ROOT / "AGENTS.md").read_text()
+        step = text.split("\n7. ", 1)[1].split("\n\n", 1)[0]
+        self.assertNotIn("in the merge commit", step)
+        for f in self.TRACKER:
+            self.assertIn(f, step)
+        self.assertIn("close in tracker, build log", step)
+        self.assertIn("--external-ref", step)
+        self.assertIn("needs-human", step)
+
+    def test_workflows_wire_the_gates(self):
+        gates = (ROOT / ".github" / "workflows" / "gates.yml").read_text()
+        self.assertIn("scripts/gates/tracker_files.py check", gates)
+        self.assertIn("test_tracker_files.py", gates)
+        self.assertIn("test_affected.py", gates)
+        step = gates.split("- name: tracker files stay out of pull requests", 1)[1].split("- name:", 1)[0]
+        self.assertIn("if: github.event_name == 'pull_request'", step)
+        rust = (ROOT / ".github" / "workflows" / "rust.yml").read_text()
+        for job in ("check", "test-macos"):
+            body = rust.split(f"\n  {job}:\n", 1)[1].split("\n  # ", 1)[0]
+            self.assertIn("scripts/gates/affected.py", body, job)
+            self.assertIn("fetch-depth: 0", body, job)
+            self.assertIn("cargo test --locked $ARGS", body, job)
+            self.assertIn('args="--workspace"', body, job)
+            self.assertNotIn("run: cargo test --workspace --locked\n", body, job)
+            self.assertIn("cargo clippy --workspace" if job == "check" else "", body)
+
+
 if __name__ == "__main__":
     unittest.main()
