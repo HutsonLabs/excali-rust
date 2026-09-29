@@ -257,16 +257,9 @@ fn id_set(value: Option<&Value>) -> HashSet<String> {
 /// A frame's name label as the text element
 /// `addFrameLabelsAsTextElements` adds (`export.ts:98-139`): a
 /// `newTextElement` at the label's box, Helvetica, left and top aligned,
-/// in the name colour. Its id is the frame's with a suffix (upstream's is
-/// random); nothing looks it up.
-fn label_element(label: &FrameLabel) -> Element {
-    let mut base = ElementBase::new(
-        format!("{}:frame-label", label.frame_id),
-        label.x,
-        label.y,
-        0.0,
-        0.0,
-    );
+/// in the name colour, named `id` (upstream's is random).
+pub(crate) fn label_element(label: &FrameLabel, id: String) -> Element {
+    let mut base = ElementBase::new(id, label.x, label.y, 0.0, 0.0);
     base.width = label.width;
     base.height = label.height;
     base.stroke_color = label.stroke_color.clone();
@@ -335,7 +328,7 @@ pub fn export_to_canvas(
             let metrics = ProviderMetrics(opts.text_metrics);
             labels = frame_labels(elements, export_with_dark_mode, &metrics)
                 .iter()
-                .map(label_element)
+                .map(|label| label_element(label, format!("{}:frame-label", label.frame_id)))
                 .collect();
             let mut labels_left = labels.iter();
             let mut out = Vec::with_capacity(elements.len() + labels.len());

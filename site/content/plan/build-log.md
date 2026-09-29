@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-407 · SVG elements: rough paths, freedraw, text per line, images as symbol/use, arrow-label masks
+
+SVG export now draws the elements as upstream's `renderSceneToSvg` does: rough.js paths, freedraw outlines, one `<text>` per line, images as shared `<symbol>` and `<use>` with crop masks and clips, arrow-label masks, frame clips, embeddables as links or iframes, and link anchors. The port reproduces the four snapshots of upstream's `export.test.ts` and 48 whole `exportToSvg` documents byte for byte. PR: [#79](https://github.com/HutsonLabs/excali-rust/pull/79).
+
 ## 2026-09-28 · ex-409 · excali-cli: validate, render (png), export (svg), lib (list/merge), with exit codes
 
 The `excali` command line now validates scenes and libraries (including scenes embedded in PNG and SVG), renders PNG with text from the vendored fonts, exports SVG with subset fonts, and lists and merges libraries as upstream's `mergeLibraryItems` does, with exit codes 0-4. A canvas beyond the browser limits is refused with "Error: Canvas too big" instead of crashing. PR: [#78](https://github.com/HutsonLabs/excali-rust/pull/78).

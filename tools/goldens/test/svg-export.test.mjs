@@ -1,7 +1,8 @@
-// excali-scene's export bounds and excali-svg's document shells (ex-406) are
-// upstream's output: tools/goldens/svg-export.mjs regenerates them from the
-// pinned checkout, byte-stable across runs, --check fails when a committed
-// file differs, and the shells agree with upstream's own vitest snapshot of
+// excali-scene's export bounds, excali-svg's documents (the shells of ex-406,
+// the whole documents of ex-407) and excali-core's embed links are upstream's
+// output: tools/goldens/svg-export.mjs regenerates them from the pinned
+// checkout, byte-stable across runs, --check fails when a committed file
+// differs, and the documents agree with upstream's own vitest snapshot of
 // exportToSvg (packages/excalidraw/tests/scene/__snapshots__/export.test.ts.snap).
 
 import assert from "node:assert/strict";
@@ -17,8 +18,10 @@ import { REPO_ROOT, TOOL_DIR, upstreamDir } from "./helpers.mjs";
 const GENERATOR = join(TOOL_DIR, "svg-export.mjs");
 const BOUNDS = "export-bounds.json";
 const SVG = "svg-export.json";
+const EMBED_LINKS = "embed-links.json";
 const COMMITTED = {
   [BOUNDS]: join(REPO_ROOT, "crates", "excali-scene", "tests", "fixtures", BOUNDS),
+  [EMBED_LINKS]: join(REPO_ROOT, "crates", "excali-core", "tests", "fixtures", EMBED_LINKS),
   [SVG]: join(REPO_ROOT, "crates", "excali-svg", "tests", "fixtures", SVG),
 };
 
@@ -64,7 +67,7 @@ test("two runs are byte-identical and equal to the committed fixtures", () => {
     const r = run(["--out", out]);
     assert.equal(r.status, 0, r.stderr);
   }
-  for (const file of [BOUNDS, SVG]) {
+  for (const file of [BOUNDS, SVG, EMBED_LINKS]) {
     const first = readFileSync(join(outs[0], file));
     assert.ok(first.equals(readFileSync(join(outs[1], file))), `${file} differs between runs`);
     assert.ok(first.equals(readFileSync(COMMITTED[file])), `stale ${file}: run node tools/goldens/svg-export.mjs`);
@@ -119,6 +122,24 @@ test("upstream's export test expectations hold in the shells", () => {
     '\n"<!-- svg-source:excalidraw --><metadata></metadata><defs><style class="style-fonts">\n      </style></defs>',
   ));
   assert.match(scene("link").shell, /<metadata><\/metadata><defs><style class="style-fonts">\n {6}<\/style><\/defs><\/svg>$/);
+});
+
+test("the documents are upstream's snapshots where the test environments agree", () => {
+  // "with elements that have a link" snapshots svgElement.innerHTML: no
+  // fonts, so vitest's FontFace mock and export source play no part
+  const link = scene("link").document;
+  const inner = link.slice(link.indexOf(">") + 1, link.lastIndexOf("</svg>"));
+  assert.equal(`\n"${inner}"\n`, snapshot("exportToSvg > with elements that have a link 1"));
+  // the elements after the style block of "with exportEmbedScene": the
+  // same nodes, whatever the fonts and the embedded source
+  const elements = (markup) => markup.slice(markup.indexOf("</defs>"));
+  const embed = snapshot("exportToSvg > with exportEmbedScene 1");
+  assert.equal(`${elements(scene("fixture-embed").document)}`, `${elements(embed).slice(0, -2)}</svg>`);
+  // every document starts with its shell's root, comment and metadata
+  for (const s of committed(SVG).scenes) {
+    const shell = s.shell.slice(0, s.shell.indexOf("<defs>"));
+    assert.ok(s.document.startsWith(shell), s.name);
+  }
 });
 
 test("the bounds fixture sizes the documents of the svg fixture", () => {

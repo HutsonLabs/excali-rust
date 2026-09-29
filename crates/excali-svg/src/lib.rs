@@ -3,21 +3,24 @@
 //! Upstream counterpart: `renderer/staticSvgScene.ts`, `exportToSvg`
 //! (`packages/excalidraw/scene/export.ts:293-508`).
 //!
-//! [`export_to_svg`] writes the document `exportToSvg` builds around the
-//! drawing, from the [`SvgDocument`] the scene computes
-//! (`excali_scene::export::svg_document`):
+//! [`export_to_svg`] writes the document `exportToSvg` builds, from the
+//! [`SvgDocument`] the scene computes (`excali_scene::export::svg_document`):
 //!
 //! ```text
 //! <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 W H" width="W*s" height="H*s">
 //!   <!-- svg-source:excalidraw -->
 //!   <metadata>[payload comments and base64]</metadata>
-//!   <defs>[<clipPath id=frame>…]<style class="style-fonts">[@font-face rules]</style></defs>
+//!   <defs>[<symbol id=image-…>…][<clipPath id=frame>…]<style class="style-fonts">[@font-face rules]</style></defs>
 //!   [<rect x="0" y="0" width="W" height="H" fill="background">]
+//!   [the elements: <g>, <text>, <use>, <mask>, <clipPath>, <a>, …]
 //! </svg>
 //! ```
 //!
 //! as [`dom`] nodes whose [`dom::Tag::outer_html`] is the markup upstream
-//! saves; the elements are appended after it. Numbers print as JavaScript
+//! saves. The elements are the drawing `renderSceneToSvg` adds
+//! (`renderer/staticSvgScene.ts`, [`SvgDocument::nodes`] and the image
+//! symbols it puts first in `<defs>`, [`SvgDocument::symbols`]), which the
+//! scene hands over as [`SvgNode`] trees. Numbers print as JavaScript
 //! prints them ([`number`]); rough.js path data has two decimals
 //! ([`path`], [`number::MAX_DECIMALS_FOR_SVG_EXPORT`]).
 //!
@@ -32,7 +35,7 @@ pub mod path;
 
 pub use fonts::{base64, subset_woff2, FontContent, FontFiles, SubsetError};
 
-use excali_scene::display::SvgDocument;
+use excali_scene::display::{SvgDocument, SvgNode, SvgValue};
 
 use dom::{Node, Tag};
 use number::js;
@@ -83,6 +86,9 @@ pub fn export_to_svg(document: &SvgDocument, fonts: &dyn FontContent) -> Tag {
     root.append(metadata);
 
     let mut defs = Tag::new("defs");
+    for symbol in &document.symbols {
+        defs.append(node(symbol));
+    }
     for clip in &document.frame_clips {
         let mut clip_path = Tag::new("clipPath");
         clip_path.set_attribute("id", clip.id.as_str());
@@ -139,7 +145,39 @@ pub fn export_to_svg(document: &SvgDocument, fonts: &dyn FontContent) -> Tag {
         root.append(rect);
     }
 
+    for n in &document.nodes {
+        root.append(node(n));
+    }
+
     root
+}
+
+/// A node of the drawing as a DOM node: each value printed as upstream's
+/// `setAttribute` stringifies it.
+fn node(n: &SvgNode) -> Node {
+    match n {
+        SvgNode::Text(text) => Node::Text(text.clone()),
+        SvgNode::Tag(t) => {
+            let mut tag = Tag::new(t.name);
+            for (name, value) in &t.attributes {
+                tag.set_attribute(*name, attribute(value));
+            }
+            for child in &t.children {
+                tag.append(node(child));
+            }
+            Node::Tag(tag)
+        }
+    }
+}
+
+fn attribute(value: &SvgValue) -> String {
+    match value {
+        SvgValue::Text(s) => s.clone(),
+        SvgValue::Number(n) => js(*n),
+        SvgValue::RoughPath { path, decimals } => {
+            path::rough_path_data(path, *decimals).unwrap_or_default()
+        }
+    }
 }
 
 /// A `.svg` file's text: [`SVG_DOCUMENT_PREAMBLE`] and the root's

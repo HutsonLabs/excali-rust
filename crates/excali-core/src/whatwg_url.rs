@@ -87,6 +87,14 @@ impl JsUrl {
             .query()
             .is_some_and(|q| url::form_urlencoded::parse(q.as_bytes()).any(|(key, _)| key == name))
     }
+
+    /// `url.searchParams.get(name)`: the value of the query's first pair
+    /// named `name`, read as `application/x-www-form-urlencoded`.
+    pub(crate) fn search_params_get(&self, name: &str) -> Option<String> {
+        url::form_urlencoded::parse(self.url.query()?.as_bytes())
+            .find(|(key, _)| key == name)
+            .map(|(_, value)| value.into_owned())
+    }
 }
 
 /// `new URL(input)`: `None` where it throws `TypeError: Invalid URL`.

@@ -12,6 +12,7 @@ pub mod color;
 pub mod constants;
 pub mod document;
 pub mod element;
+pub mod embeddable;
 pub mod encode;
 pub mod fractional_index;
 mod js;
