@@ -2583,6 +2583,41 @@ fn placement(element: &Element) -> (f64, f64, f64) {
     (element.base.x, element.base.y, element.base.angle.0)
 }
 
+/// `(type, text, width, height)` of an element (`text` empty unless a
+/// text element).
+fn shape(element: &Element) -> (String, String, f64, f64) {
+    let content = match &element.kind {
+        ElementKind::Text(t) => t.text.clone(),
+        _ => String::new(),
+    };
+    (
+        element.element_type().as_str().to_string(),
+        content,
+        element.base.width,
+        element.base.height,
+    )
+}
+
+/// `containerProps` and `textProps` (`history.test.tsx:3566-3580`): the
+/// container a 100 wide rectangle and the label reading "que pasa", with
+/// both keeping the dimensions they had before undo/redo, so that a
+/// relayout that rewraps the label or grows the container shows.
+fn assert_container_and_label(
+    app: &App,
+    container: &(String, String, f64, f64),
+    text: &(String, String, f64, f64),
+) {
+    let (c, t) = (shape(&app.at(0)), shape(&app.at(1)));
+    assert_eq!((c.0.as_str(), c.2), ("rectangle", 100.0), "containerProps");
+    assert_eq!(
+        (t.0.as_str(), t.1.as_str()),
+        ("text", "que pasa"),
+        "textProps"
+    );
+    assert_eq!(&c, container, "container dimensions");
+    assert_eq!(&t, text, "label dimensions");
+}
+
 #[test]
 fn should_redraw_remotely_added_bound_text_when_its_container_is_updated_through_the_history() {
     let mut app = App::new();
@@ -2613,6 +2648,8 @@ fn should_redraw_remotely_added_bound_text_when_its_container_is_updated_through
     assert_eq!(bound_text_state(&app), bound);
     assert_eq!(placement(&app.at(0)), (10.0, 10.0, 0.0));
     assert_eq!(placement(&app.at(1)), (15.0, 15.0, 0.0));
+    let (c0, t0) = (shape(&app.at(0)), shape(&app.at(1)));
+    assert_container_and_label(&app, &c0, &t0);
 
     for _ in 0..2 {
         app.env().text_redraws.clear();
@@ -2630,6 +2667,7 @@ fn should_redraw_remotely_added_bound_text_when_its_container_is_updated_through
             placement(&app.at(1)),
             (241.295259647664, 247.59240920619527, 90.0)
         );
+        assert_container_and_label(&app, &c0, &t0);
 
         app.env().text_redraws.clear();
         app.undo();
@@ -2642,6 +2680,7 @@ fn should_redraw_remotely_added_bound_text_when_its_container_is_updated_through
         );
         assert_eq!(placement(&app.at(0)), (10.0, 10.0, 0.0));
         assert_eq!(placement(&app.at(1)), (15.0, 15.0, 0.0));
+        assert_container_and_label(&app, &c0, &t0);
     }
 }
 
@@ -2738,6 +2777,8 @@ fn should_redraw_bound_text_to_match_container_dimensions_when_the_bound_text_is
     assert_eq!(bound_text_state(&app), bound);
     assert_eq!(placement(&app.at(0)), (10.0, 10.0, 0.0));
     assert_eq!(placement(&app.at(1)), (15.0, 15.0, 0.0));
+    let (c0, t0) = (shape(&app.at(0)), shape(&app.at(1)));
+    assert_container_and_label(&app, &c0, &t0);
 
     app.env().text_redraws.clear();
     app.redo();
@@ -2751,6 +2792,7 @@ fn should_redraw_bound_text_to_match_container_dimensions_when_the_bound_text_is
     );
     assert_eq!(placement(&app.at(0)), (10.0, 10.0, 0.0));
     assert_eq!(placement(&app.at(1)), (15.0, 15.0, 0.0));
+    assert_container_and_label(&app, &c0, &t0);
 
     app.undo();
     assert_eq!(app.stacks(), (0, 1));
@@ -2758,6 +2800,7 @@ fn should_redraw_bound_text_to_match_container_dimensions_when_the_bound_text_is
     assert_eq!(bound_text_state(&app), bound);
     assert_eq!(placement(&app.at(0)), (10.0, 10.0, 0.0));
     assert_eq!(placement(&app.at(1)), (15.0, 15.0, 0.0));
+    assert_container_and_label(&app, &c0, &t0);
 }
 
 // ---------------------------------------------------------------------------
@@ -3192,6 +3235,26 @@ fn should_update_bound_element_points_when_rectangle_was_remotely_moved_and_arro
     );
     assert_eq!(arrow_binding(&app, "startBinding")["elementId"], "rect1");
     assert_eq!(arrow_binding(&app, "endBinding")["elementId"], "rect2");
+    // fixedPoint: [nonNaN, nonNaN], mode: "orbit" (history.test.tsx:5170-5187)
+    for key in ["startBinding", "endBinding"] {
+        let binding = arrow_binding(&app, key);
+        assert_eq!(binding["mode"], "orbit", "{key}.mode");
+        let fixed_point = binding["fixedPoint"].as_array().expect("fixedPoint");
+        assert_eq!(fixed_point.len(), 2, "{key}.fixedPoint");
+        for ratio in fixed_point {
+            assert!(
+                ratio.as_f64().is_some_and(|r| !r.is_nan()),
+                "{key}.fixedPoint {ratio}"
+            );
+        }
+    }
+    let arrow = app.get("arrow");
+    let linear = arrow.kind.linear().unwrap();
+    for binding in [&linear.start_binding, &linear.end_binding] {
+        let binding = binding.as_ref().expect("binding");
+        assert_eq!(binding.mode, BindMode::Orbit);
+        assert!(binding.fixed_point.iter().all(|r| !r.is_nan()));
+    }
     assert!(!app.get("arrow").base.is_deleted);
 }
 
