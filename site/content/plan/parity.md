@@ -50,7 +50,7 @@ The suite's first test fails when a row has no test, a test has no row, or a sta
 | tool-arrow | A and a drag create a two-point arrow ending in an `arrow` arrowhead. | `excalidraw/appState.ts:33` (`currentItemEndArrowhead`), `excalidraw/components/App.tsx:10198`, `element/src/newElement.ts:604` | ex-506 | pass |
 | tool-line | L and a drag create a two-point line with no arrowheads. | `excalidraw/components/App.tsx:10198`, `element/src/newElement.ts:604` | ex-506 | pass |
 | tool-freedraw | P and a drag create a freedraw element through the pointer's points. | `excalidraw/components/App.tsx:9988`, `element/src/newElement.ts:583` | ex-506 | pass |
-| tool-text | T, a click, typing and Escape create a text element at font size 20 in Excalifont (5). | `common/src/constants.ts:223` (`DEFAULT_FONT_SIZE`), `common/src/constants.ts:268` (`DEFAULT_FONT_FAMILY`), `excalidraw/components/App.tsx:7044` (`startTextEditing`) | ex-512 | gap |
+| tool-text | T, a click, typing and Escape create a text element at font size 20 in Excalifont (5). | `common/src/constants.ts:223` (`DEFAULT_FONT_SIZE`), `common/src/constants.ts:268` (`DEFAULT_FONT_FAMILY`), `excalidraw/components/App.tsx:7044` (`startTextEditing`) | ex-512 | pass |
 | tool-eraser | E and a drag across an element delete it. | `excalidraw/components/App.tsx:8530` (`handleEraser`) | ex-506 | pass |
 | tool-frame | F and a drag create a frame. | `excalidraw/components/App.tsx:10603`, `element/src/newElement.ts:263` | ex-506 | pass |
 | tool-lock | With the tool locked (Q), the tool stays active after drawing. | `excalidraw/components/App.tsx` (`onPointerUpFromPointerDownHandler`, `activeTool.locked`) | ex-506 | pass |
@@ -86,8 +86,8 @@ The suite's first test fails when a row has no test, a test has no row, or a sta
 | bound-label-follows | Dragging a container moves its label with it. | `element/src/dragElements.ts:39` (`dragSelectedElements`) | ex-530 | pass |
 | bound-arrow-follows | Dragging a shape an arrow is bound to moves the arrow's end with it. | `element/src/binding.ts:1321` (`updateBoundElements`) | ex-510 | pass |
 | bound-arrow-create | An arrow drawn from inside one shape to inside another binds both ends. | `element/src/binding.ts:151` (`bindOrUnbindBindingElement`), `excalidraw/components/App.tsx:10198` | ex-510 | pass |
-| text-dblclick-edit | Double-clicking a text element opens its editor: a `dir="auto"`, `wrap="off"` textarea. | `excalidraw/components/App.tsx:7340` (`handleCanvasDoubleClick`), `excalidraw/wysiwyg/textWysiwyg.tsx` | ex-512 | gap |
-| text-dblclick-label | Double-clicking inside a shape opens a textarea for its label. | `excalidraw/components/App.tsx:7340` | ex-512 | gap |
+| text-dblclick-edit | Double-clicking a text element opens its editor: a `dir="auto"`, `wrap="off"` textarea. | `excalidraw/components/App.tsx:7340` (`handleCanvasDoubleClick`), `excalidraw/wysiwyg/textWysiwyg.tsx` | ex-512 | pass |
+| text-dblclick-label | Double-clicking inside a shape opens a textarea for its label. | `excalidraw/components/App.tsx:7340` | ex-512 | pass |
 
 ## Chrome
 

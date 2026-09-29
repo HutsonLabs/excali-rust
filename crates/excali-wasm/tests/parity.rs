@@ -13,6 +13,7 @@ use excali_core::element::Element;
 use excali_editor::keyboard::Keystroke;
 use excali_editor::viewport::wheel_zoom_value;
 use excali_text::text_measurements::CharCountTextMetrics;
+use excali_ui::text_editor::{TextareaEvent, TextareaKey};
 use excali_wasm::editor::{Editor, PointerInput, WheelInput};
 use excali_wasm::env::EditorEnv;
 use serde_json::{json, Value};
@@ -464,4 +465,123 @@ fn bound_arrow_create() {
     let arrow_id = arrow["id"].clone();
     assert_eq!(bound("a"), json!([{ "id": arrow_id, "type": "arrow" }]));
     assert_eq!(bound("b"), json!([{ "id": arrow_id, "type": "arrow" }]));
+}
+
+// -- Text ---------------------------------------------------------------------
+
+fn text_el(id: &str, x: f64, y: f64, value: &str) -> Value {
+    json!({
+        "id": id, "type": "text", "x": x, "y": y, "width": 50, "height": 25,
+        "angle": 0, "strokeColor": "#1e1e1e", "backgroundColor": "transparent",
+        "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1,
+        "opacity": 100, "groupIds": [], "frameId": null, "roundness": null, "seed": 1,
+        "version": 1, "versionNonce": 1, "isDeleted": false, "boundElements": null,
+        "updated": 1, "link": null, "locked": false, "text": value, "originalText": value,
+        "fontSize": 20, "fontFamily": 5, "textAlign": "left", "verticalAlign": "top",
+        "containerId": null, "autoResize": true, "lineHeight": 1.25,
+    })
+}
+
+fn escape() -> TextareaKey {
+    TextareaKey {
+        key: "Escape".into(),
+        code: "Escape".into(),
+        shift_key: false,
+        alt_key: false,
+        ctrl_or_cmd: false,
+        is_composing: false,
+        key_code: 27,
+    }
+}
+
+fn double_click(ed: &mut Ed, at: [f64; 2]) {
+    click(ed, at);
+    click(ed, at);
+    ed.double_click(PointerInput::at(at[0], at[1]));
+}
+
+#[test]
+fn tool_text() {
+    let mut ed = editor_with(vec![]);
+    letter(&mut ed, "t");
+    click(&mut ed, [300.0, 300.0]);
+    let area = ed.textarea().expect("the text editor opens");
+    assert!(area.open);
+    // the tool reverts at once (AppTextTool.finish)
+    assert_eq!(state(&ed, "activeTool"), "selection");
+    ed.textarea_event(TextareaEvent::Input {
+        value: "hi".into(),
+        selection: (2, 2),
+    });
+    ed.textarea_event(TextareaEvent::KeyDown {
+        key: escape(),
+        selection: (2, 2),
+    });
+    assert!(ed.textarea().is_none());
+    let texts: Vec<Value> = live(&ed)
+        .iter()
+        .map(|e| json_of(e))
+        .filter(|e| e["type"] == "text")
+        .collect();
+    assert_eq!(texts.len(), 1);
+    assert_eq!(texts[0]["text"], "hi");
+    assert_eq!(texts[0]["fontSize"], json!(20.0));
+    assert_eq!(texts[0]["fontFamily"], json!(5));
+    // typed and submitted: one undo step removes it
+    key(&mut ed, Keystroke::new("z", "KeyZ").ctrl());
+    assert!(live(&ed).is_empty());
+}
+
+#[test]
+fn text_tool_empty_submit_leaves_nothing() {
+    let mut ed = editor_with(vec![]);
+    letter(&mut ed, "t");
+    click(&mut ed, [300.0, 300.0]);
+    ed.textarea_event(TextareaEvent::Submit);
+    assert!(ed.textarea().is_none());
+    assert!(live(&ed).is_empty());
+}
+
+#[test]
+fn text_dblclick_edit() {
+    let mut ed = editor_with(vec![text_el("t", 100.0, 100.0, "hello")]);
+    double_click(&mut ed, [110.0, 110.0]);
+    let area = ed.textarea().expect("the text editor opens");
+    assert_eq!(area.value, "hello");
+    let attributes = ed.textarea_attributes().expect("an open editor");
+    assert_eq!((attributes.dir, attributes.wrap), ("auto", "off"));
+    ed.textarea_event(TextareaEvent::Input {
+        value: "hello world".into(),
+        selection: (11, 11),
+    });
+    ed.textarea_event(TextareaEvent::Submit);
+    assert_eq!(json_of(get(&ed, "t"))["text"], "hello world");
+}
+
+#[test]
+fn text_dblclick_label() {
+    let mut ed = editor_with(vec![rect("a", 100.0, 100.0)]);
+    double_click(&mut ed, [150.0, 150.0]);
+    assert!(ed.textarea().is_some_and(|a| a.open));
+    ed.textarea_event(TextareaEvent::Input {
+        value: "label".into(),
+        selection: (5, 5),
+    });
+    ed.textarea_event(TextareaEvent::KeyDown {
+        key: escape(),
+        selection: (5, 5),
+    });
+    let label = live(&ed)
+        .into_iter()
+        .find(|e| json_of(e)["type"] == "text")
+        .map(json_of)
+        .expect("a label");
+    assert_eq!(label["containerId"], "a");
+    assert_eq!(label["text"], "label");
+    assert_eq!(
+        json_of(get(&ed, "a"))["boundElements"],
+        json!([{ "id": label["id"], "type": "text" }])
+    );
+    // the keyboard submit selects the container
+    assert_eq!(selected(&ed), ["a"]);
 }
