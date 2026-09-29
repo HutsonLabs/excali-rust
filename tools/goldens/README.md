@@ -867,7 +867,9 @@ transform handles, resizing and rotation (ex-508): upstream's
 through `updateStickyNoteLayout`, `getStickyNoteLayout` (stickyNote.ts,
 ex-703). Their call sites are rewritten (the `patch` option of
 `loadUpstream`) to record each call's arguments and what it changed, which
-the Rust test checks and replays through its `TransformEnv`. Text is
+the Rust test checks through its `TransformEnv`: a binding call is run by
+the port's own `updateBoundElements` and its effect compared with the
+recorded one, a sticky-note layout is answered with the recorded result. Text is
 measured as `text.length * 10`, and the character width cache starts every
 gesture with no font in it.
 
@@ -879,6 +881,56 @@ node tools/goldens/transform-fixtures.mjs --check   # exit 1 if it is stale
 CI runs `--check` in the `goldens` job, and
 `test/transform-fixtures.test.mjs` checks that two runs are byte-identical and
 that the fixture holds `resize.test.tsx`'s answers.
+
+## Binding fixture
+
+`binding-fixtures.mjs` writes `crates/excali-editor/tests/fixtures/binding.json`
+for excali-editor's arrow binding (ex-510): upstream's own
+`packages/element/src/binding.ts`, the binding helpers of `utils.ts`
+(`getAllMidpoints`, `getElbowArrowSnapMidPoint`, `getSnapOutlineMidPoint`,
+`projectFixedPointOntoDiagonal`) and the binding highlight of
+`packages/excalidraw/renderer/interactiveScene.ts`
+(`renderBindingHighlightForBindableElement_simple`):
+
+- `constants` and `normalizeFixedPoint`: the gap by stroke width, the
+  binding distance by zoom, and `normalizeFixedPoint` / `isFixedPoint` on
+  exact halves, near halves, out-of-range and non-finite ratios;
+- per scene (hand-written: two rectangles, both ends inside one ellipse,
+  tiny and rotated targets, elbow arrows, shapes in a frame, a labelled
+  arrow; and 60 seeded random scenes of every bindable type with simple,
+  curved, multi-point, elbow and labelled arrows, stale and missing
+  `boundElements` entries and deleted arrows):
+  - read-only queries: fixed points, `updateBoundPoint`,
+    `bindPointToSnapToElementOutline`, `avoidRectangularCorner`,
+    `snapBoundPointToGrid` (module-private, exported as it is), both
+    `calculateFixedPointFor*ArrowBinding`, the midpoint helpers,
+    `getBindingSideMidPoint`, and the binding strategies for dragged ends in
+    the simple and the `COMPLEX_BINDINGS` flavour (with upstream's
+    invariant messages where it throws);
+  - mutating calls on a copy of the scene, recording every element each
+    changes: `updateBoundElements` (after a move, resize or rotation, with
+    `simultaneouslyUpdated` and `changedElements`), `bindBindingElement`,
+    `bindBindingElementToFixedPoint`, `unbindBindingElement`,
+    `bindOrUnbindBindingElement(s)`, `updateBindings`,
+    `reanchorBindingsToOutline`, `fixBindingsAfterDeletion` and
+    `fixDuplicatedBindingsAfterDuplication`;
+  - the binding highlight of each bindable element and frame, on a context
+    that records every call (`interactiveScene.ts` pulls in the editor's
+    jotai store, shimmed as `library-fixtures.mjs` shims it);
+- `history-*`: the scenes of `history.test.tsx`'s arrow cases (`:4578`,
+  `:5107`) laid out as `ElementsDelta.redrawBoundArrows` lays them out after
+  each redo, which `crates/excali-editor/tests/history.rs` compares its
+  arrows with.
+
+```sh
+node tools/goldens/binding-fixtures.mjs           # write the fixture
+node tools/goldens/binding-fixtures.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and
+`test/binding-fixtures.test.mjs` checks that two runs are byte-identical and
+that the fixture holds `history.test.tsx`'s answer (the arrow's second point
+rounds to `[500, -400]`).
 
 ## Image element fixture
 

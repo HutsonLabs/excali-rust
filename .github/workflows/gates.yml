@@ -354,6 +354,13 @@ jobs:
   # resizeElements.ts (handle layouts, resizeTest, cursors, and pointer
   # gestures driven as App.tsx drives transformElements) on the scenes of
   # resize.test.tsx and seeded random scenes, and
+  # binding-fixtures.mjs --check for excali-editor's binding.json (ex-510),
+  # upstream's own binding.ts (fixed points, updateBoundPoint,
+  # updateBoundElements, outline snapping, the binding strategies,
+  # bind/unbind, updateBindings, reanchoring, the deletion and duplication
+  # fixes) and interactiveScene.ts's binding highlight on hand-written and
+  # seeded random scenes, and the scenes of history.test.tsx's arrow cases,
+  # and
   # svg-export.mjs --check for excali-scene's export-bounds.json,
   # excali-svg's svg-export.json (ex-406, ex-407) and excali-core's
   # embed-links.json, upstream's own exportToSvg under jsdom 22.1.0 in test
@@ -441,6 +448,8 @@ jobs:
         run: node tools/goldens/collision-fixtures.mjs --check
       - name: excali-editor transform fixture matches upstream's transformHandles.ts, resizeTest.ts and resizeElements.ts
         run: node tools/goldens/transform-fixtures.mjs --check
+      - name: excali-editor binding fixture matches upstream's binding.ts and binding highlight
+        run: node tools/goldens/binding-fixtures.mjs --check
       - name: excali-scene export bounds, excali-svg document and excali-core embed link fixtures match upstream's exportToSvg and getEmbedLink
         run: node tools/goldens/svg-export.mjs --check
       - name: excali-scene static scene fixture matches upstream's renderStaticScene

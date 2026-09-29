@@ -46,7 +46,9 @@ use excali_text::text_measurements::{
 };
 use excali_text::text_wrapping::wrap_text;
 
-use crate::geometry::get_global_fixed_point_for_bindable_element;
+use crate::binding::{
+    get_arrow_local_fixed_points, unbind_binding_element, BindingEnd, BindingEnv,
+};
 use crate::scene::{ElementUpdate, MutationEnv, Scene};
 use crate::transform_handles::{
     is_elbow_arrow, is_frame_like, TransformHandleDirection, TransformHandleType,
@@ -102,24 +104,29 @@ pub struct StickyNoteLayout {
     pub text: Option<StickyNoteTextLayout>,
 }
 
-/// What a transform needs from the rest of the editor.
-pub trait TransformEnv: MutationEnv {
-    /// The text metrics and the per-font character width cache
-    /// (`textMeasurements.ts`'s provider and `charWidth`).
-    fn text(&mut self) -> (&dyn TextMetricsProvider, &mut CharWidthCache);
-
+/// What a transform needs from the rest of the editor: text metrics
+/// ([`BindingEnv::text`]), the nonce and clock of `mutateElement`, and a
+/// sticky note's label layout.
+pub trait TransformEnv: BindingEnv {
     /// `updateBoundElements(changedElement, scene, { simultaneouslyUpdated })`
     /// (`binding.ts:1321-1429`): moves the arrows bound to `changed`, except
     /// those in `simultaneously_updated` (the elements transformed with it).
     /// Called wherever upstream calls it, for every element, bindable or
-    /// not. binding.ts is ex-510's: it implements this, and the gesture
-    /// tests then reproduce every recorded hook instead of replaying it.
+    /// not; the default is the port's [`crate::binding::update_bound_elements`].
     fn update_bound_elements(
         &mut self,
         scene: &mut Scene,
         changed: &str,
         simultaneously_updated: Option<&[String]>,
-    );
+    ) {
+        crate::binding::update_bound_elements(
+            scene,
+            &mut TransformBindingEnv(self),
+            changed,
+            simultaneously_updated,
+            None,
+        );
+    }
 
     /// `getStickyNoteLayout(container, textElement, opts)`
     /// (`stickyNote.ts:669-762`): the note's and its label's geometry.
@@ -131,6 +138,25 @@ pub trait TransformEnv: MutationEnv {
         text: Option<&Element>,
         opts: &StickyNoteLayoutOpts,
     ) -> StickyNoteLayout;
+}
+
+/// A [`TransformEnv`] of any size as a [`BindingEnv`] trait object.
+struct TransformBindingEnv<'a, E: TransformEnv + ?Sized>(&'a mut E);
+
+impl<E: TransformEnv + ?Sized> MutationEnv for TransformBindingEnv<'_, E> {
+    fn random_integer(&mut self) -> f64 {
+        self.0.random_integer()
+    }
+
+    fn now(&mut self) -> f64 {
+        self.0.now()
+    }
+}
+
+impl<E: TransformEnv + ?Sized> BindingEnv for TransformBindingEnv<'_, E> {
+    fn text(&mut self) -> (&dyn TextMetricsProvider, &mut CharWidthCache) {
+        self.0.text()
+    }
 }
 
 /// Arrow labels placed by the arrow's geometry
@@ -544,60 +570,6 @@ fn update_sticky_note_layout(
     }
 }
 
-/// `unbindBindingElement(arrow, startOrEnd, scene)` (`binding.ts:1187-1217`):
-/// drops the arrow's binding at that end and, unless the other end is
-/// bound to the same element, the arrow from that element's
-/// `boundElements`.
-pub fn unbind_binding_element(
-    scene: &mut Scene,
-    env: &mut dyn MutationEnv,
-    arrow_id: &str,
-    start: bool,
-) -> Option<String> {
-    let arrow = scene.get(arrow_id)?;
-    let (start_binding, end_binding) = bindings(arrow);
-    let (binding, opposite) = if start {
-        (start_binding, end_binding)
-    } else {
-        (end_binding, start_binding)
-    };
-    let binding = binding?.element_id.clone();
-    if opposite.is_none_or(|o| o.element_id != binding) {
-        // Only remove the record on the bound element if the other end is
-        // not bound to the same element
-        if let Some(bound) = scene.get_non_deleted(&binding) {
-            let remaining = bound.base.bound_elements.as_ref().map(|list| {
-                list.iter()
-                    .filter(|b| b.id != arrow_id)
-                    .cloned()
-                    .collect::<Vec<_>>()
-            });
-            scene.mutate_element(
-                &binding,
-                ElementUpdate {
-                    // `boundElements?.filter(...)`: undefined for no list
-                    bound_elements: remaining.map(Some),
-                    ..ElementUpdate::default()
-                },
-                env,
-            );
-        }
-    }
-    let update = if start {
-        ElementUpdate {
-            start_binding: Some(None),
-            ..ElementUpdate::default()
-        }
-    } else {
-        ElementUpdate {
-            end_binding: Some(None),
-            ..ElementUpdate::default()
-        }
-    };
-    scene.mutate_element(arrow_id, update, env);
-    Some(binding)
-}
-
 /// `handleBindTextResize(container, scene, transformHandleType,
 /// shouldMaintainAspectRatio, shouldResizeFromCenter, flipByY)`
 /// (`textElement.ts:155-247`): rewraps a container's label to the
@@ -629,6 +601,32 @@ pub fn handle_bind_text_resize(
         );
         return;
     }
+    resize_bound_text(
+        container_id,
+        scene,
+        env,
+        handle,
+        should_maintain_aspect_ratio,
+        should_resize_from_center,
+        flip_by_y,
+    );
+}
+
+/// [`handle_bind_text_resize`] for a container that is not a sticky note:
+/// what an arrow's label needs when the arrow moves
+/// (`updateBoundElements`, `binding.ts:1423-1426`).
+pub(crate) fn resize_bound_text(
+    container_id: &str,
+    scene: &mut Scene,
+    env: &mut dyn BindingEnv,
+    handle: Option<TransformHandleDirection>,
+    should_maintain_aspect_ratio: bool,
+    should_resize_from_center: bool,
+    flip_by_y: bool,
+) {
+    let Some(container) = scene.get(container_id).cloned() else {
+        return;
+    };
     if get_bound_text_element_id(&container).is_none() {
         return;
     }
@@ -887,10 +885,10 @@ fn rotate_single_element(
         let (start, end) = bindings(&element);
         let (start, end) = (start.is_some(), end.is_some());
         if start {
-            unbind_binding_element(scene, env, id, true);
+            unbind_binding_element(scene, env, id, BindingEnd::Start);
         }
         if end {
-            unbind_binding_element(scene, env, id, false);
+            unbind_binding_element(scene, env, id, BindingEnd::End);
         }
     }
 
@@ -1120,13 +1118,13 @@ fn rotate_multiple_elements(
                     .0
                     .is_some_and(|b| !ids.contains(&b.element_id));
                 if start {
-                    unbind_binding_element(scene, env, id, true);
+                    unbind_binding_element(scene, env, id, BindingEnd::Start);
                 }
                 let end = scene
                     .get(id)
                     .is_some_and(|e| bindings(e).1.is_some_and(|b| !ids.contains(&b.element_id)));
                 if end {
-                    unbind_binding_element(scene, env, id, false);
+                    unbind_binding_element(scene, env, id, BindingEnd::End);
                 }
             }
         }
@@ -1157,34 +1155,6 @@ fn rotate_multiple_elements(
             }
         }
     }
-}
-
-/// `getArrowLocalFixedPoints(arrow, elementsMap)` (`binding.ts:2727-2737`):
-/// an elbow arrow's two ends where its bindings put them (or where they
-/// are, unbound), relative to the arrow.
-fn get_arrow_local_fixed_points(
-    arrow: &Element,
-    elements_map: &ElementsMap<'_>,
-) -> [LocalPoint; 2] {
-    let points = arrow.kind.points().unwrap_or(&[]);
-    let (start, end) = bindings(arrow);
-    let global = |binding: Option<&FixedPointBinding>, point: Option<&LocalPoint>| -> [f64; 2] {
-        match binding.and_then(|b| elements_map.get(&b.element_id).map(|e| (b, e))) {
-            Some((b, target)) => get_global_fixed_point_for_bindable_element(b.fixed_point, target),
-            None => {
-                let p = point.copied().unwrap_or([f64::NAN, f64::NAN]);
-                [arrow.base.x + p[0], arrow.base.y + p[1]]
-            }
-        }
-    };
-    let start = global(start, points.first());
-    let end = global(end, points.last());
-    // LinearElementEditor.pointFromAbsoluteCoords: no rotation for elbow
-    // arrows
-    [
-        [start[0] - arrow.base.x, start[1] - arrow.base.y],
-        [end[0] - arrow.base.x, end[1] - arrow.base.y],
-    ]
 }
 
 /// `getResizeOffsetXY(transformHandleType, selectedElements, elementsMap,
@@ -1572,7 +1542,7 @@ pub fn resize_single_element(
             let (start, end) = bindings(&latest);
             let (start, end) = (start.is_some(), end.is_some());
             if start {
-                unbind_binding_element(scene, env, id, true);
+                unbind_binding_element(scene, env, id, BindingEnd::Start);
             }
             if end {
                 update.end_binding = Some(None);
@@ -2136,14 +2106,14 @@ pub fn resize_multiple_elements(
                 .and_then(|e| bindings(e).0)
                 .is_some_and(|b| !elements_to_update.contains(&b.element_id));
             if start {
-                unbind_binding_element(scene, env, &id, true);
+                unbind_binding_element(scene, env, &id, BindingEnd::Start);
             }
             let end = scene
                 .get(&id)
                 .and_then(|e| bindings(e).1)
                 .is_some_and(|b| !elements_to_update.contains(&b.element_id));
             if end {
-                unbind_binding_element(scene, env, &id, false);
+                unbind_binding_element(scene, env, &id, BindingEnd::End);
             }
         }
 

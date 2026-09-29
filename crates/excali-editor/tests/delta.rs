@@ -21,7 +21,7 @@ use excali_editor::mutate::mutate_element;
 use excali_editor::store::{ObservedAppState, SnapshotElements};
 use indexmap::IndexMap;
 use serde_json::{json, Value};
-use support::{arrow, obj, rect, text, with, TestEnv};
+use support::{arrow, obj, rect, text, with, ArrowLayout, TestEnv};
 
 fn partial(value: Value) -> Partial {
     obj(value).into_iter().map(|(k, v)| (k, Some(v))).collect()
@@ -404,7 +404,7 @@ fn expect_grown_container(
 fn passes_the_laid_out_elements_as_changed_to_the_arrow_layout() {
     let mut env = TestEnv {
         text_layout: Some(support::centre_label),
-        arrow_layout: Some(expect_grown_container),
+        arrow_layout: Some(ArrowLayout::Custom(expect_grown_container)),
         ..TestEnv::default()
     };
     let mut container = container_of("c", "t");
@@ -441,7 +441,7 @@ fn move_unrelated(
 #[test]
 fn guards_against_untracked_layout_mutations() {
     let mut env = TestEnv {
-        arrow_layout: Some(move_unrelated),
+        arrow_layout: Some(ArrowLayout::Custom(move_unrelated)),
         ..TestEnv::default()
     };
     let element = indexed(rect("changed", 0.0, 0.0), "a0");
@@ -464,7 +464,7 @@ fn guards_against_untracked_layout_mutations() {
 #[test]
 fn skips_the_untracked_layout_guard_in_production() {
     let mut env = TestEnv {
-        arrow_layout: Some(move_unrelated),
+        arrow_layout: Some(ArrowLayout::Custom(move_unrelated)),
         production: true,
         ..TestEnv::default()
     };
@@ -532,7 +532,7 @@ fn ignores_a_layout_error_in_production() {
     // redrawElements logs and returns the elements (delta.ts:2034-2057)
     let mut env = TestEnv {
         text_layout: Some(failing_text_layout),
-        arrow_layout: Some(failing_arrow_layout),
+        arrow_layout: Some(ArrowLayout::Custom(failing_arrow_layout)),
         production: true,
         ..TestEnv::default()
     };
