@@ -11,7 +11,7 @@
 # (ex-307), the Canvas 2D backend against excali-raster on the fixture
 # display lists in Chromium (ex-502), the catalogue render with its
 # contact sheets (ex-410), and the layered canvases at device-pixel scale
-# in Chromium (ex-503).
+# in Chromium (ex-503), and the example Tauri app in WKWebView (ex-606).
 #
 # The toolchain comes from rust-toolchain.toml; rustup installs it (with
 # rustfmt, clippy and the wasm32 target) on the first cargo call.
@@ -746,3 +746,40 @@ jobs:
             tests/web/playwright-report-text-editing/
             tests/web/test-results-text-editing/
           retention-days: 14
+  # ex-606: the example Tauri app (examples/tauri-app, its own Cargo
+  # workspace). fmt, clippy and its tests (tests/app.rs: its config, the
+  # capability it ships, open, save and export through its own context's
+  # ACL on the mock runtime), then scripts/smoke.sh: the app built with the
+  # web runtime embedded and run in WKWebView, where ui/app.js mounts
+  # <excali-editor> and opens, saves and exports through tauri-plugin-excali
+  # with no CSP violation.
+  tauri-example:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            examples/tauri-app/src-tauri -> target
+      - name: fmt
+        run: cargo fmt --manifest-path examples/tauri-app/src-tauri/Cargo.toml --check
+      - name: clippy
+        run: cargo clippy --manifest-path examples/tauri-app/src-tauri/Cargo.toml --all-targets --locked -- -D warnings
+      - name: test
+        run: cargo test --manifest-path examples/tauri-app/src-tauri/Cargo.toml --locked
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: |
+          want="$(awk '/^name = "wasm-bindgen"$/ { getline; gsub(/"/, "", $3); print $3; exit }' Cargo.lock)"
+          if [ "$(wasm-bindgen --version 2>/dev/null | awk '{ print $2 }')" != "$want" ]; then
+            cargo install --locked wasm-bindgen-cli --version "$want"
+          fi
+      - name: binaryen (pinned) cache
+        uses: actions/cache@v6
+        with:
+          path: .tools/binaryen-version_133
+          key: binaryen-version_133-${{ runner.os }}-${{ runner.arch }}
+      - name: the app in WKWebView opens, saves and exports
+        run: examples/tauri-app/scripts/smoke.sh

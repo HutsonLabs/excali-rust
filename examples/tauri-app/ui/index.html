@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Excali Example</title>
+<!-- The web runtime (scripts/web-runtime.sh copies scripts/web/build.sh's
+     release here): one ES module, its wasm, the stylesheet and fonts/. -->
+<link rel="stylesheet" href="./excali/excali.css">
+<link rel="stylesheet" href="./app.css">
+</head>
+<body>
+<header class="bar" role="toolbar" aria-label="File">
+  <button type="button" data-action="open" title="Open (Ctrl+O)">Open</button>
+  <button type="button" data-action="save" title="Save (Ctrl+S)">Save</button>
+  <button type="button" data-action="save-as" title="Save as (Ctrl+Shift+S)">Save as</button>
+  <button type="button" data-action="export-png">Export PNG</button>
+  <button type="button" data-action="export-svg">Export SVG</button>
+  <button type="button" data-action="import-library">Import library</button>
+  <span class="file" id="file">Untitled</span>
+  <span class="status" id="status" role="status" aria-live="polite"></span>
+</header>
+<main id="host"></main>
+<script type="module" src="./app.js"></script>
+</body>
+</html>

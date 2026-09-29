@@ -61,7 +61,24 @@ What the plugin does not trust the webview with:
 
 The tests (`crates/tauri-plugin-excali/tests`) run every command through Tauri's IPC and ACL on the mock runtime, with the ACL built from the shipped permission files and this capability, scripted dialogs and a scripted network.
 
-CSP: the module needs `wasm-unsafe-eval` in `script-src` on WebView2 and WebKit builds that enforce it; the integration docs (task `ex-607`) give the exact line per platform after testing in the example app (`ex-606`).
+CSP: the module needs `'wasm-unsafe-eval'` in `script-src`. In the example app on macOS (WKWebView), removing it makes `init()` reject with "Refused to create a WebAssembly object because 'unsafe-eval' or 'wasm-unsafe-eval' is not an allowed source of script" (smoke run, 2026-09-29); with it, the editor mounts, opens, saves and exports with no violation reported. The integration docs (task `ex-607`) give the line per platform.
+
+## Example app
+
+`examples/tauri-app` (task `ex-606`) is a complete host: `ui/` is plain HTML and ES modules (a toolbar and `<excali-editor>`), the web runtime is copied into `ui/excali/` by `beforeDevCommand` and `beforeBuildCommand`, `src-tauri/` registers `tauri-plugin-dialog` and, at setup, `tauri-plugin-excali` with `fonts_dir` pointed at the bundle's `fonts/` resource, and ships `capabilities/excali.json` unchanged. Its CSP:
+
+```json
+"csp": {
+  "default-src": "'self'",
+  "script-src": "'self' 'wasm-unsafe-eval'",
+  "style-src": "'self' 'unsafe-inline'",
+  "img-src": "'self' data: blob:",
+  "font-src": "'self' data:",
+  "connect-src": "'self' ipc: http://ipc.localhost"
+}
+```
+
+`cargo tauri dev` in `examples/tauri-app/src-tauri` opens the window; `cargo tauri build --bundles dmg` builds the (unsigned) macOS image. Its tests run the app's own context on the mock runtime (`tests/app.rs`), and `scripts/smoke.sh` runs the built app in the platform webview, where `ui/app.js` opens, saves, saves as and exports through the plugin and reports; CI runs both on macOS (`tauri-example`). See the example's `README.md`.
 
 ## Native headless use
 
