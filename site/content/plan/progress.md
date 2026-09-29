@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 23:42 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 23:44 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**151 issues** · 113 closed (75%) · 3 in progress · 0 blocked · 34 open
+**151 issues** · 113 closed (75%) · 4 in progress · 0 blocked · 33 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -163,7 +163,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-521` | Footer: zoom actions, undo/redo, help button, exit zen | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-522` | Help dialog with the three shortcut islands | task | P2 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-523` | Colour picker: top picks, palette 5x3, shades, hex input, eyedropper, keyboard map | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-524` | Font picker: three top picks, scene/available groups, deprecated badge, search | task | P2 | <span class="status open">open</span> | yes |  |
+| `ex-524` | Font picker: three top picks, scene/available groups, deprecated badge, search | task | P2 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-525` | Context menus (canvas and element) generated from the actions registry | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-526` | Library sidebar: tabs, header menu, personal/excalidraw sections, drag to canvas, add to library | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-527` | Command palette with category order and item lists | task | P2 | <span class="status open">open</span> | yes |  |
