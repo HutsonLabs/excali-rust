@@ -22,6 +22,11 @@
 //!   inside and outline rules, per-shape intersections and binding hit
 //!   tests; [`distance`]: distance to an element's outline
 //!   (`distance.ts`).
+//! - [`keyboard`]: `App.onKeyDown` and `App.onKeyUp`: the keys the
+//!   actions do not own (tool letters, arrow nudges, PgUp/PgDn, Enter,
+//!   Space, S/G/Shift+F pickers, the eyedropper, Tab conversion, the
+//!   flowchart keys, Ctrl held for binding) and the modifier helpers of
+//!   `keys.ts`.
 //! - [`mutate`]: `mutateElement`, `newElementWith` and `bumpVersion`, the
 //!   only ways an element changes, each bumping `version`, `versionNonce`
 //!   and `updated`.
@@ -65,6 +70,7 @@ pub mod elbow_arrow;
 pub mod geometry;
 pub mod history;
 mod js_value;
+pub mod keyboard;
 pub mod linear_element_editor;
 pub mod mutate;
 pub mod resize_elements;
