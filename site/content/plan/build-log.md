@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-505 · Viewport: zoom limits, wheel formula, scroll, coordinate transforms, zoom-to-fit
+
+The editor now has upstream's viewport: zoom clamped to 0.1–30 and normalised to six places, the wheel zoom formula event by event (with V8's `Math.log10` ported so it matches bit for bit), viewport and scene coordinate transforms, scroll constraints, zoom-to-fit, scroll-into-view and scroll-to-content, and the zoom actions with their keys. Every result is checked against goldens recorded from upstream's own functions, and CI rechecks the goldens. PR: [#88](https://github.com/HutsonLabs/excali-rust/pull/88).
+
 ## 2026-09-28 · ex-513 · History: store snapshots, element and appState deltas, undo/redo stacks, version bumps
 
 The editor now has upstream's undo and redo. Every change to an element bumps its `version`, `versionNonce` and `updated`. The store captures element and appState deltas, and the undo and redo stacks skip entries that change nothing visible. After an undo or redo, bound text and bound arrows are laid out again. The idsToCheck guard and failures on apply or layout errors run only in dev builds, as upstream does, and production builds carry on the way upstream's do. Rotated bound text now uses V8's fdlibm `sin` and `cos`, so its coordinates match upstream bit for bit on Linux as well as macOS. The cases from upstream's `history.test.tsx` and `delta.test.tsx` are ported; the workspace runs 1601 tests with none failing or ignored. PR: [#87](https://github.com/HutsonLabs/excali-rust/pull/87).
