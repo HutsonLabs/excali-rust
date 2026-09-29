@@ -12,8 +12,9 @@
 //! [`theme`] the light and dark tokens of `css/theme.scss` and the
 //! container's `theme--dark` class; for
 //! [`icons`] the icon set of `components/icons.tsx`; for
-//! [`styles_panel`] the full styles panel (`components/Actions.tsx`,
-//! `LayerUI.tsx`); for [`toolbar`] the desktop shapes toolbar and its
+//! [`styles_panel`] the full and compact styles panels
+//! (`components/Actions.tsx`, `LayerUI.tsx`); for [`editor_interface`]
+//! the form factor rules (`common/src/editorInterface.ts`); for [`toolbar`] the desktop shapes toolbar and its
 //! extra-tools dropdown (`components/Toolbar.tsx`, `Tools.tsx`); for
 //! [`main_menu`] the hamburger menu (`components/main-menu/*`,
 //! `components/dropdownMenu/*`); for [`context_menu`] the canvas and
@@ -30,6 +31,7 @@
 pub mod color_picker;
 pub mod context_menu;
 pub mod dom;
+pub mod editor_interface;
 pub mod fonts;
 pub mod footer;
 pub mod icons;

@@ -1,9 +1,11 @@
-// excali-ui's styles panel fixture (ex-519) is upstream's output:
+// excali-ui's styles panel fixture (ex-519, ex-701) is upstream's output:
 // tools/goldens/styles-panel.mjs regenerates it from the pinned checkout,
 // byte-stable across runs, and --check fails when the committed file
 // differs. The checks below restate Actions.tsx's layout independently
-// (components/Actions.tsx:63-217) and hold the recorded trees to it, so a
-// generator that lost cases or controls would be noticed.
+// (components/Actions.tsx:63-217, the compact panel :219-717) and the
+// tablet rule (common/src/editorInterface.ts:71-79) and hold the recorded
+// output to them, so a generator that lost cases or controls would be
+// noticed.
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -119,5 +121,69 @@ test("the island's max height is the app height less 166 px", () => {
     assert.equal(island.class, "Island App-menu__left");
     assert.equal(island.style.maxHeight, `${w.height - 166}px`);
     assert.equal(island.style["--padding"], 2);
+  }
+});
+
+/** The compact panel's top-level items, as `kind:detail` strings, and the
+ * actions of the open popover. */
+const compactItems = (root) =>
+  (root.children ?? []).map((item) => {
+    const [first, popover] = item.children;
+    if (first.action) return `action:${first.action}${first.data?.cycle ? ":cycle" : ""}`;
+    return `popup:${first.attrs.title}${popover ? ":open" : ""}`;
+  });
+
+test("each compact tree has CompactShapeActions' items in order", () => {
+  const { cases, locale } = committed();
+  const passive = ["selection", "eraser", "hand", "laser", "lasso"];
+  for (const c of cases) {
+    const p = c.predicates;
+    const open = c.appState.openPopup;
+    const background = c.appState.activeTool.type === "bucketfill" ? "changeBucketFillBackgroundColor" : "changeBackgroundColor";
+    const want = [
+      p.strokeColor && "action:changeStrokeColor",
+      p.backgroundColor && `action:${background}`,
+      p.freedrawMode && "action:changeFreedrawMode:cycle",
+      (p.hasSelection || !passive.includes(c.appState.activeTool.type)) &&
+        `popup:${locale["labels.stroke"]}${open === "compactStrokeStyles" ? ":open" : ""}`,
+      p.arrowType && `popup:${locale["labels.arrowtypes"]}${open === "compactArrowProperties" ? ":open" : ""}`,
+      p.lineEditor && "action:toggleLinearEditor",
+      p.text && "action:changeFontFamily",
+      p.text && `popup:${locale["labels.textAlign"]}${open === "compactTextProperties" ? ":open" : ""}`,
+      p.showExtraActions && "action:duplicateSelection",
+      p.showExtraActions && "action:deleteSelectedElements",
+      p.showExtraActions && `popup:${locale["labels.actions"]}${open === "compactOtherProperties" ? ":open" : ""}`,
+    ].filter(Boolean);
+    assert.equal(c.compact[0].class, "compact-shape-actions", c.id);
+    assert.deepEqual(compactItems(c.compact[0]), want, c.id);
+  }
+});
+
+test("every compact popover opens in some case", () => {
+  const opened = new Set();
+  for (const c of committed().cases) {
+    for (const item of c.compact[0].children ?? []) if (item.children[1]?.tag === "popover") opened.add(item.children[0].attrs.title);
+  }
+  assert.deepEqual([...opened].sort(), ["Actions", "Arrow type", "Stroke", "Text align"]);
+});
+
+test("the tablet rule is min(w, h) >= 600 and max(w, h) <= 1180, after the phone rule", () => {
+  const { sizes } = committed().formFactor;
+  assert.ok(sizes.length >= 800);
+  for (const s of sizes) {
+    const tablet = Math.min(s.width, s.height) >= 600 && Math.max(s.width, s.height) <= 1180;
+    const phone = s.width <= 599 || (s.height < 500 && s.width < 1000);
+    assert.equal(s.tablet, tablet, `${s.width}x${s.height}`);
+    assert.equal(s.formFactor, phone ? "phone" : tablet ? "tablet" : "desktop", `${s.width}x${s.height}`);
+  }
+  for (const f of ["phone", "tablet", "desktop"]) assert.ok(sizes.some((s) => s.formFactor === f), f);
+});
+
+test("the compact island has no padding and the app height less 166 px", () => {
+  for (const w of committed().compactWrapper) {
+    const island = w.tree[0].children[1];
+    assert.equal(island.class, "Island compact-shape-actions-island");
+    assert.equal(island.style.maxHeight, `${w.height - 166}px`);
+    assert.equal(island.style["--padding"], 0);
   }
 });

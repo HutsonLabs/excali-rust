@@ -1,15 +1,18 @@
-//! The full styles panel (ex-519): `getShapeActionPredicates`
+//! The styles panel (ex-519, ex-701): `getShapeActionPredicates`
 //! (`components/shapeActionPredicates.ts`), `showSelectedShapeActions`
-//! (`element/src/showSelectedShapeActions.ts`), `SelectedShapeActions`
-//! (`components/Actions.tsx:63-217`) and LayerUI's section and island
-//! around it (`components/LayerUI.tsx:249-297`), against upstream.
+//! (`element/src/showSelectedShapeActions.ts`), the full panel
+//! `SelectedShapeActions` (`components/Actions.tsx:63-217`), the compact
+//! panel `CompactShapeActions` (:219-717) and LayerUI's section and
+//! islands around them (`components/LayerUI.tsx:249-297`), against
+//! upstream.
 //!
 //! Fixture: `tests/fixtures/styles-panel.json`, upstream's own functions
 //! and components at the pinned commit (`tools/goldens/styles-panel.mjs`):
 //! per case an active tool, a selection and app state over a scene of
 //! upstream-built elements, the document direction, the predicates,
-//! whether the panel shows, and the tree the panel renders, with
-//! `{ action }` where it calls `renderAction`.
+//! whether the panel shows, and the trees the full and compact panels
+//! render, with `{ action, data? }` where they call `renderAction`,
+//! `{ icon }` for an icon and `{ tag: "popover" }` for an open popover.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;
@@ -22,7 +25,8 @@ use excali_editor::actions::{
     PanelGate, ShapeActionPredicates,
 };
 use excali_ui::styles_panel::{
-    legend_text, selected_shape_actions, shape_actions_section, PanelNode,
+    compact_shape_actions, compact_shape_actions_section, legend_text, selected_shape_actions,
+    shape_actions_section, CompactPopup, PanelNode,
 };
 use serde_json::{json, Map, Value};
 
@@ -179,8 +183,29 @@ fn node_json(node: &PanelNode) -> Value {
         }
         PanelNode::Text(key) => json!(legend_text(key)),
         PanelNode::Action(name) => json!({ "action": name.as_str() }),
+        PanelNode::CycleAction(name) => {
+            json!({ "action": name.as_str(), "data": { "cycle": true } })
+        }
+        PanelNode::Icon(icon) => json!({ "icon": icon.name }),
+        PanelNode::Popover(p) => json!({
+            "tag": "popover",
+            "class": p.class_name(),
+            "attrs": {
+                "side": p.side,
+                "align": p.align,
+                "sideOffset": number(p.side_offset),
+                "alignOffset": number(p.align_offset),
+            },
+            "style": { "z-index": "var(--zIndex-ui-styles-popup)" },
+            "children": p.children.iter().map(node_json).collect::<Vec<_>>(),
+        }),
         PanelNode::Panel => json!({ "action": "<panel>" }),
     }
+}
+
+/// A number as JavaScript's `String(n)` writes it.
+fn number(n: f64) -> String {
+    excali_core::json::number_to_string(n)
 }
 
 /// The fixture's tree with the style as CSS names and strings.
@@ -220,8 +245,9 @@ fn expected_tree(value: &Value) -> Value {
 fn actions_of(node: &PanelNode, out: &mut Vec<ActionName>) {
     match node {
         PanelNode::Element(e) => e.children.iter().for_each(|c| actions_of(c, out)),
-        PanelNode::Action(name) => out.push(*name),
-        PanelNode::Text(_) | PanelNode::Panel => {}
+        PanelNode::Action(name) | PanelNode::CycleAction(name) => out.push(*name),
+        PanelNode::Popover(p) => p.children.iter().for_each(|c| actions_of(c, out)),
+        PanelNode::Text(_) | PanelNode::Icon(_) | PanelNode::Panel => {}
     }
 }
 
@@ -437,4 +463,96 @@ fn panel_groups_match_the_mockups() {
         groups.dedup();
         assert_eq!(groups, mockup_legends(html), "{id}");
     }
+}
+
+#[test]
+fn compact_tree_matches_upstream() {
+    let mut failures = Vec::new();
+    for case in cases() {
+        let c = Case::new(case);
+        let got = node_json(&compact_shape_actions(&c.ctx(), c.rtl));
+        let expected = expected_tree(&case["compact"][0]);
+        if got != expected {
+            failures.push(format!(
+                "{}:\n  got      {got}\n  expected {expected}",
+                c.id
+            ));
+        }
+    }
+    assert!(
+        failures.is_empty(),
+        "{} cases differ:\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
+}
+
+#[test]
+fn compact_section_and_island_match_upstream() {
+    let fixture = fixture();
+    let container_id = fixture["containerId"].as_str().unwrap();
+    for case in fixture["compactWrapper"].as_array().unwrap() {
+        let height = case["height"].as_f64().unwrap();
+        let zen = case["zenModeEnabled"].as_bool().unwrap();
+        let got = node_json(&compact_shape_actions_section(
+            height,
+            zen,
+            container_id,
+            PanelNode::Panel,
+        ));
+        assert_eq!(
+            got,
+            expected_tree(&case["tree"][0]),
+            "height {height}, zen {zen}"
+        );
+    }
+}
+
+/// The popover triggers of a compact tree: (popup, open).
+fn triggers(node: &PanelNode, out: &mut Vec<(CompactPopup, bool)>) {
+    match node {
+        PanelNode::Element(e) => {
+            if let Some(t) = e.popup_trigger {
+                out.push((t.popup, t.open));
+            }
+            e.children.iter().for_each(|c| triggers(c, out));
+        }
+        PanelNode::Popover(p) => p.children.iter().for_each(|c| triggers(c, out)),
+        _ => {}
+    }
+}
+
+/// Each trigger toggles its popup in `appState.openPopup`: a click sets
+/// it when closed and clears it when open (`Actions.tsx:263-270`), and
+/// the popover shows exactly when it is the open popup.
+#[test]
+fn compact_triggers_toggle_their_popups() {
+    let mut seen = Vec::new();
+    for case in cases() {
+        let c = Case::new(case);
+        let open = c.app_state.get("openPopup").and_then(Value::as_str);
+        let mut found = Vec::new();
+        triggers(&compact_shape_actions(&c.ctx(), c.rtl), &mut found);
+        for (popup, is_open) in found {
+            assert_eq!(is_open, open == Some(popup.as_str()), "{} {popup:?}", c.id);
+            let trigger = excali_ui::styles_panel::PopupTrigger {
+                popup,
+                open: is_open,
+            };
+            assert_eq!(
+                trigger.next(),
+                if is_open { None } else { Some(popup) },
+                "{}",
+                c.id
+            );
+            if !seen.contains(&popup) {
+                seen.push(popup);
+            }
+        }
+    }
+    assert_eq!(seen.len(), 4);
+    for popup in seen {
+        assert_eq!(CompactPopup::from_popup(popup.as_str()), Some(popup));
+    }
+    assert_eq!(CompactPopup::from_popup("elementStroke"), None);
 }

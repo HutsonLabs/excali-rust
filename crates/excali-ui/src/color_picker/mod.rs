@@ -1155,9 +1155,16 @@ fn place_popup(wrapper: &web_sys::Element, trigger_id: &str, below: bool) {
         return;
     };
     let selector = format!("[aria-controls=\"{trigger_id}\"]");
-    let Ok(Some(trigger)) = document.query_selector(&selector) else {
-        return;
-    };
+    if let Ok(Some(trigger)) = document.query_selector(&selector) {
+        place_beside(wrapper, &trigger, below);
+    }
+}
+
+/// [`place_popup`] beside `trigger`: a `PropertiesPopover`'s radix popper
+/// wrapper, whose first child is the content and whose content's last
+/// child is the arrow (the styles panel's popovers are placed this way
+/// too).
+pub(crate) fn place_beside(wrapper: &web_sys::Element, trigger: &web_sys::Element, below: bool) {
     let Some(content) = wrapper.first_element_child() else {
         return;
     };
