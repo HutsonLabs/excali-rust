@@ -12,8 +12,11 @@
 
 use excali_core::app_state::AppState;
 use excali_core::element::Element;
+use excali_core::fractional_index::ChangeStamp;
+use excali_core::restore::RestoreEnv;
 use excali_editor::actions::{ActionEnv, ActionManager, AppProps, KeyDownOutcome};
 use excali_editor::binding::BindingEnv;
+use excali_editor::flowchart::{insertion_index, insertion_runs, AppFlowchart, FlowchartOperation};
 use excali_editor::keyboard::{
     command_palette_key_down, on_clipboard_event, on_key_down, on_key_up, pan_starts,
     should_maintain_aspect_ratio, should_resize_from_center, should_rotate_with_discrete_angle,
@@ -38,12 +41,39 @@ impl TextMetricsProvider for TenPxPerCodeUnit {
     }
 }
 
-/// `randomInteger()` from a counter and `getUpdatedTimestamp()` = 1, as in
-/// upstream's tests.
+/// `randomInteger()` from a counter, `randomId()` as `id0`, `id1`, ...
+/// and `getUpdatedTimestamp()` = 1, as in upstream's tests.
 #[derive(Default)]
 struct Env {
     nonce: f64,
+    ids: u32,
     char_widths: CharWidthCache,
+}
+
+impl RestoreEnv for Env {
+    fn now(&mut self) -> f64 {
+        1.0
+    }
+
+    fn random_id(&mut self) -> String {
+        let id = format!("id{}", self.ids);
+        self.ids += 1;
+        id
+    }
+
+    fn random_integer(&mut self) -> f64 {
+        MutationEnv::random_integer(self)
+    }
+}
+
+impl ChangeStamp for Env {
+    fn version_nonce(&mut self) -> f64 {
+        MutationEnv::random_integer(self)
+    }
+
+    fn updated(&mut self) -> f64 {
+        1.0
+    }
 }
 
 impl MutationEnv for Env {
@@ -177,6 +207,9 @@ pub struct Keyboard {
     props: AppProps,
     env: ActionEnv,
     binding: Env,
+    /// `App.flowchart`: the creator and navigator answering the flowchart
+    /// keys.
+    flowchart: AppFlowchart,
     pointer: (f64, f64),
 }
 
@@ -199,6 +232,7 @@ impl Keyboard {
                 ..ActionEnv::default()
             },
             binding: Env::default(),
+            flowchart: AppFlowchart::default(),
             pointer: (0.0, 0.0),
         }
     }
@@ -224,6 +258,7 @@ impl Keyboard {
         self.props.canvas_actions.normalize(false, false);
         self.tools = ToolState::default();
         self.keyboard = KeyboardState::default();
+        self.flowchart = AppFlowchart::default();
         Ok(())
     }
 
@@ -256,7 +291,44 @@ impl Keyboard {
         let (mut ed, env) = self.editor();
         let out = on_key_down(&mut ed, env, &stroke);
         apply_outcome(event, &out);
+        self.answer_flowchart(&out);
         outcome_json(&out)
+    }
+
+    /// `AppFlowchart.handleKeyEvent`'s answer to the flowchart effects:
+    /// the pending nodes kept, the node found selected, the committed
+    /// nodes inserted and the first selected.
+    fn answer_flowchart(&mut self, out: &KeyOutcome) {
+        for effect in &out.effects {
+            let op = self.flowchart.answer(
+                effect,
+                &mut self.scene,
+                &self.app_state,
+                &mut self.keyboard.flowchart,
+                &mut self.binding,
+            );
+            match op {
+                Some(FlowchartOperation::Navigating { node_id: Some(id) }) => self.select(&id),
+                Some(FlowchartOperation::Committed { nodes }) => {
+                    let first = nodes.first().map(|n| n.base.id.clone());
+                    for run in insertion_runs(nodes) {
+                        let mut elements = self.scene.elements().to_vec();
+                        let at = insertion_index(&elements, &run).unwrap_or(elements.len());
+                        elements.splice(at..at, run);
+                        self.scene = Scene::new(elements);
+                    }
+                    if let Some(id) = first {
+                        self.select(&id);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn select(&mut self, id: &str) {
+        self.app_state
+            .insert("selectedElementIds", json!({ id: true }));
     }
 
     /// The document's `keyup`: `App.onKeyUp`.
@@ -266,6 +338,8 @@ impl Keyboard {
         let (mut ed, env) = self.editor();
         let out = on_key_up(&mut ed, env, &stroke);
         apply_outcome(event, &out);
+        self.answer_flowchart(&out);
+        self.flowchart.after_key_up(&self.keyboard.flowchart);
         outcome_json(&out)
     }
 
@@ -374,11 +448,18 @@ impl Keyboard {
             .elements()
             .iter()
             .map(|e| {
+                let map = e.to_map();
                 json!({
                     "id": e.base.id,
+                    "type": e.element_type().as_str(),
                     "x": e.base.x,
                     "y": e.base.y,
+                    "width": e.base.width,
+                    "height": e.base.height,
                     "version": e.base.version,
+                    "boundElements": map.get("boundElements"),
+                    "startBinding": map.get("startBinding"),
+                    "endBinding": map.get("endBinding"),
                 })
             })
             .collect();
@@ -391,7 +472,14 @@ impl Keyboard {
                 "convertPopupOpen": self.keyboard.convert_popup_open,
                 "activeConfirmDialog": self.keyboard.active_confirm_dialog,
                 "isCreatingChart": self.keyboard.flowchart.is_creating_chart,
+                "isExploring": self.keyboard.flowchart.is_exploring,
             },
+            "pendingFlowchartNodes": self
+                .flowchart
+                .pending_nodes()
+                .iter()
+                .map(|e| json!({ "id": e.base.id, "type": e.element_type().as_str(), "x": e.base.x, "y": e.base.y }))
+                .collect::<Vec<_>>(),
             "elements": elements,
         })
         .to_string()

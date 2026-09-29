@@ -395,3 +395,82 @@ fn the_context_menu_is_the_elements_over_an_element_or_the_selection() {
     // outside them, past the padding: the canvas menu
     assert_eq!(ed.open_context_menu(330.0, 285.0), ContextMenuKind::Canvas);
 }
+
+fn selected_ids(ed: &Editor<CharCountTextMetrics>) -> Vec<String> {
+    ed.app_state()
+        .get("selectedElementIds")
+        .and_then(Value::as_object)
+        .map(|m| m.keys().cloned().collect())
+        .unwrap_or_default()
+}
+
+/// Ctrl+Arrow on a selected node (ex-534): the pending node and arrow are
+/// drawn but not in the scene; releasing Ctrl inserts them, selects the
+/// new node and records one history entry; Alt+Arrow walks back.
+#[test]
+fn ctrl_arrow_creates_and_alt_arrow_navigates_a_flowchart() {
+    let mut ed = editor();
+    // select the rectangle `a` (60, 300, 100 x 100)
+    ed.pointer_down(PointerInput::at(110.0, 350.0));
+    ed.pointer_up(PointerInput::at(110.0, 350.0));
+    assert_eq!(selected_ids(&ed), vec!["a".to_owned()]);
+    let before = ed.elements().len();
+    let drawn = format!("{:?}", ed.static_scene(1000.0, 700.0, 1.0));
+
+    let out = ed.key_down(&Keystroke::new("ArrowDown", "ArrowDown").ctrl());
+    assert!(out.prevent_default);
+    assert_eq!(ed.elements().len(), before, "pending, not in the scene");
+    let pending = format!("{:?}", ed.static_scene(1000.0, 700.0, 1.0));
+    assert!(
+        pending.len() > drawn.len(),
+        "the pending node and arrow are drawn"
+    );
+
+    ed.key_up(&Keystroke::new("Control", "ControlLeft"));
+    assert!(
+        format!("{:?}", ed.static_scene(1000.0, 700.0, 1.0)).len() > drawn.len(),
+        "committed, drawn as scene elements"
+    );
+    let elements = ed.elements();
+    assert_eq!(elements.len(), before + 2);
+    let node = &elements[before];
+    let arrow = &elements[before + 1];
+    // one gap (100) below `a`, its size
+    assert_eq!(
+        [node.base.x, node.base.y, node.base.width, node.base.height],
+        [60.0, 500.0, 100.0, 100.0]
+    );
+    let linear = arrow.kind.linear().expect("an arrow");
+    assert_eq!(
+        linear.start_binding.as_ref().map(|b| b.element_id.as_str()),
+        Some("a")
+    );
+    assert_eq!(
+        linear.end_binding.as_ref().map(|b| b.element_id.as_str()),
+        Some(node.base.id.as_str())
+    );
+    let node_id = node.base.id.clone();
+    assert_eq!(selected_ids(&ed), vec![node_id.clone()]);
+    assert!(elements.iter().all(|e| e.base.index.is_some()), "indexed");
+
+    // one undo takes the nodes out again, redo brings them back
+    undo(&mut ed);
+    let gone = |ed: &Editor<CharCountTextMetrics>| {
+        ed.elements()
+            .iter()
+            .filter(|e| e.base.id == node_id)
+            .all(|e| e.base.is_deleted)
+    };
+    assert!(gone(&ed));
+    redo(&mut ed);
+    assert!(!gone(&ed));
+    assert_eq!(selected_ids(&ed), vec![node_id.clone()]);
+
+    // Alt+ArrowUp from the new node goes back to `a`; releasing Alt
+    // captures the walk
+    ed.key_down(&Keystroke::new("ArrowUp", "ArrowUp").alt());
+    assert_eq!(selected_ids(&ed), vec!["a".to_owned()]);
+    ed.key_up(&Keystroke::new("Alt", "AltLeft"));
+    undo(&mut ed);
+    assert_eq!(selected_ids(&ed), vec![node_id]);
+}

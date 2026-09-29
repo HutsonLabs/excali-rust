@@ -262,3 +262,134 @@ fn is_node_in_flowchart_matches_upstream() {
         );
     }
 }
+
+/// `AppFlowchart.handleKeyEvent`'s operations for the keyboard's effects
+/// (`App.flowchart.ts:53-178`): Ctrl+Arrow twice keeps two pending nodes
+/// and arrows, releasing Ctrl commits them, Alt+Arrow walks and releasing
+/// Alt ends the walk.
+#[test]
+fn app_flowchart_answers_the_keyboard_effects() {
+    use excali_editor::flowchart::{AppFlowchart, FlowchartOperation};
+    use excali_editor::keyboard::{FlowchartKeys, KeyEffect};
+
+    let f = fixture();
+    let case = f["create"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|c| c["id"] == "grow-right")
+        .unwrap();
+    let mut scene = Scene::new(elements(&case["elements"]));
+    let app_state = excali_core::app_state::AppState::default();
+    let mut keys = FlowchartKeys::default();
+    let mut env = Env(TestEnv::default());
+    let mut app = AppFlowchart::default();
+    let create = KeyEffect::FlowchartCreate {
+        start: Some("a".into()),
+        direction: LinkDirection::Right,
+    };
+    for _ in 0..2 {
+        let op = app.answer(&create, &mut scene, &app_state, &mut keys, &mut env);
+        assert!(matches!(op, Some(FlowchartOperation::Creating { .. })));
+    }
+    assert!(keys.is_creating_chart);
+    // the same nodes as upstream's second press
+    let want = elements(&case["steps"][1]["pending"]);
+    let ids = |v: &[Element]| v.iter().map(|e| e.base.id.clone()).collect::<Vec<_>>();
+    assert_eq!(ids(app.pending_nodes()), ids(&want));
+
+    // Ctrl+Arrow with nothing to start from still reports the pending nodes
+    let op = app.answer(
+        &KeyEffect::FlowchartCreate {
+            start: None,
+            direction: LinkDirection::Right,
+        },
+        &mut scene,
+        &app_state,
+        &mut keys,
+        &mut env,
+    );
+    assert_eq!(
+        op,
+        Some(FlowchartOperation::Creating {
+            pending: app.pending_nodes().to_vec()
+        })
+    );
+
+    // the keyboard lowers the flag on the keyup, then asks for the commit
+    keys.is_creating_chart = false;
+    let op = app.answer(
+        &KeyEffect::FlowchartCommit,
+        &mut scene,
+        &app_state,
+        &mut keys,
+        &mut env,
+    );
+    let Some(FlowchartOperation::Committed { nodes }) = op else {
+        panic!("committed, got {op:?}");
+    };
+    assert_eq!(ids(&nodes), ids(&want));
+    assert!(app.pending_nodes().is_empty());
+    assert!(!keys.is_creating_chart);
+
+    // Escape drops a new session's pending nodes
+    app.answer(&create, &mut scene, &app_state, &mut keys, &mut env);
+    let op = app.answer(
+        &KeyEffect::FlowchartCanceled,
+        &mut scene,
+        &app_state,
+        &mut keys,
+        &mut env,
+    );
+    assert_eq!(op, Some(FlowchartOperation::Canceled));
+    assert!(app.pending_nodes().is_empty());
+
+    // the walk: the committed nodes are in the scene now
+    let mut all = scene.elements().to_vec();
+    all.extend(nodes.iter().cloned());
+    let mut scene = Scene::new(all);
+    let navigate = |from: &str| KeyEffect::FlowchartNavigate {
+        from: from.into(),
+        direction: LinkDirection::Right,
+    };
+    let op = app.answer(&navigate("a"), &mut scene, &app_state, &mut keys, &mut env);
+    assert_eq!(
+        op,
+        Some(FlowchartOperation::Navigating {
+            node_id: Some(nodes[0].base.id.clone())
+        })
+    );
+    assert!(keys.is_exploring);
+    let op = app.answer(
+        &navigate(&nodes[0].base.id),
+        &mut scene,
+        &app_state,
+        &mut keys,
+        &mut env,
+    );
+    assert_eq!(
+        op,
+        Some(FlowchartOperation::Navigating {
+            node_id: Some(nodes[2].base.id.clone())
+        })
+    );
+    // Alt released
+    keys.is_exploring = false;
+    let op = app.answer(
+        &KeyEffect::FlowchartNavigationEnded,
+        &mut scene,
+        &app_state,
+        &mut keys,
+        &mut env,
+    );
+    assert_eq!(op, Some(FlowchartOperation::NavigationEnded));
+    assert!(!app.navigator.is_exploring);
+    assert!(!keys.is_exploring);
+
+    // a walk that ends on the keyup that commits: after_key_up clears it
+    app.answer(&navigate("a"), &mut scene, &app_state, &mut keys, &mut env);
+    assert!(app.navigator.is_exploring);
+    keys.is_exploring = false;
+    app.after_key_up(&keys);
+    assert!(!app.navigator.is_exploring);
+}

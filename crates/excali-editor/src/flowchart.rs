@@ -893,8 +893,11 @@ impl AppFlowchart {
     }
 
     /// The operation for one effect of [`crate::keyboard`]'s handlers
-    /// (`resolveKeyboardEventToOperation`), `None` for other effects. The
-    /// keyboard's flags follow the creator and the navigator.
+    /// (`resolveKeyboardEventToOperation`), `None` for other effects. After
+    /// Ctrl+Arrow and Alt+Arrow the keyboard's flags follow the creator and
+    /// the navigator; the keyup effects end their sessions (call
+    /// [`AppFlowchart::after_key_up`] too, for a walk that ended on the
+    /// keyup that committed).
     pub fn answer<E: EditEnv>(
         &mut self,
         effect: &KeyEffect,
@@ -906,7 +909,7 @@ impl AppFlowchart {
         let op = match effect {
             KeyEffect::FlowchartCanceled => {
                 self.creator.clear();
-                FlowchartOperation::Canceled
+                return Some(FlowchartOperation::Canceled);
             }
             KeyEffect::FlowchartCreate { start, direction } => {
                 if let Some(start) = start {
@@ -927,9 +930,12 @@ impl AppFlowchart {
             KeyEffect::FlowchartCommit => {
                 let nodes = self.creator.pending_nodes.take().unwrap_or_default();
                 self.creator.clear();
-                FlowchartOperation::Committed { nodes }
+                return Some(FlowchartOperation::Committed { nodes });
             }
-            KeyEffect::FlowchartNavigationEnded => FlowchartOperation::NavigationEnded,
+            KeyEffect::FlowchartNavigationEnded => {
+                self.navigator.clear();
+                return Some(FlowchartOperation::NavigationEnded);
+            }
             _ => return None,
         };
         keys.is_creating_chart = self.creator.is_creating_chart;

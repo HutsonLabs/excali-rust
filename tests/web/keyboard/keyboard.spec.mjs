@@ -408,12 +408,60 @@ const ROWS = {
     let log = await page.evaluate(() => window.log);
     expect(effect(log, "flowchartCreate")).toEqual({ type: "flowchartCreate", start: "r1", direction: "right" });
     expect(await position(page, "r1"), "the node does not move").toEqual([0, 0]);
+    // flowchart.ts createNodes: a pending copy of r1 one gap (100) to its
+    // right (r2 is not connected, so not an obstacle), and its elbow arrow
+    // (bound at the fixed point [1.06, 0.5001]: y 50.01)
+    let s = await state(page);
+    expect(s.pendingFlowchartNodes.map((e) => [e.type, e.x, e.y])).toEqual([
+      ["rectangle", 200, 0],
+      ["arrow", 106, 50.01],
+    ]);
+    expect(s.elements.map((e) => e.id), "pending, not in the scene").toEqual(["r1", "r2"]);
+    const firstArrow = s.pendingFlowchartNodes[1].id;
+    // a second press grows the cluster: two copies, 100 apart, the first
+    // kept in place (the anchored start ties with one step up and wins)
+    await page.keyboard.press("ArrowRight");
+    s = await state(page);
+    const pending = s.pendingFlowchartNodes;
+    expect(pending.filter((e) => e.type === "rectangle").map((e) => [e.x, e.y])).toEqual([
+      [200, 0],
+      [200, 200],
+    ]);
     await page.evaluate(() => (window.log = []));
     await page.keyboard.up(ctrl);
     log = await page.evaluate(() => window.log);
     expect(log.find((e) => e.type === "keyup").outcome.effects.map((e) => e.type)).toContain("flowchartCommit");
-    log = await press(page, "Alt+ArrowDown");
-    expect(effect(log, "flowchartNavigate")).toEqual({ type: "flowchartNavigate", from: "r1", direction: "down" });
+    // committed: inserted after r1 and r2, bound, the first node selected
+    s = await state(page);
+    expect(s.pendingFlowchartNodes).toEqual([]);
+    expect(s.keyboard.isCreatingChart).toBe(false);
+    expect(s.elements.map((e) => e.id)).toEqual(["r1", "r2", ...pending.map((e) => e.id)]);
+    const [n1, a1, n2, a2] = pending.map((p) => s.elements.find((e) => e.id === p.id));
+    for (const [node, arrow] of [
+      [n1, a1],
+      [n2, a2],
+    ]) {
+      expect([arrow.startBinding.elementId, arrow.endBinding.elementId]).toEqual(["r1", node.id]);
+      expect(node.boundElements).toEqual([{ id: arrow.id, type: "arrow" }]);
+    }
+    // r1 is the scene's own element, so every press bound an arrow to it:
+    // the first press's arrow (replaced by the second's) stays listed, as
+    // upstream's does
+    expect(s.elements[0].boundElements.map((b) => b.id)).toEqual([firstArrow, a1.id, a2.id]);
+    expect(s.appState.selectedElementIds).toEqual({ [n1.id]: true });
+    // Alt+Arrow walks the arrows: left from the first node is r1, and
+    // right from r1 goes to its successors in turn
+    log = await press(page, "Alt+ArrowLeft");
+    expect(effect(log, "flowchartNavigate")).toEqual({ type: "flowchartNavigate", from: n1.id, direction: "left" });
+    expect((await state(page)).appState.selectedElementIds).toEqual({ r1: true });
+    await page.keyboard.down("Alt");
+    await page.keyboard.press("ArrowRight");
+    expect((await state(page)).appState.selectedElementIds).toEqual({ [n1.id]: true });
+    expect((await state(page)).keyboard.isExploring).toBe(true);
+    await page.keyboard.press("ArrowRight");
+    expect((await state(page)).appState.selectedElementIds, "the same level cycles").toEqual({ [n2.id]: true });
+    await page.keyboard.up("Alt");
+    expect((await state(page)).keyboard.isExploring, "Alt released").toBe(false);
   },
   "Editor: Arrow keys": async (page) => {
     await load(page, [rect("r1", 10, 10), rect("r2", 200, 0)], { selectedElementIds: { r1: true } });
