@@ -4,9 +4,9 @@
 //! offset is the pointer's scene position less where the press started, and
 //! every element is placed from its original, the copy taken at the press.
 //!
-//! Snapping (`snapDraggedElements`) is not run: the element has no snap
-//! setting on, so upstream's snap offset is `{x: 0, y: 0}` and the grid
-//! decides both axes (`calculateOffset`).
+//! The snap offset is what `snapDraggedElements` found (the editor runs
+//! it first); an axis it did not snap is left to the grid
+//! (`calculateOffset`).
 
 use std::collections::{HashMap, HashSet};
 
@@ -57,22 +57,37 @@ fn update_element_coords(
     );
 }
 
-/// `calculateOffset(commonBounds, dragOffset, snapOffset = {0, 0},
-/// gridSize)` (`dragElements.ts:165-198`).
-fn calculate_offset(bounds: [f64; 4], drag: [f64; 2], grid_size: Option<f64>) -> [f64; 2] {
+/// `calculateOffset(commonBounds, dragOffset, snapOffset, gridSize)`
+/// (`dragElements.ts:169-198`).
+fn calculate_offset(
+    bounds: [f64; 4],
+    drag: [f64; 2],
+    snap: [f64; 2],
+    grid_size: Option<f64>,
+) -> [f64; 2] {
     let [x, y, _, _] = bounds;
-    let [next_x, next_y] = get_grid_point(x + drag[0], y + drag[1], grid_size);
-    [next_x - x, next_y - y]
+    let mut next = [x + drag[0] + snap[0], y + drag[1] + snap[1]];
+    if snap[0] == 0.0 || snap[1] == 0.0 {
+        let [grid_x, grid_y] = get_grid_point(x + drag[0], y + drag[1], grid_size);
+        if snap[0] == 0.0 {
+            next[0] = grid_x;
+        }
+        if snap[1] == 0.0 {
+            next[1] = grid_y;
+        }
+    }
+    [next[0] - x, next[1] - y]
 }
 
 /// `dragSelectedElements(pointerDownState, selectedElements, offset, scene,
-/// {x: 0, y: 0}, gridSize)`: `selected` are the selected elements' ids (bound
-/// text left out), `originals` the scene's elements at the press.
+/// snapOffset, gridSize)`: `selected` are the selected elements' ids
+/// (bound text left out), `originals` the scene's elements at the press.
 pub fn drag_selected_elements(
     originals: &HashMap<String, Element>,
     selected: &[String],
     offset: [f64; 2],
     scene: &mut Scene,
+    snap_offset: [f64; 2],
     grid_size: Option<f64>,
     env: &mut dyn BindingEnv,
 ) {
@@ -135,7 +150,12 @@ pub fn drag_selected_elements(
             None => return,
         }
     }
-    let adjusted = calculate_offset(get_common_bounds(&orig_elements), offset, grid_size);
+    let adjusted = calculate_offset(
+        get_common_bounds(&orig_elements),
+        offset,
+        snap_offset,
+        grid_size,
+    );
     let update_ids: HashSet<String> = to_update.iter().cloned().collect();
 
     for id in &to_update {

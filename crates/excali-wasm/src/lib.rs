@@ -23,6 +23,7 @@
 pub mod drag;
 pub mod editor;
 pub mod env;
+mod interact;
 pub mod text;
 pub mod web;
 

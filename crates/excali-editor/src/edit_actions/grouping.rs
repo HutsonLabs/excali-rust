@@ -134,7 +134,7 @@ fn push_unique(list: &mut Vec<usize>, i: usize) {
 /// `removeElementsFromFrame(elementsToRemove, elementsMap)`
 /// (`frame.ts:637-674`): the elements in a frame, and their bound text,
 /// taken out of it (`frameId: null`, in place).
-fn remove_elements_from_frame<E: EditEnv>(
+pub(crate) fn remove_elements_from_frame<E: EditEnv>(
     elements: &mut [Element],
     to_remove: &[usize],
     live_only: bool,
@@ -159,7 +159,7 @@ fn remove_elements_from_frame<E: EditEnv>(
 /// `omitGroupsContainingFrameLikes(allElements, selectedElements)`
 /// (`frame.ts:747-782`): `selected` (or `all`) without the elements whose
 /// outermost group holds a frame among `all`.
-fn omit_groups_containing_frame_likes(
+pub(crate) fn omit_groups_containing_frame_likes(
     elements: &[Element],
     all: &[usize],
     selected: Option<&[usize]>,
@@ -194,7 +194,7 @@ fn omit_groups_containing_frame_likes(
 }
 
 /// `getCommonFrameId(elements)` (`frame.ts:503-519`).
-fn get_common_frame_id(elements: &[&Element]) -> Option<String> {
+pub(crate) fn get_common_frame_id(elements: &[&Element]) -> Option<String> {
     let mut common: Option<&str> = None;
     for element in elements {
         let frame = frame_id(element);
@@ -231,7 +231,7 @@ pub(crate) fn get_frame_children_insertion_index(
 /// frames, other frames' children or groups holding a frame) put in the
 /// frame, and moved below the frame or above its highest child with their
 /// fractional indices synced, unless they all were in it already.
-fn add_elements_to_frame<E: EditEnv>(
+pub(crate) fn add_elements_to_frame<E: EditEnv>(
     mut elements: Vec<Element>,
     to_add: &[usize],
     frame: &Element,
@@ -298,7 +298,7 @@ fn add_elements_to_frame<E: EditEnv>(
 /// `replaceAllElementsInFrame(allElements, nextElementsInFrame, frame)`
 /// (`frame.ts:684-694`): every child taken out of the frame
 /// (`removeAllElementsFromFrame`), then the given ones added.
-fn replace_all_elements_in_frame<E: EditEnv>(
+pub(crate) fn replace_all_elements_in_frame<E: EditEnv>(
     mut elements: Vec<Element>,
     next_in_frame: &[usize],
     frame: &Element,
@@ -342,7 +342,7 @@ fn select_groups_from_given_elements(
 /// (`frame.ts:283-378`): the elements a frame holds after a change (its
 /// children still in or crossing it, whole groups kept together, and new
 /// elements and groups wholly inside it), bound text left out.
-fn get_elements_in_resizing_frame(
+pub(crate) fn get_elements_in_resizing_frame(
     elements: &[Element],
     frame: &Element,
     app_state: &AppState,

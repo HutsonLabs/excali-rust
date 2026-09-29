@@ -184,6 +184,26 @@ impl TransformSession {
         modifiers: TransformModifiers,
         grid_size: Option<f64>,
     ) -> bool {
+        self.update_snapped(scene, env, pointer, modifiers, grid_size, [0.0, 0.0])
+    }
+
+    /// The selected elements' ids.
+    pub fn selected(&self) -> &[String] {
+        &self.selected
+    }
+
+    /// [`TransformSession::update`] with `snap_offset` (what
+    /// `snapResizingElements` returned) added to the point after the grid
+    /// (`App.tsx:13742-13779`).
+    pub fn update_snapped(
+        &self,
+        scene: &mut Scene,
+        env: &mut dyn TransformEnv,
+        pointer: [f64; 2],
+        modifiers: TransformModifiers,
+        grid_size: Option<f64>,
+        snap_offset: [f64; 2],
+    ) -> bool {
         let Some(handle) = self.handle else {
             return false;
         };
@@ -198,6 +218,7 @@ impl TransformSession {
             pointer[1] - self.offset[1],
             if modifiers.ctrl { None } else { grid_size },
         );
+        let resize = [resize[0] + snap_offset[0], resize[1] + snap_offset[1]];
         // images are proportional by default, and so is a sticky note's
         // corner (its label's font ceiling scales with it); Shift frees them
         let proportional_by_default = sel.iter().any(|e| matches!(e.kind, ElementKind::Image(_)))

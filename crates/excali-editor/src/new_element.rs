@@ -289,6 +289,9 @@ pub struct DragNewElement<'a> {
     pub maintain_aspect_ratio: bool,
     pub resize_from_center: bool,
     pub width_aspect_ratio: Option<f64>,
+    /// `originSnapOffset`: where the pointer snapped before the press,
+    /// added to the corner.
+    pub origin_offset: Option<[f64; 2]>,
 }
 
 /// `dragNewElement({...})` (`dragElements.ts:294-406`) for an element that
@@ -338,7 +341,8 @@ pub fn drag_new_element(args: &DragNewElement<'_>) -> Option<[f64; 4]> {
         new_x = origin_x - width / 2.0;
         new_y = origin_y - height / 2.0;
     }
-    (width != 0.0 && height != 0.0).then_some([new_x, new_y, width, height])
+    let [dx, dy] = args.origin_offset.unwrap_or([0.0, 0.0]);
+    (width != 0.0 && height != 0.0).then_some([new_x + dx, new_y + dy, width, height])
 }
 
 /// `MINIMUM_ARROW_SIZE` (`common/src/constants.ts:29`): a new line or

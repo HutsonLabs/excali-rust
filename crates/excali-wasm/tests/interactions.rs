@@ -96,8 +96,18 @@ fn app(ed: &Ed, key: &str) -> Value {
     ed.app_state().get(key).cloned().unwrap_or(Value::Null)
 }
 
-fn tool(ed: &Ed) -> Value {
-    ed.state()["activeTool"].clone()
+/// The id of the element an app state key holds (`frameToHighlight`,
+/// `newElement`, `multiElement`), or `null`.
+fn app_id(ed: &Ed, key: &str) -> Value {
+    app(ed, key).get("id").cloned().unwrap_or(Value::Null)
+}
+
+/// The ids of `elementsToHighlight`.
+fn highlighted(ed: &Ed) -> Value {
+    match app(ed, "elementsToHighlight") {
+        Value::Array(list) => Value::Array(list.iter().map(|e| e["id"].clone()).collect()),
+        other => other,
+    }
 }
 
 fn key(ed: &mut Ed, stroke: Keystroke) {
@@ -349,7 +359,7 @@ fn a_dragged_element_joins_the_frame() {
     let mut ed = editor_with(vec![rect2(), frame()]);
     drag_element_into_frame(&mut ed, [0.0, 0.0, 150.0, 150.0], [200.0, 0.0, 50.0, 50.0]);
     assert_eq!(frame_of(&ed, "id2").as_deref(), Some("id0"));
-    assert_eq!(app(&ed, "frameToHighlight"), Value::Null);
+    assert_eq!(app_id(&ed, "frameToHighlight"), Value::Null);
 }
 
 #[test]
@@ -446,7 +456,7 @@ fn a_frame_child_dragged_under_a_cover_stays_in_its_frame() {
     click(&mut ed, [100.0, 20.0]);
     ed.pointer_down(at(110.0, 30.0));
     ed.pointer_move(at(20.0, 20.0));
-    assert_eq!(app(&ed, "frameToHighlight"), json!("id0"));
+    assert_eq!(app_id(&ed, "frameToHighlight"), json!("id0"));
     ed.pointer_up(at(20.0, 20.0));
     assert_eq!(frame_of(&ed, "frameChild").as_deref(), Some("id0"));
 }
@@ -535,14 +545,14 @@ fn the_target_frame_is_highlighted_while_drawing() {
     let mut ed = editor_with(vec![frame()]);
     letter(&mut ed, "r");
     ed.pointer_move(at(20.0, 20.0));
-    assert_eq!(app(&ed, "frameToHighlight"), json!("id0"));
+    assert_eq!(app_id(&ed, "frameToHighlight"), json!("id0"));
     ed.pointer_move(at(200.0, 200.0));
-    assert_eq!(app(&ed, "frameToHighlight"), Value::Null);
+    assert_eq!(app_id(&ed, "frameToHighlight"), Value::Null);
     ed.pointer_down(at(20.0, 20.0));
     ed.pointer_move(at(40.0, 40.0));
-    assert_eq!(app(&ed, "frameToHighlight"), json!("id0"));
+    assert_eq!(app_id(&ed, "frameToHighlight"), json!("id0"));
     ed.pointer_up(at(40.0, 40.0));
-    assert_eq!(app(&ed, "frameToHighlight"), Value::Null);
+    assert_eq!(app_id(&ed, "frameToHighlight"), Value::Null);
 }
 
 #[test]
@@ -558,12 +568,12 @@ fn a_new_frame_takes_in_the_elements_inside_it() {
     letter(&mut ed, "f");
     ed.pointer_down(at(50.0, 50.0));
     ed.pointer_move(at(300.0, 300.0));
-    assert_eq!(app(&ed, "elementsToHighlight"), json!(["inside"]));
+    assert_eq!(highlighted(&ed), json!(["inside"]));
     ed.pointer_up(at(300.0, 300.0));
     let f = created(&ed, &["inside", "across"]);
     assert_eq!(frame_of(&ed, "inside"), Some(f.base.id.clone()));
     assert_eq!(frame_of(&ed, "across"), None);
-    assert_eq!(app(&ed, "elementsToHighlight"), Value::Null);
+    assert_eq!(highlighted(&ed), Value::Null);
 }
 
 #[test]

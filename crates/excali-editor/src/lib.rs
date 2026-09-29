@@ -90,6 +90,7 @@ pub mod edit_actions;
 pub mod elbow_arrow;
 pub mod eraser;
 pub mod flowchart;
+pub mod frame;
 pub mod geometry;
 pub mod groups;
 pub mod history;
