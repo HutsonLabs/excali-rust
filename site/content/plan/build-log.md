@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-29 · ex-514 · Actions registry as data: the 99 action names with predicates and key tests
+
+The editor now has upstream's actions registry as data: the 99 `ActionName`s in upstream's order, the 95 registered actions with their labels, keywords, icons, key priorities, view-mode and navigation flags, predicates, `checked` state and key tests (with `CTRL_OR_CMD` by platform and non-Latin layouts matched by key code), and the action manager's key handling and gates. The canvas and element context menus, the command palette commands, the full styles panel and the default main menu are generated from the registry, and upstream's context menu and element lock tests are ported.
+
 ## 2026-09-29 · ex-116 · Restore: legacy arrow binding migration (bindings without mode) through RestoreEnv::migrate_legacy_binding
 
 Files saved before upstream's binding format gained `mode` no longer lose their arrow bindings on load. When a legacy binding's target exists, excali-editor answers `RestoreEnv::migrate_legacy_binding` as upstream's `restoreElement` does: it finds the arrow end, tests whether it lies inside the shape, projects it onto the diagonal at the default zoom, and computes the fixed point. All 32 new geometry cases in `restore-element.json` match upstream's own `restoreElement` output with no answer injected, and so do the 51 catalogue libraries that contain legacy bindings. The ADR-008 exception for this is removed. PR: [#95](https://github.com/HutsonLabs/excali-rust/pull/95).
