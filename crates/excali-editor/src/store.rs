@@ -37,11 +37,14 @@ use excali_core::fractional_index::{
 };
 use excali_core::library::{hash_elements_version, hash_string};
 use excali_core::order_key::OrderKeyError;
+use excali_text::text_measurements::{CharWidthCache, TextMetricsProvider};
 use indexmap::IndexMap;
 use serde_json::{json, Map, Value};
 
+use crate::binding::BindingEnv;
 use crate::delta::{AppStateDelta, ApplyToOptions, Delta, DeltaError, ElementsDelta};
 use crate::js_value::truthy;
+use crate::scene::MutationEnv;
 
 /// `CaptureUpdateAction` (`store.ts:38-69`): whether and when an update
 /// becomes undoable.
@@ -88,17 +91,32 @@ pub trait HistoryEnv: ChangeStamp {
         container_id: &str,
     ) -> Result<(), String>;
 
+    /// The text metrics and the per-font character width cache an arrow's
+    /// label is re-wrapped with when the arrow is laid out again
+    /// (`textMeasurements.ts`'s provider and `charWidth`).
+    fn text(&mut self) -> (&dyn TextMetricsProvider, &mut CharWidthCache);
+
     /// `updateBoundElements(changedElement, scene, { changedElements })`
     /// (`binding.ts:1321`): re-route the arrows bound to the bindable
     /// element `element_id` (in `elements`, not deleted), reading the
     /// elements of `changed` in place of the scene's. An error is what
-    /// upstream's layout throws.
+    /// upstream's layout throws. The default is the port's
+    /// [`crate::binding::update_bound_elements_in_map`], which does not
+    /// fail.
     fn update_bound_elements(
         &mut self,
         elements: &mut SceneElementsMap,
         element_id: &str,
         changed: &SceneElementsMap,
-    ) -> Result<(), String>;
+    ) -> Result<(), String> {
+        crate::binding::update_bound_elements_in_map(
+            elements,
+            element_id,
+            changed,
+            &mut HistoryBindingEnv(self),
+        );
+        Ok(())
+    }
 
     /// `isTestEnv() || isDevEnv()`: whether applying a delta fails on an
     /// error (a delta that cannot be applied, a layout error, layout
@@ -107,6 +125,26 @@ pub trait HistoryEnv: ChangeStamp {
     /// `1500-1552`, `2034-2057`). Debug builds check, release builds do not.
     fn dev_checks(&self) -> bool {
         cfg!(debug_assertions)
+    }
+}
+
+/// A [`HistoryEnv`] as the environment of binding's layout: its version
+/// nonces and timestamps, and its text metrics.
+struct HistoryBindingEnv<'a, E: HistoryEnv + ?Sized>(&'a mut E);
+
+impl<E: HistoryEnv + ?Sized> MutationEnv for HistoryBindingEnv<'_, E> {
+    fn random_integer(&mut self) -> f64 {
+        self.0.version_nonce()
+    }
+
+    fn now(&mut self) -> f64 {
+        self.0.updated()
+    }
+}
+
+impl<E: HistoryEnv + ?Sized> BindingEnv for HistoryBindingEnv<'_, E> {
+    fn text(&mut self) -> (&dyn TextMetricsProvider, &mut CharWidthCache) {
+        self.0.text()
     }
 }
 

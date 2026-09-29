@@ -5,6 +5,13 @@
 //! Targets: native (tests), wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-scene`.
 //!
+//! - [`binding`]: arrow binding (`binding.ts`): the gap and distance,
+//!   fixed points, the binding strategies for dragged ends (modes inside,
+//!   orbit and skip), binding and unbinding, and bound arrows following
+//!   their elements; [`binding_highlight`]: the outline and midpoints the
+//!   interactive canvas draws around the element an end would bind to;
+//!   [`linear_element_editor`]: the point geometry and `movePoints` of
+//!   `LinearElementEditor` binding uses.
 //! - [`collision`]: hit testing (`packages/element/src/collision.ts`,
 //!   `App.getElementHitThreshold`, `App.hitElement`): thresholds, the
 //!   inside and outline rules, per-shape intersections and binding hit
@@ -43,6 +50,8 @@
 //!   `actionCanvas.tsx`).
 
 mod binary_heap;
+pub mod binding;
+pub mod binding_highlight;
 pub mod collision;
 pub mod delta;
 pub mod distance;
@@ -50,6 +59,7 @@ pub mod elbow_arrow;
 pub mod geometry;
 pub mod history;
 mod js_value;
+pub mod linear_element_editor;
 pub mod mutate;
 pub mod resize_elements;
 pub mod resize_test;

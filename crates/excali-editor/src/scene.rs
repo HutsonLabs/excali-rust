@@ -15,6 +15,7 @@ use excali_core::element::{
 };
 use excali_math::js;
 use excali_scene::bounds::ElementsMap;
+use serde_json::Value;
 
 use crate::elbow_arrow::{self, ElbowArrowUpdates};
 
@@ -53,6 +54,16 @@ pub struct ElementUpdate {
     pub bound_elements: Option<Option<Vec<BoundElement>>>,
     /// A sticky note's `baseHeight`.
     pub base_height: Option<f64>,
+    /// `moveMidPointsWithElement`: not an element field upstream, but
+    /// `LinearElementEditor.movePoints` passes its options on to
+    /// `mutateElement` (`...otherUpdates`), which writes the key onto the
+    /// arrow like any other; the port keeps it with the element's unknown
+    /// keys ([`Element::extra`]).
+    pub move_mid_points_with_element: Option<bool>,
+    /// `frameId` (`Some(None)` is `null`).
+    pub frame_id: Option<Option<String>>,
+    /// A text's `containerId` (`Some(None)` is `null`).
+    pub container_id: Option<Option<String>>,
 }
 
 impl ElementUpdate {
@@ -278,6 +289,17 @@ fn set_object<T>(slot: &mut Option<T>, value: Option<Option<T>>) -> bool {
     }
 }
 
+/// Assigns a nullable string unless it is `===` the current one.
+fn set_string(slot: &mut Option<String>, value: Option<Option<String>>) -> bool {
+    match value {
+        Some(v) if *slot != v => {
+            *slot = v;
+            true
+        }
+        _ => false,
+    }
+}
+
 /// Assigns an optional (absent-able) nullable object key.
 fn set_absent_object<T>(slot: &mut Option<Option<T>>, value: Option<Option<T>>) -> bool {
     match value {
@@ -324,6 +346,14 @@ fn apply(element: &mut Element, update: ElementUpdate) -> bool {
         }
     }
     changed |= set_object(&mut b.bound_elements, update.bound_elements);
+    changed |= set_string(&mut b.frame_id, update.frame_id);
+    if let Some(v) = update.move_mid_points_with_element {
+        let key = "moveMidPointsWithElement";
+        if element.extra.get(key) != Some(&Value::Bool(v)) {
+            element.extra.insert(key.to_owned(), Value::Bool(v));
+            changed = true;
+        }
+    }
 
     match &mut element.kind {
         ElementKind::Line(line) => {
@@ -355,6 +385,7 @@ fn apply(element: &mut Element, update: ElementUpdate) -> bool {
             changed |= set_points(&mut freedraw.points, update.points);
         }
         ElementKind::Text(text) => {
+            changed |= set_string(&mut text.container_id, update.container_id);
             changed |= set_number(&mut text.font_size, update.font_size);
             if let Some(v) = update.base_font_size {
                 if !(text.base_font_size == v) {
