@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 21:16 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 21:37 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**150 issues** · 107 closed (71%) · 1 in progress · 0 blocked · 41 open
+**150 issues** · 108 closed (72%) · 1 in progress · 0 blocked · 40 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -133,7 +133,7 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
 ## ex-e5 · Phase 5: Web runtime and editor
 
-<span class="status open">open</span> 28/38 children closed
+<span class="status open">open</span> 29/38 children closed
 
 Canvas2D backend, interaction state machine, history, DOM chrome without a framework, keyboard shortcuts, the <excali-editor> custom element.
 
@@ -172,11 +172,11 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-531` | Playwright parity suite against the checklist | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-532` | Theme tokens: light and dark CSS custom properties embedded and overridable by the host | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-533` | excali-math js::sin/cos match V8's libm trig bit for bit; remove the 1e-12 tolerance in excali-editor tests/transform.rs | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-534` | Flowchart creator and navigator (flowchart.ts): Ctrl+Arrow pending nodes and arrows, Alt+Arrow navigation | task | P1 | <span class="status in_progress">in progress</span> |  |  |
+| `ex-534` | Flowchart creator and navigator (flowchart.ts): Ctrl+Arrow pending nodes and arrows, Alt+Arrow navigation | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-535` | Element type conversion: convertElementTypes and the Tab / Shift+Tab convert popup | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-536` | Colour picker top-picks customisation: drag a colour onto the strip, reorder, context-menu reset, tip | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-537` | Library sidebar header menu: load and save library files, the reset and remove confirm dialogs, the publish dialog | task | P2 | <span class="status open">open</span> | yes |  |
-| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-522`, `ex-524`, `ex-527`, `ex-528`, `ex-529`, `ex-534` … |
+| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-522`, `ex-524`, `ex-527`, `ex-528`, `ex-529`, `ex-535` … |
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
 
@@ -188,7 +188,7 @@ Vendored module in term.hut with CRUD and library import; tauri-plugin-excali wi
 |---|---|---|---|---|---|---|
 | `ex-601` | term.hut: vendor the module and route .excalidraw to the editor in preview.js | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-602` | term.hut: save through fs_write_text with dirty state and conflict handling | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-603` | term.hut: New drawing and delete flows in the tree | task | P1 | <span class="status open">open</span> | yes |  |
+| `ex-603` | term.hut: New drawing and delete flows in the tree | task | P1 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-604` | term.hut: Import library from URL or file with the allow-list | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-605` | tauri-plugin-excali: dialogs, headless export, allow-listed library fetch, capability file | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-606` | Example Tauri app embedding the editor | task | P1 | <span class="status closed">closed</span> |  |  |
