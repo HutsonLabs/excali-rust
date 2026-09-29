@@ -150,10 +150,16 @@ test("the tooltip shows under its item and hides on leave", async ({ page }) => 
   const tooltip = page.locator(".excalidraw-tooltip");
   await expect(tooltip).toHaveClass("excalidraw-tooltip excalidraw-tooltip--visible");
   await expect(tooltip).toHaveText("A tooltip");
+  // what the port writes is updateTooltipPosition of the rects it reads,
+  // exactly (the laid-out box then snaps to Chromium's 1/64px grid, so it
+  // is compared with the written style, not the box)
   const item = await box(page, ".gallery-tooltip");
   const tip = await box(page, ".excalidraw-tooltip");
-  expect(tip.top).toBeCloseTo(item.bottom + 5, 5);
-  expect(tip.left + tip.width / 2).toBeCloseTo(item.left + item.width / 2, 5);
+  const written = await tooltip.evaluate((el) => [el.style.top, el.style.left]);
+  expect(written).toEqual([`${item.top + item.height + 5}px`, `${item.left + item.width / 2 - tip.width / 2}px`]);
+  // and the box is there, to the layout grid
+  expect(Math.abs(tip.top - (item.top + item.height + 5))).toBeLessThanOrEqual(1 / 64);
+  expect(Math.abs(tip.left + tip.width / 2 - (item.left + item.width / 2))).toBeLessThanOrEqual(1 / 64);
   expect(await tooltip.evaluate((el) => [el.style.minWidth, el.style.maxWidth])).toEqual(["10ch", "15ch"]);
   await page.mouse.move(1000, 700);
   await expect(tooltip).toHaveClass("excalidraw-tooltip");
