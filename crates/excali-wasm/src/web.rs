@@ -29,6 +29,10 @@ use excali_ui::dom::{mount, Mounted, Node};
 use excali_ui::footer::{footer, FooterControl, FooterProps, OnFooterEvent};
 use excali_ui::keyboard::{apply_outcome, keystroke};
 use excali_ui::layers::{CanvasLayers, Layer};
+use excali_ui::text_editor::{
+    measure_caret_offset, Handled, TextEditorOverlay, TextareaEvent, TextareaHandler,
+    TEXTAREA_ATTRIBUTES, TEXT_EDITOR_CSS,
+};
 use excali_ui::theme::{apply_container_tokens, apply_theme};
 use excali_ui::toolbar::{
     activate_extra_tool, activate_tool_button, install_stylesheet, toolbar, ToolbarEvent,
@@ -90,6 +94,7 @@ pub fn stylesheet() -> String {
         excali_ui::toolbar::TOOLBAR_CSS,
         excali_ui::footer::FOOTER_CSS,
         excali_ui::layers::CANVAS_LAYER_CSS,
+        TEXT_EDITOR_CSS,
         ELEMENT_CSS,
     ]
     .join("\n")
@@ -107,7 +112,12 @@ fn install_element_stylesheet(document: &Document) -> Result<(), JsValue> {
     let style = document.create_element("style")?;
     style.set_attribute("data-excali-ui", "excali-editor")?;
     style.set_text_content(Some(
-        &[excali_ui::layers::CANVAS_LAYER_CSS, ELEMENT_CSS].join("\n"),
+        &[
+            excali_ui::layers::CANVAS_LAYER_CSS,
+            TEXT_EDITOR_CSS,
+            ELEMENT_CSS,
+        ]
+        .join("\n"),
     ));
     let head = document
         .head()
@@ -178,6 +188,10 @@ struct Inner {
     top: HtmlElement,
     toolbar: Option<Mounted>,
     footer: Option<Mounted>,
+    /// The text editor's box (`.excalidraw-textEditorContainer`) and the
+    /// textarea mounted in it while a text is edited.
+    editor_box: HtmlElement,
+    overlay: Option<TextEditorOverlay>,
     extra_tools_open: bool,
     /// What the chrome was last rendered from ([`chrome_key`]).
     chrome_key: Option<Value>,
@@ -268,9 +282,105 @@ fn chrome_key(inner: &Inner) -> Value {
     })
 }
 
+/// The textarea's events, handed to the editor.
+struct TextareaBridge {
+    inner: Weak<RefCell<Inner>>,
+}
+
+impl TextareaHandler for TextareaBridge {
+    fn on_event(&mut self, event: TextareaEvent) -> Handled {
+        let Some(rc) = self.inner.upgrade() else {
+            return Handled::default();
+        };
+        // an event fired while the element is busy (the textarea's removal)
+        let Ok(mut inner) = rc.try_borrow_mut() else {
+            return Handled::default();
+        };
+        let handled = inner.editor.textarea_event(event);
+        inner.after_event();
+        let closed = handled.state.as_ref().is_some_and(|s| !s.open);
+        drop(inner);
+        if closed {
+            // unmounted once this event is over (its listener is the
+            // overlay's); the container takes the focus back
+            let weak = self.inner.clone();
+            let later = Closure::once_into_js(move || {
+                let Some(rc) = weak.upgrade() else {
+                    return;
+                };
+                let mut inner = rc.borrow_mut();
+                if inner.editor.textarea().is_none() {
+                    if let Some(overlay) = inner.overlay.take() {
+                        overlay.unmount();
+                    }
+                }
+                let _ = inner.container.focus();
+                drop(inner);
+                refresh_chrome(&weak);
+            });
+            if let Some(window) = web_sys::window() {
+                let _ = window.set_timeout_with_callback(later.unchecked_ref());
+            }
+        }
+        handled
+    }
+}
+
+/// Mounts the textarea when the editor opened a text editor, unmounts it
+/// when the editor closed, and lays it out again after anything else
+/// moved the scene or the viewport under it.
+fn sync_text_editor(weak: &Weak<RefCell<Inner>>) {
+    let Some(rc) = weak.upgrade() else {
+        return;
+    };
+    let mut inner = rc.borrow_mut();
+    match (inner.editor.textarea().is_some(), inner.overlay.is_some()) {
+        (true, false) => {
+            let Some(state) = inner.editor.text_editor_app_changed() else {
+                return;
+            };
+            let handler: Rc<RefCell<dyn TextareaHandler>> = Rc::new(RefCell::new(TextareaBridge {
+                inner: weak.clone(),
+            }));
+            let canvas: Option<web_sys::Element> = inner
+                .layers
+                .canvas(Layer::Interactive)
+                .map(|c| c.clone().into());
+            let Ok(overlay) =
+                TextEditorOverlay::mount(&inner.editor_box, canvas.as_ref(), &state, handler)
+            else {
+                return;
+            };
+            if let Some(request) = inner.editor.caret_request() {
+                let offset = measure_caret_offset(&inner.document(), &request);
+                inner.editor.resolve_caret(offset);
+                if let Some(state) = inner.editor.textarea() {
+                    overlay.apply(&state);
+                }
+            }
+            inner.overlay = Some(overlay);
+        }
+        (false, true) => {
+            if let Some(overlay) = inner.overlay.take() {
+                overlay.unmount();
+            }
+        }
+        (true, true) => {
+            if let Some(state) = inner.editor.text_editor_app_changed() {
+                if let Some(overlay) = &inner.overlay {
+                    overlay.apply(&state);
+                }
+            }
+        }
+        (false, false) => {}
+    }
+}
+
 /// Re-mounts the chrome (the toolbar and the footer) when what it shows
-/// changed since the last time.
+/// changed since the last time, and keeps the text editor's textarea in
+/// step with the editor.
 fn refresh_chrome(weak: &Weak<RefCell<Inner>>) {
+    sync_text_editor(weak);
     let Some(rc) = weak.upgrade() else {
         return;
     };
@@ -494,6 +604,9 @@ impl EditorCore {
         apply_container_tokens(&container)?;
         host.append_child(&container)?;
         let layers = CanvasLayers::mount(&container)?;
+        let editor_box: HtmlElement = document.create_element("div")?.dyn_into()?;
+        editor_box.set_class_name(TEXTAREA_ATTRIBUTES.container_class_name);
+        container.append_child(&editor_box)?;
         let top: HtmlElement = document.create_element("div")?.dyn_into()?;
         top.set_class_name("excali-editor__top");
         container.append_child(&top)?;
@@ -515,6 +628,8 @@ impl EditorCore {
             top,
             toolbar: None,
             footer: None,
+            editor_box,
+            overlay: None,
             extra_tools_open: false,
             chrome_key: None,
             ui: "full".into(),
@@ -617,6 +732,27 @@ impl EditorCore {
         // prevents the browser's)
         listen(&inner, &interactive, "contextmenu", |_, event| {
             event.prevent_default();
+        })?;
+        listen(&inner, &interactive, "dblclick", |rc, event| {
+            let Ok(event) = event.dyn_into::<web_sys::MouseEvent>() else {
+                return;
+            };
+            let mut inner = rc.borrow_mut();
+            inner.editor.double_click(PointerInput {
+                client_x: number(&event, "clientX"),
+                client_y: number(&event, "clientY"),
+                button: event.button(),
+                shift_key: event.shift_key(),
+                alt_key: event.alt_key(),
+                ctrl_or_cmd: if is_darwin() {
+                    event.meta_key()
+                } else {
+                    event.ctrl_key()
+                },
+            });
+            inner.after_event();
+            drop(inner);
+            refresh_chrome(&Rc::downgrade(rc));
         })?;
 
         {
@@ -785,6 +921,9 @@ impl EditorCore {
         for (target, name, closure) in inner.listeners.drain(..) {
             let _ =
                 target.remove_event_listener_with_callback(name, closure.as_ref().unchecked_ref());
+        }
+        if let Some(overlay) = inner.overlay.take() {
+            overlay.unmount();
         }
         for mounted in [inner.toolbar.take(), inner.footer.take()]
             .into_iter()

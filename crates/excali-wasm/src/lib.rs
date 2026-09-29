@@ -23,6 +23,7 @@
 pub mod drag;
 pub mod editor;
 pub mod env;
+pub mod text;
 pub mod web;
 
 use std::cell::RefCell;

@@ -95,6 +95,7 @@ use serde_json::{json, Map, Value};
 
 use crate::drag::drag_selected_elements;
 use crate::env::EditorEnv;
+use excali_editor::text_editing::TextEditor;
 
 /// What the editor asks of its host, in order.
 #[derive(Clone, Debug, PartialEq)]
@@ -267,7 +268,7 @@ pub struct WheelInput {
 
 /// A press on the canvas, until its release.
 #[derive(Clone, Debug)]
-enum Gesture {
+pub(crate) enum Gesture {
     /// `AppPan`'s session (`App.pan.ts:100-285`): the last client position.
     Pan { last: [f64; 2] },
     /// The selection tool's press (`pointerDownState`).
@@ -284,12 +285,18 @@ enum Gesture {
         start: [f64; 2],
         pending: Vec<String>,
     },
+    /// The text tool's press that started a new text (`newElement`),
+    /// opened on release.
+    TextCreate { id: String },
+    /// The text tool's press on an empty container's centre, decided on
+    /// release (`AppTextTool.pending`).
+    TextLabel { container: String, origin: [f64; 2] },
 }
 
 /// The element a drawing tool's press created (`appState.newElement`) and
 /// the press (`pointerDownState`).
 #[derive(Clone, Debug)]
-struct CreateGesture {
+pub(crate) struct CreateGesture {
     id: String,
     /// `activeTool.type`.
     tool: String,
@@ -303,7 +310,7 @@ struct CreateGesture {
 
 /// The selection tool's press (`pointerDownState`).
 #[derive(Clone, Debug)]
-struct SelectGesture {
+pub(crate) struct SelectGesture {
     /// Scene coordinates of the press.
     origin: [f64; 2],
     /// The elements at the press (`pointerDownState.originalElements`).
@@ -334,30 +341,32 @@ fn is_bound_text(e: &Element) -> bool {
 
 /// The editor over the text metrics `P`.
 pub struct Editor<P: TextMetricsProvider + Clone> {
-    session: Session<EditorEnv<P>>,
+    pub(crate) session: Session<EditorEnv<P>>,
     /// The loaded file: what the save writes around the scene (its unknown
     /// top-level keys, the form of its `files`).
-    file: LoadedScene,
-    library: Vec<LibraryItem>,
-    tools: ToolState,
-    keyboard: KeyboardState,
-    actions: ActionManager,
-    props: AppProps,
-    action_env: ActionEnv,
+    pub(crate) file: LoadedScene,
+    pub(crate) library: Vec<LibraryItem>,
+    pub(crate) tools: ToolState,
+    pub(crate) keyboard: KeyboardState,
+    pub(crate) actions: ActionManager,
+    pub(crate) props: AppProps,
+    pub(crate) action_env: ActionEnv,
     /// `getExportSource()`: the page's origin.
-    source: String,
+    pub(crate) source: String,
     /// What [`Editor::save`] wrote, or the load gave.
-    clean: String,
+    pub(crate) clean: String,
     /// The viewport keys the host measured (`width`, `height`,
     /// `offsetLeft`, `offsetTop`), kept across loads.
-    viewport: Map<String, Value>,
-    gesture: Option<Gesture>,
+    pub(crate) viewport: Map<String, Value>,
+    pub(crate) gesture: Option<Gesture>,
     /// `viewport.lastPosition`: the last pointer position in the page,
     /// which a wheel zoom zooms around.
-    last_pointer: [f64; 2],
-    hit_cache: HitTestCache,
-    events: Vec<HostEvent>,
-    reported: (f64, bool),
+    pub(crate) last_pointer: [f64; 2],
+    pub(crate) hit_cache: HitTestCache,
+    pub(crate) events: Vec<HostEvent>,
+    pub(crate) reported: (f64, bool),
+    /// The open text editor (`textWysiwyg`), if any.
+    pub(crate) text_editor: Option<TextEditor>,
 }
 
 const EMPTY_SCENE: &str =
@@ -396,6 +405,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             hit_cache: HitTestCache::new(),
             events: Vec::new(),
             reported: (0.0, false),
+            text_editor: None,
         };
         editor.start(editor.file.clone());
         editor
@@ -490,7 +500,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         serialize_library_as_json(&self.library, &self.source)
     }
 
-    fn selected_ids(&self) -> Vec<String> {
+    pub(crate) fn selected_ids(&self) -> Vec<String> {
         self.session
             .app_state()
             .get("selectedElementIds")
@@ -525,7 +535,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
 
     /// A `change` event when the scene or the dirty flag moved since the
     /// last one.
-    fn report(&mut self) {
+    pub(crate) fn report(&mut self) {
         let now = (scene_version(self.session.elements()), self.dirty());
         if now != self.reported {
             self.reported = now;
@@ -561,7 +571,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
 
     /// The working scene written back: the elements when they changed, the
     /// app state keys that changed, then the commit.
-    fn apply(&mut self, scene: Scene, app_state: AppState) {
+    pub(crate) fn apply(&mut self, scene: Scene, app_state: AppState) {
         if scene.elements() != self.session.elements() {
             // Ok: the scene only moved elements, their indices stay valid
             let _ = self.session.replace_all_elements(scene.elements().to_vec());
@@ -725,7 +735,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         self.report();
     }
 
-    fn scene_point(&self, client_x: f64, client_y: f64) -> [f64; 2] {
+    pub(crate) fn scene_point(&self, client_x: f64, client_y: f64) -> [f64; 2] {
         let state = ViewportState::from_app_state(self.session.app_state());
         let (x, y) = viewport_coords_to_scene_coords(client_x, client_y, &state);
         [x, y]
@@ -748,7 +758,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
 
     /// `getElementAtPosition(x, y)`: the topmost element hit, bound text
     /// counting as its container's.
-    fn element_at(&mut self, point: [f64; 2]) -> Option<String> {
+    pub(crate) fn element_at(&mut self, point: [f64; 2]) -> Option<String> {
         let zoom = self.session.app_state().zoom().unwrap_or(1.0);
         let selected: Vec<String> = self.selected_ids();
         let elements = self.session.elements();
@@ -804,7 +814,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         })
     }
 
-    fn set_selection(&mut self, ids: &[String]) {
+    pub(crate) fn set_selection(&mut self, ids: &[String]) {
         let selection: Map<String, Value> = ids
             .iter()
             .map(|id| (id.clone(), Value::Bool(true)))
@@ -939,6 +949,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             "rectangle" | "diamond" | "ellipse" | "arrow" | "line" | "freedraw" | "frame" => {
                 self.create_pointer_down(input, &tool)
             }
+            "text" => self.text_pointer_down(input),
             _ => {}
         }
     }
@@ -1162,7 +1173,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                     .collect();
                 *pending = trail.add_point_to_path(point.0, point.1, input.alt_key, &visible, zoom);
             }
-            None => {}
+            Some(Gesture::TextCreate { .. } | Gesture::TextLabel { .. }) | None => {}
         }
     }
 
@@ -1279,7 +1290,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
 
     /// `getEffectiveGridSize()`: the grid size in grid mode, none with
     /// Ctrl/Cmd held.
-    fn grid_size(&self, ctrl_or_cmd: bool) -> Option<f64> {
+    pub(crate) fn grid_size(&self, ctrl_or_cmd: bool) -> Option<f64> {
         if ctrl_or_cmd {
             return None;
         }
@@ -1447,6 +1458,9 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             Some(Gesture::Create(gesture)) => self.create_pointer_up(input, gesture),
             Some(Gesture::Erase { start, pending, .. }) => {
                 self.erase_pointer_up(input, start, pending);
+            }
+            Some(gesture @ (Gesture::TextCreate { .. } | Gesture::TextLabel { .. })) => {
+                self.text_pointer_up(input, gesture);
             }
         }
     }
@@ -1711,6 +1725,17 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         }
         self.session.commit();
         self.report();
+        // a click on the text that was already the selection edits it
+        let was_selected = gesture.hit.as_ref().is_some_and(|id| {
+            gesture
+                .previous_selection
+                .get(id)
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+        });
+        if !gesture.dragged && was_selected {
+            self.maybe_edit_selected_text(input, gesture.hit.as_deref());
+        }
     }
 
     /// `updateLibrary({ libraryItems, merge })` with the items of a

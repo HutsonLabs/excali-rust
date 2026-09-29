@@ -1667,6 +1667,22 @@
   position: absolute;
 }
 
+.excalidraw {
+  --zIndex-wysiwyg: 3;
+}
+.excalidraw .excalidraw-textEditorContainer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.excalidraw .excalidraw-textEditorContainer > textarea {
+  pointer-events: auto;
+}
+
 excali-editor {
   display: block;
   position: relative;

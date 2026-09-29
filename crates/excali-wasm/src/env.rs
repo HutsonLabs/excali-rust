@@ -141,10 +141,10 @@ impl<P: TextMetricsProvider + Clone> ChangeStamp for EditorEnv<P> {
 
 /// A sticky note's arrows, laid out while the layouter is busy: the
 /// layout's version stamp and a copy of its metrics.
-struct StampBinding<'a, P> {
-    stamp: &'a mut dyn ChangeStamp,
-    provider: &'a P,
-    char_widths: &'a mut CharWidthCache,
+pub(crate) struct StampBinding<'a, P> {
+    pub(crate) stamp: &'a mut dyn ChangeStamp,
+    pub(crate) provider: &'a P,
+    pub(crate) char_widths: &'a mut CharWidthCache,
 }
 
 impl<P> MutationEnv for StampBinding<'_, P> {
