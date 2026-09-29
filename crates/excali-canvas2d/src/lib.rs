@@ -17,6 +17,12 @@
 //! (`renderElement.ts`), so the browser's CSS parser decides; an
 //! assignment it ignores leaves the style the context had before the draw.
 //!
+//! In the browser, `scripts/web/canvas2d-fixtures.sh` (ex-502) paints every
+//! excali-raster fixture display list with [`paint_scaled`] through
+//! [`WebCanvas`] in Chromium and requires each canvas to be within the
+//! fixture's tolerance of an independent canvas reading of the list and of
+//! excali-raster's render (`tools/canvas2d-fixtures`, `tests/web/canvas2d`).
+//!
 //! Targets: wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-scene`.
 

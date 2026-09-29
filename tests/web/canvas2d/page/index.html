@@ -1,0 +1,221 @@
+<!doctype html>
+<!--
+  The Canvas 2D backend's fixture page (ex-502), served with the wasm
+  harness tools/canvas2d-fixtures (scripts/web/canvas2d-fixtures.sh builds
+  it) by playwright.canvas2d.config.mjs.
+
+  drawFixture(json) paints one fixture display list twice on fresh canvases:
+  with excali_canvas2d (the harness: the Rust fixture loader, paint_scaled,
+  WebCanvas), and with raster_references.js, the independent reading that
+  drew excali-raster's Chrome references. It returns the backend's canvas
+  as a PNG and the premultiplied difference between the two, counted as
+  excali_raster::diff counts it, and between an empty canvas and the
+  reference.
+
+  Images: a fixture's own images reach the backend as HTMLImageElements, a
+  dataUrl as it is and RGBA rows as a PNG this page writes (8-bit RGBA,
+  stored deflate), so the browser decodes the exact straight-alpha rows;
+  built-in images are WebCanvas's own. Both drawings wait for every image
+  to decode first.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>excali-canvas2d fixture display lists</title>
+</head>
+<body>
+<script src="/raster_references.js"></script>
+<script type="module">
+  import init, { FixturePainter } from "/excali_canvas2d_fixtures.js";
+
+  const CRC_TABLE = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+
+  const crc32 = (bytes) => {
+    let c = 0xffffffff;
+    for (const b of bytes) c = CRC_TABLE[(c ^ b) & 0xff] ^ (c >>> 8);
+    return (c ^ 0xffffffff) >>> 0;
+  };
+
+  const adler32 = (bytes) => {
+    let a = 1;
+    let b = 0;
+    for (const x of bytes) {
+      a = (a + x) % 65521;
+      b = (b + a) % 65521;
+    }
+    return ((b << 16) | a) >>> 0;
+  };
+
+  const be32 = (n) => [(n >>> 24) & 0xff, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff];
+
+  const chunk = (type, data) => {
+    const body = [...type].map((c) => c.charCodeAt(0)).concat([...data]);
+    return [...be32(data.length), ...body, ...be32(crc32(body))];
+  };
+
+  // Straight-alpha RGBA rows as a PNG data URL: filter 0 on every row, the
+  // zlib stream in stored blocks.
+  function pngDataUrl(width, height, rgba) {
+    const stride = width * 4;
+    const raw = new Uint8Array(height * (stride + 1));
+    for (let y = 0; y < height; y++) {
+      raw.set(rgba.slice(y * stride, (y + 1) * stride), y * (stride + 1) + 1);
+    }
+    const z = [0x78, 0x01];
+    let at = 0;
+    do {
+      const block = raw.subarray(at, at + 65535);
+      at += block.length;
+      const n = block.length;
+      z.push(at >= raw.length ? 1 : 0, n & 0xff, n >>> 8, ~n & 0xff, (~n >>> 8) & 0xff);
+      for (const b of block) z.push(b);
+    } while (at < raw.length);
+    z.push(...be32(adler32(raw)));
+    const ihdr = [...be32(width), ...be32(height), 8, 6, 0, 0, 0];
+    const png = [137, 80, 78, 71, 13, 10, 26, 10, ...chunk("IHDR", ihdr), ...chunk("IDAT", z), ...chunk("IEND", [])];
+    let binary = "";
+    for (const b of png) binary += String.fromCharCode(b);
+    return `data:image/png;base64,${btoa(binary)}`;
+  }
+
+  const decoded = (img) =>
+    img.decode().catch(() => {
+      throw new Error(`image did not load: ${img.src.slice(0, 60)}`);
+    });
+
+  const canvasFor = (fixture) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = fixture.width;
+    canvas.height = fixture.height;
+    return canvas;
+  };
+
+  // Premultiplied RGBA, the values the canvas holds (getImageData
+  // unpremultiplies them; premultiplying with rounding gives them back).
+  const premultiplied = (canvas) => {
+    const d = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+    const out = new Uint8Array(d.length);
+    for (let i = 0; i < d.length; i += 4) {
+      const a = d[i + 3];
+      out[i] = Math.round((d[i] * a) / 255);
+      out[i + 1] = Math.round((d[i + 1] * a) / 255);
+      out[i + 2] = Math.round((d[i + 2] * a) / 255);
+      out[i + 3] = a;
+    }
+    return out;
+  };
+
+  // excali_raster::diff::compare: per pixel the largest channel difference;
+  // `over` counts pixels past the fixture's channel tolerance.
+  function compare(actual, expected, width, channel) {
+    const histogram = new Array(256).fill(0);
+    let max = 0;
+    let worst = null;
+    for (let i = 0; i < actual.length; i += 4) {
+      let d = 0;
+      for (let k = 0; k < 4; k++) d = Math.max(d, Math.abs(actual[i + k] - expected[i + k]));
+      histogram[d]++;
+      if (d > max) {
+        max = d;
+        const p = i / 4;
+        worst = {
+          x: p % width,
+          y: Math.floor(p / width),
+          actual: [...actual.subarray(i, i + 4)],
+          expected: [...expected.subarray(i, i + 4)],
+        };
+      }
+    }
+    const pixelsOver = (c) => histogram.slice(c + 1).reduce((a, b) => a + b, 0);
+    return { max, worst, over: pixelsOver(channel), overs: [1, 4, 8, 16, 32].map(pixelsOver) };
+  }
+
+  async function paintWithBackend(fixture, text) {
+    const canvas = canvasFor(fixture);
+    const ctx = canvas.getContext("2d", { colorSpace: "srgb" });
+    const painter = new FixturePainter(ctx, text);
+    try {
+      if (painter.width !== fixture.width || painter.height !== fixture.height) {
+        throw new Error(`the loader read ${painter.width}x${painter.height}`);
+      }
+      for (const [id, spec] of Object.entries(fixture.images || {})) {
+        const img = new Image();
+        img.src = "dataUrl" in spec ? spec.dataUrl : pngDataUrl(spec.width, spec.height, spec.rgba);
+        painter.addImage(id, img);
+      }
+      await Promise.all(painter.images().map(decoded));
+      painter.paint();
+    } finally {
+      painter.free();
+    }
+    return canvas;
+  }
+
+  // raster_references.html's drawing of one fixture.
+  async function paintWithReader(fixture) {
+    const images = {};
+    for (const [id, spec] of Object.entries(fixture.images || {})) images[id] = bitmap(spec);
+    for (const [id, url] of Object.entries(fixture.builtinImages || {})) images[id] = loadImage(url);
+    const placeholders = {};
+    for (const [kind, svg] of Object.entries(fixture.placeholders || {})) {
+      placeholders[kind] = loadImage(`data:image/svg+xml,${encodeURIComponent(svg)}`);
+    }
+    await Promise.all(
+      [...Object.values(images), ...Object.values(placeholders)]
+        .filter((img) => img instanceof HTMLImageElement)
+        .map(decoded),
+    );
+    const canvas = canvasFor(fixture);
+    const ctx = canvas.getContext("2d", { colorSpace: "srgb" });
+    const scale = "scale" in fixture ? num(fixture.scale) : 1;
+    ctx.scale(scale, scale);
+    if (fixture.canvasCalls) {
+      for (const c of fixture.canvasCalls) call(ctx, c, images, placeholders);
+    } else {
+      for (const item of fixture.items) draw(ctx, item, images);
+    }
+    return canvas;
+  }
+
+  window.drawFixture = async (text) => {
+    const fixture = JSON.parse(text);
+    const backend = await paintWithBackend(fixture, text);
+    const reference = await paintWithReader(fixture);
+    const channel = fixture.tolerance ? fixture.tolerance.channel : 0;
+    const expected = premultiplied(reference);
+    return {
+      width: backend.width,
+      height: backend.height,
+      png: backend.toDataURL("image/png"),
+      diff: compare(premultiplied(backend), expected, backend.width, channel),
+      blank: compare(new Uint8Array(expected.length), expected, backend.width, channel),
+    };
+  };
+
+  window.builtinImageIds = () => {
+    const canvas = document.createElement("canvas");
+    const painter = new FixturePainter(canvas.getContext("2d"), '{"width": 1, "height": 1, "items": []}');
+    try {
+      return painter.heldImageIds();
+    } finally {
+      painter.free();
+    }
+  };
+
+  try {
+    await init();
+    window.harnessReady = true;
+  } catch (e) {
+    window.harnessError = String((e && e.stack) || e);
+  }
+</script>
+</body>
+</html>

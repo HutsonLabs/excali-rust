@@ -6,8 +6,9 @@
 # crate that targets it (ADR-008), an MSRV check, the golden harness on
 # arm64 (ex-217), the roughr evaluation behind ADR-003 (ex-206), the font
 # subsetting evaluation behind ADR-010 (ex-408), the web build with its gzip
-# size budget (ex-501), and the web runtime's scene font loading in Chromium
-# (ex-307).
+# size budget (ex-501), the web runtime's scene font loading in Chromium
+# (ex-307), and the Canvas 2D backend against excali-raster on the fixture
+# display lists in Chromium (ex-502).
 #
 # The toolchain comes from rust-toolchain.toml; rustup installs it (with
 # rustfmt, clippy and the wasm32 target) on the first cargo call.
@@ -276,6 +277,65 @@ jobs:
           cargo run --release --locked --manifest-path tools/font-subset-eval/Cargo.toml -- \
             --browser tools/font-subset-eval/target/browser/cases.json
           node tools/font-subset-eval/browser/render.mjs --check
+  # ex-502: the Canvas 2D backend. scripts/web/canvas2d-fixtures.sh builds
+  # the wasm harness tools/canvas2d-fixtures (excali-raster's fixture loader
+  # and excali_canvas2d::paint_scaled through WebCanvas), paints every
+  # fixture display list in Playwright's Chromium, holds each to its
+  # tolerance against the independent canvas reading in the same page
+  # (scripts/fixtures/raster_references.js), then runs excali-raster's
+  # fixture test against those pixels: the tiny-skia backend within each
+  # fixture's tolerance of what excali-canvas2d painted. On macOS arm64,
+  # where the tolerances were measured (see raster-chrome).
+  canvas2d-fixtures:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            tools/canvas2d-fixtures
+      - name: harness fmt
+        run: cargo fmt --manifest-path tools/canvas2d-fixtures/Cargo.toml --check
+      - name: harness clippy (native and wasm32)
+        run: |
+          cargo clippy --manifest-path tools/canvas2d-fixtures/Cargo.toml --all-targets --locked -- -D warnings
+          cargo clippy --manifest-path tools/canvas2d-fixtures/Cargo.toml --target wasm32-unknown-unknown --locked -- -D warnings
+      - name: harness loader tests
+        run: cargo test --manifest-path tools/canvas2d-fixtures/Cargo.toml --locked
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: |
+          want="$(awk '/^name = "wasm-bindgen"$/ { getline; gsub(/"/, "", $3); print $3; exit }' Cargo.lock)"
+          if [ "$(wasm-bindgen --version 2>/dev/null | awk '{ print $2 }')" != "$want" ]; then
+            cargo install --locked wasm-bindgen-cli --version "$want"
+          fi
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tests/web/package-lock.json
+      - name: install
+        working-directory: tests/web
+        run: |
+          npm ci
+          npx playwright install chromium
+      - name: excali-canvas2d paints every fixture within tolerance of excali-raster
+        run: scripts/web/canvas2d-fixtures.sh
+        env:
+          CI: "1"
+      - name: keep the painted, rendered and diff images on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: canvas2d-fixtures
+          path: |
+            target/canvas2d-fixtures/
+            target/raster-diff/
+            tests/web/playwright-report-canvas2d/
+            tests/web/test-results-canvas2d/
+          retention-days: 14
   msrv:
     runs-on: ubuntu-latest
     steps:

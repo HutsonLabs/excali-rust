@@ -11,7 +11,9 @@
 //!
 //! `EXCALI_RASTER_REFERENCES=<dir>` reads the references from another
 //! directory (the generator's `--check` renders them with the Chrome on the
-//! machine and points here). On a failure the rendered pixmap and a diff
+//! machine and points here; `scripts/web/canvas2d-fixtures.sh` points it at
+//! what excali-canvas2d painted in Chromium, ex-502). The lists are read by
+//! `tests/support/display_lists.rs`, which that harness shares. On a failure the rendered pixmap and a diff
 //! image are written to `target/raster-diff/`.
 
 use std::collections::{BTreeMap, HashMap};
@@ -22,8 +24,7 @@ use excali_raster::diff::{compare, diff_image, Tolerance};
 use excali_raster::tiny_skia::{self, ColorU8, IntSize, Mask, Pixmap};
 use excali_raster::{render_scaled, TextRasterizer};
 use excali_scene::display::{
-    builtin_image_by_id, Clip, Color, Dash, DisplayItem, DisplayList, FillRule, Group, ImageFilter,
-    ImageItem, LineCap, LineJoin, Path, Rect, Stroke, TextRun, Transform,
+    builtin_image_by_id, Color, DisplayItem, DisplayList, Group, Path, Rect, Stroke, TextRun,
 };
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -65,167 +66,15 @@ struct Fixture {
     list: DisplayList,
 }
 
-/// A number: JSON numbers, or `"NaN"`, `"Infinity"` and `"-Infinity"`,
-/// which JSON cannot write and the canvas rules are about.
-fn num(v: &Value) -> f64 {
-    match v {
-        Value::Number(n) => n.as_f64().unwrap(),
-        Value::String(s) => match s.as_str() {
-            "NaN" => f64::NAN,
-            "Infinity" => f64::INFINITY,
-            "-Infinity" => f64::NEG_INFINITY,
-            other => panic!("not a number: {other:?}"),
-        },
-        other => panic!("not a number: {other}"),
-    }
-}
+#[path = "support/display_lists.rs"]
+mod display_lists;
 
-fn nums(v: &Value) -> Vec<f64> {
-    v.as_array()
-        .unwrap_or_else(|| panic!("not an array: {v}"))
-        .iter()
-        .map(num)
-        .collect()
-}
-
-fn rect(v: &Value) -> Rect {
-    let n = nums(v);
-    assert_eq!(n.len(), 4, "a rectangle is [x, y, width, height]: {v}");
-    Rect::new(n[0], n[1], n[2], n[3])
-}
-
-fn rule(v: Option<&Value>) -> FillRule {
-    match v.and_then(Value::as_str) {
-        None | Some("nonzero") => FillRule::NonZero,
-        Some("evenodd") => FillRule::EvenOdd,
-        Some(other) => panic!("unknown fill rule {other:?}"),
-    }
-}
-
-/// A path: canvas calls `["M", x, y]`, `["L", x, y]`, `["Q", cpx, cpy, x,
-/// y]`, `["C", ...6]`, `["A", cx, cy, r, start, end, anticlockwise]`,
-/// `["Z"]`, and the rectangle methods `["rect", x, y, w, h]` and
-/// `["roundRect", x, y, w, h, r]` through the port's `Path::rect` and
-/// `Path::round_rect`.
 fn path(v: &Value) -> Path {
-    let mut p = Path::new();
-    for call in v.as_array().expect("a path is an array of calls") {
-        let call = call.as_array().expect("a path call is an array");
-        let op = call[0].as_str().expect("a path call starts with its name");
-        let args = &call[1..];
-        let n = |i: usize| num(&args[i]);
-        match op {
-            "M" => {
-                p.move_to(n(0), n(1));
-            }
-            "L" => {
-                p.line_to(n(0), n(1));
-            }
-            "Q" => {
-                p.quad_to(n(0), n(1), n(2), n(3));
-            }
-            "C" => {
-                p.cubic_to(n(0), n(1), n(2), n(3), n(4), n(5));
-            }
-            "A" => {
-                let anticlockwise = args.get(5).and_then(Value::as_bool).unwrap_or(false);
-                p.arc(n(0), n(1), n(2), n(3), n(4), anticlockwise);
-            }
-            "Z" => {
-                p.close();
-            }
-            "rect" => p
-                .commands
-                .extend(Path::rect(n(0), n(1), n(2), n(3)).commands),
-            "roundRect" => p
-                .commands
-                .extend(Path::round_rect(n(0), n(1), n(2), n(3), n(4)).commands),
-            other => panic!("unknown path call {other:?}"),
-        }
-    }
-    p
+    display_lists::path(v).unwrap_or_else(|e| panic!("{e}"))
 }
 
 fn item(v: &Value) -> DisplayItem {
-    let kind = v["type"].as_str().expect("an item has a type");
-    match kind {
-        "fill" => DisplayItem::Fill {
-            path: path(&v["path"]),
-            color: Color::new(v["color"].as_str().expect("a fill has a colour")),
-            rule: rule(v.get("rule")),
-        },
-        "fillRect" => DisplayItem::FillRect {
-            rect: rect(&v["rect"]),
-            color: Color::new(v["color"].as_str().expect("a fillRect has a colour")),
-        },
-        "stroke" => {
-            let mut stroke = Stroke::new(
-                Color::new(v["color"].as_str().expect("a stroke has a colour")),
-                v.get("width").map_or(1.0, num),
-            );
-            stroke.cap = match v.get("cap").and_then(Value::as_str) {
-                None | Some("butt") => LineCap::Butt,
-                Some("round") => LineCap::Round,
-                Some("square") => LineCap::Square,
-                Some(other) => panic!("unknown cap {other:?}"),
-            };
-            stroke.join = match v.get("join").and_then(Value::as_str) {
-                None | Some("miter") => LineJoin::Miter,
-                Some("round") => LineJoin::Round,
-                Some("bevel") => LineJoin::Bevel,
-                Some(other) => panic!("unknown join {other:?}"),
-            };
-            if let Some(limit) = v.get("miterLimit") {
-                stroke.miter_limit = num(limit);
-            }
-            if let Some(dash) = v.get("dash") {
-                stroke.dash = Dash::new(&nums(dash), v.get("dashOffset").map_or(0.0, num));
-            }
-            DisplayItem::Stroke {
-                path: path(&v["path"]),
-                stroke,
-            }
-        }
-        "image" => DisplayItem::Image(ImageItem {
-            id: v["id"].as_str().expect("an image has an id").to_owned(),
-            source: v.get("source").map(rect),
-            dest: rect(&v["dest"]),
-            smoothing: v.get("smoothing").and_then(Value::as_bool).unwrap_or(true),
-            filter: match v.get("filter").and_then(Value::as_str) {
-                None => None,
-                Some("dark") => Some(ImageFilter::DarkTheme),
-                Some(other) => panic!("unknown image filter {other:?}"),
-            },
-        }),
-        "group" => {
-            let transform = match v.get("transform") {
-                Some(t) => {
-                    let m = nums(t);
-                    assert_eq!(m.len(), 6, "a transform is [a, b, c, d, e, f]: {t}");
-                    Transform::new(m[0], m[1], m[2], m[3], m[4], m[5])
-                }
-                None => Transform::IDENTITY,
-            };
-            DisplayItem::Group(Group {
-                transform,
-                opacity: v.get("opacity").map_or(1.0, num),
-                clip: v.get("clip").map(|c| Clip {
-                    path: path(&c["path"]),
-                    rule: rule(c.get("rule")),
-                }),
-                items: items(&v["items"]),
-            })
-        }
-        other => panic!("unknown item type {other:?}"),
-    }
-}
-
-fn items(v: &Value) -> Vec<DisplayItem> {
-    v.as_array()
-        .expect("items is an array")
-        .iter()
-        .map(item)
-        .collect()
+    display_lists::item(v).unwrap_or_else(|e| panic!("{e}"))
 }
 
 /// An image: a data URL, decoded as the browser decodes it
@@ -299,13 +148,14 @@ fn load(name: &str) -> Fixture {
         );
         assert!(!images.contains_key(id), "{name}: {id} is built in");
     }
+    let parsed = display_lists::list_fixture(&v).unwrap_or_else(|e| panic!("{name}: {e}"));
     Fixture {
-        width: v["width"].as_u64().unwrap() as u32,
-        height: v["height"].as_u64().unwrap() as u32,
-        scale: v.get("scale").map_or(1.0, num),
+        width: parsed.width,
+        height: parsed.height,
+        scale: parsed.scale,
         tolerance,
         images,
-        list: items(&v["items"]).into_iter().collect(),
+        list: parsed.list,
     }
 }
 
