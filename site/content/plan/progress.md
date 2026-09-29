@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 01:22 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 01:47 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**141 issues** · 73 closed (52%) · 0 in progress · 0 blocked · 67 open
+**141 issues** · 74 closed (52%) · 0 in progress · 0 blocked · 66 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -110,7 +110,7 @@ Font metadata, measurement from font files, wrapping port, bound-text sizing, la
 
 ## ex-e4 · Phase 4: Headless rendering and export
 
-<span class="status open">open</span> 9/11 children closed
+<span class="status open">open</span> 10/11 children closed
 
 tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
@@ -125,8 +125,8 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 | `ex-407` | SVG elements: rough paths, freedraw, text per line, images as symbol/use, arrow-label masks | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-408` | Spike: font subsetting for SVG export (allsorts, hb-subset, or ship full woff2) | spike | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-409` | excali-cli: validate, render (png), export (svg), lib (list/merge), with exit codes | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-410` | Corpus render: every catalogue library item renders to PNG without panic | task | P1 | <span class="status open">open</span> | yes |  |
-| `ex-m4` | M4: SVG/PNG export parity | milestone | P2 | <span class="status open">open</span> |  | `ex-410` |
+| `ex-410` | Corpus render: every catalogue library item renders to PNG without panic | task | P1 | <span class="status closed">closed</span> |  |  |
+| `ex-m4` | M4: SVG/PNG export parity | milestone | P2 | <span class="status open">open</span> | yes |  |
 
 ## ex-e5 · Phase 5: Web runtime and editor
 

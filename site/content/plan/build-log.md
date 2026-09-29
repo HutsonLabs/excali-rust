@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-410 · Corpus render: every catalogue library item renders to PNG without panic
+
+All 4,187 items of the 232 catalogue libraries now render to PNG. `excali lib preview` draws a library's items onto the same preview image as upstream's publish dialog (`generatePreviewImage`), and `--items` writes each item's own PNG. The new `corpus-render` CI job builds the release CLI and renders the whole catalogue. It keeps one contact sheet per library, plus `report.json` and `index.html`, as the `corpus-contact-sheets` artifact, and it fails unless all 232 libraries render with at least one item each. PR: [#82](https://github.com/HutsonLabs/excali-rust/pull/82).
+
 ## 2026-09-28 · ex-502 · excali-canvas2d: display list to CanvasRenderingContext2D via web-sys
 
 The Canvas 2D backend is now held to the raster backend in a real browser. A wasm harness paints all 29 excali-raster fixture display lists with `excali_canvas2d` in Chromium, and Playwright checks each canvas against the independent canvas reading. excali-raster's fixture test then runs against the painted pixels. Every fixture is within tolerance, and 28 of the 29 canvases are byte for byte the Chrome references. CI runs this in the new `canvas2d-fixtures` job. PR: [#81](https://github.com/HutsonLabs/excali-rust/pull/81).
