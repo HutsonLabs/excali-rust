@@ -28,6 +28,10 @@ indexmap = { workspace = true }
 # (CharCountTextMetrics, text.length * 10).
 [dev-dependencies]
 excali-text = { path = "../excali-text", features = ["test-util"] }
+# tests/legacy_binding.rs reads the gzipped catalogue libraries and checks
+# their written bytes against upstream's digests.
+flate2 = { workspace = true }
+sha2 = { workspace = true }
 
 [lints]
 workspace = true

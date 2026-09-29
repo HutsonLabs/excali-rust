@@ -16,7 +16,7 @@
 //! written library no longer has (the legacy fields restore migrates away,
 //! `packages/excalidraw/data/restore.ts` at the pinned commit), the
 //! elements dropped and why, the arrow bindings cleared, the legacy
-//! bindings that need element geometry (ex-116), the element ids replaced
+//! bindings that need element geometry, the element ids replaced
 //! as duplicates, and the envelope keys the v2 envelope does not carry.
 //! Run with `EXCALI_BLESS=1` to rewrite the report after a deliberate
 //! change; the diff is the review.
@@ -25,10 +25,13 @@
 //! `fixtures/library.json` (`tools/goldens/library-fixtures.mjs`): the
 //! first against `output_sha256`, the second against `reload_sha256`, or
 //! for a library with legacy bindings that need geometry against the
-//! `*_without_geometry` digests, since the port drops those bindings
-//! (ex-116; upstream's migrated bindings also change key order on reload,
-//! `restore.ts:412-416` against `restore.ts:338-342`). The corpus walked
-//! is exactly the catalogue that golden covers.
+//! `*_without_geometry` digests, since `TestEnv` has no geometry and drops
+//! those bindings (upstream's migrated bindings also change key order on
+//! reload, `restore.ts:412-416` against `restore.ts:338-342`). The corpus
+//! walked is exactly the catalogue that golden covers. With the migration
+//! computed by excali-editor's `RoutingEnv` those libraries give
+//! `output_sha256` and `reload_sha256` (ex-116,
+//! `crates/excali-editor/tests/legacy_binding.rs`).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
@@ -145,7 +148,7 @@ const REASONS: &[(&str, &str)] = &[
         "legacy_bindings_without_geometry",
         "a binding without mode to an existing element is migrated with element geometry \
          (restore.ts:347-418); restore::TestEnv has none, so it is cleared, counted in \
-         bindings_cleared (port gap, ex-116)",
+         bindings_cleared; excali-editor's RoutingEnv computes it and keeps the binding (ex-116)",
     ),
     (
         "element_ids_replaced",
@@ -241,8 +244,9 @@ struct Losses {
     #[serde(skip_serializing_if = "is_zero")]
     bindings_cleared: u64,
     /// Legacy bindings (no `mode`) to an existing element: upstream keeps
-    /// them with a computed `mode` and `fixedPoint`; without geometry they
-    /// are cleared (ex-116).
+    /// them with a computed `mode` and `fixedPoint`; without geometry
+    /// (`TestEnv`) they are cleared, with excali-editor's `RoutingEnv` they
+    /// are kept (ex-116).
     #[serde(skip_serializing_if = "is_zero")]
     legacy_bindings_without_geometry: u64,
     /// Elements whose id repeated an earlier one in the item.
@@ -603,7 +607,9 @@ fn every_catalogue_library_round_trips() {
     );
 }
 
-/// The report keeps the known losses in view: the ex-116 gap and the legacy
+/// The report keeps the known losses in view: the bindings `TestEnv`
+/// cannot migrate without geometry (excali-editor's `RoutingEnv` does,
+/// ex-116) and the legacy
 /// keys upstream's restore migrates away. No element is lost to the typed
 /// model: `aarondiel/logic-gates` keeps its 24 lines with `strokeWidth:
 /// "3"` (ex-117).

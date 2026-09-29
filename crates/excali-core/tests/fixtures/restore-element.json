@@ -25816,6 +25816,6108 @@
       ]
     },
     {
+      "id": "arrow-binding-legacy-geometry-rotated-target",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            105,
+            10
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0.2,
+          "gap": 3
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              105,
+              10
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0.2,
+            "gap": 3
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0.6,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 105,
+        "height": 10,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            105,
+            10
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "inside",
+          "elementId": "r1",
+          "fixedPoint": [
+            0.18506322063014835,
+            0.8366226745187337
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-rotated-target-inside",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            140,
+            -5
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 1
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              140,
+              -5
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 1
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "diamond",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 1.1,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 140,
+        "height": 5,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            140,
+            -5
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "inside",
+          "elementId": "r1",
+          "fixedPoint": [
+            0.4100800198543706,
+            0.5664409299348647
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-ellipse-inside",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            150,
+            5
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 1
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              150,
+              5
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 1
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "ellipse",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 150,
+        "height": 5,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            150,
+            5
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "inside",
+          "elementId": "r1",
+          "fixedPoint": [
+            0.5001,
+            0.55
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-ellipse-outside-corner",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            104,
+            -45
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0.5,
+          "gap": 8
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              104,
+              -45
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0.5,
+            "gap": 8
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "ellipse",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 104,
+        "height": 45,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            104,
+            -45
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0.04,
+            0.05
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-diamond-projection",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            110,
+            -40
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": -0.3,
+          "gap": 4
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              110,
+              -40
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": -0.3,
+            "gap": 4
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "diamond",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 110,
+        "height": 40,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            110,
+            -40
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0.1,
+            0.1
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-diamond-corner",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            99,
+            -49
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 4
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              99,
+              -49
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 4
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "diamond",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 99,
+        "height": 49,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            99,
+            -49
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            -0.01,
+            0.01
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-midpoint-snap",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            97,
+            2
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 3
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              97,
+              2
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 3
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 97,
+        "height": 2,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            97,
+            2
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0,
+            0.5001
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-midpoint-snap-top",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 150,
+        "y": -60,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            2,
+            57
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 3
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 150,
+          "y": -60,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              57
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 3
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 150,
+        "y": -60,
+        "width": 2,
+        "height": 57,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            2,
+            57
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0.5001,
+            0
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-far-from-target",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            40,
+            30
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 60
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              40,
+              30
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 60
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 40,
+        "height": 30,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            40,
+            30
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            -0.6,
+            0.8
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-multi-point-both-ends",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            60,
+            -40
+          ],
+          [
+            120,
+            0
+          ]
+        ],
+        "startBinding": {
+          "elementId": "r0",
+          "focus": 0.1,
+          "gap": 2
+        },
+        "endBinding": {
+          "elementId": "r1",
+          "focus": -0.1,
+          "gap": 2
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              60,
+              -40
+            ],
+            [
+              120,
+              0
+            ]
+          ],
+          "startBinding": {
+            "elementId": "r0",
+            "focus": 0.1,
+            "gap": 2
+          },
+          "endBinding": {
+            "elementId": "r1",
+            "focus": -0.1,
+            "gap": 2
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r0",
+          "type": "rectangle",
+          "x": -100,
+          "y": 20,
+          "width": 90,
+          "height": 70,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 125,
+          "y": 10,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 120,
+        "height": 40,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            60,
+            -40
+          ],
+          [
+            120,
+            0
+          ]
+        ],
+        "startBinding": {
+          "mode": "orbit",
+          "elementId": "r0",
+          "fixedPoint": [
+            1,
+            0.5001
+          ]
+        },
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0,
+            0.5001
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "start",
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-rotated-arrow",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0.7,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            20
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 5
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0.7,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              95,
+              20
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 5
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 95,
+        "height": 20,
+        "angle": 0.7,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            20
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            -0.2261217297636371,
+            0.9824876201663522
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-other-end-fixed-point",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            96,
+            20
+          ]
+        ],
+        "startBinding": {
+          "elementId": "r0",
+          "focus": 0,
+          "gap": 1,
+          "fixedPoint": [
+            1,
+            0.3
+          ]
+        },
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 4
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              96,
+              20
+            ]
+          ],
+          "startBinding": {
+            "elementId": "r0",
+            "focus": 0,
+            "gap": 1,
+            "fixedPoint": [
+              1,
+              0.3
+            ]
+          },
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 4
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r0",
+          "type": "rectangle",
+          "x": -60,
+          "y": 20,
+          "width": 60,
+          "height": 60,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 96,
+        "height": 20,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            96,
+            20
+          ]
+        ],
+        "startBinding": {
+          "mode": "orbit",
+          "elementId": "r0",
+          "fixedPoint": [
+            0.5001,
+            0.5001
+          ]
+        },
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0.21500000000000624,
+            0.7849999999999939
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "start",
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-other-end-bad-fixed-point",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            96,
+            20
+          ]
+        ],
+        "startBinding": {
+          "elementId": "r0",
+          "focus": 0,
+          "gap": 1,
+          "fixedPoint": [
+            0.5,
+            "x"
+          ]
+        },
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 4
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              96,
+              20
+            ]
+          ],
+          "startBinding": {
+            "elementId": "r0",
+            "focus": 0,
+            "gap": 1,
+            "fixedPoint": [
+              0.5,
+              "x"
+            ]
+          },
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 4
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r0",
+          "type": "rectangle",
+          "x": -60,
+          "y": 20,
+          "width": 60,
+          "height": 60,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 96,
+        "height": 20,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            96,
+            20
+          ]
+        ],
+        "startBinding": {
+          "mode": "orbit",
+          "elementId": "r0",
+          "fixedPoint": [
+            0.5001,
+            0.5001
+          ]
+        },
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0.2534348028605102,
+            0.7465651971394898
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "start",
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-tiny-target",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            99,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 1
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              99,
+              0
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 1
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": 49.8,
+          "width": 0.5,
+          "height": 0.5,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 99,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            99,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0.5001,
+            0.5001
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-narrow-target",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            98,
+            3
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 1
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              98,
+              3
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 1
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": -50,
+          "width": 3,
+          "height": 200,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 98,
+        "height": 3,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            98,
+            3
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0.5001,
+            0.5001
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-short-arrow",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 96,
+        "y": 30,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            2,
+            2
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 1
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 96,
+          "y": 30,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              2,
+              2
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 1
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 96,
+        "y": 30,
+        "width": 2,
+        "height": 2,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            2,
+            2
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0.33,
+            0.6700000000000002
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-rounded-target",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            102,
+            -48
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 1
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              102,
+              -48
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 1
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": {
+            "type": 3
+          },
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 102,
+        "height": 48,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            102,
+            -48
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0.02,
+            0.02
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-text-target",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "t1",
+          "focus": 0,
+          "gap": 5
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              95,
+              0
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "t1",
+            "focus": 0,
+            "gap": 5
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "t1",
+          "type": "text",
+          "x": 100,
+          "y": 30,
+          "width": 80,
+          "height": 25,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "text": "label",
+          "fontSize": 20,
+          "fontFamily": 1,
+          "textAlign": "left",
+          "verticalAlign": "top",
+          "containerId": null,
+          "originalText": "label",
+          "lineHeight": 1.25,
+          "autoResize": true
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 95,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "t1",
+          "fixedPoint": [
+            0,
+            0.5001
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-frame-target",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            130,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "f1",
+          "focus": 0,
+          "gap": 5
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              130,
+              0
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "f1",
+            "focus": 0,
+            "gap": 5
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "f1",
+          "type": "frame",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "name": null
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 130,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            130,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "inside",
+          "elementId": "f1",
+          "fixedPoint": [
+            0.3,
+            0.5001
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-image-target",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "i1",
+          "focus": 0,
+          "gap": 5
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              95,
+              0
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "i1",
+            "focus": 0,
+            "gap": 5
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "i1",
+          "type": "image",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "fileId": null,
+          "status": "pending",
+          "scale": [
+            1,
+            1
+          ],
+          "crop": null
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 95,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "i1",
+          "fixedPoint": [
+            0,
+            0.5001
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-line-target",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "l1",
+          "focus": 0,
+          "gap": 5
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              95,
+              0
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "l1",
+            "focus": 0,
+            "gap": 5
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "l1",
+          "type": "line",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              100,
+              100
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": null,
+          "startArrowhead": null,
+          "endArrowhead": null,
+          "polygon": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 95,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "l1",
+          "fixedPoint": [
+            -0.05,
+            1
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-closed-line-target",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            150,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "l1",
+          "focus": 0,
+          "gap": 5
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              150,
+              0
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "l1",
+            "focus": 0,
+            "gap": 5
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "l1",
+          "type": "line",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              100,
+              0
+            ],
+            [
+              100,
+              100
+            ],
+            [
+              0,
+              100
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": null,
+          "startArrowhead": null,
+          "endArrowhead": null,
+          "polygon": true
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 150,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            150,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "inside",
+          "elementId": "l1",
+          "fixedPoint": [
+            0.5001,
+            0.5001
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-deleted-target",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 5
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              95,
+              0
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 5
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": true,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 95,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0,
+            0.5001
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-target-in-a-frame",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 5
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              95,
+              0
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 5
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": "f1",
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        },
+        {
+          "id": "f1",
+          "type": "frame",
+          "x": 50,
+          "y": -50,
+          "width": 300,
+          "height": 300,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "name": null
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 95,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0,
+            0.5001
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-container-target",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 5
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              95,
+              0
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 5
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [
+            {
+              "id": "t1",
+              "type": "text"
+            }
+          ],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        },
+        {
+          "id": "t1",
+          "type": "text",
+          "x": 120,
+          "y": 40,
+          "width": 60,
+          "height": 25,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "text": "in",
+          "fontSize": 20,
+          "fontFamily": 1,
+          "textAlign": "center",
+          "verticalAlign": "middle",
+          "containerId": "r1",
+          "originalText": "in",
+          "lineHeight": 1.25,
+          "autoResize": true
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 95,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0,
+            0.5001
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-arrow-missing-size",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 5
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              95,
+              0
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 5
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0,
+            0.5001
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false,
+        "width": 95,
+        "height": 0
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-arrow-string-x",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": "0",
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 5
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": "0",
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              95,
+              0
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 5
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": "00",
+        "y": 50,
+        "width": 95,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            0
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0,
+            0.5001
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-thick-target",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            85,
+            3
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 5
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              85,
+              3
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 5
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 16,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 85,
+        "height": 3,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            85,
+            3
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0,
+            0.5001
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-start-end-same-target",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            30,
+            -80
+          ],
+          [
+            140,
+            5
+          ]
+        ],
+        "startBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 5
+        },
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 5
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              30,
+              -80
+            ],
+            [
+              140,
+              5
+            ]
+          ],
+          "startBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 5
+          },
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 5
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 0,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 140,
+        "height": 85,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            30,
+            -80
+          ],
+          [
+            140,
+            5
+          ]
+        ],
+        "startBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0.13636363636362733,
+            0.13636363636362733
+          ]
+        },
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0.8641025641025658,
+            0.13589743589743408
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "start",
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-target-without-angle",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            20
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 5
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              95,
+              20
+            ]
+          ],
+          "startBinding": null,
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 5
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 95,
+        "height": 20,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            20
+          ]
+        ],
+        "startBinding": null,
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0.23913043478261273,
+            0.7608695652173872
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "end"
+      ]
+    },
+    {
+      "id": "arrow-binding-legacy-geometry-both-in-existing",
+      "call": "restoreElement",
+      "element": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 100,
+        "height": 50,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            20
+          ]
+        ],
+        "startBinding": {
+          "elementId": "r0",
+          "focus": 0,
+          "gap": 1
+        },
+        "endBinding": {
+          "elementId": "r1",
+          "focus": 0,
+          "gap": 4
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "targets": [
+        {
+          "id": "arrow",
+          "type": "arrow",
+          "x": 0,
+          "y": 50,
+          "width": 100,
+          "height": 50,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false,
+          "points": [
+            [
+              0,
+              0
+            ],
+            [
+              95,
+              20
+            ]
+          ],
+          "startBinding": {
+            "elementId": "r0",
+            "focus": 0,
+            "gap": 1
+          },
+          "endBinding": {
+            "elementId": "r1",
+            "focus": 0,
+            "gap": 4
+          },
+          "startArrowhead": null,
+          "endArrowhead": "arrow",
+          "elbowed": false
+        }
+      ],
+      "existing": [
+        {
+          "id": "r0",
+          "type": "rectangle",
+          "x": -60,
+          "y": 20,
+          "width": 60,
+          "height": 60,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        },
+        {
+          "id": "r1",
+          "type": "rectangle",
+          "x": 100,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 3,
+          "versionNonce": 7,
+          "isDeleted": false,
+          "boundElements": [],
+          "updated": 1700000000000,
+          "created": 1690000000000,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "result": {
+        "id": "arrow",
+        "type": "arrow",
+        "x": 0,
+        "y": 50,
+        "width": 95,
+        "height": 20,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 7,
+        "isDeleted": false,
+        "boundElements": [],
+        "updated": 1700000000000,
+        "created": 1690000000000,
+        "link": null,
+        "locked": false,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            95,
+            20
+          ]
+        ],
+        "startBinding": {
+          "mode": "orbit",
+          "elementId": "r0",
+          "fixedPoint": [
+            0.5001,
+            0.5001
+          ]
+        },
+        "endBinding": {
+          "mode": "orbit",
+          "elementId": "r1",
+          "fixedPoint": [
+            0.2517346263138977,
+            0.7482653736861025
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      },
+      "geometry": [
+        "start",
+        "end"
+      ]
+    },
+    {
       "id": "elbow-saved",
       "call": "restoreElement",
       "element": {

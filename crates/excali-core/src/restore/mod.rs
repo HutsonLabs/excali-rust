@@ -91,10 +91,11 @@ pub trait RestoreEnv {
     ///
     /// `None` is what upstream gives when that computation throws: the
     /// binding is dropped (`restore.ts:423-427`). The default has no
-    /// geometry and answers `None`, so until `excali-editor` implements this
-    /// (task ex-116, which milestone M1 depends on) a legacy file's arrow
-    /// bindings to existing targets are dropped on load where upstream
-    /// keeps them.
+    /// geometry and answers `None`; `excali_editor::restore_env::RoutingEnv`
+    /// wraps an environment and answers with
+    /// `excali_editor::restore_env::migrate_legacy_binding`, so a loader
+    /// that restores through it keeps a legacy file's arrow bindings as
+    /// upstream does (ex-116).
     fn migrate_legacy_binding(
         &mut self,
         request: LegacyBindingRequest<'_>,
@@ -172,7 +173,8 @@ pub trait RestoreEnv {
 /// `Random(seed)` (Park-Miller, multiplier 48271). The default is
 /// `reseed(1)`, what `tools/goldens/restore-fixtures.mjs` does before each
 /// case, so restoring with it gives exactly what the fixtures record. It
-/// has no geometry for [`RestoreEnv::migrate_legacy_binding`].
+/// has no geometry for [`RestoreEnv::migrate_legacy_binding`]; wrap it in
+/// `excali_editor::restore_env::RoutingEnv` for that.
 #[derive(Debug, Clone)]
 pub struct TestEnv {
     next_id: u64,

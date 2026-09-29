@@ -15,7 +15,7 @@
     "elements_dropped.restore throws": "restoreElements drops an element restoreElement throws on (restore.ts:982-985)",
     "elements_dropped.unknown type": "restoreElement returns null for a type it does not know (restore.ts:751)",
     "envelope_keys_dropped.library": "v1 items are written under libraryItems: serializeLibraryAsJSON writes {type, version: 2, source, libraryItems} only (json.ts:137-145)",
-    "legacy_bindings_without_geometry": "a binding without mode to an existing element is migrated with element geometry (restore.ts:347-418); restore::TestEnv has none, so it is cleared, counted in bindings_cleared (port gap, ex-116)"
+    "legacy_bindings_without_geometry": "a binding without mode to an existing element is migrated with element geometry (restore.ts:347-418); restore::TestEnv has none, so it is cleared, counted in bindings_cleared; excali-editor's RoutingEnv computes it and keeps the binding (ex-116)"
   },
   "totals": {
     "items_in": 4187,
