@@ -1,0 +1,37 @@
+# ex-526: the library sidebar's browser harness. A wasm module (built by
+# scripts/web/library-sidebar.sh with wasm-bindgen --target web) that mounts
+# excali_ui::library_sidebar's default sidebar and LayerUI's library trigger
+# in an editor container, runs what the user does through
+# excali_ui::library_sidebar::update and renders again, so the Playwright
+# suite tests/web/library-sidebar can hold the sidebar's size, placement and
+# behaviour in Chromium.
+#
+# Not a workspace member: it is test tooling, not a product crate, so the
+# crate graph of site/content/architecture/overview.md (and its gate) and the
+# release's excali-wasm module stay as they are. The empty [workspace] table
+# keeps this package out of the root workspace.
+[package]
+name = "library-sidebar"
+description = "Test harness: excali-ui's library sidebar in the browser (ex-526)."
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+excali-core = { path = "../../crates/excali-core" }
+excali-scene = { path = "../../crates/excali-scene" }
+excali-ui = { path = "../../crates/excali-ui" }
+serde_json = { version = "1.0.151", features = ["preserve_order", "float_roundtrip"] }
+# The wasm-bindgen the workspace's Cargo.lock pins, so the CLI installed for
+# scripts/web/build.sh generates this module's glue too.
+wasm-bindgen = "=0.2.129"
+web-sys = { version = "0.3.106", features = ["Document", "Element", "HtmlElement", "Node", "Window"] }
+
+[profile.release]
+opt-level = "s"

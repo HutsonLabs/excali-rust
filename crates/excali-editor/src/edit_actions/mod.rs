@@ -14,7 +14,10 @@
 //!   [`send_to_back`], [`bring_forward`] and [`send_backward`];
 //! - the clipboard JSON `actionCopy` writes and the paste insertion of
 //!   `App.addElementsFromPasteOrLibrary`: [`copy_selected`] and
-//!   [`paste_elements`].
+//!   [`paste_elements`];
+//! - inserting library items (`LibraryMenuItems`'s click, App's drop,
+//!   `distributeLibraryItemsOnSquareGrid`): [`insert_library_items`] and
+//!   [`distribute_library_items_on_square_grid`].
 //!
 //! Upstream mutates elements in place (`mutateElement`) or copies them
 //! (`newElementWith`); either way a changed element gets `version + 1`, a
@@ -25,6 +28,7 @@ mod clipboard;
 mod delete;
 pub mod duplicate;
 mod grouping;
+mod library;
 mod zindex;
 
 use std::collections::HashSet;
@@ -44,6 +48,9 @@ pub use clipboard::{copy_selected, paste_elements};
 pub use delete::delete_selected;
 pub use duplicate::duplicate_selection;
 pub use grouping::{group, ungroup};
+pub use library::{
+    distribute_library_items_on_square_grid, duplicate_library_items, insert_library_items,
+};
 pub use zindex::{bring_forward, bring_to_front, send_backward, send_to_back};
 
 /// Where the edit actions draw what upstream draws: new ids (`randomId()`,
@@ -173,6 +180,28 @@ fn get_frame_children<'a>(elements: &[&'a Element], frame: &str) -> Vec<&'a Elem
         .copied()
         .filter(|e| e.base.frame_id.as_deref() == Some(frame))
         .collect()
+}
+
+/// `getSelectedElements(elements, { selectedElementIds }, opts)` over the
+/// non-deleted elements, as copies: the selected elements, with the text
+/// bound to a selected container (`include_bound_text`) and each selected
+/// frame preceded by its children (`include_elements_in_frames`).
+pub fn selected_elements(
+    elements: &[Element],
+    selected_ids: &Map<String, Value>,
+    include_bound_text: bool,
+    include_elements_in_frames: bool,
+) -> Vec<Element> {
+    let live = non_deleted(elements);
+    get_selected_elements(
+        &live,
+        selected_ids,
+        include_bound_text,
+        include_elements_in_frames,
+    )
+    .into_iter()
+    .cloned()
+    .collect()
 }
 
 /// `getSelectedElements(elements, appState, opts)` (`selection.ts:161-210`,

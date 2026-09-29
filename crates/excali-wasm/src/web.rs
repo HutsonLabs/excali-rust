@@ -5,7 +5,9 @@
 //! The core mounts upstream's container (`div.excalidraw
 //! .excalidraw-container`, focusable, `theme--dark` in the dark theme) in
 //! the host element, the layered canvases in it (`excali_ui::layers`) and
-//! the desktop toolbar (`excali_ui::toolbar`). Keys are listened to on the
+//! the desktop toolbar (`excali_ui::toolbar`), and the library sidebar with
+//! LayerUI's trigger for it (`excali_ui::library_sidebar`), into which
+//! library items dragged onto the canvas drop. Keys are listened to on the
 //! container, as `Excalidraw` does with `handleKeyboardGlobally` off (its
 //! default); pointer presses on the interactive canvas, which captures the
 //! pointer until the release. Each event goes to the [`Editor`], then the
@@ -37,6 +39,12 @@ use excali_ui::dom::{mount, Mounted, Node};
 use excali_ui::footer::{footer, FooterControl, FooterProps, OnFooterEvent};
 use excali_ui::keyboard::{apply_outcome, clipboard_target, keystroke};
 use excali_ui::layers::{CanvasLayers, Layer};
+use excali_ui::library_sidebar::{
+    default_sidebar, default_sidebar_trigger, dropped_item_ids, is_sidebar_docked_and_fits,
+    update as update_library, BrowseLink, LibraryContext, LibraryEffect, LibraryMenuState,
+    LibrarySidebarEvent, LibrarySidebarProps, LibraryStatus, OpenSidebar, Previews,
+    SidebarTriggerProps,
+};
 use excali_ui::main_menu::{default_main_menu, Dispatch, MenuContext, MenuEffect, ThemeChoice};
 use excali_ui::text_editor::{
     measure_caret_offset, Handled, TextEditorOverlay, TextareaEvent, TextareaHandler,
@@ -90,6 +98,12 @@ excali-editor .excali-editor__top {
 excali-editor .excali-editor__top > * {
   pointer-events: all;
 }
+excali-editor .excali-editor__top-right {
+  position: absolute;
+  top: var(--editor-container-padding, 1rem);
+  right: var(--editor-container-padding, 1rem);
+  z-index: 3;
+}
 excali-editor .excali-editor__top-left {
   position: absolute;
   top: var(--editor-container-padding, 1rem);
@@ -110,6 +124,7 @@ pub fn stylesheet() -> String {
         excali_ui::footer::FOOTER_CSS,
         excali_ui::main_menu::MAIN_MENU_CSS,
         excali_ui::context_menu::CONTEXT_MENU_CSS,
+        excali_ui::library_sidebar::LIBRARY_SIDEBAR_CSS,
         excali_ui::layers::CANVAS_LAYER_CSS,
         TEXT_EDITOR_CSS,
         ELEMENT_CSS,
@@ -122,6 +137,7 @@ fn install_element_stylesheet(document: &Document) -> Result<(), JsValue> {
     excali_ui::footer::install_stylesheet(document)?;
     excali_ui::main_menu::install_stylesheet(document)?;
     excali_ui::context_menu::install_stylesheet(document)?;
+    excali_ui::library_sidebar::install_stylesheet(document)?;
     if document
         .query_selector("style[data-excali-ui=\"excali-editor\"]")?
         .is_some()
@@ -212,6 +228,15 @@ struct Inner {
     main_menu: Option<Mounted>,
     /// The open context menu (`appState.contextMenu`).
     context_menu: Option<Mounted>,
+    /// The top-right corner, where LayerUI puts the library trigger.
+    top_right: HtmlElement,
+    /// The library trigger and the default sidebar, and the library menu's
+    /// own state.
+    library_trigger: Option<Mounted>,
+    sidebar: Option<Mounted>,
+    library_menu: LibraryMenuState,
+    /// Each library item's preview, by id, with the elements it shows.
+    previews: std::collections::HashMap<String, (u64, String)>,
     /// The text editor's box (`.excalidraw-textEditorContainer`) and the
     /// textarea mounted in it while a text is edited.
     editor_box: HtmlElement,
@@ -305,7 +330,34 @@ fn chrome_key(inner: &Inner) -> Value {
         "ui": inner.ui,
         "openMenu": ed.app_state().get("openMenu"),
         "theme": ed.app_state().get("theme"),
+        "openSidebar": ed.app_state().get("openSidebar"),
+        "sidebarDocked": ed.app_state().get("defaultSidebarDockedPreference"),
+        "selection": ed.app_state().get("selectedElementIds"),
+        "library": excali_core::library::library_items_hash(ed.library()),
+        "libraryItems": ed.library().len(),
+        "libraryMenu": library_menu_key(&inner.library_menu),
+        "canFitSidebar": can_fit_sidebar(inner),
     })
+}
+
+fn library_menu_key(state: &LibraryMenuState) -> Value {
+    serde_json::json!({
+        "selected": state.selected_items,
+        "search": state.search,
+        "hovered": format!("{:?}", state.hovered),
+        "menuOpen": state.menu_open,
+        "tabStop": state.tab_stop,
+        "rerendered": state.rerendered,
+    })
+}
+
+/// `MQ_RIGHT_SIDEBAR_MIN_WIDTH` (`common/src/editorInterface.ts:32`).
+const MQ_RIGHT_SIDEBAR_MIN_WIDTH: f64 = 1229.0;
+
+/// `editorInterface.canFitSidebar`: the editor is wider than
+/// [`MQ_RIGHT_SIDEBAR_MIN_WIDTH`] (`App.tsx:3772-3781`).
+fn can_fit_sidebar(inner: &Inner) -> bool {
+    inner.container.get_bounding_client_rect().width() > MQ_RIGHT_SIDEBAR_MIN_WIDTH
 }
 
 /// The textarea's events, handed to the editor.
@@ -418,6 +470,7 @@ fn refresh_chrome(weak: &Weak<RefCell<Inner>>) {
     let _ = render_toolbar(weak);
     let _ = render_footer(weak);
     let _ = render_main_menu(weak);
+    let _ = render_library_sidebar(weak);
 }
 
 /// Re-mounts the toolbar for the current tools.
@@ -671,6 +724,192 @@ fn render_context_menu(
     Ok(())
 }
 
+/// The library sidebar's view of the editor: the app state keys it reads,
+/// the library and the pending selection.
+fn library_context<'a>(
+    inner: &Inner,
+    items: &'a [excali_core::library::LibraryItem],
+    pending: &'a [excali_core::element::Element],
+) -> LibraryContext<'a> {
+    let app = inner.editor.app_state();
+    let open_sidebar = app
+        .get("openSidebar")
+        .and_then(Value::as_object)
+        .and_then(|o| {
+            Some(OpenSidebar {
+                name: o.get("name")?.as_str()?.to_owned(),
+                tab: o.get("tab").and_then(Value::as_str).map(str::to_owned),
+            })
+        });
+    LibraryContext {
+        open_sidebar,
+        docked_preference: app
+            .get("defaultSidebarDockedPreference")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+        can_fit_sidebar: can_fit_sidebar(inner),
+        phone: false,
+        status: LibraryStatus::Loaded,
+        items,
+        pending,
+    }
+}
+
+/// A sidebar event, run through `update` and applied to the editor.
+fn library_event(inner: &mut Inner, event: LibrarySidebarEvent) {
+    let items = inner.editor.library().to_vec();
+    let pending = inner.editor.pending_library_elements();
+    let cx = library_context(inner, &items, &pending);
+    let docked_and_fits = is_sidebar_docked_and_fits(&cx);
+    let mut state = std::mem::take(&mut inner.library_menu);
+    let out = inner
+        .editor
+        .with_restore_env(|env| update_library(&mut state, event, &cx, env));
+    inner.library_menu = state;
+    for effect in out.effects {
+        match effect {
+            LibraryEffect::SetAppState(patch) => inner.editor.set_app_state(patch),
+            LibraryEffect::FocusContainer => {
+                let _ = inner.container.focus();
+            }
+            LibraryEffect::Insert(ids) => {
+                inner.editor.insert_library(&ids, None, docked_and_fits);
+            }
+            LibraryEffect::SetLibrary(items) => inner.editor.set_library(items),
+            LibraryEffect::ResetLibrary => inner.editor.set_library(Vec::new()),
+            LibraryEffect::DeletePreviews(ids) => {
+                for id in ids {
+                    inner.previews.remove(&id);
+                }
+            }
+            // the host owns analytics and files (the element's
+            // importLibrary and exportLibrary); the menu's confirm and
+            // publish dialogs are ex-537's
+            LibraryEffect::TrackEvent(..)
+            | LibraryEffect::LoadLibrary
+            | LibraryEffect::ExportLibrary(_)
+            | LibraryEffect::ConfirmReset
+            | LibraryEffect::ConfirmRemove { .. }
+            | LibraryEffect::Publish(_) => {}
+        }
+    }
+}
+
+/// A preview's markup as a node: an `<svg>` replaced by the export's once
+/// mounted.
+fn preview_node(markup: String) -> Node {
+    Node::Element(
+        excali_ui::dom::Element::svg("svg").on_mount(move |el| el.set_outer_html(&markup)),
+    )
+}
+
+/// Re-mounts LayerUI's library trigger (in the top-right corner, hidden
+/// while the sidebar is docked and fits) and the default sidebar.
+fn render_library_sidebar(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
+    let Some(rc) = weak.upgrade() else {
+        return Ok(());
+    };
+    let mut inner = rc.borrow_mut();
+    for old in [inner.library_trigger.take(), inner.sidebar.take()]
+        .into_iter()
+        .flatten()
+    {
+        old.remove();
+    }
+    if inner.ui == "none" {
+        return Ok(());
+    }
+    let items = inner.editor.library().to_vec();
+    let pending = inner.editor.pending_library_elements();
+    // the previews, exported again for items whose elements changed
+    let mut previews = Previews::default();
+    for item in &items {
+        let version = u64::from(excali_core::library::hash_elements_version(&item.elements));
+        let markup = match inner.previews.get(&item.id) {
+            Some((v, markup)) if *v == version => markup.clone(),
+            _ => {
+                let markup = inner.editor.library_item_svg(&item.elements);
+                inner
+                    .previews
+                    .insert(item.id.clone(), (version, markup.clone()));
+                markup
+            }
+        };
+        previews.items.insert(item.id.clone(), preview_node(markup));
+    }
+    if !pending.is_empty() {
+        previews.pending = Some(preview_node(inner.editor.library_item_svg(&pending)));
+    }
+    let events = weak.clone();
+    let on_event = Rc::new(move |event: LibrarySidebarEvent| {
+        let Some(rc) = events.upgrade() else {
+            return;
+        };
+        {
+            let Ok(mut inner) = rc.try_borrow_mut() else {
+                return;
+            };
+            library_event(&mut inner, event);
+            inner.after_event();
+        }
+        refresh_chrome(&events);
+    }) as Rc<dyn Fn(LibrarySidebarEvent)>;
+    let dark = inner
+        .editor
+        .app_state()
+        .get("theme")
+        .and_then(Value::as_str)
+        == Some("dark");
+    let theme = if dark { Theme::Dark } else { Theme::Light };
+    let document = inner.document();
+    let (trigger, sidebar) = {
+        let cx = library_context(&inner, &items, &pending);
+        let open = cx.open_sidebar.as_ref().map(|o| o.name.as_str()) == Some("default");
+        let trigger = (!is_sidebar_docked_and_fits(&cx)).then(|| {
+            Node::Element(default_sidebar_trigger(SidebarTriggerProps {
+                open,
+                theme,
+                on_event: Some(on_event.clone()),
+            }))
+        });
+        let sidebar = default_sidebar(LibrarySidebarProps {
+            context: cx,
+            theme,
+            previews: &previews,
+            state: &inner.library_menu,
+            browse: BrowseLink {
+                app_id: "excali-editor".into(),
+                library_return_url: None,
+                location: web_sys::window()
+                    .and_then(|w| {
+                        let l = w.location();
+                        Some(format!("{}{}", l.origin().ok()?, l.pathname().ok()?))
+                    })
+                    .unwrap_or_default(),
+                window_name: web_sys::window()
+                    .and_then(|w| w.name().ok())
+                    .unwrap_or_default(),
+            },
+            id_prefix: "excali-editor-sidebar".into(),
+            menu_ids: (
+                "excali-editor-library-menu-trigger".into(),
+                "excali-editor-library-menu".into(),
+            ),
+            search_menu: None,
+            on_event: Some(on_event),
+        })
+        .map(Node::Element);
+        (trigger, sidebar)
+    };
+    if let Some(node) = trigger {
+        inner.library_trigger = Some(mount(&node, &document, &inner.top_right)?);
+    }
+    if let Some(node) = sidebar {
+        inner.sidebar = Some(mount(&node, &document, &inner.container)?);
+    }
+    Ok(())
+}
+
 /// Re-mounts the footer (`Footer.tsx`): the zoom actions and the undo and
 /// redo buttons, run through the editor.
 fn render_footer(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
@@ -834,6 +1073,9 @@ impl EditorCore {
         let top_left: HtmlElement = document.create_element("div")?.dyn_into()?;
         top_left.set_class_name("excali-editor__top-left");
         container.append_child(&top_left)?;
+        let top_right: HtmlElement = document.create_element("div")?.dyn_into()?;
+        top_right.set_class_name("excali-editor__top-right");
+        container.append_child(&top_right)?;
 
         let source = web_sys::window()
             .and_then(|w| w.location().origin().ok())
@@ -855,6 +1097,11 @@ impl EditorCore {
             top_left,
             main_menu: None,
             context_menu: None,
+            top_right,
+            library_trigger: None,
+            sidebar: None,
+            library_menu: LibraryMenuState::default(),
+            previews: std::collections::HashMap::new(),
             editor_box,
             overlay: None,
             extra_tools_open: false,
@@ -876,6 +1123,50 @@ impl EditorCore {
             apply_outcome(&event, &out);
             inner.after_event();
             drop(inner);
+            refresh_chrome(&Rc::downgrade(rc));
+        })?;
+        // library items dragged from the sidebar (`App.handleAppOnDrop`,
+        // `App.tsx:13194-13240`): allowed over the editor, inserted where
+        // they drop
+        listen(&inner, target, "dragover", |_, event| {
+            let Some(drag) = event.dyn_ref::<web_sys::DragEvent>() else {
+                return;
+            };
+            let carries_items = drag.data_transfer().is_some_and(|t| {
+                let types = t.types();
+                (0..types.length()).any(|i| {
+                    types.get(i).as_string().as_deref()
+                        == Some(excali_core::library::MIME_TYPE_EXCALIDRAWLIB_IDS)
+                })
+            });
+            if carries_items {
+                event.prevent_default();
+            }
+        })?;
+        listen(&inner, target, "drop", |rc, event| {
+            let Some(drag) = event.dyn_ref::<web_sys::DragEvent>() else {
+                return;
+            };
+            let Some(ids) = drag
+                .data_transfer()
+                .and_then(|t| {
+                    t.get_data(excali_core::library::MIME_TYPE_EXCALIDRAWLIB_IDS)
+                        .ok()
+                })
+                .filter(|d| !d.is_empty())
+                .and_then(|d| dropped_item_ids(&d))
+            else {
+                return;
+            };
+            event.prevent_default();
+            {
+                let mut inner = rc.borrow_mut();
+                let items = inner.editor.library().to_vec();
+                let fits = is_sidebar_docked_and_fits(&library_context(&inner, &items, &[]));
+                let client = [f64::from(drag.client_x()), f64::from(drag.client_y())];
+                inner.editor.insert_library(&ids, Some(client), fits);
+                inner.after_event();
+            }
             refresh_chrome(&Rc::downgrade(rc));
         })?;
         listen(&inner, target, "keyup", |rc, event| {
@@ -1213,6 +1504,8 @@ impl EditorCore {
             inner.footer.take(),
             inner.main_menu.take(),
             inner.context_menu.take(),
+            inner.library_trigger.take(),
+            inner.sidebar.take(),
         ]
         .into_iter()
         .flatten()
