@@ -104,7 +104,9 @@ use excali_editor::snapping::{
 use excali_editor::store::CaptureUpdateAction;
 use excali_editor::tools::{PointerType, ToolState};
 use excali_editor::transform::{get_grid_point, TransformModifiers, TransformSession};
-use excali_editor::transform_handles::{EditorInterface, TransformHandleType};
+use excali_editor::transform_handles::{
+    EditorInterface, SelectedLinearElementState, TransformHandleType,
+};
 use excali_editor::viewport::{
     handle_wheel, perform_zoom_action, translate, viewport_coords_to_scene_coords,
     zoom_to_fit_bounds, InputDevice, Offsets, TranslateOptions, Viewport, ViewportState,
@@ -127,15 +129,16 @@ use excali_ui::footer::{toggle_shortcuts, toggle_zen_mode};
 use serde_json::{json, Map, Value};
 
 use crate::drag::drag_selected_elements;
+use crate::env::EditorEnv;
 use crate::interact;
+use crate::linear::{LinearPress, LinearState};
 use crate::multi::MultiPoint;
 use excali_editor::binding::update_bound_elements;
 use excali_editor::frame::{
     add_elements_to_frame, get_elements_in_new_frame, get_frame_children_insertion_index,
 };
-use excali_scene::frame::is_frame_like;
-use crate::env::EditorEnv;
 use excali_editor::text_editing::TextEditor;
+use excali_scene::frame::is_frame_like;
 
 /// What the editor asks of its host, in order.
 #[derive(Clone, Debug, PartialEq)]
@@ -335,6 +338,9 @@ pub(crate) enum Gesture {
     /// A press that finished a line or arrow drawn point by point; its
     /// release reverts the tool (`App.tsx:12594-12620`).
     Finalized,
+    /// A press handled whole on the press (Alt adding a point in the
+    /// linear element editor); its release only commits.
+    Inert,
 }
 
 /// The element a drawing tool's press created (`appState.newElement`) and
@@ -380,6 +386,8 @@ pub(crate) struct SelectGesture {
     was_added_to_selection: bool,
     /// `hit.hasBeenDuplicated`: Alt+drag duplicated the selection.
     has_been_duplicated: bool,
+    /// The press on the selected line or arrow, for its editor.
+    linear: Option<LinearPress>,
 }
 
 /// `getSceneVersion`: the sum of the elements' versions.
@@ -692,6 +700,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         for effect in &out.effects {
             match effect {
                 KeyEffect::Action(KeyDownOutcome::Perform(name)) => self.perform_action(*name),
+                KeyEffect::ExecuteAction(name) => self.perform_action(*name),
                 KeyEffect::Scrolled(translation) => self.set_viewport_to(translation.viewport),
                 _ => {}
             }
@@ -845,6 +854,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             ActionName::Undo => return self.undo(),
             ActionName::Redo => return self.redo(),
             ActionName::Finalize => return self.finalize(None),
+            ActionName::ToggleLinearEditor => return self.toggle_linear_editor(),
             _ => {}
         }
         if let Some(action) = ZoomAction::from_name(name.as_str()) {
@@ -1547,7 +1557,10 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         // insertNewElement's updateFrameToHighlight, and newElement
         let frame = self.element_value(frame_id.as_deref());
         let new_element = self.element_value(Some(&id));
-        self.set_keys(vec![("frameToHighlight", frame), ("newElement", new_element)]);
+        self.set_keys(vec![
+            ("frameToHighlight", frame),
+            ("newElement", new_element),
+        ]);
         self.session.commit();
         self.gesture = Some(Gesture::Create(CreateGesture {
             id,
@@ -1575,7 +1588,11 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 self.session.app_state().zoom().unwrap_or(1.0),
                 PointerType::Mouse,
                 &EditorInterface::desktop(),
-                None,
+                self.linear_state().map(|l| SelectedLinearElementState {
+                    is_editing: l.is_editing,
+                    is_dragging: l.is_dragging,
+                    hover_point_index: l.hover_point_index as i64,
+                }),
             );
             if session.handle().is_some() {
                 let origin_in_grid =
@@ -1597,9 +1614,22 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             .filter(|e| !e.base.is_deleted)
             .map(|e| (e.base.id.clone(), e.clone()))
             .collect();
+        // the selected line or arrow's points and midpoints
+        // (LinearElementEditor.handlePointerDown, App.tsx:9600-9623)
+        let linear = match self.linear_pointer_down(input, origin) {
+            Some((_, true)) => {
+                self.gesture = Some(Gesture::Inert);
+                self.session.commit();
+                return self.report();
+            }
+            Some((press, false)) => Some(press),
+            None => None,
+        };
         let link = self.link_at(origin);
         let hit = if link.is_some() {
             None
+        } else if let Some(press) = linear.as_ref().filter(|p| p.hit) {
+            Some(press.id.clone())
         } else {
             self.element_at(origin)
         };
@@ -1607,15 +1637,39 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             .as_ref()
             .is_some_and(|id| !self.selected_ids().contains(id));
         if link.is_none() {
-            let mut selected = self.selected_ids();
-            match &hit {
-                Some(id) if selected.contains(id) => {}
-                Some(id) if input.shift_key => selected.push(id.clone()),
-                Some(id) => selected = vec![id.clone()],
-                None if input.shift_key => {}
-                None => selected.clear(),
+            let editing = self.linear_state().filter(|l| l.is_editing);
+            if let Some(mut state) = editing {
+                // the editor stays open only for a press on its element
+                // (App.tsx:9764-9782)
+                state.is_editing = hit.as_deref() == Some(state.element_id.as_str());
+                let id = state.element_id.clone();
+                self.set_selection(std::slice::from_ref(&id));
+                self.set_linear_state(Some(&state));
+            } else {
+                let mut selected = self.selected_ids();
+                match &hit {
+                    Some(id) if selected.contains(id) => {}
+                    Some(id) if input.shift_key => selected.push(id.clone()),
+                    Some(id) => selected = vec![id.clone()],
+                    None if input.shift_key => {}
+                    None => selected.clear(),
+                }
+                self.set_selection(&selected);
+                // selectedLinearElement follows a lone line or arrow
+                // (App.tsx:9771-9790, 12428-12440), and a cleared
+                // selection clears it (clearSelection, App.tsx:13005-13024)
+                let current = self.linear_state();
+                let next = match (&hit, selected.as_slice()) {
+                    (_, []) => None,
+                    (Some(h), [only]) if h == only && self.is_linear_id(h) => Some(
+                        current
+                            .filter(|c| &c.element_id == h)
+                            .unwrap_or_else(|| LinearState::new(h, false)),
+                    ),
+                    _ => current,
+                };
+                self.set_linear_state(next.as_ref());
             }
-            self.set_selection(&selected);
             self.session.commit();
         }
         // the selection element (`createGenericElementOnPointerDown`)
@@ -1633,8 +1687,17 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             with_cmd_or_ctrl: input.ctrl_or_cmd,
             was_added_to_selection,
             has_been_duplicated: false,
+            linear,
         }));
         self.report();
+    }
+
+    /// Whether `id` is a line or an arrow in the scene.
+    fn is_linear_id(&self, id: &str) -> bool {
+        self.session
+            .elements()
+            .iter()
+            .any(|e| e.base.id == id && !e.base.is_deleted && e.kind.linear().is_some())
     }
 
     /// A `pointermove`: pans during a pan, drags the selection while a press
@@ -1677,7 +1740,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             Some(Gesture::TextCreate { .. } | Gesture::TextLabel { .. }) => {}
             None if self.multi.is_some() => self.multi_hover(input),
             None => self.hover(input),
-            Some(Gesture::Finalized) => {}
+            Some(Gesture::Finalized | Gesture::Inert) => {}
         }
     }
 
@@ -1779,8 +1842,13 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                     .filter(|e| !e.base.is_deleted)
                     .collect();
                 let map = ElementsMap::new(live.iter().copied());
-                self.snap_cache
-                    .maybe_cache_reference_snap_points(&snap_state, event, &[&element], &live, &map);
+                self.snap_cache.maybe_cache_reference_snap_points(
+                    &snap_state,
+                    event,
+                    &[&element],
+                    &live,
+                    &map,
+                );
                 let snapped = snap_new_element(
                     &element,
                     &self.snap_cache,
@@ -1975,8 +2043,13 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 .iter()
                 .filter(|e| session.selected().contains(&e.base.id))
                 .collect();
-            self.snap_cache
-                .maybe_cache_reference_snap_points(&snap_state, event, &selected, &live, &map);
+            self.snap_cache.maybe_cache_reference_snap_points(
+                &snap_state,
+                event,
+                &selected,
+                &live,
+                &map,
+            );
             let snapped = snap_resizing_elements(
                 &selected,
                 &originals,
@@ -2014,7 +2087,9 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 .elements()
                 .iter()
                 .filter(|e| {
-                    !e.base.is_deleted && is_frame_like(e) && session.selected().contains(&e.base.id)
+                    !e.base.is_deleted
+                        && is_frame_like(e)
+                        && session.selected().contains(&e.base.id)
                 })
                 .map(|e| e.base.id.clone())
                 .collect();
@@ -2043,6 +2118,23 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// drags the duplicates (`duplicateDraggedSelection`).
     fn drag_selection(&mut self, input: PointerInput) {
         let point = self.scene_point(input.client_x, input.client_y);
+        // the linear element editor's points and midpoints first
+        // (App.tsx:10716-10985)
+        if let Some(Gesture::Select(gesture)) = self.gesture.as_mut() {
+            if let Some(mut press) = gesture.linear.take() {
+                let handled = self.linear_drag(&mut press, input);
+                if let Some(Gesture::Select(gesture)) = self.gesture.as_mut() {
+                    gesture.linear = Some(press);
+                    if handled {
+                        gesture.dragged = true;
+                    }
+                }
+                if handled {
+                    self.session.commit();
+                    return self.report();
+                }
+            }
+        }
         let Some(Gesture::Select(gesture)) = self.gesture.as_ref() else {
             return;
         };
@@ -2101,8 +2193,13 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         });
         let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
         let map = ElementsMap::new(live.iter().copied());
-        self.snap_cache
-            .maybe_cache_visible_gaps(&snap_state, event, &selected_elements, &live, &map);
+        self.snap_cache.maybe_cache_visible_gaps(
+            &snap_state,
+            event,
+            &selected_elements,
+            &live,
+            &map,
+        );
         self.snap_cache.maybe_cache_reference_snap_points(
             &snap_state,
             event,
@@ -2228,8 +2325,13 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             .collect();
         self.snap_cache
             .maybe_cache_visible_gaps(&snap_state, event, &originals, &live, &map);
-        self.snap_cache
-            .maybe_cache_reference_snap_points(&snap_state, event, &originals, &live, &map);
+        self.snap_cache.maybe_cache_reference_snap_points(
+            &snap_state,
+            event,
+            &originals,
+            &live,
+            &map,
+        );
     }
 
     /// The `pointerup` ending the press.
@@ -2239,7 +2341,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         if let Some(Gesture::Select(g)) = &gesture {
             // the frames of the dragged selection (App.tsx:12060-12182),
             // while the drag's state is still the app's
-            if g.dragged && g.hit.is_some() && !g.with_cmd_or_ctrl {
+            let dragging_points = self.linear_state().is_some_and(|l| l.is_dragging);
+            if g.dragged && g.hit.is_some() && !g.with_cmd_or_ctrl && !dragging_points {
                 let point = self.scene_point(input.client_x, input.client_y);
                 self.frame_membership_after_drag(point);
             }
@@ -2257,6 +2360,10 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             Some(Gesture::Select(gesture)) => self.select_pointer_up(input, gesture),
             Some(Gesture::Transform(..)) => {
                 self.session.store.schedule_capture();
+                self.session.commit();
+                self.report();
+            }
+            Some(Gesture::Inert) => {
                 self.session.commit();
                 self.report();
             }
@@ -2331,7 +2438,11 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             ) * zoom;
             if gesture.multi {
                 // the point is committed (App.tsx:11728-11745)
-                let last = element.kind.points().map_or(0, <[_]>::len).saturating_sub(1);
+                let last = element
+                    .kind
+                    .points()
+                    .map_or(0, <[_]>::len)
+                    .saturating_sub(1);
                 if let Some(m) = self.multi.as_mut() {
                     m.last_committed = Some(last);
                 }
@@ -2553,6 +2664,11 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 self.events.push(HostEvent::OpenLink { href });
             }
             return;
+        }
+        if let Some(press) = &gesture.linear {
+            if press.hit || self.linear_state().is_some_and(|l| l.is_dragging) {
+                self.linear_pointer_up(press, input);
+            }
         }
         let selection = self
             .session

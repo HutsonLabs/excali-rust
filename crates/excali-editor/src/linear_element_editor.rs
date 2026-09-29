@@ -765,3 +765,103 @@ pub fn handle_bound_text_dragging(
     scene.mutate_element(&text_id, update, env);
     true
 }
+
+// -- elbow arrow segments ------------------------------------------------------------------
+
+/// `LinearElementEditor.moveFixedSegment(linearElement, index, x, y,
+/// scene)` (`linearElementEditor.ts:2269-2352`): segment `index` of an
+/// elbow arrow (counting its end point) fixed through the point `(x, y)`,
+/// along its own direction; the arrow re-routes around it. Returns the
+/// fixed segment's midpoint and index, which the editor keeps as the
+/// hovered midpoint, or `None` when nothing moved.
+pub fn move_fixed_segment(
+    scene: &mut Scene,
+    env: &mut dyn MutationEnv,
+    element_id: &str,
+    index: usize,
+    x: f64,
+    y: f64,
+) -> Option<([f64; 2], usize)> {
+    let element = scene.get_non_deleted(element_id)?.clone();
+    if !is_elbow_arrow(&element) {
+        return None;
+    }
+    let pts = points(&element);
+    if index == 0 || index >= pts.len() {
+        return None;
+    }
+    let is_horizontal =
+        excali_scene::heading::heading_is_horizontal(excali_scene::heading::vector_to_heading([
+            pts[index][0] - pts[index - 1][0],
+            pts[index][1] - pts[index - 1][1],
+        ]));
+    let ElementKind::Arrow(arrow) = &element.kind else {
+        return None;
+    };
+    // keyed by index, as upstream's object is
+    let mut segments: Vec<excali_core::element::FixedSegment> =
+        arrow.fixed_segments.clone().flatten().unwrap_or_default();
+    let (b, p0, p1) = (&element.base, pts[index - 1], pts[index]);
+    let fixed = excali_core::element::FixedSegment {
+        index: index as f64,
+        start: [
+            if is_horizontal { p0[0] } else { x - b.x },
+            if is_horizontal { y - b.y } else { p0[1] },
+        ],
+        end: [
+            if is_horizontal { p1[0] } else { x - b.x },
+            if is_horizontal { y - b.y } else { p1[1] },
+        ],
+    };
+    match segments.iter_mut().find(|s| s.index == index as f64) {
+        Some(s) => *s = fixed,
+        None => segments.push(fixed),
+    }
+    segments.sort_by(|a, b| a.index.total_cmp(&b.index));
+    let offset = segments.iter().filter(|s| s.index < index as f64).count();
+    scene.mutate_element(
+        element_id,
+        ElementUpdate {
+            fixed_segments: Some(Some(segments)),
+            ..ElementUpdate::default()
+        },
+        env,
+    );
+    let moved = scene.get(element_id)?;
+    let ElementKind::Arrow(arrow) = &moved.kind else {
+        return None;
+    };
+    let segment = arrow.fixed_segments.as_ref()?.as_ref()?.get(offset)?;
+    let point = [
+        moved.base.x + (segment.start[0] + segment.end[0]) / 2.0,
+        moved.base.y + (segment.start[1] + segment.end[1]) / 2.0,
+    ];
+    Some((point, segment.index as usize))
+}
+
+/// `LinearElementEditor.deleteFixedSegment(element, scene, index)`
+/// (`linearElementEditor.ts:2354-2364`): the fixed segment `index`
+/// released; the arrow routes freely there again.
+pub fn delete_fixed_segment(
+    scene: &mut Scene,
+    env: &mut dyn MutationEnv,
+    element_id: &str,
+    index: usize,
+) {
+    let Some(ElementKind::Arrow(arrow)) = scene.get(element_id).map(|e| e.kind.clone()) else {
+        return;
+    };
+    let segments = arrow.fixed_segments.flatten().map(|s| {
+        s.into_iter()
+            .filter(|s| s.index != index as f64)
+            .collect::<Vec<_>>()
+    });
+    scene.mutate_element(
+        element_id,
+        ElementUpdate {
+            fixed_segments: Some(segments),
+            ..ElementUpdate::default()
+        },
+        env,
+    );
+}

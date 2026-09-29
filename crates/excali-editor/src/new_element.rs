@@ -359,10 +359,42 @@ pub fn get_locked_linear_cursor_align_size(
     x: f64,
     y: f64,
 ) -> (f64, f64) {
+    get_locked_linear_cursor_align_size_with_angle(origin_x, origin_y, x, y, None)
+}
+
+/// `getLockedLinearCursorAlignSize(originX, originY, x, y, customAngle)`
+/// (`sizeHelpers.ts:187-253`): as [`get_locked_linear_cursor_align_size`],
+/// but between the two 15 degree lines around a (truthy) `custom_angle`
+/// the line's own angle is kept when the pointer is within 2.5 degrees of
+/// it, else the nearer of the two.
+pub fn get_locked_linear_cursor_align_size_with_angle(
+    origin_x: f64,
+    origin_y: f64,
+    x: f64,
+    y: f64,
+    custom_angle: Option<f64>,
+) -> (f64, f64) {
+    use excali_math::{normalize_radians, radians_between_angles, radians_difference, Radians};
     let mut width = x - origin_x;
     let mut height = y - origin_y;
     let angle = js::atan2(height, width);
-    let locked_angle = js::round(angle / SHIFT_LOCKING_ANGLE) * SHIFT_LOCKING_ANGLE;
+    let mut locked_angle = js::round(angle / SHIFT_LOCKING_ANGLE) * SHIFT_LOCKING_ANGLE;
+    if let Some(custom) = custom_angle.filter(|a| *a != 0.0 && !a.is_nan()) {
+        let lower = (custom / SHIFT_LOCKING_ANGLE).floor() * SHIFT_LOCKING_ANGLE;
+        if radians_between_angles(
+            Radians(angle),
+            Radians(lower),
+            Radians(lower + SHIFT_LOCKING_ANGLE),
+        ) {
+            if radians_difference(Radians(angle), Radians(custom)).0 < SHIFT_LOCKING_ANGLE / 6.0 {
+                locked_angle = custom;
+            } else if normalize_radians(Radians(angle)).0 > normalize_radians(Radians(custom)).0 {
+                locked_angle = lower + SHIFT_LOCKING_ANGLE;
+            } else {
+                locked_angle = lower;
+            }
+        }
+    }
     if locked_angle == 0.0 {
         height = 0.0;
     } else if locked_angle == std::f64::consts::FRAC_PI_2 {

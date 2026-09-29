@@ -364,6 +364,10 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             return;
         }
         let [mut x, mut y] = self.scene_point(input.client_x, input.client_y);
+        // a line's editor, an elbow arrow's fixed segment (App.tsx:7379-7462)
+        if self.linear_double_click(input, [x, y]) {
+            return;
+        }
         let elements = self.session.elements().to_vec();
         let selected: Vec<Element> = {
             let ids = self.selected_ids();

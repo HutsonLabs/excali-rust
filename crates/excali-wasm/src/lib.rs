@@ -24,6 +24,7 @@ pub mod drag;
 pub mod editor;
 pub mod env;
 mod interact;
+mod linear;
 mod multi;
 pub mod text;
 pub mod web;
