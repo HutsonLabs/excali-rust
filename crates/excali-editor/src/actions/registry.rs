@@ -1056,7 +1056,7 @@ const fn zoom(name: ActionName, line: u32, label: &'static str) -> ActionSpec {
 const fn align(name: ActionName, line: u32, label: &'static str) -> ActionSpec {
     ActionSpec {
         track_event: track("element"),
-        predicate: Some(p_align),
+        predicate: Some(align_actions_predicate),
         has_panel: true,
         ..action(name, "actionAlign.tsx", line, label)
     }
@@ -1361,7 +1361,7 @@ fn p_navigation_enabled(ctx: &ActionContext<'_>) -> bool {
 
 /// `alignActionsPredicate` (`actionAlign.tsx:36-52`): more than one unit
 /// selected and no frame.
-fn p_align(ctx: &ActionContext<'_>) -> bool {
+pub(crate) fn align_actions_predicate(ctx: &ActionContext<'_>) -> bool {
     let selected = ctx.selected(false);
     ctx.selected_units(&selected) > 1 && !selected.iter().any(|e| is_frame_like(e))
 }

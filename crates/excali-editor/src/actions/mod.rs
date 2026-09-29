@@ -19,7 +19,9 @@
 //! - the menus and panels built from the registry: the context menus
 //!   (`App.tsx:13835-13936`, `components/ContextMenu.tsx`), the command
 //!   palette's action commands (`components/CommandPalette/CommandPalette.tsx`),
-//!   the full styles panel (`components/Actions.tsx:63-217`) and the
+//!   the full styles panel (`components/Actions.tsx:63-217`) with the
+//!   predicates that gate it (`components/shapeActionPredicates.ts`,
+//!   [`get_shape_action_predicates`]) and the
 //!   default main menu (`components/LayerUI.tsx:111-136`,
 //!   `components/main-menu/DefaultItems.tsx`).
 //!
@@ -36,6 +38,7 @@ mod manager;
 mod menus;
 mod names;
 mod registry;
+mod shape_predicates;
 
 pub use context::{ActionContext, ActionEnv, AppProps, CanvasActions, FormFactor};
 pub use keys::{
@@ -54,4 +57,11 @@ pub use names::ActionName;
 pub use registry::{
     registered_actions, ActionIcon, ActionLabel, ActionSpec, CheckedFn, KeyTestFn, PredicateFn,
     TrackEvent,
+};
+pub use shape_predicates::{
+    can_change_background_color, can_change_roundness, can_change_stroke_color,
+    can_have_arrowheads, get_shape_action_predicates, get_target_elements, has_background,
+    has_fill_style, has_freedraw_mode, has_roughness, has_stroke_color, has_stroke_style,
+    has_stroke_width, shape_action_predicates, show_selected_shape_actions, tool_is_arrow,
+    ShapeActionPredicates,
 };
