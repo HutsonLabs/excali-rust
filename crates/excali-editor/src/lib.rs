@@ -5,6 +5,11 @@
 //! Targets: native (tests), wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-scene`.
 //!
+//! - [`actions`]: the actions registry as data (`actions/*`): the 99
+//!   action names, each registered action's key test, predicate, label and
+//!   flags, the action manager's key and gate logic, and the context
+//!   menus, command palette commands, styles panel and main menu built
+//!   from it.
 //! - [`binding`]: arrow binding (`binding.ts`): the gap and distance,
 //!   fixed points, the binding strategies for dragged ends (modes inside,
 //!   orbit and skip), binding and unbinding, and bound arrows following
@@ -49,6 +54,7 @@
 //!   zoom-to-fit (`viewport.ts`, `App.wheel.ts`, `App.viewport.ts`,
 //!   `actionCanvas.tsx`).
 
+pub mod actions;
 mod binary_heap;
 pub mod binding;
 pub mod binding_highlight;

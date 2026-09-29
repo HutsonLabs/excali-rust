@@ -617,7 +617,10 @@ fn platform_mods(mods: &str, darwin: bool) -> String {
 fn fixture_for(action: &str, darwin: bool) -> Fixture {
     let mut f = match action {
         "toggleElementLock" | "deselect" => Fixture::selected(vec![rect("a")], &["a"]),
-        "finalize" => Fixture::new(vec![arrow("m", false)], json!({ "multiElement": {"id": "m"} })),
+        "finalize" => Fixture::new(
+            vec![arrow("m", false)],
+            json!({ "multiElement": {"id": "m"} }),
+        ),
         _ => Fixture::new(vec![], json!({})),
     };
     f.env.is_darwin = darwin;
@@ -674,40 +677,67 @@ fn z_order_extremes_by_platform() {
     let f = fixture_for("sendToBack", false);
     let back = ev("{", "BracketLeft", "ctrl+shift");
     let front = ev("}", "BracketRight", "ctrl+shift");
-    assert_eq!(f.key_down(&back), KeyDownOutcome::Perform(ActionName::SendToBack));
-    assert_eq!(f.key_down(&front), KeyDownOutcome::Perform(ActionName::BringToFront));
+    assert_eq!(
+        f.key_down(&back),
+        KeyDownOutcome::Perform(ActionName::SendToBack)
+    );
+    assert_eq!(
+        f.key_down(&front),
+        KeyDownOutcome::Perform(ActionName::BringToFront)
+    );
     // Ctrl+Alt+[ is not a shortcut off a Mac.
     let alt = ev("[", "BracketLeft", "ctrl+alt");
-    assert!(!(ActionName::SendToBack.spec().key_test.unwrap())(&alt, &f.ctx()));
+    assert!(!(ActionName::SendToBack.spec().key_test.unwrap())(
+        &alt,
+        &f.ctx()
+    ));
 
     // On a Mac: Cmd+Alt+[ / ]. sendBackward's keyTest (Cmd, no Shift,
     // BracketLeft) passes too, and handleKeyDown gives up when more than one
     // action matches (manager.tsx:108-113) whatever the keyPriority.
     let f = fixture_for("sendToBack", true);
     let back = ev("[", "BracketLeft", "meta+alt");
-    assert!((ActionName::SendToBack.spec().key_test.unwrap())(&back, &f.ctx()));
-    assert!((ActionName::SendBackward.spec().key_test.unwrap())(&back, &f.ctx()));
+    assert!((ActionName::SendToBack.spec().key_test.unwrap())(
+        &back,
+        &f.ctx()
+    ));
+    assert!((ActionName::SendBackward.spec().key_test.unwrap())(
+        &back,
+        &f.ctx()
+    ));
     assert_eq!(
         f.key_down(&back),
         KeyDownOutcome::Ambiguous(vec![ActionName::SendBackward, ActionName::SendToBack])
     );
     let front = ev("]", "BracketRight", "meta+alt");
-    assert!((ActionName::BringToFront.spec().key_test.unwrap())(&front, &f.ctx()));
+    assert!((ActionName::BringToFront.spec().key_test.unwrap())(
+        &front,
+        &f.ctx()
+    ));
     assert_eq!(
         f.key_down(&front),
         KeyDownOutcome::Ambiguous(vec![ActionName::BringForward, ActionName::BringToFront])
     );
     // Cmd+Shift+[ is not sendToBack on a Mac.
     let shift = ev("{", "BracketLeft", "meta+shift");
-    assert!(!(ActionName::SendToBack.spec().key_test.unwrap())(&shift, &f.ctx()));
+    assert!(!(ActionName::SendToBack.spec().key_test.unwrap())(
+        &shift,
+        &f.ctx()
+    ));
 }
 
 #[test]
 fn ctrl_or_cmd_is_meta_on_a_mac_and_ctrl_elsewhere() {
     let f = fixture_for("selectAll", false);
-    assert_eq!(f.key_down(&ev("a", "KeyA", "meta")), KeyDownOutcome::Unhandled);
+    assert_eq!(
+        f.key_down(&ev("a", "KeyA", "meta")),
+        KeyDownOutcome::Unhandled
+    );
     let f = fixture_for("selectAll", true);
-    assert_eq!(f.key_down(&ev("a", "KeyA", "ctrl")), KeyDownOutcome::Unhandled);
+    assert_eq!(
+        f.key_down(&ev("a", "KeyA", "ctrl")),
+        KeyDownOutcome::Unhandled
+    );
     assert_eq!(
         f.key_down(&ev("a", "KeyA", "meta")),
         KeyDownOutcome::Perform(ActionName::SelectAll)
@@ -723,8 +753,14 @@ fn key_tests_reject_near_misses() {
     let f = fixture_for("", false);
     let cases: &[(ActionName, KeyEvent<'_>)] = &[
         // Delete only without Ctrl: Ctrl+Delete is the clear-canvas confirm.
-        (ActionName::DeleteSelectedElements, ev("Delete", "Delete", "ctrl")),
-        (ActionName::DeleteSelectedElements, ev("Backspace", "Backspace", "ctrl")),
+        (
+            ActionName::DeleteSelectedElements,
+            ev("Delete", "Delete", "ctrl"),
+        ),
+        (
+            ActionName::DeleteSelectedElements,
+            ev("Backspace", "Backspace", "ctrl"),
+        ),
         (ActionName::Group, ev("G", "KeyG", "ctrl+shift")),
         (ActionName::Ungroup, ev("g", "KeyG", "ctrl")),
         (ActionName::Undo, ev("Z", "KeyZ", "ctrl+shift")),
@@ -742,9 +778,18 @@ fn key_tests_reject_near_misses() {
         (ActionName::Stats, ev("/", "Slash", "alt+ctrl")),
         (ActionName::ViewMode, ev("r", "KeyR", "alt+ctrl")),
         (ActionName::ZenMode, ev("z", "KeyZ", "alt+ctrl")),
-        (ActionName::DistributeHorizontally, ev("h", "KeyH", "alt+ctrl")),
-        (ActionName::SendBackward, ev("{", "BracketLeft", "ctrl+shift")),
-        (ActionName::BringForward, ev("}", "BracketRight", "ctrl+shift")),
+        (
+            ActionName::DistributeHorizontally,
+            ev("h", "KeyH", "alt+ctrl"),
+        ),
+        (
+            ActionName::SendBackward,
+            ev("{", "BracketLeft", "ctrl+shift"),
+        ),
+        (
+            ActionName::BringForward,
+            ev("}", "BracketRight", "ctrl+shift"),
+        ),
         (ActionName::Cut, ev("X", "KeyX", "ctrl")),
         (ActionName::CopyAsPng, ev("C", "KeyC", "shift")),
         (ActionName::IncreaseFontSize, ev(">", "Period", "ctrl")),
@@ -759,10 +804,19 @@ fn key_tests_reject_near_misses() {
         (ActionName::Finalize, ev("Enter", "Enter", "")),
     ];
     for (action, event) in cases {
-        assert!(!passes(*action, event, &f), "{} {:?}", action.as_str(), event);
+        assert!(
+            !passes(*action, event, &f),
+            "{} {:?}",
+            action.as_str(),
+            event
+        );
     }
     // saveFileToDisk lower-cases the key; toggleElementLock too.
-    assert!(passes(ActionName::SaveFileToDisk, &ev("s", "KeyS", "ctrl+shift"), &f));
+    assert!(passes(
+        ActionName::SaveFileToDisk,
+        &ev("s", "KeyS", "ctrl+shift"),
+        &f
+    ));
 }
 
 #[test]
@@ -800,8 +854,14 @@ fn deselect_key_test_follows_the_editor_state() {
         })
     )));
     assert!(pass(&Fixture::new(vec![], json!({"editingGroupId": "g"}))));
-    assert!(pass(&Fixture::new(vec![], json!({"activeEmbeddable": {"element": {}, "state": "active"}}))));
-    assert!(pass(&Fixture::new(vec![], json!({"selectedLinearElement": {"isEditing": false}}))));
+    assert!(pass(&Fixture::new(
+        vec![],
+        json!({"activeEmbeddable": {"element": {}, "state": "active"}})
+    )));
+    assert!(pass(&Fixture::new(
+        vec![],
+        json!({"selectedLinearElement": {"isEditing": false}})
+    )));
     // Not while drawing, in a multi-point element or line editing.
     let selected = json!({"selectedElementIds": selecting(&["a"])});
     let mut busy = Fixture::new(vec![rect("a")], selected.clone());
@@ -811,7 +871,8 @@ fn deselect_key_test_follows_the_editor_state() {
     busy.app_state.insert("multiElement", json!({"id": "m"}));
     assert!(!pass(&busy));
     let mut busy = Fixture::new(vec![rect("a")], selected);
-    busy.app_state.insert("selectedLinearElement", json!({"isEditing": true}));
+    busy.app_state
+        .insert("selectedLinearElement", json!({"isEditing": true}));
     assert!(!pass(&busy));
     // Not from a text field.
     let f = Fixture::selected(vec![rect("a")], &["a"]);
@@ -824,7 +885,10 @@ fn deselect_key_test_follows_the_editor_state() {
 fn finalize_key_test_follows_the_editor_state() {
     let esc = ev("Escape", "Escape", "");
     let enter = ev("Enter", "Enter", "");
-    let editing = Fixture::new(vec![], json!({"selectedLinearElement": {"isEditing": true}}));
+    let editing = Fixture::new(
+        vec![],
+        json!({"selectedLinearElement": {"isEditing": true}}),
+    );
     assert!(passes(ActionName::Finalize, &esc, &editing));
     assert!(!passes(ActionName::Finalize, &enter, &editing));
     let multi = Fixture::new(vec![], json!({"multiElement": {"id": "m"}}));
@@ -834,7 +898,10 @@ fn finalize_key_test_follows_the_editor_state() {
     let mut both = Fixture::selected(vec![line("l", 3, false)], &["l"]);
     both.app_state
         .insert("selectedLinearElement", json!({"isEditing": true}));
-    assert_eq!(both.key_down(&esc), KeyDownOutcome::Perform(ActionName::Finalize));
+    assert_eq!(
+        both.key_down(&esc),
+        KeyDownOutcome::Perform(ActionName::Finalize)
+    );
 }
 
 #[test]
@@ -842,7 +909,11 @@ fn element_lock_key_test_needs_a_selection_without_bound_text() {
     let ev_l = ev("L", "KeyL", "ctrl+shift");
     let f = Fixture::selected(vec![rect("a")], &["a"]);
     assert!(passes(ActionName::ToggleElementLock, &ev_l, &f));
-    assert!(passes(ActionName::ToggleElementLock, &ev("l", "KeyL", "ctrl+shift"), &f));
+    assert!(passes(
+        ActionName::ToggleElementLock,
+        &ev("l", "KeyL", "ctrl+shift"),
+        &f
+    ));
     // Only a bound text id selected: excluded (includeBoundTextElement false)
     // unless selected itself; it is, so it counts.
     let f = Fixture::selected(
@@ -863,10 +934,19 @@ fn handle_key_down_respects_view_mode() {
     let mut f = Fixture::new(vec![rect("a")], json!({"viewModeEnabled": true}));
     f.props.canvas_actions.toggle_theme = Some(true);
     // viewMode: false
-    assert_eq!(f.key_down(&ev("a", "KeyA", "ctrl")), KeyDownOutcome::Unhandled);
-    assert_eq!(f.key_down(&ev("z", "KeyZ", "ctrl")), KeyDownOutcome::Unhandled);
+    assert_eq!(
+        f.key_down(&ev("a", "KeyA", "ctrl")),
+        KeyDownOutcome::Unhandled
+    );
+    assert_eq!(
+        f.key_down(&ev("z", "KeyZ", "ctrl")),
+        KeyDownOutcome::Unhandled
+    );
     // viewMode unset
-    assert_eq!(f.key_down(&ev("k", "KeyK", "ctrl")), KeyDownOutcome::Unhandled);
+    assert_eq!(
+        f.key_down(&ev("k", "KeyK", "ctrl")),
+        KeyDownOutcome::Unhandled
+    );
     // viewMode: true
     assert_eq!(
         f.key_down(&ev("=", "Equal", "ctrl")),
@@ -891,19 +971,31 @@ fn handle_key_down_respects_canvas_actions() {
     // toggleTheme defaults to null in canvasActions: not in the running.
     let f = Fixture::new(vec![], json!({}));
     assert_eq!(f.props.canvas_actions.toggle_theme, None);
-    assert_eq!(f.key_down(&ev("D", "KeyD", "alt+shift")), KeyDownOutcome::Unhandled);
+    assert_eq!(
+        f.key_down(&ev("D", "KeyD", "alt+shift")),
+        KeyDownOutcome::Unhandled
+    );
     let mut f = Fixture::new(vec![], json!({}));
     f.props.canvas_actions.toggle_theme = Some(false);
-    assert_eq!(f.key_down(&ev("D", "KeyD", "alt+shift")), KeyDownOutcome::Unhandled);
+    assert_eq!(
+        f.key_down(&ev("D", "KeyD", "alt+shift")),
+        KeyDownOutcome::Unhandled
+    );
     f.props.canvas_actions.toggle_theme = Some(true);
     assert_eq!(
         f.key_down(&ev("D", "KeyD", "alt+shift")),
         KeyDownOutcome::Perform(ActionName::ToggleTheme)
     );
     f.props.canvas_actions.load_scene = false;
-    assert_eq!(f.key_down(&ev("o", "KeyO", "ctrl")), KeyDownOutcome::Unhandled);
+    assert_eq!(
+        f.key_down(&ev("o", "KeyO", "ctrl")),
+        KeyDownOutcome::Unhandled
+    );
     f.props.canvas_actions.save_to_active_file = false;
-    assert_eq!(f.key_down(&ev("s", "KeyS", "ctrl")), KeyDownOutcome::Unhandled);
+    assert_eq!(
+        f.key_down(&ev("s", "KeyS", "ctrl")),
+        KeyDownOutcome::Unhandled
+    );
 }
 
 #[test]
@@ -940,13 +1032,19 @@ fn handle_key_down_outside_the_interactive_editor() {
     let mut f = Fixture::selected(vec![rect("a")], &["a"]);
     f.env.interaction_enabled = false;
     // Navigation actions only.
-    assert_eq!(f.key_down(&ev("a", "KeyA", "ctrl")), KeyDownOutcome::Unhandled);
+    assert_eq!(
+        f.key_down(&ev("a", "KeyA", "ctrl")),
+        KeyDownOutcome::Unhandled
+    );
     assert_eq!(
         f.key_down(&ev("=", "Equal", "ctrl")),
         KeyDownOutcome::Perform(ActionName::ZoomIn)
     );
     f.env.navigation_enabled = false;
-    assert_eq!(f.key_down(&ev("=", "Equal", "ctrl")), KeyDownOutcome::Unhandled);
+    assert_eq!(
+        f.key_down(&ev("=", "Equal", "ctrl")),
+        KeyDownOutcome::Unhandled
+    );
 }
 
 #[test]
@@ -970,7 +1068,10 @@ fn handle_key_down_gives_up_on_conflicting_shortcuts() {
     match f.key_down(&ev("H", "KeyH", "shift+alt")) {
         KeyDownOutcome::Ambiguous(names) => {
             let set: BTreeSet<&str> = names.iter().map(|a| a.as_str()).collect();
-            assert_eq!(set, BTreeSet::from(["flipHorizontal", "distributeHorizontally"]));
+            assert_eq!(
+                set,
+                BTreeSet::from(["flipHorizontal", "distributeHorizontally"])
+            );
         }
         other => panic!("{other:?}"),
     }
@@ -1045,7 +1146,12 @@ fn track_action_reports_category_action_and_source() {
     assert_eq!(tracked.category, "element");
     assert_eq!(tracked.action, "delete");
     assert_eq!(tracked.label, "keyboard (desktop)");
-    let tracked = track_action(ActionName::Group.spec(), ActionSource::ContextMenu, &f.ctx()).unwrap();
+    let tracked = track_action(
+        ActionName::Group.spec(),
+        ActionSource::ContextMenu,
+        &f.ctx(),
+    )
+    .unwrap();
     assert_eq!(tracked.action, "group");
     assert_eq!(tracked.label, "contextMenu (desktop)");
     // trackEvent: false
@@ -1057,17 +1163,34 @@ fn track_action_reports_category_action_and_source() {
     assert!(track_action(ActionName::GridMode.spec(), ActionSource::Ui, &on.ctx()).is_some());
     assert!(track_action(ActionName::ZenMode.spec(), ActionSource::Ui, &f.ctx()).is_some());
     assert!(track_action(ActionName::ArrowBinding.spec(), ActionSource::Ui, &f.ctx()).is_none());
-    assert!(track_action(ActionName::MidpointSnapping.spec(), ActionSource::Ui, &f.ctx()).is_none());
-    assert!(track_action(ActionName::ObjectsSnapMode.spec(), ActionSource::Ui, &f.ctx()).is_some());
+    assert!(track_action(
+        ActionName::MidpointSnapping.spec(),
+        ActionSource::Ui,
+        &f.ctx()
+    )
+    .is_none());
+    assert!(track_action(
+        ActionName::ObjectsSnapMode.spec(),
+        ActionSource::Ui,
+        &f.ctx()
+    )
+    .is_some());
     assert!(track_action(ActionName::ViewMode.spec(), ActionSource::Ui, &f.ctx()).is_some());
     assert!(track_action(ActionName::SearchMenu.spec(), ActionSource::Ui, &f.ctx()).is_none());
     let mut phone = Fixture::new(vec![], json!({}));
     phone.env.form_factor = FormFactor::Phone;
     let tracked = track_action(ActionName::Undo.spec(), ActionSource::Ui, &phone.ctx()).unwrap();
     assert_eq!(tracked.label, "ui (mobile)");
-    let tracked =
-        track_action(ActionName::Hyperlink.spec(), ActionSource::CommandPalette, &f.ctx()).unwrap();
-    assert_eq!((tracked.category, tracked.action.as_str()), ("hyperlink", "click"));
+    let tracked = track_action(
+        ActionName::Hyperlink.spec(),
+        ActionSource::CommandPalette,
+        &f.ctx(),
+    )
+    .unwrap();
+    assert_eq!(
+        (tracked.category, tracked.action.as_str()),
+        ("hyperlink", "click")
+    );
     assert_eq!(tracked.label, "commandPalette (desktop)");
 }
 
@@ -1078,7 +1201,12 @@ fn track_action_reports_category_action_and_source() {
 #[test]
 fn actions_without_a_predicate_are_always_enabled() {
     let f = Fixture::new(vec![], json!({}));
-    for a in [ActionName::Cut, ActionName::SelectAll, ActionName::Undo, ActionName::ChangeStrokeColor] {
+    for a in [
+        ActionName::Cut,
+        ActionName::SelectAll,
+        ActionName::Undo,
+        ActionName::ChangeStrokeColor,
+    ] {
         assert!(f.enabled(a), "{}", a.as_str());
     }
 }
@@ -1128,13 +1256,20 @@ fn align_needs_two_selected_groups_and_no_frame() {
     assert!(!one_group.enabled(ActionName::AlignLeft));
     // One selected group: its inner groups are the units.
     let nested = Fixture::new(
-        vec![grouped(rect("a"), &["i1", "g"]), grouped(rect("b"), &["i2", "g"])],
+        vec![
+            grouped(rect("a"), &["i1", "g"]),
+            grouped(rect("b"), &["i2", "g"]),
+        ],
         json!({"selectedElementIds": selecting(&["a", "b"]), "selectedGroupIds": {"g": true}}),
     );
     assert!(nested.enabled(ActionName::AlignLeft));
     // A group plus a loose element.
     let mixed = Fixture::new(
-        vec![grouped(rect("a"), &["g"]), grouped(rect("b"), &["g"]), rect("c")],
+        vec![
+            grouped(rect("a"), &["g"]),
+            grouped(rect("b"), &["g"]),
+            rect("c"),
+        ],
         json!({"selectedElementIds": selecting(&["a", "b", "c"]), "selectedGroupIds": {"g": true}}),
     );
     assert!(mixed.enabled(ActionName::AlignLeft));
@@ -1163,7 +1298,10 @@ fn bound_text_predicates() {
     let f = Fixture::selected(vec![text("t"), arrow("a", false)], &["t", "a"]);
     assert!(f.enabled(ActionName::BindText));
     // A container that already has a label.
-    let f = Fixture::selected(vec![container.clone(), label.clone(), text("x")], &["c", "x"]);
+    let f = Fixture::selected(
+        vec![container.clone(), label.clone(), text("x")],
+        &["c", "x"],
+    );
     assert!(!f.enabled(ActionName::BindText));
     // A label whose text element is gone does not count.
     let f = Fixture::selected(vec![container.clone(), text("x")], &["c", "x"]);
@@ -1197,7 +1335,10 @@ fn canvas_predicates() {
     assert!(!f.enabled(ActionName::LoadScene));
     assert!(!f.enabled(ActionName::SaveToActiveFile));
     assert!(f.enabled(ActionName::ToggleTheme));
-    let mut f = Fixture::new(vec![], json!({"openDialog": {"name": "elementLinkSelector"}}));
+    let mut f = Fixture::new(
+        vec![],
+        json!({"openDialog": {"name": "elementLinkSelector"}}),
+    );
     assert!(!f.enabled(ActionName::ClearCanvas));
     f.app_state.insert("openDialog", json!({"name": "help"}));
     assert!(f.enabled(ActionName::ClearCanvas));
@@ -1256,7 +1397,10 @@ fn clipboard_predicates() {
 #[test]
 fn crop_editor_needs_one_image_and_no_crop_in_progress() {
     assert!(Fixture::selected(vec![image("i")], &["i"]).enabled(ActionName::CropEditor));
-    assert!(!Fixture::selected(vec![image("i"), image("j")], &["i", "j"]).enabled(ActionName::CropEditor));
+    assert!(
+        !Fixture::selected(vec![image("i"), image("j")], &["i", "j"])
+            .enabled(ActionName::CropEditor)
+    );
     assert!(!Fixture::selected(vec![rect("r")], &["r"]).enabled(ActionName::CropEditor));
     let f = Fixture::new(
         vec![image("i")],
@@ -1317,7 +1461,13 @@ fn frame_predicates() {
     assert!(f.enabled(ActionName::SelectAllElementsInFrame));
     assert!(f.enabled(ActionName::RemoveAllElementsFromFrame));
     assert!(!f.enabled(ActionName::WrapSelectionInFrame));
-    let f = Fixture::selected(vec![element(ElementKind::MagicFrame(FrameFields { name: None }), "m")], &["m"]);
+    let f = Fixture::selected(
+        vec![element(
+            ElementKind::MagicFrame(FrameFields { name: None }),
+            "m",
+        )],
+        &["m"],
+    );
     assert!(f.enabled(ActionName::SelectAllElementsInFrame));
     let f = Fixture::selected(vec![rect("a"), rect("b")], &["a", "b"]);
     assert!(!f.enabled(ActionName::SelectAllElementsInFrame));
@@ -1423,18 +1573,23 @@ fn host_controlled_toggles() {
 fn shape_switch_needs_a_convertible_element() {
     assert!(!Fixture::new(vec![], json!({})).enabled(ActionName::ToggleShapeSwitch));
     assert!(Fixture::new(vec![rect("r")], json!({})).enabled(ActionName::ToggleShapeSwitch));
-    assert!(Fixture::new(vec![line("l", 2, false)], json!({})).enabled(ActionName::ToggleShapeSwitch));
+    assert!(
+        Fixture::new(vec![line("l", 2, false)], json!({})).enabled(ActionName::ToggleShapeSwitch)
+    );
     assert!(Fixture::new(vec![arrow("a", false)], json!({})).enabled(ActionName::ToggleShapeSwitch));
-    assert!(!Fixture::new(vec![text("t"), image("i")], json!({})).enabled(ActionName::ToggleShapeSwitch));
+    assert!(!Fixture::new(vec![text("t"), image("i")], json!({}))
+        .enabled(ActionName::ToggleShapeSwitch));
     // An arrow with a label or a binding is not convertible.
     let labelled = with_bound_text(arrow("a", false), "t");
     assert!(!Fixture::new(vec![labelled], json!({})).enabled(ActionName::ToggleShapeSwitch));
     let mut bound = arrow("a", false);
     if let ElementKind::Arrow(fields) = &mut bound.kind {
-        fields.linear.start_binding = Some(serde_json::from_value(json!({
-            "elementId": "r", "fixedPoint": [0.5, 0.5], "mode": "orbit"
-        }))
-        .expect("binding"));
+        fields.linear.start_binding = Some(
+            serde_json::from_value(json!({
+                "elementId": "r", "fixedPoint": [0.5, 0.5], "mode": "orbit"
+            }))
+            .expect("binding"),
+        );
     }
     assert!(!Fixture::new(vec![bound], json!({})).enabled(ActionName::ToggleShapeSwitch));
 }
@@ -1456,31 +1611,61 @@ fn dynamic_labels() {
 
     let unlocked = Fixture::selected(vec![rect("a")], &["a"]);
     let mixed = Fixture::selected(vec![rect("a"), locked(rect("b"))], &["a", "b"]);
-    assert_eq!(label(ActionName::ToggleElementLock, &unlocked), "labels.elementLock.lock");
-    assert_eq!(label(ActionName::ToggleElementLock, &mixed), "labels.elementLock.unlock");
+    assert_eq!(
+        label(ActionName::ToggleElementLock, &unlocked),
+        "labels.elementLock.lock"
+    );
+    assert_eq!(
+        label(ActionName::ToggleElementLock, &mixed),
+        "labels.elementLock.unlock"
+    );
 
     let arrow_sel = Fixture::selected(vec![arrow("a", false)], &["a"]);
     let line_sel = Fixture::selected(vec![line("l", 3, false)], &["l"]);
-    assert_eq!(label(ActionName::ToggleLinearEditor, &arrow_sel), "labels.lineEditor.editArrow");
-    assert_eq!(label(ActionName::ToggleLinearEditor, &line_sel), "labels.lineEditor.edit");
+    assert_eq!(
+        label(ActionName::ToggleLinearEditor, &arrow_sel),
+        "labels.lineEditor.editArrow"
+    );
+    assert_eq!(
+        label(ActionName::ToggleLinearEditor, &line_sel),
+        "labels.lineEditor.edit"
+    );
 
     let polygons = Fixture::selected(vec![line("l", 4, true)], &["l"]);
-    assert_eq!(label(ActionName::TogglePolygon, &polygons), "labels.polygon.breakPolygon");
-    assert_eq!(label(ActionName::TogglePolygon, &line_sel), "labels.polygon.convertToPolygon");
+    assert_eq!(
+        label(ActionName::TogglePolygon, &polygons),
+        "labels.polygon.breakPolygon"
+    );
+    assert_eq!(
+        label(ActionName::TogglePolygon, &line_sel),
+        "labels.polygon.convertToPolygon"
+    );
 
     let mut linked = rect("a");
     linked.base.link = Some("https://example.com".to_owned());
     assert_eq!(
-        label(ActionName::Hyperlink, &Fixture::selected(vec![linked], &["a"])),
+        label(
+            ActionName::Hyperlink,
+            &Fixture::selected(vec![linked], &["a"])
+        ),
         "labels.link.edit"
     );
-    assert_eq!(label(ActionName::Hyperlink, &unlocked), "labels.link.create");
     assert_eq!(
-        label(ActionName::Hyperlink, &Fixture::selected(vec![embeddable("e")], &["e"])),
+        label(ActionName::Hyperlink, &unlocked),
+        "labels.link.create"
+    );
+    assert_eq!(
+        label(
+            ActionName::Hyperlink,
+            &Fixture::selected(vec![embeddable("e")], &["e"])
+        ),
         "labels.link.editEmbed"
     );
     assert_eq!(label(ActionName::Cut, &light), "labels.cut");
-    assert_eq!(ActionName::CommandPalette.spec().label_key(&light.ctx()), None);
+    assert_eq!(
+        ActionName::CommandPalette.spec().label_key(&light.ctx()),
+        None
+    );
 }
 
 #[test]
@@ -1492,8 +1677,14 @@ fn dynamic_icons() {
     assert_eq!(icon(ActionName::ToggleTheme, &dark), Some("SunIcon"));
     let unlocked = Fixture::selected(vec![rect("a")], &["a"]);
     let all_locked = Fixture::selected(vec![locked(rect("a"))], &["a"]);
-    assert_eq!(icon(ActionName::ToggleElementLock, &unlocked), Some("LockedIcon"));
-    assert_eq!(icon(ActionName::ToggleElementLock, &all_locked), Some("UnlockedIcon"));
+    assert_eq!(
+        icon(ActionName::ToggleElementLock, &unlocked),
+        Some("LockedIcon")
+    );
+    assert_eq!(
+        icon(ActionName::ToggleElementLock, &all_locked),
+        Some("UnlockedIcon")
+    );
     assert_eq!(icon(ActionName::Group, &light), Some("GroupIcon"));
     assert_eq!(icon(ActionName::Ungroup, &light), Some("UngroupIcon"));
     assert_eq!(icon(ActionName::ToggleShapeSwitch, &light), None);
@@ -1505,18 +1696,42 @@ fn dynamic_icons() {
 fn checked_reads_the_app_state() {
     let checked = |a: ActionName, patch: Value| (a.spec().checked.unwrap())(&state(patch));
     assert!(checked(ActionName::ArrowBinding, json!({})));
-    assert!(!checked(ActionName::ArrowBinding, json!({"bindingPreference": "disabled"})));
+    assert!(!checked(
+        ActionName::ArrowBinding,
+        json!({"bindingPreference": "disabled"})
+    ));
     assert!(!checked(ActionName::GridMode, json!({})));
-    assert!(checked(ActionName::GridMode, json!({"gridModeEnabled": true})));
+    assert!(checked(
+        ActionName::GridMode,
+        json!({"gridModeEnabled": true})
+    ));
     assert!(checked(ActionName::MidpointSnapping, json!({})));
-    assert!(checked(ActionName::ObjectsSnapMode, json!({"objectsSnapModeEnabled": true})));
+    assert!(checked(
+        ActionName::ObjectsSnapMode,
+        json!({"objectsSnapModeEnabled": true})
+    ));
     // searchMenu and toggleShapeSwitch carry the grid toggle's `checked`.
-    assert!(checked(ActionName::SearchMenu, json!({"gridModeEnabled": true})));
-    assert!(checked(ActionName::ToggleShapeSwitch, json!({"gridModeEnabled": true})));
+    assert!(checked(
+        ActionName::SearchMenu,
+        json!({"gridModeEnabled": true})
+    ));
+    assert!(checked(
+        ActionName::ToggleShapeSwitch,
+        json!({"gridModeEnabled": true})
+    ));
     assert!(!checked(ActionName::Stats, json!({})));
-    assert!(checked(ActionName::Stats, json!({"stats": {"open": true, "panels": 3}})));
-    assert!(checked(ActionName::ViewMode, json!({"viewModeEnabled": true})));
-    assert!(checked(ActionName::ZenMode, json!({"zenModeEnabled": true})));
+    assert!(checked(
+        ActionName::Stats,
+        json!({"stats": {"open": true, "panels": 3}})
+    ));
+    assert!(checked(
+        ActionName::ViewMode,
+        json!({"viewModeEnabled": true})
+    ));
+    assert!(checked(
+        ActionName::ZenMode,
+        json!({"zenModeEnabled": true})
+    ));
     assert!(checked(ActionName::UpdateFrameRendering, json!({})));
     assert!(!checked(
         ActionName::UpdateFrameRendering,
@@ -1531,8 +1746,14 @@ fn checked_reads_the_app_state() {
 #[test]
 fn get_shortcut_key_localizes_modifiers() {
     let en = KeyLabels::EN;
-    assert_eq!(get_shortcut_key("CtrlOrCmd+Shift+Up", false, &en), "Ctrl+Shift+Up");
-    assert_eq!(get_shortcut_key("CtrlOrCmd+Shift+Up", true, &en), "Cmd+Shift+Up");
+    assert_eq!(
+        get_shortcut_key("CtrlOrCmd+Shift+Up", false, &en),
+        "Ctrl+Shift+Up"
+    );
+    assert_eq!(
+        get_shortcut_key("CtrlOrCmd+Shift+Up", true, &en),
+        "Cmd+Shift+Up"
+    );
     assert_eq!(get_shortcut_key("Alt+H", false, &en), "Alt+H");
     assert_eq!(get_shortcut_key("Alt+H", true, &en), "Option+H");
     assert_eq!(get_shortcut_key("Option+H", false, &en), "Alt+H");
@@ -1543,7 +1764,10 @@ fn get_shortcut_key_localizes_modifiers() {
     assert_eq!(get_shortcut_key("Command+Q", false, &en), "Ctrl+Q");
     // Case-insensitive, whole words only.
     assert_eq!(get_shortcut_key("ctrl+shift+x", false, &en), "Ctrl+Shift+x");
-    assert_eq!(get_shortcut_key("Shifty+Alternate", false, &en), "Shifty+Alternate");
+    assert_eq!(
+        get_shortcut_key("Shifty+Alternate", false, &en),
+        "Shifty+Alternate"
+    );
     let loud = KeyLabels {
         ctrl: "CTRL",
         cmd: "CMD",
@@ -1616,16 +1840,39 @@ fn shortcut_names_and_labels() {
     let names: BTreeSet<&str> = SHORTCUT_NAMES.iter().copied().collect();
     for (name, other, mac) in expected {
         assert!(names.contains(name), "{name}");
-        assert_eq!(get_shortcut_from_shortcut_name(name, 0, false, &en), *other, "{name}");
-        assert_eq!(get_shortcut_from_shortcut_name(name, 0, true, &en), *mac, "{name}");
+        assert_eq!(
+            get_shortcut_from_shortcut_name(name, 0, false, &en),
+            *other,
+            "{name}"
+        );
+        assert_eq!(
+            get_shortcut_from_shortcut_name(name, 0, true, &en),
+            *mac,
+            "{name}"
+        );
     }
     // A second shortcut when there is one, else the first.
-    assert_eq!(get_shortcut_from_shortcut_name("commandPalette", 1, false, &en), "Ctrl+Shift+P");
-    assert_eq!(get_shortcut_from_shortcut_name("duplicateSelection", 1, false, &en), "Alt+drag");
-    assert_eq!(get_shortcut_from_shortcut_name("duplicateSelection", 1, true, &en), "Option+drag");
-    assert_eq!(get_shortcut_from_shortcut_name("group", 1, false, &en), "Ctrl+G");
+    assert_eq!(
+        get_shortcut_from_shortcut_name("commandPalette", 1, false, &en),
+        "Ctrl+Shift+P"
+    );
+    assert_eq!(
+        get_shortcut_from_shortcut_name("duplicateSelection", 1, false, &en),
+        "Alt+drag"
+    );
+    assert_eq!(
+        get_shortcut_from_shortcut_name("duplicateSelection", 1, true, &en),
+        "Option+drag"
+    );
+    assert_eq!(
+        get_shortcut_from_shortcut_name("group", 1, false, &en),
+        "Ctrl+G"
+    );
     // Names outside the map have no shortcut.
-    assert_eq!(get_shortcut_from_shortcut_name("unbindText", 0, false, &en), "");
+    assert_eq!(
+        get_shortcut_from_shortcut_name("unbindText", 0, false, &en),
+        ""
+    );
     assert_eq!(get_shortcut_from_shortcut_name("nope", 0, false, &en), "");
 }
 
@@ -1687,7 +1934,12 @@ fn context_menu_item_lists() {
     );
     assert_eq!(
         get_context_menu_items(ContextMenuKind::Element, true, FormFactor::Desktop),
-        vec![A(n("copy")), A(n("copyAsPng")), A(n("copyAsSvg")), A(n("copyText"))]
+        vec![
+            A(n("copy")),
+            A(n("copyAsPng")),
+            A(n("copyAsSvg")),
+            A(n("copyText"))
+        ]
     );
     let names = |items: Vec<ContextMenuItem>| -> Vec<&'static str> {
         items
@@ -1699,16 +1951,56 @@ fn context_menu_item_lists() {
             .collect()
     };
     assert_eq!(
-        names(get_context_menu_items(ContextMenuKind::Element, false, FormFactor::Desktop)),
+        names(get_context_menu_items(
+            ContextMenuKind::Element,
+            false,
+            FormFactor::Desktop
+        )),
         [
-            "|", "cut", "copy", "paste", "|", "selectAllElementsInFrame",
-            "removeAllElementsFromFrame", "wrapSelectionInFrame", "|", "cropEditor", "|",
-            "copyAsPng", "copyAsSvg", "copyText", "|", "copyStyles", "pasteStyles", "|",
-            "group", "autoResize", "unbindText", "bindText", "wrapTextInContainer", "ungroup",
-            "|", "addToLibrary", "|", "sendBackward", "bringForward", "sendToBack",
-            "bringToFront", "|", "flipHorizontal", "flipVertical", "|", "toggleLinearEditor",
-            "|", "hyperlink", "copyElementLink", "|", "duplicateSelection",
-            "toggleElementLock", "|", "deleteSelectedElements",
+            "|",
+            "cut",
+            "copy",
+            "paste",
+            "|",
+            "selectAllElementsInFrame",
+            "removeAllElementsFromFrame",
+            "wrapSelectionInFrame",
+            "|",
+            "cropEditor",
+            "|",
+            "copyAsPng",
+            "copyAsSvg",
+            "copyText",
+            "|",
+            "copyStyles",
+            "pasteStyles",
+            "|",
+            "group",
+            "autoResize",
+            "unbindText",
+            "bindText",
+            "wrapTextInContainer",
+            "ungroup",
+            "|",
+            "addToLibrary",
+            "|",
+            "sendBackward",
+            "bringForward",
+            "sendToBack",
+            "bringToFront",
+            "|",
+            "flipHorizontal",
+            "flipVertical",
+            "|",
+            "toggleLinearEditor",
+            "|",
+            "hyperlink",
+            "copyElementLink",
+            "|",
+            "duplicateSelection",
+            "toggleElementLock",
+            "|",
+            "deleteSelectedElements",
         ]
     );
     // z-order only on desktop.
@@ -1768,7 +2060,9 @@ fn context_menu_for_canvas() {
 #[test]
 fn context_menu_for_one_element() {
     let f = Fixture::selected(vec![rect("a")], &["a"]);
-    let got: BTreeSet<&str> = item_names(&menu(ContextMenuKind::Element, &f)).into_iter().collect();
+    let got: BTreeSet<&str> = item_names(&menu(ContextMenuKind::Element, &f))
+        .into_iter()
+        .collect();
     let expected = BTreeSet::from([
         "cut",
         "copy",
@@ -1903,7 +2197,14 @@ fn context_menu_in_view_mode_and_with_clipboard() {
     f.env.clipboard_write_text = true;
     assert_eq!(
         item_names(&menu(ContextMenuKind::Canvas, &f)),
-        ["copyAsPng", "copyAsSvg", "gridMode", "zenMode", "viewMode", "stats"]
+        [
+            "copyAsPng",
+            "copyAsSvg",
+            "gridMode",
+            "zenMode",
+            "viewMode",
+            "stats"
+        ]
     );
     let entries = menu(ContextMenuKind::Canvas, &f);
     let ContextMenuEntry::Item(view) = &entries[4] else {
@@ -1916,7 +2217,10 @@ fn context_menu_in_view_mode_and_with_clipboard() {
     };
     assert_eq!(png.shortcut, "Shift+Alt+C");
     // copyText needs a selected text.
-    assert_eq!(item_names(&menu(ContextMenuKind::Element, &f)), ["copy", "copyAsPng", "copyAsSvg"]);
+    assert_eq!(
+        item_names(&menu(ContextMenuKind::Element, &f)),
+        ["copy", "copyAsPng", "copyAsSvg"]
+    );
 }
 
 #[test]
@@ -1970,22 +2274,58 @@ fn palette_commands_from_actions() {
         })
         .collect();
     let mut expected: Vec<(&str, &str)> = [
-        "group", "ungroup", "cut", "copy", "deleteSelectedElements", "wrapSelectionInFrame",
-        "copyStyles", "pasteStyles", "bringToFront", "bringForward", "sendBackward",
-        "sendToBack", "alignTop", "alignBottom", "alignLeft", "alignRight",
-        "alignVerticallyCentered", "alignHorizontallyCentered", "duplicateSelection",
-        "flipHorizontal", "flipVertical", "zoomToFitSelection", "zoomToFitSelectionInViewport",
-        "increaseFontSize", "decreaseFontSize", "toggleLinearEditor", "cropEditor",
-        "togglePolygon", "hyperlink", "copyElementLink", "linkToElement",
+        "group",
+        "ungroup",
+        "cut",
+        "copy",
+        "deleteSelectedElements",
+        "wrapSelectionInFrame",
+        "copyStyles",
+        "pasteStyles",
+        "bringToFront",
+        "bringForward",
+        "sendBackward",
+        "sendToBack",
+        "alignTop",
+        "alignBottom",
+        "alignLeft",
+        "alignRight",
+        "alignVerticallyCentered",
+        "alignHorizontallyCentered",
+        "duplicateSelection",
+        "flipHorizontal",
+        "flipVertical",
+        "zoomToFitSelection",
+        "zoomToFitSelectionInViewport",
+        "increaseFontSize",
+        "decreaseFontSize",
+        "toggleLinearEditor",
+        "cropEditor",
+        "togglePolygon",
+        "hyperlink",
+        "copyElementLink",
+        "linkToElement",
     ]
     .into_iter()
     .map(|a| (a, "Elements"))
     .collect();
     expected.extend(
         [
-            "undo", "redo", "zoomIn", "zoomOut", "resetZoom", "zoomToFit", "zenMode",
-            "viewMode", "gridMode", "objectsSnapMode", "toggleShortcuts", "selectAll",
-            "toggleElementLock", "unlockAllElements", "stats",
+            "undo",
+            "redo",
+            "zoomIn",
+            "zoomOut",
+            "resetZoom",
+            "zoomToFit",
+            "zenMode",
+            "viewMode",
+            "gridMode",
+            "objectsSnapMode",
+            "toggleShortcuts",
+            "selectAll",
+            "toggleElementLock",
+            "unlockAllElements",
+            "stats",
         ]
         .into_iter()
         .map(|a| (a, "Editor")),
@@ -1993,9 +2333,14 @@ fn palette_commands_from_actions() {
     expected.push(("<clearCanvas>", "Editor"));
     expected.push(("<imageExport>", "Export"));
     expected.extend(
-        ["saveToActiveFile", "saveFileToDisk", "copyAsPng", "copyAsSvg"]
-            .into_iter()
-            .map(|a| (a, "Export")),
+        [
+            "saveToActiveFile",
+            "saveFileToDisk",
+            "copyAsPng",
+            "copyAsSvg",
+        ]
+        .into_iter()
+        .map(|a| (a, "Export")),
     );
     expected.push(("toggleTheme", "App"));
     assert_eq!(listed, expected);
@@ -2016,7 +2361,15 @@ fn palette_command_details() {
     assert_eq!(image.shortcut(true, &KeyLabels::EN), "Cmd+Shift+E");
     assert_eq!(
         image.keywords(),
-        ["export", "image", "png", "jpeg", "svg", "clipboard", "picture"]
+        [
+            "export",
+            "image",
+            "png",
+            "jpeg",
+            "svg",
+            "clipboard",
+            "picture"
+        ]
     );
     assert_eq!(image.view_mode(), None);
     let cut = find(PaletteCommandSource::Action(ActionName::Cut));
@@ -2024,7 +2377,10 @@ fn palette_command_details() {
     assert_eq!(cut.shortcut(false, &KeyLabels::EN), "Ctrl+X");
     let theme = find(PaletteCommandSource::Action(ActionName::ToggleTheme));
     assert_eq!(theme.label_key(&f.ctx()), "buttons.darkMode");
-    assert_eq!(theme.keywords(), ["toggle", "dark", "light", "mode", "theme"]);
+    assert_eq!(
+        theme.keywords(),
+        ["toggle", "dark", "light", "mode", "theme"]
+    );
     assert_eq!(theme.view_mode(), Some(true));
     let polygon = find(PaletteCommandSource::Action(ActionName::TogglePolygon));
     assert_eq!(polygon.keywords(), ["loop"]);
@@ -2082,19 +2438,47 @@ fn full_styles_panel_order() {
         .map(|c| (c.action.as_str(), c.gates.to_vec(), c.fieldset))
         .collect();
     let expected: Vec<(&str, Vec<PanelGate>, PanelFieldset)> = vec![
-        ("changeStrokeColor", vec![G::StrokeColor], PanelFieldset::None),
-        ("changeBackgroundColor", vec![G::BackgroundColor], PanelFieldset::None),
+        (
+            "changeStrokeColor",
+            vec![G::StrokeColor],
+            PanelFieldset::None,
+        ),
+        (
+            "changeBackgroundColor",
+            vec![G::BackgroundColor],
+            PanelFieldset::None,
+        ),
         ("changeFillStyle", vec![G::Fill], PanelFieldset::None),
-        ("changeStrokeWidth", vec![G::StrokeWidth], PanelFieldset::None),
-        ("changeStrokeStyle", vec![G::StrokeStyle], PanelFieldset::None),
-        ("changeFreedrawMode", vec![G::FreedrawMode], PanelFieldset::None),
+        (
+            "changeStrokeWidth",
+            vec![G::StrokeWidth],
+            PanelFieldset::None,
+        ),
+        (
+            "changeStrokeStyle",
+            vec![G::StrokeStyle],
+            PanelFieldset::None,
+        ),
+        (
+            "changeFreedrawMode",
+            vec![G::FreedrawMode],
+            PanelFieldset::None,
+        ),
         ("changeSloppiness", vec![G::Sloppiness], PanelFieldset::None),
         ("changeRoundness", vec![G::Roundness], PanelFieldset::None),
         ("changeArrowType", vec![G::ArrowType], PanelFieldset::None),
         ("changeFontFamily", vec![G::Text], PanelFieldset::FontFamily),
         ("changeFontSize", vec![G::Text], PanelFieldset::None),
-        ("changeTextAlign", vec![G::Text, G::TextAlign], PanelFieldset::None),
-        ("changeVerticalAlign", vec![G::VerticalAlign], PanelFieldset::None),
+        (
+            "changeTextAlign",
+            vec![G::Text, G::TextAlign],
+            PanelFieldset::None,
+        ),
+        (
+            "changeVerticalAlign",
+            vec![G::VerticalAlign],
+            PanelFieldset::None,
+        ),
         ("changeArrowhead", vec![G::Arrowheads], PanelFieldset::None),
         ("changeOpacity", vec![G::Opacity], PanelFieldset::None),
         ("sendToBack", vec![G::Layers], PanelFieldset::Layers),
@@ -2102,20 +2486,56 @@ fn full_styles_panel_order() {
         ("bringForward", vec![G::Layers], PanelFieldset::Layers),
         ("bringToFront", vec![G::Layers], PanelFieldset::Layers),
         ("alignLeft", vec![G::Align], PanelFieldset::AlignHorizontal),
-        ("alignHorizontallyCentered", vec![G::Align], PanelFieldset::AlignHorizontal),
+        (
+            "alignHorizontallyCentered",
+            vec![G::Align],
+            PanelFieldset::AlignHorizontal,
+        ),
         ("alignRight", vec![G::Align], PanelFieldset::AlignHorizontal),
-        ("distributeHorizontally", vec![G::Align, G::Distribute], PanelFieldset::AlignHorizontal),
+        (
+            "distributeHorizontally",
+            vec![G::Align, G::Distribute],
+            PanelFieldset::AlignHorizontal,
+        ),
         ("alignTop", vec![G::Align], PanelFieldset::AlignVertical),
-        ("alignVerticallyCentered", vec![G::Align], PanelFieldset::AlignVertical),
+        (
+            "alignVerticallyCentered",
+            vec![G::Align],
+            PanelFieldset::AlignVertical,
+        ),
         ("alignBottom", vec![G::Align], PanelFieldset::AlignVertical),
-        ("distributeVertically", vec![G::Align, G::Distribute], PanelFieldset::AlignVertical),
-        ("duplicateSelection", vec![G::ShowExtraActions], PanelFieldset::Actions),
-        ("deleteSelectedElements", vec![G::ShowExtraActions], PanelFieldset::Actions),
+        (
+            "distributeVertically",
+            vec![G::Align, G::Distribute],
+            PanelFieldset::AlignVertical,
+        ),
+        (
+            "duplicateSelection",
+            vec![G::ShowExtraActions],
+            PanelFieldset::Actions,
+        ),
+        (
+            "deleteSelectedElements",
+            vec![G::ShowExtraActions],
+            PanelFieldset::Actions,
+        ),
         ("group", vec![G::ShowExtraActions], PanelFieldset::Actions),
         ("ungroup", vec![G::ShowExtraActions], PanelFieldset::Actions),
-        ("hyperlink", vec![G::ShowExtraActions, G::Link], PanelFieldset::Actions),
-        ("cropEditor", vec![G::ShowExtraActions, G::CropEditor], PanelFieldset::Actions),
-        ("toggleLinearEditor", vec![G::ShowExtraActions, G::LineEditor], PanelFieldset::Actions),
+        (
+            "hyperlink",
+            vec![G::ShowExtraActions, G::Link],
+            PanelFieldset::Actions,
+        ),
+        (
+            "cropEditor",
+            vec![G::ShowExtraActions, G::CropEditor],
+            PanelFieldset::Actions,
+        ),
+        (
+            "toggleLinearEditor",
+            vec![G::ShowExtraActions, G::LineEditor],
+            PanelFieldset::Actions,
+        ),
     ];
     assert_eq!(got, expected);
     // RTL mirrors the horizontal align row only.
@@ -2124,7 +2544,15 @@ fn full_styles_panel_order() {
         .filter(|c| c.fieldset == PanelFieldset::AlignHorizontal)
         .map(|c| c.action.as_str())
         .collect();
-    assert_eq!(rtl, ["alignRight", "alignHorizontallyCentered", "alignLeft", "distributeHorizontally"]);
+    assert_eq!(
+        rtl,
+        [
+            "alignRight",
+            "alignHorizontallyCentered",
+            "alignLeft",
+            "distributeHorizontally"
+        ]
+    );
     // The bucket fill tool: colour, fill style and opacity, unconditionally.
     let bucket: Vec<(&str, usize)> = full_styles_panel(true, false)
         .iter()
@@ -2132,7 +2560,11 @@ fn full_styles_panel_order() {
         .collect();
     assert_eq!(
         bucket,
-        [("changeBucketFillBackgroundColor", 0), ("changeFillStyle", 0), ("changeOpacity", 0)]
+        [
+            ("changeBucketFillBackgroundColor", 0),
+            ("changeFillStyle", 0),
+            ("changeOpacity", 0)
+        ]
     );
 }
 
@@ -2155,7 +2587,11 @@ fn styles_panel_renders_through_the_registry() {
     );
     assert_eq!(
         text_only,
-        [ActionName::ChangeFontFamily, ActionName::ChangeFontSize, ActionName::ChangeOpacity]
+        [
+            ActionName::ChangeFontFamily,
+            ActionName::ChangeFontSize,
+            ActionName::ChangeOpacity
+        ]
     );
     // An unregistered action renders nothing.
     let mut partial = ActionManager::empty();
@@ -2178,7 +2614,11 @@ fn menu_items(entries: &[MainMenuEntry]) -> Vec<String> {
             MainMenuEntry::Separator => "|".to_owned(),
             MainMenuEntry::Group { title, items } => format!(
                 "{title}[{}]",
-                items.iter().map(|i| format!("{:?}", i.item)).collect::<Vec<_>>().join(",")
+                items
+                    .iter()
+                    .map(|i| format!("{:?}", i.item))
+                    .collect::<Vec<_>>()
+                    .join(",")
             ),
         })
         .collect()
@@ -2214,13 +2654,43 @@ fn default_main_menu_items() {
     assert_eq!(
         details,
         [
-            (MainMenuItem::LoadScene, Some(ActionName::LoadScene), "buttons.load", "Ctrl+O".to_owned()),
+            (
+                MainMenuItem::LoadScene,
+                Some(ActionName::LoadScene),
+                "buttons.load",
+                "Ctrl+O".to_owned()
+            ),
             (MainMenuItem::Export, None, "buttons.export", String::new()),
-            (MainMenuItem::SaveAsImage, None, "buttons.exportImage", "Ctrl+Shift+E".to_owned()),
-            (MainMenuItem::SearchMenu, Some(ActionName::SearchMenu), "search.title", "Ctrl+F".to_owned()),
-            (MainMenuItem::Help, Some(ActionName::ToggleShortcuts), "helpDialog.title", "?".to_owned()),
-            (MainMenuItem::ClearCanvas, Some(ActionName::ClearCanvas), "buttons.clearReset", String::new()),
-            (MainMenuItem::ChangeCanvasBackground, Some(ActionName::ChangeViewBackgroundColor), "labels.canvasBackground", String::new()),
+            (
+                MainMenuItem::SaveAsImage,
+                None,
+                "buttons.exportImage",
+                "Ctrl+Shift+E".to_owned()
+            ),
+            (
+                MainMenuItem::SearchMenu,
+                Some(ActionName::SearchMenu),
+                "search.title",
+                "Ctrl+F".to_owned()
+            ),
+            (
+                MainMenuItem::Help,
+                Some(ActionName::ToggleShortcuts),
+                "helpDialog.title",
+                "?".to_owned()
+            ),
+            (
+                MainMenuItem::ClearCanvas,
+                Some(ActionName::ClearCanvas),
+                "buttons.clearReset",
+                String::new()
+            ),
+            (
+                MainMenuItem::ChangeCanvasBackground,
+                Some(ActionName::ChangeViewBackgroundColor),
+                "labels.canvasBackground",
+                String::new()
+            ),
         ]
     );
 
