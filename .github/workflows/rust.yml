@@ -559,3 +559,60 @@ jobs:
           echo "version=$msrv" >> "$GITHUB_OUTPUT"
       - name: check with the MSRV
         run: cargo +${{ steps.msrv.outputs.version }} check --workspace --all-targets --locked
+
+  # ex-512: the text editor. scripts/web/text-editing.sh builds the wasm
+  # harness tools/text-editing (a session of upstream's text editing fixture
+  # in an excali_editor session, excali_ui::text_editor's textarea mounted)
+  # and runs the Playwright suite tests/web/text-editing in Chromium: every
+  # session typed into the textarea with the keyboard (and its selections,
+  # pastes and blurs) gives upstream's elements, app state, editor style
+  # and app calls after every step, the textarea carries that style as
+  # Chromium parses upstream's own assignments, and it is dir=auto,
+  # wrap=off in the editor's box. The fixture is the arm64 generator's; the
+  # suite compares the port with it, so any platform will do.
+  text-editing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            tools/text-editing
+      - name: harness fmt
+        run: cargo fmt --manifest-path tools/text-editing/Cargo.toml --check
+      - name: harness clippy (native and wasm32)
+        run: |
+          cargo clippy --manifest-path tools/text-editing/Cargo.toml --all-targets --locked -- -D warnings
+          cargo clippy --manifest-path tools/text-editing/Cargo.toml --target wasm32-unknown-unknown --locked -- -D warnings
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: |
+          want="$(awk '/^name = "wasm-bindgen"$/ { getline; gsub(/"/, "", $3); print $3; exit }' Cargo.lock)"
+          if [ "$(wasm-bindgen --version 2>/dev/null | awk '{ print $2 }')" != "$want" ]; then
+            cargo install --locked wasm-bindgen-cli --version "$want"
+          fi
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tests/web/package-lock.json
+      - name: install
+        working-directory: tests/web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: typing into the text editor in Chromium gives upstream's elements
+        run: scripts/web/text-editing.sh
+        env:
+          CI: "1"
+      - name: keep the Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: text-editing
+          path: |
+            tests/web/playwright-report-text-editing/
+            tests/web/test-results-text-editing/
+          retention-days: 14

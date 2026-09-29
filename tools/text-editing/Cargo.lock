@@ -375,19 +375,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "keyboard"
-version = "0.0.0"
-dependencies = [
- "excali-core",
- "excali-editor",
- "excali-text",
- "excali-ui",
- "serde_json",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
 name = "libm"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -640,6 +627,19 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "text-editing"
+version = "0.0.0"
+dependencies = [
+ "excali-core",
+ "excali-editor",
+ "excali-text",
+ "excali-ui",
+ "serde_json",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

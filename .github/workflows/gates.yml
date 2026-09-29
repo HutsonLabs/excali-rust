@@ -380,6 +380,10 @@ jobs:
   # upstream's own getNormalizedZoom, coordinate transforms,
   # constrainScrollState, zoomToFitBounds, AppViewport.translate,
   # AppWheel.handle event by event and the zoom actions, and
+  # text-editing.mjs --check for excali-editor's text-editing.json (ex-512),
+  # upstream's own textWysiwyg, App.startTextEditing and handleTextWysiwyg
+  # (cut out of App.tsx, run on a stand-in App under jsdom) step by step,
+  # and redrawTextBoundingBox on every container type, and
   # font-subset.mjs --check for tools/font-subset-eval's
   # upstream-subsets.json (ex-408), upstream's own
   # generateFontFaceDeclarations with its harfbuzzjs subsetting of every
@@ -460,6 +464,8 @@ jobs:
         run: node tools/goldens/canvas-layers.mjs --check
       - name: excali-editor viewport fixture matches upstream's zoom, scroll constraints, zoom-to-fit, wheel handler and zoom actions
         run: node tools/goldens/viewport.mjs --check
+      - name: excali-editor text editing fixture matches upstream's textWysiwyg, startTextEditing and redrawTextBoundingBox
+        run: node tools/goldens/text-editing.mjs --check
       - name: font subsetting fixture matches upstream's generateFontFaceDeclarations and harfbuzzjs subsetting
         run: node tools/goldens/font-subset.mjs --check
       - name: excali-scene image element fixture matches upstream's renderElement

@@ -403,7 +403,7 @@ fn expect_grown_container(
 #[test]
 fn passes_the_laid_out_elements_as_changed_to_the_arrow_layout() {
     let mut env = TestEnv {
-        text_layout: Some(support::centre_label),
+        text_layout: support::TextLayoutMode::Upstream,
         arrow_layout: Some(ArrowLayout::Custom(expect_grown_container)),
         ..TestEnv::default()
     };
@@ -513,7 +513,7 @@ fn moved_container(env: &mut TestEnv) -> (SceneElementsMap, SceneElementsMap) {
 #[test]
 fn fails_on_a_layout_error_in_development() {
     let mut env = TestEnv {
-        text_layout: Some(failing_text_layout),
+        text_layout: support::TextLayoutMode::Custom(failing_text_layout),
         ..TestEnv::default()
     };
     let (before, after) = moved_container(&mut env);
@@ -531,7 +531,7 @@ fn fails_on_a_layout_error_in_development() {
 fn ignores_a_layout_error_in_production() {
     // redrawElements logs and returns the elements (delta.ts:2034-2057)
     let mut env = TestEnv {
-        text_layout: Some(failing_text_layout),
+        text_layout: support::TextLayoutMode::Custom(failing_text_layout),
         arrow_layout: Some(ArrowLayout::Custom(failing_arrow_layout)),
         production: true,
         ..TestEnv::default()

@@ -169,6 +169,28 @@ const stubbedModules = (upstream, stubs, shims = {}) => ({
 });
 
 /**
+ * Resolves relative imports of one checkout module to another: `redirects`
+ * maps a checkout module path from the root without extension, as an
+ * importing module names it (e.g. `packages/excalidraw/actions`, the
+ * actions index), to the checkout file that answers it (e.g.
+ * `packages/excalidraw/actions/actionExport.tsx`). Meant for an index
+ * module whose other re-exports pull in React components the generator
+ * never reaches, when the names the importer takes all come from the one
+ * file; the file is upstream's own and loads unchanged.
+ */
+const redirectedModules = (upstream, redirects) => ({
+  name: "redirected-modules",
+  setup(build) {
+    const map = new Map(Object.entries(redirects).map(([from, to]) => [join(upstream, from), join(upstream, to)]));
+    if (!map.size) return;
+    build.onResolve({ filter: /^\.\.?\// }, (args) => {
+      const target = map.get(join(args.resolveDir, args.path));
+      return target ? { path: target } : undefined;
+    });
+  },
+});
+
+/**
  * Exports module-private functions of checkout modules so a generator can
  * call them directly: `exposed` maps a checkout module path from the root
  * without extension (e.g. `packages/excalidraw/data/restore`) to the names
@@ -247,6 +269,7 @@ export const bundleUpstream = async (
     shims = {},
     expose = {},
     patch = {},
+    redirects = {},
     define = {},
     fontUris: withFontUris = false,
     platform = "node",
@@ -271,6 +294,7 @@ export const bundleUpstream = async (
     logLevel: "silent",
     plugins: [
       workspaceAliases(dir),
+      redirectedModules(dir, redirects),
       stubbedModules(dir, stubs, shims),
       exposedModules(dir, expose, patch),
       ...(withFontUris ? [fontUris(dir)] : []),
@@ -288,7 +312,9 @@ export const bundleUpstream = async (
  * exports the shape code the goldens use); `stubs` lists modules replaced
  * by empty ones and `shims` maps modules to replacement CommonJS sources
  * (see stubbedModules); `expose` exports module-private functions and
- * `patch` rewrites checkout modules (see exposedModules); `define` adds
+ * `patch` rewrites checkout modules (see exposedModules); `redirects`
+ * points relative imports of a checkout module at another (see
+ * redirectedModules); `define` adds
  * compile-time constants; `fontUris` makes each font file import its path
  * (see fontUris).
  */

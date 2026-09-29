@@ -138,6 +138,7 @@ dependencies = [
  "excali-scene",
  "excali-text",
  "indexmap",
+ "serde",
  "serde_json",
 ]
 

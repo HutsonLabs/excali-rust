@@ -14,16 +14,12 @@ use excali_editor::binding::{update_bound_elements_in_map, BindingEnv};
 use excali_editor::mutate::{mutate_element, new_element_with};
 use excali_editor::scene::MutationEnv;
 use excali_editor::store::HistoryEnv;
+use excali_editor::text_layout::TextLayouter;
 use excali_text::font_metadata::get_font_string;
-use excali_text::text_element::{
-    compute_bound_text_position, compute_container_dimension_for_bound_text,
-    get_bound_text_max_height, get_bound_text_max_width, NoArrowGeometry,
-};
 use excali_text::text_measurements::{
     measure_text, CharCountTextMetrics, CharWidthCache, TextMetricsProvider,
 };
-use excali_text::text_wrapping::wrap_text;
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value};
 
 /// `reseed(7)` and `isTestEnv()`: nonces and ids from counters, and
 /// `getUpdatedTimestamp()` answering 1 as it does in tests
@@ -32,16 +28,17 @@ use serde_json::{json, Map, Value};
 /// The two leaf layout calls of `redrawElements` are recorded in
 /// `text_redraws` (`(text, container)`) and `bound_updates` (the bindable
 /// element, with the ids of the changed elements passed along), and do
-/// nothing else unless a test installs a layout: [`centre_label`] is a
-/// deterministic stand-in for upstream's text layout, which lives with
-/// text editing; the arrow layout is the port's own `updateBoundElements`
-/// ([`ArrowLayout::Upstream`], the default of
+/// nothing else unless a test installs a layout:
+/// [`TextLayoutMode::Upstream`] is the editor's `redrawTextBoundingBox`
+/// ([`TextLayouter::redraw_text_bounding_box`]) under upstream's test
+/// metric (10 px per UTF-16 code unit); the arrow layout is the port's own
+/// `updateBoundElements` ([`ArrowLayout::Upstream`], the default of
 /// `HistoryEnv::update_bound_elements`) or a test's own.
 #[derive(Default)]
 pub struct TestEnv {
     pub nonce: f64,
     pub ids: u32,
-    pub text_layout: Option<TextLayout>,
+    pub text_layout: TextLayoutMode,
     pub arrow_layout: Option<ArrowLayout>,
     pub text_redraws: Vec<(String, String)>,
     pub bound_updates: Vec<(String, Vec<String>)>,
@@ -50,6 +47,21 @@ pub struct TestEnv {
     pub production: bool,
     /// Upstream's test metric (10 px per UTF-16 code unit) for arrow labels.
     pub char_widths: CharWidthCache,
+    /// Text layout's state: the metric, the wrapping cache and the original
+    /// container heights.
+    pub layouter: TextLayouter<CharCountTextMetrics>,
+}
+
+/// What `redrawTextBoundingBox` does in a test.
+#[derive(Default, Clone, Copy)]
+pub enum TextLayoutMode {
+    /// Nothing (the call is only recorded).
+    #[default]
+    Off,
+    /// The editor's own layout ([`TextLayouter::redraw_text_bounding_box`]).
+    Upstream,
+    /// A test's layout.
+    Custom(TextLayout),
 }
 
 /// `redrawTextBoundingBox(text, container)` over the scene.
@@ -74,11 +86,11 @@ pub enum ArrowLayout {
 }
 
 impl TestEnv {
-    /// Both layouts installed: the text stand-in and the port's arrow
-    /// layout.
+    /// Both layouts installed: the editor's text layout and the port's
+    /// arrow layout.
     pub fn with_layout() -> TestEnv {
         TestEnv {
-            text_layout: Some(centre_label),
+            text_layout: TextLayoutMode::Upstream,
             arrow_layout: Some(ArrowLayout::Upstream),
             ..TestEnv::default()
         }
@@ -127,6 +139,29 @@ impl ChangeStamp for Stamp<'_> {
     }
 }
 
+/// The test environment's stamp and metric as a [`BindingEnv`], for the
+/// arrows a sticky note's layout moves.
+struct StampBinding<'a> {
+    stamp: &'a mut dyn ChangeStamp,
+    char_widths: &'a mut CharWidthCache,
+}
+
+impl MutationEnv for StampBinding<'_> {
+    fn random_integer(&mut self) -> f64 {
+        self.stamp.version_nonce()
+    }
+
+    fn now(&mut self) -> f64 {
+        self.stamp.updated()
+    }
+}
+
+impl BindingEnv for StampBinding<'_> {
+    fn text(&mut self) -> (&dyn TextMetricsProvider, &mut CharWidthCache) {
+        (&CharCountTextMetrics, self.char_widths)
+    }
+}
+
 impl HistoryEnv for TestEnv {
     fn dev_checks(&self) -> bool {
         !self.production
@@ -149,14 +184,42 @@ impl HistoryEnv for TestEnv {
     ) -> Result<(), String> {
         self.text_redraws
             .push((text_id.to_owned(), container_id.to_owned()));
+        let mut stamp = Stamp {
+            nonce: &mut self.nonce,
+        };
         match self.text_layout {
-            Some(layout) => {
-                let mut stamp = Stamp {
-                    nonce: &mut self.nonce,
-                };
-                layout(&mut stamp, elements, text_id, container_id)
+            TextLayoutMode::Off => Ok(()),
+            TextLayoutMode::Custom(layout) => layout(&mut stamp, elements, text_id, container_id),
+            TextLayoutMode::Upstream => {
+                // a sticky note's arrows follow it (updateStickyNoteLayout)
+                let arrows = self.arrow_layout;
+                let char_widths = &mut self.char_widths;
+                self.layouter.redraw_text_bounding_box(
+                    &mut stamp,
+                    elements,
+                    text_id,
+                    Some(container_id),
+                    &mut |stamp, elements, id| match arrows {
+                        Some(ArrowLayout::Upstream) => {
+                            let mut env = StampBinding {
+                                stamp,
+                                char_widths: &mut *char_widths,
+                            };
+                            update_bound_elements_in_map(
+                                elements,
+                                id,
+                                &SceneElementsMap::new(),
+                                &mut env,
+                            );
+                            Ok(())
+                        }
+                        Some(ArrowLayout::Custom(layout)) => {
+                            layout(stamp, elements, id, &SceneElementsMap::new())
+                        }
+                        None => Ok(()),
+                    },
+                )
             }
-            None => Ok(()),
         }
     }
 
@@ -198,81 +261,6 @@ pub fn mutate_in(
     mutate_element(&mut element, elements, obj(updates), stamp).map_err(|e| e.to_string())?;
     elements.insert(id.to_owned(), element);
     Ok(())
-}
-
-/// `redrawTextBoundingBox(text, container, scene)` (`textElement.ts:51-152`)
-/// under upstream's test metric (10 px per UTF-16 code unit): the
-/// `originalText` wrapped to the container's room and measured, the
-/// container grown when the text no longer fits, and the text placed by
-/// `computeBoundTextPosition` with the container's angle (0 in an arrow).
-/// An arrow label keeps its place (no arrow geometry here) and a sticky
-/// note's layout (`updateStickyNoteLayout`) is not reproduced.
-pub fn centre_label(
-    stamp: &mut dyn ChangeStamp,
-    elements: &mut SceneElementsMap,
-    text_id: &str,
-    container_id: &str,
-) -> Result<(), String> {
-    let container = elements[container_id].clone();
-    let label = elements[text_id].clone();
-    let ElementKind::Text(fields) = &label.kind else {
-        return Err(format!("{text_id} is not a text"));
-    };
-    if matches!(container.kind, ElementKind::StickyNote(_)) {
-        return Ok(());
-    }
-    let is_arrow = matches!(container.kind, ElementKind::Arrow(_));
-    let font = get_font_string(fields.font_size, fields.font_family);
-    let max_width = get_bound_text_max_width(&container, Some(&label));
-    let wrapped = wrap_text(
-        &fields.original_text,
-        &font,
-        max_width,
-        &CharCountTextMetrics,
-        &mut CharWidthCache::new(),
-    );
-    let metrics = measure_text(&wrapped, &font, fields.line_height, &CharCountTextMetrics);
-    let width = if fields.auto_resize {
-        metrics.width
-    } else {
-        label.base.width
-    };
-    let angle = if is_arrow {
-        0.0
-    } else {
-        container.base.angle.0
-    };
-
-    let max_container_height = get_bound_text_max_height(&container, &label);
-    if !is_arrow && metrics.height > max_container_height {
-        let height =
-            compute_container_dimension_for_bound_text(metrics.height, container.element_type());
-        mutate_in(stamp, elements, container_id, json!({"height": height}))?;
-    }
-    if metrics.width > max_width {
-        let width =
-            compute_container_dimension_for_bound_text(metrics.width, container.element_type());
-        mutate_in(stamp, elements, container_id, json!({"width": width}))?;
-    }
-
-    let mut updates = json!({
-        "text": wrapped,
-        "width": width,
-        "height": metrics.height,
-        "angle": angle,
-    });
-    let mut updated = label.clone();
-    updated.base.width = width;
-    updated.base.height = metrics.height;
-    let container = elements[container_id].clone();
-    let scene: Vec<Element> = elements.values().cloned().collect();
-    if let Some([x, y]) =
-        compute_bound_text_position(&container, &updated, &scene, &mut NoArrowGeometry)
-    {
-        updates["x"] = json!(x);
-        updates["y"] = json!(y);
-    }
-    mutate_in(stamp, elements, text_id, updates)
 }
 
 fn element(kind: ElementKind, id: &str, x: f64, y: f64, width: f64, height: f64) -> Element {

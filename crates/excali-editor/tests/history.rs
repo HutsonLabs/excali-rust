@@ -15,9 +15,9 @@
 //! and redo stacks, the scene and the selection is upstream's.
 //!
 //! Layout after undo and redo runs as upstream's does: `redrawElements`
-//! picks the elements, and the leaf calls are `tests/support`'s
-//! `redrawTextBoundingBox` under upstream's test metric (which reproduces
-//! upstream's label positions) and the port's own `updateBoundElements`
+//! picks the elements, and the leaf calls are the editor's own
+//! `redrawTextBoundingBox` (`excali_editor::text_layout::TextLayouter`)
+//! under upstream's test metric and the port's own `updateBoundElements`
 //! (`HistoryEnv::update_bound_elements`, `excali_editor::binding`), whose
 //! arrows are compared with upstream's own layout of the same scenes
 //! (`tests/fixtures/binding.json`); those cases also pin which elements
@@ -2702,7 +2702,7 @@ fn failing_text_layout(
 fn undo_and_redo_apply_despite_a_layout_error_in_production() {
     for production in [true, false] {
         let mut env = TestEnv::with_layout();
-        env.text_layout = Some(failing_text_layout);
+        env.text_layout = support::TextLayoutMode::Custom(failing_text_layout);
         env.production = production;
         let mut s = Session::new(env, AppState::default());
         s.initialize_scene(vec![], obj(json!({})))

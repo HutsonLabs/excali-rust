@@ -69,9 +69,11 @@ pub enum CaptureUpdateAction {
 ///   [`HistoryEnv::update_bound_elements`], the two layout calls of
 ///   `ElementsDelta.redrawElements` (`delta.ts:2034-2124`). Which elements
 ///   they run on is decided by [`crate::delta::redraw_elements`]; the
-///   layout itself (text wrapping and measuring, arrow routing) lives with
-///   text editing (ex-512) and arrow binding (ex-510), and the host wires
-///   it in. Every element a leaf changes must go through
+///   layout itself is text layout's
+///   ([`crate::text_layout::TextLayouter::redraw_text_bounding_box`]) and
+///   arrow binding's (ex-510), and the host wires it in (the environment
+///   holds its `TextLayouter`, whose original container heights text
+///   editing shares). Every element a leaf changes must go through
 ///   [`crate::mutate::mutate_element`], which bumps its version; history
 ///   checks that only elements the delta reaches were changed.
 pub trait HistoryEnv: ChangeStamp {

@@ -938,6 +938,49 @@ CI runs `--check` in the `goldens` job, and
 that the fixture holds `history.test.tsx`'s answer (the arrow's second point
 rounds to `[500, -400]`).
 
+## Text editing fixture
+
+`text-editing.mjs` writes `crates/excali-editor/tests/fixtures/text-editing.json`
+for excali-editor's text editing (ex-512), which excali-ui's browser suite
+(`tests/web/text-editing`) replays in Chromium too:
+
+- `redraw`: `redrawTextBoundingBox(text, container, scene)`
+  (`packages/element/src/textElement.ts:51-152`) on labels of every
+  container type (rotated, narrowed, moved; arrow labels with and without a
+  label position; sticky notes whose font steps down or which grow) and on
+  free texts: the elements it changed and the original container cache;
+- `sessions`: editing sessions through upstream's own
+  `App.startTextEditing`, `handleTextWysiwyg` and the members they call,
+  cut out of `components/App.tsx` at the pin (`APP_MEMBERS`) with the
+  imports they use and compiled into a stand-in class over upstream's
+  `Scene` and `AppViewport`, with `wysiwyg/textWysiwyg.tsx` unchanged. The
+  steps replay what a browser delivers to the textarea (typed characters,
+  keys with their default edits, inserted text, selections, blurs, pastes,
+  the editor box scrolled to the caret, theme and canvas size changes, an
+  element changed elsewhere); after each the record holds the textarea's
+  value and selection, the style values assigned since (as the strings the
+  CSSOM keeps), the elements changed (without the drawn `seed`,
+  `versionNonce` and `updated`), the app state keys changed, what the
+  editor asked of the app (`executeAction`, `scheduleCapture`,
+  `focusContainer`, `translate`, ...) and the original container cache.
+
+Runs in production mode under jsdom 22.1.0 with timers and animation
+frames flushed after each step. React, the actions' panels and the modules
+they pull in are stubbed; the actions index is redirected to
+`actionExport.tsx`, where the two actions `textWysiwyg.tsx` takes from it
+live. Ids come from a counter (`nanoid` is shimmed), the clock is fixed and
+text measures 10 px per UTF-16 code unit.
+
+```sh
+node tools/goldens/text-editing.mjs           # write the fixture
+node tools/goldens/text-editing.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and `test/text-editing.test.mjs`
+checks that two runs are byte-identical and restates the overlay's style
+rules (5% height buffer, the transform formula, the textarea's attributes)
+against every record.
+
 ## Image element fixture
 
 `image-elements.mjs` writes `crates/excali-scene/tests/fixtures/image-elements.json`
