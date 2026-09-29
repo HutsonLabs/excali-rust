@@ -11,6 +11,7 @@
 //! the DOM half of the text editor overlay (`wysiwyg/textWysiwyg.tsx`); for
 //! [`theme`] the light and dark tokens of `css/theme.scss` and the
 //! container's `theme--dark` class; for
+//! [`icons`] the icon set of `components/icons.tsx`; for
 //! [`styles_panel`] the full styles panel (`components/Actions.tsx`,
 //! `LayerUI.tsx`).
 //!
@@ -19,6 +20,7 @@
 
 pub mod dom;
 pub mod fonts;
+pub mod icons;
 pub mod keyboard;
 pub mod layers;
 pub mod primitives;
