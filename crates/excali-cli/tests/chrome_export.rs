@@ -66,14 +66,28 @@ const EMBEDDED_PNGS: [&str; 2] = ["test_embedded_v1", "smiley_embedded_v2"];
 /// Scenes whose pixels include text: drawn without it, each must fall
 /// outside its tolerance, so the comparison holds `GlyphText` to Chrome's
 /// `fillText`.
-const TEXT_SCENES: [&str; 6] = [
+const TEXT_SCENES: [&str; 9] = [
     "default",
     "scale-3-embed",
     "frames",
+    "utils-max-smaller",
+    "utils-max-and-get-dimensions",
     "element-text",
     "element-text-nunito",
     "test_embedded_v1",
+    "embeddables",
 ];
+
+/// Scenes the port exports as their background alone, where the
+/// background check cannot hold: `negative-size`, whose padding of -100
+/// leaves the rectangle outside the canvas (Chrome draws the background
+/// alone too, and the tolerance is exact), and `smiley_embedded_v2`, whose
+/// only drawing is an emoji: no vendored face has one and upstream's emoji
+/// family is `local:` (ADR-004), so Chrome draws the system's colour emoji
+/// and the port nothing (tolerances.json says so). The port's export of
+/// each must be the background alone, so a port that starts drawing more
+/// fails here and the tolerance is revisited.
+const BACKGROUND_ONLY: [&str; 2] = ["negative-size", "smiley_embedded_v2"];
 
 fn crate_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -416,7 +430,7 @@ fn the_port_matches_chrome_within_each_scenes_tolerance() {
     );
 }
 
-/// Each tolerance is earned: a canvas holding only the reference's
+/// Each tolerance is earned (but for [`BACKGROUND_ONLY`]): a canvas holding only the reference's
 /// background (its top-left pixel everywhere) must fall outside it, so no
 /// scene passes by drawing nothing.
 #[test]
@@ -427,6 +441,15 @@ fn every_scene_draws_more_than_its_tolerance() {
         let mut blank = Pixmap::new(expected.width(), expected.height()).unwrap();
         let background: PremultipliedColorU8 = expected.pixels()[0];
         blank.pixels_mut().fill(background);
+        if BACKGROUND_ONLY.contains(&name.as_str()) {
+            let port = decode(&port_png(&name), &name);
+            assert_eq!(
+                port.data(),
+                blank.data(),
+                "{name}: the port now draws more than the background; revisit its tolerance and BACKGROUND_ONLY"
+            );
+            continue;
+        }
         let diff = compare(blank.as_ref(), expected.as_ref()).unwrap();
         let t = &tolerances[&name].tolerance;
         assert!(

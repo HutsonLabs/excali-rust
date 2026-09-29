@@ -1,0 +1,180 @@
+{
+ "description": "Per scene of scripts/fixtures/chrome-png-export.sh: at most `pixels` pixels of the port's PNG export may differ from Chrome's by more than `channel` levels in a premultiplied channel (excali_raster::diff). Measured on macOS arm64 with the Chromium of tests/web/package-lock.json: scenes with text allow the pixels measured over 64 levels (32 for the three drawn at a third to a half of the size) plus a quarter and 10, scenes without text none over their measured maximum. `note` says where the difference comes from.",
+ "scenes": {
+  "default": {
+   "channel": 64,
+   "pixels": 115,
+   "note": "The basic scene's text `export me` (Excalifont, 20 px). Chrome on macOS rasterizes the glyphs through Skia's CoreText path, which smooths (emboldens) the stems; GlyphText fills the same outlines, shaped from the same vendored face and placed on the same baseline, with tiny-skia's analytic coverage. The differences are the edge pixels of the glyphs, a stroke a fraction of a pixel heavier in Chrome. The rough.js shapes agree to within 8 levels."
+  },
+  "scale-2": {
+   "channel": 64,
+   "pixels": 477,
+   "note": "The basic scene's text `export me` (Excalifont, 20 px, scaled). Chrome on macOS rasterizes the glyphs through Skia's CoreText path, which smooths (emboldens) the stems; GlyphText fills the same outlines, shaped from the same vendored face and placed on the same baseline, with tiny-skia's analytic coverage. The differences are the edge pixels of the glyphs, a stroke a fraction of a pixel heavier in Chrome. The rough.js shapes agree to within 8 levels."
+  },
+  "scale-3-embed": {
+   "channel": 64,
+   "pixels": 789,
+   "note": "The basic scene's text `export me` (Excalifont, 20 px, scaled). Chrome on macOS rasterizes the glyphs through Skia's CoreText path, which smooths (emboldens) the stems; GlyphText fills the same outlines, shaped from the same vendored face and placed on the same baseline, with tiny-skia's analytic coverage. The differences are the edge pixels of the glyphs, a stroke a fraction of a pixel heavier in Chrome. The rough.js shapes agree to within 8 levels."
+  },
+  "fractional-scale-1.5": {
+   "channel": 2,
+   "pixels": 0,
+   "note": "No text: the rough.js strokes, fills, frame outlines and background agree to within 1 levels, anti-aliased edge coverage of Skia against tiny-skia as in the raster fixtures of ex-401."
+  },
+  "padding-0": {
+   "channel": 64,
+   "pixels": 115,
+   "note": "The basic scene's text `export me` (Excalifont, 20 px). Chrome on macOS rasterizes the glyphs through Skia's CoreText path, which smooths (emboldens) the stems; GlyphText fills the same outlines, shaped from the same vendored face and placed on the same baseline, with tiny-skia's analytic coverage. The differences are the edge pixels of the glyphs, a stroke a fraction of a pixel heavier in Chrome. The rough.js shapes agree to within 8 levels."
+  },
+  "padding-25.5": {
+   "channel": 2,
+   "pixels": 0,
+   "note": "No text: the rough.js strokes, fills, frame outlines and background agree to within 1 levels, anti-aliased edge coverage of Skia against tiny-skia as in the raster fixtures of ex-401."
+  },
+  "no-background": {
+   "channel": 64,
+   "pixels": 133,
+   "note": "The basic scene's text `export me` (Excalifont, 20 px). Chrome on macOS rasterizes the glyphs through Skia's CoreText path, which smooths (emboldens) the stems; GlyphText fills the same outlines, shaped from the same vendored face and placed on the same baseline, with tiny-skia's analytic coverage. The differences are the edge pixels of the glyphs, a stroke a fraction of a pixel heavier in Chrome. The rough.js shapes agree to within 8 levels. Without a background the glyph edges are partly transparent, so the coverage difference shows in alpha too."
+  },
+  "background-transparent": {
+   "channel": 64,
+   "pixels": 133,
+   "note": "The basic scene's text `export me` (Excalifont, 20 px). Chrome on macOS rasterizes the glyphs through Skia's CoreText path, which smooths (emboldens) the stems; GlyphText fills the same outlines, shaped from the same vendored face and placed on the same baseline, with tiny-skia's analytic coverage. The differences are the edge pixels of the glyphs, a stroke a fraction of a pixel heavier in Chrome. The rough.js shapes agree to within 8 levels. Without a background the glyph edges are partly transparent, so the coverage difference shows in alpha too."
+  },
+  "background-coloured": {
+   "channel": 64,
+   "pixels": 477,
+   "note": "The basic scene's text `export me` (Excalifont, 20 px, scaled). Chrome on macOS rasterizes the glyphs through Skia's CoreText path, which smooths (emboldens) the stems; GlyphText fills the same outlines, shaped from the same vendored face and placed on the same baseline, with tiny-skia's analytic coverage. The differences are the edge pixels of the glyphs, a stroke a fraction of a pixel heavier in Chrome. The rough.js shapes agree to within 8 levels."
+  },
+  "dark": {
+   "channel": 64,
+   "pixels": 148,
+   "note": "The basic scene's text `export me` (Excalifont, 20 px). Chrome on macOS rasterizes the glyphs through Skia's CoreText path, which smooths (emboldens) the stems; GlyphText fills the same outlines, shaped from the same vendored face and placed on the same baseline, with tiny-skia's analytic coverage. The differences are the edge pixels of the glyphs, a stroke a fraction of a pixel heavier in Chrome. The rough.js shapes agree to within 8 levels. Colours go through the dark-mode filter."
+  },
+  "frames": {
+   "channel": 64,
+   "pixels": 139,
+   "note": "Frame names and embeddable labels are Helvetica, which upstream never ships (`local:`, ADR-004): Chrome draws the machine's Helvetica, the port Liberation Sans (the generic sans-serif a family without faces falls through to), so the label glyphs differ in shape and width: the long name is cut to the frame's width by each font's measurement, `A frame n...` in Chrome and `A frame na...` in the port. The frame outlines and the rectangle agree to within 1 level."
+  },
+  "frames-dark": {
+   "channel": 64,
+   "pixels": 179,
+   "note": "Frame names and embeddable labels are Helvetica, which upstream never ships (`local:`, ADR-004): Chrome draws the machine's Helvetica, the port Liberation Sans (the generic sans-serif a family without faces falls through to), so the label glyphs differ in shape and width: the long name is cut to the frame's width by each font's measurement, `A frame n...` in Chrome and `A frame na...` in the port. The frame outlines and the rectangle agree to within 1 level. Colours go through the dark-mode filter."
+  },
+  "frames-names-off": {
+   "channel": 2,
+   "pixels": 0,
+   "note": "No text: the rough.js strokes, fills, frame outlines and background agree to within 1 levels, anti-aliased edge coverage of Skia against tiny-skia as in the raster fixtures of ex-401."
+  },
+  "frames-disabled": {
+   "channel": 2,
+   "pixels": 0,
+   "note": "No text: the rough.js strokes, fills, frame outlines and background agree to within 1 levels, anti-aliased edge coverage of Skia against tiny-skia as in the raster fixtures of ex-401."
+  },
+  "exporting-frame": {
+   "channel": 2,
+   "pixels": 0,
+   "note": "No text: the rough.js strokes, fills, frame outlines and background agree to within 1 levels, anti-aliased edge coverage of Skia against tiny-skia as in the raster fixtures of ex-401."
+  },
+  "images": {
+   "channel": 2,
+   "pixels": 0,
+   "note": "No text. The loaded 1 x 1 PNG scaled to 64 x 48 and upstream's placeholder images (broken, binary and missing files) agree to within 2 levels: image resampling and edge coverage."
+  },
+  "images-dark": {
+   "channel": 2,
+   "pixels": 0,
+   "note": "No text. The loaded 1 x 1 PNG scaled to 64 x 48 and upstream's placeholder images (broken, binary and missing files) agree to within 2 levels: image resampling and edge coverage."
+  },
+  "embeddables": {
+   "channel": 64,
+   "pixels": 128,
+   "note": "Frame names and embeddable labels are Helvetica, which upstream never ships (`local:`, ADR-004): Chrome draws the machine's Helvetica, the port Liberation Sans (the generic sans-serif a family without faces falls through to), so the label glyphs differ in shape and width (the centred `Empty Web-Embed` label). The placeholder box and its hachure agree to within 8 levels."
+  },
+  "negative-size": {
+   "channel": 0,
+   "pixels": 0,
+   "note": "Padding -100 leaves a canvas of 300 x 150 (the canvas default) with the rectangle outside it: both draw the background alone, identically."
+  },
+  "utils-max-smaller": {
+   "channel": 32,
+   "pixels": 22,
+   "note": "The basic scene's text `export me` (Excalifont, 20 px, scaled). Chrome on macOS rasterizes the glyphs through Skia's CoreText path, which smooths (emboldens) the stems; GlyphText fills the same outlines, shaped from the same vendored face and placed on the same baseline, with tiny-skia's analytic coverage. The differences are the edge pixels of the glyphs, a stroke a fraction of a pixel heavier in Chrome. The rough.js shapes agree to within 8 levels."
+  },
+  "utils-max-larger": {
+   "channel": 64,
+   "pixels": 477,
+   "note": "The basic scene's text `export me` (Excalifont, 20 px, scaled). Chrome on macOS rasterizes the glyphs through Skia's CoreText path, which smooths (emboldens) the stems; GlyphText fills the same outlines, shaped from the same vendored face and placed on the same baseline, with tiny-skia's analytic coverage. The differences are the edge pixels of the glyphs, a stroke a fraction of a pixel heavier in Chrome. The rough.js shapes agree to within 8 levels."
+  },
+  "utils-max-larger-no-scale": {
+   "channel": 64,
+   "pixels": 115,
+   "note": "The basic scene's text `export me` (Excalifont, 20 px). Chrome on macOS rasterizes the glyphs through Skia's CoreText path, which smooths (emboldens) the stems; GlyphText fills the same outlines, shaped from the same vendored face and placed on the same baseline, with tiny-skia's analytic coverage. The differences are the edge pixels of the glyphs, a stroke a fraction of a pixel heavier in Chrome. The rough.js shapes agree to within 8 levels."
+  },
+  "utils-get-dimensions": {
+   "channel": 32,
+   "pixels": 67,
+   "note": "The basic scene's text `export me` (Excalifont, 20 px, scaled). Chrome on macOS rasterizes the glyphs through Skia's CoreText path, which smooths (emboldens) the stems; GlyphText fills the same outlines, shaped from the same vendored face and placed on the same baseline, with tiny-skia's analytic coverage. The differences are the edge pixels of the glyphs, a stroke a fraction of a pixel heavier in Chrome. The rough.js shapes agree to within 8 levels."
+  },
+  "utils-get-dimensions-no-scale": {
+   "channel": 2,
+   "pixels": 0,
+   "note": "No text: the rough.js strokes, fills, frame outlines and background agree to within 1 levels, anti-aliased edge coverage of Skia against tiny-skia as in the raster fixtures of ex-401."
+  },
+  "utils-max-and-get-dimensions": {
+   "channel": 32,
+   "pixels": 43,
+   "note": "The basic scene's text `export me` (Excalifont, 20 px, scaled). Chrome on macOS rasterizes the glyphs through Skia's CoreText path, which smooths (emboldens) the stems; GlyphText fills the same outlines, shaped from the same vendored face and placed on the same baseline, with tiny-skia's analytic coverage. The differences are the edge pixels of the glyphs, a stroke a fraction of a pixel heavier in Chrome. The rough.js shapes agree to within 8 levels."
+  },
+  "utils-plain": {
+   "channel": 64,
+   "pixels": 133,
+   "note": "The basic scene's text `export me` (Excalifont, 20 px, scaled). Chrome on macOS rasterizes the glyphs through Skia's CoreText path, which smooths (emboldens) the stems; GlyphText fills the same outlines, shaped from the same vendored face and placed on the same baseline, with tiny-skia's analytic coverage. The differences are the edge pixels of the glyphs, a stroke a fraction of a pixel heavier in Chrome. The rough.js shapes agree to within 8 levels. Without a background the glyph edges are partly transparent, so the coverage difference shows in alpha too."
+  },
+  "element-rectangle": {
+   "channel": 8,
+   "pixels": 0,
+   "note": "No text: the rough.js strokes, fills, frame outlines and background agree to within 4 levels, anti-aliased edge coverage of Skia against tiny-skia as in the raster fixtures of ex-401."
+  },
+  "element-embeddable": {
+   "channel": 64,
+   "pixels": 150,
+   "note": "Frame names and embeddable labels are Helvetica, which upstream never ships (`local:`, ADR-004): Chrome draws the machine's Helvetica, the port Liberation Sans (the generic sans-serif a family without faces falls through to), so the label glyphs differ in shape and width (the centred `Empty Web-Embed` label). The placeholder box and its hachure agree to within 8 levels."
+  },
+  "element-ellipse": {
+   "channel": 8,
+   "pixels": 0,
+   "note": "No text: the rough.js strokes, fills, frame outlines and background agree to within 6 levels, anti-aliased edge coverage of Skia against tiny-skia as in the raster fixtures of ex-401."
+  },
+  "element-diamond": {
+   "channel": 8,
+   "pixels": 0,
+   "note": "No text: the rough.js strokes, fills, frame outlines and background agree to within 4 levels, anti-aliased edge coverage of Skia against tiny-skia as in the raster fixtures of ex-401."
+  },
+  "element-rectangle-with-link": {
+   "channel": 8,
+   "pixels": 0,
+   "note": "No text: the rough.js strokes, fills, frame outlines and background agree to within 4 levels, anti-aliased edge coverage of Skia against tiny-skia as in the raster fixtures of ex-401."
+  },
+  "element-text": {
+   "channel": 64,
+   "pixels": 134,
+   "note": "textFixture's `original text` at 20 px in Excalifont. Chrome on macOS rasterizes the glyphs through Skia's CoreText path, which smooths (emboldens) the stems; GlyphText fills the same outlines, shaped from the same vendored face and placed on the same baseline, with tiny-skia's analytic coverage. The differences are the edge pixels of the glyphs, a stroke a fraction of a pixel heavier in Chrome."
+  },
+  "element-text-nunito": {
+   "channel": 64,
+   "pixels": 80,
+   "note": "textFixture's `original text` at 20 px in Nunito. Chrome on macOS rasterizes the glyphs through Skia's CoreText path, which smooths (emboldens) the stems; GlyphText fills the same outlines, shaped from the same vendored face and placed on the same baseline, with tiny-skia's analytic coverage. The differences are the edge pixels of the glyphs, a stroke a fraction of a pixel heavier in Chrome."
+  },
+  "test_embedded_v1": {
+   "channel": 64,
+   "pixels": 183,
+   "note": "The legacy v1 scene's text `test` in Virgil. Chrome on macOS rasterizes the glyphs through Skia's CoreText path, which smooths (emboldens) the stems; GlyphText fills the same outlines, shaped from the same vendored face and placed on the same baseline, with tiny-skia's analytic coverage. The differences are the edge pixels of the glyphs, a stroke a fraction of a pixel heavier in Chrome."
+  },
+  "smiley_embedded_v2": {
+   "channel": 64,
+   "pixels": 1010,
+   "note": "The scene is one text element, the emoji U+1F600 in Virgil. No vendored face has it and upstream's emoji family is `local:` Segoe UI Emoji (ADR-004), so Chrome falls back to the system's Apple Color Emoji and the port, which reads no system fonts, draws nothing: every emoji pixel differs. The canvas size and the white background around it are equal."
+  }
+ }
+}
