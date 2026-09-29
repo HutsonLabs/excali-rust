@@ -1112,3 +1112,48 @@ fn hovering_a_shape_with_the_arrow_tool_suggests_it() {
     ed.pointer_move(at(400.0, 400.0));
     assert_eq!(app(&ed, "suggestedBinding"), Value::Null);
 }
+
+// -- Locked elements ------------------------------------------------------------
+
+fn locked(id: &str) -> Value {
+    el(
+        "rectangle",
+        id,
+        0.0,
+        0.0,
+        100.0,
+        json!({ "backgroundColor": "red", "locked": true }),
+    )
+}
+
+#[test]
+fn a_click_does_not_select_a_locked_element() {
+    // elementLocking.test.tsx:23-34; the release marks it (activeLockedId,
+    // App.tsx:11578-11614), which the interactive canvas outlines
+    let mut ed = editor_with(vec![locked("l")]);
+    click(&mut ed, [50.0, 50.0]);
+    assert_eq!(app(&ed, "selectedElementIds"), json!({}));
+    assert_eq!(app(&ed, "activeLockedId"), "l");
+    click(&mut ed, [500.0, 500.0]);
+    assert_eq!(app(&ed, "activeLockedId"), Value::Null);
+}
+
+#[test]
+fn a_locked_element_is_not_dragged() {
+    // elementLocking.test.tsx:52-66
+    let mut ed = editor_with(vec![locked("l")]);
+    drag(&mut ed, [50.0, 50.0], [100.0, 100.0]);
+    assert_eq!(xy(get(&ed, "l")), [0.0, 0.0]);
+}
+
+#[test]
+fn a_locked_element_covers_the_element_below() {
+    // elementLocking.test.tsx:68-100 and :111-133
+    let mut ed = editor_with(vec![filled("r", 0.0, 0.0, 100.0), locked("l")]);
+    click(&mut ed, [50.0, 50.0]);
+    assert_eq!(app(&ed, "selectedElementIds"), json!({}));
+    assert_eq!(app(&ed, "activeLockedId"), "l");
+    drag(&mut ed, [50.0, 50.0], [100.0, 100.0]);
+    assert_eq!(xy(get(&ed, "l")), [0.0, 0.0]);
+    assert_eq!(xy(get(&ed, "r")), [0.0, 0.0]);
+}
