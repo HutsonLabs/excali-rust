@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 23:18 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 23:42 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**151 issues** · 112 closed (74%) · 3 in progress · 0 blocked · 35 open
+**151 issues** · 113 closed (75%) · 3 in progress · 0 blocked · 34 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -161,7 +161,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-519` | Styles panel, full mode: all sixteen groups with visibility predicates | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-520` | Main menu with default items and preferences submenu | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-521` | Footer: zoom actions, undo/redo, help button, exit zen | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-522` | Help dialog with the three shortcut islands | task | P2 | <span class="status open">open</span> | yes |  |
+| `ex-522` | Help dialog with the three shortcut islands | task | P2 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-523` | Colour picker: top picks, palette 5x3, shades, hex input, eyedropper, keyboard map | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-524` | Font picker: three top picks, scene/available groups, deprecated badge, search | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-525` | Context menus (canvas and element) generated from the actions registry | task | P1 | <span class="status closed">closed</span> |  |  |
@@ -198,14 +198,14 @@ Vendored module in term.hut with CRUD and library import; tauri-plugin-excali wi
 
 ## ex-e7 · Phase 7: Parity and polish
 
-<span class="status open">open</span> 1/14 children closed
+<span class="status open">open</span> 2/14 children closed
 
 Tablet and phone layouts, remaining tools, accessibility, performance budgets, locale loader, parity checklist to 100%.
 
 | id | title | type | P | status | ready | blocked by |
 |---|---|---|---|---|---|---|
 | `ex-701` | Compact styles panel and tablet form factor | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-702` | Phone layout: mobile menu, bottom bar, mobile toolbar order | task | P1 | <span class="status in_progress">in progress</span> |  |  |
+| `ex-702` | Phone layout: mobile menu, bottom bar, mobile toolbar order | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-703` | Sticky notes: element, rendering (shadow, edge, footer), label fitting | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-704` | Bucket fill tool | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-705` | Lasso selection | task | P2 | <span class="status open">open</span> | yes |  |
@@ -217,7 +217,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 | `ex-711` | Locale loader using upstream JSON files (58 locales, 633 keys) | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-712` | Parity checklist to 100% for the v1 scope | task | P0 | <span class="status open">open</span> |  | `ex-522`, `ex-527`, `ex-528`, `ex-529` |
 | `ex-713` | <excali-editor>: the interactive canvas and the App interactions ex-712 reduced | task | P1 | <span class="status in_progress">in progress</span> |  |  |
-| `ex-m7` | M7: parity checklist 100% for v1 scope | milestone | P2 | <span class="status open">open</span> |  | `ex-702`, `ex-703`, `ex-704`, `ex-705`, `ex-706`, `ex-707` … |
+| `ex-m7` | M7: parity checklist 100% for v1 scope | milestone | P2 | <span class="status open">open</span> |  | `ex-703`, `ex-704`, `ex-705`, `ex-706`, `ex-707`, `ex-708` … |
 
 ## ex-e8 · Phase 8: Release
 
