@@ -17,6 +17,7 @@ crate-type = ["cdylib", "rlib"]
 excali-canvas2d = { path = "../excali-canvas2d" }
 excali-core = { path = "../excali-core" }
 excali-editor = { path = "../excali-editor" }
+excali-math = { path = "../excali-math" }
 excali-scene = { path = "../excali-scene" }
 excali-svg = { path = "../excali-svg" }
 excali-text = { path = "../excali-text" }

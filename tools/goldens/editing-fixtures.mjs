@@ -24,7 +24,8 @@
 //   `result`: selectGroupsForSelectedElements(appState, elements,
 //   appState, null) (packages/element/src/groups.ts:68-196).
 // - "new": `tool`, `appState` (the keys that differ from
-//   getDefaultAppState()), `origin` and `element`: the element App creates
+//   getDefaultAppState() in test mode, where currentItemRoundness is
+//   "sharp"), `origin` and `element`: the element App creates
 //   when the tool's pointer goes down at `origin` (grid off), with the
 //   attributes App passes (createGenericElementOnPointerDown
 //   App.tsx:10534-10601, handleLinearElementOnPointerDown :10313-10408 with
@@ -428,6 +429,7 @@ const withoutDrawn = (element) => {
 
 const APP_STATES = [
   ["default", {}],
+  ["round", { currentItemRoundness: "round" }],
   ["sharp", { currentItemRoundness: "sharp", currentItemArrowType: "sharp" }],
   [
     "styled",
@@ -441,7 +443,7 @@ const APP_STATES = [
       currentItemOpacity: 60,
       currentItemStartArrowhead: "bar",
       currentItemEndArrowhead: "triangle",
-      currentItemStrokeVariability: "uniform",
+      currentItemStrokeVariability: "variable",
     },
   ],
   ["elbow", { currentItemArrowType: "elbow" }],

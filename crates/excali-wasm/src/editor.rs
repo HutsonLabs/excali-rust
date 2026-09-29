@@ -38,7 +38,7 @@ use std::collections::HashMap;
 
 use excali_core::app_state::{AppState, AppStateEnv};
 use excali_core::document::{load_scene_json, LoadSceneError, LoadedScene};
-use excali_core::element::{Element, ElementKind};
+use excali_core::element::{BindMode, BoundElement, BoundElementType, Element, ElementKind};
 use excali_core::library::{
     merge_library_items, parse_library_json, serialize_library_as_json, LibraryItem,
     LibraryItemStatus,
@@ -46,17 +46,29 @@ use excali_core::library::{
 use excali_core::library_url::{parse_library_tokens_from_url, validate_library_url};
 use excali_core::restore::{LegacyBinding, LegacyBindingRequest, RestoreEnv};
 use excali_editor::actions::{ActionEnv, ActionManager, ActionName, AppProps, KeyDownOutcome};
+use excali_editor::binding::{
+    bind_or_unbind_binding_element, BindingAppState, BindingOpts, LinearElementInitialState,
+};
 use excali_editor::collision::{hit_element, HitTestCache};
 use excali_editor::edit_actions::{select_all, ActionResult};
+use excali_editor::eraser::EraserTrail;
 use excali_editor::groups::select_groups_for_selected_elements;
 use excali_editor::keyboard::{
     get_selected_elements, on_key_down, on_key_up, pan_starts, KeyEffect, KeyOutcome,
     KeyboardEditor, KeyboardState, Keystroke, PanStart,
 };
+use excali_editor::linear_element_editor::create_point_at;
+use excali_editor::mutate::bump_version;
+use excali_editor::new_element::{
+    drag_new_element, get_locked_linear_cursor_align_size, new_element_for_tool, DragNewElement,
+    MINIMUM_ARROW_SIZE,
+};
 use excali_editor::restore_env::RoutingEnv;
+use excali_editor::scene::ElementUpdate;
 use excali_editor::scene::Scene;
 use excali_editor::selection::{get_elements_within_selection, BoxSelectionMode};
 use excali_editor::session::Session;
+use excali_editor::store::CaptureUpdateAction;
 use excali_editor::tools::{PointerType, ToolState};
 use excali_editor::transform::{get_grid_point, TransformModifiers, TransformSession};
 use excali_editor::transform_handles::EditorInterface;
@@ -65,10 +77,12 @@ use excali_editor::viewport::{
     Offsets, TranslateOptions, Viewport, ViewportState, ViewportUpdate, WheelContext, WheelEvent,
     WheelTarget, ZoomAction,
 };
+use excali_math::js;
 use excali_scene::bounds::{get_element_absolute_coords, ElementsMap};
 use excali_scene::canvas_export::{export_canvas_png, CanvasExportOptions, CanvasSizing};
 use excali_scene::display::{CanvasDocument, DisplayList};
 use excali_scene::export::{svg_document, SvgExportAppState, SvgExportOptions};
+use excali_scene::new_element_scene::is_invisibly_small_element;
 use excali_scene::render_element::get_link_handle_from_coords;
 use excali_scene::shape::Theme;
 use excali_scene::static_scene::{
@@ -261,6 +275,30 @@ enum Gesture {
     /// A press on a resize or rotation handle of the selection
     /// (`pointerDownState.resize`, `maybeHandleResize`).
     Transform(TransformSession),
+    /// A drawing tool's press: the element being drawn (`newElement`).
+    Create(CreateGesture),
+    /// The eraser's press: its trail and what it erases
+    /// (`eraserTrail`, `elementsPendingErasure`).
+    Erase {
+        trail: EraserTrail,
+        start: [f64; 2],
+        pending: Vec<String>,
+    },
+}
+
+/// The element a drawing tool's press created (`appState.newElement`) and
+/// the press (`pointerDownState`).
+#[derive(Clone, Debug)]
+struct CreateGesture {
+    id: String,
+    /// `activeTool.type`.
+    tool: String,
+    /// `pointerDownState.origin`.
+    origin: [f64; 2],
+    /// `pointerDownState.originInGrid`.
+    origin_in_grid: [f64; 2],
+    /// `pointerDownState.drag.hasOccurred` (linear elements).
+    dragged: bool,
 }
 
 /// The selection tool's press (`pointerDownState`).
@@ -885,7 +923,137 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         if input.button != 0 || !self.tools.is_interaction_enabled() {
             return;
         }
-        self.select_pointer_down(input);
+        let tool = self.tools.active_tool.tool.type_name().to_owned();
+        match tool.as_str() {
+            "selection" | "lasso" => self.select_pointer_down(input),
+            "eraser" => {
+                let origin = self.scene_point(input.client_x, input.client_y);
+                let mut trail = EraserTrail::default();
+                trail.start_path(origin[0], origin[1]);
+                self.gesture = Some(Gesture::Erase {
+                    trail,
+                    start: [input.client_x, input.client_y],
+                    pending: Vec::new(),
+                });
+            }
+            "rectangle" | "diamond" | "ellipse" | "arrow" | "line" | "freedraw" | "frame" => {
+                self.create_pointer_down(input, &tool)
+            }
+            _ => {}
+        }
+    }
+
+    /// `clearSelectionIfNotUsingSelection` (`App.tsx:9501-9510`).
+    fn clear_selection(&mut self) {
+        let mut patch = Map::new();
+        patch.insert("selectedElementIds".into(), json!({}));
+        patch.insert("selectedGroupIds".into(), json!({}));
+        patch.insert("editingGroupId".into(), Value::Null);
+        patch.insert("activeEmbeddable".into(), Value::Null);
+        let current = self.session.app_state().as_map();
+        patch.retain(|k, v| current.get(k) != Some(v));
+        if !patch.is_empty() {
+            self.session.set_state(patch);
+        }
+    }
+
+    /// The binding state of the app (`isBindingEnabled`, the grid, the
+    /// zoom), a new arrow's press at `origin`.
+    fn binding_app_state(&self, origin: [f64; 2], alt: bool) -> BindingAppState {
+        let app = self.session.app_state();
+        let flag = |k: &str, d: bool| app.get(k).and_then(Value::as_bool).unwrap_or(d);
+        BindingAppState {
+            zoom: app.zoom().unwrap_or(1.0),
+            is_binding_enabled: flag("isBindingEnabled", true),
+            is_midpoint_snapping_enabled: flag("isMidpointSnappingEnabled", true),
+            grid_mode_enabled: self.grid_size(false).is_some(),
+            grid_size: app.grid_size(),
+            bind_mode: BindMode::Orbit,
+            selected_linear_element: Some(LinearElementInitialState {
+                origin: Some([origin[0], origin[1]]),
+                arrow_start_is_inside: alt,
+                ..LinearElementInitialState::default()
+            }),
+            complex_bindings: false,
+        }
+    }
+
+    /// A drawing tool's press (`createGenericElementOnPointerDown`,
+    /// `handleLinearElementOnPointerDown`, `handleFreeDrawElementOnPointerDown`,
+    /// `createFrameElementOnPointerDown`): the element created at the press
+    /// (on the grid, but a freedraw) and inserted on top; a line or arrow
+    /// gets its two points and an arrow its start binding; the selection is
+    /// the new element unless the tool is locked (a freedraw is never
+    /// selected).
+    fn create_pointer_down(&mut self, input: PointerInput, tool: &str) {
+        let origin = self.scene_point(input.client_x, input.client_y);
+        self.clear_selection();
+        let grid = if tool == "freedraw" {
+            None
+        } else {
+            self.grid_size(input.ctrl_or_cmd)
+        };
+        let origin_in_grid = get_grid_point(origin[0], origin[1], grid);
+        let id = self.session.env.random_id();
+        let seed = self.session.env.random_integer();
+        let now = RestoreEnv::now(&mut self.session.env);
+        let Some(element) = new_element_for_tool(
+            tool,
+            self.session.app_state(),
+            origin_in_grid,
+            None,
+            &id,
+            seed,
+            now,
+        ) else {
+            return;
+        };
+        let linear = matches!(tool, "arrow" | "line");
+        // Ok: a new element at the end gets an index after the last
+        let _ = self.session.insert_elements_at_index(vec![element], None);
+        let mut scene = Scene::new(self.session.elements().to_vec());
+        if linear {
+            scene.mutate_element(
+                &id,
+                ElementUpdate {
+                    points: Some(vec![[0.0, 0.0], [0.0, 0.0]]),
+                    ..ElementUpdate::default()
+                },
+                &mut self.session.env,
+            );
+        }
+        if tool == "arrow" {
+            // the initial binding, so the strategy has the start's state
+            let binding_state = self.binding_app_state(origin, input.alt_key);
+            let _ = bind_or_unbind_binding_element(
+                &mut scene,
+                &mut self.session.env,
+                &id,
+                &[(0, [0.0, 0.0])],
+                [origin_in_grid[0], origin_in_grid[1]],
+                &binding_state,
+                &BindingOpts {
+                    new_arrow: true,
+                    alt_key: input.alt_key,
+                    initial_binding: true,
+                    angle_locked: input.shift_key,
+                    ..BindingOpts::default()
+                },
+            );
+        }
+        let mut app_state = self.session.app_state().clone();
+        if linear && !self.tools.is_tool_locked() {
+            app_state.insert("selectedElementIds", json!({ id.clone(): true }));
+        }
+        self.apply(scene, app_state);
+        self.gesture = Some(Gesture::Create(CreateGesture {
+            id,
+            tool: tool.to_owned(),
+            origin,
+            origin_in_grid,
+            dragged: false,
+        }));
+        self.report();
     }
 
     /// The selection tool's press: selects the topmost element hit
@@ -978,8 +1146,135 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             Some(Gesture::Select(g)) if g.box_origin.is_some() => self.box_select(input),
             Some(Gesture::Select(_)) => self.drag_selection(input),
             Some(Gesture::Transform(_)) => self.transform(input),
+            Some(Gesture::Create(_)) => self.create_pointer_move(input),
+            Some(Gesture::Erase { trail, pending, .. }) => {
+                let point = viewport_coords_to_scene_coords(
+                    input.client_x,
+                    input.client_y,
+                    &ViewportState::from_app_state(self.session.app_state()),
+                );
+                let zoom = self.session.app_state().zoom().unwrap_or(1.0);
+                let visible: Vec<&Element> = self
+                    .session
+                    .elements()
+                    .iter()
+                    .filter(|e| !e.base.is_deleted)
+                    .collect();
+                *pending = trail.add_point_to_path(point.0, point.1, input.alt_key, &visible, zoom);
+            }
             None => {}
         }
+    }
+
+    /// A move while drawing (`App.onPointerMove`, `:11262-11366`): a
+    /// freedraw takes the pointer as its next point; a line or arrow's last
+    /// point follows the pointer (on the grid, at 15 degree steps with
+    /// Shift); any other shape spans the press and the pointer
+    /// (`maybeDragNewGenericElement`, `dragNewElement`), square with Shift,
+    /// about the press with Alt.
+    fn create_pointer_move(&mut self, input: PointerInput) {
+        let pointer = self.scene_point(input.client_x, input.client_y);
+        let Some(Gesture::Create(gesture)) = self.gesture.as_mut() else {
+            return;
+        };
+        let Some(element) = self
+            .session
+            .elements()
+            .iter()
+            .find(|e| e.base.id == gesture.id && !e.base.is_deleted)
+            .cloned()
+        else {
+            return;
+        };
+        let mut scene = Scene::new(self.session.elements().to_vec());
+        let update = match (&element.kind, gesture.tool.as_str()) {
+            (ElementKind::Freedraw(f), _) => {
+                let point = [pointer[0] - element.base.x, pointer[1] - element.base.y];
+                if f.points.last() == Some(&point) {
+                    return;
+                }
+                let mut points = f.points.clone();
+                points.push(point);
+                ElementUpdate {
+                    points: Some(points),
+                    ..ElementUpdate::default()
+                }
+            }
+            (_, "arrow" | "line") => {
+                gesture.dragged = true;
+                let Some(points) = element.kind.points() else {
+                    return;
+                };
+                let grid = if input.ctrl_or_cmd {
+                    None
+                } else {
+                    self.props
+                        .grid_mode_enabled
+                        .or_else(|| self.session.app_state().grid_mode_enabled())
+                        .unwrap_or(false)
+                        .then(|| self.session.app_state().grid_size())
+                        .flatten()
+                };
+                let map = scene.elements_map();
+                let mut last = create_point_at(&element, &map, pointer[0], pointer[1], grid);
+                if input.shift_key {
+                    // getLockedLinearCursorAlignSize from the previous point
+                    let prev = points[points.len().saturating_sub(2)];
+                    let (w, h) = get_locked_linear_cursor_align_size(
+                        element.base.x + prev[0],
+                        element.base.y + prev[1],
+                        pointer[0],
+                        pointer[1],
+                    );
+                    last = [prev[0] + w, prev[1] + h];
+                }
+                let mut next = points.to_vec();
+                let n = next.len();
+                next[n - 1] = last;
+                ElementUpdate {
+                    points: Some(next),
+                    ..ElementUpdate::default()
+                }
+            }
+            _ => {
+                let grid = if input.ctrl_or_cmd {
+                    None
+                } else {
+                    self.props
+                        .grid_mode_enabled
+                        .or_else(|| self.session.app_state().grid_mode_enabled())
+                        .unwrap_or(false)
+                        .then(|| self.session.app_state().grid_size())
+                        .flatten()
+                };
+                let [gx, gy] = get_grid_point(pointer[0], pointer[1], grid);
+                let [ox, oy] = gesture.origin_in_grid;
+                let Some([x, y, width, height]) = drag_new_element(&DragNewElement {
+                    element: &element,
+                    element_type: &gesture.tool,
+                    origin: [ox, oy],
+                    pointer: [gx, gy],
+                    width: (gx - ox).abs(),
+                    height: (gy - oy).abs(),
+                    maintain_aspect_ratio: input.shift_key,
+                    resize_from_center: input.alt_key,
+                    width_aspect_ratio: None,
+                }) else {
+                    return;
+                };
+                ElementUpdate {
+                    x: Some(x),
+                    y: Some(y),
+                    width: Some(width),
+                    height: Some(height),
+                    ..ElementUpdate::default()
+                }
+            }
+        };
+        scene.mutate_element(&element.base.id, update, &mut self.session.env);
+        let app_state = self.session.app_state().clone();
+        self.apply(scene, app_state);
+        self.report();
     }
 
     /// `getEffectiveGridSize()`: the grid size in grid mode, none with
@@ -1149,7 +1444,252 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 self.session.commit();
                 self.report();
             }
+            Some(Gesture::Create(gesture)) => self.create_pointer_up(input, gesture),
+            Some(Gesture::Erase { start, pending, .. }) => {
+                self.erase_pointer_up(input, start, pending);
+            }
         }
+    }
+
+    /// The release of a drawing tool's press
+    /// (`onPointerUpFromPointerDownHandler`, `:11772-12060`, `:12531-12620`):
+    /// a freedraw takes the pointer as its last point (a dot nudged so it
+    /// is not invisibly small); a line or arrow dragged far enough is
+    /// finalized (`actionFinalize`: the end bound where it was released);
+    /// an element too small to see is removed without a trace; the element
+    /// is selected and the tool reverts to the selection tool unless it is
+    /// locked (a freedraw keeps its tool and is not selected). One undoable
+    /// step.
+    fn create_pointer_up(&mut self, input: PointerInput, gesture: CreateGesture) {
+        let pointer = self.scene_point(input.client_x, input.client_y);
+        let Some(element) = self
+            .session
+            .elements()
+            .iter()
+            .find(|e| e.base.id == gesture.id && !e.base.is_deleted)
+            .cloned()
+        else {
+            return;
+        };
+        let mut scene = Scene::new(self.session.elements().to_vec());
+        let linear = matches!(gesture.tool.as_str(), "arrow" | "line");
+        if let ElementKind::Freedraw(f) = &element.kind {
+            let mut dx = pointer[0] - element.base.x;
+            let mut dy = pointer[1] - element.base.y;
+            // dots are not infinitely small
+            if f.points.first() == Some(&[dx, dy]) {
+                dx += 0.0001;
+                dy += 0.0001;
+            }
+            let mut points = f.points.clone();
+            points.push([dx, dy]);
+            scene.mutate_element(
+                &element.base.id,
+                ElementUpdate {
+                    points: Some(points),
+                    ..ElementUpdate::default()
+                },
+                &mut self.session.env,
+            );
+        } else if linear {
+            let zoom = self.session.app_state().zoom().unwrap_or(1.0);
+            let distance = js::hypot(
+                pointer[0] - gesture.origin[0],
+                pointer[1] - gesture.origin[1],
+            ) * zoom;
+            if !gesture.dragged || distance < MINIMUM_ARROW_SIZE {
+                // upstream starts drawing point by point here; the element
+                // does not, and drops the element
+                return self.discard_new_element(&element.base.id);
+            }
+            if gesture.tool == "arrow" {
+                let map = scene.elements_map();
+                let grid = self.grid_size(input.ctrl_or_cmd);
+                let last = element
+                    .kind
+                    .points()
+                    .map_or(0, <[_]>::len)
+                    .saturating_sub(1);
+                let dragged = if input.shift_key {
+                    element.kind.points().and_then(|p| p.last().copied())
+                } else {
+                    Some(create_point_at(
+                        &element, &map, pointer[0], pointer[1], grid,
+                    ))
+                };
+                if let Some(point) = dragged {
+                    let binding_state = self.binding_app_state(gesture.origin, input.alt_key);
+                    let opts = BindingOpts {
+                        new_arrow: true,
+                        alt_key: input.alt_key,
+                        angle_locked: input.shift_key,
+                        grid_size: self.grid_size(false),
+                        ..BindingOpts::default()
+                    };
+                    let _ = bind_or_unbind_binding_element(
+                        &mut scene,
+                        &mut self.session.env,
+                        &element.base.id,
+                        &[(last, [point[0], point[1]])],
+                        [pointer[0], pointer[1]],
+                        &binding_state,
+                        &opts,
+                    );
+                }
+            }
+        }
+        let drawn = scene.get(&element.base.id).cloned().unwrap_or(element);
+        if is_invisibly_small_element(&drawn) {
+            return self.discard_new_element(&drawn.base.id);
+        }
+        let mut app_state = self.session.app_state().clone();
+        let locked = self.tools.is_tool_locked();
+        if gesture.tool != "freedraw" {
+            if !locked {
+                let mut ids = app_state
+                    .get("selectedElementIds")
+                    .and_then(Value::as_object)
+                    .cloned()
+                    .unwrap_or_default();
+                ids.insert(drawn.base.id.clone(), Value::Bool(true));
+                app_state.insert("selectedElementIds", Value::Object(ids));
+                self.tools.active_tool = self.tools.tool_after_finalize();
+            } else if linear {
+                app_state.insert("selectedElementIds", json!({}));
+            }
+        }
+        if linear && !locked {
+            app_state.insert(
+                "selectedLinearElement",
+                json!({ "elementId": drawn.base.id, "isEditing": false }),
+            );
+        }
+        self.apply(scene, app_state);
+        self.session.store.schedule_capture();
+        self.session.commit();
+        self.report();
+    }
+
+    /// A new element too small to see removed, the store's snapshot
+    /// updated so nothing records it (`captureUpdate: NEVER`).
+    fn discard_new_element(&mut self, id: &str) {
+        let elements: Vec<Element> = self
+            .session
+            .elements()
+            .iter()
+            .filter(|e| e.base.id != id)
+            .cloned()
+            .collect();
+        let mut patch = Map::new();
+        patch.insert("selectedElementIds".into(), json!({}));
+        let _ = self.session.update_scene(
+            Some(elements),
+            Some(patch),
+            Some(CaptureUpdateAction::Never),
+        );
+        self.report();
+    }
+
+    /// The eraser's release (`App.tsx:12266-12295`, `eraseElements`): a
+    /// click erases what is under the pointer; the elements taken are
+    /// deleted with their labels and frame children, arrows bound to them
+    /// unbound; one undoable step.
+    fn erase_pointer_up(&mut self, input: PointerInput, start: [f64; 2], pending: Vec<String>) {
+        let mut pending: Vec<String> = pending;
+        if start == [input.client_x, input.client_y] {
+            let point = self.scene_point(input.client_x, input.client_y);
+            if let Some(id) = self.element_at(point) {
+                pending.push(id);
+            }
+        }
+        if pending.is_empty() {
+            return;
+        }
+        let mut scene = Scene::new(self.session.elements().to_vec());
+        for id in &pending {
+            let Some(element) = scene.get(id).cloned() else {
+                continue;
+            };
+            if let Some(linear) = element.kind.linear() {
+                for binding in [&linear.start_binding, &linear.end_binding]
+                    .into_iter()
+                    .flatten()
+                {
+                    if let Some(bindable) = scene.get(&binding.element_id).cloned() {
+                        let bound: Vec<BoundElement> = bindable
+                            .base
+                            .bound_elements
+                            .clone()
+                            .unwrap_or_default()
+                            .into_iter()
+                            .filter(|b| b.id != element.base.id)
+                            .collect();
+                        scene.mutate_element(
+                            &bindable.base.id,
+                            ElementUpdate {
+                                bound_elements: Some(Some(bound)),
+                                ..ElementUpdate::default()
+                            },
+                            &mut self.session.env,
+                        );
+                    }
+                }
+            } else {
+                for bound in element.base.bound_elements.clone().unwrap_or_default() {
+                    if bound.kind != BoundElementType::Arrow {
+                        continue;
+                    }
+                    let Some(arrow) = scene.get(&bound.id).and_then(|a| a.kind.linear().cloned())
+                    else {
+                        continue;
+                    };
+                    let mut update = ElementUpdate::default();
+                    if arrow
+                        .start_binding
+                        .as_ref()
+                        .is_some_and(|b| b.element_id == *id)
+                    {
+                        update.start_binding = Some(None);
+                    }
+                    if arrow
+                        .end_binding
+                        .as_ref()
+                        .is_some_and(|b| b.element_id == *id)
+                    {
+                        update.end_binding = Some(None);
+                    }
+                    if !update.is_empty() {
+                        scene.mutate_element(&bound.id, update, &mut self.session.env);
+                    }
+                }
+            }
+        }
+        let mut elements = scene.elements().to_vec();
+        let mut changed = false;
+        for e in &mut elements {
+            let container = match &e.kind {
+                ElementKind::Text(t) => t.container_id.clone(),
+                _ => None,
+            };
+            if pending.contains(&e.base.id)
+                || e.base
+                    .frame_id
+                    .as_ref()
+                    .is_some_and(|f| pending.contains(f))
+                || container.is_some_and(|c| pending.contains(&c))
+            {
+                // newElementWith(ele, { isDeleted: true })
+                e.base.is_deleted = true;
+                bump_version(e, None, &mut self.session.env);
+                changed = true;
+            }
+        }
+        if changed {
+            let _ = self.session.replace_all_elements(elements);
+            self.session.store.schedule_capture();
+            self.session.commit();
+        }
+        self.report();
     }
 
     fn select_pointer_up(&mut self, input: PointerInput, gesture: SelectGesture) {

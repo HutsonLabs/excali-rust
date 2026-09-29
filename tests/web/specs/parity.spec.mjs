@@ -444,7 +444,8 @@ const ROWS = {
   "tool-ellipse": async ({ page }) => {
     await mount(page);
     const e = await draw(page, "o", [100, 100], [250, 200]);
-    expect(e).toMatchObject({ type: "ellipse", x: 100, y: 100, width: 150, height: 100, roundness: null });
+    // getCurrentItemRoundness("ellipse") outside upstream's test mode
+    expect(e).toMatchObject({ type: "ellipse", x: 100, y: 100, width: 150, height: 100, roundness: { type: 2 } });
   },
 
   "tool-arrow": async ({ page }) => {

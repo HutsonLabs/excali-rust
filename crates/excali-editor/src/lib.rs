@@ -37,6 +37,9 @@
 //! - [`history`]: the undo and redo stacks (`history.ts`).
 //! - [`edit_actions`]: the `perform`s of the editing actions (select
 //!   all, delete, duplicate, group, z-order, paste).
+//! - [`new_element`]: the element a drawing tool creates and its size as
+//!   the pointer drags (`newElement.ts`, `dragNewElement`); [`eraser`]:
+//!   what an eraser path erases (`EraserTrail`).
 //! - [`selection`]: box selection (`getElementsWithinSelection`,
 //!   `elementsOverlappingBBox`); [`groups`]: selecting whole groups
 //!   (`groups.ts`).
@@ -84,6 +87,7 @@ pub mod delta;
 pub mod distance;
 pub mod edit_actions;
 pub mod elbow_arrow;
+pub mod eraser;
 pub mod geometry;
 pub mod groups;
 pub mod history;
@@ -91,6 +95,7 @@ mod js_value;
 pub mod keyboard;
 pub mod linear_element_editor;
 pub mod mutate;
+pub mod new_element;
 pub mod resize_elements;
 pub mod resize_test;
 pub mod restore_env;

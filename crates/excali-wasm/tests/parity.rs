@@ -353,7 +353,7 @@ fn tool_rectangle() {
         assert_eq!(j[k], v, "{k}");
     }
     assert_eq!(state(&ed, "activeTool"), "selection");
-    assert_eq!(selected(&ed), [e.base.id.clone()]);
+    assert_eq!(selected(&ed), std::slice::from_ref(&e.base.id));
     // one undo step removes it
     key(&mut ed, Keystroke::new("z", "KeyZ").ctrl());
     assert!(live(&ed).is_empty());
@@ -366,7 +366,8 @@ fn tool_diamond_and_ellipse() {
     assert_eq!(json_of(&d)["roundness"], json!({ "type": 2 }));
     assert_eq!((d.base.width, d.base.height), (150.0, 100.0));
     let o = draw(&mut ed, "o", [300.0, 100.0], [450.0, 200.0]);
-    assert_eq!(json_of(&o)["roundness"], Value::Null);
+    // getCurrentItemRoundness makes no exception for the ellipse
+    assert_eq!(json_of(&o)["roundness"], json!({ "type": 2 }));
     assert_eq!((o.base.x, o.base.y, o.base.width), (300.0, 100.0, 150.0));
 }
 
@@ -375,7 +376,10 @@ fn tool_arrow_and_line() {
     let mut ed = editor_with(vec![]);
     let a = json_of(&draw(&mut ed, "a", [100.0, 100.0], [250.0, 200.0]));
     assert_eq!(a["type"], "arrow");
-    assert_eq!((a["x"].clone(), a["y"].clone()), (json!(100.0), json!(100.0)));
+    assert_eq!(
+        (a["x"].clone(), a["y"].clone()),
+        (json!(100.0), json!(100.0))
+    );
     assert_eq!(a["points"], json!([[0.0, 0.0], [150.0, 100.0]]));
     assert_eq!(a["startArrowhead"], Value::Null);
     assert_eq!(a["endArrowhead"], "arrow");
@@ -390,7 +394,10 @@ fn tool_freedraw() {
     let mut ed = editor_with(vec![]);
     let f = json_of(&draw(&mut ed, "p", [100.0, 100.0], [250.0, 200.0]));
     assert_eq!(f["type"], "freedraw");
-    assert_eq!((f["x"].clone(), f["y"].clone()), (json!(100.0), json!(100.0)));
+    assert_eq!(
+        (f["x"].clone(), f["y"].clone()),
+        (json!(100.0), json!(100.0))
+    );
     let points = f["points"].as_array().unwrap();
     assert!(points.len() > 2);
     assert_eq!(points.last().unwrap(), &json!([150.0, 100.0]));

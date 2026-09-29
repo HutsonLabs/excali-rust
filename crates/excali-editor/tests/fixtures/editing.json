@@ -2178,6 +2178,247 @@
       }
     },
     {
+      "id": "new-rectangle-round",
+      "kind": "new",
+      "tool": "rectangle",
+      "appState": {"currentItemRoundness":"round"},
+      "origin": [100,100],
+      "element": {
+        "type": "rectangle",
+        "x": 100,
+        "y": 100,
+        "width": 0,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": null,
+        "roundness": {"type":3},
+        "version": 1,
+        "isDeleted": false,
+        "boundElements": null,
+        "created": 1,
+        "link": null,
+        "locked": false
+      }
+    },
+    {
+      "id": "new-diamond-round",
+      "kind": "new",
+      "tool": "diamond",
+      "appState": {"currentItemRoundness":"round"},
+      "origin": [100,100],
+      "element": {
+        "type": "diamond",
+        "x": 100,
+        "y": 100,
+        "width": 0,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": null,
+        "roundness": {"type":2},
+        "version": 1,
+        "isDeleted": false,
+        "boundElements": null,
+        "created": 1,
+        "link": null,
+        "locked": false
+      }
+    },
+    {
+      "id": "new-ellipse-round",
+      "kind": "new",
+      "tool": "ellipse",
+      "appState": {"currentItemRoundness":"round"},
+      "origin": [100,100],
+      "element": {
+        "type": "ellipse",
+        "x": 100,
+        "y": 100,
+        "width": 0,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": null,
+        "roundness": {"type":2},
+        "version": 1,
+        "isDeleted": false,
+        "boundElements": null,
+        "created": 1,
+        "link": null,
+        "locked": false
+      }
+    },
+    {
+      "id": "new-arrow-round",
+      "kind": "new",
+      "tool": "arrow",
+      "appState": {"currentItemRoundness":"round"},
+      "origin": [100,100],
+      "element": {
+        "type": "arrow",
+        "x": 100,
+        "y": 100,
+        "width": 0,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": null,
+        "roundness": {"type":2},
+        "version": 1,
+        "isDeleted": false,
+        "boundElements": null,
+        "created": 1,
+        "link": null,
+        "locked": false,
+        "points": [],
+        "startBinding": null,
+        "endBinding": null,
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "elbowed": false
+      }
+    },
+    {
+      "id": "new-line-round",
+      "kind": "new",
+      "tool": "line",
+      "appState": {"currentItemRoundness":"round"},
+      "origin": [100,100],
+      "element": {
+        "type": "line",
+        "x": 100,
+        "y": 100,
+        "width": 0,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": null,
+        "roundness": {"type":2},
+        "version": 1,
+        "isDeleted": false,
+        "boundElements": null,
+        "created": 1,
+        "link": null,
+        "locked": false,
+        "points": [],
+        "startBinding": null,
+        "endBinding": null,
+        "startArrowhead": null,
+        "endArrowhead": null,
+        "polygon": false
+      }
+    },
+    {
+      "id": "new-freedraw-round",
+      "kind": "new",
+      "tool": "freedraw",
+      "appState": {"currentItemRoundness":"round"},
+      "origin": [100,100],
+      "element": {
+        "type": "freedraw",
+        "x": 100,
+        "y": 100,
+        "width": 0,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 1,
+        "strokeStyle": "solid",
+        "roughness": 1,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": null,
+        "roundness": null,
+        "version": 1,
+        "isDeleted": false,
+        "boundElements": null,
+        "created": 1,
+        "link": null,
+        "locked": false,
+        "points": [[0,0]],
+        "pressures": [],
+        "simulatePressure": true,
+        "strokeOptions": {"variability":"constant","streamline":0.5}
+      }
+    },
+    {
+      "id": "new-frame-round",
+      "kind": "new",
+      "tool": "frame",
+      "appState": {"currentItemRoundness":"round"},
+      "origin": [100,100],
+      "element": {
+        "type": "frame",
+        "x": 100,
+        "y": 100,
+        "width": 0,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#bbb",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": null,
+        "roundness": null,
+        "version": 1,
+        "isDeleted": false,
+        "boundElements": null,
+        "created": 1,
+        "link": null,
+        "locked": false,
+        "name": null
+      }
+    },
+    {
       "id": "new-rectangle-sharp",
       "kind": "new",
       "tool": "rectangle",
@@ -2432,7 +2673,7 @@
         "currentItemOpacity": 60,
         "currentItemStartArrowhead": "bar",
         "currentItemEndArrowhead": "triangle",
-        "currentItemStrokeVariability": "uniform"
+        "currentItemStrokeVariability": "variable"
       },
       "origin": [100,100],
       "element": {
@@ -2475,7 +2716,7 @@
         "currentItemOpacity": 60,
         "currentItemStartArrowhead": "bar",
         "currentItemEndArrowhead": "triangle",
-        "currentItemStrokeVariability": "uniform"
+        "currentItemStrokeVariability": "variable"
       },
       "origin": [100,100],
       "element": {
@@ -2518,7 +2759,7 @@
         "currentItemOpacity": 60,
         "currentItemStartArrowhead": "bar",
         "currentItemEndArrowhead": "triangle",
-        "currentItemStrokeVariability": "uniform"
+        "currentItemStrokeVariability": "variable"
       },
       "origin": [100,100],
       "element": {
@@ -2561,7 +2802,7 @@
         "currentItemOpacity": 60,
         "currentItemStartArrowhead": "bar",
         "currentItemEndArrowhead": "triangle",
-        "currentItemStrokeVariability": "uniform"
+        "currentItemStrokeVariability": "variable"
       },
       "origin": [100,100],
       "element": {
@@ -2610,7 +2851,7 @@
         "currentItemOpacity": 60,
         "currentItemStartArrowhead": "bar",
         "currentItemEndArrowhead": "triangle",
-        "currentItemStrokeVariability": "uniform"
+        "currentItemStrokeVariability": "variable"
       },
       "origin": [100,100],
       "element": {
@@ -2659,7 +2900,7 @@
         "currentItemOpacity": 60,
         "currentItemStartArrowhead": "bar",
         "currentItemEndArrowhead": "triangle",
-        "currentItemStrokeVariability": "uniform"
+        "currentItemStrokeVariability": "variable"
       },
       "origin": [100,100],
       "element": {
@@ -2689,7 +2930,7 @@
         "points": [[0,0]],
         "pressures": [],
         "simulatePressure": true,
-        "strokeOptions": {"variability":"uniform","streamline":0.5}
+        "strokeOptions": {"variability":"variable","streamline":0.5}
       }
     },
     {
@@ -2706,7 +2947,7 @@
         "currentItemOpacity": 60,
         "currentItemStartArrowhead": "bar",
         "currentItemEndArrowhead": "triangle",
-        "currentItemStrokeVariability": "uniform"
+        "currentItemStrokeVariability": "variable"
       },
       "origin": [100,100],
       "element": {

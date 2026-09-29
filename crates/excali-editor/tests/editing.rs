@@ -16,7 +16,7 @@
 //! - `eraser`: `EraserTrail.addPointToPath` (`eraser/index.ts`), the ids
 //!   to erase after every point.
 
-use excali_core::app_state::AppState;
+use excali_core::app_state::{get_default_app_state, AppStateEnv};
 use excali_core::element::Element;
 use excali_editor::eraser::EraserTrail;
 use excali_editor::groups::select_groups_for_selected_elements;
@@ -25,7 +25,7 @@ use excali_editor::new_element::{
 };
 use excali_editor::selection::{get_elements_within_selection, BoxSelectionMode};
 use excali_scene::bounds::ElementsMap;
-use serde_json::{Map, Value};
+use serde_json::{json, Map, Value};
 
 const FIXTURE: &str = include_str!("fixtures/editing.json");
 
@@ -138,6 +138,16 @@ fn group_selection_matches_upstream() {
     }
 }
 
+/// `v` with every number as a double (JSON has one number type).
+fn numbers(v: &Value) -> Value {
+    match v {
+        Value::Number(n) => json!(n.as_f64().unwrap()),
+        Value::Array(a) => Value::Array(a.iter().map(numbers).collect()),
+        Value::Object(o) => Value::Object(o.iter().map(|(k, v)| (k.clone(), numbers(v))).collect()),
+        other => other.clone(),
+    }
+}
+
 fn num(v: &Value) -> f64 {
     v.as_f64().expect("a number")
 }
@@ -149,19 +159,35 @@ fn point(v: &Value) -> [f64; 2] {
 #[test]
 fn new_elements_match_upstream() {
     for case in cases("new") {
-        let mut app_state = AppState::default();
+        // upstream's test mode: currentItemRoundness "sharp"
+        let mut app_state = get_default_app_state(&AppStateEnv {
+            test_env: true,
+            ..AppStateEnv::default()
+        });
         for (k, v) in case["appState"].as_object().unwrap() {
             app_state.insert(k, v.clone());
         }
         let tool = case["tool"].as_str().unwrap();
-        let element =
-            new_element_for_tool(tool, &app_state, point(&case["origin"]), None, "x", 7.0, 1.0)
-                .unwrap_or_else(|| panic!("{} made nothing", case["id"]));
+        let element = new_element_for_tool(
+            tool,
+            &app_state,
+            point(&case["origin"]),
+            None,
+            "x",
+            7.0,
+            1.0,
+        )
+        .unwrap_or_else(|| panic!("{} made nothing", case["id"]));
         let mut got = element.to_map();
         for key in ["id", "seed", "versionNonce", "updated"] {
             got.shift_remove(key);
         }
-        assert_eq!(Value::Object(got), case["element"], "{}", case["id"]);
+        assert_eq!(
+            numbers(&Value::Object(got)),
+            numbers(&case["element"]),
+            "{}",
+            case["id"]
+        );
         assert_eq!(element.base.seed, 7.0);
     }
 }
@@ -169,8 +195,16 @@ fn new_elements_match_upstream() {
 #[test]
 fn drag_new_element_matches_upstream() {
     for case in cases("drag") {
-        let element = Element::from_map(case["element"].as_object().unwrap().clone())
-            .expect("an element");
+        let mut map = case["element"].as_object().unwrap().clone();
+        for (k, v) in [
+            ("id", json!("x")),
+            ("seed", json!(1)),
+            ("versionNonce", json!(0)),
+            ("updated", json!(1)),
+        ] {
+            map.insert(k.into(), v);
+        }
+        let element = Element::from_map(map).expect("an element");
         let tool = element.kind.element_type().as_str().to_owned();
         let origin = point(&case["origin"]);
         for drag in case["drags"].as_array().unwrap() {
@@ -187,7 +221,12 @@ fn drag_new_element_matches_upstream() {
                 width_aspect_ratio: None,
             });
             let r = &drag["result"];
-            let want = [num(&r["x"]), num(&r["y"]), num(&r["width"]), num(&r["height"])];
+            let want = [
+                num(&r["x"]),
+                num(&r["y"]),
+                num(&r["width"]),
+                num(&r["height"]),
+            ];
             let got = got.unwrap_or([
                 element.base.x,
                 element.base.y,
@@ -208,7 +247,10 @@ fn perfect_element_size_matches_upstream() {
                 num(&item["width"]),
                 num(&item["height"]),
             );
-            let want = (num(&item["result"]["width"]), num(&item["result"]["height"]));
+            let want = (
+                num(&item["result"]["width"]),
+                num(&item["result"]["height"]),
+            );
             assert_eq!(got, want, "{item}");
         }
     }
@@ -220,7 +262,12 @@ fn eraser_trail_matches_upstream() {
         let scene = elements(&case);
         let visible: Vec<&Element> = scene.iter().filter(|e| !e.base.is_deleted).collect();
         for path in case["paths"].as_array().unwrap() {
-            let points: Vec<[f64; 2]> = path["points"].as_array().unwrap().iter().map(point).collect();
+            let points: Vec<[f64; 2]> = path["points"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(point)
+                .collect();
             let restore: Vec<bool> = path["restore"]
                 .as_array()
                 .unwrap()
