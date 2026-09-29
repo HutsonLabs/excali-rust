@@ -996,7 +996,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"stroke","color":"#1e1e1e","section":null,"custom":true,"activeShade":4,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "stroke",
+      "color": "#1e1e1e",
+      "section": null,
+      "custom": true,
+      "activeShade": 4,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {"picker":"stroke","color":"#1e1e1e","section":null,"custom":true,"activeShade":4,"key":"!","code":"Digit1","mods":["shift"],"handled":false},
     {"picker":"stroke","color":"#1e1e1e","section":null,"custom":true,"activeShade":4,"key":"#","code":"Digit3","mods":["shift"],"handled":false},
     {"picker":"stroke","color":"#1e1e1e","section":null,"custom":true,"activeShade":4,"key":"%","code":"Digit5","mods":["shift"],"handled":false},
@@ -1069,7 +1080,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "stroke",
@@ -1083,7 +1094,17 @@
       "changes": ["#123456"]
     },
     {"picker":"stroke","color":"#1e1e1e","section":"custom","custom":true,"activeShade":4,"key":"ArrowUp","code":"ArrowUp","handled":true,"changes":[null]},
-    {"picker":"stroke","color":"#1e1e1e","section":"custom","custom":true,"activeShade":4,"key":"ArrowDown","code":"ArrowDown","handled":true,"changes":[null]},
+    {
+      "picker": "stroke",
+      "color": "#1e1e1e",
+      "section": "custom",
+      "custom": true,
+      "activeShade": 4,
+      "key": "ArrowDown",
+      "code": "ArrowDown",
+      "handled": true,
+      "changes": ["#040506"]
+    },
     {
       "picker": "stroke",
       "color": "#1e1e1e",
@@ -1716,7 +1737,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"stroke","color":"transparent","section":null,"custom":true,"activeShade":4,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "stroke",
+      "color": "transparent",
+      "section": null,
+      "custom": true,
+      "activeShade": 4,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {"picker":"stroke","color":"transparent","section":null,"custom":true,"activeShade":4,"key":"!","code":"Digit1","mods":["shift"],"handled":false},
     {"picker":"stroke","color":"transparent","section":null,"custom":true,"activeShade":4,"key":"#","code":"Digit3","mods":["shift"],"handled":false},
     {"picker":"stroke","color":"transparent","section":null,"custom":true,"activeShade":4,"key":"%","code":"Digit5","mods":["shift"],"handled":false},
@@ -1789,7 +1821,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "stroke",
@@ -1812,7 +1844,7 @@
       "key": "ArrowDown",
       "code": "ArrowDown",
       "handled": true,
-      "changes": [null]
+      "changes": ["#040506"]
     },
     {
       "picker": "stroke",
@@ -2502,7 +2534,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"stroke","color":"#e03131","section":null,"custom":true,"activeShade":4,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "stroke",
+      "color": "#e03131",
+      "section": null,
+      "custom": true,
+      "activeShade": 4,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {
       "picker": "stroke",
       "color": "#e03131",
@@ -2611,7 +2654,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "stroke",
@@ -2625,7 +2668,17 @@
       "changes": ["#123456"]
     },
     {"picker":"stroke","color":"#e03131","section":"custom","custom":true,"activeShade":4,"key":"ArrowUp","code":"ArrowUp","handled":true,"changes":[null]},
-    {"picker":"stroke","color":"#e03131","section":"custom","custom":true,"activeShade":4,"key":"ArrowDown","code":"ArrowDown","handled":true,"changes":[null]},
+    {
+      "picker": "stroke",
+      "color": "#e03131",
+      "section": "custom",
+      "custom": true,
+      "activeShade": 4,
+      "key": "ArrowDown",
+      "code": "ArrowDown",
+      "handled": true,
+      "changes": ["#040506"]
+    },
     {
       "picker": "stroke",
       "color": "#e03131",
@@ -3313,7 +3366,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"stroke","color":"#ffc9c9","section":null,"custom":true,"activeShade":1,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "stroke",
+      "color": "#ffc9c9",
+      "section": null,
+      "custom": true,
+      "activeShade": 1,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {
       "picker": "stroke",
       "color": "#ffc9c9",
@@ -3422,7 +3486,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "stroke",
@@ -3436,7 +3500,17 @@
       "changes": ["#123456"]
     },
     {"picker":"stroke","color":"#ffc9c9","section":"custom","custom":true,"activeShade":1,"key":"ArrowUp","code":"ArrowUp","handled":true,"changes":[null]},
-    {"picker":"stroke","color":"#ffc9c9","section":"custom","custom":true,"activeShade":1,"key":"ArrowDown","code":"ArrowDown","handled":true,"changes":[null]},
+    {
+      "picker": "stroke",
+      "color": "#ffc9c9",
+      "section": "custom",
+      "custom": true,
+      "activeShade": 1,
+      "key": "ArrowDown",
+      "code": "ArrowDown",
+      "handled": true,
+      "changes": ["#040506"]
+    },
     {
       "picker": "stroke",
       "color": "#ffc9c9",
@@ -4124,7 +4198,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"stroke","color":"#846358","section":null,"custom":true,"activeShade":4,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "stroke",
+      "color": "#846358",
+      "section": null,
+      "custom": true,
+      "activeShade": 4,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {
       "picker": "stroke",
       "color": "#846358",
@@ -4233,7 +4318,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "stroke",
@@ -4247,7 +4332,17 @@
       "changes": ["#123456"]
     },
     {"picker":"stroke","color":"#846358","section":"custom","custom":true,"activeShade":4,"key":"ArrowUp","code":"ArrowUp","handled":true,"changes":[null]},
-    {"picker":"stroke","color":"#846358","section":"custom","custom":true,"activeShade":4,"key":"ArrowDown","code":"ArrowDown","handled":true,"changes":[null]},
+    {
+      "picker": "stroke",
+      "color": "#846358",
+      "section": "custom",
+      "custom": true,
+      "activeShade": 4,
+      "key": "ArrowDown",
+      "code": "ArrowDown",
+      "handled": true,
+      "changes": ["#040506"]
+    },
     {
       "picker": "stroke",
       "color": "#846358",
@@ -4824,7 +4919,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"stroke","color":"#123456","section":null,"custom":true,"activeShade":4,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "stroke",
+      "color": "#123456",
+      "section": null,
+      "custom": true,
+      "activeShade": 4,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {"picker":"stroke","color":"#123456","section":null,"custom":true,"activeShade":4,"key":"!","code":"Digit1","mods":["shift"],"handled":false},
     {"picker":"stroke","color":"#123456","section":null,"custom":true,"activeShade":4,"key":"#","code":"Digit3","mods":["shift"],"handled":false},
     {"picker":"stroke","color":"#123456","section":null,"custom":true,"activeShade":4,"key":"%","code":"Digit5","mods":["shift"],"handled":false},
@@ -4897,7 +5003,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "stroke",
@@ -5421,7 +5527,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"stroke","color":null,"section":null,"custom":true,"activeShade":4,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "stroke",
+      "color": null,
+      "section": null,
+      "custom": true,
+      "activeShade": 4,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {"picker":"stroke","color":null,"section":null,"custom":true,"activeShade":4,"key":"!","code":"Digit1","mods":["shift"],"handled":false},
     {"picker":"stroke","color":null,"section":null,"custom":true,"activeShade":4,"key":"#","code":"Digit3","mods":["shift"],"handled":false},
     {"picker":"stroke","color":null,"section":null,"custom":true,"activeShade":4,"key":"%","code":"Digit5","mods":["shift"],"handled":false},
@@ -5474,7 +5591,7 @@
       "sections": ["hex"],
       "prevented": true
     },
-    {"picker":"stroke","color":null,"section":"custom","custom":true,"activeShade":4,"key":"ArrowLeft","code":"ArrowLeft","handled":true,"changes":["#fedcba"]},
+    {"picker":"stroke","color":null,"section":"custom","custom":true,"activeShade":4,"key":"ArrowLeft","code":"ArrowLeft","handled":true,"changes":["#040506"]},
     {
       "picker": "stroke",
       "color": null,
@@ -6082,7 +6199,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"background","color":"#1e1e1e","section":null,"custom":true,"activeShade":1,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "background",
+      "color": "#1e1e1e",
+      "section": null,
+      "custom": true,
+      "activeShade": 1,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {"picker":"background","color":"#1e1e1e","section":null,"custom":true,"activeShade":1,"key":"!","code":"Digit1","mods":["shift"],"handled":false},
     {"picker":"background","color":"#1e1e1e","section":null,"custom":true,"activeShade":1,"key":"#","code":"Digit3","mods":["shift"],"handled":false},
     {"picker":"background","color":"#1e1e1e","section":null,"custom":true,"activeShade":1,"key":"%","code":"Digit5","mods":["shift"],"handled":false},
@@ -6155,7 +6283,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "background",
@@ -6178,7 +6306,7 @@
       "key": "ArrowDown",
       "code": "ArrowDown",
       "handled": true,
-      "changes": [null]
+      "changes": ["#040506"]
     },
     {
       "picker": "background",
@@ -6862,7 +6990,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"background","color":"transparent","section":null,"custom":true,"activeShade":1,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "background",
+      "color": "transparent",
+      "section": null,
+      "custom": true,
+      "activeShade": 1,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {"picker":"background","color":"transparent","section":null,"custom":true,"activeShade":1,"key":"!","code":"Digit1","mods":["shift"],"handled":false},
     {"picker":"background","color":"transparent","section":null,"custom":true,"activeShade":1,"key":"#","code":"Digit3","mods":["shift"],"handled":false},
     {"picker":"background","color":"transparent","section":null,"custom":true,"activeShade":1,"key":"%","code":"Digit5","mods":["shift"],"handled":false},
@@ -6935,7 +7074,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "background",
@@ -6968,7 +7107,7 @@
       "key": "ArrowDown",
       "code": "ArrowDown",
       "handled": true,
-      "changes": [null]
+      "changes": ["#040506"]
     },
     {
       "picker": "background",
@@ -7688,7 +7827,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"background","color":"#e03131","section":null,"custom":true,"activeShade":4,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "background",
+      "color": "#e03131",
+      "section": null,
+      "custom": true,
+      "activeShade": 4,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {
       "picker": "background",
       "color": "#e03131",
@@ -7797,7 +7947,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "background",
@@ -7820,7 +7970,7 @@
       "key": "ArrowDown",
       "code": "ArrowDown",
       "handled": true,
-      "changes": [null]
+      "changes": ["#040506"]
     },
     {
       "picker": "background",
@@ -8539,7 +8689,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"background","color":"#ffc9c9","section":null,"custom":true,"activeShade":1,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "background",
+      "color": "#ffc9c9",
+      "section": null,
+      "custom": true,
+      "activeShade": 1,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {
       "picker": "background",
       "color": "#ffc9c9",
@@ -8648,7 +8809,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "background",
@@ -8671,7 +8832,7 @@
       "key": "ArrowDown",
       "code": "ArrowDown",
       "handled": true,
-      "changes": [null]
+      "changes": ["#040506"]
     },
     {
       "picker": "background",
@@ -9390,7 +9551,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"background","color":"#846358","section":null,"custom":true,"activeShade":4,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "background",
+      "color": "#846358",
+      "section": null,
+      "custom": true,
+      "activeShade": 4,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {
       "picker": "background",
       "color": "#846358",
@@ -9499,7 +9671,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "background",
@@ -9522,7 +9694,7 @@
       "key": "ArrowDown",
       "code": "ArrowDown",
       "handled": true,
-      "changes": [null]
+      "changes": ["#040506"]
     },
     {
       "picker": "background",
@@ -10130,7 +10302,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"background","color":"#123456","section":null,"custom":true,"activeShade":1,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "background",
+      "color": "#123456",
+      "section": null,
+      "custom": true,
+      "activeShade": 1,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {"picker":"background","color":"#123456","section":null,"custom":true,"activeShade":1,"key":"!","code":"Digit1","mods":["shift"],"handled":false},
     {"picker":"background","color":"#123456","section":null,"custom":true,"activeShade":1,"key":"#","code":"Digit3","mods":["shift"],"handled":false},
     {"picker":"background","color":"#123456","section":null,"custom":true,"activeShade":1,"key":"%","code":"Digit5","mods":["shift"],"handled":false},
@@ -10203,7 +10386,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "background",
@@ -10747,7 +10930,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"background","color":null,"section":null,"custom":true,"activeShade":1,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "background",
+      "color": null,
+      "section": null,
+      "custom": true,
+      "activeShade": 1,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {"picker":"background","color":null,"section":null,"custom":true,"activeShade":1,"key":"!","code":"Digit1","mods":["shift"],"handled":false},
     {"picker":"background","color":null,"section":null,"custom":true,"activeShade":1,"key":"#","code":"Digit3","mods":["shift"],"handled":false},
     {"picker":"background","color":null,"section":null,"custom":true,"activeShade":1,"key":"%","code":"Digit5","mods":["shift"],"handled":false},
@@ -10820,7 +11014,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "background",
@@ -11365,7 +11559,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"sticky","color":"#1e1e1e","section":null,"custom":true,"activeShade":1,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "sticky",
+      "color": "#1e1e1e",
+      "section": null,
+      "custom": true,
+      "activeShade": 1,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {"picker":"sticky","color":"#1e1e1e","section":null,"custom":true,"activeShade":1,"key":"!","code":"Digit1","mods":["shift"],"handled":false},
     {"picker":"sticky","color":"#1e1e1e","section":null,"custom":true,"activeShade":1,"key":"#","code":"Digit3","mods":["shift"],"handled":false},
     {"picker":"sticky","color":"#1e1e1e","section":null,"custom":true,"activeShade":1,"key":"%","code":"Digit5","mods":["shift"],"handled":false},
@@ -11426,7 +11631,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "sticky",
@@ -11440,7 +11645,17 @@
       "changes": ["#123456"]
     },
     {"picker":"sticky","color":"#1e1e1e","section":"custom","custom":true,"activeShade":1,"key":"ArrowUp","code":"ArrowUp","handled":true,"changes":[null]},
-    {"picker":"sticky","color":"#1e1e1e","section":"custom","custom":true,"activeShade":1,"key":"ArrowDown","code":"ArrowDown","handled":true,"changes":[null]},
+    {
+      "picker": "sticky",
+      "color": "#1e1e1e",
+      "section": "custom",
+      "custom": true,
+      "activeShade": 1,
+      "key": "ArrowDown",
+      "code": "ArrowDown",
+      "handled": true,
+      "changes": ["#040506"]
+    },
     {
       "picker": "sticky",
       "color": "#1e1e1e",
@@ -12039,7 +12254,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"sticky","color":"transparent","section":null,"custom":true,"activeShade":1,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "sticky",
+      "color": "transparent",
+      "section": null,
+      "custom": true,
+      "activeShade": 1,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {"picker":"sticky","color":"transparent","section":null,"custom":true,"activeShade":1,"key":"!","code":"Digit1","mods":["shift"],"handled":false},
     {"picker":"sticky","color":"transparent","section":null,"custom":true,"activeShade":1,"key":"#","code":"Digit3","mods":["shift"],"handled":false},
     {"picker":"sticky","color":"transparent","section":null,"custom":true,"activeShade":1,"key":"%","code":"Digit5","mods":["shift"],"handled":false},
@@ -12100,7 +12326,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "sticky",
@@ -12123,7 +12349,7 @@
       "key": "ArrowDown",
       "code": "ArrowDown",
       "handled": true,
-      "changes": [null]
+      "changes": ["#040506"]
     },
     {
       "picker": "sticky",
@@ -12779,7 +13005,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"sticky","color":"#e03131","section":null,"custom":true,"activeShade":4,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "sticky",
+      "color": "#e03131",
+      "section": null,
+      "custom": true,
+      "activeShade": 4,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {
       "picker": "sticky",
       "color": "#e03131",
@@ -12876,7 +13113,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "sticky",
@@ -12890,7 +13127,17 @@
       "changes": ["#123456"]
     },
     {"picker":"sticky","color":"#e03131","section":"custom","custom":true,"activeShade":4,"key":"ArrowUp","code":"ArrowUp","handled":true,"changes":[null]},
-    {"picker":"sticky","color":"#e03131","section":"custom","custom":true,"activeShade":4,"key":"ArrowDown","code":"ArrowDown","handled":true,"changes":[null]},
+    {
+      "picker": "sticky",
+      "color": "#e03131",
+      "section": "custom",
+      "custom": true,
+      "activeShade": 4,
+      "key": "ArrowDown",
+      "code": "ArrowDown",
+      "handled": true,
+      "changes": ["#040506"]
+    },
     {
       "picker": "sticky",
       "color": "#e03131",
@@ -13544,7 +13791,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"sticky","color":"#ffc9c9","section":null,"custom":true,"activeShade":1,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "sticky",
+      "color": "#ffc9c9",
+      "section": null,
+      "custom": true,
+      "activeShade": 1,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {
       "picker": "sticky",
       "color": "#ffc9c9",
@@ -13641,7 +13899,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "sticky",
@@ -13655,7 +13913,17 @@
       "changes": ["#123456"]
     },
     {"picker":"sticky","color":"#ffc9c9","section":"custom","custom":true,"activeShade":1,"key":"ArrowUp","code":"ArrowUp","handled":true,"changes":[null]},
-    {"picker":"sticky","color":"#ffc9c9","section":"custom","custom":true,"activeShade":1,"key":"ArrowDown","code":"ArrowDown","handled":true,"changes":[null]},
+    {
+      "picker": "sticky",
+      "color": "#ffc9c9",
+      "section": "custom",
+      "custom": true,
+      "activeShade": 1,
+      "key": "ArrowDown",
+      "code": "ArrowDown",
+      "handled": true,
+      "changes": ["#040506"]
+    },
     {
       "picker": "sticky",
       "color": "#ffc9c9",
@@ -14309,7 +14577,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"sticky","color":"#846358","section":null,"custom":true,"activeShade":4,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "sticky",
+      "color": "#846358",
+      "section": null,
+      "custom": true,
+      "activeShade": 4,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {
       "picker": "sticky",
       "color": "#846358",
@@ -14406,7 +14685,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "sticky",
@@ -14420,7 +14699,17 @@
       "changes": ["#123456"]
     },
     {"picker":"sticky","color":"#846358","section":"custom","custom":true,"activeShade":4,"key":"ArrowUp","code":"ArrowUp","handled":true,"changes":[null]},
-    {"picker":"sticky","color":"#846358","section":"custom","custom":true,"activeShade":4,"key":"ArrowDown","code":"ArrowDown","handled":true,"changes":[null]},
+    {
+      "picker": "sticky",
+      "color": "#846358",
+      "section": "custom",
+      "custom": true,
+      "activeShade": 4,
+      "key": "ArrowDown",
+      "code": "ArrowDown",
+      "handled": true,
+      "changes": ["#040506"]
+    },
     {
       "picker": "sticky",
       "color": "#846358",
@@ -14963,7 +15252,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"sticky","color":"#123456","section":null,"custom":true,"activeShade":1,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "sticky",
+      "color": "#123456",
+      "section": null,
+      "custom": true,
+      "activeShade": 1,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {"picker":"sticky","color":"#123456","section":null,"custom":true,"activeShade":1,"key":"!","code":"Digit1","mods":["shift"],"handled":false},
     {"picker":"sticky","color":"#123456","section":null,"custom":true,"activeShade":1,"key":"#","code":"Digit3","mods":["shift"],"handled":false},
     {"picker":"sticky","color":"#123456","section":null,"custom":true,"activeShade":1,"key":"%","code":"Digit5","mods":["shift"],"handled":false},
@@ -15024,7 +15324,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "sticky",
@@ -15514,7 +15814,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"sticky","color":null,"section":null,"custom":true,"activeShade":1,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "sticky",
+      "color": null,
+      "section": null,
+      "custom": true,
+      "activeShade": 1,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {"picker":"sticky","color":null,"section":null,"custom":true,"activeShade":1,"key":"!","code":"Digit1","mods":["shift"],"handled":false},
     {"picker":"sticky","color":null,"section":null,"custom":true,"activeShade":1,"key":"#","code":"Digit3","mods":["shift"],"handled":false},
     {"picker":"sticky","color":null,"section":null,"custom":true,"activeShade":1,"key":"%","code":"Digit5","mods":["shift"],"handled":false},
@@ -15555,7 +15866,7 @@
       "sections": ["hex"],
       "prevented": true
     },
-    {"picker":"sticky","color":null,"section":"custom","custom":true,"activeShade":1,"key":"ArrowLeft","code":"ArrowLeft","handled":true,"changes":["#fedcba"]},
+    {"picker":"sticky","color":null,"section":"custom","custom":true,"activeShade":1,"key":"ArrowLeft","code":"ArrowLeft","handled":true,"changes":["#040506"]},
     {
       "picker": "sticky",
       "color": null,
@@ -16103,7 +16414,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"full","color":"#1e1e1e","section":null,"custom":true,"activeShade":4,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "full",
+      "color": "#1e1e1e",
+      "section": null,
+      "custom": true,
+      "activeShade": 4,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {"picker":"full","color":"#1e1e1e","section":null,"custom":true,"activeShade":4,"key":"!","code":"Digit1","mods":["shift"],"handled":false},
     {"picker":"full","color":"#1e1e1e","section":null,"custom":true,"activeShade":4,"key":"#","code":"Digit3","mods":["shift"],"handled":false},
     {"picker":"full","color":"#1e1e1e","section":null,"custom":true,"activeShade":4,"key":"%","code":"Digit5","mods":["shift"],"handled":false},
@@ -16176,7 +16498,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "full",
@@ -16190,7 +16512,17 @@
       "changes": ["#123456"]
     },
     {"picker":"full","color":"#1e1e1e","section":"custom","custom":true,"activeShade":4,"key":"ArrowUp","code":"ArrowUp","handled":true,"changes":[null]},
-    {"picker":"full","color":"#1e1e1e","section":"custom","custom":true,"activeShade":4,"key":"ArrowDown","code":"ArrowDown","handled":true,"changes":[null]},
+    {
+      "picker": "full",
+      "color": "#1e1e1e",
+      "section": "custom",
+      "custom": true,
+      "activeShade": 4,
+      "key": "ArrowDown",
+      "code": "ArrowDown",
+      "handled": true,
+      "changes": ["#040506"]
+    },
     {
       "picker": "full",
       "color": "#1e1e1e",
@@ -16823,7 +17155,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"full","color":"transparent","section":null,"custom":true,"activeShade":4,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "full",
+      "color": "transparent",
+      "section": null,
+      "custom": true,
+      "activeShade": 4,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {"picker":"full","color":"transparent","section":null,"custom":true,"activeShade":4,"key":"!","code":"Digit1","mods":["shift"],"handled":false},
     {"picker":"full","color":"transparent","section":null,"custom":true,"activeShade":4,"key":"#","code":"Digit3","mods":["shift"],"handled":false},
     {"picker":"full","color":"transparent","section":null,"custom":true,"activeShade":4,"key":"%","code":"Digit5","mods":["shift"],"handled":false},
@@ -16896,7 +17239,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "full",
@@ -16919,7 +17262,7 @@
       "key": "ArrowDown",
       "code": "ArrowDown",
       "handled": true,
-      "changes": [null]
+      "changes": ["#040506"]
     },
     {
       "picker": "full",
@@ -17569,7 +17912,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"full","color":"#e03131","section":null,"custom":true,"activeShade":4,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "full",
+      "color": "#e03131",
+      "section": null,
+      "custom": true,
+      "activeShade": 4,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {
       "picker": "full",
       "color": "#e03131",
@@ -17678,7 +18032,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "full",
@@ -17692,7 +18046,17 @@
       "changes": ["#123456"]
     },
     {"picker":"full","color":"#e03131","section":"custom","custom":true,"activeShade":4,"key":"ArrowUp","code":"ArrowUp","handled":true,"changes":[null]},
-    {"picker":"full","color":"#e03131","section":"custom","custom":true,"activeShade":4,"key":"ArrowDown","code":"ArrowDown","handled":true,"changes":[null]},
+    {
+      "picker": "full",
+      "color": "#e03131",
+      "section": "custom",
+      "custom": true,
+      "activeShade": 4,
+      "key": "ArrowDown",
+      "code": "ArrowDown",
+      "handled": true,
+      "changes": ["#040506"]
+    },
     {
       "picker": "full",
       "color": "#e03131",
@@ -18360,7 +18724,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"full","color":"#ffc9c9","section":null,"custom":true,"activeShade":1,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "full",
+      "color": "#ffc9c9",
+      "section": null,
+      "custom": true,
+      "activeShade": 1,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {
       "picker": "full",
       "color": "#ffc9c9",
@@ -18469,7 +18844,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "full",
@@ -18483,7 +18858,17 @@
       "changes": ["#123456"]
     },
     {"picker":"full","color":"#ffc9c9","section":"custom","custom":true,"activeShade":1,"key":"ArrowUp","code":"ArrowUp","handled":true,"changes":[null]},
-    {"picker":"full","color":"#ffc9c9","section":"custom","custom":true,"activeShade":1,"key":"ArrowDown","code":"ArrowDown","handled":true,"changes":[null]},
+    {
+      "picker": "full",
+      "color": "#ffc9c9",
+      "section": "custom",
+      "custom": true,
+      "activeShade": 1,
+      "key": "ArrowDown",
+      "code": "ArrowDown",
+      "handled": true,
+      "changes": ["#040506"]
+    },
     {
       "picker": "full",
       "color": "#ffc9c9",
@@ -19151,7 +19536,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"full","color":"#846358","section":null,"custom":true,"activeShade":4,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "full",
+      "color": "#846358",
+      "section": null,
+      "custom": true,
+      "activeShade": 4,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {
       "picker": "full",
       "color": "#846358",
@@ -19260,7 +19656,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "full",
@@ -19274,7 +19670,17 @@
       "changes": ["#123456"]
     },
     {"picker":"full","color":"#846358","section":"custom","custom":true,"activeShade":4,"key":"ArrowUp","code":"ArrowUp","handled":true,"changes":[null]},
-    {"picker":"full","color":"#846358","section":"custom","custom":true,"activeShade":4,"key":"ArrowDown","code":"ArrowDown","handled":true,"changes":[null]},
+    {
+      "picker": "full",
+      "color": "#846358",
+      "section": "custom",
+      "custom": true,
+      "activeShade": 4,
+      "key": "ArrowDown",
+      "code": "ArrowDown",
+      "handled": true,
+      "changes": ["#040506"]
+    },
     {
       "picker": "full",
       "color": "#846358",
@@ -19841,7 +20247,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"full","color":"#123456","section":null,"custom":true,"activeShade":4,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "full",
+      "color": "#123456",
+      "section": null,
+      "custom": true,
+      "activeShade": 4,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {"picker":"full","color":"#123456","section":null,"custom":true,"activeShade":4,"key":"!","code":"Digit1","mods":["shift"],"handled":false},
     {"picker":"full","color":"#123456","section":null,"custom":true,"activeShade":4,"key":"#","code":"Digit3","mods":["shift"],"handled":false},
     {"picker":"full","color":"#123456","section":null,"custom":true,"activeShade":4,"key":"%","code":"Digit5","mods":["shift"],"handled":false},
@@ -19914,7 +20331,7 @@
       "key": "ArrowLeft",
       "code": "ArrowLeft",
       "handled": true,
-      "changes": ["#fedcba"]
+      "changes": ["#040506"]
     },
     {
       "picker": "full",
@@ -20427,7 +20844,18 @@
       "changes": ["#fedcba"],
       "sections": ["custom"]
     },
-    {"picker":"full","color":null,"section":null,"custom":true,"activeShade":4,"key":"5","code":"Digit5","handled":false},
+    {
+      "picker": "full",
+      "color": null,
+      "section": null,
+      "custom": true,
+      "activeShade": 4,
+      "key": "5",
+      "code": "Digit5",
+      "handled": true,
+      "changes": ["#040506"],
+      "sections": ["custom"]
+    },
     {"picker":"full","color":null,"section":null,"custom":true,"activeShade":4,"key":"!","code":"Digit1","mods":["shift"],"handled":false},
     {"picker":"full","color":null,"section":null,"custom":true,"activeShade":4,"key":"#","code":"Digit3","mods":["shift"],"handled":false},
     {"picker":"full","color":null,"section":null,"custom":true,"activeShade":4,"key":"%","code":"Digit5","mods":["shift"],"handled":false},
@@ -20480,7 +20908,7 @@
       "sections": ["hex"],
       "prevented": true
     },
-    {"picker":"full","color":null,"section":"custom","custom":true,"activeShade":4,"key":"ArrowLeft","code":"ArrowLeft","handled":true,"changes":["#fedcba"]},
+    {"picker":"full","color":null,"section":"custom","custom":true,"activeShade":4,"key":"ArrowLeft","code":"ArrowLeft","handled":true,"changes":["#040506"]},
     {"picker":"full","color":null,"section":"custom","custom":true,"activeShade":4,"key":"ArrowRight","code":"ArrowRight","handled":true,"changes":["#abcdef"]},
     {"picker":"full","color":null,"section":"custom","custom":true,"activeShade":4,"key":"ArrowUp","code":"ArrowUp","handled":true,"changes":["#123456"]},
     {"picker":"full","color":null,"section":"custom","custom":true,"activeShade":4,"key":"ArrowDown","code":"ArrowDown","handled":true,"changes":["#123456"]},

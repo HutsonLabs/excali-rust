@@ -554,7 +554,7 @@ const KEY_COLORS = ["#1e1e1e", "transparent", "#e03131", "#ffc9c9", "#846358", "
 
 const SECTIONS = [null, "custom", "baseColors", "shades", "hex"];
 
-const CUSTOMS = [[], ["#123456", "#abcdef", "#fedcba"]];
+const CUSTOMS = [[], ["#123456", "#abcdef", "#fedcba", "#010203", "#040506"]];
 
 const PICKERS = [
   { picker: "stroke", type: "elementStroke", palette: "DEFAULT_ELEMENT_STROKE_COLOR_PALETTE" },

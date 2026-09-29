@@ -27,13 +27,13 @@ use excali_core::constants::{COLOR_TOP_PICKS_SLOTS, DEFAULT_STICKY_NOTE_BG};
 use excali_core::element::{Element as SceneElement, ElementBase, ElementKind};
 use excali_scene::shape::Theme;
 use excali_ui::color_picker::{
-    change_hex_input, close_popup, color_picker, color_picker_key_nav_handler,
-    color_picker_text, escape, eye_dropper_cursor, get_color_name_and_shade,
-    get_most_used_custom_colors, hex_input_value, initial_active_shade, initial_section,
-    is_custom_color, picker_custom_colors, position_element_beside_cursor, toggle_eye_dropper,
-    toggle_popup, top_pick_follows_focus, ColorPickerProps, ColorPickerType, ContainerRect,
-    EscapeOutcome, EyeDropperState, HexInputState, KeyInput, KeyNavEffect, KeyNavState, Section,
-    StylesPanelMode, COLOR_PICKER_CSS, COLOR_PICKER_HOTKEY_BINDINGS,
+    change_hex_input, close_popup, color_picker, color_picker_key_nav_handler, color_picker_text,
+    escape, eye_dropper_cursor, get_color_name_and_shade, get_most_used_custom_colors,
+    hex_input_value, initial_active_shade, initial_section, is_custom_color, picker_custom_colors,
+    position_element_beside_cursor, toggle_eye_dropper, toggle_popup, top_pick_follows_focus,
+    ColorPickerProps, ColorPickerType, ContainerRect, EscapeOutcome, EyeDropperState,
+    HexInputState, KeyInput, KeyNavEffect, KeyNavState, Section, StylesPanelMode, COLOR_PICKER_CSS,
+    COLOR_PICKER_HOTKEY_BINDINGS,
 };
 use excali_ui::dom::Node;
 use serde_json::{json, Map, Value};
@@ -41,7 +41,8 @@ use serde_json::{json, Map, Value};
 fn fixture() -> &'static Value {
     use std::sync::OnceLock;
     static FIXTURE: OnceLock<Value> = OnceLock::new();
-    FIXTURE.get_or_init(|| serde_json::from_str(include_str!("fixtures/color-picker.json")).unwrap())
+    FIXTURE
+        .get_or_init(|| serde_json::from_str(include_str!("fixtures/color-picker.json")).unwrap())
 }
 
 fn palette(name: &str) -> &'static [PaletteEntry] {
@@ -150,8 +151,8 @@ fn the_palettes_and_picks_are_colors_ts() {
         p["DEFAULT_ELEMENT_BACKGROUND_COLOR_INDEX"]
     );
     assert_eq!(
-        json!(COLOR_OUTLINE_CONTRAST_THRESHOLD),
-        p["COLOR_OUTLINE_CONTRAST_THRESHOLD"]
+        Some(COLOR_OUTLINE_CONTRAST_THRESHOLD),
+        p["COLOR_OUTLINE_CONTRAST_THRESHOLD"].as_f64()
     );
     assert_eq!(json!(DEFAULT_STICKY_NOTE_BG), p["DEFAULT_STICKY_NOTE_BG"]);
     let shades: Vec<Value> = (0..5)
@@ -194,10 +195,7 @@ fn the_palette_grid_is_5_by_3_with_hotkeys_q_to_b() {
         ]
     );
     assert_eq!(names.len(), COLORS_PER_ROW * 3);
-    assert_eq!(
-        COLOR_PICKER_HOTKEY_BINDINGS.join(""),
-        "qwertasdfgzxcvb"
-    );
+    assert_eq!(COLOR_PICKER_HOTKEY_BINDINGS.join(""), "qwertasdfgzxcvb");
 }
 
 #[test]
@@ -292,7 +290,10 @@ fn key_palette(picker: &str) -> (&'static [PaletteEntry], Vec<&'static str>) {
     match picker {
         "stroke" => (&DEFAULT_ELEMENT_STROKE_COLOR_PALETTE, vec![]),
         "background" => (&DEFAULT_ELEMENT_BACKGROUND_COLOR_PALETTE, vec![]),
-        "sticky" => (&DEFAULT_ELEMENT_BACKGROUND_COLOR_PALETTE, vec!["transparent"]),
+        "sticky" => (
+            &DEFAULT_ELEMENT_BACKGROUND_COLOR_PALETTE,
+            vec!["transparent"],
+        ),
         "full" => (palette("COLOR_PALETTE"), vec![]),
         other => panic!("picker {other}"),
     }
@@ -310,7 +311,7 @@ fn picker_ty(picker: &str) -> ColorPickerType {
 fn the_keyboard_map_is_upstreams() {
     let cases = fixture()["keyNav"].as_array().unwrap();
     assert!(cases.len() > 2000, "{} cases", cases.len());
-    let custom: Vec<String> = ["#123456", "#abcdef", "#fedcba"]
+    let custom: Vec<String> = ["#123456", "#abcdef", "#fedcba", "#010203", "#040506"]
         .map(String::from)
         .to_vec();
     for c in cases {
@@ -322,10 +323,7 @@ fn the_keyboard_map_is_upstreams() {
         } else {
             &[]
         };
-        let mods = c
-            .get("mods")
-            .map(strs)
-            .unwrap_or_default();
+        let mods = c.get("mods").map(strs).unwrap_or_default();
         let has = |m: &str| mods.iter().any(|x| x == m);
         let event = KeyInput {
             key: c["key"].as_str().unwrap().into(),
@@ -364,7 +362,11 @@ fn the_keyboard_map_is_upstreams() {
         assert_eq!(Value::Array(changes), arr("changes"), "{what}");
         assert_eq!(Value::Array(sections), arr("sections"), "{what}");
         assert_eq!(Value::Array(eye), arr("eyeDropper"), "{what}");
-        assert_eq!(json!(escapes), c.get("escape").cloned().unwrap_or(json!(0)), "{what}");
+        assert_eq!(
+            json!(escapes),
+            c.get("escape").cloned().unwrap_or(json!(0)),
+            "{what}"
+        );
         if c.get("prevented").is_some() {
             // the handler's own preventDefault (Tab) is on a handled key,
             // which the Picker prevents anyway (Picker.tsx:156-172)
@@ -381,14 +383,40 @@ fn the_keyboard_map_covers_the_acceptance_keys() {
         .iter()
         .filter(|c| c["handled"] == json!(true))
         .map(|c| {
-            let shift = c.get("mods").map(strs).unwrap_or_default().contains(&"shift".to_string());
-            format!("{}{}", if shift { "Shift+" } else { "" }, c["code"].as_str().unwrap())
+            let shift = c
+                .get("mods")
+                .map(strs)
+                .unwrap_or_default()
+                .contains(&"shift".to_string());
+            format!(
+                "{}{}",
+                if shift { "Shift+" } else { "" },
+                c["code"].as_str().unwrap()
+            )
         })
         .collect();
     for k in [
-        "KeyQ", "KeyT", "KeyA", "KeyG", "KeyZ", "KeyB", "Digit1", "Digit3", "Digit5",
-        "Shift+Digit1", "Shift+Digit3", "Shift+Digit5", "KeyI", "AltLeft", "Escape", "Tab",
-        "Shift+Tab", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+        "KeyQ",
+        "KeyT",
+        "KeyA",
+        "KeyG",
+        "KeyZ",
+        "KeyB",
+        "Digit1",
+        "Digit3",
+        "Digit5",
+        "Shift+Digit1",
+        "Shift+Digit3",
+        "Shift+Digit5",
+        "KeyI",
+        "AltLeft",
+        "Escape",
+        "Tab",
+        "Shift+Tab",
+        "ArrowLeft",
+        "ArrowRight",
+        "ArrowUp",
+        "ArrowDown",
     ] {
         assert!(keys.contains(k), "{k} is never handled");
     }
@@ -399,11 +427,23 @@ fn the_initial_section_follows_the_colour() {
     // Picker.tsx:103-122
     let p = &DEFAULT_ELEMENT_STROKE_COLOR_PALETTE[..];
     let customs = vec!["#123456".to_string()];
-    assert_eq!(initial_section(Some("#123456"), p, &customs), Some(Section::Custom));
+    assert_eq!(
+        initial_section(Some("#123456"), p, &customs),
+        Some(Section::Custom)
+    );
     assert_eq!(initial_section(Some("#777777"), p, &customs), None);
-    assert_eq!(initial_section(Some("#e03131"), p, &customs), Some(Section::Shades));
-    assert_eq!(initial_section(Some("#1e1e1e"), p, &customs), Some(Section::BaseColors));
-    assert_eq!(initial_section(None, p, &customs), Some(Section::BaseColors));
+    assert_eq!(
+        initial_section(Some("#e03131"), p, &customs),
+        Some(Section::Shades)
+    );
+    assert_eq!(
+        initial_section(Some("#1e1e1e"), p, &customs),
+        Some(Section::BaseColors)
+    );
+    assert_eq!(
+        initial_section(None, p, &customs),
+        Some(Section::BaseColors)
+    );
 }
 
 // -- ColorInput.tsx ---------------------------------------------------------------
@@ -418,9 +458,17 @@ fn the_hex_input_is_upstreams() {
         let out = change_hex_input(typed);
         assert_eq!(json!(out.color.as_slice()), c["changes"], "{typed:?}");
         let after = &c["after"];
-        assert_eq!(hex_input_value(&out.state.inner_value), after["value"].as_str().unwrap(), "{typed:?}");
+        assert_eq!(
+            hex_input_value(&out.state.inner_value),
+            after["value"].as_str().unwrap(),
+            "{typed:?}"
+        );
         let invalid = out.state.error.is_some();
-        assert_eq!(json!(invalid.to_string()), after["ariaInvalid"], "{typed:?}");
+        assert_eq!(
+            json!(invalid.to_string()),
+            after["ariaInvalid"],
+            "{typed:?}"
+        );
         assert_eq!(json!(invalid), after["hasError"], "{typed:?}");
         assert_eq!(
             json!(out.state.error.map(color_picker_text)),
@@ -429,7 +477,10 @@ fn the_hex_input_is_upstreams() {
         );
         // a blur shows the colour again, without an error (ColorInput.tsx:94-97)
         let blurred = HexInputState::for_color("#1e1e1e");
-        assert_eq!(hex_input_value(&blurred.inner_value), c["blurred"]["value"].as_str().unwrap());
+        assert_eq!(
+            hex_input_value(&blurred.inner_value),
+            c["blurred"]["value"].as_str().unwrap()
+        );
         assert_eq!(blurred.error, None);
     }
 }
@@ -453,7 +504,11 @@ fn the_eye_dropper_cursor_and_preview_placement_are_upstreams() {
             },
             f(&c["gap"]),
         );
-        assert_eq!(json!({"left": left, "top": top}), c["result"], "{c}");
+        assert_eq!(
+            (Some(left), Some(top)),
+            (c["result"]["left"].as_f64(), c["result"]["top"].as_f64()),
+            "{c}"
+        );
     }
 }
 
@@ -462,13 +517,25 @@ fn the_eye_dropper_toggles_as_the_popup_content_does() {
     // ColorPicker.tsx:181-203
     let ty = ColorPickerType::ElementStroke;
     let on = toggle_eye_dropper(None, None, ty);
-    assert_eq!(on, Some(EyeDropperState { keep_open_on_alt: false, picker: ty }));
+    assert_eq!(
+        on,
+        Some(EyeDropperState {
+            keep_open_on_alt: false,
+            picker: ty
+        })
+    );
     assert_eq!(toggle_eye_dropper(on, None, ty), None);
     assert_eq!(toggle_eye_dropper(on, Some(false), ty), None);
     assert_eq!(toggle_eye_dropper(None, Some(false), ty), None);
     // Alt: open (or keep open) and stay open while Alt is held
     let alt = toggle_eye_dropper(None, Some(true), ty);
-    assert_eq!(alt, Some(EyeDropperState { keep_open_on_alt: true, picker: ty }));
+    assert_eq!(
+        alt,
+        Some(EyeDropperState {
+            keep_open_on_alt: true,
+            picker: ty
+        })
+    );
     assert_eq!(toggle_eye_dropper(on, Some(true), ty), alt);
     // Escape cancels the eye dropper first, then closes (ColorPicker.tsx:204-211)
     assert_eq!(escape(on), EscapeOutcome::CancelEyeDropper);
@@ -481,13 +548,25 @@ fn the_eye_dropper_toggles_as_the_popup_content_does() {
 fn the_trigger_toggles_and_switches_popups() {
     // ColorPicker.tsx:462-474
     let stroke = ColorPickerType::ElementStroke;
-    assert_eq!(toggle_popup(None, stroke), Some("elementStroke".to_string()));
+    assert_eq!(
+        toggle_popup(None, stroke),
+        Some("elementStroke".to_string())
+    );
     assert_eq!(toggle_popup(Some("elementStroke"), stroke), None);
-    assert_eq!(toggle_popup(Some("elementBackground"), stroke), Some("elementStroke".to_string()));
-    assert_eq!(toggle_popup(Some("fontFamily"), stroke), Some("elementStroke".to_string()));
+    assert_eq!(
+        toggle_popup(Some("elementBackground"), stroke),
+        Some("elementStroke".to_string())
+    );
+    assert_eq!(
+        toggle_popup(Some("fontFamily"), stroke),
+        Some("elementStroke".to_string())
+    );
     // onClose clears only its own popup (ColorPicker.tsx:151-156)
     assert_eq!(close_popup(Some("elementStroke"), stroke), None);
-    assert_eq!(close_popup(Some("elementBackground"), stroke), Some("elementBackground".to_string()));
+    assert_eq!(
+        close_popup(Some("elementBackground"), stroke),
+        Some("elementBackground".to_string())
+    );
     // a top pick follows the focus to its picker when another colour
     // picker's popup is open (ColorPicker.tsx:431-443)
     assert!(top_pick_follows_focus(Some("elementBackground"), stroke));
@@ -578,7 +657,11 @@ fn props(case: &Value) -> ColorPickerProps {
         palette: p,
         top_picks: case["topPicks"].as_str().map(picks),
         excluded_colors: strs(&case["excludedColors"]),
-        theme: if case["theme"] == "dark" { Theme::Dark } else { Theme::Light },
+        theme: if case["theme"] == "dark" {
+            Theme::Dark
+        } else {
+            Theme::Light
+        },
         open: case["open"].as_bool().unwrap(),
         mode: match case["mode"].as_str().unwrap() {
             "full" => StylesPanelMode::Full,
@@ -597,6 +680,29 @@ fn props(case: &Value) -> ColorPickerProps {
     }
 }
 
+/// Where two trees first differ, as a path and both values.
+fn first_difference(expected: &Value, actual: &Value, path: String) -> String {
+    match (expected, actual) {
+        (Value::Array(a), Value::Array(b)) => {
+            for (i, (x, y)) in a.iter().zip(b).enumerate() {
+                if x != y {
+                    return first_difference(x, y, format!("{path}[{i}]"));
+                }
+            }
+            format!("{path}: {} children expected, {} actual", a.len(), b.len())
+        }
+        (Value::Object(a), Value::Object(b)) if a.keys().eq(b.keys()) => {
+            for (k, x) in a {
+                if x != &b[k] {
+                    return first_difference(x, &b[k], format!("{path}.{k}"));
+                }
+            }
+            unreachable!()
+        }
+        _ => format!("{path}:\nexpected {expected}\nactual   {actual}"),
+    }
+}
+
 #[test]
 fn every_case_renders_upstreams_dom() {
     let cases = fixture()["cases"].as_array().unwrap();
@@ -607,9 +713,8 @@ fn every_case_renders_upstreams_dom() {
         let actual: Vec<Value> = color_picker(&props(case)).iter().map(tree).collect();
         if actual != expected {
             panic!(
-                "case {name}:\nexpected {}\nactual   {}",
-                serde_json::to_string(&expected).unwrap(),
-                serde_json::to_string(&actual).unwrap()
+                "case {name}: {}",
+                first_difference(&json!(expected), &json!(actual), String::new())
             );
         }
     }
@@ -683,8 +788,14 @@ fn the_eye_dropper_trigger_shows_its_state_and_the_hex_input_its_error() {
     p.hex = change_hex_input("12345").state;
     let nodes = color_picker(&p);
     let html: String = nodes.iter().map(Node::to_html).collect();
-    assert!(html.contains(r#"class="excalidraw-eye-dropper-trigger selected""#), "{html}");
-    assert!(html.contains(r#"class="color-picker__input-label has-error""#), "{html}");
+    assert!(
+        html.contains(r#"class="excalidraw-eye-dropper-trigger selected""#),
+        "{html}"
+    );
+    assert!(
+        html.contains(r#"class="color-picker__input-label has-error""#),
+        "{html}"
+    );
     assert!(html.contains(r#"aria-invalid="true""#), "{html}");
     assert!(html.contains(r#"value="12345""#), "{html}");
     assert!(html.contains(
