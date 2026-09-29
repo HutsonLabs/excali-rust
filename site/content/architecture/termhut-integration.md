@@ -22,7 +22,9 @@ The first two landed in term.hut PR #87 (ex-601, merge `7330c73`, 2026-09-29):
 
 - `ui/vendor/excali/` is written by term.hut's `scripts/vendor-excali.sh <excali-rust checkout>`, which runs `scripts/web/build.sh` and adds `LICENSE`, `SOURCE.json` (repository, commit, version) and `SHA256SUMS`. `ui/test/excaliVendor.test.js` holds the directory to those checksums. The release in it is 26.9.1 at `2da1897`.
 - `fonts/Xiaolai`, upstream's CJK fallback, is not vendored. It is 12 MB of the release's 14 MB of fonts, which would triple term.hut's dmg (`PRODUCT.md`: ~5.4 MB, "should stay in that class"). The font registry is compiled into the module, so a missing face only fails its own unicode range, and CJK text falls back to the webview's system font. The vendored directory is 3.0 MB.
-- `preview.js` routes `excalidraw` to a `drawing` view (`excalidrawEditor.js`), which loads the module when the first drawing opens. `TEXT_BACKED` keeps the JSON toggle. The read-only `excalidrawView.js` canvas is what the `excalidrawReadOnly` setting shows (Settings ▸ Editor ▸ Read-only drawings, off by default), and it is also the fallback when the module fails to load. `save-request` and the pane header's Save button write `ed.save()` with `fs_write_text`. Dirty state and conflict handling are ex-602.
+- `preview.js` routes `excalidraw` to a `drawing` view (`excalidrawEditor.js`), which loads the module when the first drawing opens. `TEXT_BACKED` keeps the JSON toggle. The read-only `excalidrawView.js` canvas is what the `excalidrawReadOnly` setting shows (Settings ▸ Editor ▸ Read-only drawings, off by default), and it is also the fallback when the module fails to load. `save-request` and the pane header's Save button write `ed.save()` with `fs_write_text`.
+
+The third landed in term.hut PR #88 (ex-602, merge `8ec4b28`, 2026-09-29), except "Import library", which is ex-604. The save flow below is what it does.
 
 Nothing changes in `src-tauri` for the basic flow. Library import from a URL uses term.hut's existing HTTP path or the plugin's allow-listed fetch.
 
@@ -77,10 +79,12 @@ Host adapter rules:
 
 ## Save flow in term.hut
 
-1. Editor emits `change` → tab shows the dirty dot as the code editor does.
-2. Cmd+S in the pane or `save-request` from the editor → `fs_write_text(path, ed.save(), conn)`.
-3. If the file changed on disk since load (term.hut's `fs_watch_files` already reports this), term.hut prompts exactly as it does for text files; on "reload", it calls `ed.load(newText)`.
-4. On SSH workspaces nothing differs: `fs_write_text` takes the connection.
+1. Editor emits `change` → tab shows the dirty dot as the code editor does. The edit autosaves after 800 ms, the delay term.hut's code editor and BPMN modeller use.
+2. Cmd+S in the pane or `save-request` from the editor → `fs_write_text(path, ed.save(), conn)`. A clean drawing is not rewritten, as a clean text buffer isn't. Closing the tab, switching away, toggling to the JSON and switching workspace save first.
+3. If the file changed on disk since load (term.hut's `fs_watch_files` already reports this), term.hut prompts exactly as it does for text files; on "reload", it calls `ed.load(newText)`. A clean drawing reloads without asking, and the echo of term.hut's own write within 2 s is ignored, as for text files. Every save also reads the file first and compares it with the text it was loaded or last saved as, so a change the watcher missed is the same prompt, never an overwrite.
+4. On SSH workspaces nothing differs: `fs_write_text` takes the connection. A host's files are not watched, so there the save's own check is what raises the prompt.
+
+In term.hut, `ui/src/drawingDoc.js` holds these rules for a drawing tab (tested without the DOM in `ui/test/drawingDoc.test.js`), and `ui/e2e/excalidraw.test.js` drives them in Chromium against the real element. Hosts should not call the element synchronously from inside its own events: `change` is dispatched from inside the wasm editor, and `getState()` there is a re-entrant borrow that aborts. Use `change`'s `detail.dirty` instead.
 
 ## CRUD in term.hut
 
