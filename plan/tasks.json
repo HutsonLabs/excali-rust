@@ -1464,6 +1464,54 @@
    "labels": []
   },
   {
+   "id": "ex-g401",
+   "epic": "ex-e4",
+   "title": "SVG export: reproduce the two export.test.tsx snapshots (svg-embedded scene, transformed images) as whole documents",
+   "priority": 1,
+   "blocked_by": [
+    "ex-407",
+    "ex-112"
+   ],
+   "crates": [
+    "excali-svg"
+   ],
+   "acceptance": "A test in crates/excali-svg rebuilds the inputs of packages/excalidraw/tests/export.test.tsx 'export svg-embedded scene' and 'exporting svg containing transformed images' (four image elements of deer.png at 315/45 degrees with scale [1,1], [-1,1], [1,-1], [-1,-1], exportBackground false) and requires export_to_svg's outerHTML to equal the vendored tests/__snapshots__/export.test.tsx.snap entries byte for byte (after the same whitespace normalisation as upstream_snapshot.rs), including one <image> and four <use>; any input the port cannot compute (the font faces under the test FontFace) is taken from an upstream recording, as upstream_snapshot.rs does. cargo test -p excali-svg green.",
+   "evidence": [
+    "M4 check 2026-09-28: fixtures/upstream/packages/excalidraw/tests/__snapshots__/export.test.tsx.snap holds two SVG snapshots; the only Rust reference to it is crates/excali-core/tests/svg_payload.rs, which checks the payload of the first, not the document",
+    "crates/excali-svg/tests/upstream_snapshot.rs reproduces only tests/scene/__snapshots__/export.test.ts.snap (four snapshots)",
+    "site/content/plan/overview.md D2: 'SVG export of the upstream fixtures matches upstream's snapshot'"
+   ],
+   "description": "M4 check of 2026-09-28: D2's SVG half is proven for export.test.ts.snap and 48 exportToSvg documents, but two of upstream's vendored SVG export snapshots are not reproduced.",
+   "type": "task",
+   "labels": []
+  },
+  {
+   "id": "ex-g402",
+   "epic": "ex-e4",
+   "title": "D2 PNG half: port's PNG export of the fixture scenes vs upstream's exportToCanvas in Chrome, within a tolerance recorded per fixture",
+   "priority": 0,
+   "blocked_by": [
+    "ex-405",
+    "ex-404",
+    "ex-403",
+    "ex-401"
+   ],
+   "crates": [
+    "excali-raster",
+    "excali-cli"
+   ],
+   "acceptance": "A script under scripts/fixtures/ (Playwright's Chromium, upstream at the pin) runs upstream's own exportToCanvas / exportToBlob on every scene of crates/excali-scene/tests/fixtures/canvas-export.json plus elementFixture and the scene-bearing upstream fixtures (test_embedded_v1, smiley_embedded_v2), with the vendored fonts loaded, and commits the PNGs with a manifest (Chrome version, SHA-256). A Rust test renders the same scenes with the port's full PNG export (images decoded, text drawn by the CLI's GlyphText, not NoText) and compares with excali_raster::diff under a tolerance recorded per fixture with a note saying where any difference comes from; --check re-draws with the local Chrome; a CI job runs it on macOS arm64 and uploads diff images on failure. Canvas size equality is required.",
+   "evidence": [
+    "M4 check 2026-09-28: crates/excali-raster/tests/png_export.rs renders the canvas-export golden scenes with NoText and compares the port with itself (sizes, background, payload), not with upstream's pixels",
+    "crates/excali-raster/tests/fixtures/display-lists: the 29 Chrome-compared fixtures are display lists, none is a whole exported scene, and none holds text (TextRasterizer impls in tests are NoText or a stub)",
+    "crates/excali-cli/src/fonts.rs GlyphText is the only text rasterizer and is never compared with Chrome's fillText",
+    "site/content/plan/overview.md D2: 'PNG export matches within a perceptual tolerance recorded per fixture'"
+   ],
+   "description": "M4 check of 2026-09-28: the PNG half of D2 is inferred (draw calls equal upstream's recording, and the raster backend matches Chrome on synthetic display lists) but no exported fixture scene is compared with upstream's PNG, and text rasterization is not compared at all.",
+   "type": "task",
+   "labels": []
+  },
+  {
    "id": "ex-501",
    "epic": "ex-e5",
    "title": "WASM build pipeline: wasm-bindgen --target web, wasm-opt, size check in CI",

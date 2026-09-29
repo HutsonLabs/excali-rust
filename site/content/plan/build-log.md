@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-m4 · Milestone check: M4 not yet reached
+
+The M4 check ran on `main` at 4f151d0, with ex-401 to ex-410 merged and CI green. 1479 workspace tests pass, the 24 goldens `--check` steps are current, the raster fixtures match the local Chrome, and the release CLI renders all 4187 items of the 232 catalogue libraries with no failures. SVG export reproduces the four `export.test.ts` snapshots and 48 whole `exportToSvg` documents byte for byte. D2 is not met. The two SVG snapshots of `export.test.tsx` are not reproduced as documents. No exported fixture scene is compared with the PNG upstream draws in Chrome, and text rasterization is never compared. Two gap tasks are open: ex-g401 for the two SVG snapshots and ex-g402 for the PNG comparison. PR: [#83](https://github.com/HutsonLabs/excali-rust/pull/83).
+
 ## 2026-09-28 · ex-410 · Corpus render: every catalogue library item renders to PNG without panic
 
 All 4,187 items of the 232 catalogue libraries now render to PNG. `excali lib preview` draws a library's items onto the same preview image as upstream's publish dialog (`generatePreviewImage`), and `--items` writes each item's own PNG. The new `corpus-render` CI job builds the release CLI and renders the whole catalogue. It keeps one contact sheet per library, plus `report.json` and `index.html`, as the `corpus-contact-sheets` artifact, and it fails unless all 232 libraries render with at least one item each. PR: [#82](https://github.com/HutsonLabs/excali-rust/pull/82).
