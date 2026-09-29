@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-28 · ex-g401 · SVG export: the two export.test.tsx snapshots reproduced as whole documents
+
+SVG export now matches upstream's two `export.test.tsx` snapshots as whole documents, byte for byte: the svg-embedded scene export and the SVG with transformed (rotated and flipped) images. The snapshot parsing is shared with the existing `export.test.ts` snapshot tests. That closes the first of the two M4 gap tasks. PR: [#86](https://github.com/HutsonLabs/excali-rust/pull/86).
+
 ## 2026-09-28 · ex-503 · Layered canvases at device-pixel scale (static, new-element, interactive) and scroll snapping
 
 The editor now mounts upstream's three stacked canvases (static, new-element while a preview is shown, interactive) with their classes and stylesheet rules, each backed at CSS size x devicePixelRatio. Every layer paints at the scroll snapped to whole device pixels and bootstraps its clear as upstream does, and the new-element scene (`renderNewElementScene`) is ported. A new `canvas-layers` CI job checks backing sizes, stacking and snapped painting in Chromium at device pixel ratios 1 to 3. PR: [#84](https://github.com/HutsonLabs/excali-rust/pull/84).
