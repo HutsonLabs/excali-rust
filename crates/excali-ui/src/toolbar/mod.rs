@@ -44,6 +44,7 @@ use web_sys::{Event, KeyboardEvent, MouseEvent};
 
 use crate::dom::{class_names, Element, Node};
 use crate::icons;
+use crate::mobile_menu::ToolPopover;
 use crate::primitives::{
     icon_button, island, stack_row, IconButtonKind, IconButtonProps, IslandProps, Rect, StackProps,
 };
@@ -115,12 +116,12 @@ pub fn toolbar_text(key: &str) -> &str {
     }
 }
 
-fn tool_label(ty: ToolType) -> String {
+pub(crate) fn tool_label(ty: ToolType) -> String {
     capitalize(toolbar_text(&format!("toolBar.{}", ty.as_str())))
 }
 
 /// JS `capitalizeString`.
-fn capitalize(s: &str) -> String {
+pub(crate) fn capitalize(s: &str) -> String {
     let mut chars = s.chars();
     match chars.next() {
         Some(first) => first.to_uppercase().chain(chars).collect(),
@@ -156,6 +157,15 @@ pub enum ToolbarEvent {
     MermaidToExcalidraw,
     /// "Wireframe to code": `onMagicframeToolSelect()`.
     MagicFrame,
+    /// A phone toolbar popover's trigger: toggle it and activate its
+    /// remembered option (`ToolPopover.tsx:73-76`); apply with
+    /// [`crate::mobile_menu::apply_toolbar_event`].
+    ToolPopoverTrigger(ToolPopover),
+    /// An option of an open phone toolbar popover (`ToolPopover.tsx:94-101`).
+    ToolPopoverOption(ToolPopover, ToolType),
+    /// The phone toolbar's measured width, when it differs from the one it
+    /// was rendered with (`setToolbarWidth`, `MobileToolbar.tsx:163-168`).
+    MobileToolbarWidth(f64),
 }
 
 /// Receives the toolbar's [`ToolbarEvent`]s.
@@ -189,7 +199,7 @@ pub struct ToolbarProps<'a> {
     pub on_event: Option<OnToolbarEvent>,
 }
 
-fn emit(on_event: &Option<OnToolbarEvent>, event: ToolbarEvent) {
+pub(crate) fn emit(on_event: &Option<OnToolbarEvent>, event: ToolbarEvent) {
     if let Some(f) = on_event {
         f(event);
     }
@@ -204,7 +214,7 @@ fn pointer_type(name: Option<String>) -> Option<PointerType> {
     }
 }
 
-fn icon_node(name: &str) -> Node {
+pub(crate) fn icon_node(name: &str) -> Node {
     let icon = icons::icon(name).unwrap_or_else(|| panic!("icons.tsx has no {name}"));
     Node::Element(
         icon.element(Theme::Light)
@@ -212,12 +222,24 @@ fn icon_node(name: &str) -> Node {
     )
 }
 
-fn tool_icon(ty: ToolType) -> Node {
+pub(crate) fn tool_icon(ty: ToolType) -> Node {
     icon_node(tool_config(ty).map_or("", |c| c.icon))
 }
 
-fn active_type(tools: &ToolState) -> Option<ToolType> {
+pub(crate) fn active_type(tools: &ToolState) -> Option<ToolType> {
     tools.active_tool.tool.builtin()
+}
+
+/// What of its shortcut a tool button shows (`createToolButton`'s
+/// `hideKeyBinding` and `hideShortcut`).
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ShortcutDisplay {
+    /// The tooltip hint, `aria-keyshortcuts` and the corner badge.
+    Full,
+    /// No corner badge (`hideKeyBinding`).
+    NoKeyBinding,
+    /// None of them (`hideShortcut`, the phone's buttons).
+    Hidden,
 }
 
 /// A tool button (`createToolButton`, `Tools.tsx:266-326`): `shortcut` is
@@ -228,20 +250,36 @@ fn tool_button(
     shortcut: ToolType,
     hide_key_binding: bool,
 ) -> Node {
+    let display = if hide_key_binding {
+        ShortcutDisplay::NoKeyBinding
+    } else {
+        ShortcutDisplay::Full
+    };
+    tool_button_for(props.tools, &props.on_event, ty, shortcut, display)
+}
+
+/// [`tool_button`] over a tool state and listener.
+pub(crate) fn tool_button_for(
+    tools: &ToolState,
+    on_event: &Option<OnToolbarEvent>,
+    ty: ToolType,
+    shortcut: ToolType,
+    display: ShortcutDisplay,
+) -> Node {
     let labels = ShortcutLabels::EN;
     let label = tool_label(ty);
-    let hint = get_tool_shortcut(shortcut, &labels);
-    let key_binding = (!hide_key_binding).then(|| {
+    let hint = (display != ShortcutDisplay::Hidden).then(|| get_tool_shortcut(shortcut, &labels));
+    let key_binding = (display == ShortcutDisplay::Full).then(|| {
         get_tool_letter(shortcut, &labels)
             .or_else(|| tool_config(shortcut).and_then(|c| c.numeric_key.map(str::to_owned)))
             .unwrap_or_default()
     });
     let fillable = tool_config(ty).is_some_and(|c| c.is_fillable());
-    let on_select = props.on_event.clone();
-    let on_down = props.on_event.clone();
+    let on_select = on_event.clone();
+    let on_down = on_event.clone();
     Node::Element(icon_button(IconButtonProps {
         kind: IconButtonKind::Toggle {
-            checked: active_type(props.tools) == Some(ty),
+            checked: active_type(tools) == Some(ty),
         },
         class_name: if fillable {
             "fillable".into()
@@ -249,11 +287,14 @@ fn tool_button(
             String::new()
         },
         icon: Some(tool_icon(ty)),
-        disabled: props.tools.is_tool_button_disabled(ty.as_str()),
-        title: Some(format!("{label} — {hint}")),
+        disabled: tools.is_tool_button_disabled(ty.as_str()),
+        title: Some(match &hint {
+            Some(hint) => format!("{label} — {hint}"),
+            None => label.clone(),
+        }),
         key_binding_label: key_binding,
         aria_label: label,
-        aria_keyshortcuts: Some(hint),
+        aria_keyshortcuts: hint,
         test_id: Some(format!("toolbar-{}", ty.as_str())),
         on_pointer_down: Some(Rc::new(move |e: &Event| {
             emit(
@@ -395,15 +436,15 @@ pub fn toolbar(props: ToolbarProps<'_>) -> Element {
 // -- extra tools --------------------------------------------------------------
 
 /// A dropdown entry.
-struct MenuItem {
-    icon: &'static str,
-    label: String,
-    shortcut: Option<String>,
-    test_id: &'static str,
-    selected: bool,
-    disabled: bool,
-    badge: Option<&'static str>,
-    event: ToolbarEvent,
+pub(crate) struct MenuItem {
+    pub icon: &'static str,
+    pub label: String,
+    pub shortcut: Option<String>,
+    pub test_id: &'static str,
+    pub selected: bool,
+    pub disabled: bool,
+    pub badge: Option<&'static str>,
+    pub event: ToolbarEvent,
 }
 
 /// `ExtraToolsDropdown` (`Toolbar.tsx:54-222`).
@@ -508,18 +549,44 @@ fn extra_tools_dropdown(props: &ToolbarProps<'_>) -> Element {
         ("App-toolbar__extra-tools-trigger", true),
         ("App-toolbar__extra-tools-trigger--selected", selected),
     ]);
-    let on_toggle = props.on_event.clone();
-    let trigger = Element::new("button")
+    let trigger = extra_tools_trigger(
+        &trigger_id,
+        &content_id,
+        open,
+        format!("dropdown-menu-button {trigger_class} zen-mode-transition"),
+        trigger_icon,
+        &props.on_event,
+    );
+    let mut wrapper = Element::new("div")
+        .attr("class", DROPDOWN_MENU_EVENT_WRAPPER)
+        .style("display", "contents")
+        .child(trigger);
+    if open {
+        wrapper = wrapper.child(menu(props, items, &trigger_id, &content_id));
+    }
+    wrapper
+}
+
+/// The "More tools" trigger (`DropdownMenu.Trigger`, radix's
+/// `DropdownMenu.Trigger` of react-dropdown-menu 2.1.16) of class `class`
+/// showing `icon`.
+pub(crate) fn extra_tools_trigger(
+    trigger_id: &str,
+    content_id: &str,
+    open: bool,
+    class: String,
+    icon: &str,
+    on_event: &Option<OnToolbarEvent>,
+) -> Element {
+    let on_toggle = on_event.clone();
+    Element::new("button")
         .attr("type", "button")
-        .attr("id", trigger_id.clone())
+        .attr("id", trigger_id.to_owned())
         .attr("aria-haspopup", "menu")
         .attr("aria-expanded", open.to_string())
-        .attr_opt("aria-controls", open.then(|| content_id.clone()))
+        .attr_opt("aria-controls", open.then(|| content_id.to_owned()))
         .attr("data-state", if open { "open" } else { "closed" })
-        .attr(
-            "class",
-            format!("dropdown-menu-button {trigger_class} zen-mode-transition"),
-        )
+        .attr("class", class)
         .attr("data-testid", "dropdown-menu-button")
         .attr("title", toolbar_text("toolBar.extraTools"))
         // radix's trigger (react-dropdown-menu 2.1.16): a primary press
@@ -543,19 +610,11 @@ fn extra_tools_dropdown(props: &ToolbarProps<'_>) -> Element {
         .on("click", move |_| {
             emit(&on_toggle, ToolbarEvent::ExtraToolsToggle)
         })
-        .child(icon_node(trigger_icon));
-    let mut wrapper = Element::new("div")
-        .attr("class", DROPDOWN_MENU_EVENT_WRAPPER)
-        .style("display", "contents")
-        .child(trigger);
-    if open {
-        wrapper = wrapper.child(menu(props, items, &trigger_id, &content_id));
-    }
-    wrapper
+        .child(icon_node(icon))
 }
 
 /// `DropdownMenuItem` (`DropdownMenuItem.tsx`) in radix's `Menu.Item`.
-fn menu_item(item: MenuItem, on_event: &Option<OnToolbarEvent>) -> Node {
+pub(crate) fn menu_item(item: MenuItem, on_event: &Option<OnToolbarEvent>) -> Node {
     let class = format!(
         "dropdown-menu-item dropdown-menu-item-base  {}",
         if item.selected {
@@ -685,6 +744,25 @@ pub(crate) fn radix_menu_content(
     container: Element,
     close: Rc<dyn Fn()>,
 ) -> Element {
+    radix_menu_content_aligned(
+        class,
+        DropdownAlign::End,
+        trigger_id,
+        content_id,
+        container,
+        close,
+    )
+}
+
+/// [`radix_menu_content`] aligned to the trigger's `align` edge.
+pub(crate) fn radix_menu_content_aligned(
+    class: &str,
+    align: DropdownAlign,
+    trigger_id: &str,
+    content_id: &str,
+    container: Element,
+    close: Rc<dyn Fn()>,
+) -> Element {
     let on_key = close.clone();
     let trigger = trigger_id.to_owned();
     let content = Element::new("div")
@@ -696,7 +774,13 @@ pub(crate) fn radix_menu_content(
         .attr("data-radix-menu-content", "")
         .attr("dir", "ltr")
         .attr("data-side", "bottom")
-        .attr("data-align", "end")
+        .attr(
+            "data-align",
+            match align {
+                DropdownAlign::Start => "start",
+                DropdownAlign::End => "end",
+            },
+        )
         .attr("class", class)
         .attr("data-testid", "dropdown-menu")
         .attr("tabindex", "-1")
@@ -732,7 +816,7 @@ pub(crate) fn radix_menu_content(
         .attr("data-radix-popper-content-wrapper", "")
         .attr("dir", "ltr")
         .on_mount(move |wrapper| {
-            place(wrapper, &trigger);
+            place(wrapper, &trigger, align);
             close_on_outside_press(wrapper, close.clone());
         })
         .child(content)
@@ -796,7 +880,7 @@ fn menu_keydown(e: &KeyboardEvent, close: &dyn Fn()) {
 
 /// Places the popper wrapper by its trigger and focuses the menu (radix
 /// focuses the content when it opens).
-fn place(wrapper: &web_sys::Element, trigger_id: &str) {
+fn place(wrapper: &web_sys::Element, trigger_id: &str, align: DropdownAlign) {
     let Some(document) = wrapper.owner_document() else {
         return;
     };
@@ -830,7 +914,7 @@ fn place(wrapper: &web_sys::Element, trigger_id: &str) {
             )
         })
         .unwrap_or((0.0, 0.0));
-    let placed = dropdown_position(
+    let placed = dropdown_position_aligned(
         Rect {
             left: t.left(),
             top: t.top(),
@@ -839,6 +923,7 @@ fn place(wrapper: &web_sys::Element, trigger_id: &str) {
         },
         (c.width(), c.height()),
         (vw, vh),
+        align,
     );
     let _ = style.set_property(
         "transform",
@@ -905,6 +990,15 @@ fn close_on_outside_press(wrapper: &web_sys::Element, close: Rc<dyn Fn()>) {
 
 // -- placement ----------------------------------------------------------------
 
+/// The trigger edge the menu lines up with (`align`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DropdownAlign {
+    /// The left edges (`align="start"`, the phone toolbar's menu).
+    Start,
+    /// The right edges (`align="end"`).
+    End,
+}
+
 /// The side of the trigger the menu opened on.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DropdownSide {
@@ -932,6 +1026,16 @@ pub fn dropdown_position(
     content: (f64, f64),
     viewport: (f64, f64),
 ) -> DropdownPlacement {
+    dropdown_position_aligned(trigger, content, viewport, DropdownAlign::End)
+}
+
+/// [`dropdown_position`] with the menu's `align` edge on the trigger's.
+pub fn dropdown_position_aligned(
+    trigger: Rect,
+    content: (f64, f64),
+    viewport: (f64, f64),
+    align: DropdownAlign,
+) -> DropdownPlacement {
     let (width, height) = content;
     let below = trigger.top + trigger.height + DROPDOWN_SIDE_OFFSET;
     let above = trigger.top - DROPDOWN_SIDE_OFFSET - height;
@@ -946,14 +1050,17 @@ pub fn dropdown_position(
         DropdownSide::Bottom => below,
         DropdownSide::Top => above,
     };
-    let x = trigger.left + trigger.width - width;
+    let x = match align {
+        DropdownAlign::Start => trigger.left,
+        DropdownAlign::End => trigger.left + trigger.width - width,
+    };
     let x = x.min(viewport.0 - width).max(0.0);
     DropdownPlacement { x, y, side }
 }
 
 // -- activation ---------------------------------------------------------------
 
-fn set_tool(tools: &mut ToolState, ty: ToolType) -> Result<ToolSwitch, ToolRefusal> {
+pub(crate) fn set_tool(tools: &mut ToolState, ty: ToolType) -> Result<ToolSwitch, ToolRefusal> {
     tools.set_active_tool(
         ToolRequest::new(Tool::Builtin(ty)),
         SetActiveToolOptions::default(),

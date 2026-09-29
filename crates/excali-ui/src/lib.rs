@@ -12,11 +12,13 @@
 //! [`theme`] the light and dark tokens of `css/theme.scss` and the
 //! container's `theme--dark` class; for
 //! [`icons`] the icon set of `components/icons.tsx`; for
-//! [`styles_panel`] the full and compact styles panels
+//! [`styles_panel`] the full, compact and mobile styles panels
 //! (`components/Actions.tsx`, `LayerUI.tsx`); for [`editor_interface`]
 //! the form factor rules (`common/src/editorInterface.ts`); for [`toolbar`] the desktop shapes toolbar and its
 //! extra-tools dropdown (`components/Toolbar.tsx`, `Tools.tsx`); for
-//! [`main_menu`] the hamburger menu (`components/main-menu/*`,
+//! [`mobile_menu`] the phone layout's top and bottom bars and toolbar
+//! (`components/MobileMenu.tsx`, `MobileToolbar.tsx`, `ToolPopover.tsx`);
+//! for [`main_menu`] the hamburger menu (`components/main-menu/*`,
 //! `components/dropdownMenu/*`); for [`context_menu`] the canvas and
 //! element context menus (`components/ContextMenu.tsx`); for [`footer`]
 //! the footer's zoom, undo/redo, help and exit-zen controls
@@ -39,6 +41,7 @@ pub mod keyboard;
 pub mod layers;
 pub mod library_sidebar;
 pub mod main_menu;
+pub mod mobile_menu;
 pub mod primitives;
 pub mod styles_panel;
 pub mod text_editor;

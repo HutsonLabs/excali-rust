@@ -24,7 +24,8 @@ use excali_ui::editor_interface::{get_form_factor, FormFactor};
 use excali_ui::mobile_menu::{
     apply_toolbar_event, init_selection_tool, mobile_menu, mobile_text, mobile_toolbar,
     tool_popover_position, toolbar_width, tools_outside, MobileMenuProps, MobileToolbarProps,
-    MobileToolbarState, ToolPopover, MIN_WIDTH, MOBILE_MENU_CSS, TOOL_GAP, TOOL_SIZE,
+    MobileToolbarState, ToolPopover, MIN_WIDTH, MOBILE_MENU_CSS, SCROLLBAR_MARGIN, SCROLLBAR_WIDTH,
+    TOOL_GAP, TOOL_SIZE,
 };
 use excali_ui::primitives::Rect;
 use excali_ui::toolbar::{DropdownSide, ToolbarEvent};
@@ -306,9 +307,25 @@ fn toolbar_order_matches_the_research_page() {
         .collect();
     assert_eq!(
         order,
-        ["hand", "selection", "freedraw", "eraser", "rectangle", "arrow", "text", "extra-tools"]
+        [
+            "hand",
+            "selection",
+            "freedraw",
+            "eraser",
+            "rectangle",
+            "arrow",
+            "text",
+            "extra-tools"
+        ]
     );
-    let base = ["hand", "selection", "freedraw", "eraser", "rectangle", "arrow"];
+    let base = [
+        "hand",
+        "selection",
+        "freedraw",
+        "eraser",
+        "rectangle",
+        "arrow",
+    ];
     for (width, extra) in [
         (0.0, vec![]),
         (MIN_WIDTH, vec![]),
@@ -340,7 +357,9 @@ fn widths_follow_upstreams_thresholds_and_the_bottom_bar() {
     assert_eq!(TOOL_SIZE, 36.0);
     assert_eq!(TOOL_GAP, 4.0);
     assert_eq!(MIN_WIDTH, 7.0 * 36.0 + 6.0 * 4.0);
-    for w in [0.0, 275.0, 276.0, 315.0, 316.0, 355.0, 356.0, 395.0, 396.0, 442.0] {
+    for w in [
+        0.0, 275.0, 276.0, 315.0, 316.0, 355.0, 356.0, 395.0, 396.0, 442.0,
+    ] {
         let o = tools_outside(w);
         assert_eq!(o.text, w >= 316.0, "{w}");
         assert_eq!(o.image, w >= 356.0, "{w}");
@@ -348,8 +367,15 @@ fn widths_follow_upstreams_thresholds_and_the_bottom_bar() {
     }
     for row in fixture()["toolbarWidth"].as_array().unwrap() {
         let editor = row["editor"].as_f64().unwrap();
-        assert_eq!(toolbar_width(editor), row["toolbar"].as_f64().unwrap(), "{editor}");
+        assert_eq!(
+            toolbar_width(editor),
+            row["toolbar"].as_f64().unwrap(),
+            "{editor}"
+        );
     }
+    let f = fixture();
+    assert_eq!(f["scrollbar"]["width"].as_f64(), Some(SCROLLBAR_WIDTH));
+    assert_eq!(f["scrollbar"]["margin"].as_f64(), Some(SCROLLBAR_MARGIN));
     // the compiled rules the widths come from
     assert!(MOBILE_MENU_CSS.contains("width: calc(100% - 28px);\n  max-width: 450px;"));
     assert!(MOBILE_MENU_CSS.contains(".excalidraw .App-bottom-bar > .Island {"));
@@ -387,14 +413,19 @@ fn a_phone_starts_with_the_lasso() {
 
     let mut tools = ToolState::default();
     init_selection_tool(&mut tools, FormFactor::Tablet);
-    assert_eq!(tools.preferred_selection_tool.tool, SelectionTool::Selection);
+    assert_eq!(
+        tools.preferred_selection_tool.tool,
+        SelectionTool::Selection
+    );
     assert_eq!(tools.active_tool.tool, Tool::Builtin(ToolType::Selection));
 
     // an initialized preference stays; image restores to it too
-    let mut tools = ToolState::default();
-    tools.preferred_selection_tool = PreferredSelectionTool {
-        tool: SelectionTool::Selection,
-        initialized: true,
+    let mut tools = ToolState {
+        preferred_selection_tool: PreferredSelectionTool {
+            tool: SelectionTool::Selection,
+            initialized: true,
+        },
+        ..ToolState::default()
     };
     tools.active_tool.tool = Tool::Builtin(ToolType::Image);
     init_selection_tool(&mut tools, FormFactor::Phone);
@@ -412,14 +443,19 @@ fn a_phone_starts_with_the_lasso() {
 #[test]
 fn matches_mockup_06() {
     let html = include_str!("../../../site/static/mockups/06-phone.html");
-    let start = html.find("class=\"Stack mob\"").expect("the mockup's toolbar");
+    let start = html
+        .find("class=\"Stack mob\"")
+        .expect("the mockup's toolbar");
     let end = start + html[start..].find("</div>").unwrap();
     let titles: Vec<(&str, bool)> = html[start..end]
         .split("<button ")
         .skip(1)
         .map(|b| {
             let t = b.split("title=\"").nth(1).unwrap();
-            (&t[..t.find('"').unwrap()], b.starts_with("class=\"ToolIcon active\""))
+            (
+                &t[..t.find('"').unwrap()],
+                b.starts_with("class=\"ToolIcon active\""),
+            )
         })
         .collect();
     let mockup: Vec<&str> = titles
@@ -465,7 +501,9 @@ fn matches_mockup_06() {
     assert_eq!(trigger.attribute("aria-pressed"), Some("true"));
     assert_eq!(trigger.attribute("title"), Some("Lasso selection"));
     // 36 px buttons (MobileToolbar.scss: 2.25rem icons)
-    assert!(MOBILE_MENU_CSS.contains("width: 2.25rem;\n      height: 2.25rem;"));
+    assert!(MOBILE_MENU_CSS.contains(
+        ".excalidraw .mobile-toolbar .ToolIcon .ToolIcon__icon {\n  width: 2.25rem;\n  height: 2.25rem;\n}"
+    ));
 }
 
 // -- behaviour ----------------------------------------------------------------
@@ -494,7 +532,10 @@ fn popover_triggers_activate_their_remembered_option() {
     );
     assert_eq!(active(&tools), ToolType::Ellipse);
     assert_eq!(state.open_popover, Some(ToolPopover::Shapes));
-    assert_eq!(state.displayed(ToolPopover::Shapes, &tools), ToolType::Ellipse);
+    assert_eq!(
+        state.displayed(ToolPopover::Shapes, &tools),
+        ToolType::Ellipse
+    );
     // another trigger: its tool, and the shapes popover closes (its
     // options no longer hold the active tool)
     apply_toolbar_event(
@@ -519,7 +560,11 @@ fn popover_triggers_activate_their_remembered_option() {
     );
     assert_eq!(active(&tools), ToolType::Ellipse);
     // a tool chosen elsewhere closes the popover and is remembered
-    apply_toolbar_event(&mut state, &mut tools, &ToolbarEvent::ExtraTool(ToolType::Frame));
+    apply_toolbar_event(
+        &mut state,
+        &mut tools,
+        &ToolbarEvent::ExtraTool(ToolType::Frame),
+    );
     assert_eq!(state.open_popover, None);
     tools.active_tool.tool = Tool::Builtin(ToolType::Line);
     state.sync(&tools);
@@ -552,7 +597,10 @@ fn the_selection_popover_sets_the_preferred_selection_tool() {
             initialized: true
         }
     );
-    assert_eq!(state.displayed(ToolPopover::Selection, &tools), ToolType::Lasso);
+    assert_eq!(
+        state.displayed(ToolPopover::Selection, &tools),
+        ToolType::Lasso
+    );
     // the trigger activates the preferred tool
     tools.active_tool.tool = Tool::Builtin(ToolType::Hand);
     apply_toolbar_event(
@@ -569,7 +617,11 @@ fn the_extra_tools_menu_toggles_and_selects() {
     let mut state = MobileToolbarState::new(&tools);
     apply_toolbar_event(&mut state, &mut tools, &ToolbarEvent::ExtraToolsToggle);
     assert!(state.extra_tools_open);
-    apply_toolbar_event(&mut state, &mut tools, &ToolbarEvent::ExtraTool(ToolType::Laser));
+    apply_toolbar_event(
+        &mut state,
+        &mut tools,
+        &ToolbarEvent::ExtraTool(ToolType::Laser),
+    );
     apply_toolbar_event(&mut state, &mut tools, &ToolbarEvent::ExtraToolsClose);
     assert!(!state.extra_tools_open);
     assert_eq!(active(&tools), ToolType::Laser);
@@ -605,14 +657,23 @@ fn tool_popovers_open_above_the_bottom_bar() {
     assert_eq!(p.side, DropdownSide::Top);
     assert_eq!(p.y, 790.0 - 16.0 - 52.0);
     assert_eq!(p.x, 218.0 - 65.0);
-    let top = Rect { top: 100.0, ..trigger };
+    let top = Rect {
+        top: 100.0,
+        ..trigger
+    };
     let p = tool_popover_position(top, (130.0, 52.0), boundary);
     assert_eq!(p.side, DropdownSide::Bottom);
     assert_eq!(p.y, 100.0 + 36.0 + 16.0);
-    let edge = Rect { left: 350.0, ..trigger };
+    let edge = Rect {
+        left: 350.0,
+        ..trigger
+    };
     let p = tool_popover_position(edge, (130.0, 52.0), boundary);
     assert_eq!(p.x, 390.0 - 130.0);
-    let edge = Rect { left: 0.0, ..trigger };
+    let edge = Rect {
+        left: 0.0,
+        ..trigger
+    };
     let p = tool_popover_position(edge, (130.0, 52.0), boundary);
     assert_eq!(p.x, 0.0);
 }
@@ -638,7 +699,10 @@ fn toolbar_buttons_listen() {
     fn walk(n: &Node, found: &mut Vec<(String, Vec<String>)>) {
         if let Node::Element(el) = n {
             if let Some(id) = el.attribute("data-testid") {
-                found.push((id.to_owned(), el.listened_events().map(str::to_owned).collect()));
+                found.push((
+                    id.to_owned(),
+                    el.listened_events().map(str::to_owned).collect(),
+                ));
             }
             el.children().iter().for_each(|c| walk(c, found));
         }
