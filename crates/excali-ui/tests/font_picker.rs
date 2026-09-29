@@ -163,7 +163,9 @@ fn the_key_map_is_keyboard_nav_handlers() {
             key: c["key"].as_str().unwrap().to_owned(),
             code: String::new(),
             shift: mods.contains(&"shift"),
-            ctrl_or_cmd: mods.contains(&"ctrl") || mods.contains(&"meta"),
+            // jsdom's navigator.platform is empty: KEYS.CTRL_OR_CMD is
+            // ctrlKey there, as off a Mac
+            ctrl_or_cmd: mods.contains(&"ctrl"),
         };
         let out = font_picker_key_handler(&input, family(&c["hovered"]), &list);
         let calls: Vec<Value> = out.effect.iter().map(effect_json).collect();
@@ -274,7 +276,9 @@ fn state_from(v: &Value) -> FontPickerState {
         open_popup: v["openPopup"].as_str().map(str::to_owned),
         selected: family(&v["selectedFontFamily"]),
         hovered: family(&v["currentHoveredFontFamily"]),
-        top_picks: v["fontTopPicks"].as_array().map(|_| families(&v["fontTopPicks"])),
+        top_picks: v["fontTopPicks"]
+            .as_array()
+            .map(|_| families(&v["fontTopPicks"])),
         search: String::new(),
     }
 }
@@ -292,7 +296,11 @@ fn call_json(e: &FontPickerEvent, before: &FontPickerState) -> Value {
             json!(["setAppState", {"openPopup": next}])
         }
         FontPickerEvent::TopPicksChange(p) => {
-            json!(["topPicksChange", p.as_ref().map(|p| p.iter().map(|f| f.0).collect::<Vec<_>>())])
+            json!([
+                "topPicksChange",
+                p.as_ref()
+                    .map(|p| p.iter().map(|f| f.0).collect::<Vec<_>>())
+            ])
         }
         FontPickerEvent::Search(_) => unreachable!("not a callback of the host"),
     }
@@ -346,7 +354,11 @@ fn props(case: &Value, state: &FontPickerState) -> FontPickerProps {
 
 /// The events the picker's DOM sends for a step: what its listeners
 /// compute from the state it was rendered with.
-fn step_events(step: &Value, state: &FontPickerState, cx: &FontListContext) -> Vec<FontPickerEvent> {
+fn step_events(
+    step: &Value,
+    state: &FontPickerState,
+    cx: &FontListContext,
+) -> Vec<FontPickerEvent> {
     let filtered = filtered_fonts(cx, &state.search);
     let hovered = hovered_font(&filtered, state).0;
     if step["click"] == "trigger" {
@@ -397,6 +409,19 @@ fn step_events(step: &Value, state: &FontPickerState, cx: &FontListContext) -> V
     panic!("step {step}")
 }
 
+/// radix portals the popup into the editor container: React inserts it
+/// before the picker when both mount together and appends it after when
+/// the popup opens later. The popper is fixed-positioned, so the order is
+/// no layout; the builder always puts it first.
+fn portal_first(mut nodes: Vec<Value>) -> Vec<Value> {
+    nodes.sort_by_key(|n| {
+        n["attrs"]
+            .get("data-radix-popper-content-wrapper")
+            .is_none()
+    });
+    nodes
+}
+
 #[test]
 fn every_case_and_step_renders_upstreams_dom_and_state() {
     let cases = fixture()["cases"].as_array().unwrap();
@@ -423,7 +448,8 @@ fn every_case_and_step_renders_upstreams_dom_and_state() {
             assert_eq!(state_json(&state), step["state"], "{at}: state");
             let expected_calls = dedup(step["calls"].as_array().unwrap().clone());
             assert_eq!(dedup(calls), expected_calls, "{at}: calls");
-            let expected: Vec<Value> = step["dom"].as_array().unwrap().iter().map(expand).collect();
+            let expected =
+                portal_first(step["dom"].as_array().unwrap().iter().map(expand).collect());
             let actual: Vec<Value> = font_picker(&props(case, &state)).iter().map(tree).collect();
             if actual != expected {
                 panic!(
@@ -528,7 +554,8 @@ fn shift_f_opens_it_and_refocuses_the_search_inside() {
         "currentHoveredFontFamily": null,
         "fontTopPicks": null,
     });
-    let state = FontPickerState::from_app_state(app_state.as_object().unwrap(), Some(FontFamily(5)));
+    let state =
+        FontPickerState::from_app_state(app_state.as_object().unwrap(), Some(FontFamily(5)));
     assert!(state.is_open());
     let mut props = open_props(&[]);
     props.state = state;
