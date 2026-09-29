@@ -72,12 +72,12 @@ The suite's first test fails when a row has no test, a test has no row, or a sta
 
 | Row | Behaviour (upstream at the pin) | Upstream | Issue | Status |
 |---|---|---|---|---|
-| edit-delete | Delete removes the selected elements. | `excalidraw/actions/actionDeleteSelected.tsx:208` | ex-514 | gap |
-| edit-duplicate | Ctrl/Cmd+D duplicates the selection 10 px right and down. | `excalidraw/actions/actionDuplicateSelection.tsx:34`, `excalidraw/actions/actionDuplicateSelection.tsx:78-79` | ex-514 | gap |
-| edit-group | Ctrl/Cmd+G gives the selected elements one shared group id. | `excalidraw/actions/actionGroup.tsx:86` | ex-514 | gap |
-| edit-zorder | Ctrl/Cmd+Shift+] brings the selection to the front. | `excalidraw/actions/actionZindex.tsx:120` | ex-514 | gap |
+| edit-delete | Delete removes the selected elements. | `excalidraw/actions/actionDeleteSelected.tsx:208` | ex-514 | pass |
+| edit-duplicate | Ctrl/Cmd+D duplicates the selection 10 px right and down. | `excalidraw/actions/actionDuplicateSelection.tsx:34`, `excalidraw/actions/actionDuplicateSelection.tsx:78-79` | ex-514 | pass |
+| edit-group | Ctrl/Cmd+G gives the selected elements one shared group id. | `excalidraw/actions/actionGroup.tsx:86` | ex-514 | pass |
+| edit-zorder | Ctrl/Cmd+Shift+] brings the selection to the front. | `excalidraw/actions/actionZindex.tsx:120` | ex-514 | pass |
 | edit-undo-redo | Ctrl/Cmd+Z undoes a move and Ctrl/Cmd+Shift+Z redoes it. | `excalidraw/history.ts`, `element/src/store.ts` | ex-513 | pass |
-| edit-copy-paste | Ctrl/Cmd+C then Ctrl/Cmd+V pastes a copy of the selection. | `excalidraw/actions/actionClipboard.tsx:23`, `excalidraw/actions/actionClipboard.tsx:55` | ex-514 | gap |
+| edit-copy-paste | Ctrl/Cmd+C then Ctrl/Cmd+V pastes a copy of the selection. | `excalidraw/actions/actionClipboard.tsx:23`, `excalidraw/actions/actionClipboard.tsx:55` | ex-514 | pass |
 
 ## Bound text and arrows
 

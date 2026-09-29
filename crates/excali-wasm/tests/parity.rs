@@ -585,3 +585,94 @@ fn text_dblclick_label() {
     // the keyboard submit selects the container
     assert_eq!(selected(&ed), ["a"]);
 }
+
+// -- Editing ------------------------------------------------------------------
+
+fn ids(ed: &Ed) -> Vec<String> {
+    live(ed).iter().map(|e| e.base.id.clone()).collect()
+}
+
+#[test]
+fn edit_delete() {
+    let mut ed = editor_with(vec![rect("a", 100.0, 100.0), rect("b", 300.0, 100.0)]);
+    click(&mut ed, [150.0, 150.0]);
+    key(&mut ed, Keystroke::new("Delete", "Delete"));
+    assert_eq!(ids(&ed), ["b"]);
+    assert!(selected(&ed).is_empty());
+    key(&mut ed, Keystroke::new("z", "KeyZ").ctrl());
+    assert_eq!(ids(&ed), ["a", "b"]);
+    // Backspace deletes too
+    click(&mut ed, [350.0, 150.0]);
+    key(&mut ed, Keystroke::new("Backspace", "Backspace"));
+    assert_eq!(ids(&ed), ["a"]);
+}
+
+#[test]
+fn edit_duplicate() {
+    let mut ed = editor_with(vec![rect("a", 100.0, 100.0)]);
+    click(&mut ed, [150.0, 150.0]);
+    key(&mut ed, Keystroke::new("d", "KeyD").ctrl());
+    let all = live(&ed);
+    assert_eq!(all.len(), 2);
+    let copy = all.iter().find(|e| e.base.id != "a").unwrap();
+    let j = json_of(copy);
+    assert_eq!(j["type"], "rectangle");
+    assert_eq!(
+        [&j["x"], &j["y"], &j["width"], &j["height"]],
+        [&json!(110.0), &json!(110.0), &json!(100.0), &json!(100.0)]
+    );
+    // the copy is selected, above the original
+    assert_eq!(selected(&ed), [copy.base.id.clone()]);
+    assert_eq!(ids(&ed)[1], copy.base.id);
+}
+
+#[test]
+fn edit_group() {
+    let mut ed = editor_with(vec![rect("a", 100.0, 100.0), rect("b", 300.0, 100.0)]);
+    key(&mut ed, Keystroke::new("a", "KeyA").ctrl());
+    key(&mut ed, Keystroke::new("g", "KeyG").ctrl());
+    let (a, b) = (get(&ed, "a"), get(&ed, "b"));
+    assert_eq!(a.base.group_ids.len(), 1);
+    assert_eq!(a.base.group_ids, b.base.group_ids);
+    // Ctrl+Shift+G ungroups
+    key(&mut ed, Keystroke::new("G", "KeyG").ctrl().shift());
+    assert!(get(&ed, "a").base.group_ids.is_empty());
+}
+
+#[test]
+fn edit_zorder() {
+    let mut ed = editor_with(vec![rect("a", 100.0, 100.0), rect("b", 300.0, 100.0)]);
+    click(&mut ed, [150.0, 150.0]);
+    key(&mut ed, Keystroke::new("}", "BracketRight").ctrl().shift());
+    assert_eq!(ids(&ed), ["b", "a"]);
+    // the indices follow the order
+    let (a, b) = (get(&ed, "a"), get(&ed, "b"));
+    assert!(b.base.index < a.base.index);
+    key(&mut ed, Keystroke::new("{", "BracketLeft").ctrl().shift());
+    assert_eq!(ids(&ed), ["a", "b"]);
+}
+
+#[test]
+fn edit_copy_paste() {
+    let mut ed = editor_with(vec![rect("a", 100.0, 100.0)]);
+    click(&mut ed, [150.0, 150.0]);
+    let text = ed.copy().expect("the selection is copied");
+    let data: Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(data["type"], "excalidraw/clipboard");
+    assert_eq!(data["elements"][0]["id"], "a");
+    ed.pointer_move(PointerInput::at(500.0, 400.0));
+    ed.paste(&text, false);
+    let all = live(&ed);
+    assert_eq!(all.len(), 2);
+    let copy = all.iter().find(|e| e.base.id != "a").unwrap();
+    // centred on the pointer
+    assert_eq!(
+        (copy.base.x + 50.0, copy.base.y + 50.0),
+        (500.0, 400.0)
+    );
+    assert_eq!(selected(&ed), [copy.base.id.clone()]);
+    // cut: copied, then deleted
+    let cut = ed.cut().expect("the selection is cut");
+    assert!(cut.contains(&copy.base.id));
+    assert_eq!(ids(&ed), ["a"]);
+}
