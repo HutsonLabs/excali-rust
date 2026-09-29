@@ -1,5 +1,8 @@
 # Rust gates on every pull request and on main: formatting, clippy with
-# warnings as errors, the test suite, the published JSON Schemas against the
+# warnings as errors, the test suite (on a pull request, in check and
+# test-macos, only the crates scripts/gates/affected.py finds affected, and
+# the golden harness only when one is; every push to main runs the whole
+# workspace; owner decision 2026-09-29, ex-010), the published JSON Schemas against the
 # model (ex-115), the crate-graph gate (the workspace must
 # match site/content/architecture/overview.md), the calendar-version gate
 # (ADR-009), the wasm32 build of every
@@ -33,6 +36,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # affected.py diffs against the base branch's merge base.
+          fetch-depth: 0
       # tauri-plugin-excali (ex-605): tauri and tauri-plugin-dialog link
       # GTK 3 and WebKitGTK 4.1 on Linux, even on the mock runtime its
       # tests use.
@@ -45,13 +51,35 @@ jobs:
         run: cargo fmt --all --check
       - name: clippy
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      # ex-010 (owner decision 2026-09-29): on a pull request, cargo test
+      # runs on the affected crates only (scripts/gates/affected.py: the
+      # crates owning or reading a changed file, plus their reverse
+      # dependents; --workspace when a shared file changed; nothing for
+      # docs and site pages no crate reads). Pushes to main run --workspace.
+      - name: affected crates
+        id: affected
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            args="$(python3 scripts/gates/affected.py "origin/${{ github.base_ref }}")"
+          else
+            args="--workspace"
+          fi
+          echo "cargo test args: ${args:-(none, no crate affected)}"
+          echo "args=$args" >> "$GITHUB_OUTPUT"
       - name: test
-        run: cargo test --workspace --locked
+        if: steps.affected.outputs.args != ''
+        env:
+          ARGS: ${{ steps.affected.outputs.args }}
+        run: |
+          # ARGS is a list of cargo arguments, split on purpose.
+          # shellcheck disable=SC2086
+          cargo test --locked $ARGS
       # ex-009: the golden harness and parity tests on x86_64 as well (the
       # goldens job runs them on arm64, test-macos on macOS): excali_math::js
       # returns V8's doubles on every platform, so they compare exactly here
-      # too.
+      # too. Skipped on a pull request that affects no crate.
       - name: golden harness and parity tests (x86_64)
+        if: steps.affected.outputs.args != ''
         run: >-
           cargo test --workspace --locked --features goldens
           --test golden_harness --test goldens_manifest --test goldens
@@ -92,12 +120,32 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - name: toolchain (from rust-toolchain.toml)
         run: rustup toolchain install
       - uses: Swatinem/rust-cache@v2
+      # ex-010: the affected crates on a pull request, as in check.
+      - name: affected crates
+        id: affected
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            args="$(python3 scripts/gates/affected.py "origin/${{ github.base_ref }}")"
+          else
+            args="--workspace"
+          fi
+          echo "cargo test args: ${args:-(none, no crate affected)}"
+          echo "args=$args" >> "$GITHUB_OUTPUT"
       - name: test
-        run: cargo test --workspace --locked
+        if: steps.affected.outputs.args != ''
+        env:
+          ARGS: ${{ steps.affected.outputs.args }}
+        run: |
+          # ARGS is a list of cargo arguments, split on purpose.
+          # shellcheck disable=SC2086
+          cargo test --locked $ARGS
       - name: golden harness and parity tests
+        if: steps.affected.outputs.args != ''
         run: >-
           cargo test --workspace --locked --features goldens
           --test golden_harness --test goldens_manifest --test goldens

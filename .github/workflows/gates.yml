@@ -1,6 +1,7 @@
 # Authorship gate in CI: the same script the local hooks run, so a commit that
 # bypassed the hooks (--no-verify, a clone without core.hooksPath) still
-# cannot merge with tool attribution or invisible watermarks in it.
+# cannot merge with tool attribution or invisible watermarks in it. On pull
+# requests, also the tracker-files gate (ex-010).
 name: gates
 on:
   pull_request:
@@ -33,6 +34,13 @@ jobs:
           else
             python3 scripts/gates/attribution.py history "HEAD~1..HEAD"
           fi
+      # ex-010 (owner decision 2026-09-29): a pull request carries code,
+      # tests and docs; .beads/issues.jsonl, progress.md and build-log.md
+      # change only in the integrator's "<id>: close in tracker, build log"
+      # commit pushed to main after the merge, so this runs on PRs only.
+      - name: tracker files stay out of pull requests
+        if: github.event_name == 'pull_request'
+        run: python3 scripts/gates/tracker_files.py check "origin/${{ github.base_ref }}"
   scripts:
     runs-on: ubuntu-latest
     steps:
@@ -43,6 +51,12 @@ jobs:
       # (ex-008) as recorded in the plan and on the process pages.
       - name: task graph and seed tests
         run: python3 scripts/tasks/test_plan.py -v
+      # ex-010: the tracker-files gate and the affected-crates selection
+      # rust.yml uses on pull requests (scratch repositories, no cargo).
+      - name: tracker-files gate tests
+        run: python3 scripts/gates/test_tracker_files.py -v
+      - name: affected-crates tests
+        run: python3 scripts/gates/test_affected.py -v
       # ex-501: the web build pipeline (stub toolchain: order, flags, dist/
       # outputs, the budget failing the build), the gzip size gate reading
       # its budgets from site/content/plan/phases.md, and the pinned

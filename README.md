@@ -31,7 +31,7 @@ cargo test --workspace        # the Rust suite
 cargo run -p excali-cli -- --help  # the excali CLI: validate, render, export, lib
 ```
 
-Working rules are on the site under Plan → Agent workflow. In one line: pick from `bd ready`, claim, branch per issue, cite evidence in the PR, pass the gates, close the issue in the merge commit.
+Working rules are on the site under Plan → Agent workflow. In one line: pick from `bd ready`, claim, branch per issue, cite evidence in the PR, pass the gates; PRs never touch the tracker files, and the integrator closes the issue on main after the merge.
 
 ## Licence
 

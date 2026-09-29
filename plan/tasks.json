@@ -304,6 +304,23 @@
    "type": "task"
   },
   {
+   "id": "ex-010",
+   "epic": "ex-e0",
+   "title": "Close issues after merge and run PR CI on the affected crates only (owner decision 2026-09-29)",
+   "priority": 0,
+   "blocked_by": [],
+   "crates": [],
+   "acceptance": "AGENTS.md step 7 and site/content/plan/agent-workflow.md (Tracker, loop step 8, Rules, Parallelism) say that a PR carries only code, tests and docs and never .beads/issues.jsonl, site/content/plan/progress.md or site/content/plan/build-log.md, and that after the merge the integrator runs bd close and bd update --external-ref <PR URL> and pushes one commit '<id>: close in tracker, build log' to main from the main clone; scripts/gates/tracker_files.py fails a pull_request whose diff against the base touches those files and runs in .github/workflows/gates.yml on pull_request only; scripts/gates/affected.py maps the files changed against the base to workspace crates (cargo metadata manifest dirs) plus their transitive reverse dependents and prints '-p a -p b', '--workspace' for a global file (root Cargo.toml, Cargo.lock, rust-toolchain.toml, clippy.toml, .github/workflows/**, .cargo/**, goldens/**, fixtures/**, tests/fixtures/**, scripts/gates/** or an unattributed non-doc file) or nothing for docs/site only; rust.yml's check and test-macos jobs use it on pull_request for the test and golden steps and keep --workspace on push to main, fmt and clippy workspace-wide. Tests: scripts/gates/test_tracker_files.py, scripts/gates/test_affected.py, scripts/tasks/test_plan.py.",
+   "evidence": [
+    "Owner decision 2026-09-29 (\"implement all three fixes\")",
+    "https://doc.rust-lang.org/cargo/commands/cargo-metadata.html (packages[].manifest_path, dependencies[].path; read 2026-09-29)",
+    "https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows#pull_request (github.base_ref; read 2026-09-29)"
+   ],
+   "description": "Owner decision 2026-09-29: close issues after merge; PR CI runs affected crates only, full suite on main. Tracker files (.beads/issues.jsonl, progress.md, build-log.md) changed on every PR branch conflicted with each other as workers merged concurrently; they are now written once per issue by the integrator on main after the merge. PR CI time is cut by testing only the crates a change can affect (the changed crates and their reverse dependents), with the full workspace suite still run on every push to main.",
+   "type": "task",
+   "labels": []
+  },
+  {
    "id": "ex-g001",
    "epic": "ex-e0",
    "title": "Attribution gate self-test in CI: a planted attribution line must fail the gate",
