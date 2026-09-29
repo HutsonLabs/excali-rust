@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 16:07 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 16:33 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**147 issues** · 100 closed (68%) · 1 in progress · 0 blocked · 45 open
+**147 issues** · 101 closed (69%) · 0 in progress · 0 blocked · 45 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -178,7 +178,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
 
-<span class="status open">open</span> 1/8 children closed
+<span class="status open">open</span> 2/8 children closed
 
 Vendored module in term.hut with CRUD and library import; tauri-plugin-excali with dialogs, headless export and allow-listed fetch; example app.
 
@@ -188,10 +188,10 @@ Vendored module in term.hut with CRUD and library import; tauri-plugin-excali wi
 | `ex-602` | term.hut: save through fs_write_text with dirty state and conflict handling | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-603` | term.hut: New drawing and delete flows in the tree | task | P1 | <span class="status open">open</span> |  | `ex-602` |
 | `ex-604` | term.hut: Import library from URL or file with the allow-list | task | P1 | <span class="status open">open</span> | yes |  |
-| `ex-605` | tauri-plugin-excali: dialogs, headless export, allow-listed library fetch, capability file | task | P0 | <span class="status in_progress">in progress</span> |  |  |
-| `ex-606` | Example Tauri app embedding the editor | task | P0 | <span class="status open">open</span> |  | `ex-605` |
-| `ex-607` | Integration docs: CSP, capabilities, module loading without a bundler | task | P2 | <span class="status open">open</span> |  | `ex-605` |
-| `ex-m6` | M6: term.hut CRUD and library import end to end | milestone | P2 | <span class="status open">open</span> |  | `ex-602`, `ex-603`, `ex-604`, `ex-605`, `ex-606`, `ex-607` |
+| `ex-605` | tauri-plugin-excali: dialogs, headless export, allow-listed library fetch, capability file | task | P0 | <span class="status closed">closed</span> |  |  |
+| `ex-606` | Example Tauri app embedding the editor | task | P0 | <span class="status open">open</span> | yes |  |
+| `ex-607` | Integration docs: CSP, capabilities, module loading without a bundler | task | P2 | <span class="status open">open</span> | yes |  |
+| `ex-m6` | M6: term.hut CRUD and library import end to end | milestone | P2 | <span class="status open">open</span> |  | `ex-602`, `ex-603`, `ex-604`, `ex-606`, `ex-607` |
 
 ## ex-e7 · Phase 7: Parity and polish
 
