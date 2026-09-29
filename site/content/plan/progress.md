@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 16:07 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 15:41 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**147 issues** · 100 closed (68%) · 1 in progress · 0 blocked · 45 open
+**147 issues** · 98 closed (67%) · 1 in progress · 0 blocked · 47 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -133,7 +133,7 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
 ## ex-e5 · Phase 5: Web runtime and editor
 
-<span class="status open">open</span> 24/36 children closed
+<span class="status open">open</span> 23/36 children closed
 
 Canvas2D backend, interaction state machine, history, DOM chrome without a framework, keyboard shortcuts, the <excali-editor> custom element.
 
@@ -169,7 +169,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-528` | Hints, tooltips, cursor hints, welcome screen | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-529` | Stats panel (general and element properties) | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-530` | <excali-editor> custom element: load/save/export/importLibrary/getState, events, host adapter | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-531` | Playwright parity suite against the checklist | task | P0 | <span class="status closed">closed</span> |  |  |
+| `ex-531` | Playwright parity suite against the checklist | task | P0 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-532` | Theme tokens: light and dark CSS custom properties embedded and overridable by the host | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-533` | excali-math js::sin/cos match V8's libm trig bit for bit; remove the 1e-12 tolerance in excali-editor tests/transform.rs | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-534` | Flowchart creator and navigator (flowchart.ts): Ctrl+Arrow pending nodes and arrows, Alt+Arrow navigation | task | P1 | <span class="status open">open</span> | yes |  |
@@ -178,20 +178,20 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
 
-<span class="status open">open</span> 1/8 children closed
+<span class="status open">open</span> 0/8 children closed
 
 Vendored module in term.hut with CRUD and library import; tauri-plugin-excali with dialogs, headless export and allow-listed fetch; example app.
 
 | id | title | type | P | status | ready | blocked by |
 |---|---|---|---|---|---|---|
-| `ex-601` | term.hut: vendor the module and route .excalidraw to the editor in preview.js | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-602` | term.hut: save through fs_write_text with dirty state and conflict handling | task | P0 | <span class="status open">open</span> | yes |  |
+| `ex-601` | term.hut: vendor the module and route .excalidraw to the editor in preview.js | task | P0 | <span class="status open">open</span> | yes |  |
+| `ex-602` | term.hut: save through fs_write_text with dirty state and conflict handling | task | P0 | <span class="status open">open</span> |  | `ex-601` |
 | `ex-603` | term.hut: New drawing and delete flows in the tree | task | P1 | <span class="status open">open</span> |  | `ex-602` |
-| `ex-604` | term.hut: Import library from URL or file with the allow-list | task | P1 | <span class="status open">open</span> | yes |  |
-| `ex-605` | tauri-plugin-excali: dialogs, headless export, allow-listed library fetch, capability file | task | P0 | <span class="status in_progress">in progress</span> |  |  |
+| `ex-604` | term.hut: Import library from URL or file with the allow-list | task | P1 | <span class="status open">open</span> |  | `ex-601` |
+| `ex-605` | tauri-plugin-excali: dialogs, headless export, allow-listed library fetch, capability file | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-606` | Example Tauri app embedding the editor | task | P0 | <span class="status open">open</span> |  | `ex-605` |
 | `ex-607` | Integration docs: CSP, capabilities, module loading without a bundler | task | P2 | <span class="status open">open</span> |  | `ex-605` |
-| `ex-m6` | M6: term.hut CRUD and library import end to end | milestone | P2 | <span class="status open">open</span> |  | `ex-602`, `ex-603`, `ex-604`, `ex-605`, `ex-606`, `ex-607` |
+| `ex-m6` | M6: term.hut CRUD and library import end to end | milestone | P2 | <span class="status open">open</span> |  | `ex-601`, `ex-602`, `ex-603`, `ex-604`, `ex-605`, `ex-606` … |
 
 ## ex-e7 · Phase 7: Parity and polish
 
@@ -212,7 +212,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 | `ex-709` | Accessibility: focus order, ARIA on controls, reduced motion, RTL mirroring of icons | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-710` | Performance budgets in CI (pan at 1,000 elements, first paint) | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-711` | Locale loader using upstream JSON files (58 locales, 633 keys) | task | P3 | <span class="status open">open</span> | yes |  |
-| `ex-712` | Parity checklist to 100% for the v1 scope | task | P0 | <span class="status open">open</span> | yes |  |
+| `ex-712` | Parity checklist to 100% for the v1 scope | task | P0 | <span class="status open">open</span> |  | `ex-531` |
 | `ex-m7` | M7: parity checklist 100% for v1 scope | milestone | P2 | <span class="status open">open</span> |  | `ex-701`, `ex-702`, `ex-703`, `ex-704`, `ex-705`, `ex-706` … |
 
 ## ex-e8 · Phase 8: Release
