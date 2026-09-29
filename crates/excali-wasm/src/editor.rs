@@ -82,6 +82,9 @@ use excali_editor::edit_actions::{
 use excali_editor::eraser::EraserTrail;
 use excali_editor::flowchart::{insertion_index, insertion_runs, AppFlowchart, FlowchartOperation};
 use excali_editor::groups::select_groups_for_selected_elements;
+use excali_editor::interactive_scene::{
+    render_interactive_scene, InteractiveCanvasAppState, InteractiveScene,
+};
 use excali_editor::keyboard::{
     get_selected_elements, on_clipboard_event, on_key_down, on_key_up, pan_starts,
     ClipboardEventKind, ClipboardOutcome, ClipboardTarget, KeyEffect, KeyOutcome, KeyboardEditor,
@@ -2823,6 +2826,51 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             app_state: &state,
             render_config: &config,
             text_metrics: &self.session.env.layouter.provider,
+        })
+    }
+}
+
+impl<P: TextMetricsProvider + Clone> Editor<P> {
+    /// The interactive canvas's display list at `width` × `height` device
+    /// pixels and device pixel ratio `scale` (`renderInteractiveScene`,
+    /// `renderer/interactiveScene.ts`), with `selection_color` the
+    /// container's `--color-selection` (`getSelectionColor`): the
+    /// selection's borders and handles, the selection box, the linear
+    /// element editor's points, the binding, frame and element
+    /// highlights and the snap lines.
+    pub fn interactive_scene(
+        &self,
+        width: f64,
+        height: f64,
+        scale: f64,
+        selection_color: &str,
+    ) -> DisplayList {
+        let elements = self.session.elements();
+        let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
+        let map = ElementsMap::new(live.iter().copied());
+        let selected_ids: HashSet<String> = self.selected_ids().into_iter().collect();
+        let selected: Vec<&Element> = live
+            .iter()
+            .copied()
+            .filter(|e| selected_ids.contains(&e.base.id))
+            .collect();
+        let app_state = InteractiveCanvasAppState::from_app_state(self.session.app_state().as_map());
+        let pointer = self.scene_point(self.last_pointer[0], self.last_pointer[1]);
+        render_interactive_scene(&InteractiveScene {
+            canvas_width: width,
+            canvas_height: height,
+            scale,
+            elements_map: &map,
+            elements: &live,
+            all_elements_map: &map,
+            all_elements: &live,
+            visible_elements: &live,
+            selected_elements: &selected,
+            app_state: &app_state,
+            selection_color,
+            editor_interface: EditorInterface::desktop(),
+            pointer: Some(pointer),
+            angle_locked: false,
         })
     }
 }
