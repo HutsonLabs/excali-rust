@@ -1002,3 +1002,56 @@ fn deburr_is_upstreams() {
         );
     }
 }
+
+/// Escape with the header menu open (`DropdownMenuContent.tsx:62-85`, a
+/// document capture listener bound after LibraryMenu's): the menu closes,
+/// the event stops there (an undocked sidebar stays open), and a selection
+/// is cleared first by LibraryMenu's listener.
+#[test]
+fn escape_closes_the_open_header_menu_first() {
+    let items = all_items();
+    let cx = LibraryContext {
+        open_sidebar: Some(OpenSidebar {
+            name: "default".into(),
+            tab: Some("library".into()),
+        }),
+        docked_preference: false,
+        can_fit_sidebar: true,
+        phone: false,
+        status: LibraryStatus::Loaded,
+        items: &items,
+        pending: &[],
+    };
+    let escape = || LibrarySidebarEvent::KeyDown {
+        key: "Escape".into(),
+        target: KeyTarget::InSidebar { empty_input: false },
+        dialog_open: false,
+    };
+    let mut env = excali_core::restore::TestEnv::default();
+    let mut state = LibraryMenuState {
+        menu_open: true,
+        ..LibraryMenuState::default()
+    };
+    let out = update(&mut state, escape(), &cx, &mut env);
+    assert!(out.effects.is_empty());
+    assert!(out.prevent_default && out.stop_propagation);
+    assert!(!state.menu_open);
+
+    let mut state = LibraryMenuState {
+        menu_open: true,
+        selected_items: vec!["u1".into()],
+        ..LibraryMenuState::default()
+    };
+    let out = update(&mut state, escape(), &cx, &mut env);
+    assert!(out.effects.is_empty());
+    assert!(out.prevent_default && out.stop_propagation);
+    assert!(!state.menu_open && state.selected_items.is_empty());
+
+    // closed, the same key closes the undocked sidebar (Sidebar's listener)
+    let out = update(&mut state, escape(), &cx, &mut env);
+    assert!(!out.stop_propagation);
+    assert_eq!(
+        out.effects.iter().map(effect_json).collect::<Vec<_>>(),
+        [json!({"setAppState": {"openSidebar": null}})]
+    );
+}

@@ -659,16 +659,22 @@ pub fn update(
             let outcome = escape_outcome(
                 cx.library_mounted(),
                 !state.selected_items.is_empty(),
+                state.menu_open,
                 &target,
             );
-            out.prevent_default = outcome == EscapeOutcome::ClearSearch;
+            out.prevent_default = outcome.prevent_default();
             out.stop_propagation = outcome != EscapeOutcome::PassOn;
             match outcome {
-                EscapeOutcome::ClearSelection => set_selected(state, Vec::new()),
-                EscapeOutcome::CloseAndFocus => {
+                EscapeOutcome::ClearSelection { close_menu } => {
+                    set_selected(state, Vec::new());
+                    state.menu_open &= !close_menu;
+                }
+                EscapeOutcome::CloseAndFocus { close_menu } => {
+                    state.menu_open &= !close_menu;
                     out.effects.push(close_sidebar(state));
                     out.effects.push(LibraryEffect::FocusContainer);
                 }
+                EscapeOutcome::CloseMenu => state.menu_open = false,
                 EscapeOutcome::ClearSearch => state.search.clear(),
                 // Sidebar's listener: an undocked (or unfitting) sidebar
                 // closes
@@ -741,24 +747,48 @@ pub fn update(
 /// What Escape does in the library before Sidebar's own listener sees it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum EscapeOutcome {
-    /// LibraryMenu's capture listener clears the selection (stopped).
-    ClearSelection,
+    /// LibraryMenu's capture listener clears the selection (stopped); an
+    /// open header menu closes too.
+    ClearSelection { close_menu: bool },
     /// It closes the sidebar from an empty input and focuses the canvas
-    /// (stopped).
-    CloseAndFocus,
+    /// (stopped); an open header menu closes too.
+    CloseAndFocus { close_menu: bool },
+    /// The open header menu's capture listener closes it (prevented,
+    /// stopped immediately).
+    CloseMenu,
     /// The search field's handler clears it (prevented and stopped).
     ClearSearch,
     /// Nothing handles it: on to Sidebar's listener.
     PassOn,
 }
 
-/// LibraryMenu's capture listener (`LibraryMenu.tsx:252-293`, while the
-/// library tab is mounted), then the search field's handler
+impl EscapeOutcome {
+    fn prevent_default(self) -> bool {
+        matches!(
+            self,
+            EscapeOutcome::CloseMenu
+                | EscapeOutcome::ClearSearch
+                | EscapeOutcome::ClearSelection { close_menu: true }
+                | EscapeOutcome::CloseAndFocus { close_menu: true }
+        )
+    }
+}
+
+/// LibraryMenu's capture listener on the document (`LibraryMenu.tsx:
+/// 252-293`, while the library tab is mounted), then the open header
+/// menu's (`DropdownMenuContent.tsx:62-85`, bound later, which stops the
+/// event from going further), then the search field's handler
 /// (`LibraryMenuItems.tsx:388-396`).
-fn escape_outcome(library_mounted: bool, has_selection: bool, target: &KeyTarget) -> EscapeOutcome {
+fn escape_outcome(
+    library_mounted: bool,
+    has_selection: bool,
+    menu_open: bool,
+    target: &KeyTarget,
+) -> EscapeOutcome {
     if !library_mounted {
         return EscapeOutcome::PassOn;
     }
+    let close_menu = menu_open;
     match target {
         KeyTarget::SearchInput { .. } | KeyTarget::InSidebar { .. } => {
             let empty_input = match target {
@@ -767,19 +797,22 @@ fn escape_outcome(library_mounted: bool, has_selection: bool, target: &KeyTarget
                 KeyTarget::Outside { .. } => false,
             };
             if has_selection {
-                return EscapeOutcome::ClearSelection;
+                return EscapeOutcome::ClearSelection { close_menu };
             }
             if empty_input {
-                return EscapeOutcome::CloseAndFocus;
+                return EscapeOutcome::CloseAndFocus { close_menu };
             }
         }
         KeyTarget::Outside {
             cursor_over_sidebar,
         } => {
             if has_selection && *cursor_over_sidebar {
-                return EscapeOutcome::ClearSelection;
+                return EscapeOutcome::ClearSelection { close_menu };
             }
         }
+    }
+    if menu_open {
+        return EscapeOutcome::CloseMenu;
     }
     match target {
         KeyTarget::SearchInput { value } if !value.is_empty() => EscapeOutcome::ClearSearch,
@@ -1043,12 +1076,19 @@ pub fn default_sidebar(props: LibrarySidebarProps<'_>) -> Option<Element> {
     let on_outside = props.on_event.clone();
     let library_mounted = cx.library_mounted();
     let has_selection = !props.state.selected_items.is_empty();
+    let menu_open = props.state.menu_open && library_mounted;
     Some(sidebar.on_mount(move |el| {
         listen_on_document(
             el,
             "keydown",
             true,
-            keydown_listener(el, library_mounted, has_selection, on_key.clone()),
+            keydown_listener(
+                el,
+                library_mounted,
+                has_selection,
+                menu_open,
+                on_key.clone(),
+            ),
         );
         listen_on_document(
             el,
@@ -1957,11 +1997,13 @@ fn dialog_open(document: &web_sys::Document) -> bool {
 /// field's handler and Sidebar's listener) as one capture listener on the
 /// document: the event goes to the host, which runs it through [`update`];
 /// the DOM event is prevented and stopped as upstream's handlers do
-/// ([`escape_outcome`], for the state the sidebar was built from).
+/// ([`escape_outcome`], for the state the sidebar was built from, the open
+/// header menu's own document listener included).
 fn keydown_listener(
     sidebar: &web_sys::Element,
     library_mounted: bool,
     has_selection: bool,
+    menu_open: bool,
     on_event: Option<OnLibrarySidebarEvent>,
 ) -> Listener {
     let sidebar = sidebar.clone();
@@ -2000,13 +2042,12 @@ fn keydown_listener(
                 cursor_over_sidebar: sidebar.matches(":hover").unwrap_or(false),
             },
         };
-        match escape_outcome(library_mounted, has_selection, &target_kind) {
-            EscapeOutcome::PassOn => {}
-            EscapeOutcome::ClearSearch => {
-                e.prevent_default();
-                e.stop_propagation();
-            }
-            _ => e.stop_propagation(),
+        let outcome = escape_outcome(library_mounted, has_selection, menu_open, &target_kind);
+        if outcome.prevent_default() {
+            e.prevent_default();
+        }
+        if outcome != EscapeOutcome::PassOn {
+            e.stop_propagation();
         }
         let dialog = sidebar.owner_document().is_some_and(|d| dialog_open(&d));
         emit(

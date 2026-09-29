@@ -114,6 +114,7 @@ test("a click inserts the item, Shift-clicks select a range, a click in it inser
   await units(page).nth(0).locator(".library-unit__dragger").click();
   expect(await take(page)).toEqual([{ insert: ["u1"] }, { focusContainer: true }]);
   await units(page).nth(1).locator(".library-unit__dragger").click({ modifiers: ["Shift"] });
+  await expect(page.locator(".library-actions-counter")).toHaveText("1");
   await units(page).nth(4).locator(".library-unit__dragger").click({ modifiers: ["Shift"] });
   expect((await snapshot(page)).selected).toEqual(["u2", "u3", "u4", "p1"]);
   await expect(page.locator(".library-actions-counter")).toHaveText("4");
@@ -144,7 +145,10 @@ test("dragging an item carries its id, a selection's ids with it", async ({ page
       });
   expect(JSON.parse(await drag(1))).toEqual({ itemIds: ["u2"] });
   await units(page).nth(0).locator(".library-unit__dragger").click({ modifiers: ["Shift"] });
+  await expect(page.locator(".library-actions-counter")).toHaveText("1");
   await units(page).nth(4).locator(".library-unit__dragger").click({ modifiers: ["Shift"] });
+  // the harness renders after the handler returns
+  await expect(page.locator(".library-actions-counter")).toHaveText("5");
   expect(JSON.parse(await drag(1))).toEqual({ itemIds: ["u1", "u2", "u3", "u4", "p1"] });
 });
 
@@ -242,6 +246,7 @@ test("the header menu: Open, Save to..., Reset library; with a selection Save, P
   expect(await take(page)).toEqual([{ exportLibrary: ["u1", "u2", "u3", "u4", "p1", "p2"] }]);
   await expect(page.locator(".library-menu")).toHaveCount(0);
   await units(page).nth(5).locator(".library-unit__dragger").click({ modifiers: ["Shift"] });
+  await expect(page.locator(".library-actions-counter")).toHaveText("1");
   await page.locator(".dropdown-menu-button").click();
   await expect(items).toHaveText(["Save to...", "Rename or publish", "Remove"]);
   await page.keyboard.press("Escape");
