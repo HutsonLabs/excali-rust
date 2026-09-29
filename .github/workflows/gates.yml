@@ -47,6 +47,10 @@ jobs:
       - uses: actions/checkout@v7
       - name: unit tests for repo scripts
         run: python3 -m unittest discover -s scripts/site -p 'test_*.py' -v
+      # ex-607: every code block on the integration guide is a copy of a
+      # file the example hosts run.
+      - name: integration guide snippets match the example hosts
+        run: python3 scripts/site/snippets.py check
       # plan/tasks.json and the seed: the owner decisions of 2026-09-27
       # (ex-008) as recorded in the plan and on the process pages.
       - name: task graph and seed tests

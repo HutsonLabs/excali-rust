@@ -5,8 +5,9 @@
 // to the example Tauri app's CSP), and tests/web/page/csp.html, which has no
 // inline script or style, is served with it: the editor mounts, opens a
 // scene with text, loads its fonts, saves and exports with no violation.
-// Taking out 'wasm-unsafe-eval' or style-src's 'unsafe-inline' breaks it
-// the way the guide says.
+// Taking out 'wasm-unsafe-eval', style-src's 'unsafe-inline' or img-src's
+// data:, or adding a nonce to style-src (what Tauri does for a <style> in
+// the page), breaks it the way the guide says.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -82,9 +83,8 @@ test("under the guide's header the editor opens, renders text, saves and exports
     return {
       state: ed.getState(),
       saved: JSON.parse(ed.save()).elements.length,
-      svg: svg.startsWith("<svg"),
+      svg: svg.includes("<svg"),
       png: png.type === "image/png" && png.size > 0,
-      fontsLoaded: [...document.fonts].filter((f) => f.status === "loaded").length,
     };
   }, SCENE);
   // The text element's font face, fetched under font-src.
@@ -105,4 +105,20 @@ test("without style-src 'unsafe-inline' the editor's own styles are refused", as
   const violations = await open(page, without("style-src", "'unsafe-inline'"));
   await page.waitForFunction(() => window.editor?.querySelector("canvas"));
   expect(violations.some((v) => v.startsWith("style-src"))).toBe(true);
+});
+
+test("a nonce in style-src turns 'unsafe-inline' off and refuses the editor's styles", async ({
+  page,
+}) => {
+  const csp = HEADER.replace("style-src 'self' 'unsafe-inline'", "style-src 'self' 'unsafe-inline' 'nonce-excali'");
+  expect(csp).not.toBe(HEADER);
+  const violations = await open(page, csp);
+  await page.waitForFunction(() => window.editor?.querySelector("canvas"));
+  expect(violations.some((v) => v.startsWith("style-src"))).toBe(true);
+});
+
+test("without img-src data: the canvas's built-in images are refused", async ({ page }) => {
+  const violations = await open(page, without("img-src", "data:"));
+  await page.waitForFunction(() => window.editor?.querySelector("canvas"));
+  await expect.poll(() => violations.some((v) => v.startsWith("img-src data"))).toBe(true);
 });

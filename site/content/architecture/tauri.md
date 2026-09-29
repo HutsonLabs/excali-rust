@@ -61,7 +61,7 @@ What the plugin does not trust the webview with:
 
 The tests (`crates/tauri-plugin-excali/tests`) run every command through Tauri's IPC and ACL on the mock runtime, with the ACL built from the shipped permission files and this capability, scripted dialogs and a scripted network.
 
-CSP: the module needs `'wasm-unsafe-eval'` in `script-src`. In the example app on macOS (WKWebView), removing it makes `init()` reject with "Refused to create a WebAssembly object because 'unsafe-eval' or 'wasm-unsafe-eval' is not an allowed source of script" (smoke run, 2026-09-29); with it, the editor mounts, opens, saves and exports with no violation reported. The integration docs (task `ex-607`) give the line per platform.
+CSP: the module needs `'wasm-unsafe-eval'` in `script-src`. In the example app on macOS (WKWebView), removing it makes `init()` reject with "Refused to create a WebAssembly object because 'unsafe-eval' or 'wasm-unsafe-eval' is not an allowed source of script" (smoke run, 2026-09-29); with it, the editor mounts, opens, saves and exports with no violation reported. The [integration guide](../integration/) gives the policy per platform and for a plain browser page.
 
 ## Example app
 
