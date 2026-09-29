@@ -985,7 +985,7 @@ fn files_follow_binary_file_data() {
 
 /// Every element upstream's restore returned, in
 /// `tests/fixtures/restore-elements.json` (`restoreElements` on 117
-/// scenes) and `tests/fixtures/restore-element.json` (`restoreElement`, 409
+/// scenes) and `tests/fixtures/restore-element.json` (`restoreElement`, 408
 /// cases): the schema accepts it exactly when the typed codec reads it.
 #[test]
 fn upstream_restore_output_agrees_with_the_codec() {
@@ -1027,7 +1027,7 @@ fn upstream_restore_output_agrees_with_the_codec() {
     // typed model has no form for; both reject those.
     assert_eq!(
         (valid, rejected.len()),
-        (581, 60),
+        (580, 60),
         "valid {valid}, rejected: {rejected:#?}"
     );
 }

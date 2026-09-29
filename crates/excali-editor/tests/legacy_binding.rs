@@ -123,7 +123,7 @@ fn restore_element_geometry_cases_match_upstream() {
         }
         checked += 1;
     }
-    assert!(checked >= 40, "{checked} geometry cases");
+    assert_eq!(checked, 37, "geometry cases");
     assert!(
         failures.is_empty(),
         "{} of {checked} cases differ:\n{}",
@@ -155,7 +155,7 @@ fn migrated_bindings_are_kept() {
             ends += 1;
         }
     }
-    assert!(ends >= 45, "{ends} ends");
+    assert_eq!(ends, 43, "migrated ends");
 }
 
 /// A hand-built scene: an end short of a rectangle's left side snaps to

@@ -80,10 +80,11 @@ fn sha256(text: &str) -> String {
 /// `serializeLibraryAsJSON` byte for byte, or the error it throws.
 ///
 /// `TestEnv` has no element geometry, so a legacy arrow binding whose
-/// target exists is dropped (ex-116); cases that reach that migration are
-/// compared with upstream's output when the migration fails
+/// target exists is dropped; cases that reach that migration are compared
+/// with upstream's output when the migration fails
 /// (`outputWithoutGeometry`), and `legacy_binding_migration_goes_through_the_env`
-/// checks the migrated form.
+/// checks the migrated form. excali-editor's `RoutingEnv` computes the
+/// migration and gives `output` (ex-116, `excali-editor/tests/legacy_binding.rs`).
 #[test]
 fn parse_matches_upstream() {
     let f = fixture();
@@ -125,8 +126,10 @@ fn parse_matches_upstream() {
 ///
 /// 51 of them hold arrow bindings saved before bindings had a `mode`
 /// (1,245 binding ends), which upstream migrates with element geometry;
-/// `TestEnv` has none (ex-116), so those are compared with upstream's
-/// output when the migration fails. `aarondiel/logic-gates` holds 24 lines
+/// `TestEnv` has none, so those are compared with upstream's output when
+/// the migration fails. With excali-editor's `RoutingEnv` they give
+/// `output_sha256` and `reload_sha256` (ex-116,
+/// `excali-editor/tests/legacy_binding.rs`). `aarondiel/logic-gates` holds 24 lines
 /// whose `strokeWidth` is the string `"3"`: restore keeps it, and so does
 /// the typed model, which writes it back as read (ex-117).
 #[test]

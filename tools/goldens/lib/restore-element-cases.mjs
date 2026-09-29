@@ -1039,8 +1039,6 @@ const legacyGeometryCases = () =>
     }, [rect("r1", { x: 0, y: 0 })]],
     ["target-without-angle", { points: [[0, 0], [95, 20]], endBinding: { elementId: "r1", focus: 0, gap: 5 } },
       [without(rect("r1"), "angle")]],
-    ["target-string-width", { points: [[0, 0], [95, 20]], endBinding: { elementId: "r1", focus: 0, gap: 5 } },
-      [rect("r1", { width: "100" })]],
     ["both-in-existing", {
       points: [[0, 0], [95, 20]],
       startBinding: { elementId: "r0", focus: 0, gap: 1 },

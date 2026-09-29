@@ -226,7 +226,10 @@ A legacy arrow binding (no `mode`) whose target exists is migrated with element
 geometry (`restore.ts:362-418`). The case records which ends reached that branch
 in `geometry`, found by running the case again with
 `LinearElementEditor.getPointAtIndexGlobalCoordinates` (the branch's first call)
-replaced by one that throws.
+replaced by one that throws. excali-core's own test answers the migration
+from the recorded result; `crates/excali-editor/tests/legacy_binding.rs`
+restores every `geometry` case with excali-editor's `RoutingEnv`, which
+computes it (ex-116), and compares the whole result.
 
 ```sh
 node tools/goldens/restore-fixtures.mjs           # write the fixtures
@@ -566,8 +569,11 @@ call. The loader replaces those modules with empty ones, and
 
 A legacy arrow binding (no `mode`) whose target exists is migrated with
 element geometry (`restore.ts:362-418`), which excali-core's restore asks its
-environment for (ex-116). Cases that reach it record `geometry`, the number
-of binding ends that did, and the output with that computation failing
+environment for; excali-editor's `RoutingEnv` answers it (ex-116), and
+`crates/excali-editor/tests/legacy_binding.rs` checks those cases against
+`output`, `output_sha256` and `reload_sha256`. Cases that reach it record
+`geometry`, the number of binding ends that did, and the output with that
+computation failing
 (`outputWithoutGeometry`, `output_sha256_without_geometry` for the
 catalogue, with `reload_sha256_without_geometry` for its reload): the case
 run again with `LinearElementEditor.getPointAtIndexGlobalCoordinates`
