@@ -23,14 +23,20 @@
 //! fixture's tolerance of an independent canvas reading of the list and of
 //! excali-raster's render (`tools/canvas2d-fixtures`, `tests/web/canvas2d`).
 //!
+//! The editor draws most elements from a bitmap of their own (the scene's
+//! `element_canvas` decides each bitmap and its blit): [`WebCanvas::rasterize`]
+//! paints a bitmap's display list into a new canvas, [`WebCanvas::bitmaps`]
+//! holds the canvases by id, and [`blit`] draws one under its absolute,
+//! pixel-snapped matrix.
+//!
 //! Targets: wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-scene`.
 
 mod web;
 
 use excali_scene::display::{
-    Clip, Color, DisplayList, FillRule, ImageItem, PaintState, Painter, Path, PathCommand, Rect,
-    Rgba, Stroke, TextRun, Transform,
+    Blit, Clip, Color, DisplayList, FillRule, ImageItem, PaintState, Painter, Path, PathCommand,
+    Rect, Rgba, Stroke, TextRun, Transform,
 };
 
 pub use web::WebCanvas;
@@ -132,6 +138,31 @@ pub fn paint_from<C: Context2d>(list: &DisplayList, ctx: &mut C, base: PaintStat
     ctx.set_fill_style(&base.fill_style.css());
     ctx.set_stroke_style(&base.stroke_style.css());
     list.replay_from(&mut CanvasPainter { ctx }, base);
+    ctx.restore();
+}
+
+/// Draw a cached bitmap ([`Blit`]; upstream's `drawElementFromCanvas`,
+/// `renderElement.ts:762-934`) into `ctx`: inside one
+/// `save()`/`restore()`, `globalAlpha`, `imageSmoothingEnabled` when the
+/// blit sets it, the clip under its own matrix, then `setTransform` to the
+/// blit's absolute matrix and `drawImage` of the whole bitmap into its
+/// destination. Nothing when `ctx` has no bitmap of that id.
+pub fn blit<C: Context2d>(ctx: &mut C, blit: &Blit) {
+    let Some((width, height)) = ctx.image_size(&blit.id) else {
+        return;
+    };
+    ctx.save();
+    ctx.set_global_alpha(blit.alpha);
+    if let Some(smoothing) = blit.smoothing {
+        ctx.set_image_smoothing_enabled(smoothing);
+    }
+    if let Some((clip, transform)) = &blit.clip {
+        ctx.set_transform(transform);
+        CanvasPainter { ctx: &mut *ctx }.trace(&clip.path);
+        ctx.clip(clip.rule.as_css());
+    }
+    ctx.set_transform(&blit.transform);
+    ctx.draw_image(&blit.id, &Rect::new(0.0, 0.0, width, height), &blit.dest);
     ctx.restore();
 }
 

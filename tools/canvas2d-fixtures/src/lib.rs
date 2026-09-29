@@ -15,11 +15,19 @@
 //! (`excalidraw:…` ids) are the ones `WebCanvas::new` loads itself. The
 //! page waits for every image [`FixturePainter::images`] returns before it
 //! calls [`FixturePainter::paint`].
+//!
+//! [`blit_bitmap`] (ex-504) paints a list into a bitmap with
+//! `WebCanvas::rasterize` and draws it with `excali_canvas2d::blit` at a
+//! whole device pixel with smoothing off, as a snapped element is drawn,
+//! beside [`paint_translated`], the same list painted directly.
 
 use std::collections::BTreeSet;
 
-use excali_canvas2d::{paint_scaled, WebCanvas};
-use excali_scene::display::{DisplayItem, DisplayList};
+use excali_canvas2d::{blit, paint, paint_scaled, WebCanvas};
+use excali_scene::display::{
+    bitmap_id, Blit, Color, DisplayItem, DisplayList, FillRule, Group, Path, Rect, Stroke,
+    Transform,
+};
 use wasm_bindgen::prelude::*;
 use web_sys::{CanvasRenderingContext2d, HtmlImageElement};
 
@@ -114,4 +122,77 @@ impl FixturePainter {
     pub fn paint(&mut self) {
         paint_scaled(&self.fixture.list, &mut self.canvas, self.fixture.scale);
     }
+}
+
+/// The bitmap [`blit_bitmap`] draws: a 40 × 30 bitmap holding an
+/// anti-aliased triangle, circle and stroke at fractional positions, all
+/// inside it.
+fn bitmap_list() -> DisplayList {
+    let mut triangle = Path::new();
+    triangle.move_to(3.3, 2.7);
+    triangle.line_to(25.6, 6.1);
+    triangle.line_to(9.2, 27.4);
+    triangle.close();
+    let mut circle = Path::new();
+    circle.arc(28.5, 17.25, 8.3, 0.0, std::f64::consts::TAU, false);
+    let mut line = Path::new();
+    line.move_to(2.5, 24.5);
+    line.line_to(37.2, 3.9);
+    DisplayList {
+        items: vec![
+            DisplayItem::Fill {
+                path: triangle,
+                color: Color::new("#1971c2"),
+                rule: FillRule::NonZero,
+            },
+            DisplayItem::Fill {
+                path: circle,
+                color: Color::new("rgba(224, 49, 49, 0.6)"),
+                rule: FillRule::NonZero,
+            },
+            DisplayItem::Stroke {
+                path: line,
+                stroke: Stroke::new(Color::new("#2f9e44"), 1.7),
+            },
+        ],
+    }
+}
+
+/// Where both drawings put the bitmap's origin, in device pixels.
+const AT: (f64, f64) = (7.0, 5.0);
+
+/// The bitmap drawn by `blit` at [`AT`] with smoothing off, after
+/// `WebCanvas::rasterize`. Throws when the bitmap cannot be made.
+#[wasm_bindgen(js_name = blitBitmap)]
+pub fn blit_bitmap(context: CanvasRenderingContext2d) -> Result<(), JsError> {
+    let mut canvas = WebCanvas::new(context);
+    let bitmap = canvas
+        .rasterize(40.0, 30.0, &bitmap_list())
+        .ok_or_else(|| JsError::new("rasterize made no canvas"))?;
+    let id = bitmap_id("harness");
+    canvas.bitmaps.insert(id.clone(), bitmap);
+    blit(
+        &mut canvas,
+        &Blit {
+            id,
+            alpha: 1.0,
+            smoothing: Some(false),
+            clip: None,
+            transform: Transform::translate(AT.0, AT.1),
+            dest: Rect::new(0.0, 0.0, 40.0, 30.0),
+        },
+    );
+    Ok(())
+}
+
+/// The same list painted directly at [`AT`].
+#[wasm_bindgen(js_name = paintTranslated)]
+pub fn paint_translated(context: CanvasRenderingContext2d) {
+    let list = DisplayList {
+        items: vec![DisplayItem::Group(Group {
+            transform: Transform::translate(AT.0, AT.1),
+            ..Group::new(bitmap_list().items)
+        })],
+    };
+    paint(&list, &mut WebCanvas::new(context));
 }

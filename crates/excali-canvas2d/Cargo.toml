@@ -16,6 +16,9 @@ js-sys = "0.3.106"
 web-sys = { version = "0.3.106", features = [
   "CanvasRenderingContext2d",
   "CanvasWindingRule",
+  "Document",
+  "Element",
+  "HtmlCanvasElement",
   "HtmlImageElement",
 ] }
 

@@ -90,6 +90,20 @@ test("built-in images are loaded by WebCanvas itself", async ({ page }) => {
   ]);
 });
 
+// ex-504: the editor draws most elements from a cached bitmap, blitted at a
+// whole device pixel with smoothing off where it snaps
+// (renderElement.ts:747-752, 848-900): a nearest-neighbour 1:1 blit is a
+// pixel-exact copy, so the blit and the direct drawing agree byte for byte.
+test("a snapped 1:1 blit of a rasterised bitmap is a pixel-exact copy", async ({ page }) => {
+  const errors = await open(page);
+  const { blitted, direct } = await page.evaluate(() => window.blitAndDirect());
+  expect(blitted.length).toBe(64 * 48 * 4);
+  expect(direct.some((v) => v !== 0), "the list draws something").toBe(true);
+  const differing = blitted.reduce((n, v, i) => n + (v !== direct[i] ? 1 : 0), 0);
+  expect(differing, "channels that differ").toBe(0);
+  expect(errors).toEqual([]);
+});
+
 for (const name of names) {
   test(`${name}: excali-canvas2d paints within the fixture's tolerance`, async ({ page }) => {
     const errors = await open(page);
