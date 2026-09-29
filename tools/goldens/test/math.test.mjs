@@ -9,6 +9,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
+import { fromBits, JS_MATH_FUNCTIONS, toBits } from "../js-math.mjs";
 import { MATH_FUNCTIONS } from "../math.mjs";
 import { golden, upstreamDir } from "./helpers.mjs";
 
@@ -141,4 +142,24 @@ test("js-sort.json pins V8's order for inconsistent comparators", () => {
   for (const c of hulls) {
     assert.ok(c.result.every((i) => Number.isInteger(i) && i >= 0 && i < c.points.length), c.id);
   }
+});
+
+test("js-math.json pins V8's Math functions bit for bit, tricky arguments included", () => {
+  const cases = golden("js-math.json").cases;
+  const byFn = new Map();
+  for (const c of cases) {
+    assert.ok(c.fn in JS_MATH_FUNCTIONS, `${c.id}: unknown function ${c.fn}`);
+    assert.ok(c.args.every((a) => /^[0-9a-f]{16}$/.test(a)), `${c.id}: args are not IEEE bits`);
+    assert.ok(c.result === "NaN" || /^[0-9a-f]{16}$/.test(c.result), `${c.id}: result is not IEEE bits`);
+    // the committed answer is what this Node computes
+    const result = JS_MATH_FUNCTIONS[c.fn](...c.args.map(fromBits));
+    assert.equal(Number.isNaN(result) ? "NaN" : toBits(result), c.result, c.id);
+    byFn.set(c.fn, (byFn.get(c.fn) ?? 0) + 1);
+  }
+  for (const fn of Object.keys(JS_MATH_FUNCTIONS)) assert.ok(byFn.get(fn) >= 40, `too few cases for ${fn}`);
+  // the arguments that tell arm64 V8 from x64 V8 and from libm are there
+  const calls = new Set(cases.map((c) => `${c.fn}(${c.args.join(",")})`));
+  assert.ok(calls.has("sin(c005778a4a4a9f9b)"));
+  assert.ok(calls.has(`cos(${toBits(0.982953340331056)})`), "Math.cos(0.982953340331056)");
+  assert.ok(calls.has("atan2(3fa9b88fc40e2240,3fe60ce55df44f04)"));
 });

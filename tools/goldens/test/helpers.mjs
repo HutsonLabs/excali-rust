@@ -226,6 +226,7 @@ export const ALL_FILES = [
   "laser-pointer.json",
   "math.json",
   "js-sort.json",
+  "js-math.json",
   "fractional-indexing.json",
   "fractional-index.json",
 ];
