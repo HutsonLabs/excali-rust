@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 15:30 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 15:45 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**147 issues** · 98 closed (67%) · 1 in progress · 0 blocked · 47 open
+**147 issues** · 99 closed (67%) · 0 in progress · 0 blocked · 47 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -133,7 +133,7 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
 ## ex-e5 · Phase 5: Web runtime and editor
 
-<span class="status open">open</span> 23/36 children closed
+<span class="status open">open</span> 24/36 children closed
 
 Canvas2D backend, interaction state machine, history, DOM chrome without a framework, keyboard shortcuts, the <excali-editor> custom element.
 
@@ -169,7 +169,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-528` | Hints, tooltips, cursor hints, welcome screen | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-529` | Stats panel (general and element properties) | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-530` | <excali-editor> custom element: load/save/export/importLibrary/getState, events, host adapter | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-531` | Playwright parity suite against the checklist | task | P0 | <span class="status in_progress">in progress</span> |  |  |
+| `ex-531` | Playwright parity suite against the checklist | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-532` | Theme tokens: light and dark CSS custom properties embedded and overridable by the host | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-533` | excali-math js::sin/cos match V8's libm trig bit for bit; remove the 1e-12 tolerance in excali-editor tests/transform.rs | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-534` | Flowchart creator and navigator (flowchart.ts): Ctrl+Arrow pending nodes and arrows, Alt+Arrow navigation | task | P1 | <span class="status open">open</span> | yes |  |
@@ -212,7 +212,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 | `ex-709` | Accessibility: focus order, ARIA on controls, reduced motion, RTL mirroring of icons | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-710` | Performance budgets in CI (pan at 1,000 elements, first paint) | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-711` | Locale loader using upstream JSON files (58 locales, 633 keys) | task | P3 | <span class="status open">open</span> | yes |  |
-| `ex-712` | Parity checklist to 100% for the v1 scope | task | P0 | <span class="status open">open</span> |  | `ex-531` |
+| `ex-712` | Parity checklist to 100% for the v1 scope | task | P0 | <span class="status open">open</span> | yes |  |
 | `ex-m7` | M7: parity checklist 100% for v1 scope | milestone | P2 | <span class="status open">open</span> |  | `ex-701`, `ex-702`, `ex-703`, `ex-704`, `ex-705`, `ex-706` … |
 
 ## ex-e8 · Phase 8: Release
