@@ -57,14 +57,20 @@ fn tree(node: &Node, ids: &mut Ids) -> Value {
     match node {
         Node::Text(text) => Value::String(text.clone()),
         Node::Element(el) => {
-            if let Some(id) = el.attribute("id") {
+            // radix's ids; an icon's own (clip path) ids stay
+            let rename = !el.is_svg();
+            if let Some(id) = el.attribute("id").filter(|_| rename) {
                 ids.rename(id);
             }
             let attrs: BTreeMap<_, _> = el
                 .attributes()
                 .iter()
                 .map(|(k, v)| {
-                    let v = if is_id_ref(k) { ids.rename(v) } else { v.clone() };
+                    let v = if rename && is_id_ref(k) {
+                        ids.rename(v)
+                    } else {
+                        v.clone()
+                    };
                     (k.clone(), Value::String(v))
                 })
                 .collect();
@@ -173,9 +179,7 @@ fn render(case: &Value) -> Element {
             .unwrap_or(false),
         collaborating: props["isCollaborating"].as_bool().unwrap_or(false),
         ai_enabled: props["aiEnabled"].as_bool() != Some(false),
-        diagram_to_code: case["plugins"]["diagramToCode"]
-            .as_bool()
-            .unwrap_or(false),
+        diagram_to_code: case["plugins"]["diagramToCode"].as_bool().unwrap_or(false),
         extra_tools_open: case["open"].as_bool().unwrap(),
         id_prefix: "excalidraw-id".into(),
         hint_viewer: Some(slot("HintViewer")),
@@ -214,10 +218,7 @@ fn the_locale_strings_are_upstreams() {
 
 #[test]
 fn tool_buttons_and_menu_items_listen() {
-    let open = cases()
-        .into_iter()
-        .find(|c| c["name"] == "open")
-        .unwrap();
+    let open = cases().into_iter().find(|c| c["name"] == "open").unwrap();
     let root = Node::Element(render(&open));
     let mut found = BTreeMap::new();
     fn walk(n: &Node, found: &mut BTreeMap<String, Vec<String>>) {
@@ -231,14 +232,26 @@ fn tool_buttons_and_menu_items_listen() {
     }
     walk(&root, &mut found);
     for id in ["toolbar-hand", "toolbar-rectangle", "toolbar-lock"] {
-        assert!(found[id].iter().any(|e| e == "click"), "{id}: {:?}", found[id]);
+        assert!(
+            found[id].iter().any(|e| e == "click"),
+            "{id}: {:?}",
+            found[id]
+        );
     }
-    assert!(found["toolbar-rectangle"].iter().any(|e| e == "pointerdown"));
+    assert!(found["toolbar-rectangle"]
+        .iter()
+        .any(|e| e == "pointerdown"));
     assert!(found["dropdown-menu-button"].iter().any(|e| e == "click"));
-    assert!(found["dropdown-menu-button"].iter().any(|e| e == "pointerdown"));
+    assert!(found["dropdown-menu-button"]
+        .iter()
+        .any(|e| e == "pointerdown"));
     assert!(found["dropdown-menu"].iter().any(|e| e == "keydown"));
     for id in ["toolbar-image", "toolbar-frame", "toolbar-laser"] {
-        assert!(found[id].iter().any(|e| e == "click"), "{id}: {:?}", found[id]);
+        assert!(
+            found[id].iter().any(|e| e == "click"),
+            "{id}: {:?}",
+            found[id]
+        );
     }
 }
 
@@ -349,13 +362,25 @@ fn the_dropdown_opens_below_its_trigger_aligned_to_its_end() {
 #[test]
 fn the_dropdown_shifts_into_the_viewport_and_flips_when_below_does_not_fit() {
     // the end-aligned menu would start left of the viewport: shifted to 0
-    let placed = dropdown_position(rect(20.0, 16.0, 36.0, 36.0), (190.0, 300.0), (1440.0, 900.0));
+    let placed = dropdown_position(
+        rect(20.0, 16.0, 36.0, 36.0),
+        (190.0, 300.0),
+        (1440.0, 900.0),
+    );
     assert_eq!((placed.x, placed.side), (0.0, DropdownSide::Bottom));
     // no room below, room above: flipped to the top
-    let placed = dropdown_position(rect(600.0, 700.0, 36.0, 36.0), (190.0, 300.0), (1440.0, 900.0));
+    let placed = dropdown_position(
+        rect(600.0, 700.0, 36.0, 36.0),
+        (190.0, 300.0),
+        (1440.0, 900.0),
+    );
     assert_eq!(placed.side, DropdownSide::Top);
     assert_eq!(placed.y, 700.0 - 8.0 - 300.0);
     // room on neither side: stays below
-    let placed = dropdown_position(rect(600.0, 300.0, 36.0, 36.0), (190.0, 800.0), (1440.0, 900.0));
+    let placed = dropdown_position(
+        rect(600.0, 300.0, 36.0, 36.0),
+        (190.0, 800.0),
+        (1440.0, 900.0),
+    );
     assert_eq!(placed.side, DropdownSide::Bottom);
 }
