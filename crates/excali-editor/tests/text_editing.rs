@@ -26,7 +26,7 @@ use excali_editor::mutate::mutate_element;
 use excali_editor::session::Session;
 use excali_editor::store::HistoryEnv;
 use excali_editor::text_editing::{
-    get_transform, max_text_width, start_text_editing, KeyDown, StartTextEditing,
+    get_transform, max_text_width, start_text_editing, KeyDown, PasteOutcome, StartTextEditing,
     TextEditingContext, TextEditingHost, TextEditor, TextTarget, CARET_FOLLOW_PADDING,
     DEFAULT_BOUND_TEXT_LABEL_POSITION, TEXTAREA_ATTRIBUTES, TEXT_TO_CENTER_SNAP_THRESHOLD,
     TEXT_VIEWPORT_PADDING,
@@ -393,6 +393,23 @@ fn initial_state(state: &Map<String, Value>) -> Map<String, Value> {
     out
 }
 
+/// `startTextEditing`'s arguments for a case.
+fn start_args(case: &Value) -> StartTextEditing {
+    let start = &case["start"];
+    let mut args = StartTextEditing::at(
+        start["sceneX"].as_f64().unwrap(),
+        start["sceneY"].as_f64().unwrap(),
+    );
+    args.container = start["container"].as_str().map(str::to_owned);
+    if let Some(id) = start["textElement"].as_str() {
+        args.text_element = TextTarget::Existing(id.to_owned());
+    }
+    if let Some(caret) = start["initialCaretSceneCoords"].as_object() {
+        args.initial_caret = Some([caret["x"].as_f64().unwrap(), caret["y"].as_f64().unwrap()]);
+    }
+    args
+}
+
 /// The keydown a US keyboard sends for a typed character.
 fn char_event(ch: char) -> (String, String, bool) {
     let code = if ch.is_ascii_alphabetic() {
@@ -558,6 +575,22 @@ impl Replay {
             let mut editor = self.editor.take().unwrap();
             editor.submit(&mut self.ctx()).unwrap();
             self.editor = Some(editor);
+        } else if let Some(paste) = step["paste"].as_object() {
+            let types: Vec<&str> = paste["types"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|t| t.as_str().unwrap())
+                .collect();
+            let text = paste["text"].as_str().unwrap();
+            let mut editor = self.editor.take().unwrap();
+            let outcome = editor.paste(&mut self.ctx(), &types, Some(text)).unwrap();
+            // the browser pastes, after the handler (and its microtasks)
+            if outcome == PasteOutcome::Browser && !text.is_empty() {
+                let (value, selection) = insert(editor.value(), editor.selection(), text);
+                editor.input(&mut self.ctx(), &value, selection).unwrap();
+            }
+            self.editor = Some(editor);
         } else if let Some(scroll) = step["boxScroll"].as_array() {
             let mut editor = self.editor.take().unwrap();
             editor
@@ -596,14 +629,29 @@ impl Replay {
     }
 }
 
-#[test]
-fn editing_sessions_match_upstream() {
-    let f = fixture();
-    let keys = f["stateKeys"].as_array().unwrap().clone();
-    let sessions = f["sessions"].as_array().unwrap().clone();
-    assert!(sessions.len() >= 25);
-    for case in sessions {
+impl Replay {
+    /// A session on the case's scene and app state, and `startTextEditing`
+    /// with the case's arguments; a caret the case asks for is measured at
+    /// the start of its line (jsdom has no layout: every caret position
+    /// measures 0), and the editor focused (`bindBlurEvent`'s timeout).
+    fn start(case: &Value) -> Replay {
+        let mut replay = Replay::new(case);
         let name = case["name"].as_str().unwrap();
+        let args = start_args(case);
+        replay.editor =
+            start_text_editing(&mut replay.ctx(), &args).unwrap_or_else(|e| panic!("{name}: {e}"));
+        if let Some(editor) = replay.editor.as_mut() {
+            if editor.caret_request().is_some() {
+                editor.resolve_caret(Some(0));
+            }
+            editor.focused();
+        }
+        replay
+    }
+
+    /// The case's scene and app state, and its host, with no editor yet.
+    fn new(case: &Value) -> Replay {
+        let initial = &case["initial"];
         let ids: VecDeque<String> = case["ids"]
             .as_array()
             .unwrap()
@@ -615,7 +663,6 @@ fn editing_sessions_match_upstream() {
             deltas: 0,
             nonce: 0.0,
         };
-        let initial = &case["initial"];
         let elements: Vec<Element> = initial["elements"]
             .as_array()
             .unwrap()
@@ -630,7 +677,7 @@ fn editing_sessions_match_upstream() {
             )
             .unwrap();
         let sidebar = &case["sidebar"];
-        let mut replay = Replay {
+        let replay = Replay {
             session,
             layouter: TextLayouter::new(CharCountTextMetrics),
             host: Host {
@@ -644,30 +691,20 @@ fn editing_sessions_match_upstream() {
             editor: None,
         };
 
-        let start = &case["start"];
-        let mut args = StartTextEditing::at(
-            start["sceneX"].as_f64().unwrap(),
-            start["sceneY"].as_f64().unwrap(),
-        );
-        args.container = start["container"].as_str().map(str::to_owned);
-        if let Some(id) = start["textElement"].as_str() {
-            args.text_element = TextTarget::Existing(id.to_owned());
-        }
-        if let Some(caret) = start["initialCaretSceneCoords"].as_object() {
-            args.initial_caret = Some([caret["x"].as_f64().unwrap(), caret["y"].as_f64().unwrap()]);
-        }
-        replay.editor =
-            start_text_editing(&mut replay.ctx(), &args).unwrap_or_else(|e| panic!("{name}: {e}"));
-        if let Some(editor) = replay.editor.as_mut() {
-            // jsdom has no layout: the page measures every caret position
-            // at 0, so the caret goes to the start of its line
-            if editor.caret_request().is_some() {
-                editor.resolve_caret(Some(0));
-            }
-            // the deferred focus (bindBlurEvent's timeout)
-            editor.focused();
-        }
+        replay
+    }
+}
 
+#[test]
+fn editing_sessions_match_upstream() {
+    let f = fixture();
+    let keys = f["stateKeys"].as_array().unwrap().clone();
+    let sessions = f["sessions"].as_array().unwrap().clone();
+    assert!(sessions.len() >= 25);
+    for case in sessions {
+        let name = case["name"].as_str().unwrap();
+        let initial = &case["initial"];
+        let mut replay = Replay::start(&case);
         let mut scene: Vec<Map<String, Value>> = initial["elements"]
             .as_array()
             .unwrap()
@@ -752,4 +789,117 @@ fn editing_sessions_match_upstream() {
 
 fn obj(value: Value) -> Map<String, Value> {
     value.as_object().unwrap().clone()
+}
+
+/// The fixture's session named `name`.
+fn case(name: &str) -> Value {
+    fixture()["sessions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|c| c["name"] == name)
+        .unwrap_or_else(|| panic!("no session {name}"))
+        .clone()
+}
+
+/// A paste into a label widens the textarea to the wrapped result before
+/// the browser pastes (`textWysiwyg.tsx:652-682`); the paste's input then
+/// restyles it, which is all the fixture sees.
+#[test]
+fn a_paste_into_a_label_widens_the_editor_first() {
+    let mut replay = Replay::start(&case("plain-text-pasted-into-a-label"));
+    let mut editor = replay.editor.take().unwrap();
+    editor.set_selection(5, 5);
+    let outcome = editor
+        .paste(
+            &mut replay.ctx(),
+            &["text/plain"],
+            Some(" pasted\twith a tab"),
+        )
+        .unwrap();
+    assert_eq!(outcome, PasteOutcome::Browser);
+    // "label pasted        with a tab" wrapped at 150: "label pasted" is
+    // the widest line
+    assert_eq!(editor.style()["width"], "120px");
+    // a free text is not widened
+    let mut replay = Replay::start(&case("plain-text-pasted-into-a-free-text"));
+    let mut editor = replay.editor.take().unwrap();
+    let width = editor.style()["width"].clone();
+    editor
+        .paste(
+            &mut replay.ctx(),
+            &["text/plain"],
+            Some("a long pasted line"),
+        )
+        .unwrap();
+    assert_eq!(editor.style()["width"], width);
+    // excalidraw data without text pastes nothing and prevents the paste
+    let outcome = editor
+        .paste(
+            &mut replay.ctx(),
+            &["application/vnd.excalidraw+json", "text/plain"],
+            Some("{}"),
+        )
+        .unwrap();
+    assert_eq!(outcome, PasteOutcome::Prevented);
+}
+
+/// `getCaretIndexFromInitialSceneCoords` up to the page's measurement: the
+/// wrapped line under the point (clamped to the text's lines) and the
+/// point's distance from where that line starts, in the line's direction.
+#[test]
+fn caret_request_names_the_line_under_the_point() {
+    let c = case("caret-placed-at-the-point");
+    let mut replay = Replay::new(&c);
+    let editor = start_text_editing(&mut replay.ctx(), &start_args(&c))
+        .unwrap()
+        .unwrap();
+    let request = editor.caret_request().unwrap();
+    assert_eq!(request.line_text, "two");
+    assert_eq!(request.line_start, 4);
+    assert_eq!(request.target_x, 12.0);
+    assert_eq!(request.direction, "ltr");
+    assert_eq!(request.line_height_px, 25.0);
+    assert_eq!(
+        request.font,
+        "20px Excalifont, Xiaolai, sans-serif, Segoe UI Emoji"
+    );
+    // no text is selected while the caret waits to be placed
+    assert_eq!(editor.selection(), (13, 13));
+
+    // a rotated, centred label: the point turned back about its centre
+    let c = case("caret-placed-in-a-rotated-label");
+    let mut replay = Replay::new(&c);
+    let mut editor = start_text_editing(&mut replay.ctx(), &start_args(&c))
+        .unwrap()
+        .unwrap();
+    let request = editor.caret_request().unwrap().clone();
+    assert_eq!(request.line_text, "turn");
+    assert_eq!(request.line_start, 0);
+    // the page measured 3 code units in
+    editor.resolve_caret(Some(3));
+    assert_eq!(editor.caret_request(), None);
+    editor.focused();
+    assert_eq!(editor.selection(), (3, 3));
+}
+
+#[test]
+fn caret_request_reads_the_hard_line_direction() {
+    let c = case("caret-placed-at-the-point");
+    let mut replay = Replay::new(&c);
+    replay.session.edit_elements(|map, env| {
+        let mut t = map["t"].clone();
+        mutate_element(
+            &mut t,
+            map,
+            obj(json!({"originalText": "one\n\u{5e9}\u{5dc}\u{5d5}\n", "text": "one\n\u{5e9}\u{5dc}\u{5d5}\n"})),
+            env,
+        )
+        .unwrap();
+        map.insert("t".into(), t);
+    });
+    let editor = start_text_editing(&mut replay.ctx(), &start_args(&c))
+        .unwrap()
+        .unwrap();
+    assert_eq!(editor.caret_request().unwrap().direction, "rtl");
 }

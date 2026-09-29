@@ -1043,6 +1043,60 @@ export const SESSIONS = [
     steps: [{ mutate: ["r", { x: 300, y: 200 }] }, { type: "!" }, { mutate: ["r", { angle: 0.4 }] }, { press: "Escape" }],
   },
   {
+    name: "plain-text-pasted-into-a-label",
+    scene: "rectangleLabel",
+    state: { selectedElementIds: { r: true } },
+    start: { sceneX: 130, sceneY: 90, container: "r" },
+    steps: [
+      { select: [5, 5] },
+      { paste: { types: ["text/plain"], text: " pasted\twith a tab" } },
+      { type: "!" },
+      { press: "Escape" },
+    ],
+  },
+  {
+    name: "plain-text-pasted-into-a-sticky-note",
+    scene: "stickyLabel",
+    state: { selectedElementIds: { s: true } },
+    start: { sceneX: 200, sceneY: 200, container: "s" },
+    steps: [{ paste: { types: ["text/plain"], text: "a pasted note" } }, { press: "Escape" }],
+  },
+  {
+    name: "plain-text-pasted-into-a-free-text",
+    scene: "freeText",
+    start: { sceneX: 110, sceneY: 110, textElement: "t" },
+    steps: [{ paste: { types: ["text/plain"], text: "pasted" } }, { paste: { types: ["text/plain"], text: "" } }, { press: "Escape" }],
+  },
+  {
+    name: "excalidraw-elements-pasted-as-their-texts",
+    scene: "freeText",
+    start: { sceneX: 110, sceneY: 110, textElement: "t" },
+    steps: [
+      { select: [5, 5] },
+      {
+        paste: {
+          types: ["application/vnd.excalidraw.clipboard+json", "text/plain"],
+          text: JSON.stringify({
+            type: "excalidraw/clipboard",
+            elements: [
+              { type: "rectangle", id: "x" },
+              { type: "text", id: "y", text: " one" },
+              { type: "text", id: "z", text: "two\nlines" },
+            ],
+          }),
+        },
+      },
+      {
+        paste: {
+          types: ["application/vnd.excalidraw.clipboard+json", "text/plain"],
+          text: JSON.stringify({ type: "excalidraw/clipboard", elements: [{ type: "ellipse", id: "e" }] }),
+        },
+      },
+      { paste: { types: ["application/vnd.excalidraw+json", "text/plain"], text: "not json" } },
+      { press: "Escape" },
+    ],
+  },
+  {
     name: "app-shortcuts-while-editing",
     scene: "freeText",
     start: { sceneX: 110, sceneY: 110, textElement: "t" },
@@ -1064,7 +1118,7 @@ const startArgs = (app, start) => {
   return args;
 };
 
-const session = (up, window, flush, c) => {
+const session = async (up, window, flush, c) => {
   ids = 0;
   up.reseed(RANDOM_SEED);
   for (const key of Object.keys(up.originalContainerCache)) delete up.originalContainerCache[key];
@@ -1165,6 +1219,30 @@ const session = (up, window, flush, c) => {
         // a change from elsewhere (a collaborator): the scene's update
         const [id, updates] = step.mutate;
         app.scene.mutateElement(app.scene.getElement(id), updates);
+      } else if (step.paste) {
+        // a paste: the clipboard's string items to the editor's handler.
+        // Its awaited part only waits on promises already settled (the
+        // string items are read synchronously), so it runs in the
+        // microtask checkpoint after the listener, before the browser's
+        // default action: then, unless the handler prevented it, the
+        // browser pastes the text/plain item and sends its input
+        const { types, text: plainText } = step.paste;
+        let prevented = false;
+        const clipboardData = {
+          items: types.map((type) => ({ kind: "string", type })),
+          getData: (type) => (type === "text/plain" ? plainText : ""),
+        };
+        await editable.onpaste({
+          type: "paste",
+          clipboardData,
+          preventDefault: () => {
+            prevented = true;
+          },
+        });
+        if (!prevented && plainText) {
+          insert(editable, plainText);
+          editable.dispatchEvent(new window.Event("input"));
+        }
       } else {
         throw new Error(`unknown step ${JSON.stringify(step)}`);
       }
@@ -1213,7 +1291,8 @@ const build = async (upstream) => {
   });
   up.setCustomTextMetricsProvider({ getLineWidth: (t) => t.length * 10 });
   const redraws = redraw(up);
-  const sessions = SESSIONS.map((c) => session(up, window, flush, c));
+  const sessions = [];
+  for (const c of SESSIONS) sessions.push(await session(up, window, flush, c));
   return format({
     description:
       "Upstream's text editor at the pinned commit (tools/goldens/text-editing.mjs): redrawTextBoundingBox on scenes of every container type, and editing sessions through App.startTextEditing, handleTextWysiwyg and textWysiwyg (cut out of App.tsx and run on a stand-in App under jsdom), step by step: the textarea's value, selection and assigned style, the elements each step changed, the app state and what the editor asked of the app. Elements leave out seed, versionNonce and updated. Text measures 10 px per UTF-16 code unit.",
