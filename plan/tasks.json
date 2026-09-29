@@ -1697,7 +1697,7 @@
    "crates": [
     "excali-editor"
    ],
-   "acceptance": "binding.ts core behaviours ported; normalizeFixedPoint 0.5001 rule. Also the arrow half of layout after undo/redo: `updateBoundElements` (binding.ts:1321) implemented as `HistoryEnv::update_bound_elements` (crates/excali-editor/src/store.rs), which `ElementsDelta.redrawElements` calls for every changed, non-deleted bindable element (delta.rs `redraw_elements`, ported in ex-513); the history.test.tsx arrow cases ported in ex-513 ('should redraw arrows on undo' :2268, :4578, :4734, and 'should update bound element points when rectangle was remotely moved and arrow is added back through the history' :5107, points rounded to [500, -400]) pass with it in place of the tests/support stand-in.",
+   "acceptance": "binding.ts core behaviours ported; normalizeFixedPoint 0.5001 rule. Also the arrow half of layout after undo/redo: `updateBoundElements` (binding.ts:1321) implemented as `HistoryEnv::update_bound_elements` (crates/excali-editor/src/store.rs), which `ElementsDelta.redrawElements` calls for every changed, non-deleted bindable element (delta.rs `redraw_elements`, ported in ex-513); the history.test.tsx arrow cases ported in ex-513 ('should redraw arrows on undo' :2268, :4578, :4734, and 'should update bound element points when rectangle was remotely moved and arrow is added back through the history' :5107, points rounded to [500, -400]) pass with it in place of the tests/support stand-in. excali-editor implements TransformEnv::update_bound_elements (updateBoundElements, binding.ts:1321-1429, called by resizeElements.ts transformElements), and every updateBoundElements hook recorded in crates/excali-editor/tests/fixtures/transform.json is reproduced from its arguments instead of replayed.",
    "evidence": [
     "site/content/research/rendering.md section 5 (binding)",
     "site/content/research/data-model.md section 7"
@@ -2135,6 +2135,29 @@
    "labels": []
   },
   {
+   "id": "ex-533",
+   "epic": "ex-e5",
+   "title": "excali-math js::sin/cos match V8's libm trig bit for bit; remove the 1e-12 tolerance in excali-editor tests/transform.rs",
+   "priority": 1,
+   "blocked_by": [
+    "ex-508"
+   ],
+   "crates": [
+    "excali-math",
+    "excali-editor"
+   ],
+   "acceptance": "excali_math::js::sin and js::cos return the doubles Node 26 (V8 with v8_use_libm_trig_functions, glibc-derived sin/cos) returns, including Math.cos(0.982953340331056) = 0.5545673797180782 where fdlibm gives 0.5545673797180781, checked against a table of Node 26 answers in crates/excali-math/tests/js_trig.rs; same_number in crates/excali-editor/tests/transform.rs compares doubles exactly (a == e, -0 equal to 0) and every transform.json case passes; the goldens and export fixtures that go through js::sin/cos still pass.",
+   "evidence": [
+    "crates/excali-editor/tests/transform.rs same_number (relative tolerance 1e-12, introduced by ex-508)",
+    "crates/excali-math/src/js.rs sin/cos (libm crate, fdlibm port)",
+    "Node v26.10.0 on macOS arm64, 2026-09-28: node -e 'console.log(Math.cos(0.982953340331056))' prints 0.5545673797180782; fdlibm (libm crate) gives 0.5545673797180781",
+    "V8 BUILD.gn v8_use_libm_trig_functions and third_party/glibc (sin/cos), src/base/ieee754.cc (atan2 still fdlibm)"
+   ],
+   "description": "ex-508's gesture fixtures come from upstream run in Node 26, whose V8 computes Math.sin/Math.cos with its glibc-derived routines, not fdlibm. excali_math::js ports fdlibm through the libm crate, which is one ulp away on some arguments, so a rotated element's numbers can differ in the last bits and ex-508's test compares numbers within a relative 1e-12. This task ports V8's trig routines so the port computes the same doubles and the tolerance goes.",
+   "type": "task",
+   "labels": []
+  },
+  {
    "id": "ex-601",
    "epic": "ex-e6",
    "title": "term.hut: vendor the module and route .excalidraw to the editor in preview.js",
@@ -2299,12 +2322,14 @@
    "priority": 2,
    "blocked_by": [
     "ex-402",
-    "ex-304"
+    "ex-304",
+    "ex-508"
    ],
    "crates": [
-    "excali-scene"
+    "excali-scene",
+    "excali-editor"
    ],
-   "acceptance": "Sticky fixtures match upstream export. getStickyNoteLayout answers excali-core's RestoreEnv::sticky_note_layout (restoreElements with refreshDimensions, restore.ts:931-941), and every getStickyNoteLayout hook recorded in crates/excali-core/tests/fixtures/restore-elements.json is reproduced from its arguments.",
+   "acceptance": "Sticky fixtures match upstream export. getStickyNoteLayout answers excali-core's RestoreEnv::sticky_note_layout (restoreElements with refreshDimensions, restore.ts:931-941), and every getStickyNoteLayout hook recorded in crates/excali-core/tests/fixtures/restore-elements.json is reproduced from its arguments. getStickyNoteLayout also answers excali-editor's TransformEnv::sticky_note_layout (updateStickyNoteLayout in resizeElements.ts), and every getStickyNoteLayout hook recorded in crates/excali-editor/tests/fixtures/transform.json is reproduced from its arguments instead of replayed.",
    "evidence": [
     "site/content/research/rendering.md section 2 (sticky note)"
    ],

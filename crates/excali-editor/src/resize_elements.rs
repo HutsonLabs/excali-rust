@@ -112,7 +112,8 @@ pub trait TransformEnv: MutationEnv {
     /// (`binding.ts:1321-1429`): moves the arrows bound to `changed`, except
     /// those in `simultaneously_updated` (the elements transformed with it).
     /// Called wherever upstream calls it, for every element, bindable or
-    /// not.
+    /// not. binding.ts is ex-510's: it implements this, and the gesture
+    /// tests then reproduce every recorded hook instead of replaying it.
     fn update_bound_elements(
         &mut self,
         scene: &mut Scene,
@@ -122,6 +123,8 @@ pub trait TransformEnv: MutationEnv {
 
     /// `getStickyNoteLayout(container, textElement, opts)`
     /// (`stickyNote.ts:669-762`): the note's and its label's geometry.
+    /// stickyNote.ts is ex-703's: it implements this, and the gesture
+    /// tests then reproduce every recorded hook instead of replaying it.
     fn sticky_note_layout(
         &mut self,
         container: &Element,

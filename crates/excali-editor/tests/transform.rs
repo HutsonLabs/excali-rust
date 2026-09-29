@@ -180,7 +180,8 @@ fn same_handles(actual: &TransformHandles, expected: &Value, context: &str) {
 /// is 0.5545673797180782 in Node 26 and 0.5545673797180781 in fdlibm). A
 /// rotated element's numbers can therefore differ in the last bits; the
 /// tolerance is a millionth of a millionth, relative, so any real
-/// difference still fails.
+/// difference still fails. ex-533 ports V8's trig routines and removes the
+/// tolerance (exact comparison, `-0` equal to `0`).
 fn same_number(a: f64, e: f64) -> bool {
     a == e || (a - e).abs() <= 1e-12 * a.abs().max(e.abs()).max(1.0)
 }
