@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-29 17:19 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-29 18:10 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**147 issues** · 102 closed (69%) · 1 in progress · 0 blocked · 43 open
+**147 issues** · 103 closed (70%) · 1 in progress · 0 blocked · 42 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -178,7 +178,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
 
-<span class="status open">open</span> 3/8 children closed
+<span class="status open">open</span> 4/8 children closed
 
 Vendored module in term.hut with CRUD and library import; tauri-plugin-excali with dialogs, headless export and allow-listed fetch; example app.
 
@@ -189,9 +189,9 @@ Vendored module in term.hut with CRUD and library import; tauri-plugin-excali wi
 | `ex-603` | term.hut: New drawing and delete flows in the tree | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-604` | term.hut: Import library from URL or file with the allow-list | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-605` | tauri-plugin-excali: dialogs, headless export, allow-listed library fetch, capability file | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-606` | Example Tauri app embedding the editor | task | P0 | <span class="status in_progress">in progress</span> |  |  |
+| `ex-606` | Example Tauri app embedding the editor | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-607` | Integration docs: CSP, capabilities, module loading without a bundler | task | P2 | <span class="status open">open</span> | yes |  |
-| `ex-m6` | M6: term.hut CRUD and library import end to end | milestone | P2 | <span class="status open">open</span> |  | `ex-603`, `ex-604`, `ex-606`, `ex-607` |
+| `ex-m6` | M6: term.hut CRUD and library import end to end | milestone | P2 | <span class="status open">open</span> |  | `ex-603`, `ex-604`, `ex-607` |
 
 ## ex-e7 · Phase 7: Parity and polish
 
@@ -212,7 +212,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 | `ex-709` | Accessibility: focus order, ARIA on controls, reduced motion, RTL mirroring of icons | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-710` | Performance budgets in CI (pan at 1,000 elements, first paint) | task | P1 | <span class="status open">open</span> | yes |  |
 | `ex-711` | Locale loader using upstream JSON files (58 locales, 633 keys) | task | P3 | <span class="status open">open</span> | yes |  |
-| `ex-712` | Parity checklist to 100% for the v1 scope | task | P0 | <span class="status open">open</span> | yes |  |
+| `ex-712` | Parity checklist to 100% for the v1 scope | task | P0 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-m7` | M7: parity checklist 100% for v1 scope | milestone | P2 | <span class="status open">open</span> |  | `ex-701`, `ex-702`, `ex-703`, `ex-704`, `ex-705`, `ex-706` … |
 
 ## ex-e8 · Phase 8: Release
