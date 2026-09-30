@@ -1,0 +1,61 @@
+/* Upstream's packages/excalidraw/css/styles.scss at the pin: the styles
+ * panel's rules under .excalidraw (:176-231, `.selected-shape-actions`,
+ * and :514-520, `.App-menu__left`), compiled by hand in sass's expanded
+ * style. */
+.excalidraw .selected-shape-actions {
+  display: flex;
+  flex-direction: column;
+  row-gap: 0.5rem;
+  --default-button-size: 2rem;
+}
+.excalidraw .selected-shape-actions h3,
+.excalidraw .selected-shape-actions legend,
+.excalidraw .selected-shape-actions .control-label {
+  margin: 0;
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--text-primary-color);
+  font-weight: 400;
+  display: block;
+}
+.excalidraw .selected-shape-actions .control-label input {
+  display: block;
+  width: 100%;
+}
+.excalidraw .selected-shape-actions legend {
+  padding: 0;
+}
+.excalidraw .selected-shape-actions .iconSelectList {
+  flex-wrap: wrap;
+  position: relative;
+}
+.excalidraw .selected-shape-actions .buttonList {
+  flex-wrap: wrap;
+  display: flex;
+  column-gap: 0.5rem;
+  row-gap: 0.5rem;
+}
+.excalidraw .selected-shape-actions .buttonList label {
+  font-size: 0.75rem;
+}
+.excalidraw .selected-shape-actions .buttonList input[type=radio],
+.excalidraw .selected-shape-actions .buttonList input[type=button] {
+  opacity: 0;
+  position: absolute;
+  pointer-events: none;
+}
+.excalidraw .selected-shape-actions .buttonList .iconRow {
+  margin-top: 8px;
+}
+.excalidraw .selected-shape-actions fieldset {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+.excalidraw .App-menu__left {
+  overflow-y: auto;
+  padding: 0.75rem;
+  max-width: 12.5rem;
+  box-sizing: border-box;
+  position: absolute;
+}

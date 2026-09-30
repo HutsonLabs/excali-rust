@@ -2136,6 +2136,29 @@
    "labels": []
   },
   {
+   "id": "ex-540",
+   "epic": "ex-e5",
+   "title": "Styles panel: the property actions' panel components and performs in <excali-editor>",
+   "priority": 1,
+   "blocked_by": [
+    "ex-712"
+   ],
+   "crates": [
+    "excali-editor",
+    "excali-ui",
+    "excali-wasm"
+   ],
+   "acceptance": "Every control of the full and compact styles panels renders its action's PanelComponent (fill, stroke width and style, sloppiness, roundness, arrow type, font family and size, text and vertical align, arrowheads, opacity, layers, align, the extra actions) and runs its perform on the selection as upstream does (changeProperty, getColorUpdate and syncStickyNoteInk for the colours, the line polygon toggle, bound text), goldens from upstream's performs over fixture scenes; <excali-editor> applies a colour pick, a keyboard pick, the eye dropper and the top picks' customisation with one history entry each, and closes the picker's popup on an outside click.",
+   "evidence": [
+    "packages/excalidraw/actions/actionProperties.tsx and actions/colorTargets.ts at the pinned commit",
+    "packages/excalidraw/components/ColorPicker/ColorPicker.tsx (onChange, onClose)",
+    "crates/excali-wasm/src/web.rs render_styles_panel"
+   ],
+   "description": "ex-712 wires the full styles panel into <excali-editor> with the stroke and background colour actions' panel components only (excali_ui::styles_panel::color_action_panel over excali_editor::actions::resolve_color_target and form_color): the trigger and Escape toggle appState.openPopup, a pick does nothing yet, and renderAction renders nothing for the other controls.",
+   "type": "task",
+   "labels": []
+  },
+  {
    "id": "ex-530",
    "epic": "ex-e5",
    "title": "<excali-editor> custom element: load/save/export/importLibrary/getState, events, host adapter",

@@ -120,7 +120,7 @@ fn type_of(element: &Element) -> &'static str {
 }
 
 /// `appState.activeTool.type`.
-fn active_tool_type<'a>(ctx: &ActionContext<'a>) -> &'a str {
+pub(crate) fn active_tool_type<'a>(ctx: &ActionContext<'a>) -> &'a str {
     ctx.field("activeTool", "type")
         .and_then(Value::as_str)
         .unwrap_or("")
@@ -128,7 +128,7 @@ fn active_tool_type<'a>(ctx: &ActionContext<'a>) -> &'a str {
 
 /// An element held in the app state (`editingTextElement`,
 /// `newElement`), when it is one.
-fn state_element(value: Option<&Value>) -> Option<Element> {
+pub(crate) fn state_element(value: Option<&Value>) -> Option<Element> {
     match value {
         Some(Value::Object(map)) => Element::from_map(map.clone()).ok(),
         _ => None,

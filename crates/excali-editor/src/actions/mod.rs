@@ -32,6 +32,7 @@
 //! [`crate::session`], the tools in [`crate::tools`], ...). Labels are
 //! locale keys; translating them is the UI's job.
 
+mod color_targets;
 mod context;
 mod keys;
 mod manager;
@@ -40,6 +41,9 @@ mod names;
 mod registry;
 mod shape_predicates;
 
+pub use color_targets::{
+    form_color, resolve_color_target, ColorProperty, ColorTarget, ColorTargetKind,
+};
 pub use context::{
     elements_are_in_same_group, frame_and_children_selected_together, has_bound_text_element,
     is_text_bindable_container, ActionContext, ActionEnv, AppProps, CanvasActions, FormFactor,
