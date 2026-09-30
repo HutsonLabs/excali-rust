@@ -27,6 +27,7 @@ pub mod env;
 mod interact;
 mod linear;
 mod multi;
+mod stats;
 pub mod text;
 pub mod web;
 

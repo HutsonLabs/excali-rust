@@ -1477,7 +1477,9 @@ fn render_library_sidebar(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
 /// Re-mounts the stats panel in the top-right corner while it shows: the
 /// close button runs `toggleStats`, a section header flips its bit of
 /// `appState.stats.panels`, a typed grid step sets `gridStep`
-/// (`CanvasGrid.tsx`), and Enter in an input focuses the container.
+/// (`CanvasGrid.tsx`), a typed or dragged element property edits the
+/// selection (`Editor::stats_input`, `Editor::stats_drag_move`), and Enter
+/// in an input focuses the container.
 fn render_stats(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
     let Some(rc) = weak.upgrade() else {
         return Ok(());
@@ -1511,8 +1513,19 @@ fn render_stats(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
                         inner.editor.set_app_state(patch);
                     }
                 }
-                // the element properties' edits are ex-539's
-                StatsEvent::Input { .. } => return,
+                StatsEvent::Input { property, value } => {
+                    if !inner.editor.stats_input(property, value) {
+                        return;
+                    }
+                }
+                StatsEvent::DragStart { property } => {
+                    inner.editor.stats_drag_start(property);
+                    return;
+                }
+                StatsEvent::DragMove { client_x, shift } => {
+                    inner.editor.stats_drag_move(client_x, shift)
+                }
+                StatsEvent::DragEnd => inner.editor.stats_drag_end(),
                 StatsEvent::FocusContainer => {
                     let _ = inner.container.focus();
                     return;

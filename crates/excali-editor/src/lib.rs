@@ -127,6 +127,7 @@ pub mod scene;
 pub mod selection;
 pub mod session;
 pub mod snapping;
+pub mod stats;
 pub mod store;
 pub mod text_editing;
 pub mod text_layout;

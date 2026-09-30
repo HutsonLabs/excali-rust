@@ -29,7 +29,8 @@ use excali_editor::resize_elements::{
     sticky_note_layout, StickyNoteLayout, StickyNoteLayoutOpts, TransformEnv,
 };
 use excali_editor::restore_env;
-use excali_editor::scene::MutationEnv;
+use excali_editor::scene::{MutationEnv, Scene};
+use excali_editor::stats::StatsEnv;
 use excali_editor::store::HistoryEnv;
 use excali_editor::text_layout::TextLayouter;
 use excali_scene::sticky_note::{utc, Clock};
@@ -206,23 +207,7 @@ impl<P: TextMetricsProvider + Clone> HistoryEnv for EditorEnv<P> {
         text_id: &str,
         container_id: &str,
     ) -> Result<(), String> {
-        let provider = self.layouter.provider.clone();
-        let mut arrow_widths = CharWidthCache::new();
-        self.layouter.redraw_text_bounding_box(
-            &mut self.rng,
-            elements,
-            text_id,
-            Some(container_id),
-            &mut |stamp, elements, id| {
-                let mut env = StampBinding {
-                    stamp,
-                    provider: &provider,
-                    char_widths: &mut arrow_widths,
-                };
-                update_bound_elements_in_map(elements, id, &SceneElementsMap::new(), &mut env);
-                Ok(())
-            },
-        )
+        self.redraw_text(elements, text_id, Some(container_id))
     }
 
     fn text(&mut self) -> (&dyn TextMetricsProvider, &mut CharWidthCache) {
@@ -247,5 +232,53 @@ impl<P: TextMetricsProvider + Clone> TransformEnv for EditorEnv<P> {
     ) -> StickyNoteLayout {
         self.layouter
             .with_layout(|layout, _| sticky_note_layout(layout, container, text, opts))
+    }
+}
+
+impl<P: TextMetricsProvider + Clone> EditorEnv<P> {
+    /// `redrawTextBoundingBox(text, container, scene)` on the elements;
+    /// the arrows a sticky note's layout moves follow it.
+    fn redraw_text(
+        &mut self,
+        elements: &mut SceneElementsMap,
+        text_id: &str,
+        container_id: Option<&str>,
+    ) -> Result<(), String> {
+        let provider = self.layouter.provider.clone();
+        let mut arrow_widths = CharWidthCache::new();
+        self.layouter.redraw_text_bounding_box(
+            &mut self.rng,
+            elements,
+            text_id,
+            container_id,
+            &mut |stamp, elements, id| {
+                let mut env = StampBinding {
+                    stamp,
+                    provider: &provider,
+                    char_widths: &mut arrow_widths,
+                };
+                update_bound_elements_in_map(elements, id, &SceneElementsMap::new(), &mut env);
+                Ok(())
+            },
+        )
+    }
+}
+
+/// The stats panel's font size: a free text or a label laid out again.
+impl<P: TextMetricsProvider + Clone> StatsEnv for EditorEnv<P> {
+    fn redraw_text_bounding_box(
+        &mut self,
+        scene: &mut Scene,
+        text_id: &str,
+        container_id: Option<&str>,
+    ) {
+        let mut map: SceneElementsMap = scene
+            .elements()
+            .iter()
+            .map(|e| (e.base.id.clone(), e.clone()))
+            .collect();
+        if self.redraw_text(&mut map, text_id, container_id).is_ok() {
+            *scene = Scene::new(map.into_values().collect());
+        }
     }
 }
