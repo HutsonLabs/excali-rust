@@ -440,3 +440,38 @@ fn a_blit_replays_as_one_image_under_its_absolute_matrix() {
         ]
     );
 }
+
+#[test]
+fn a_linear_bitmap_keeps_the_coordinates_of_its_version() {
+    // upstream reads a line's bounds from the shape cache; the port keeps
+    // them with the bitmap, made again with it
+    let mut elements = scene();
+    let config = editor_config();
+    let mut cache = ElementCanvasCache::new();
+    render(&elements, &app_state(0.0, 0.0), &config, &mut cache);
+    let coords = |elements: &[Element], id: &str| {
+        let visible: Vec<&Element> = elements.iter().collect();
+        let map = ElementsMap::new(visible.iter().copied());
+        let e = elements.iter().find(|e| e.base.id == id).unwrap();
+        excali_scene::bounds::get_element_absolute_coords(e, &map, false)
+    };
+    for id in ["arrow", "pen"] {
+        assert_eq!(
+            cache.get(id).unwrap().coords,
+            Some(coords(&elements, id)),
+            "{id}"
+        );
+    }
+    for id in ["rect", "label", "free"] {
+        assert_eq!(cache.get(id).unwrap().coords, None, "{id}");
+    }
+    let arrow = elements.iter_mut().find(|e| e.base.id == "arrow").unwrap();
+    arrow.base.version += 1.0;
+    arrow.base.x += 33.0;
+    let next = render(&elements, &app_state(0.0, 0.0), &config, &mut cache);
+    assert_eq!(next.made, ["arrow"]);
+    assert_eq!(
+        cache.get("arrow").unwrap().coords,
+        Some(coords(&elements, "arrow"))
+    );
+}
