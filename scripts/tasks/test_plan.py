@@ -98,7 +98,7 @@ class SeedRows(unittest.TestCase):
     def test_deferred_task_does_not_block_its_milestone(self):
         r = rows()
         self.assertNotIn("ex-801", blockers(r["ex-m8"]))
-        self.assertEqual(blockers(r["ex-m8"]), ["ex-802", "ex-803", "ex-804"])
+        self.assertEqual(blockers(r["ex-m8"]), ["ex-802", "ex-803", "ex-804", "ex-805"])
 
     def test_deferred_task_is_still_seeded_with_its_parent(self):
         r = rows()["ex-801"]

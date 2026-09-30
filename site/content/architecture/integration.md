@@ -213,7 +213,7 @@ It is the example app's file byte for byte:
 }
 ```
 
-`windows` names the window labels that may call the commands (`app.windows[].label` in `tauri.conf.json`; the example's is `main`). `excali:default` allows all five commands (`open`, `save`, `export`, `library_fetch`, `validate`); to allow fewer, list `excali:allow-<command>` entries instead (with `-` for `_`: `excali:allow-library-fetch`). No `dialog:` permission is needed, since the plugin opens its dialogs from Rust, and no `fs:` permission, since it reads and writes the files itself. `tests/app.rs` in the example checks that the compiled capability allows the commands in `main` and refuses them in another window.
+`windows` names the window labels that may call the commands (`app.windows[].label` in `tauri.conf.json`; the example's is `main`). `excali:default` allows all five commands (`open`, `save`, `export`, `library_fetch`, `validate`); to allow fewer, list `excali:allow-<command>` entries instead (with `-` for `_`: `excali:allow-library-fetch`). No `dialog:` permission is needed, since the plugin opens its dialogs from Rust, and no `fs:` permission, since it reads and writes the files itself. `tests/app.rs` in the example checks that the compiled capability allows the commands in `main` and refuses them in another window. The example also has `capabilities/app.json`, which allows its own commands (smoke mode and the update check and install) in `main` only, with permissions `build.rs` generates from an app manifest (`tauri_build::AppManifest::commands`); a host whose own commands need no ACL leaves both out.
 
 ## 6. Calling it from the page
 

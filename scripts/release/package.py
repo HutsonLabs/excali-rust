@@ -21,15 +21,28 @@ Subcommands:
   verify OUT [NAME...]          check every line of OUT/SHA256SUMS, or only
                                 the lines of the NAMEs (a release's SHA256SUMS
                                 also lists assets built elsewhere)
+  sums OUT NAME...              set the lines of the NAMEs (files in OUT) in
+                                OUT/SHA256SUMS, keeping the lines of other
+                                assets (the example app's DMG and updater
+                                files, scripts/release/macos-dmg.sh)
+  latest-json OUT TARBALL --version V [--pub-date RFC3339]
+                                write OUT/latest.json, what the example app's
+                                updater reads (tauri-plugin-updater's static
+                                JSON): version V, the pub_date (default now,
+                                UTC), and for darwin-aarch64 the signature in
+                                OUT/TARBALL.sig and the URL of TARBALL on the
+                                GitHub release v<V>
 
 Exit 0 on success, 1 on a bad DIST or digest, 2 on a usage error.
 Tests: scripts/release/test_release.py
 """
 from __future__ import annotations
 
+import datetime
 import gzip
 import hashlib
 import io
+import json
 import os
 import subprocess
 import sys
@@ -157,12 +170,76 @@ def verify(out: Path, names: list[str]) -> int:
     return 1 if bad else 0
 
 
-USAGE = "usage: package.py pack DIST OUT [--version V] | package.py verify OUT [NAME...]"
+def set_sums(out: Path, names: list[str]) -> int:
+    missing = [n for n in names if not (out / n).is_file()]
+    if missing or not names:
+        for n in missing:
+            print(f"release: {out / n} is missing", file=sys.stderr)
+        return 1
+    digests = {n: hashlib.sha256((out / n).read_bytes()).hexdigest() for n in names}
+    lines = [(d, n) for d, n in read_sums(out / SUMS) if n not in digests] + [(digests[n], n) for n in names]
+    (out / SUMS).write_text("".join(f"{d}  {n}\n" for d, n in lines), encoding="utf-8")
+    for n in names:
+        print(f"release: {digests[n]}  {n}")
+    return 0
+
+
+DOWNLOAD = "https://github.com/HutsonLabs/excali-rust/releases/download"
+PLATFORM = "darwin-aarch64"
+
+
+def latest_json(version: str, signature: str, tarball: str, pub_date: str) -> dict:
+    return {
+        "version": version,
+        "pub_date": pub_date,
+        "platforms": {
+            PLATFORM: {
+                "signature": signature.strip(),
+                "url": f"{DOWNLOAD}/{calver.tag(version)}/{tarball}",
+            }
+        },
+    }
+
+
+def write_latest_json(out: Path, tarball: str, version: str, pub_date: str | None) -> int:
+    sig = out / f"{tarball}.sig"
+    if not (out / tarball).is_file() or not sig.is_file():
+        print(f"release: {out / tarball} and its .sig are needed", file=sys.stderr)
+        return 1
+    signature = sig.read_text(encoding="utf-8").strip()
+    if not signature:
+        print(f"release: {sig} is empty", file=sys.stderr)
+        return 1
+    if pub_date is None:
+        pub_date = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    doc = latest_json(version, signature, tarball, pub_date)
+    (out / "latest.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+    print(f"release: {out / 'latest.json'} ({version}, {doc['platforms'][PLATFORM]['url']})")
+    return 0
+
+
+USAGE = (
+    "usage: package.py pack DIST OUT [--version V] | package.py verify OUT [NAME...]"
+    " | package.py sums OUT NAME... | package.py latest-json OUT TARBALL --version V [--pub-date D]"
+)
 
 
 def main(argv: list[str]) -> int:
     if argv[:1] == ["verify"] and len(argv) >= 2:
         return verify(Path(argv[1]), argv[2:])
+    if argv[:1] == ["sums"] and len(argv) >= 3:
+        return set_sums(Path(argv[1]), argv[2:])
+    if argv[:1] == ["latest-json"] and len(argv) in (5, 7):
+        opts = dict(zip(argv[3::2], argv[4::2]))
+        if set(opts) - {"--version", "--pub-date"} or "--version" not in opts:
+            print(USAGE, file=sys.stderr)
+            return 2
+        try:
+            calver.parse(opts["--version"])
+        except ValueError as e:
+            print(f"release: {e}", file=sys.stderr)
+            return 2
+        return write_latest_json(Path(argv[1]), argv[2], opts["--version"], opts.get("--pub-date"))
     if argv[:1] == ["pack"] and len(argv) in (3, 5):
         if len(argv) == 5:
             if argv[3] != "--version":

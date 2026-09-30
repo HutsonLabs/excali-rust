@@ -78,7 +78,7 @@ CSP: the module needs `'wasm-unsafe-eval'` in `script-src`. In the example app o
 }
 ```
 
-`cargo tauri dev` in `examples/tauri-app/src-tauri` opens the window; `cargo tauri build --bundles dmg` builds the (unsigned) macOS image. Its tests run the app's own context on the mock runtime (`tests/app.rs`), and `scripts/smoke.sh` runs the built app in the platform webview, where `ui/app.js` opens, saves, saves as and exports through the plugin and reports; CI runs both on macOS (`tauri-example`). See the example's `README.md`.
+`cargo tauri dev` in `examples/tauri-app/src-tauri` opens the window; `scripts/release/macos-dmg.sh <version>` builds the signed and notarized macOS image with the updater's signed tarball and `latest.json` (`--upload v<version>` attaches them to the GitHub release), and `cargo tauri build --bundles dmg --config '{"bundle":{"createUpdaterArtifacts":false}}'` an unsigned one. A release build checks `latest.json` on the latest GitHub release in the background and offers Install and restart (`tauri-plugin-updater`, from Rust; the page only calls the app's `update_check` and `update_install`). Its tests run the app's own context on the mock runtime (`tests/app.rs`), and `scripts/smoke.sh` runs the built app in the platform webview, where `ui/app.js` opens, saves, saves as and exports through the plugin and reports; CI runs both on macOS (`tauri-example`). See the example's `README.md`.
 
 ## Native headless use
 

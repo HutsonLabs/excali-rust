@@ -23,6 +23,8 @@ def main(dir_, scene_path):
     check("error" not in report, f"the smoke run threw: {report.get('error')}")
     check(report.get("problems") == [], f"CSP violations or errors: {report.get('problems')}")
     check(report.get("mounted") is True, "<excali-editor> has no canvas")
+    # update_check is allowed in main and answers null in smoke mode.
+    check("update" in report and report["update"] is None, f"update check in smoke mode: {report.get('update')}")
     opened = d / "open.excalidraw"
     for key, path in [("opened", opened), ("saved", opened), ("savedAs", opened),
                       ("png", d / "open.png"), ("svg", d / "open.svg")]:

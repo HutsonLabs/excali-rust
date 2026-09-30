@@ -9,6 +9,10 @@ the style of its scripts/vendor-catppuccin-icons.sh) runs to download a
 release, check the digest and unpack it. The tests build a stand-in dist/,
 pack it, and fetch it back through a file:// release URL, offline.
 
+The example app's macOS release (ex-805): scripts/release/macos-dmg.sh's
+argument handling and dry run, and the latest.json and SHA256SUMS lines it
+writes through package.py's latest-json and sums.
+
 Run: python3 scripts/release/test_release.py -v
 """
 from __future__ import annotations
@@ -16,7 +20,9 @@ from __future__ import annotations
 import gzip
 import hashlib
 import io
+import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -28,6 +34,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = ROOT / "scripts" / "release" / "package.py"
 FETCH = ROOT / "scripts" / "release" / "fetch.sh"
+MACOS_DMG = ROOT / "scripts" / "release" / "macos-dmg.sh"
+TAURI_CONF = ROOT / "examples" / "tauri-app" / "src-tauri" / "tauri.conf.json"
 WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 NOTES = ROOT / "scripts" / "release" / "notes"
 
@@ -298,6 +306,215 @@ class ReleaseTest(unittest.TestCase):
         for p in sorted(NOTES.glob("*")):
             self.assertEqual(p.suffix, ".md", p.name)
             self.assertEqual(calver.tag(p.stem[1:]), p.stem, p.name)
+
+
+def commands(text: str) -> list[list[str]]:
+    """The commands a dry run prints (`+ ` and the argv, shell-quoted)."""
+    return [shlex.split(line[2:]) for line in text.splitlines() if line.startswith("+ ")]
+
+
+APP_VERSION = json.loads(TAURI_CONF.read_text(encoding="utf-8"))["version"]
+NAME = f"Excali.Example_{APP_VERSION}_aarch64"
+
+
+class MacosReleaseTest(unittest.TestCase):
+    """scripts/release/macos-dmg.sh and the files it stages (ex-805)."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="excali-macos-test."))
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def dmg(self, *args: str, **env: str) -> subprocess.CompletedProcess[str]:
+        # No credential can leak into a dry run: none is in its environment.
+        base = {k: v for k, v in os.environ.items() if not k.startswith(("TAURI_SIGNING", "APPLE_"))}
+        base.pop("EXCALI_WEB_DIST", None)
+        return subprocess.run(
+            ["bash", str(MACOS_DMG), *args],
+            capture_output=True,
+            text=True,
+            env={**base, "EXCALI_RELEASE_ENV": str(self.tmp / "no.env"), **env},
+        )
+
+    def pack(self, *args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run([sys.executable, str(PACKAGE), *args], capture_output=True, text=True)
+
+    # arguments
+
+    def test_usage_errors_exit_2_before_anything_runs(self):
+        for args in (
+            (),
+            ("--dry-run",),
+            (APP_VERSION, "--bogus"),
+            (APP_VERSION, APP_VERSION),
+            (APP_VERSION, "--upload"),
+            (APP_VERSION, "--upload", "--dry-run"),
+            (APP_VERSION, "--out"),
+            ("26.09.1",),
+            ("v" + APP_VERSION,),
+        ):
+            with self.subTest(args=args):
+                r = self.dmg(*args)
+                self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+                self.assertEqual(r.stdout, "", "nothing ran")
+
+    def test_help_prints_the_usage(self):
+        r = self.dmg("--help")
+        self.assertEqual(r.returncode, 0)
+        self.assertIn("usage: scripts/release/macos-dmg.sh <version> [--upload <tag>]", r.stdout)
+
+    def test_the_version_must_be_the_apps(self):
+        r = self.dmg("26.12.9", "--dry-run")
+        self.assertEqual(r.returncode, 2)
+        self.assertIn(f"tauri.conf.json is at {APP_VERSION}", r.stderr)
+
+    def test_the_upload_tag_must_be_the_versions(self):
+        r = self.dmg(APP_VERSION, "--upload", "v26.12.9", "--dry-run")
+        self.assertEqual(r.returncode, 2)
+        self.assertIn(f"the tag must be v{APP_VERSION}", r.stderr)
+
+    # dry run
+
+    def test_dry_run_prints_every_step_and_touches_nothing(self):
+        out = self.tmp / "out"
+        r = self.dmg(APP_VERSION, "--dry-run", "--out", str(out))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse(out.exists())
+        text = r.stdout
+        steps = [
+            f"scripts/release/fetch.sh {APP_VERSION} ",
+            "credentials from " + str(self.tmp / "no.env"),
+            "signing identity FE9B9ADD91CB67176BFE80FF725F77539D75BD96",
+            "keychain item excali-example-updater-key",
+            "+ codesign --verify --deep --strict ",
+            "+ xcrun notarytool submit ",
+            "+ xcrun stapler staple ",
+            "+ xcrun stapler validate ",
+            "+ spctl -a -t open --context context:primary-signature -v ",
+            f"{out}/{NAME}.dmg",
+            f"{out}/{NAME}.app.tar.gz",
+            f"{out}/{NAME}.app.tar.gz.sig",
+            f"package.py latest-json {out} {NAME}.app.tar.gz --version {APP_VERSION}",
+            f"https://github.com/HutsonLabs/excali-rust/releases/download/v{APP_VERSION}/{NAME}.app.tar.gz",
+            f"package.py sums {out} {NAME}.dmg {NAME}.app.tar.gz {NAME}.app.tar.gz.sig latest.json",
+        ]
+        at = 0
+        for needle in steps:
+            i = text.find(needle, at)
+            self.assertNotEqual(i, -1, f"{needle!r} not in order in:\n{text}")
+            at = i
+        self.assertIn(
+            ["cargo", "tauri", "build", "--bundles", "app,dmg", "--config",
+             '{"bundle":{"macOS":{"signingIdentity":"FE9B9ADD91CB67176BFE80FF725F77539D75BD96"}}}'],
+            commands(text),
+        )
+        self.assertLess(text.index("updater signing key"), text.index("+ cargo tauri build"))
+        self.assertLess(text.index("+ cargo tauri build"), text.index("+ codesign"))
+        self.assertNotIn("gh release", text, "no upload without --upload")
+        # CI=true for bundle_dmg.sh without Finder; the private key never shows.
+        self.assertIn("CI=true", MACOS_DMG.read_text())
+        self.assertNotIn("TAURI_SIGNING_PRIVATE_KEY", text)
+
+    def test_dry_run_upload_merges_sha256sums_and_clobbers(self):
+        out = self.tmp / "out"
+        r = self.dmg(APP_VERSION, "--upload", f"v{APP_VERSION}", "--out", str(out), "--dry-run")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        text = r.stdout
+        download = f"+ gh release download v{APP_VERSION} -R HutsonLabs/excali-rust -p SHA256SUMS -D {out}"
+        sums = f"package.py sums {out} "
+        upload = f"+ gh release upload v{APP_VERSION} -R HutsonLabs/excali-rust --clobber "
+        self.assertLess(text.index(download), text.index(sums))
+        self.assertLess(text.index(sums), text.index(upload))
+        cmd = next(c for c in commands(text) if c[:3] == ["gh", "release", "upload"])
+        self.assertEqual(cmd[:7], ["gh", "release", "upload", f"v{APP_VERSION}", "-R", "HutsonLabs/excali-rust", "--clobber"])
+        self.assertEqual(
+            cmd[7:],
+            [str(out / a) for a in (f"{NAME}.dmg", f"{NAME}.app.tar.gz", f"{NAME}.app.tar.gz.sig",
+                                    "latest.json", "SHA256SUMS")],
+        )
+
+    def test_dry_run_takes_the_identity_and_web_build_given(self):
+        r = self.dmg(APP_VERSION, "--dry-run", APPLE_SIGNING_IDENTITY="ABC123", EXCALI_WEB_DIST="/tmp/web")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("signing identity ABC123", r.stdout)
+        build = next(c for c in commands(r.stdout) if c[:3] == ["cargo", "tauri", "build"])
+        self.assertEqual(json.loads(build[-1]), {"bundle": {"macOS": {"signingIdentity": "ABC123"}}})
+        self.assertIn("web runtime: /tmp/web", r.stdout)
+        self.assertNotIn("fetch.sh", r.stdout)
+
+    def test_the_identity_is_never_in_tauri_conf_json(self):
+        self.assertNotIn("signingIdentity", TAURI_CONF.read_text(encoding="utf-8"))
+
+    # latest.json and SHA256SUMS
+
+    def staged(self) -> Path:
+        out = self.tmp / "stage"
+        out.mkdir()
+        (out / f"{NAME}.app.tar.gz").write_bytes(b"app tarball")
+        (out / f"{NAME}.app.tar.gz.sig").write_text("dW50cnVzdGVkIGNvbW1lbnQ6IHNpZw==\n")
+        (out / f"{NAME}.dmg").write_bytes(b"dmg")
+        return out
+
+    def test_latest_json_is_what_the_updater_reads(self):
+        out = self.staged()
+        r = self.pack("latest-json", str(out), f"{NAME}.app.tar.gz", "--version", APP_VERSION,
+                      "--pub-date", "2026-09-30T12:00:00Z")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(
+            json.loads((out / "latest.json").read_text()),
+            {
+                "version": APP_VERSION,
+                "pub_date": "2026-09-30T12:00:00Z",
+                "platforms": {
+                    "darwin-aarch64": {
+                        "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZw==",
+                        "url": "https://github.com/HutsonLabs/excali-rust/releases/download/"
+                        f"v{APP_VERSION}/{NAME}.app.tar.gz",
+                    }
+                },
+            },
+        )
+
+    def test_latest_json_pub_date_defaults_to_now_in_utc(self):
+        out = self.staged()
+        r = self.pack("latest-json", str(out), f"{NAME}.app.tar.gz", "--version", APP_VERSION)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        date = json.loads((out / "latest.json").read_text())["pub_date"]
+        self.assertRegex(date, r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$")
+
+    def test_latest_json_refuses_a_missing_signature_or_a_bad_version(self):
+        out = self.staged()
+        (out / f"{NAME}.app.tar.gz.sig").unlink()
+        r = self.pack("latest-json", str(out), f"{NAME}.app.tar.gz", "--version", APP_VERSION)
+        self.assertEqual(r.returncode, 1)
+        self.assertFalse((out / "latest.json").exists())
+        for args in (("--version", "1.2"), ("--pub-date", "x"), ("--version", APP_VERSION, "--bogus", "x")):
+            r = self.pack("latest-json", str(out), f"{NAME}.app.tar.gz", *args)
+            self.assertEqual(r.returncode, 2, args)
+
+    def test_sums_sets_the_lines_of_the_names_and_keeps_the_rest(self):
+        out = self.staged()
+        (out / "latest.json").write_text("{}")
+        (out / "SHA256SUMS").write_text(
+            "0" * 64 + f"  excali-web_{APP_VERSION}.tar.gz\n" + "1" * 64 + f"  {NAME}.dmg\n"
+        )
+        names = [f"{NAME}.dmg", f"{NAME}.app.tar.gz", f"{NAME}.app.tar.gz.sig", "latest.json"]
+        r = self.pack("sums", str(out), *names)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(
+            (out / "SHA256SUMS").read_text(),
+            "0" * 64 + f"  excali-web_{APP_VERSION}.tar.gz\n"
+            + "".join(f"{sha256(out / n)}  {n}\n" for n in names),
+        )
+        # verify checks exactly those lines (the web tarball is not here).
+        self.assertEqual(self.pack("verify", str(out), *names).returncode, 0)
+
+    def test_sums_refuses_a_missing_file(self):
+        out = self.staged()
+        r = self.pack("sums", str(out), "latest.json")
+        self.assertEqual(r.returncode, 1)
+        self.assertFalse((out / "SHA256SUMS").exists())
 
 
 if __name__ == "__main__":

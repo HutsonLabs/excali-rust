@@ -20,6 +20,12 @@
   <span class="file" id="file">Untitled</span>
   <span class="status" id="status" role="status" aria-live="polite"></span>
 </header>
+<!-- Shown by app.js when update_check finds a newer release. -->
+<aside class="update" id="update" role="status" aria-live="polite" hidden>
+  <span id="update-text"></span>
+  <button type="button" data-update="install">Install and restart</button>
+  <button type="button" data-update="later">Later</button>
+</aside>
 <main id="host"></main>
 <script type="module" src="./app.js"></script>
 </body>
