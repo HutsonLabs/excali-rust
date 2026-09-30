@@ -9,6 +9,10 @@ on:
     branches: [main]
 permissions:
   contents: read
+# Superseded pull request runs are cancelled; runs on main never are (ex-dm2).
+concurrency:
+  group: gates-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   attribution:
     runs-on: ubuntu-latest

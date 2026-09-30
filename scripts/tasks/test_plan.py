@@ -475,7 +475,7 @@ class PostMergeCloseAndAffectedCi(unittest.TestCase):
         self.assertNotIn("paths-ignore", gates)
 
     def test_ex_dm2_row(self):
-        r = rows()["ex-dm2"]
+        r = item("ex-dm2")
         self.assertEqual(r["epic"], "ex-e0")
         self.assertIn("cancel-in-progress", r["acceptance"])
         self.assertIn("paths-ignore", r["acceptance"])

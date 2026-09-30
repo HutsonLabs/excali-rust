@@ -321,6 +321,27 @@
    "labels": []
   },
   {
+   "id": "ex-dm2",
+   "epic": "ex-e0",
+   "title": "CI on main: never cancel the full suite; skip rust for tracker-only commits",
+   "priority": 0,
+   "blocked_by": [
+    "ex-010"
+   ],
+   "crates": [],
+   "acceptance": "rust.yml and gates.yml use concurrency group '<workflow>-${{ github.ref }}' with cancel-in-progress: ${{ github.event_name == 'pull_request' }}, so a superseded pull request run is cancelled but a push to main always finishes; rust.yml's push trigger has paths-ignore for .beads/issues.jsonl, site/content/plan/progress.md and site/content/plan/build-log.md, so the integrator's '<id>: close in tracker, build log' commit does not start a rust run (pull_request is unfiltered, gates.yml is unfiltered). Tests: scripts/tasks/test_plan.py; actionlint on both workflows.",
+   "evidence": [
+    "Found 2026-09-30: the full-suite runs of 'Merge pull request #124' and 'ex-539: close in tracker, build log' on main were cancelled by the following push (rust.yml concurrency rust-${{ github.ref }}, cancel-in-progress: true)",
+    "https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#concurrency (cancel-in-progress accepts an expression; read 2026-09-30)",
+    "https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#onpushpull_requestpull_request_targetpathspaths-ignore (paths-ignore; read 2026-09-30)"
+   ],
+   "description": "Every merge to main is followed by the integrator's tracker commit; with cancel-in-progress: true the merge commit's full-suite run was cancelled. Since PRs test only affected crates (ex-010), main must complete the full suite for every merge: cancel in progress on pull requests only, and do not run rust for tracker-only pushes.",
+   "type": "task",
+   "labels": [
+    "ci"
+   ]
+  },
+  {
    "id": "ex-g001",
    "epic": "ex-e0",
    "title": "Attribution gate self-test in CI: a planted attribution line must fail the gate",

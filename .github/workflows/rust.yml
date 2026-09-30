@@ -24,11 +24,20 @@ on:
   pull_request:
   push:
     branches: [main]
+    # The integrator's '<id>: close in tracker, build log' commit touches
+    # only these; it follows every merge and must not start (or, before
+    # ex-dm2, cancel) a full-suite run.
+    paths-ignore:
+      - .beads/issues.jsonl
+      - site/content/plan/progress.md
+      - site/content/plan/build-log.md
 permissions:
   contents: read
+# Pull requests test only the affected crates (ex-010), so every push to main
+# must finish the full suite: cancel superseded runs on pull requests only.
 concurrency:
   group: rust-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: -D warnings
