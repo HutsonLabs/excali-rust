@@ -153,3 +153,67 @@ fn ctrl_shift_period_increases_the_font_size() {
     );
     assert!(ed.can_undo());
 }
+
+/// The eye dropper previews on the selection while held (LayerUI's
+/// `onChange`, `LayerUI.tsx:522-567`, `mutateElement` without a capture)
+/// and the release picks through the colour action: one entry, whose undo
+/// goes back to the colour before the preview.
+#[test]
+fn an_eye_dropper_preview_and_pick_are_one_undo_entry() {
+    let mut ed = editor(vec![rectangle("a", 100.0, 100.0)]);
+    select(&mut ed, &["a"]);
+    assert!(!ed.can_undo());
+    let version = get(&ed, "a").base.version;
+    ed.preview_color(
+        excali_editor::actions::ColorProperty::StrokeColor,
+        "#ffc9c9",
+    );
+    assert_eq!(get(&ed, "a").base.stroke_color, "#ffc9c9");
+    assert_eq!(get(&ed, "a").base.version, version + 1.0);
+    assert!(!ed.can_undo(), "a preview is not captured");
+    ed.preview_color(
+        excali_editor::actions::ColorProperty::StrokeColor,
+        "#b2f2bb",
+    );
+    ed.perform_style_action(
+        ActionName::ChangeStrokeColor,
+        &json!({ "color": "#b2f2bb" }),
+    );
+    assert_eq!(get(&ed, "a").base.stroke_color, "#b2f2bb");
+    assert!(ed.can_undo());
+    ed.undo();
+    assert_eq!(get(&ed, "a").base.stroke_color, "#1e1e1e");
+    assert!(!ed.can_undo(), "one entry");
+}
+
+/// With nothing selected the preview writes the colour target's default
+/// (`getColorTargetAppStateUpdates`).
+#[test]
+fn an_eye_dropper_preview_without_a_selection_sets_the_default() {
+    let mut ed = editor(vec![rectangle("a", 100.0, 100.0)]);
+    ed.preview_color(
+        excali_editor::actions::ColorProperty::BackgroundColor,
+        "#ffec99",
+    );
+    assert_eq!(
+        ed.app_state().get("currentItemBackgroundColor"),
+        Some(&json!("#ffec99"))
+    );
+    assert_eq!(get(&ed, "a").base.background_color, "transparent");
+}
+
+/// A press on the canvas closes the open popup
+/// (`App.handleCanvasPointerDown`, `App.tsx:8772-8774`).
+#[test]
+fn a_canvas_press_closes_the_open_popup() {
+    let mut ed = editor(vec![rectangle("a", 100.0, 100.0)]);
+    let mut patch = Map::new();
+    patch.insert("openPopup".into(), json!("elementStroke"));
+    ed.set_app_state(patch);
+    ed.pointer_down(excali_wasm::editor::PointerInput {
+        client_x: 800.0,
+        client_y: 600.0,
+        ..Default::default()
+    });
+    assert_eq!(ed.app_state().get("openPopup"), Some(&Value::Null));
+}

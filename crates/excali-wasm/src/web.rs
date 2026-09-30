@@ -27,13 +27,14 @@ use std::rc::{Rc, Weak};
 
 mod library_menu;
 mod search;
+mod styles_panel;
 
 use excali_canvas2d::{paint, WebCanvas};
 use excali_core::element::{Element, ElementKind};
 use excali_core::png::{encode_chunks, encode_text_chunk, extract_chunks};
 use excali_editor::actions::{
-    build_context_menu, get_context_menu_items, show_selected_shape_actions, ActionContext,
-    ActionName, ContextMenuKind, KeyLabels,
+    build_context_menu, get_context_menu_items, ActionContext, ActionName, ContextMenuKind,
+    KeyLabels,
 };
 use excali_editor::keyboard::{
     command_palette_key_down, is_command_palette_toggle_shortcut, ClipboardEventKind,
@@ -46,11 +47,6 @@ use excali_scene::display::FontFaceSource;
 use excali_scene::shape::Theme;
 use excali_svg::FontContent;
 use excali_text::text_measurements::TextMetricsProvider;
-use excali_ui::color_picker::{
-    close_popup, color_picker, initial_section, picker_custom_colors, toggle_popup,
-    ColorPickerEvent, ColorPickerProps, HexInputState, KeyNavEffect, OnColorPickerEvent,
-    StylesPanelMode,
-};
 use excali_ui::command_palette::{
     command_list, command_palette, hosted_app_links, library_commands, palette_commands,
     palette_key_down, palette_view, perform_command, CommandPaletteProps, PaletteCommand,
@@ -78,10 +74,6 @@ use excali_ui::main_menu::{default_main_menu, Dispatch, MenuContext, MenuEffect,
 use excali_ui::stats::{
     canvas_grid_step, should_show_stats, stats_panel, toggle_panel, OnStatsEvent, StatsEvent,
     StatsProperty, StatsProps,
-};
-use excali_ui::styles_panel::{
-    color_action_panel, legend_text, selected_shape_actions, shape_actions_section,
-    ColorActionPanel,
 };
 use excali_ui::text_editor::{
     measure_caret_offset, Handled, TextEditorOverlay, TextareaEvent, TextareaHandler,
@@ -116,12 +108,15 @@ use crate::env::EditorEnv;
 /// dialog's portal container in the body has upstream's `.excalidraw` box
 /// (`css/styles.scss:40-60`), so its modal covers the page. Every
 /// `.excalidraw` has upstream's UI font and text colour (`styles.scss:
-/// 41-54`), which the chrome's own rules inherit.
+/// 41-54`), which the chrome's own rules inherit, and the eye dropper's
+/// layers of `styles.scss:12-13`.
 pub const ELEMENT_CSS: &str = "\
 .excalidraw {
   --ui-font: Assistant, system-ui, BlinkMacSystemFont, -apple-system, Segoe UI,
     Roboto, Helvetica, Arial, sans-serif;
   --viewport-status-frame-border-width: 0px;
+  --zIndex-eyeDropperBackdrop: 5;
+  --zIndex-eyeDropperPreview: 6;
   font-family: var(--ui-font);
   color: var(--text-primary-color);
 }
@@ -192,6 +187,7 @@ pub fn stylesheet() -> String {
         excali_ui::stats::STATS_CSS,
         excali_ui::styles_panel::STYLES_PANEL_CSS,
         excali_ui::color_picker::COLOR_PICKER_CSS,
+        excali_ui::font_picker::FONT_PICKER_CSS,
         excali_ui::top_picks_dnd::TOP_PICKS_DND_CSS,
         excali_ui::main_menu::MAIN_MENU_CSS,
         excali_ui::context_menu::CONTEXT_MENU_CSS,
@@ -217,6 +213,7 @@ fn install_element_stylesheet(document: &Document) -> Result<(), JsValue> {
     excali_ui::stats::install_stylesheet(document)?;
     excali_ui::styles_panel::install_stylesheet(document)?;
     excali_ui::color_picker::install_stylesheet(document)?;
+    excali_ui::font_picker::install_stylesheet(document)?;
     excali_ui::main_menu::install_stylesheet(document)?;
     excali_ui::context_menu::install_stylesheet(document)?;
     excali_ui::library_sidebar::install_stylesheet(document)?;
@@ -326,7 +323,7 @@ struct Inner {
     main_menu: Option<Mounted>,
     menu_hint: Option<Mounted>,
     /// The styles panel under the main menu, with its colour pickers.
-    styles_panel: Option<(web_sys::Node, Vec<Mounted>)>,
+    styles_panel: styles_panel::StylesPanelHost,
     /// The welcome screen's centre (`WelcomeScreenCenterTunnel.Out`).
     welcome_center: Option<Mounted>,
     /// The convert element type popup, the panel it shows, and whether a
@@ -499,43 +496,7 @@ fn chrome_key(inner: &Inner) -> Value {
         "hint": current_hint(inner),
         "welcome": render_welcome_screen(inner),
         "stats": stats_node(inner).map(|el| Node::Element(el).to_html()),
-        "stylesPanel": styles_panel_key(inner),
-    })
-}
-
-/// What the styles panel shows: whether LayerUI renders it, and the
-/// colour pickers' props (`None` while it is hidden).
-fn styles_panel_key(inner: &Inner) -> Value {
-    if inner.ui == "none" {
-        return Value::Null;
-    }
-    let ed = &inner.editor;
-    let ctx = ed.action_context();
-    if !show_selected_shape_actions(&ctx) {
-        return Value::Null;
-    }
-    let pickers: Vec<Value> = [
-        ActionName::ChangeStrokeColor,
-        ActionName::ChangeBackgroundColor,
-    ]
-    .into_iter()
-    .filter_map(|name| color_action_panel(&ctx, name, StylesPanelMode::Full))
-    .map(|p| {
-        serde_json::json!([
-            p.label,
-            p.color,
-            p.top_picks,
-            p.customizable_top_picks.as_str()
-        ])
-    })
-    .collect();
-    serde_json::json!({
-        "panel": format!("{:?}", selected_shape_actions(&ctx, document_rtl(inner))),
-        "pickers": pickers,
-        "openPopup": ed.app_state().get("openPopup"),
-        "colorTopPicks": ed.app_state().get("colorTopPicks"),
-        "height": ed.app_state().get("height"),
-        "zen": ed.app_state().get("zenModeEnabled"),
+        "stylesPanel": styles_panel::styles_panel_key(inner),
     })
 }
 
@@ -764,7 +725,7 @@ fn refresh_chrome(weak: &Weak<RefCell<Inner>>) {
     let _ = render_toolbar(weak);
     let _ = render_footer(weak);
     let _ = render_main_menu(weak);
-    let _ = render_styles_panel(weak);
+    let _ = styles_panel::render_styles_panel(weak);
     let _ = render_library_sidebar(weak);
     let _ = render_stats(weak);
     let _ = library_menu::render_library_dialogs(weak);
@@ -1242,187 +1203,6 @@ fn render_main_menu(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
         inner.menu_hint = Some(hint);
     }
     Ok(())
-}
-
-/// Re-mounts LayerUI's selected shape actions under the main menu while
-/// `showSelectedShapeActions` holds (`LayerUI.tsx:249-297`, :314-330):
-/// the full panel's section and island, with the stroke and background
-/// colour actions' panel components (`actionProperties.tsx:385-435`,
-/// :508-551). A picker's trigger toggles `appState.openPopup`, which
-/// shows its popup, and Escape in the popup closes it. The other
-/// controls' panel components, and a pick changing the selection's
-/// colours, are ex-540's.
-fn render_styles_panel(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
-    let Some(rc) = weak.upgrade() else {
-        return Ok(());
-    };
-    let mut inner = rc.borrow_mut();
-    if let Some((root, _pickers)) = inner.styles_panel.take() {
-        if let Some(parent) = root.parent_node() {
-            parent.remove_child(&root)?;
-        }
-    }
-    if inner.ui == "none" {
-        return Ok(());
-    }
-    let document = inner.document();
-    let rtl = document_rtl(&inner);
-    let mut pickers = Vec::new();
-    let root = {
-        let ed = &inner.editor;
-        let ctx = ed.action_context();
-        if !show_selected_shape_actions(&ctx) {
-            return Ok(());
-        }
-        let state = ed.app_state();
-        let open_popup = state.get("openPopup").and_then(Value::as_str);
-        let theme = if state.get("theme").and_then(Value::as_str) == Some("dark") {
-            Theme::Dark
-        } else {
-            Theme::Light
-        };
-        let tree = shape_actions_section(
-            state.get("height").and_then(Value::as_f64).unwrap_or(0.0),
-            state
-                .get("zenModeEnabled")
-                .and_then(Value::as_bool)
-                .unwrap_or(false),
-            "excali-editor",
-            selected_shape_actions(&ctx, rtl),
-        );
-        let mut render_action =
-            |name: ActionName, _cycle: bool| -> Result<Option<web_sys::Node>, JsValue> {
-                let Some(panel) = color_action_panel(&ctx, name, StylesPanelMode::Full) else {
-                    return Ok(None);
-                };
-                let fragment = document.create_document_fragment();
-                if let Some(heading) = panel.heading_node() {
-                    let none = &mut |_: ActionName, _: bool| Ok(None);
-                    if let Some(h) = excali_ui::styles_panel::mount(
-                        &document,
-                        &heading,
-                        none,
-                        &excali_ui::styles_panel::MountOptions::default(),
-                    )? {
-                        fragment.append_child(&h)?;
-                    }
-                }
-                let ty = panel.ty;
-                let events = weak.clone();
-                let on_event = Rc::new(move |event: ColorPickerEvent| {
-                    let Some(rc) = events.upgrade() else {
-                        return;
-                    };
-                    {
-                        let Ok(mut inner) = rc.try_borrow_mut() else {
-                            return;
-                        };
-                        let open = inner
-                            .editor
-                            .app_state()
-                            .get("openPopup")
-                            .and_then(Value::as_str)
-                            .map(str::to_owned);
-                        let next = match event {
-                            ColorPickerEvent::Trigger => toggle_popup(open.as_deref(), ty),
-                            ColorPickerEvent::Key(outcome)
-                                if outcome.effects.contains(&KeyNavEffect::Escape) =>
-                            {
-                                close_popup(open.as_deref(), ty)
-                            }
-                            // a pick, the eye dropper and the top picks'
-                            // customisation are ex-540's
-                            _ => return,
-                        };
-                        let mut patch = serde_json::Map::new();
-                        patch.insert("openPopup".into(), next.map_or(Value::Null, Value::String));
-                        inner.editor.set_app_state(patch);
-                        inner.after_event();
-                    }
-                    refresh_chrome(&events);
-                }) as OnColorPickerEvent;
-                let props = color_picker_props(&ctx, &panel, open_popup, theme, on_event);
-                for node in color_picker(&props) {
-                    pickers.push(mount(&node, &document, &fragment)?);
-                }
-                Ok(Some(fragment.into()))
-            };
-        excali_ui::styles_panel::mount(
-            &document,
-            &tree,
-            &mut render_action,
-            &excali_ui::styles_panel::MountOptions::default(),
-        )?
-    };
-    let Some(root) = root else {
-        return Ok(());
-    };
-    inner.top_left.append_child(&root)?;
-    if let Some(el) = root.dyn_ref::<web_sys::Element>() {
-        excali_ui::styles_panel::place_popovers(el);
-    }
-    inner.styles_panel = Some((root, pickers));
-    Ok(())
-}
-
-/// The `ColorPicker` a colour action's panel component renders
-/// (`ColorPicker.tsx:51-73`): open while `appState.openPopup` is its
-/// type, with the scene's most used custom colours and the section and
-/// hex input the popup opens with.
-fn color_picker_props(
-    ctx: &ActionContext<'_>,
-    panel: &ColorActionPanel,
-    open_popup: Option<&str>,
-    theme: Theme,
-    on_event: OnColorPickerEvent,
-) -> ColorPickerProps {
-    let open = open_popup == Some(panel.ty.as_str());
-    let custom_colors = if open {
-        picker_custom_colors(panel.ty, ctx.elements, panel.palette)
-    } else {
-        Vec::new()
-    };
-    let slot = panel.customizable_top_picks;
-    let color_top_picks = ctx
-        .app_state
-        .get("colorTopPicks")
-        .and_then(|p| p.get(slot.as_str()))
-        .and_then(Value::as_array)
-        .map(|a| {
-            a.iter()
-                .filter_map(Value::as_str)
-                .map(str::to_owned)
-                .collect()
-        })
-        .unwrap_or_default();
-    ColorPickerProps {
-        ty: panel.ty,
-        color: panel.color.clone(),
-        label: legend_text(panel.label).to_owned(),
-        palette: Some(panel.palette),
-        top_picks: Some(panel.top_picks),
-        excluded_colors: panel
-            .excluded_colors
-            .unwrap_or_default()
-            .iter()
-            .map(|c| (*c).to_owned())
-            .collect(),
-        theme,
-        open,
-        mode: StylesPanelMode::Full,
-        phone: false,
-        is_darwin: is_darwin(),
-        section: initial_section(panel.color.as_deref(), panel.palette, &custom_colors),
-        custom_colors,
-        eye_dropper_active: false,
-        hex: HexInputState::for_color(panel.color.as_deref().unwrap_or("")),
-        popup_id: format!("excali-editor-{}-popup", panel.ty.as_str()),
-        on_event: Some(on_event),
-        customizable_top_picks: Some(slot),
-        color_top_picks,
-        top_picks_menu: None,
-        dnd: None,
-    }
 }
 
 /// `App.openContextMenu` for a `contextmenu` event over the canvas: which
@@ -2518,7 +2298,7 @@ impl EditorCore {
             top_left,
             main_menu: None,
             menu_hint: None,
-            styles_panel: None,
+            styles_panel: styles_panel::StylesPanelHost::default(),
             welcome_center: None,
             convert_popup: None,
             focus_convert_popup: false,
@@ -2636,6 +2416,11 @@ impl EditorCore {
             inner.after_event();
             drop(inner);
             refresh_chrome(&Rc::downgrade(rc));
+        })?;
+        // a press outside an open popup of the styles panel closes it
+        let presses: web_sys::EventTarget = inner.borrow().document().into();
+        listen_capture(&inner, &presses, "pointerdown", |rc, event| {
+            styles_panel::pointer_down_outside(&Rc::downgrade(rc), &event);
         })?;
         let interactive: web_sys::EventTarget = inner
             .borrow()

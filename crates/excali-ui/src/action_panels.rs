@@ -1699,3 +1699,57 @@ pub fn bucket_fill_color_panel(ctx: &ActionContext<'_>, mode: StylesPanelMode) -
         excluded_colors: Some(BUCKET_FILL_EXCLUDED_COLORS),
     }
 }
+
+/// Places each open IconPicker popover under `root` as radix's
+/// `Popover.Content` does (`IconPicker.tsx:251-259`: `side="bottom"`,
+/// `align="start"`, `sideOffset={12}`, `alignOffset={12}`): below its
+/// trigger, from the trigger's left edge, flipped above when it would
+/// leave the editor. Call once the panel is in the document.
+pub fn place_icon_pickers(root: &web_sys::Element) {
+    use wasm_bindgen::JsCast;
+    let Ok(pickers) = root.query_selector_all("[data-radix-popper-content-wrapper] > .picker")
+    else {
+        return;
+    };
+    for i in 0..pickers.length() {
+        let Some(picker) = pickers
+            .item(i)
+            .and_then(|n| n.dyn_into::<web_sys::Element>().ok())
+        else {
+            continue;
+        };
+        let Some(wrapper) = picker
+            .parent_element()
+            .and_then(|w| w.dyn_into::<web_sys::HtmlElement>().ok())
+        else {
+            continue;
+        };
+        let label = picker.get_attribute("aria-label").unwrap_or_default();
+        let selector = format!("button[aria-label=\"{label}\"][aria-expanded=\"true\"]");
+        let Ok(Some(trigger)) = root.query_selector(&selector) else {
+            continue;
+        };
+        let t = trigger.get_bounding_client_rect();
+        let c = picker.get_bounding_client_rect();
+        let bottom_edge = wrapper
+            .closest(".excalidraw")
+            .ok()
+            .flatten()
+            .map_or(f64::INFINITY, |e| e.get_bounding_client_rect().bottom());
+        let x = t.left() + ICON_PICKER_ALIGN_OFFSET;
+        let below = t.bottom() + ICON_PICKER_SIDE_OFFSET;
+        let (side, y) = if below + c.height() > bottom_edge {
+            ("top", t.top() - ICON_PICKER_SIDE_OFFSET - c.height())
+        } else {
+            ("bottom", below)
+        };
+        let _ = picker.set_attribute("data-side", side);
+        let style = wrapper.style();
+        let _ = style.set_property("position", "fixed");
+        let _ = style.set_property("left", "0px");
+        let _ = style.set_property("top", "0px");
+        let _ = style.set_property("transform", &format!("translate({x}px, {y}px)"));
+        let _ = style.set_property("min-width", "max-content");
+        let _ = style.set_property("z-index", "var(--zIndex-ui-styles-popup)");
+    }
+}

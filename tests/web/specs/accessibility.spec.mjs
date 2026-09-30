@@ -237,7 +237,11 @@ test.describe("the command palette's list", () => {
 /** The computed transform of each mirrored icon in the chrome. */
 const mirroredTransforms = (page) =>
   page.evaluate(() =>
-    [...document.querySelectorAll(".excalidraw svg.rtl-mirror")].map(
+    // rendered ones: the styles panel keeps a hidden ungroup button
+    // (actionGroup.tsx's `hidden`), which has no box to transform
+    [...document.querySelectorAll(".excalidraw svg.rtl-mirror")]
+      .filter((svg) => svg.getClientRects().length > 0)
+      .map(
       (svg) => getComputedStyle(svg).transform,
     ),
   );

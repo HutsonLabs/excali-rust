@@ -1574,3 +1574,57 @@ fn crop_editor<E: StyleEnv>(w: &Work<'_, E>, app_state: &AppState) -> Option<Act
         never: false,
     })
 }
+
+/// The eye dropper's live preview, LayerUI's `EyeDropper` `onChange`
+/// (`components/LayerUI.tsx:522-567`): while the pointer is held the
+/// sampled `color` goes to `property` of the selection (`mutateElement`
+/// with `getColorUpdate`; a stroke pick includes the bound labels, a
+/// note's visible text), or, with nothing selected, to the colour
+/// target's defaults (`getColorTargetAppStateUpdates`). Nothing is
+/// captured: the pick on release records the change (`onSelect`, the
+/// colour action's perform).
+pub fn eye_dropper_preview<E: StyleEnv>(
+    elements: &[Element],
+    app_state: &AppState,
+    property: ColorProperty,
+    color: &str,
+    env: &mut E,
+) -> ActionResult {
+    let selected_ids = object_key(app_state, "selectedElementIds");
+    let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
+    let stroke = property == ColorProperty::StrokeColor;
+    let targets: HashSet<String> = get_selected_elements(&live, &selected_ids, stroke, false)
+        .into_iter()
+        .map(|e| e.base.id.clone())
+        .collect();
+    if get_selected_elements(&live, &selected_ids, false, false).is_empty() {
+        let (props, action_env) = (AppProps::default(), ActionEnv::default());
+        let target = resolve_color_target(
+            &action_context(elements, app_state, &props, &action_env),
+            property,
+        );
+        return ActionResult {
+            elements: None,
+            app_state: color_target_app_state_updates(&target, color),
+            capture: false,
+            never: false,
+        };
+    }
+    let map = ElementsMap::new(elements.iter());
+    let next = elements
+        .iter()
+        .map(|el| {
+            if !targets.contains(&el.base.id) {
+                return el.clone();
+            }
+            element_with(el, color_update(el, property, color, &map), env)
+                .unwrap_or_else(|| el.clone())
+        })
+        .collect();
+    ActionResult {
+        elements: Some(next),
+        app_state: Map::new(),
+        capture: false,
+        never: false,
+    }
+}

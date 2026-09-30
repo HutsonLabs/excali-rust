@@ -494,6 +494,34 @@ pub fn mount(node: &Node, document: &Document, parent: &web_sys::Node) -> Result
     Ok(Mounted { root, listeners })
 }
 
+/// The mount hooks of a tree mounted with [`mount_deferred`], to run once
+/// it is in the document.
+#[must_use]
+pub struct PendingHooks(Hooks);
+
+impl PendingHooks {
+    /// Runs the hooks (children before parents, in order).
+    pub fn run(self) {
+        for (el, hook) in self.0 {
+            hook(&el);
+        }
+    }
+}
+
+/// [`mount`] into a `parent` that is not in the document yet (a fragment):
+/// the tree's mount hooks are returned, to run once it is.
+pub fn mount_deferred(
+    node: &Node,
+    document: &Document,
+    parent: &web_sys::Node,
+) -> Result<(Mounted, PendingHooks), JsValue> {
+    let mut listeners = Vec::new();
+    let mut hooks = Vec::new();
+    let root = create(node, document, &mut listeners, &mut hooks)?;
+    parent.append_child(&root)?;
+    Ok((Mounted { root, listeners }, PendingHooks(hooks)))
+}
+
 /// Creates `node`'s DOM without attaching it; its listeners stay attached
 /// for as long as the page lives (for a subtree replacing part of a
 /// mounted one, such as a toggled icon).

@@ -1023,6 +1023,14 @@ pub fn place_popovers(root: &web_sys::Element) {
         else {
             continue;
         };
+        // IconPicker's popover places itself
+        // (crate::action_panels::place_icon_pickers)
+        if wrapper
+            .first_element_child()
+            .is_some_and(|c| c.class_list().contains("picker"))
+        {
+            continue;
+        }
         let below = wrapper
             .first_element_child()
             .and_then(|c| c.get_attribute("data-side"))

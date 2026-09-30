@@ -63,7 +63,7 @@ pub use grouping::{group, ungroup};
 pub use library::{
     distribute_library_items_on_square_grid, duplicate_library_items, insert_library_items,
 };
-pub use properties::{perform_style_action, StyleEnv};
+pub use properties::{eye_dropper_preview, perform_style_action, StyleEnv};
 pub use zindex::{bring_forward, bring_to_front, send_backward, send_to_back};
 
 /// Where the edit actions draw what upstream draws: new ids (`randomId()`,

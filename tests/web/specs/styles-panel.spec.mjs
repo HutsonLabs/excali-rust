@@ -178,13 +178,21 @@ test("dragging a swatch to the strip customises the top picks", async ({ page })
   const to = await panel(page).locator('[data-testid="color-top-pick-#e03131"]').first().boundingBox();
   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
   await page.mouse.down();
+  // a drag starts past 10 px and 100 ms (topPicksDnD.tsx:19-22)
+  await page.mouse.move(from.x + from.width / 2 + 12, from.y + from.height / 2, { steps: 3 });
+  await page.waitForTimeout(150);
+  await page.mouse.move(from.x + from.width / 2 + 16, from.y + from.height / 2, { steps: 2 });
   await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 12 });
+  await page.waitForTimeout(50);
   await page.mouse.up();
   await expect(panel(page).locator(`[data-testid="color-top-pick-${hex}"]`).first()).toBeVisible(SHORT);
   // app state only: the element and the history are as they were
   expect((await byId(page)).r.strokeColor).toBe("#1e1e1e");
+  // an undo takes back the selection, not the picks
   await undo(page);
+  await click(page, [450, 150]);
   await expect(panel(page).locator(`[data-testid="color-top-pick-${hex}"]`).first()).toBeVisible();
+  expect((await byId(page)).r.strokeColor).toBe("#1e1e1e");
   expect(errors).toEqual([]);
 });
 
@@ -208,14 +216,94 @@ test("the property controls run their performs", async ({ page }) => {
   const errors = await selectedRect(page);
   await panel(page).locator('[data-testid="fill-cross-hatch"]').click();
   await expect.poll(async () => (await byId(page)).r.fillStyle).toBe("cross-hatch");
-  await panel(page).locator('[data-testid="strokeWidth-bold"]').click();
+  // RadioSelection's inputs are hidden under their labels
+  await panel(page).locator('[data-testid="strokeWidth-bold"]').locator("..").click();
   await expect.poll(async () => (await byId(page)).r.strokeWidth).toBe(4);
-  await panel(page).locator('input[type="radio"][name="strokeStyle"]').nth(1).check();
+  await panel(page).locator('input[type="radio"][name="strokeStyle"]').nth(1).locator("..").click();
   await expect.poll(async () => (await byId(page)).r.strokeStyle).toBe("dashed");
   const opacity = panel(page).locator('[data-testid="opacity"]');
   await opacity.fill("50");
   await expect.poll(async () => (await byId(page)).r.opacity).toBe(50);
   await undo(page);
   await expect.poll(async () => (await byId(page)).r.opacity).toBe(100);
+  expect(errors).toEqual([]);
+});
+
+const text = (id, x, y, value) =>
+  element("text", id, x, y, 50, 25, {
+    backgroundColor: "transparent",
+    text: value,
+    originalText: value,
+    fontSize: 20,
+    fontFamily: 5,
+    textAlign: "left",
+    verticalAlign: "top",
+    containerId: null,
+    autoResize: true,
+    lineHeight: 1.25,
+  });
+
+test("the font family picker's picks and its list", async ({ page }) => {
+  const errors = await mount(page, [text("t", 400, 100, "hello")]);
+  await click(page, [420, 110]);
+  await expect(panel(page)).toBeVisible(SHORT);
+  // the top pick of the code font (FONT_FAMILY["Comic Shanns"])
+  await panel(page).locator('[data-testid="font-family-code"]').click();
+  await expect.poll(async () => (await byId(page)).t.fontFamily).toBe(8);
+  // the list: a pick closes it
+  await panel(page).locator('[data-testid="font-family-show-fonts"]').click();
+  const list = page.locator("excali-editor .FontPicker__container, excali-editor [role=dialog] .dropdown-menu");
+  await expect(list.first()).toBeVisible(SHORT);
+  await page.locator("excali-editor .dropdown-menu-item", { hasText: "Lilita One" }).click();
+  await expect.poll(async () => (await byId(page)).t.fontFamily).toBe(7);
+  await undo(page);
+  await expect.poll(async () => (await byId(page)).t.fontFamily).toBe(8);
+  expect(errors).toEqual([]);
+});
+
+test("the arrowheads' icon picker picks the end arrowhead", async ({ page }) => {
+  const errors = await mount(page, [
+    element("arrow", "a", 400, 100, 200, 0, {
+      backgroundColor: "transparent",
+      points: [
+        [0, 0],
+        [200, 0],
+      ],
+      startBinding: null,
+      endBinding: null,
+      startArrowhead: null,
+      endArrowhead: "arrow",
+      elbowed: false,
+    }),
+  ]);
+  await click(page, [500, 100]);
+  await expect(panel(page)).toBeVisible(SHORT);
+  await panel(page).locator('button[aria-label="arrowhead_end"]').click();
+  await page.locator('excali-editor .picker-option[aria-label="Triangle"]').click();
+  await expect.poll(async () => (await byId(page)).a.endArrowhead).toBe("triangle");
+  // a click pick keeps it open (IconPicker.tsx:206-208); a press outside closes it
+  await expect(page.locator('excali-editor .picker-option[aria-label="Triangle"]')).toHaveClass(/active/);
+  await panel(page).locator("legend").first().click();
+  await expect(page.locator("excali-editor .picker-option")).toHaveCount(0, SHORT);
+  expect(errors).toEqual([]);
+});
+
+test("align and layers act on the selection", async ({ page }) => {
+  const errors = await mount(page, [
+    element("rectangle", "r", 400, 100),
+    element("rectangle", "s", 300, 300),
+  ]);
+  await page.locator("excali-editor .excalidraw-container").focus();
+  await page.keyboard.press(`${MOD}+KeyA`);
+  await expect(panel(page)).toBeVisible(SHORT);
+  await panel(page).locator('button[aria-label="Align left"]').click();
+  await expect.poll(async () => (await byId(page)).r.x).toBe(300);
+  // the layers: the first element brought to the front
+  await click(page, EMPTY);
+  await click(page, [350, 150]);
+  await panel(page).locator('button.zIndexButton[title^="Bring to front"]').click();
+  await expect
+    .poll(async () => (await page.evaluate(() => JSON.parse(window.ed.save()).elements)).map((e) => e.id))
+    .toEqual(["s", "r"]);
   expect(errors).toEqual([]);
 });
