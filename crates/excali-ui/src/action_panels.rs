@@ -47,7 +47,6 @@ use serde_json::{json, Value};
 use crate::color_picker::{ColorPickerType, ColorTopPicksSlot, StylesPanelMode};
 use crate::dom::{class_names, Element, EventData, EventResponse, Node};
 use crate::font_picker::FontPickerState;
-use crate::i18n::I18n;
 use crate::icons::{self, Icon};
 use crate::primitives::{icon_button, range, IconButtonKind, IconButtonProps, RangeProps};
 use crate::styles_panel::ColorActionPanel;
@@ -122,9 +121,99 @@ impl ActionPanelOptions {
     }
 }
 
-/// `t(key)` in English.
-fn t(key: &str) -> String {
-    I18n::new().t(key)
+/// `t(key)` in English: the strings of `locales/en.json` the panels
+/// show (`crate::i18n::EN_JSON`, whose loader the panels do not pull into
+/// the module); the key itself for any other, as `t` does for a missing
+/// one. `tests/action_panels.rs` holds the table to `en.json`.
+pub fn t(key: &str) -> String {
+    match key {
+        "buttons.redo" => "Redo",
+        "buttons.undo" => "Undo",
+        "helpDialog.cropStart" => "Crop image",
+        "labels.alignBottom" => "Align bottom",
+        "labels.alignLeft" => "Align left",
+        "labels.alignRight" => "Align right",
+        "labels.alignTop" => "Align top",
+        "labels.architect" => "Architect",
+        "labels.arrowhead_arrow" => "Arrow",
+        "labels.arrowhead_bar" => "Bar",
+        "labels.arrowhead_cardinality_exactly_one" => "Cardinality (exactly one)",
+        "labels.arrowhead_cardinality_many" => "Cardinality (many)",
+        "labels.arrowhead_cardinality_one" => "Cardinality (one)",
+        "labels.arrowhead_cardinality_one_or_many" => "Cardinality (one or many)",
+        "labels.arrowhead_cardinality_zero_or_many" => "Cardinality (zero or many)",
+        "labels.arrowhead_cardinality_zero_or_one" => "Cardinality (zero or one)",
+        "labels.arrowhead_circle" => "Circle",
+        "labels.arrowhead_circle_outline" => "Circle (outline)",
+        "labels.arrowhead_diamond" => "Diamond",
+        "labels.arrowhead_diamond_outline" => "Diamond (outline)",
+        "labels.arrowhead_none" => "None",
+        "labels.arrowhead_triangle" => "Triangle",
+        "labels.arrowhead_triangle_outline" => "Triangle (outline)",
+        "labels.arrowheads" => "Arrowheads",
+        "labels.arrowtype_elbowed" => "Elbow arrow",
+        "labels.arrowtype_round" => "Curved arrow",
+        "labels.arrowtype_sharp" => "Sharp arrow",
+        "labels.arrowtypes" => "Arrow type",
+        "labels.artist" => "Artist",
+        "labels.background" => "Background",
+        "labels.bold" => "Bold",
+        "labels.bringForward" => "Bring forward",
+        "labels.bringToFront" => "Bring to front",
+        "labels.cardinality" => "Cardinality",
+        "labels.cartoonist" => "Cartoonist",
+        "labels.center" => "Center",
+        "labels.centerHorizontally" => "Center horizontally",
+        "labels.centerVertically" => "Center vertically",
+        "labels.crossHatch" => "Cross-hatch",
+        "labels.delete" => "Delete",
+        "labels.distributeHorizontally" => "Distribute horizontally",
+        "labels.distributeVertically" => "Distribute vertically",
+        "labels.duplicateSelection" => "Duplicate",
+        "labels.edges" => "Edges",
+        "labels.fill" => "Fill",
+        "labels.fontFamily" => "Font family",
+        "labels.fontSize" => "Font size",
+        "labels.group" => "Group selection",
+        "labels.hachure" => "Hachure",
+        "labels.large" => "Large",
+        "labels.left" => "Left",
+        "labels.lineEditor.edit" => "Edit line",
+        "labels.lineEditor.editArrow" => "Edit arrow",
+        "labels.link.create" => "Add link",
+        "labels.link.edit" => "Edit link",
+        "labels.link.editEmbed" => "Edit embeddable link",
+        "labels.link.label" => "Link",
+        "labels.link.labelEmbed" => "Link & embed",
+        "labels.medium" => "Medium",
+        "labels.more_options" => "More options",
+        "labels.opacity" => "Opacity",
+        "labels.polygon.breakPolygon" => "Break polygon",
+        "labels.polygon.convertToPolygon" => "Convert to polygon",
+        "labels.pressure" => "Pressure",
+        "labels.pressure_constant" => "Constant",
+        "labels.pressure_variable" => "Variable",
+        "labels.right" => "Right",
+        "labels.round" => "Round",
+        "labels.sendBackward" => "Send backward",
+        "labels.sendToBack" => "Send to back",
+        "labels.sharp" => "Sharp",
+        "labels.sloppiness" => "Sloppiness",
+        "labels.small" => "Small",
+        "labels.solid" => "Solid",
+        "labels.strokeStyle" => "Stroke style",
+        "labels.strokeStyle_dashed" => "Dashed",
+        "labels.strokeStyle_dotted" => "Dotted",
+        "labels.strokeStyle_solid" => "Solid",
+        "labels.strokeWidth" => "Stroke width",
+        "labels.textAlign" => "Text align",
+        "labels.thin" => "Thin",
+        "labels.ungroup" => "Ungroup selection",
+        "labels.veryLarge" => "Very large",
+        "labels.zigzag" => "Zigzag",
+        _ => key,
+    }
+    .to_owned()
 }
 
 /// `getShortcutKey(shortcut)`.

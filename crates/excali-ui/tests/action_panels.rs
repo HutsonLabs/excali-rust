@@ -774,3 +774,37 @@ fn actions_without_a_styles_panel_component_render_none() {
         );
     }
 }
+
+/// The panels' English strings are `en.json`'s: every key the panels (and
+/// the form values they read) name resolves through `action_panels::t` to
+/// what the locale loader answers for it.
+#[test]
+fn the_panel_strings_are_en_json() {
+    let sources = [
+        include_str!("../src/action_panels.rs"),
+        include_str!("../../excali-editor/src/actions/form_values.rs"),
+    ];
+    let i18n = excali_ui::i18n::I18n::new();
+    let mut checked = 0;
+    for source in sources {
+        for part in source.split('"').skip(1).step_by(2) {
+            let is_key = ["labels.", "buttons.", "helpDialog.", "toolBar."]
+                .iter()
+                .any(|p| part.starts_with(p))
+                && part
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_');
+            if !is_key {
+                continue;
+            }
+            assert_eq!(excali_ui::action_panels::t(part), i18n.t(part), "{part}");
+            assert_ne!(
+                excali_ui::action_panels::t(part),
+                part,
+                "{part} is in en.json"
+            );
+            checked += 1;
+        }
+    }
+    assert!(checked > 80, "{checked} keys");
+}
