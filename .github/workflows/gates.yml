@@ -492,6 +492,9 @@ jobs:
   # hints.mjs --check for excali-ui's hints.json, src/hints/hints.css and
   # src/welcome_screen/* (ex-528), upstream's HintViewer, CursorHint and
   # WelcomeScreen rendered by React into jsdom per platform; and
+  # stats.mjs --check for excali-ui's stats.json and src/stats/stats.css
+  # (ex-529), upstream's Stats over a real Scene rendered by React into
+  # jsdom, its section headers and close button; and
   # editing-fixtures.mjs --check for excali-editor's editing.json (ex-712),
   # upstream's selection, group, element creation and edit action code on
   # the scenes of the gestures <excali-editor> wires, and its library
@@ -632,6 +635,8 @@ jobs:
         run: node tools/goldens/help-dialog.mjs --check
       - name: excali-ui hints and welcome screen fixture, stylesheets and logo match upstream's HintViewer, CursorHint and WelcomeScreen
         run: node tools/goldens/hints.mjs --check
+      - name: excali-ui stats panel fixture and stylesheet match upstream's Stats, its sections and drag inputs
+        run: node tools/goldens/stats.mjs --check
       - name: excali-ui colour picker fixture and stylesheet match upstream's ColorPicker, keyboard map, ColorInput and colors.ts
         run: node tools/goldens/color-picker.mjs --check
       - name: excali-ui colour top-picks fixture and stylesheet match upstream's customizableTopPicks, TopPicksDnD, its context menu and tip
