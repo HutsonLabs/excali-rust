@@ -35,7 +35,9 @@
 //!   moves and finalize it on the release (`excali_editor::new_element`,
 //!   an arrow's ends bound through `bindOrUnbindBindingElement`); the
 //!   eraser erases what its trail crosses (`excali_editor::eraser`); the
-//!   text tool and the double-click edit text (`crate::text`). A press and
+//!   lasso selects what its path encloses or crosses
+//!   (`excali_editor::lasso`) and acts as the selection tool over the
+//!   selection; the text tool and the double-click edit text (`crate::text`). A press and
 //!   release on an element's link icon (`isPointHittingLink`,
 //!   `hyperlink/helpers.ts:61-105`) is upstream's `onLinkOpen`: the
 //!   `open-link` event, the host deciding.
@@ -110,6 +112,7 @@ use excali_editor::keyboard::{
     ClipboardEventKind, ClipboardOutcome, ClipboardTarget, KeyEffect, KeyOutcome, KeyboardEditor,
     KeyboardState, Keystroke, PanStart,
 };
+use excali_editor::lasso::{LassoScene, LassoSelection, LassoTrail};
 use excali_editor::linear_element_editor::create_point_at;
 use excali_editor::mutate::bump_version;
 use excali_editor::new_element::{
@@ -367,6 +370,8 @@ pub(crate) enum Gesture {
         start: [f64; 2],
         pending: Vec<String>,
     },
+    /// The lasso's press: its trail (`lassoTrail`).
+    Lasso(LassoTrail),
     /// The text tool's press that started a new text (`newElement`),
     /// opened on release.
     TextCreate {
@@ -1501,7 +1506,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         }
         let tool = self.tools.active_tool.tool.type_name().to_owned();
         match tool.as_str() {
-            "selection" | "lasso" => self.select_pointer_down(input),
+            "selection" => self.select_pointer_down(input, true),
+            "lasso" => self.lasso_pointer_down(input),
             "eraser" => {
                 let origin = self.scene_point(input.client_x, input.client_y);
                 let mut trail = EraserTrail::default();
@@ -1657,7 +1663,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
 
     /// The selection tool's press: selects the topmost element hit
     /// (`handleSelectionOnPointerDown`), or starts a link click.
-    fn select_pointer_down(&mut self, input: PointerInput) {
+    fn select_pointer_down(&mut self, input: PointerInput, with_box: bool) {
         let origin = self.scene_point(input.client_x, input.client_y);
         // a handle of the selection (`handleSelectionOnPointerDown`)
         let selected = self.selected_ids();
@@ -1798,7 +1804,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             self.session.commit();
         }
         // the selection element (`createGenericElementOnPointerDown`)
-        let box_origin = (hit.is_none() && link.is_none())
+        let box_origin = (with_box && hit.is_none() && link.is_none())
             .then(|| get_grid_point(origin[0], origin[1], self.grid_size(input.ctrl_or_cmd)));
         if let Some(corner) = box_origin {
             // appState.selectionElement, which the interactive canvas draws
@@ -1834,6 +1840,112 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             last_point: origin,
         })));
         self.report();
+    }
+
+    /// The lasso's press (`App.handleCanvasPointerDown`, `:8975-9004`): on
+    /// a handle of the selection, one of its elements or the common box of
+    /// several, it acts as the selection tool does (without a selection
+    /// box); anywhere else a lasso path starts, clearing the selection
+    /// unless Shift is held. Ctrl/Cmd+Alt lassos even over the selection.
+    fn lasso_pointer_down(&mut self, input: PointerInput) {
+        let origin = self.scene_point(input.client_x, input.client_y);
+        let selected = self.selected_ids();
+        let live: Vec<&Element> = self
+            .session
+            .elements()
+            .iter()
+            .filter(|e| !e.base.is_deleted && selected.contains(&e.base.id))
+            .collect();
+        let on_handle = !selected.is_empty() && {
+            let scene = Scene::new(self.session.elements().to_vec());
+            TransformSession::begin(
+                &scene,
+                &selected,
+                origin,
+                self.session.app_state().zoom().unwrap_or(1.0),
+                PointerType::Mouse,
+                &EditorInterface::desktop(),
+                None,
+            )
+            .handle()
+            .is_some()
+        };
+        let force = input.alt_key && input.ctrl_or_cmd;
+        let on_selection = self.is_hitting_common_bounding_box(origin, &live)
+            || self
+                .element_at(origin)
+                .is_some_and(|id| selected.contains(&id));
+        if on_handle || (on_selection && !force) {
+            return self.select_pointer_down(input, false);
+        }
+        let mut trail = LassoTrail::default();
+        if let Some(cleared) = trail.start_path(origin[0], origin[1], input.shift_key) {
+            self.apply_lasso_selection(cleared);
+        }
+        self.gesture = Some(Gesture::Lasso(trail));
+        self.report();
+    }
+
+    /// A move of the lasso (`App.onPointerMove`, `:11254-11269`): the
+    /// point added to the trail and the selection it now takes.
+    fn lasso_pointer_move(&mut self, input: PointerInput, trail: &mut LassoTrail) {
+        let point = self.scene_point(input.client_x, input.client_y);
+        let app_state = self.session.app_state();
+        let viewport = ViewportState::from_app_state(app_state);
+        let live: Vec<&Element> = self
+            .session
+            .elements()
+            .iter()
+            .filter(|e| !e.base.is_deleted)
+            .collect();
+        let scene = LassoScene {
+            elements: live.clone(),
+            visible: live,
+            zoom: viewport.zoom,
+            scroll_x: viewport.scroll_x,
+            scroll_y: viewport.scroll_y,
+            mode: BoxSelectionMode::from_name(
+                app_state
+                    .get("boxSelectionMode")
+                    .and_then(Value::as_str)
+                    .unwrap_or("contain"),
+            ),
+            selected_element_ids: app_state
+                .get("selectedElementIds")
+                .and_then(Value::as_object)
+                .cloned()
+                .unwrap_or_default(),
+            editing_group_id: app_state
+                .get("editingGroupId")
+                .and_then(Value::as_str)
+                .map(str::to_owned),
+        };
+        let selection = trail.add_point_to_path(point[0], point[1], input.shift_key, &scene);
+        if let Some(selection) = selection {
+            self.apply_lasso_selection(selection);
+            self.report();
+        }
+    }
+
+    /// The selection a lasso op leaves, with the linear element editor of
+    /// a lone line or arrow (kept when it already holds that element).
+    fn apply_lasso_selection(&mut self, selection: LassoSelection) {
+        let linear = selection.selected_linear_element.map(|id| {
+            self.linear_state()
+                .filter(|l| l.element_id == id)
+                .unwrap_or_else(|| LinearState::new(&id, false))
+        });
+        self.set_keys(vec![
+            (
+                "selectedElementIds",
+                Value::Object(selection.selected_element_ids),
+            ),
+            (
+                "selectedGroupIds",
+                Value::Object(selection.selected_group_ids),
+            ),
+        ]);
+        self.set_linear_state(linear.as_ref());
     }
 
     /// Whether `id` is a locked element.
@@ -1878,6 +1990,12 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 self.crop_move(&press, input);
             }
             Some(Gesture::Create(_)) => self.create_pointer_move(input),
+            Some(Gesture::Lasso(_)) => {
+                if let Some(Gesture::Lasso(mut trail)) = self.gesture.take() {
+                    self.lasso_pointer_move(input, &mut trail);
+                    self.gesture = Some(Gesture::Lasso(trail));
+                }
+            }
             Some(Gesture::Erase { trail, pending, .. }) => {
                 let point = viewport_coords_to_scene_coords(
                     input.client_x,
@@ -2595,6 +2713,11 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             Some(Gesture::Create(gesture)) => self.create_pointer_up(input, gesture),
             Some(Gesture::Erase { start, pending, .. }) => {
                 self.erase_pointer_up(input, start, pending);
+            }
+            Some(Gesture::Lasso(mut trail)) => {
+                trail.end_path();
+                self.session.commit();
+                self.report();
             }
             Some(gesture @ (Gesture::TextCreate { .. } | Gesture::TextLabel { .. })) => {
                 self.text_pointer_up(input, gesture);
