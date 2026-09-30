@@ -12,7 +12,10 @@
 //! upstream-built elements, the document direction, the predicates,
 //! whether the panel shows, and the trees the full and compact panels
 //! render, with `{ action, data? }` where they call `renderAction`,
-//! `{ icon }` for an icon and `{ tag: "popover" }` for an open popover.
+//! `{ icon }` for an icon and `{ tag: "popover" }` for an open popover,
+//! and what the two colour actions' `PanelComponent`s render
+//! (`actions/actionProperties.tsx:385-435`, :508-551): the heading and the
+//! `ColorPicker`'s props.
 
 use std::collections::HashMap;
 use std::sync::OnceLock;
@@ -24,9 +27,10 @@ use excali_editor::actions::{
     show_selected_shape_actions, ActionContext, ActionEnv, ActionManager, ActionName, AppProps,
     PanelGate, ShapeActionPredicates,
 };
+use excali_ui::color_picker::StylesPanelMode;
 use excali_ui::styles_panel::{
-    compact_shape_actions, compact_shape_actions_section, legend_text, mobile_shape_actions,
-    selected_shape_actions, shape_actions_section, CompactPopup, PanelNode,
+    color_action_panel, compact_shape_actions, compact_shape_actions_section, legend_text,
+    mobile_shape_actions, selected_shape_actions, shape_actions_section, CompactPopup, PanelNode,
     MOBILE_ACTIONS_MIN_WIDTH, MOBILE_ACTION_GAP, MOBILE_ACTION_WIDTH,
 };
 use serde_json::{json, Map, Value};
@@ -617,4 +621,63 @@ fn mobile_row_promotes_duplicate_and_delete_by_width() {
         }
     }
     assert!(n >= 30, "{n} width cases");
+}
+
+/// A colour action's panel component as the fixture holds it: the heading
+/// and `{ colorPicker }` with the ColorPicker's props.
+fn color_panel_json(ctx: &ActionContext<'_>, name: ActionName, mode: StylesPanelMode) -> Value {
+    let p = color_action_panel(ctx, name, mode).expect("a colour action");
+    let mut out = Vec::new();
+    if let Some(key) = p.heading {
+        out.push(json!({ "tag": "h3", "attrs": { "aria-hidden": "true" }, "children": [legend_text(key)] }));
+    }
+    out.push(json!({ "colorPicker": {
+        "type": p.ty.as_str(),
+        "label": legend_text(p.label),
+        "color": p.color,
+        "topPicks": p.top_picks,
+        "customizableTopPicks": p.customizable_top_picks.as_str(),
+        "excludedColors": p.excluded_colors,
+    }}));
+    Value::Array(out)
+}
+
+#[test]
+fn color_action_panels_match_upstream() {
+    let mut failures = Vec::new();
+    for case in cases() {
+        let c = Case::new(case);
+        for (name, key) in [
+            (ActionName::ChangeStrokeColor, "changeStrokeColor"),
+            (ActionName::ChangeBackgroundColor, "changeBackgroundColor"),
+        ] {
+            let got = color_panel_json(&c.ctx(), name, StylesPanelMode::Full);
+            if got != case["colors"][key] {
+                failures.push(format!(
+                    "{} {key}: got {got}, upstream {}",
+                    c.id, case["colors"][key]
+                ));
+            }
+            // the compact and mobile panels leave the heading out
+            let compact = color_panel_json(&c.ctx(), name, StylesPanelMode::Compact);
+            if compact.as_array().map(Vec::len) != Some(1) {
+                failures.push(format!("{} {key}: compact {compact}", c.id));
+            }
+        }
+    }
+    assert!(!cases().is_empty());
+    assert!(
+        failures.is_empty(),
+        "{} differ:\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
+    assert_eq!(
+        color_action_panel(
+            &Case::new(&cases()[0]).ctx(),
+            ActionName::ChangeOpacity,
+            StylesPanelMode::Full
+        ),
+        None
+    );
 }

@@ -435,12 +435,14 @@ const ROWS = {
     }
   },
 
+  // the drawing rows draw right of the styles panel, which the tool shows
+  // in the top-left corner (LayerUI.tsx:314-330) as upstream's does
   "tool-rectangle": async ({ page }) => {
     await mount(page);
-    const e = await draw(page, "r", [100, 100], [250, 200]);
+    const e = await draw(page, "r", [400, 100], [550, 200]);
     expect(e).toMatchObject({
       type: "rectangle",
-      x: 100,
+      x: 400,
       y: 100,
       width: 150,
       height: 100,
@@ -462,23 +464,23 @@ const ROWS = {
 
   "tool-diamond": async ({ page }) => {
     await mount(page);
-    const e = await draw(page, "d", [100, 100], [250, 200]);
-    expect(e).toMatchObject({ type: "diamond", x: 100, y: 100, width: 150, height: 100, roundness: { type: 2 } });
+    const e = await draw(page, "d", [400, 100], [550, 200]);
+    expect(e).toMatchObject({ type: "diamond", x: 400, y: 100, width: 150, height: 100, roundness: { type: 2 } });
   },
 
   "tool-ellipse": async ({ page }) => {
     await mount(page);
-    const e = await draw(page, "o", [100, 100], [250, 200]);
+    const e = await draw(page, "o", [400, 100], [550, 200]);
     // getCurrentItemRoundness("ellipse") outside upstream's test mode
-    expect(e).toMatchObject({ type: "ellipse", x: 100, y: 100, width: 150, height: 100, roundness: { type: 2 } });
+    expect(e).toMatchObject({ type: "ellipse", x: 400, y: 100, width: 150, height: 100, roundness: { type: 2 } });
   },
 
   "tool-arrow": async ({ page }) => {
     await mount(page);
-    const e = await draw(page, "a", [100, 100], [250, 200]);
+    const e = await draw(page, "a", [400, 100], [550, 200]);
     expect(e).toMatchObject({
       type: "arrow",
-      x: 100,
+      x: 400,
       y: 100,
       points: [[0, 0], [150, 100]],
       startArrowhead: null,
@@ -488,10 +490,10 @@ const ROWS = {
 
   "tool-line": async ({ page }) => {
     await mount(page);
-    const e = await draw(page, "l", [100, 100], [250, 200]);
+    const e = await draw(page, "l", [400, 100], [550, 200]);
     expect(e).toMatchObject({
       type: "line",
-      x: 100,
+      x: 400,
       y: 100,
       points: [[0, 0], [150, 100]],
       startArrowhead: null,
@@ -518,8 +520,8 @@ const ROWS = {
 
   "tool-freedraw": async ({ page }) => {
     await mount(page);
-    const e = await draw(page, "p", [100, 100], [250, 200]);
-    expect(e).toMatchObject({ type: "freedraw", x: 100, y: 100 });
+    const e = await draw(page, "p", [400, 100], [550, 200]);
+    expect(e).toMatchObject({ type: "freedraw", x: 400, y: 100 });
     expect(e.points.length).toBeGreaterThan(2);
     expect(e.points.at(-1)).toEqual([150, 100]);
   },
@@ -553,9 +555,9 @@ const ROWS = {
   "tool-lock": async ({ page }) => {
     await mount(page);
     await press(page, "q");
-    await draw(page, "r", [100, 100], [200, 200]);
+    await draw(page, "r", [400, 100], [500, 200]);
     expect((await state(page)).activeTool).toBe("rectangle");
-    await drag(page, [300, 100], [400, 200]);
+    await drag(page, [600, 100], [700, 200]);
     expect((await saved(page)).filter((e) => e.type === "rectangle")).toHaveLength(2);
   },
 
@@ -608,17 +610,17 @@ const ROWS = {
     expect((await byId(page)).a).toMatchObject({ x: 101, y: 105 });
   },
 
-  // move.test.tsx:147-195
+  // move.test.tsx:147-195, right of the styles panel the selection shows
   "move-alt-duplicate": async ({ page }) => {
-    await mount(page, sceneText([rect("a", 100, 100)]));
-    await click(page, [150, 150]);
+    await mount(page, sceneText([rect("a", 400, 100)]));
+    await click(page, [450, 150]);
     await page.keyboard.down("Alt");
-    await drag(page, [150, 150], [190, 170]);
+    await drag(page, [450, 150], [490, 170]);
     await page.keyboard.up("Alt");
     const elements = await saved(page);
     expect(elements).toHaveLength(2);
-    expect(elements[0]).toMatchObject({ id: "a", x: 100, y: 100 });
-    expect(elements[1]).toMatchObject({ x: 140, y: 120 });
+    expect(elements[0]).toMatchObject({ id: "a", x: 400, y: 100 });
+    expect(elements[1]).toMatchObject({ x: 440, y: 120 });
   },
 
   // snapDraggedElements: b's left edge, 3 px right of a's right edge, snaps
@@ -657,19 +659,20 @@ const ROWS = {
   },
 
   // getTransformHandlesFromCoords at zoom 1 for the mouse (size 8, margin 4,
-  // spacing 2): the south-east handle of (100, 100)–(200, 200) spans
-  // (202, 202)–(210, 210) and the rotation handle (146, 74)–(154, 82).
+  // spacing 2): the south-east handle of (400, 100)–(500, 200) spans
+  // (502, 202)–(510, 210) and the rotation handle (446, 74)–(454, 82),
+  // right of the styles panel the selection shows.
   "resize-handle": async ({ page }) => {
-    await mount(page, sceneText([rect("a", 100, 100)]));
-    await click(page, [150, 150]);
-    await drag(page, [206, 206], [256, 236]);
-    expect((await byId(page)).a).toMatchObject({ x: 100, y: 100, width: 150, height: 130 });
+    await mount(page, sceneText([rect("a", 400, 100)]));
+    await click(page, [450, 150]);
+    await drag(page, [506, 206], [556, 236]);
+    expect((await byId(page)).a).toMatchObject({ x: 400, y: 100, width: 150, height: 130 });
   },
 
   "rotate-handle": async ({ page }) => {
-    await mount(page, sceneText([rect("a", 100, 100)]));
-    await click(page, [150, 150]);
-    await drag(page, [150, 78], [300, 150]);
+    await mount(page, sceneText([rect("a", 400, 100)]));
+    await click(page, [450, 150]);
+    await drag(page, [450, 78], [600, 150]);
     const a = (await byId(page)).a;
     expect(a.angle).toBeGreaterThan(0);
     expect([a.width, a.height]).toEqual([100, 100]);
@@ -763,15 +766,15 @@ const ROWS = {
   },
 
   "bound-arrow-create": async ({ page }) => {
-    await mount(page, sceneText([rect("a", 100, 100), rect("b", 400, 100)]));
-    const e = await draw(page, "a", [150, 150], [450, 150]);
+    await mount(page, sceneText([rect("a", 300, 100), rect("b", 600, 100)]));
+    const e = await draw(page, "a", [350, 150], [650, 150]);
     expect(e.startBinding?.elementId).toBe("a");
     expect(e.endBinding?.elementId).toBe("b");
   },
 
   "text-dblclick-edit": async ({ page }) => {
-    await mount(page, sceneText([text("t", 100, 100, "hello")]));
-    await click(page, [110, 110], { clickCount: 2 });
+    await mount(page, sceneText([text("t", 400, 100, "hello")]));
+    await click(page, [410, 110], { clickCount: 2 });
     const editor = page.locator("excali-editor textarea");
     await expect(editor).toBeVisible(SHORT);
     expect([await editor.getAttribute("dir"), await editor.getAttribute("wrap")]).toEqual([
@@ -782,8 +785,8 @@ const ROWS = {
   },
 
   "text-dblclick-label": async ({ page }) => {
-    await mount(page, sceneText([rect("a", 100, 100)]));
-    await click(page, [150, 150], { clickCount: 2 });
+    await mount(page, sceneText([rect("a", 400, 100)]));
+    await click(page, [450, 150], { clickCount: 2 });
     await expect(page.locator("excali-editor textarea")).toBeVisible(SHORT);
   },
 

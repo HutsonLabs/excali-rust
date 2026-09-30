@@ -18,11 +18,12 @@
 
 use std::rc::Rc;
 
+use excali_core::color::{ColorTuple, PaletteEntry};
 use excali_core::element::{Element, ElementKind};
 use excali_core::json::number_to_string;
 use excali_editor::actions::{
-    get_shape_action_predicates, get_target_elements, ActionContext, ActionName,
-    ShapeActionPredicates,
+    form_color, get_shape_action_predicates, get_target_elements, resolve_color_target,
+    ActionContext, ActionName, ColorProperty, ColorTargetKind, ShapeActionPredicates,
 };
 use excali_scene::shape::Theme;
 use serde_json::Value;
@@ -30,7 +31,36 @@ use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{Document, Event, HtmlElement, KeyboardEvent, Node};
 
+use crate::color_picker::{ColorPickerType, ColorTopPicksSlot, StylesPanelMode};
 use crate::icons::{self, Icon};
+
+/// The panel's rules of upstream's `css/styles.scss`
+/// (`.selected-shape-actions`, `.App-menu__left`).
+pub const STYLES_PANEL_CSS: &str = include_str!("styles_panel.css");
+
+/// Adds [`STYLES_PANEL_CSS`] to the document's head once, after the
+/// primitives' stylesheet.
+pub fn install_stylesheet(document: &Document) -> Result<(), JsValue> {
+    const ID: &str = "styles-panel";
+    if document
+        .query_selector(&format!("style[data-excali-ui=\"{ID}\"]"))?
+        .is_some()
+    {
+        return Ok(());
+    }
+    let style = document.create_element("style")?;
+    style.set_attribute("data-excali-ui", ID)?;
+    style.set_text_content(Some(STYLES_PANEL_CSS));
+    let head = document
+        .head()
+        .ok_or_else(|| JsValue::from_str("the document has no head"))?;
+    let before = match document.query_selector("style[data-excali-ui=\"primitives\"]")? {
+        Some(p) => p.next_sibling(),
+        None => head.first_child(),
+    };
+    head.insert_before(&style, before.as_ref())?;
+    Ok(())
+}
 
 /// `CLASSES.SHAPE_ACTIONS_MENU` (`common/src/constants.ts:113`).
 pub const SHAPE_ACTIONS_MENU: &str = "App-menu__left";
@@ -171,6 +201,8 @@ pub fn legend_text(key: &str) -> &str {
         "labels.stroke" => "Stroke",
         "labels.arrowtypes" => "Arrow type",
         "labels.textAlign" => "Text align",
+        "labels.textColor" => "Text color",
+        "labels.background" => "Background",
         other => other,
     }
 }
@@ -994,5 +1026,81 @@ pub fn place_popovers(root: &web_sys::Element) {
         if let Some(trigger) = wrapper.previous_element_sibling() {
             crate::color_picker::place_beside(&wrapper, &trigger, below);
         }
+    }
+}
+
+// -- the colour actions' panel components ----------------------------------------
+
+/// What the `PanelComponent` of `actionChangeStrokeColor` or
+/// `actionChangeBackgroundColor` renders (`actionProperties.tsx:385-435`,
+/// :508-551): in the full panel an `aria-hidden` heading, then the
+/// `ColorPicker` with these props, as [`resolve_color_target`] and
+/// [`form_color`] decide them.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ColorActionPanel {
+    /// The heading's locale key; `None` outside the full panel.
+    pub heading: Option<&'static str>,
+    pub ty: ColorPickerType,
+    /// The picker's label's locale key.
+    pub label: &'static str,
+    /// The colour shown; `None` for a selection without a common one.
+    pub color: Option<String>,
+    pub palette: &'static [PaletteEntry],
+    pub top_picks: ColorTuple,
+    pub customizable_top_picks: ColorTopPicksSlot,
+    pub excluded_colors: Option<&'static [&'static str]>,
+}
+
+/// The colour action `name`'s panel component in `mode`; `None` for any
+/// other action.
+pub fn color_action_panel(
+    ctx: &ActionContext<'_>,
+    name: ActionName,
+    mode: StylesPanelMode,
+) -> Option<ColorActionPanel> {
+    let (property, ty) = match name {
+        ActionName::ChangeStrokeColor => {
+            (ColorProperty::StrokeColor, ColorPickerType::ElementStroke)
+        }
+        ActionName::ChangeBackgroundColor => (
+            ColorProperty::BackgroundColor,
+            ColorPickerType::ElementBackground,
+        ),
+        _ => return None,
+    };
+    let target = resolve_color_target(ctx, property);
+    // a note has no stroke: its "stroke" is the ink of its text and footer
+    let label = match property {
+        ColorProperty::StrokeColor if target.kind == ColorTargetKind::Sticky => "labels.textColor",
+        ColorProperty::StrokeColor => "labels.stroke",
+        ColorProperty::BackgroundColor => "labels.background",
+    };
+    let slot = ColorTopPicksSlot::ALL
+        .into_iter()
+        .find(|s| s.as_str() == target.customizable_top_picks)
+        .expect("a colorTopPicks slot");
+    Some(ColorActionPanel {
+        heading: (mode == StylesPanelMode::Full).then_some(label),
+        ty,
+        label,
+        color: form_color(ctx, &target),
+        palette: target.palette,
+        top_picks: target.top_picks,
+        customizable_top_picks: slot,
+        excluded_colors: target.excluded_colors,
+    })
+}
+
+impl ColorActionPanel {
+    /// The heading, `<h3 aria-hidden="true">`, when it shows.
+    pub fn heading_node(&self) -> Option<PanelNode> {
+        self.heading.map(|key| {
+            PanelNode::Element(PanelElement {
+                tag: "h3",
+                attrs: vec![("aria-hidden".into(), "true".into())],
+                children: vec![PanelNode::Text(key)],
+                ..PanelElement::default()
+            })
+        })
     }
 }
