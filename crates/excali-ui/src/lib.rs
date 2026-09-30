@@ -41,6 +41,7 @@
 pub mod color_picker;
 pub mod command_palette;
 pub mod context_menu;
+pub mod convert_popup;
 pub mod dom;
 pub mod editor_interface;
 pub mod font_picker;

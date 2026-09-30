@@ -96,6 +96,7 @@ pub mod binding;
 pub mod binding_highlight;
 pub mod bucket_fill;
 pub mod collision;
+pub mod convert_element_type;
 pub mod crop;
 pub mod delta;
 pub mod distance;
