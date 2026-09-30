@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-29 · ex-703 · Sticky notes: element, rendering (shadow, edge, footer), label fitting
+
+Sticky notes are now drawn: on the editor canvas, in PNG export and in SVG export. Each note gets its shadow, its paper with jittered corners (rounded corners and roughness-2 lifted corners included), an edge stroke clipped to the outline, and its creation-date footer. The footer is dated in the viewer's local time and leaves out the year during the current year. The sticky-note label fit (`getStickyNoteLayout`) is now the port's own code in both places upstream calls it: `restoreElements` with `refreshDimensions`, via `excali_editor::restore_env::StickyNoteEnv` and the editor's environment, and resize/rotate gestures, via `excali_editor::resize_elements::sticky_note_layout`. Before, the tests only replayed the recorded answers. PR: [#131](https://github.com/HutsonLabs/excali-rust/pull/131).
+
 ## 2026-09-29 · ex-527 · Command palette with category order and item lists
 
 The editor now has upstream's command palette. Ctrl/Cmd+/ or Ctrl/Cmd+Shift+P opens and closes it, in a 720 px dialog on the body. Its commands come in upstream's category order: App, Export, Editor, Tools, Elements and Links, then Library items once the search has two characters. They include: - every palette action with its label, icon and shortcut; - the colour pickers, each tool and the tool lock; - text to diagram and Mermaid; - the hosted app's GitHub, X, Discord and YouTube links; - the named library items. PR: [#130](https://github.com/HutsonLabs/excali-rust/pull/130).
