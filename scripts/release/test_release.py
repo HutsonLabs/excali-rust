@@ -324,6 +324,26 @@ class ReleaseTest(unittest.TestCase):
         for pr in (155, 158, 159, 160, 161, 162):
             self.assertIn(f"/pull/{pr}", text)
 
+    def test_v26_9_3_notes_name_host_theming_and_the_signed_app(self):
+        # v26.9.2 stays as published (ex-808); its notes are checked above.
+        text = (NOTES / "v26.9.3.md").read_text(encoding="utf-8")
+        for needle in (
+            "since v26.9.2",
+            "v26.9.2 stays as published",
+            "excali-web_26.9.3.tar.gz",
+            "Excali.Example_26.9.3_aarch64.dmg",
+            "Excali.Example_26.9.3_aarch64.app.tar.gz",
+            "Excali.Example_26.9.3_aarch64.app.tar.gz.sig",
+            "latest.json",
+            "notarized",
+            "scripts/release/macos-dmg.sh 26.9.3 --upload v26.9.3",
+            "releases/latest/download/latest.json",
+            "--excali-canvas-background",
+            "theme",
+        ):
+            self.assertIn(needle, text)
+        self.assertIn("/pull/164", text)
+
     def test_every_notes_file_is_named_for_a_calendar_tag(self):
         for p in sorted(NOTES.glob("*")):
             self.assertEqual(p.suffix, ".md", p.name)

@@ -156,11 +156,13 @@ class Repository(unittest.TestCase):
 
     def test_workspace_version_is_the_current_release(self):
         # 26.9.1 was the first release; 26.9.2 carries the example app's
-        # updater (ex-805), owner decision of 2026-09-30 (ex-806).
-        self.assertEqual(version.workspace_version((ROOT / "Cargo.toml").read_text()), "26.9.2")
+        # updater (ex-805), owner decision of 2026-09-30 (ex-806); 26.9.3
+        # carries host theming (ex-807), owner decision of 2026-09-30 (ex-808).
+        self.assertEqual(version.workspace_version((ROOT / "Cargo.toml").read_text()), "26.9.3")
 
-    def test_the_current_release_follows_the_first_in_the_same_month(self):
+    def test_the_current_release_follows_the_last_in_the_same_month(self):
         self.assertEqual(version.next_version("26.9.1", 2026, 9), "26.9.2")
+        self.assertEqual(version.next_version("26.9.2", 2026, 9), "26.9.3")
 
     def test_repository_passes_the_gate(self):
         self.assertEqual(version.main(["check"]), 0)
