@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-30 00:20 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-30 00:30 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**152 issues** · 115 closed (76%) · 4 in progress · 0 blocked · 32 open
+**152 issues** · 116 closed (76%) · 4 in progress · 0 blocked · 31 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -199,7 +199,7 @@ Vendored module in term.hut with CRUD and library import; tauri-plugin-excali wi
 
 ## ex-e7 · Phase 7: Parity and polish
 
-<span class="status open">open</span> 2/14 children closed
+<span class="status open">open</span> 3/14 children closed
 
 Tablet and phone layouts, remaining tools, accessibility, performance budgets, locale loader, parity checklist to 100%.
 
@@ -207,7 +207,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 |---|---|---|---|---|---|---|
 | `ex-701` | Compact styles panel and tablet form factor | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-702` | Phone layout: mobile menu, bottom bar, mobile toolbar order | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-703` | Sticky notes: element, rendering (shadow, edge, footer), label fitting | task | P2 | <span class="status open">open</span> | yes |  |
+| `ex-703` | Sticky notes: element, rendering (shadow, edge, footer), label fitting | task | P2 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-704` | Bucket fill tool | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-705` | Lasso selection | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-706` | Autoshape (draw-shape) recognition | task | P3 | <span class="status open">open</span> | yes |  |
@@ -217,7 +217,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 | `ex-710` | Performance budgets in CI (pan at 1,000 elements, first paint) | task | P1 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-711` | Locale loader using upstream JSON files (58 locales, 633 keys) | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-712` | Parity checklist to 100% for the v1 scope | task | P0 | <span class="status open">open</span> |  | `ex-527`, `ex-528`, `ex-529` |
-| `ex-713` | <excali-editor>: the interactive canvas and the App interactions ex-712 reduced | task | P1 | <span class="status in_progress">in progress</span> |  |  |
+| `ex-713` | <excali-editor>: the interactive canvas and the App interactions ex-712 reduced | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-m7` | M7: parity checklist 100% for v1 scope | milestone | P2 | <span class="status open">open</span> |  | `ex-703`, `ex-704`, `ex-705`, `ex-706`, `ex-707`, `ex-708` … |
 
 ## ex-e8 · Phase 8: Release
