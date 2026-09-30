@@ -43,6 +43,7 @@
 
 pub mod bounds;
 pub mod canvas_export;
+pub mod crop;
 pub mod display;
 pub mod elbow_arrow;
 pub mod element_canvas;

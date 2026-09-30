@@ -26,7 +26,8 @@ use excali_scene::bounds::ElementsMap;
 use excali_scene::display::{Blit, FillRule, Transform};
 use excali_scene::element_canvas::{
     can_snap_element, capped_element_canvas_size, get_canvas_padding, render_element_cached,
-    CropPreview, ElementCanvas, ElementCanvasCache, ElementDraw, AREA_LIMIT, SNAP_TIE_BIAS, WIDTH_HEIGHT_LIMIT,
+    CropPreview, ElementCanvas, ElementCanvasCache, ElementDraw, AREA_LIMIT, SNAP_TIE_BIAS,
+    WIDTH_HEIGHT_LIMIT,
 };
 use excali_scene::render_element::ElementRenderOverride;
 use excali_scene::shape::Theme;
@@ -614,12 +615,11 @@ fn the_vector_path_previews_the_uncropped_image_while_cropping() {
     let config = render_config(&case["renderConfig"], &doc["images"]);
     let plain = render_element(image, &map, &map, &config, &not_cropping, None).unwrap();
     let uncropped = get_uncropped_image_element(image, &map);
-    let uncropped_items = match render_element(&uncropped, &map, &map, &config, &not_cropping, None)
-        .unwrap()
-    {
-        DisplayItem::Group(g) => g.items,
-        other => panic!("{other:?}"),
-    };
+    let uncropped_items =
+        match render_element(&uncropped, &map, &map, &config, &not_cropping, None).unwrap() {
+            DisplayItem::Group(g) => g.items,
+            other => panic!("{other:?}"),
+        };
     let DisplayItem::Group(drawn) =
         render_element(image, &map, &map, &config, &cropping, None).unwrap()
     else {

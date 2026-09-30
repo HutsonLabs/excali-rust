@@ -3044,6 +3044,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             scroll_y: app.get("scrollY").and_then(Value::as_f64).unwrap_or(0.0),
             view_background_color: app.view_background_color().map(str::to_owned),
             theme: if dark { Theme::Dark } else { Theme::Light },
+            // the crop editor's preview of the image being cropped
+            cropping_element_id: self.cropping_id(),
             ..StaticCanvasAppState::default()
         };
         let config = StaticCanvasRenderConfig {
