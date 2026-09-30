@@ -946,7 +946,7 @@ dependencies = [
 
 [[package]]
 name = "excali-cli"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "clap",
  "excali-core",
@@ -959,7 +959,7 @@ dependencies = [
 
 [[package]]
 name = "excali-core"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "excali-math",
  "indexmap 2.14.2",
@@ -971,21 +971,21 @@ dependencies = [
 
 [[package]]
 name = "excali-freehand"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "excali-math",
 ]
 
 [[package]]
 name = "excali-math"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "pxfm",
 ]
 
 [[package]]
 name = "excali-raster"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "base64 0.23.1",
  "excali-scene",
@@ -997,14 +997,14 @@ dependencies = [
 
 [[package]]
 name = "excali-rough"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "excali-math",
 ]
 
 [[package]]
 name = "excali-scene"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "excali-core",
  "excali-freehand",
@@ -1016,7 +1016,7 @@ dependencies = [
 
 [[package]]
 name = "excali-svg"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "excali-scene",
  "skera",
@@ -1027,7 +1027,7 @@ dependencies = [
 
 [[package]]
 name = "excali-tauri-example"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "png 0.18.1",
  "serde_json",
@@ -1040,7 +1040,7 @@ dependencies = [
 
 [[package]]
 name = "excali-text"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "excali-core",
  "excali-math",
@@ -4148,7 +4148,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-excali"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "excali-cli",
  "excali-core",
