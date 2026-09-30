@@ -86,6 +86,7 @@ The suite's first test fails when a row has no test, a test has no row, or a sta
 | edit-zorder | Ctrl+Shift+] brings the selection to the front. On a Mac its key, Cmd+Alt+], also passes bring forward's key test, so the action manager cancels it and Cmd+] brings the selection forward instead. | `excalidraw/actions/actionZindex.tsx:60-70`, `excalidraw/actions/actionZindex.tsx:120-141`, `excalidraw/actions/manager.tsx:114-119` | ex-514 | pass |
 | edit-undo-redo | Ctrl/Cmd+Z undoes a move and Ctrl/Cmd+Shift+Z redoes it. | `excalidraw/history.ts`, `element/src/store.ts` | ex-513 | pass |
 | edit-copy-paste | Ctrl/Cmd+C then Ctrl/Cmd+V pastes a copy of the selection. | `excalidraw/actions/actionClipboard.tsx:23`, `excalidraw/actions/actionClipboard.tsx:55` | ex-514 | pass |
+| edit-hyperlink | Ctrl/Cmd+K opens the link editor above the selected element; typing a URL and Enter sets the element's link (normalized) as one history entry. | `excalidraw/actions/actionLink.tsx:20-42` (`actionLink`), `excalidraw/components/hyperlink/Hyperlink.tsx:99-180,264-290` | ex-543 | pass |
 
 ## Bound text and arrows
 

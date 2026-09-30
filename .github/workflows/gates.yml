@@ -489,7 +489,9 @@ jobs:
   # jsdom, per tool state; and convert-popup.mjs --check for excali-ui's
   # convert-popup.json and src/convert_popup/convert_popup.css (ex-535),
   # upstream's ConvertElementTypePopup rendered by React into jsdom per
-  # selection; and mobile-menu.mjs --check for excali-ui's
+  # selection; and hyperlink.mjs --check for excali-ui's hyperlink.json and
+  # src/hyperlink/hyperlink.css (ex-543), upstream's Hyperlink rendered by
+  # React into jsdom and driven through its input and buttons; and mobile-menu.mjs --check for excali-ui's
   # mobile-menu.json and src/mobile_menu/mobile_menu.css (ex-702),
   # upstream's MobileToolbar, ToolPopover and MobileMenu rendered by React
   # with radix-ui into jsdom per tool state, width and click; and main-menu.mjs --check for
@@ -654,6 +656,8 @@ jobs:
         run: node tools/goldens/toolbar.mjs --check
       - name: excali-ui convert element type popup fixture and stylesheet match upstream's ConvertElementTypePopup
         run: node tools/goldens/convert-popup.mjs --check
+      - name: excali-ui hyperlink editor fixture and stylesheet match upstream's Hyperlink
+        run: node tools/goldens/hyperlink.mjs --check
       - name: excali-ui phone layout fixture and stylesheet match upstream's MobileToolbar, ToolPopover and MobileMenu
         run: node tools/goldens/mobile-menu.mjs --check
       - name: excali-ui main menu fixture and stylesheet match upstream's MainMenu and DefaultItems
