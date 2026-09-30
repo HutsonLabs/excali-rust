@@ -59,7 +59,12 @@ fn report(failures: &[String], total: usize) {
         failures.is_empty(),
         "{} of {total} cases differ from upstream:\n{}",
         failures.len(),
-        failures.iter().take(30).cloned().collect::<Vec<_>>().join("\n")
+        failures
+            .iter()
+            .take(30)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("\n")
     );
 }
 
@@ -75,7 +80,11 @@ fn recognize_shape_matches_upstream() {
         let zoom = c["zoom"].as_f64().unwrap_or(1.0);
         let result = recognize_shape(&pts, previous(&c["previous"]), zoom);
         if result.shape.as_str() != c["type"] {
-            failures.push(format!("{id}: type {} upstream {}", result.shape.as_str(), c["type"]));
+            failures.push(format!(
+                "{id}: type {} upstream {}",
+                result.shape.as_str(),
+                c["type"]
+            ));
         }
         if !same(&json!(result.bounding_box), &c["boundingBox"]) {
             failures.push(format!(
@@ -95,7 +104,10 @@ fn recognize_shape_matches_upstream() {
                 "shaftDeviationRatio": f.shaft_deviation_ratio,
             });
             if !same(&actual, &c["features"]) {
-                failures.push(format!("{id}: features {actual} upstream {}", c["features"]));
+                failures.push(format!(
+                    "{id}: features {actual} upstream {}",
+                    c["features"]
+                ));
             }
         }
     }

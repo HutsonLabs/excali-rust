@@ -26,8 +26,8 @@ use serde_json::{json, Map, Value};
 use crate::resize_elements::SHIFT_LOCKING_ANGLE;
 
 /// `ROUNDNESS.PROPORTIONAL_RADIUS` and `ROUNDNESS.ADAPTIVE_RADIUS`.
-const PROPORTIONAL_RADIUS: u8 = 2;
-const ADAPTIVE_RADIUS: u8 = 3;
+pub(crate) const PROPORTIONAL_RADIUS: u8 = 2;
+pub(crate) const ADAPTIVE_RADIUS: u8 = 3;
 
 /// `DEFAULT_STROKE_STREAMLINE` (`common/src/constants.ts:622`).
 pub const DEFAULT_STROKE_STREAMLINE: f64 = 0.5;
@@ -41,7 +41,7 @@ fn state_str<'a>(app_state: &'a AppState, key: &str) -> Option<&'a str> {
 }
 
 /// `getStrokeWidthByKey(type, appState.currentItemStrokeWidthKey)`.
-fn current_stroke_width(ty: ElementType, app_state: &AppState) -> f64 {
+pub(crate) fn current_stroke_width(ty: ElementType, app_state: &AppState) -> f64 {
     let key = match state_str(app_state, "currentItemStrokeWidthKey") {
         Some("thin") => StrokeWidthKey::Thin,
         Some("bold") => StrokeWidthKey::Bold,
@@ -51,7 +51,7 @@ fn current_stroke_width(ty: ElementType, app_state: &AppState) -> f64 {
 }
 
 /// `isUsingAdaptiveRadius(type)` (`typeChecks.ts:357-362`).
-fn is_using_adaptive_radius(tool: &str) -> bool {
+pub(crate) fn is_using_adaptive_radius(tool: &str) -> bool {
     matches!(tool, "rectangle" | "embeddable" | "iframe" | "image")
 }
 

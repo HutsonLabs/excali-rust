@@ -470,9 +470,7 @@ fn call(fun: &str, a: &[Value]) -> Value {
             };
             json!(coords)
         }
-        "orientPrincipalAxes" => {
-            out_axes(&orient_principal_axes(&points(arg(0)), &axes(arg(1))))
-        }
+        "orientPrincipalAxes" => out_axes(&orient_principal_axes(&points(arg(0)), &axes(arg(1)))),
         "elongation" => json!(elongation(&axes(arg(0)))),
         "standardizedMoment" => json!(standardized_moment(&numbers(arg(0)), f(arg(1)))),
         "skewness" => json!(skewness(&numbers(arg(0)))),

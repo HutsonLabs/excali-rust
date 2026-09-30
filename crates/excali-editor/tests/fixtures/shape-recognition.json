@@ -4361,7 +4361,7 @@
       "features": {
         "gapRatio": 0.00046276229828725874,
         "elongation": 0.34641240787193406,
-        "majorSkew": -0.025291818676153693,
+        "majorSkew": -0.025291818676153686,
         "hullFillRatio": 0.9963949146165244,
         "cornerTurnShare": 0.9796176448499337,
         "kurtosisProduct": 1.8170045952521223,
@@ -17195,7 +17195,7 @@
         "majorSkew": -6.379709794489845e-17,
         "hullFillRatio": 0.515608740894901,
         "cornerTurnShare": 0.9999999999999982,
-        "kurtosisProduct": 3.286034118500306,
+        "kurtosisProduct": 3.2860341185003055,
         "shaftDeviationRatio": 0.9999999999999991
       },
       "boundingBox": [450,300,750,900],
@@ -29073,7 +29073,7 @@
       "features": {
         "gapRatio": 0.999343668738133,
         "elongation": 0.0000032195889579608425,
-        "majorSkew": -0.0006039127242108823,
+        "majorSkew": -0.0006039127242108938,
         "hullFillRatio": 0.0036141746461572986,
         "cornerTurnShare": 0.47718661916266036,
         "kurtosisProduct": 3.241206704239823,
@@ -29804,7 +29804,7 @@
         "majorSkew": -0.5118823925683129,
         "hullFillRatio": 0.5071711544064796,
         "cornerTurnShare": 0.9412646613308546,
-        "kurtosisProduct": 10.155226556508332,
+        "kurtosisProduct": 10.15522655650833,
         "shaftDeviationRatio": 0.004509890470712107
       },
       "boundingBox": [451.22123497724533,577.7816108465195,750.573467373848,618.3480134904385],
@@ -37578,7 +37578,7 @@
         "majorSkew": -0.11406521390109202,
         "hullFillRatio": 0.8519292742188198,
         "cornerTurnShare": 0.8855587935041129,
-        "kurtosisProduct": 1.9867641419108795,
+        "kurtosisProduct": 1.9867641419108797,
         "shaftDeviationRatio": 0.476831714227292
       },
       "boundingBox": [562.3680657272538,541.5475742816925,636.5181886619991,658.4535763263702],
@@ -44938,7 +44938,7 @@
         "majorSkew": -0.998760887820146,
         "hullFillRatio": 0.5143836190166587,
         "cornerTurnShare": 0.9161469558578487,
-        "kurtosisProduct": 8.757292759633597,
+        "kurtosisProduct": 8.757292759633595,
         "shaftDeviationRatio": 0.010185731718772273
       },
       "boundingBox": [1738.279418580234,-1662.1414764024762,2212.9835088755935,-1472.6821067938906],

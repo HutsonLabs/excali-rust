@@ -247,6 +247,11 @@ export const jsMathCases = () => {
   }
   repeat(60, "hypot", () => [signed(100), signed(100)]);
   repeat(20, "hypot", () => [signed(1e200), signed(1e-200)]);
+  // three arguments (shape recognition's classifyClosedStroke, ex-706)
+  for (const a of [[1, 2, 2], [0, 0, 0], [Infinity, NaN, 1], [NaN, 1, 2], [1e300, 1e300, 1e300], [0.1, 0.2, 0.3]]) {
+    add("hypot", ...a);
+  }
+  repeat(40, "hypot", () => [signed(10), signed(10), signed(10)]);
   return cases;
 };
 

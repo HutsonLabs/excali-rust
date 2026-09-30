@@ -690,7 +690,10 @@ mod pca_test {
         for angle in [0.0, 1.0, 2.5, 4.0] {
             let points = rotate(&lopsided, angle, 1.0);
             let axes = orient_principal_axes(&points, &principal_axes(&points));
-            assert!(skewness(&us(&principal_coords(&points, &axes))) < 0.0, "{angle}");
+            assert!(
+                skewness(&us(&principal_coords(&points, &axes))) < 0.0,
+                "{angle}"
+            );
         }
     }
 
@@ -704,7 +707,11 @@ mod pca_test {
     // describe("elongation")
     #[test]
     fn elongation_is_0_for_a_straight_spread_and_1_for_an_isotropic_one() {
-        assert!(close_to(elongation(&principal_axes(&horizontal_spread())), 0.0, 2));
+        assert!(close_to(
+            elongation(&principal_axes(&horizontal_spread())),
+            0.0,
+            2
+        ));
         let circle: Vec<P> = (0..36)
             .map(|i| {
                 let a = f64::from(i) * PI / 18.0;
@@ -774,6 +781,10 @@ mod pca_test {
             let axes = principal_axes(pts);
             kurtosis(&us(&principal_coords(pts, &axes)))
         };
-        assert!(close_to(project(&rotate(&points, 1.3, 2.0)), project(&points), 2));
+        assert!(close_to(
+            project(&rotate(&points, 1.3, 2.0)),
+            project(&points),
+            2
+        ));
     }
 }

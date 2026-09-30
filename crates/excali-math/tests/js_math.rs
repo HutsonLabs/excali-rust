@@ -37,6 +37,7 @@ fn call(f: &str, args: &[f64]) -> f64 {
         ("cbrt", [x]) => js::cbrt(*x),
         ("pow", [x, y]) => js::pow(*x, *y),
         ("hypot", [a, b]) => js::hypot(*a, *b),
+        ("hypot", values) => js::hypot_n(values),
         _ => panic!("no such case: {f}({args:?})"),
     }
 }

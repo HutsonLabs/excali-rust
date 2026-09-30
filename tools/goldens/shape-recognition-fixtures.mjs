@@ -22,6 +22,15 @@
 //   when the size gate returned freedraw before extracting), recorded by
 //   wrapping its one call site at build time; boundingBox and type are the
 //   result's.
+// - pow: pca.ts's standardizedMoment raises to the 3rd and 4th power with
+//   `**`, which V8 hands to the platform's pow (macOS libm is off by one
+//   ulp on about 0.1% of these arguments, and glibc differs from it), so
+//   the generator evaluates those two `**` as the correctly rounded power
+//   (exactPow below, exact BigInt arithmetic), what the port's
+//   excali_math::js::pow answers (ADR-011). This keeps the fixture
+//   byte-identical on every platform. Every call is also run with the
+//   platform's `**`, and generation fails unless it recognizes the same
+//   shape in the same box.
 // - convert: one call of convertToShape(points, appState, elementsMap,
 //   previous) with elementsMap the frames given; appState holds the keys
 //   convertToShape reads (the rest are getDefaultAppState()'s), element is
@@ -67,6 +76,15 @@ export const runShapeTests = async () => {
 // the recorder, and extractFeatures' result is handed to it on the way to
 // classify; the functions themselves are upstream's, unchanged.
 const PATCH = {
+  "packages/math/src/pca": (source) => {
+    const calls = ["d ** order", "sigma ** order"];
+    for (const call of calls) {
+      if (!source.includes(call)) throw new Error(`pca: ${call} not found`);
+    }
+    return source
+      .replace("d ** order", "globalThis.__shape.pow(d, order)")
+      .replace("sigma ** order", "globalThis.__shape.pow(sigma, order)");
+  },
   "packages/element/src/convertToShape": (source) => {
     const from = "export const recognizeShape = ";
     const call = "classify(extractFeatures(points))";
@@ -117,17 +135,62 @@ const rng = (seed) => {
 
 // -- the recorder ---------------------------------------------------------------------
 
+const deepEqual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+const view = new DataView(new ArrayBuffer(8));
+
+/**
+ * x ** k correctly rounded, for an integer k >= 1: the exact power of x's
+ * significand as a BigInt, rounded once by Number() (round half to even),
+ * then scaled by a power of two, exact while the result is normal. null
+ * when that does not hold (a subnormal result).
+ */
+const exactPow = (x, k) => {
+  if (!Number.isFinite(x) || x === 0) return x ** k;
+  view.setFloat64(0, x);
+  const hi = view.getUint32(0);
+  const lo = view.getUint32(4);
+  const bits = (hi >>> 20) & 0x7ff;
+  let significand = (BigInt(hi & 0xfffff) << 32n) | BigInt(lo);
+  let exponent = -1074;
+  if (bits !== 0) {
+    significand |= 1n << 52n;
+    exponent = bits - 1075;
+  }
+  let result = Number(significand ** BigInt(k));
+  for (let shift = k * exponent; shift !== 0; ) {
+    const step = Math.max(-1000, Math.min(1000, shift));
+    result *= 2 ** step;
+    shift -= step;
+  }
+  if (Math.abs(result) < 2 ** -1022) return null;
+  return x < 0 && k % 2 === 1 ? -result : result;
+};
+
 const createRecorder = () => {
   const recorder = {
     calls: [],
     pendingFeatures: null,
+    exact: true,
+    pow: (x, k) => {
+      if (!recorder.exact) return x ** k;
+      const result = Number.isInteger(k) && k >= 1 ? exactPow(x, k) : null;
+      if (result === null) throw new Error(`no exact power for ${x} ** ${k}`);
+      return result;
+    },
     features: (features) => {
       recorder.pendingFeatures = features;
       return features;
     },
     recognize: (points, previousElement, zoom, upstream) => {
+      recorder.exact = false;
+      const platform = upstream(points, previousElement, zoom);
+      recorder.exact = true;
       recorder.pendingFeatures = null;
       const result = upstream(points, previousElement, zoom);
+      if (platform.type !== result.type || !deepEqual(platform.boundingBox, result.boundingBox)) {
+        throw new Error(`recognizeShape: the platform pow gives ${platform.type}, the exact one ${result.type}`);
+      }
       recorder.calls.push({
         points: clone(points),
         previous: previousElement?.type ?? null,
@@ -143,8 +206,6 @@ const createRecorder = () => {
 };
 
 // -- a minimal describe / it / expect -----------------------------------------------
-
-const deepEqual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 const expectFn = (actual) => {
   const check = (pass, what) => {
