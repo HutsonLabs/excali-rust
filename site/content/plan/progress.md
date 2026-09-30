@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-30 13:47 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-30 14:29 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**161 issues** · 157 closed (98%) · 0 in progress · 0 blocked · 2 open
+**162 issues** · 158 closed (98%) · 0 in progress · 0 blocked · 2 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -230,7 +230,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 
 ## ex-e8 · Phase 8: Release
 
-<span class="status open">open</span> 4/5 children closed
+<span class="status open">open</span> 5/6 children closed
 
 First calendar release v26.9.1 (ADR-009): ES module + WASM tarball as a GitHub release asset, integration guide walked by an agent in a fresh clone, tag and gh release. crates.io publishing (ex-801) is deferred by the owner.
 
@@ -240,6 +240,7 @@ First calendar release v26.9.1 (ADR-009): ES module + WASM tarball as a GitHub r
 | `ex-802` | Release tarball of the ES module and WASM as a GitHub release asset | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-803` | Integration guide walked by an agent in a fresh clone | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-804` | Tag v26.9.1 and publish the GitHub release | task | P2 | <span class="status closed">closed</span> |  |  |
+| `ex-805` | Example app: in-place updater and a signed, notarized DMG script | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-m8` | M8: v26.9.1 released on GitHub | milestone | P2 | <span class="status closed">closed</span> |  |  |
 
 ## Unfiled
