@@ -6,7 +6,9 @@
 //! Fixture: the `colors` cases of `fixtures/app-state.json`, upstream's own
 //! output (`tools/goldens/app-state.mjs`).
 
-use excali_core::color::{apply_dark_mode_filter, color_to_hex, is_transparent, TinyColor};
+use excali_core::color::{
+    apply_dark_mode_filter, color_to_hex, is_opaque_color, is_transparent, TinyColor,
+};
 use serde_json::Value;
 
 const FIXTURE: &str = include_str!("fixtures/app-state.json");
@@ -95,4 +97,24 @@ fn apply_dark_mode_filter_matches_upstream_examples() {
 fn line_confirm_threshold_is_upstreams() {
     // constants.ts:30
     assert_eq!(excali_core::constants::LINE_CONFIRM_THRESHOLD, 8.0);
+}
+
+/// `isOpaqueColor(color)` (`colors.ts:400-402`): tinycolor's alpha is 1, so
+/// an alpha channel below 1 (`#RRGGBBAA`, `rgba()`) is not opaque, and a
+/// string tinycolor does not parse reads as opaque black.
+#[test]
+fn is_opaque_color_is_an_alpha_of_one() {
+    for (color, opaque) in [
+        ("#ffc9c9", true),
+        ("#fff", true),
+        ("red", true),
+        ("rgb(255, 212, 59)", true),
+        ("#ffd43bff", true),
+        ("#ffd43b80", false),
+        ("rgba(255, 212, 59, 0.5)", false),
+        ("transparent", false),
+        ("not a colour", true),
+    ] {
+        assert_eq!(is_opaque_color(color), opaque, "{color}");
+    }
 }
