@@ -2933,6 +2933,25 @@
    "description": "",
    "type": "task",
    "labels": []
+  },
+  {
+   "id": "ex-805",
+   "epic": "ex-e8",
+   "title": "Example app: in-place updater and a signed, notarized DMG script",
+   "priority": 2,
+   "blocked_by": [
+    "ex-804"
+   ],
+   "crates": [],
+   "acceptance": "examples/tauri-app checks for an update in the background (never in smoke or dev mode, never blocking the editor) and offers Install and restart / Later; tauri.conf.json carries the updater public key, the latest.json endpoint on the GitHub releases and createUpdaterArtifacts, and no signing identity; tests/app.rs holds the ACL (the new commands in main only) and the config; scripts/release/macos-dmg.sh builds, signs with the identity given at build time, notarizes, staples and stages the DMG, the updater tarball, its signature, latest.json and SHA256SUMS lines, and uploads them with --upload; its argument handling and latest.json are tested in gates.yml.",
+   "evidence": [
+    "Owner decisions, 2026-09-30: updater in the example app now; signing identity at build time, not in tauri.conf.json; no entitlements; v26.9.1 rebuilt after",
+    "term.hut scripts/release.sh and scripts/publish-release.sh as the signing, notarization and latest.json pattern",
+    "tauri-plugin-updater 2 (https://v2.tauri.app/plugin/updater/)"
+   ],
+   "description": "",
+   "type": "task",
+   "labels": []
   }
  ],
  "notes": "Authored 2026-09-28. ids are stable; never reuse an id for different work. blocked_by lists hard dependencies only."
