@@ -1,0 +1,1306 @@
+{
+  "upstream": "438d89861f53d8a90ad566113ecac1b83761098f",
+  "cases": [
+    {
+      "name": "rectangle",
+      "elements": [
+        {
+          "id": "r",
+          "type": "rectangle",
+          "x": 10,
+          "y": 20,
+          "width": 100,
+          "height": 60,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 0,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 2,
+          "versionNonce": 48271,
+          "isDeleted": false,
+          "boundElements": null,
+          "updated": 1,
+          "created": 1,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "selected": ["r"],
+      "appState": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"ConvertElementTypePopup","tabindex":"-1"},
+          "style": {"left":"2px","position":"absolute","top":"98px","z-index":"2"},
+          "children": [
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "rectangle",
+                "aria-pressed": "true",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium ToolIcon--checked",
+                "data-testid": "toolbar-rectangle",
+                "title": "rectangle",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"RectangleIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "diamond",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-diamond",
+                "title": "diamond",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"DiamondIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "ellipse",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-ellipse",
+                "title": "ellipse",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"EllipseIcon"}]}]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "diamond",
+      "elements": [
+        {
+          "id": "d",
+          "type": "diamond",
+          "x": 10,
+          "y": 20,
+          "width": 100,
+          "height": 60,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 0,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 2,
+          "versionNonce": 48271,
+          "isDeleted": false,
+          "boundElements": null,
+          "updated": 1,
+          "created": 1,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "selected": ["d"],
+      "appState": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"ConvertElementTypePopup","tabindex":"-1"},
+          "style": {"left":"2px","position":"absolute","top":"98px","z-index":"2"},
+          "children": [
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "rectangle",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-rectangle",
+                "title": "rectangle",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"RectangleIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "diamond",
+                "aria-pressed": "true",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium ToolIcon--checked",
+                "data-testid": "toolbar-diamond",
+                "title": "diamond",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"DiamondIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "ellipse",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-ellipse",
+                "title": "ellipse",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"EllipseIcon"}]}]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ellipse-scrolled",
+      "elements": [
+        {
+          "id": "e",
+          "type": "ellipse",
+          "x": -40,
+          "y": 5,
+          "width": 80,
+          "height": 80,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 0,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 2,
+          "versionNonce": 48271,
+          "isDeleted": false,
+          "boundElements": null,
+          "updated": 1,
+          "created": 1,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "selected": ["e"],
+      "appState": {"scrollX":30,"scrollY":-12.5,"zoom":{"value":1.5},"offsetLeft":20,"offsetTop":40},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"ConvertElementTypePopup","tabindex":"-1"},
+          "style": {"left":"-23px","position":"absolute","top":"135.75px","z-index":"2"},
+          "children": [
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "rectangle",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-rectangle",
+                "title": "rectangle",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"RectangleIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "diamond",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-diamond",
+                "title": "diamond",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"DiamondIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "ellipse",
+                "aria-pressed": "true",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium ToolIcon--checked",
+                "data-testid": "toolbar-ellipse",
+                "title": "ellipse",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"EllipseIcon"}]}]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "rotated",
+      "elements": [
+        {
+          "id": "r",
+          "type": "rectangle",
+          "x": 100,
+          "y": 100,
+          "width": 120,
+          "height": 40,
+          "angle": 0.5,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 0,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 2,
+          "versionNonce": 48271,
+          "isDeleted": false,
+          "boundElements": null,
+          "updated": 1,
+          "created": 1,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "selected": ["r"],
+      "appState": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"ConvertElementTypePopup","tabindex":"-1"},
+          "style": {"left":"89.75653551449358px","position":"absolute","top":"126.78611892155527px","z-index":"2"},
+          "children": [
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "rectangle",
+                "aria-pressed": "true",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium ToolIcon--checked",
+                "data-testid": "toolbar-rectangle",
+                "title": "rectangle",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"RectangleIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "diamond",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-diamond",
+                "title": "diamond",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"DiamondIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "ellipse",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-ellipse",
+                "title": "ellipse",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"EllipseIcon"}]}]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mixed-generic",
+      "elements": [
+        {
+          "id": "r",
+          "type": "rectangle",
+          "x": 0,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 0,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 2,
+          "versionNonce": 48271,
+          "isDeleted": false,
+          "boundElements": null,
+          "updated": 1,
+          "created": 1,
+          "link": null,
+          "locked": false
+        },
+        {
+          "id": "e",
+          "type": "ellipse",
+          "x": 150,
+          "y": 40,
+          "width": 60,
+          "height": 90,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 0,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a1",
+          "roundness": null,
+          "seed": 1,
+          "version": 2,
+          "versionNonce": 182605793,
+          "isDeleted": false,
+          "boundElements": null,
+          "updated": 1,
+          "created": 1,
+          "link": null,
+          "locked": false
+        }
+      ],
+      "selected": ["r","e"],
+      "appState": {"zoom":{"value":0.5}},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"ConvertElementTypePopup","tabindex":"-1"},
+          "style": {"left":"-8px","position":"absolute","top":"74px","z-index":"2"},
+          "children": [
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "rectangle",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-rectangle",
+                "title": "rectangle",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"RectangleIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "diamond",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-diamond",
+                "title": "diamond",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"DiamondIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "ellipse",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-ellipse",
+                "title": "ellipse",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"EllipseIcon"}]}]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "generic-with-line",
+      "elements": [
+        {
+          "id": "d",
+          "type": "diamond",
+          "x": 0,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 0,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 2,
+          "versionNonce": 48271,
+          "isDeleted": false,
+          "boundElements": null,
+          "updated": 1,
+          "created": 1,
+          "link": null,
+          "locked": false
+        },
+        {
+          "id": "l",
+          "type": "line",
+          "x": 200,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 0,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a1",
+          "roundness": null,
+          "seed": 1,
+          "version": 2,
+          "versionNonce": 182605793,
+          "isDeleted": false,
+          "boundElements": null,
+          "updated": 1,
+          "created": 1,
+          "link": null,
+          "locked": false,
+          "points": [[0,0],[50,250]],
+          "startBinding": null,
+          "endBinding": null,
+          "startArrowhead": null,
+          "endArrowhead": null,
+          "polygon": false
+        }
+      ],
+      "selected": ["d","l"],
+      "appState": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"ConvertElementTypePopup","tabindex":"-1"},
+          "style": {"left":"-8px","position":"absolute","top":"118px","z-index":"2"},
+          "children": [
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "rectangle",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-rectangle",
+                "title": "rectangle",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"RectangleIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "diamond",
+                "aria-pressed": "true",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium ToolIcon--checked",
+                "data-testid": "toolbar-diamond",
+                "title": "diamond",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"DiamondIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "ellipse",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-ellipse",
+                "title": "ellipse",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"EllipseIcon"}]}]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "line",
+      "elements": [
+        {
+          "id": "l",
+          "type": "line",
+          "x": 10,
+          "y": 20,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 0,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 2,
+          "versionNonce": 48271,
+          "isDeleted": false,
+          "boundElements": null,
+          "updated": 1,
+          "created": 1,
+          "link": null,
+          "locked": false,
+          "points": [[0,0],[100,50]],
+          "startBinding": null,
+          "endBinding": null,
+          "startArrowhead": null,
+          "endArrowhead": null,
+          "polygon": false
+        }
+      ],
+      "selected": ["l"],
+      "appState": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"ConvertElementTypePopup","tabindex":"-1"},
+          "style": {"left":"2px","position":"absolute","top":"88px","z-index":"2"},
+          "children": [
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "line",
+                "aria-pressed": "true",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium ToolIcon--checked",
+                "data-testid": "toolbar-line",
+                "title": "line",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"LineIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "sharpArrow",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-sharpArrow",
+                "title": "sharpArrow",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"sharpArrowIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "curvedArrow",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-curvedArrow",
+                "title": "curvedArrow",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"roundArrowIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "elbowArrow",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-elbowArrow",
+                "title": "elbowArrow",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"elbowArrowIcon"}]}]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "sharp-arrow",
+      "elements": [
+        {
+          "id": "a",
+          "type": "arrow",
+          "x": 10,
+          "y": 20,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 0,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 2,
+          "versionNonce": 48271,
+          "isDeleted": false,
+          "boundElements": null,
+          "updated": 1,
+          "created": 1,
+          "link": null,
+          "locked": false,
+          "points": [[0,0],[100,50]],
+          "startBinding": null,
+          "endBinding": null,
+          "startArrowhead": null,
+          "endArrowhead": null,
+          "elbowed": false
+        }
+      ],
+      "selected": ["a"],
+      "appState": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"ConvertElementTypePopup","tabindex":"-1"},
+          "style": {"left":"2px","position":"absolute","top":"88px","z-index":"2"},
+          "children": [
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "line",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-line",
+                "title": "line",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"LineIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "sharpArrow",
+                "aria-pressed": "true",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium ToolIcon--checked",
+                "data-testid": "toolbar-sharpArrow",
+                "title": "sharpArrow",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"sharpArrowIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "curvedArrow",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-curvedArrow",
+                "title": "curvedArrow",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"roundArrowIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "elbowArrow",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-elbowArrow",
+                "title": "elbowArrow",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"elbowArrowIcon"}]}]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "curved-arrow",
+      "elements": [
+        {
+          "id": "a",
+          "type": "arrow",
+          "x": 10,
+          "y": 20,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 0,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": {"type":2},
+          "seed": 1,
+          "version": 2,
+          "versionNonce": 48271,
+          "isDeleted": false,
+          "boundElements": null,
+          "updated": 1,
+          "created": 1,
+          "link": null,
+          "locked": false,
+          "points": [[0,0],[100,50]],
+          "startBinding": null,
+          "endBinding": null,
+          "startArrowhead": null,
+          "endArrowhead": null,
+          "elbowed": false
+        }
+      ],
+      "selected": ["a"],
+      "appState": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"ConvertElementTypePopup","tabindex":"-1"},
+          "style": {"left":"2px","position":"absolute","top":"88px","z-index":"2"},
+          "children": [
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "line",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-line",
+                "title": "line",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"LineIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "sharpArrow",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-sharpArrow",
+                "title": "sharpArrow",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"sharpArrowIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "curvedArrow",
+                "aria-pressed": "true",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium ToolIcon--checked",
+                "data-testid": "toolbar-curvedArrow",
+                "title": "curvedArrow",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"roundArrowIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "elbowArrow",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-elbowArrow",
+                "title": "elbowArrow",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"elbowArrowIcon"}]}]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "elbow-arrow",
+      "elements": [
+        {
+          "id": "a",
+          "type": "arrow",
+          "x": 10,
+          "y": 20,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 0,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 2,
+          "versionNonce": 48271,
+          "isDeleted": false,
+          "boundElements": null,
+          "updated": 1,
+          "created": 1,
+          "link": null,
+          "locked": false,
+          "points": [[0,0],[100,0],[100,50]],
+          "startBinding": null,
+          "endBinding": null,
+          "startArrowhead": null,
+          "endArrowhead": null,
+          "elbowed": true,
+          "fixedSegments": [],
+          "startIsSpecial": false,
+          "endIsSpecial": false
+        }
+      ],
+      "selected": ["a"],
+      "appState": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"ConvertElementTypePopup","tabindex":"-1"},
+          "style": {"left":"2px","position":"absolute","top":"88px","z-index":"2"},
+          "children": [
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "line",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-line",
+                "title": "line",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"LineIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "sharpArrow",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-sharpArrow",
+                "title": "sharpArrow",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"sharpArrowIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "curvedArrow",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-curvedArrow",
+                "title": "curvedArrow",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"roundArrowIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "elbowArrow",
+                "aria-pressed": "true",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium ToolIcon--checked",
+                "data-testid": "toolbar-elbowArrow",
+                "title": "elbowArrow",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"elbowArrowIcon"}]}]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "two-lines",
+      "elements": [
+        {
+          "id": "l",
+          "type": "line",
+          "x": 10,
+          "y": 20,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 0,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 2,
+          "versionNonce": 48271,
+          "isDeleted": false,
+          "boundElements": null,
+          "updated": 1,
+          "created": 1,
+          "link": null,
+          "locked": false,
+          "points": [[0,0],[100,50]],
+          "startBinding": null,
+          "endBinding": null,
+          "startArrowhead": null,
+          "endArrowhead": null,
+          "polygon": false
+        },
+        {
+          "id": "m",
+          "type": "line",
+          "x": 200,
+          "y": 80,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 0,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a1",
+          "roundness": null,
+          "seed": 1,
+          "version": 2,
+          "versionNonce": 182605793,
+          "isDeleted": false,
+          "boundElements": null,
+          "updated": 1,
+          "created": 1,
+          "link": null,
+          "locked": false,
+          "points": [[0,0],[-30,90]],
+          "startBinding": null,
+          "endBinding": null,
+          "startArrowhead": null,
+          "endArrowhead": null,
+          "polygon": false
+        }
+      ],
+      "selected": ["l","m"],
+      "appState": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"ConvertElementTypePopup","tabindex":"-1"},
+          "style": {"left":"2px","position":"absolute","top":"188px","z-index":"2"},
+          "children": [
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "line",
+                "aria-pressed": "true",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium ToolIcon--checked",
+                "data-testid": "toolbar-line",
+                "title": "line",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"LineIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "sharpArrow",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-sharpArrow",
+                "title": "sharpArrow",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"sharpArrowIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "curvedArrow",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-curvedArrow",
+                "title": "curvedArrow",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"roundArrowIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "elbowArrow",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-elbowArrow",
+                "title": "elbowArrow",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"elbowArrowIcon"}]}]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "line-and-arrow",
+      "elements": [
+        {
+          "id": "l",
+          "type": "line",
+          "x": 10,
+          "y": 20,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 0,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a0",
+          "roundness": null,
+          "seed": 1,
+          "version": 2,
+          "versionNonce": 48271,
+          "isDeleted": false,
+          "boundElements": null,
+          "updated": 1,
+          "created": 1,
+          "link": null,
+          "locked": false,
+          "points": [[0,0],[100,50]],
+          "startBinding": null,
+          "endBinding": null,
+          "startArrowhead": null,
+          "endArrowhead": null,
+          "polygon": false
+        },
+        {
+          "id": "a",
+          "type": "arrow",
+          "x": 200,
+          "y": 80,
+          "width": 100,
+          "height": 100,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "transparent",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 0,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": "a1",
+          "roundness": null,
+          "seed": 1,
+          "version": 2,
+          "versionNonce": 182605793,
+          "isDeleted": false,
+          "boundElements": null,
+          "updated": 1,
+          "created": 1,
+          "link": null,
+          "locked": false,
+          "points": [[0,0],[-30,90]],
+          "startBinding": null,
+          "endBinding": null,
+          "startArrowhead": null,
+          "endArrowhead": null,
+          "elbowed": false
+        }
+      ],
+      "selected": ["l","a"],
+      "appState": {},
+      "dom": [
+        {
+          "tag": "div",
+          "attrs": {"class":"ConvertElementTypePopup","tabindex":"-1"},
+          "style": {"left":"2px","position":"absolute","top":"188px","z-index":"2"},
+          "children": [
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "line",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-line",
+                "title": "line",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"LineIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "sharpArrow",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-sharpArrow",
+                "title": "sharpArrow",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"sharpArrowIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "curvedArrow",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-curvedArrow",
+                "title": "curvedArrow",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"roundArrowIcon"}]}]
+            },
+            {
+              "tag": "button",
+              "attrs": {
+                "aria-disabled": "false",
+                "aria-label": "elbowArrow",
+                "aria-pressed": "false",
+                "class": "ToolIcon ToolIcon_type_toggle ToolIcon_size_medium",
+                "data-testid": "toolbar-elbowArrow",
+                "title": "elbowArrow",
+                "type": "button"
+              },
+              "style": {},
+              "children": [{"tag":"div","attrs":{"class":"ToolIcon__icon"},"style":{},"children":[{"icon":"elbowArrowIcon"}]}]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
