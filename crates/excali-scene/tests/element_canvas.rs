@@ -14,7 +14,9 @@
 //! smoothing), which must agree exactly: the snapped matrix's origin is a
 //! whole device pixel. Per sequence, whether each change of zoom, zoom
 //! gesture, theme, device pixel ratio, frame opacity, image crop or the
-//! element itself made a new bitmap.
+//! element itself made a new bitmap. The image being cropped
+//! (`croppingElementId`) is blitted after its uncropped preview: a bitmap
+//! of the whole image made for that draw only, at alpha 0.1 (ex-707).
 
 use std::collections::HashSet;
 
@@ -24,7 +26,7 @@ use excali_scene::bounds::ElementsMap;
 use excali_scene::display::{Blit, FillRule, Transform};
 use excali_scene::element_canvas::{
     can_snap_element, capped_element_canvas_size, get_canvas_padding, render_element_cached,
-    ElementCanvas, ElementCanvasCache, ElementDraw, AREA_LIMIT, SNAP_TIE_BIAS, WIDTH_HEIGHT_LIMIT,
+    CropPreview, ElementCanvas, ElementCanvasCache, ElementDraw, AREA_LIMIT, SNAP_TIE_BIAS, WIDTH_HEIGHT_LIMIT,
 };
 use excali_scene::render_element::ElementRenderOverride;
 use excali_scene::shape::Theme;
@@ -67,6 +69,7 @@ fn app_state(value: &Value) -> StaticCanvasAppState {
         scroll_y: value["scrollY"].as_f64().unwrap(),
         theme: theme(&value["theme"]),
         should_cache_ignore_zoom: value["shouldCacheIgnoreZoom"].as_bool().unwrap(),
+        cropping_element_id: value["croppingElementId"].as_str().map(str::to_owned),
         ..StaticCanvasAppState::default()
     }
 }
@@ -237,42 +240,8 @@ fn check_cached(case: &Value, run: &Run, images: &Value) -> Result<(), String> {
         .map_err(|why| format!("bitmap draws: {why}"))
 }
 
-fn check_blit(case: &Value, draw: Option<&ElementDraw>) -> Result<(), String> {
-    let events = case["events"].as_array().unwrap();
-    let blit: Option<&Blit> = match draw {
-        Some(ElementDraw::Blit(blit)) => Some(blit),
-        Some(ElementDraw::Vector(_)) => return Err("drawn as vectors".into()),
-        None => None,
-    };
-    let Some(blit) = blit else {
-        return if events.is_empty() {
-            Ok(())
-        } else {
-            Err(format!("nothing drawn, upstream drew {}", events.len()))
-        };
-    };
-    let expected_ops: Vec<&str> = events.iter().map(|e| e["op"].as_str().unwrap()).collect();
-    let ops: &[&str] = if blit.clip.is_some() {
-        &["clip", "blit", "unclip"]
-    } else {
-        &["blit"]
-    };
-    if expected_ops != ops {
-        return Err(format!("ops {ops:?}, expected {expected_ops:?}"));
-    }
-    if let Some((clip, transform)) = &blit.clip {
-        let e = &events[0];
-        if !same_transform(&e["m"], transform) {
-            return Err(format!("clip matrix {transform:?}, expected {}", e["m"]));
-        }
-        if clip.rule != FillRule::EvenOdd || e["rule"] != "evenodd" {
-            return Err(format!("clip rule {:?}, expected {}", clip.rule, e["rule"]));
-        }
-        if path(&e["path"]) != clip.path {
-            return Err(format!("clip path {:?}, expected {}", clip.path, e["path"]));
-        }
-    }
-    let e = events.iter().find(|e| e["op"] == "blit").unwrap();
+/// One blit event against the port's blit.
+fn check_one_blit(e: &Value, blit: &Blit) -> Result<(), String> {
     if !same_transform(&e["m"], &blit.transform) {
         return Err(format!(
             "blit matrix {:?}, expected {}",
@@ -295,6 +264,70 @@ fn check_blit(case: &Value, draw: Option<&ElementDraw>) -> Result<(), String> {
         ));
     }
     Ok(())
+}
+
+fn check_blit(case: &Value, draw: Option<&ElementDraw>, images: &Value) -> Result<(), String> {
+    let events = case["events"].as_array().unwrap();
+    let (preview, blit): (Option<&CropPreview>, Option<&Blit>) = match draw {
+        Some(ElementDraw::Blit(blit)) => (None, Some(blit)),
+        Some(ElementDraw::CropPreview(preview)) => (Some(preview), Some(&preview.blit)),
+        Some(ElementDraw::Vector(_)) => return Err("drawn as vectors".into()),
+        None => (None, None),
+    };
+    let Some(blit) = blit else {
+        return if events.is_empty() {
+            Ok(())
+        } else {
+            Err(format!("nothing drawn, upstream drew {}", events.len()))
+        };
+    };
+    let expected_ops: Vec<&str> = events.iter().map(|e| e["op"].as_str().unwrap()).collect();
+    let mut ops = Vec::new();
+    if preview.is_some() {
+        ops.push("blit");
+    }
+    if blit.clip.is_some() {
+        ops.extend(["clip", "blit", "unclip"]);
+    } else {
+        ops.push("blit");
+    }
+    if expected_ops != ops {
+        return Err(format!("ops {ops:?}, expected {expected_ops:?}"));
+    }
+    let events = match preview {
+        Some(preview) => {
+            let e = &events[0];
+            check_one_blit(e, &preview.preview).map_err(|why| format!("preview: {why}"))?;
+            let canvas = &preview.uncropped;
+            if !same(&e["width"], canvas.width) || !same(&e["height"], canvas.height) {
+                return Err(format!(
+                    "preview bitmap {} x {}, expected {} x {}",
+                    canvas.width, canvas.height, e["width"], e["height"]
+                ));
+            }
+            if canvas.key.image_crop.is_some() {
+                return Err("the preview bitmap is cropped".into());
+            }
+            compare(&canvas.content, &e["uncropped"], images)
+                .map_err(|why| format!("preview bitmap draws: {why}"))?;
+            &events[1..]
+        }
+        None => &events[..],
+    };
+    if let Some((clip, transform)) = &blit.clip {
+        let e = &events[0];
+        if !same_transform(&e["m"], transform) {
+            return Err(format!("clip matrix {transform:?}, expected {}", e["m"]));
+        }
+        if clip.rule != FillRule::EvenOdd || e["rule"] != "evenodd" {
+            return Err(format!("clip rule {:?}, expected {}", clip.rule, e["rule"]));
+        }
+        if path(&e["path"]) != clip.path {
+            return Err(format!("clip path {:?}, expected {}", clip.path, e["path"]));
+        }
+    }
+    let e = events.iter().find(|e| e["op"] == "blit").unwrap();
+    check_one_blit(e, blit)
 }
 
 #[test]
@@ -320,7 +353,7 @@ fn every_case_caches_and_blits_what_upstream_does() {
         if let Err(why) = check_cached(case, &run, images) {
             failures.push(format!("{name}: {why}"));
         }
-        if let Err(why) = check_blit(case, draw.as_ref()) {
+        if let Err(why) = check_blit(case, draw.as_ref(), images) {
             failures.push(format!("{name}: {why}"));
         }
     }
@@ -509,4 +542,123 @@ fn frames_draw_vectors_and_deleting_an_entry_regenerates() {
     // an element no longer in the scene lets its bitmap go (the WeakMap)
     run.cache.retain(|id| id != "r");
     assert!(run.cache.get("r").is_none());
+}
+
+#[test]
+fn the_crop_editor_previews_the_uncropped_image() {
+    let doc = fixture();
+    let images = &doc["images"];
+    let cases: Vec<&Value> = doc["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|c| c["name"].as_str().unwrap().starts_with("crop-editor"))
+        .collect();
+    assert_eq!(cases.len(), 8);
+    let mut previews = 0;
+    for case in cases {
+        let name = case["name"].as_str().unwrap();
+        let all = elements(&case["elements"]);
+        let state = app_state(&case["appState"]);
+        let config = render_config(&case["renderConfig"], images);
+        let mut run = Run::new();
+        let draw = run.draw(
+            &all,
+            "img",
+            &state,
+            &config,
+            case["scale"].as_f64().unwrap(),
+            matrix(&case["base"]),
+        );
+        let upstream_previews = case["events"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|e| e.get("uncropped").is_some());
+        let ours = matches!(draw, Some(ElementDraw::CropPreview(_)));
+        assert_eq!(ours, upstream_previews, "{name}");
+        previews += usize::from(ours);
+        if let Some(ElementDraw::CropPreview(preview)) = &draw {
+            // a bitmap for this draw only, apart from the cached one
+            assert_eq!(preview.preview.id, "bitmap:img:uncropped", "{name}");
+            assert_eq!(preview.preview.alpha, 0.1, "{name}");
+            assert_eq!(run.made, 1, "{name}");
+        }
+    }
+    assert_eq!(previews, 6);
+}
+
+/// The editor's vector path (`render_element`) draws the preview too: the
+/// uncropped image at alpha 0.1 with no render offset, then the element.
+#[test]
+fn the_vector_path_previews_the_uncropped_image_while_cropping() {
+    use excali_scene::crop::get_uncropped_image_element;
+    use excali_scene::display::DisplayItem;
+    use excali_scene::render_element::render_element;
+    let doc = fixture();
+    let case = doc["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|c| c["name"] == "crop-editor-offset")
+        .unwrap();
+    let all = elements(&case["elements"]);
+    let map = ElementsMap::new(&all);
+    let image = &all[0];
+    let cropping = app_state(&case["appState"]);
+    assert_eq!(cropping.cropping_element_id.as_deref(), Some("img"));
+    let not_cropping = StaticCanvasAppState {
+        cropping_element_id: None,
+        ..cropping.clone()
+    };
+    let config = render_config(&case["renderConfig"], &doc["images"]);
+    let plain = render_element(image, &map, &map, &config, &not_cropping, None).unwrap();
+    let uncropped = get_uncropped_image_element(image, &map);
+    let uncropped_items = match render_element(&uncropped, &map, &map, &config, &not_cropping, None)
+        .unwrap()
+    {
+        DisplayItem::Group(g) => g.items,
+        other => panic!("{other:?}"),
+    };
+    let DisplayItem::Group(drawn) =
+        render_element(image, &map, &map, &config, &cropping, None).unwrap()
+    else {
+        panic!()
+    };
+    assert_eq!(drawn.transform, Transform::IDENTITY);
+    assert_eq!(drawn.opacity, 1.0);
+    assert_eq!(drawn.items.len(), 2);
+    let DisplayItem::Group(preview) = &drawn.items[0] else {
+        panic!()
+    };
+    assert_eq!(preview.opacity, 0.1);
+    assert_eq!(preview.transform, Transform::IDENTITY);
+    assert_eq!(preview.items, uncropped_items);
+    assert_eq!(drawn.items[1], plain);
+
+    // exporting, another image, or no crop: the element alone
+    let exporting = StaticCanvasRenderConfig {
+        is_exporting: true,
+        ..config.clone()
+    };
+    assert_eq!(
+        render_element(image, &map, &map, &exporting, &cropping, None).unwrap(),
+        render_element(image, &map, &map, &exporting, &not_cropping, None).unwrap()
+    );
+    let other = StaticCanvasAppState {
+        cropping_element_id: Some("other".into()),
+        ..cropping.clone()
+    };
+    assert_eq!(
+        render_element(image, &map, &map, &config, &other, None).unwrap(),
+        plain
+    );
+    let mut whole = image.clone();
+    if let ElementKind::Image(fields) = &mut whole.kind {
+        fields.crop = None;
+    }
+    assert_eq!(
+        render_element(&whole, &map, &map, &config, &cropping, None).unwrap(),
+        render_element(&whole, &map, &map, &config, &not_cropping, None).unwrap()
+    );
 }

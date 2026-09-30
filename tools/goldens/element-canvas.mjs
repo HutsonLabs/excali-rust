@@ -31,8 +31,9 @@
 //   bitmap (`regenerated`: a different object than before the step), and
 //   what it holds.
 //
-// Not recorded: the crop editor's uncropped preview of the image being
-// cropped (`croppingElementId`, :1220-1251), which is ex-707's.
+// The crop editor's uncropped preview of the image being cropped
+// (`croppingElementId`, :1220-1251, ex-707) is a blit of a bitmap made for
+// that draw only: its blit event carries that bitmap's draws (`uncropped`).
 //
 // Deterministic: Math.random throws while generating, every element is
 // built with a fixed id and seed after reseed(), and text measures 10 px
@@ -111,6 +112,7 @@ const APP_STATE = {
   selectedElementIds: {},
   hoveredElementIds: {},
   openDialog: null,
+  croppingElementId: null,
 };
 
 const RENDER_CONFIG = {
@@ -220,6 +222,23 @@ const cases = (up) => {
     c("rotated-container-label", turned(), "turned-label", { scale: 2 }),
     c("image", [image()], "img", { scale: 2 }),
     c("image-crop-flip", [image({ crop, scale: [-1, 1] })], "img", { scale: 2, appState: { zoom: { value: 1.5 } } }),
+    // the crop editor (ex-707): the image being cropped shows its uncropped
+    // image at alpha 0.1 under it, at document coordinates
+    c("crop-editor", [image({ crop })], "img", { scale: 2, appState: { croppingElementId: "img" } }),
+    c("crop-editor-flip-rotated", [image({ crop, scale: [-1, 1], angle: 0.4 })], "img", {
+      scale: 1.5,
+      appState: { croppingElementId: "img", zoom: { value: 1.25 }, scrollX: 3.3, scrollY: -1.7 },
+    }),
+    c("crop-editor-flip-both-right-angle", [image({ crop, scale: [-1, -1], angle: Math.PI / 2 })], "img", { scale: 2, appState: { croppingElementId: "img", scrollX: 0.25 } }),
+    c("crop-editor-opacity", [image({ crop, opacity: 40 })], "img", { appState: { croppingElementId: "img" } }),
+    c("crop-editor-offset", [image({ crop })], "img", {
+      scale: 1.5,
+      appState: { croppingElementId: "img" },
+      renderConfig: { elementRenderOverrides: { img: { offset: { x: 0.5, y: 1 / 3 } } } },
+    }),
+    c("crop-editor-zoom-gesture", [image({ crop })], "img", { scale: 2, appState: { croppingElementId: "img", zoom: { value: 1.3 }, shouldCacheIgnoreZoom: true } }),
+    c("crop-editor-not-cropped", [image()], "img", { scale: 2, appState: { croppingElementId: "img" } }),
+    c("crop-editor-other-image", [image({ crop })], "img", { scale: 2, appState: { croppingElementId: "other" } }),
     c("image-pending-flip", [image({ fileId: "file-missing", status: "pending", scale: [-1, -1] })], "img"),
     c("side-cap", [rect(up, { width: 40000, height: 100 })], "r"),
     c("side-cap-zoom", [rect(up, { width: 9000, height: 300 })], "r", { scale: 2, appState: { zoom: { value: 2 } } }),
@@ -335,7 +354,7 @@ const mainContext = (window, scale, zoom) => {
   const drawImage = context.drawImage.bind(context);
   context.drawImage = (img, ...args) => {
     if (!contexts.has(img)) return drawImage(img, ...args);
-    context.events.push({
+    const event = {
       op: "blit",
       m: [...context.s.m],
       alpha: context.s.alpha,
@@ -343,7 +362,10 @@ const mainContext = (window, scale, zoom) => {
       args,
       width: img.width,
       height: img.height,
-    });
+    };
+    // which bitmap, for runCase; not written out
+    Object.defineProperty(event, "img", { value: img });
+    context.events.push(event);
   };
   return { canvas, context, base };
 };
@@ -389,7 +411,9 @@ const runCase = (up, window, s) => {
     renderConfig,
     base,
     cached: cached && { ...cached, events: contexts.get(entry.canvas).events },
-    events,
+    // a blit of a bitmap the cache does not hold (the crop editor's
+    // uncropped preview) carries that bitmap's draws
+    events: events.map((e) => (e.img && e.img !== entry?.canvas ? { ...e, uncropped: contexts.get(e.img).events } : e)),
   };
 };
 
