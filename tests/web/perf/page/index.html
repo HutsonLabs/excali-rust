@@ -32,17 +32,31 @@
         channel.port2.postMessage(null);
       }),
     );
+  // where the time goes, for the record (the budget holds only `ms`)
+  const phases = {};
+  const mark = (name, since) => (phases[name] = performance.now() - since);
+  let t = performance.now();
   await init();
+  mark("initMs", t);
+  t = performance.now();
   defineExcaliEditor();
   const ed = document.createElement("excali-editor");
   document.getElementById("host").appendChild(ed);
+  mark("mountMs", t);
+  t = performance.now();
   const fonts = ed.load(window.PERF_SCENE);
+  mark("loadMs", t);
+  t = performance.now();
   const canvas = ed.querySelector("canvas.static");
   canvas.getContext("2d").getImageData(0, 0, 1, 1);
+  mark("rasterMs", t);
+  t = performance.now();
   const painted = await afterPaint();
+  window.presented = true;
+  mark("presentMs", t);
   await fonts;
   window.ed = ed;
-  window.firstPaint = { ms: painted - t0, fontsMs: performance.now() - t0 };
+  window.firstPaint = { ms: painted - t0, fontsMs: performance.now() - t0, phases };
 </script>
 </body>
 </html>

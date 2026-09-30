@@ -70,6 +70,26 @@ test("the scene holds 1,000 elements, all in the viewport", async ({ page }) => 
   expect(errors).toEqual([]);
 });
 
+test("the first paint draws the scene once", async ({ page }) => {
+  // every drawImage on a canvas until the first frame is presented: the
+  // load's frame blits each element's bitmap once, and nothing repaints
+  // the unchanged scene before the frame (upstream re-renders on a
+  // ResizeObserver callback only when the size changed)
+  await page.addInitScript(() => {
+    window.drawImages = 0;
+    const draw = CanvasRenderingContext2D.prototype.drawImage;
+    CanvasRenderingContext2D.prototype.drawImage = function (...args) {
+      if (!window.presented && this.canvas.classList.contains("static")) {
+        window.drawImages++;
+      }
+      return draw.apply(this, args);
+    };
+  });
+  const errors = await open(page);
+  expect(await page.evaluate(() => window.drawImages)).toBe(COUNT);
+  expect(errors).toEqual([]);
+});
+
 test("first paint after module load", async ({ browser }) => {
   // the median of fresh loads, each in a new page, so one slow start on a
   // shared runner does not decide the budget
@@ -97,6 +117,14 @@ test("first paint after module load", async ({ browser }) => {
     firstPaintMs: Number(percentile(ms, 50).toFixed(2)),
     firstPaintRunsMs: ms.map((v) => Number(v.toFixed(2))),
     fontsLoadedMs: Number(percentile(runs.map((r) => r.fontsMs), 50).toFixed(2)),
+    // the median of each phase: module init, mount, load(), the static
+    // canvas's raster and presenting the frame
+    firstPaintPhasesMs: Object.fromEntries(
+      Object.keys(runs[0].phases).map((k) => [
+        k,
+        Number(percentile(runs.map((r) => r.phases[k]), 50).toFixed(2)),
+      ]),
+    ),
   });
 });
 
@@ -120,6 +148,7 @@ test("pan at 1,000 elements", async ({ page }) => {
         return h;
       };
       const times = [];
+      const handler = [];
       const probes = [probe()];
       const stamps = [];
       for (let i = 0; i < warmup + frames; i++) {
@@ -127,6 +156,7 @@ test("pan at 1,000 elements", async ({ page }) => {
         // a slow circle: the view moves every frame and stays near the scene
         const a = (i / 30) * Math.PI;
         const t = performance.now();
+        const handled = () => performance.now() - t;
         target.dispatchEvent(
           new WheelEvent("wheel", {
             deltaX: Math.round(6 * Math.cos(a)),
@@ -137,13 +167,17 @@ test("pan at 1,000 elements", async ({ page }) => {
             cancelable: true,
           }),
         );
+        const h = handled();
         ctx.getImageData(0, 0, 1, 1);
         const dt = performance.now() - t;
-        if (i >= warmup) times.push(dt);
+        if (i >= warmup) {
+          times.push(dt);
+          handler.push(h);
+        }
         probes.push(probe());
       }
       const intervals = stamps.slice(warmup + 1).map((s, k) => s - stamps[warmup + k]);
-      return { times, probes, intervals };
+      return { times, handler, probes, intervals };
     },
     { warmup: WARMUP, frames: FRAMES },
   );
@@ -158,5 +192,8 @@ test("pan at 1,000 elements", async ({ page }) => {
     panFrameP95Ms: Number(percentile(run.times, 95).toFixed(2)),
     panFrameMaxMs: Number(Math.max(...run.times).toFixed(2)),
     panFps: Number((1000 / mean(run.intervals)).toFixed(1)),
+    // the wheel handler alone (wasm and canvas calls), before the raster
+    panHandlerP50Ms: Number(percentile(run.handler, 50).toFixed(2)),
+    panHandlerP95Ms: Number(percentile(run.handler, 95).toFixed(2)),
   });
 });
