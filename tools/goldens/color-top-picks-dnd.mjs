@@ -332,7 +332,7 @@ const menuCase = async (up, window, iconNames, c) => {
   const item = container.querySelector(".top-picks-dnd__context-menu-item");
   await act(async () => item.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true })));
   const after = tree();
-  const calls = host.calls;
+  const calls = [...host.calls];
   host.unmounted = true;
   await act(async () => root.unmount());
   return { ...describe(c, elements), opened, calls, after };
@@ -348,7 +348,7 @@ const tipCase = async (up, window, iconNames, c) => {
   const reset = container.querySelector(".top-picks-dnd__tip-reset");
   await act(async () => reset.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true })));
   const after = [...container.childNodes].map(makeTree(iconNames, new Map(), OUTLINE));
-  const calls = host.calls;
+  const calls = [...host.calls];
   host.unmounted = true;
   await act(async () => root.unmount());
   return { ...describe(c, elements), calls, after };
@@ -722,6 +722,10 @@ const runDrag = async (up, window, iconNames, c) => {
       bodyActive: document.body.classList.contains("excalidraw-top-picks-dnd-active"),
     });
   }
+  // run what the scenario left pending (a drop's click suppression is
+  // removed on a timer) so it cannot reach the next one
+  await clock.advance(1000);
+  await clock.frame();
   host.unmounted = true;
   await act(async () => root.unmount());
   return { ...describe(c, elements), steps: out };

@@ -282,7 +282,7 @@ fn elements(nodes: &[Node]) -> Vec<&Element> {
     out
 }
 
-fn class_of<'a>(el: &'a Element) -> &'a str {
+fn class_of(el: &Element) -> &str {
     el.attribute("class").unwrap_or("")
 }
 
@@ -449,9 +449,7 @@ fn the_swatches_start_drags_only_while_customizable() {
         let nodes = color_picker(&props(case(name)));
         assert_eq!(draggable(&nodes), Vec::<String>::new(), "{name}");
         assert!(
-            elements(&nodes)
-                .iter()
-                .all(|e| !listens(e, "contextmenu")),
+            elements(&nodes).iter().all(|e| !listens(e, "contextmenu")),
             "{name}"
         );
     }
@@ -459,7 +457,11 @@ fn the_swatches_start_drags_only_while_customizable() {
 
 /// The host applies an event the way upstream's `updateData` does: the
 /// `colorTopPicks` patch it records, and the props it renders next.
-fn apply(p: &mut ColorPickerProps, top_picks: &mut Map<String, Value>, event: &ColorPickerEvent) -> Option<Value> {
+fn apply(
+    p: &mut ColorPickerProps,
+    top_picks: &mut Map<String, Value>,
+    event: &ColorPickerEvent,
+) -> Option<Value> {
     let slot = p.customizable_top_picks?;
     let picks = match event {
         ColorPickerEvent::TopPicksChange(picks) => Some(picks.as_slice()),
@@ -470,32 +472,6 @@ fn apply(p: &mut ColorPickerProps, top_picks: &mut Map<String, Value>, event: &C
     *top_picks = patch["colorTopPicks"].as_object().unwrap().clone();
     p.color_top_picks = strs(&top_picks[slot.as_str()]);
     Some(json!({ "updateData": patch }))
-}
-
-fn without_popover_calls(calls: &Value) -> Value {
-    Value::Array(
-        calls
-            .as_array()
-            .unwrap()
-            .iter()
-            .filter(|c| {
-                c["updateData"]
-                    .as_object()
-                    .is_none_or(|d| d.keys().any(|k| k != "openPopup"))
-            })
-            .cloned()
-            .collect(),
-    )
-}
-
-/// Whether upstream's popover closed itself (`openPopup: null`) among the
-/// host's calls.
-fn closes_popover(calls: &Value) -> bool {
-    calls
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|c| c["updateData"].get("openPopup") == Some(&Value::Null))
 }
 
 #[test]
@@ -513,8 +489,17 @@ fn the_context_menu_resets_the_strip() {
         // right click at (60, 32): the host opens the menu there
         p.top_picks_menu = Some((60, 32));
         let opened: Vec<Value> = color_picker(&p).iter().map(tree).collect();
-        let expected: Vec<Value> = case["opened"].as_array().unwrap().iter().map(expand).collect();
-        assert_same(&format!("menu {name} opened"), &json!(expected), &json!(opened));
+        let expected: Vec<Value> = case["opened"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(expand)
+            .collect();
+        assert_same(
+            &format!("menu {name} opened"),
+            &json!(expected),
+            &json!(opened),
+        );
         // the item: disabled unless customized, else a reset
         let nodes = color_picker(&p);
         let item = elements(&nodes)
@@ -522,24 +507,35 @@ fn the_context_menu_resets_the_strip() {
             .find(|e| has_class(e, "top-picks-dnd__context-menu-item"))
             .unwrap();
         let customized = !p.color_top_picks.is_empty();
-        assert_eq!(item.attribute("data-disabled").is_some(), !customized, "{name}");
+        assert_eq!(
+            item.attribute("data-disabled").is_some(),
+            !customized,
+            "{name}"
+        );
         assert_eq!(listens(item, "click"), customized, "{name}");
         let mut calls = Vec::new();
         if customized {
-            calls.extend(apply(&mut p, &mut top_picks, &ColorPickerEvent::ResetTopPicks));
+            calls.extend(apply(
+                &mut p,
+                &mut top_picks,
+                &ColorPickerEvent::ResetTopPicks,
+            ));
             p.top_picks_menu = None;
         }
-        assert_eq!(
-            json!(calls),
-            without_popover_calls(&case["calls"]),
-            "menu {name} calls"
-        );
+        assert_eq!(json!(calls), case["calls"], "menu {name} calls");
         if customized {
-            // radix closes the popover as the menu takes the focus (ex-523's)
-            p.open &= !closes_popover(&case["calls"]);
             let after: Vec<Value> = color_picker(&p).iter().map(tree).collect();
-            let expected: Vec<Value> = case["after"].as_array().unwrap().iter().map(expand).collect();
-            assert_same(&format!("menu {name} after"), &json!(expected), &json!(after));
+            let expected: Vec<Value> = case["after"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(expand)
+                .collect();
+            assert_same(
+                &format!("menu {name} after"),
+                &json!(expected),
+                &json!(after),
+            );
         }
     }
 }
@@ -553,13 +549,19 @@ fn the_tips_reset_link_resets_the_strip() {
         let calls: Vec<Value> = apply(&mut p, &mut top_picks, &ColorPickerEvent::ResetTopPicks)
             .into_iter()
             .collect();
-        assert_eq!(json!(calls), without_popover_calls(&case["calls"]), "{name}");
-        // the popover closed under jsdom as the link left the document
-        // (ex-523's openPopup)
-        p.open &= !closes_popover(&case["calls"]);
+        assert_eq!(json!(calls), case["calls"], "{name}");
         let after: Vec<Value> = color_picker(&p).iter().map(tree).collect();
-        let expected: Vec<Value> = case["after"].as_array().unwrap().iter().map(expand).collect();
-        assert_same(&format!("tip {name} after"), &json!(expected), &json!(after));
+        let expected: Vec<Value> = case["after"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(expand)
+            .collect();
+        assert_same(
+            &format!("tip {name} after"),
+            &json!(expected),
+            &json!(after),
+        );
     }
 }
 
@@ -620,18 +622,16 @@ fn find_source<'a>(nodes: &'a [Node], selector: &str) -> Option<&'a Element> {
         elements(nodes)
             .into_iter()
             .filter(|e| pred(e))
-            .flat_map(|e| {
-                e.children().iter().filter_map(|c| c.as_element())
-            })
+            .flat_map(|e| e.children().iter().filter_map(|c| c.as_element()))
             .collect()
     };
     match selector {
         ".active-color" => all.into_iter().find(|e| has_class(e, "active-color")),
-        ".color-picker-content--default > button" => children_of(&|e| {
-            has_class(e, "color-picker-content--default")
-        })
-        .into_iter()
-        .find(|e| e.tag() == "button"),
+        ".color-picker-content--default > button" => {
+            children_of(&|e| has_class(e, "color-picker-content--default"))
+                .into_iter()
+                .find(|e| e.tag() == "button")
+        }
         ".color-picker-content--default.shades > button:nth-child(4)" => children_of(&|e| {
             has_class(e, "color-picker-content--default") && has_class(e, "shades")
         })
@@ -691,16 +691,23 @@ fn every_drag_replays_upstreams_steps() {
                 let (selector, origin) = match on.get("pick") {
                     Some(i) => {
                         let i = i.as_u64().unwrap() as usize;
-                        (format!("[data-top-pick-index=\"{i}\"]"), DragOrigin::Pick(i))
+                        (
+                            format!("[data-top-pick-index=\"{i}\"]"),
+                            DragOrigin::Pick(i),
+                        )
                     }
-                    None => (on["source"].as_str().unwrap().to_owned(), DragOrigin::Source),
+                    None => (
+                        on["source"].as_str().unwrap().to_owned(),
+                        DragOrigin::Source,
+                    ),
                 };
                 let value = match origin {
                     DragOrigin::Pick(i) => Some(effective_top_picks(&p)[i].clone()),
                     DragOrigin::Source => source_value(&p, &selector),
                 };
                 let nodes = color_picker(&p);
-                let el = find_source(&nodes, &selector).unwrap_or_else(|| panic!("{at}: no {selector}"));
+                let el =
+                    find_source(&nodes, &selector).unwrap_or_else(|| panic!("{at}: no {selector}"));
                 let home = match origin {
                     DragOrigin::Pick(i) => strip_layout.slots[i],
                     DragOrigin::Source => other,
@@ -804,17 +811,23 @@ fn a_drop_pins_reorders_and_refuses_duplicates() {
     // a palette colour onto slot 1 replaces it
     assert_eq!(
         pinned("pin-palette-colour"),
-        vec![json!({"updateData": {"colorTopPicks": {"elementStroke": ["#1e1e1e", "#6741d9", "#2f9e44", "#1971c2", "#f08c00"]}}})]
+        vec![
+            json!({"updateData": {"colorTopPicks": {"elementStroke": ["#1e1e1e", "#6741d9", "#2f9e44", "#1971c2", "#f08c00"]}}})
+        ]
     );
     // the active colour onto slot 4
     assert_eq!(
         pinned("pin-active-colour"),
-        vec![json!({"updateData": {"colorTopPicks": {"elementStroke": ["#1e1e1e", "#e03131", "#2f9e44", "#1971c2", "#123456"]}}})]
+        vec![
+            json!({"updateData": {"colorTopPicks": {"elementStroke": ["#1e1e1e", "#e03131", "#2f9e44", "#1971c2", "#123456"]}}})
+        ]
     );
     // a pick moved from 0 to 3
     assert_eq!(
         pinned("reorder-forward"),
-        vec![json!({"updateData": {"colorTopPicks": {"elementStroke": ["#e03131", "#2f9e44", "#1971c2", "#1e1e1e", "#f08c00"]}}})]
+        vec![
+            json!({"updateData": {"colorTopPicks": {"elementStroke": ["#e03131", "#2f9e44", "#1971c2", "#1e1e1e", "#f08c00"]}}})
+        ]
     );
     // an already pinned colour, in any notation, is refused
     assert!(pinned("pin-duplicate").is_empty());

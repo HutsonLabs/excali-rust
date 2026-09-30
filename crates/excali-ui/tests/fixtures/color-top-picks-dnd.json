@@ -4922,7 +4922,7 @@
           ]
         }
       ],
-      "calls": [{"updateData":{"colorTopPicks":{"elementStroke":null}}},{"updateData":{"openPopup":null}}],
+      "calls": [{"updateData":{"colorTopPicks":{"elementStroke":null}}}],
       "after": [
         {
           "tag": "div",
@@ -5435,7 +5435,7 @@
       "mode": "full",
       "colorTopPicks": {"elementStroke":["#123456","#e03131","#2f9e44","#1971c2","#f08c00"],"elementBackground":["#abcdef"]},
       "elements": [],
-      "calls": [{"updateData":{"colorTopPicks":{"elementStroke":null,"elementBackground":["#abcdef"]}}},{"updateData":{"openPopup":null}}],
+      "calls": [{"updateData":{"colorTopPicks":{"elementStroke":null,"elementBackground":["#abcdef"]}}}],
       "after": [
         {
           "tag": "div",
@@ -14521,8 +14521,8 @@
         {
           "step": {"click":true},
           "now": 150,
-          "clickReached": false,
-          "calls": [],
+          "clickReached": true,
+          "calls": [{"onChange":"#6741d9"}],
           "strip": {
             "tag": "div",
             "attrs": {"class":"color-picker__top-picks top-picks-dnd","data-state":"closed"},
