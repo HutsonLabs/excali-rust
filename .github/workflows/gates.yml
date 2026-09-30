@@ -370,6 +370,10 @@ jobs:
   # bucket-fill-fixtures.mjs --check for excali-editor's bucket-fill.json
   # (ex-704), upstream's own bucketFill.ts on every call of
   # bucketFill.test.ts (run as written) and seeded scenes,
+  # lasso-fixtures.mjs --check for excali-editor's lasso.json (ex-705),
+  # upstream's own lasso/index.ts and lasso/utils.ts (LassoTrail,
+  # getLassoSelectedElementIds) on lasso.test.tsx's tests and seeded
+  # scenes and paths,
   # transform-fixtures.mjs --check for excali-editor's transform.json
   # (ex-508), upstream's own transformHandles.ts, resizeTest.ts and
   # resizeElements.ts (handle layouts, resizeTest, cursors, and pointer
@@ -549,6 +553,8 @@ jobs:
         run: node tools/goldens/collision-fixtures.mjs --check
       - name: excali-editor bucket fill fixture matches upstream's bucketFill.ts
         run: node tools/goldens/bucket-fill-fixtures.mjs --check
+      - name: excali-editor lasso fixture matches upstream's LassoTrail and getLassoSelectedElementIds
+        run: node tools/goldens/lasso-fixtures.mjs --check
       - name: excali-editor transform fixture matches upstream's transformHandles.ts, resizeTest.ts and resizeElements.ts
         run: node tools/goldens/transform-fixtures.mjs --check
       - name: excali-editor binding fixture matches upstream's binding.ts and binding highlight
