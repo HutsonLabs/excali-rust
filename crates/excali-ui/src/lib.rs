@@ -23,7 +23,9 @@
 //! element context menus (`components/ContextMenu.tsx`); for [`footer`]
 //! the footer's zoom, undo/redo, help and exit-zen controls
 //! (`components/footer/Footer.tsx`); for [`help_dialog`] the help dialog
-//! and its shortcut islands (`components/HelpDialog.tsx`); for [`library_sidebar`] the default
+//! and its shortcut islands (`components/HelpDialog.tsx`); for
+//! [`command_palette`] the command palette
+//! (`components/CommandPalette/CommandPalette.tsx`); for [`library_sidebar`] the default
 //! sidebar with the library (`components/DefaultSidebar.tsx`,
 //! `components/Sidebar/*`, `components/LibraryMenu*.tsx`,
 //! `components/LibraryUnit.tsx`); for [`font_picker`] the font picker
@@ -33,6 +35,7 @@
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-canvas2d`, `excali-editor`.
 
 pub mod color_picker;
+pub mod command_palette;
 pub mod context_menu;
 pub mod dom;
 pub mod editor_interface;

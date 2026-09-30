@@ -192,3 +192,7 @@ On a Mac every `Ctrl` reads `Cmd` and every `Alt` reads `Option`, and send to ba
 ## Colour picker
 
 `q w e r t / a s d f g / z x c v b` palette cells; `1–5` custom colours; `Shift+1–5` shades; `i` eyedropper; Tab cycles sections; Esc closes.
+
+## Command palette
+
+`Ctrl+/` or `Ctrl+Shift+P` (`Cmd` on a Mac) opens and closes it; `Ctrl+P` only shows the hint. Inside it (`CommandPalette.tsx:691-799`): `↑` and `↓` move through the commands and wrap, passing through the last used one while the search is empty; `Enter` runs the selected command and closes the palette; `Esc` closes it; a letter or digit typed outside the search field moves the focus there, and any other key is kept from the editor. The categories come in upstream's order: App, Export, Editor, Tools, Elements, Links, then Library items once the search has two characters.
