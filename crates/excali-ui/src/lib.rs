@@ -32,6 +32,7 @@
 //! tab (`components/SearchMenu.tsx`); for [`font_picker`] the font picker
 //! (`components/FontPicker/*`); for [`hints`] the hint viewer and the
 //! cursor hint (`components/HintViewer.tsx`, `components/CursorHint.tsx`);
+//! for [`i18n`] the locale loader (`i18n.ts`, `locales/*.json`);
 //! for [`welcome_screen`] the welcome screen
 //! (`components/welcome-screen/*`); for [`top_picks_dnd`]
 //! the pickers' top-picks drag and drop (`components/TopPicksDnD/*`); for
@@ -53,6 +54,7 @@ pub mod fonts;
 pub mod footer;
 pub mod help_dialog;
 pub mod hints;
+pub mod i18n;
 pub mod icons;
 pub mod keyboard;
 pub mod layers;

@@ -33,7 +33,11 @@ fn languages_of(v: &Value) -> Vec<Language> {
 }
 
 fn locale_file(code: &str) -> Option<String> {
-    let path = format!("{}/assets/{}", env!("CARGO_MANIFEST_DIR"), locale_path(code));
+    let path = format!(
+        "{}/assets/{}",
+        env!("CARGO_MANIFEST_DIR"),
+        locale_path(code)
+    );
     std::fs::read_to_string(path).ok()
 }
 
@@ -52,7 +56,10 @@ fn js_string(v: &Value) -> String {
 #[test]
 fn threshold_and_default_language() {
     let f = fixture();
-    assert_eq!(f64::from(COMPLETION_THRESHOLD), f["threshold"].as_f64().unwrap());
+    assert_eq!(
+        f64::from(COMPLETION_THRESHOLD),
+        f["threshold"].as_f64().unwrap()
+    );
     assert_eq!(DEFAULT_LANG.to_language(), language(&f["defaultLang"]));
 }
 
@@ -60,8 +67,14 @@ fn threshold_and_default_language() {
 fn languages_are_the_complete_ones_sorted_by_label() {
     let f = fixture();
     assert_eq!(languages(), languages_of(&f["languages"]));
-    assert_eq!(languages_with(percentages(), 0), languages_of(&f["candidates"]));
-    assert_eq!(CANDIDATES.len() + 1, f["candidates"].as_array().unwrap().len());
+    assert_eq!(
+        languages_with(percentages(), 0),
+        languages_of(&f["candidates"])
+    );
+    assert_eq!(
+        CANDIDATES.len() + 1,
+        f["candidates"].as_array().unwrap().len()
+    );
 }
 
 #[test]
@@ -113,7 +126,10 @@ fn set_language_sets_dir_lang_and_translations() {
         assert_eq!(i18n.dir(), case["dir"].as_str().unwrap(), "{code}");
         assert_eq!(
             i18n.document_attributes(),
-            [("dir", case["dir"].as_str().unwrap()), ("lang", case["htmlLang"].as_str().unwrap())],
+            [
+                ("dir", case["dir"].as_str().unwrap()),
+                ("lang", case["htmlLang"].as_str().unwrap())
+            ],
             "{code}"
         );
         for (path, text) in case["t"].as_object().unwrap() {
@@ -134,7 +150,10 @@ fn missing_keys_are_none_without_a_fallback() {
     let i18n = I18n::new();
     assert_eq!(i18n.try_t("labels.doesNotExist", &[], None), None);
     assert_eq!(i18n.try_t("labels", &[], None), None);
-    assert_eq!(i18n.try_t("labels.delete", &[], None).as_deref(), Some("Delete"));
+    assert_eq!(
+        i18n.try_t("labels.delete", &[], None).as_deref(),
+        Some("Delete")
+    );
     assert_eq!(i18n.t("labels.doesNotExist"), "");
 }
 
@@ -165,7 +184,10 @@ fn replacements_fill_the_first_slot_with_js_substitutions() {
             Value::Object(m) => m.iter().map(|(k, v)| (k.clone(), js_string(v))).collect(),
             other => panic!("{other}"),
         };
-        let pairs: Vec<(&str, &str)> = pairs.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+        let pairs: Vec<(&str, &str)> = pairs
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
+            .collect();
         let path = r["path"].as_str().unwrap();
         assert_eq!(
             i18n.t_with(path, &pairs, None),
