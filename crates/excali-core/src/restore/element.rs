@@ -137,6 +137,11 @@ impl ElementsMap {
         }
     }
 
+    /// The elements, in the order given (every one, repeated ids included).
+    pub(crate) fn elements(&self) -> &[Map<String, Value>] {
+        &self.elements
+    }
+
     /// `map.size`.
     pub fn len(&self) -> usize {
         self.index.len() + self.unreachable

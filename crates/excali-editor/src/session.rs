@@ -224,7 +224,7 @@ impl<E: HistoryEnv> Session<E> {
         let observed = ObservedAppState::from_app_state(&self.app_state);
         let increments = self
             .store
-            .commit(elements.as_ref(), Some(&observed), &mut self.env);
+            .commit_owned(elements, Some(&observed), &mut self.env);
         for increment in &increments {
             if let StoreIncrement::Durable { delta, .. } = increment {
                 self.history.record(delta, &mut self.env);

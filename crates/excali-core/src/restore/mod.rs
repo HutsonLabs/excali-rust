@@ -55,7 +55,7 @@ pub use element::{
     MAX_LINEAR_PX,
 };
 pub(crate) use element::{restore_element_encoded, MapKey};
-pub(crate) use scene::restore_elements_sentinel;
+pub(crate) use scene::restore_elements_sentinel_owned;
 pub use scene::{
     bump_element_versions, restore_elements, ElbowArrowRequest, RestoreElementsError,
     RestoreElementsOptions, StickyNoteLayout, StickyNoteLayoutRequest, TextDimensionsRequest,

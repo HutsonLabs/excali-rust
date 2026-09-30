@@ -539,7 +539,7 @@ impl Formatter for JsFormatter {
         w: &mut W,
         fragment: &str,
     ) -> io::Result<()> {
-        if !self.decode_sentinels || !fragment.contains(SENTINEL) {
+        if !self.decode_sentinels || !contains_sentinel(fragment) {
             return w.write_all(fragment.as_bytes());
         }
         // A sentinel pair is two characters that need no escaping, so
@@ -666,7 +666,7 @@ fn push_sentinel(out: &mut String, second: char) {
 /// U+FDD0. Everything else is copied unchanged; malformed input is left for
 /// serde_json to reject.
 fn encode_lone_surrogates(text: &str) -> String {
-    if !text.contains("\\u") && !text.contains(SENTINEL) {
+    if !text.contains("\\u") && !contains_sentinel(text) {
         return text.to_owned();
     }
     let bytes = text.as_bytes();
@@ -737,10 +737,27 @@ fn encode_lone_surrogates(text: &str) -> String {
     out
 }
 
+/// `s.contains(SENTINEL)` on bytes: U+FDD0 is `EF B7 90`, and in valid
+/// UTF-8 `EF` only starts a three-byte character, so the three bytes are
+/// that character. The char pattern search it replaces was a visible share
+/// of loading a scene (ex-710): every string is checked.
+pub(crate) fn contains_sentinel(s: &str) -> bool {
+    let b = s.as_bytes();
+    let mut i = 0;
+    while let Some(p) = b[i..].iter().position(|&c| c == 0xEF) {
+        let j = i + p;
+        if b.get(j + 1) == Some(&0xB7) && b.get(j + 2) == Some(&0x90) {
+            return true;
+        }
+        i = j + 1;
+    }
+    false
+}
+
 /// A public string in the sentinel form: every U+FDD0 doubled. Borrowed
 /// when there is none.
 pub(crate) fn escape_str(s: &str) -> Cow<'_, str> {
-    if !s.contains(SENTINEL) {
+    if !contains_sentinel(s) {
         return Cow::Borrowed(s);
     }
     let mut out = String::with_capacity(s.len() + SENTINEL_UTF8.len());
@@ -784,7 +801,7 @@ pub(crate) fn utf16_units(s: &str) -> Vec<u16> {
 /// surrogate becomes U+FFFD (what a lossy UTF-16 decode gives), a doubled
 /// U+FDD0 one U+FDD0. Borrowed when there is no sentinel.
 pub(crate) fn decode_str(s: &str) -> Cow<'_, str> {
-    if !s.contains(SENTINEL) {
+    if !contains_sentinel(s) {
         return Cow::Borrowed(s);
     }
     let mut out = String::with_capacity(s.len());
@@ -896,12 +913,12 @@ pub(crate) fn escape_map_owned(map: Map<String, Value>) -> Map<String, Value> {
 /// one, [`decode_map`] and [`escape_map`] give an equal copy.
 pub(crate) fn has_sentinel_map(map: &Map<String, Value>) -> bool {
     map.iter()
-        .any(|(k, v)| k.contains(SENTINEL) || has_sentinel(v))
+        .any(|(k, v)| contains_sentinel(k) || has_sentinel(v))
 }
 
 fn has_sentinel(value: &Value) -> bool {
     match value {
-        Value::String(s) => s.contains(SENTINEL),
+        Value::String(s) => contains_sentinel(s),
         Value::Array(items) => items.iter().any(has_sentinel),
         Value::Object(map) => has_sentinel_map(map),
         _ => false,
@@ -1062,6 +1079,27 @@ mod tests {
         ("82075870703310.125", "82075870703310.12"),
         ("2806231691801.40625", "2806231691801.4062"),
     ];
+
+    #[test]
+    fn contains_sentinel_is_str_contains() {
+        for s in [
+            "",
+            "a",
+            "\u{FDD0}",
+            "x\u{FDD0}",
+            "\u{FDD0}y",
+            "\u{FDCF}\u{FDD1}",
+            "\u{FFFF}",
+            "\u{E000}\u{FDD0}\u{E001}",
+            "caf\u{e9}",
+            "\u{1F600}",
+            "\u{EFB7}\u{90}",
+            "ab\u{FDD0}\u{FDD0}",
+            "\u{FEFF}",
+        ] {
+            assert_eq!(contains_sentinel(s), s.contains(SENTINEL), "{s:?}");
+        }
+    }
 
     #[test]
     fn escape_map_owned_is_escape_map() {
