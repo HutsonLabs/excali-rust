@@ -178,7 +178,9 @@ class BuildTest(unittest.TestCase):
             bindgen[-1],
             str(self.target / "wasm32-unknown-unknown" / "web-release" / "excali_wasm.wasm"),
         )
-        self.assertIn("-Oz", opt)
+        # -Os, not -Oz: the first paint budget (ex-710) takes the speed
+        self.assertIn("-Os", opt)
+        self.assertNotIn("-Oz", opt)
         self.assertIn("--strip-debug", opt)
         self.assertIn("--strip-producers", opt)
         self.assertEqual(opt[opt.index("-o") + 1], str(self.root / "dist" / "excali_editor_bg.wasm"))
@@ -241,7 +243,7 @@ class ProfileTest(unittest.TestCase):
             self.section("profile.web-release"),
             {
                 "inherits": '"release"',
-                "opt-level": '"z"',
+                "opt-level": '"s"',
                 "lto": "true",
                 "codegen-units": "1",
                 "panic": '"abort"',

@@ -712,7 +712,12 @@ pub fn hash_string(s: &str) -> u32 {
 /// `hashElementsVersion(elements)` (`packages/element/src/index.ts:21-27`):
 /// djb2 over the elements' `versionNonce`s, in order.
 pub fn hash_elements_version(elements: &[Element]) -> u32 {
-    djb2(elements.iter().map(|e| e.base.version_nonce))
+    hash_elements_version_of(elements)
+}
+
+/// [`hash_elements_version`] of elements not in one slice.
+pub fn hash_elements_version_of<'a>(elements: impl IntoIterator<Item = &'a Element>) -> u32 {
+    djb2(elements.into_iter().map(|e| e.base.version_nonce))
 }
 
 fn djb2(values: impl Iterator<Item = f64>) -> u32 {

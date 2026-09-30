@@ -1,5 +1,6 @@
 //! The walk every backend shares: groups flattened into absolute state.
 
+use super::blit::Blit;
 use super::image::{ImageItem, Rect};
 use super::paint::{Color, Rgba, Stroke};
 use super::path::{FillRule, Path};
@@ -127,6 +128,7 @@ fn replay_items(items: &[DisplayItem], painter: &mut impl Painter, state: &Paint
                 let rgba = run.color.rgba().unwrap_or(state.fill_style);
                 painter.text(run, rgba, state);
             }
+            DisplayItem::Blit(blit) => replay_blit(blit, painter, state),
             DisplayItem::Group(group) => {
                 // `transform(…)` with an infinite or NaN argument is ignored,
                 // and `globalAlpha = x` unless 0 <= x <= 1.
@@ -156,5 +158,35 @@ fn replay_items(items: &[DisplayItem], painter: &mut impl Painter, state: &Paint
                 }
             }
         }
+    }
+}
+
+/// A [`Blit`] as the canvas draws it (`excali_canvas2d::blit`): inside its
+/// own `save()`/`restore()`, `globalAlpha = alpha` (assigned, not
+/// multiplied), the clip under its own matrix, then `setTransform` to the
+/// blit's matrix and `drawImage` of the whole bitmap. Without a smoothing
+/// of its own the context's default, on, applies.
+fn replay_blit(blit: &Blit, painter: &mut impl Painter, state: &PaintState) {
+    let alpha = if (0.0..=1.0).contains(&blit.alpha) {
+        blit.alpha
+    } else {
+        state.alpha
+    };
+    let image = ImageItem {
+        smoothing: blit.smoothing.unwrap_or(true),
+        ..ImageItem::new(blit.id.clone(), blit.dest)
+    };
+    let inner = PaintState {
+        transform: blit.transform,
+        alpha,
+        ..*state
+    };
+    match &blit.clip {
+        Some((clip, transform)) => {
+            painter.push_clip(clip, transform);
+            painter.image(&image, &inner);
+            painter.pop_clip();
+        }
+        None => painter.image(&image, &inner),
     }
 }

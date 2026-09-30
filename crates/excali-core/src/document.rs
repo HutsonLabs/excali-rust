@@ -78,7 +78,7 @@ use crate::js::{self, truthy};
 use crate::json::{self, Error};
 use crate::layout::{Canonical, Layout};
 use crate::restore::{
-    restore_elements_sentinel, RestoreElementsError, RestoreElementsOptions, RestoreEnv,
+    restore_elements_sentinel_owned, RestoreElementsError, RestoreElementsOptions, RestoreEnv,
 };
 
 /// A `.excalidraw` file.
@@ -408,7 +408,7 @@ pub fn load_scene_json(
     app_env: &AppStateEnv,
 ) -> Result<LoadedScene, LoadSceneError> {
     match json::parse(text).map_err(LoadSceneError::Json)? {
-        Value::Object(raw) => load_encoded(&raw, env, app_env),
+        Value::Object(raw) => load_encoded(raw, env, app_env),
         _ => Err(LoadSceneError::NotAScene),
     }
 }
@@ -421,7 +421,7 @@ impl LoadedScene {
         env: &mut dyn RestoreEnv,
         app_env: &AppStateEnv,
     ) -> Result<LoadedScene, LoadSceneError> {
-        load_encoded(&doc.to_encoded(), env, app_env)
+        load_encoded(doc.to_encoded(), env, app_env)
     }
 
     /// The scene as `serializeAsJSON(elements, appState, files, "local")`
@@ -513,23 +513,24 @@ fn property(value: &Value, key: &str) -> Option<Value> {
 
 /// [`load_scene_json`] on a parsed object in the sentinel form.
 fn load_encoded(
-    raw: &Map<String, Value>,
+    mut raw: Map<String, Value>,
     env: &mut dyn RestoreEnv,
     app_env: &AppStateEnv,
 ) -> Result<LoadedScene, LoadSceneError> {
-    validate(raw).map_err(|_| LoadSceneError::NotAScene)?;
+    validate(&raw).map_err(|_| LoadSceneError::NotAScene)?;
     // restoreElements(undefined) restores `[]`; a truthy `elements` is an
-    // array here.
-    let items: &[Value] = match raw.get("elements") {
+    // array here. Taken out of the document (left `null` in its place, a
+    // key the rest does not read) so restore owns the elements.
+    let items: Vec<Value> = match raw.get_mut("elements").map(Value::take) {
         Some(Value::Array(items)) => items,
-        _ => &[],
+        _ => Vec::new(),
     };
     let opts = RestoreElementsOptions {
         repair_bindings: true,
         delete_invisible_elements: true,
         refresh_dimensions: false,
     };
-    let elements = restore_elements_sentinel(items, opts, env)
+    let elements = restore_elements_sentinel_owned(items, opts, env)
         .map_err(LoadSceneError::Restore)?
         .iter()
         .map(Element::from_restored_encoded)

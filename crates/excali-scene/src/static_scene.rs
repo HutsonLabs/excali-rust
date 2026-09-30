@@ -63,13 +63,17 @@ use excali_text::text_measurements::TextMetricsProvider;
 
 use crate::bounds::ElementsMap;
 use crate::display::{
-    Clip, Color, Dash, DisplayItem, DisplayList, Group, Path, Rect, Stroke, Transform,
+    bitmap_id, Clip, Color, Dash, DisplayItem, DisplayList, Group, Path, Rect, Stroke, Transform,
+};
+use crate::element_canvas::{
+    render_element_cached, CropPreview, ElementCanvas, ElementCanvasCache, ElementDraw,
 };
 use crate::export::FrameRendering;
 use crate::frame::{frame_clip, get_target_frame, should_apply_frame_clip, CheckedGroups};
 use crate::render_element::{
     create_placeholder_embeddable_label, render_element, render_link_icon,
     resolve_element_render_state, with_transform, ElementRenderOverride, ElementRenderState,
+    RenderError,
 };
 use crate::shape::{EmbedsValidationStatus, ShapeError, Theme};
 use crate::sticky_note::Clock;
@@ -473,6 +477,80 @@ fn clipped(clip: Option<(Transform, Clip, Transform)>, items: Vec<DisplayItem>) 
 /// static canvas as a display list to replay from a fresh context, in the
 /// order of work described in the module documentation.
 pub fn render_static_scene(scene: &StaticScene<'_>) -> DisplayList {
+    render_static_scene_with(scene, &mut |element, app_state, state| {
+        render_element(
+            element,
+            scene.elements_map,
+            scene.all_elements_map,
+            scene.render_config,
+            app_state,
+            state,
+        )
+        .map(|item| vec![item])
+    })
+}
+
+/// [`render_static_scene`] in the editor: every element, bound text,
+/// embeddable and pending flowchart node goes through `renderElement`'s
+/// editor path ([`render_element_cached`], `renderElement.ts:963-1009`),
+/// drawn from its bitmap in `cache` ([`DisplayItem::Blit`]) unless it is a
+/// frame or the scene is an export. `make_surface` makes the backend's
+/// surface of each bitmap the cache makes or makes again, given the id its
+/// blit draws; a pan reuses them all. The crop editor's uncropped preview
+/// ([`ElementDraw::CropPreview`]) is made on every frame that draws it,
+/// under the preview blit's id, and what `make_surface` returns for it is
+/// not kept.
+pub fn render_static_scene_cached<S>(
+    scene: &StaticScene<'_>,
+    cache: &mut ElementCanvasCache<S>,
+    make_surface: &mut dyn FnMut(&Element, &str, ElementCanvas) -> S,
+) -> DisplayList {
+    // bootstrapCanvas's `scale(dpr)`, then the zoom: the matrix every
+    // element is drawn on
+    let zoom = scene.app_state.zoom;
+    let base = Transform::scale(scene.scale, scene.scale).concat(&Transform::scale(zoom, zoom));
+    render_static_scene_with(scene, &mut |element, app_state, state| {
+        let draw = render_element_cached(
+            element,
+            scene.elements_map,
+            scene.all_elements_map,
+            scene.render_config,
+            app_state,
+            scene.scale,
+            base,
+            state,
+            cache,
+            |canvas| make_surface(element, &bitmap_id(&element.base.id), canvas),
+        )?;
+        Ok(match draw {
+            Some(ElementDraw::Vector(item)) => vec![item],
+            Some(ElementDraw::Blit(blit)) => vec![DisplayItem::Blit(blit)],
+            // the crop editor's uncropped image, made for this frame only
+            // under its blit's id, then the element's own bitmap
+            Some(ElementDraw::CropPreview(crop)) => {
+                let CropPreview {
+                    uncropped,
+                    preview,
+                    blit,
+                } = *crop;
+                make_surface(element, &preview.id, uncropped);
+                vec![DisplayItem::Blit(preview), DisplayItem::Blit(blit)]
+            }
+            // no bitmap (a side of 0): nothing drawn
+            None => Vec::new(),
+        })
+    })
+}
+
+/// One element's draws on the scene's snapped app state.
+type DrawElement<'f> = dyn FnMut(
+        &Element,
+        &StaticCanvasAppState,
+        Option<ElementRenderState>,
+    ) -> Result<Vec<DisplayItem>, RenderError>
+    + 'f;
+
+fn render_static_scene_with(scene: &StaticScene<'_>, draw: &mut DrawElement<'_>) -> DisplayList {
     let config = scene.render_config;
     let is_exporting = config.is_exporting;
     let raw = scene.app_state;
@@ -513,16 +591,7 @@ pub fn render_static_scene(scene: &StaticScene<'_>) -> DisplayList {
 
     let elements_map = scene.elements_map;
     let all_elements_map = scene.all_elements_map;
-    let render = |element: &Element, state| {
-        render_element(
-            element,
-            elements_map,
-            all_elements_map,
-            config,
-            app_state,
-            state,
-        )
-    };
+    let mut render = |element: &Element, state| draw(element, app_state, state);
     let link_icon = |element: &Element, state: &ElementRenderState| {
         if is_exporting || !config.render_links {
             return None;
@@ -552,10 +621,9 @@ pub fn render_static_scene(scene: &StaticScene<'_>) -> DisplayList {
         else {
             continue;
         };
-        let Ok(item) = render(element, Some(state)) else {
+        let Ok(mut items) = render(element, Some(state)) else {
             continue;
         };
-        let mut items = vec![item];
         if let Some(text) = bound_text {
             // what names itself the bound text may be any element; when it
             // cannot be drawn the container stays drawn and the icon is
@@ -564,7 +632,7 @@ pub fn render_static_scene(scene: &StaticScene<'_>) -> DisplayList {
                 scene_items.push(clipped(clip, items));
                 continue;
             };
-            items.push(item);
+            items.extend(item);
         }
         scene_items.push(clipped(clip, items));
         scene_items.extend(link_icon(element, &state));
@@ -578,10 +646,9 @@ pub fn render_static_scene(scene: &StaticScene<'_>) -> DisplayList {
         else {
             continue;
         };
-        let Ok(item) = render(element, Some(state)) else {
+        let Ok(mut items) = render(element, Some(state)) else {
             continue;
         };
-        let mut items = vec![item];
         let b = &element.base;
         let unvalidated_embed = matches!(element.kind, ElementKind::Embeddable)
             && config.embeds_validation_status.get(&b.id) != Some(&true);
@@ -592,7 +659,7 @@ pub fn render_static_scene(scene: &StaticScene<'_>) -> DisplayList {
                 scene_items.push(clipped(clip, items));
                 continue;
             };
-            items.push(item);
+            items.extend(item);
         }
         items.extend(link_icon(element, &state));
         scene_items.push(clipped(clip, items));
@@ -600,8 +667,8 @@ pub fn render_static_scene(scene: &StaticScene<'_>) -> DisplayList {
 
     // render pending nodes for flowcharts
     for node in &config.pending_flowchart_nodes {
-        if let Ok(item) = render(node, None) {
-            scene_items.push(item);
+        if let Ok(items) = render(node, None) {
+            scene_items.extend(items);
         }
     }
 

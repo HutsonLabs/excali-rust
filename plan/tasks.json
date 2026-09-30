@@ -2748,6 +2748,32 @@
    "labels": []
   },
   {
+   "id": "ex-715",
+   "epic": "ex-e7",
+   "title": "Lazy UI construction to cut first paint",
+   "priority": 2,
+   "blocked_by": [
+    "ex-710"
+   ],
+   "crates": [
+    "excali-wasm",
+    "excali-ui"
+   ],
+   "acceptance": "Dialogs, menus, sidebars and pickers are built on first use rather than when <excali-editor> mounts, as upstream mounts them only when open; the web-perf job (tests/web/perf) records fewer canvas and DOM calls before the first paint and a lower normalised first paint than before, and every existing web and parity test still passes.",
+   "evidence": [
+    "bd show ex-710 notes of 2026-09-30: first paint phases on ubuntu-24.04 (init 29, mount 58, load 298, present 56 ms) and locally (M4 Pro, 145-160 ms, ~40 ms cold wasm compilation, ~50 ms Chrome canvas and DOM calls, 61,586 canvas calls before first paint)",
+    "tests/web/test-results-perf/perf.json firstPaintPhasesMs (web-perf artifact)",
+    "site/content/plan/phases.md#budgets"
+   ],
+   "description": "Deferred by the owner (decision of 2026-09-30) to the next version (26.10). ex-710 found that about 40 ms of the local first paint is cold compilation of the WASM and about 50 ms Chrome's canvas and DOM work, both from building the whole UI at mount. Build the UI pieces that are closed at load on first use, and reduce the cold-compiled code and canvas calls on the path to the first frame.",
+   "deferred": true,
+   "type": "task",
+   "labels": [
+    "deferred",
+    "next-version"
+   ]
+  },
+  {
    "id": "ex-801",
    "epic": "ex-e8",
    "title": "Publish crates to crates.io under excali-*",

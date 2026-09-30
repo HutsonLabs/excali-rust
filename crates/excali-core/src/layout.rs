@@ -97,9 +97,21 @@ impl Layout {
         let mut layout = Layout::default();
         let mut extra = Map::new();
         for (key, value) in raw {
-            let current = if known(key) {
-                typed.get(key).cloned()
-            } else {
+            // one lookup: a key the typed object has is known
+            let typed_value = typed.get(key);
+            if typed_value.is_some() || is_canonical(canonical, key) {
+                // compared in place; copied only when it differs
+                let current = typed_value;
+                if !same_opt(current, Some(value)) {
+                    layout.verbatim.push(Verbatim {
+                        key: key.clone(),
+                        typed: current.cloned(),
+                        raw: Some(value.clone()),
+                    });
+                }
+                continue;
+            }
+            let current = {
                 let name = json::decode_str(key).into_owned();
                 if extra.contains_key(&name) || known(&name) {
                     layout.hidden.insert(key.clone(), value.clone());
@@ -194,17 +206,16 @@ impl Layout {
         extra: &'a Map<String, Value>,
         canonical: Canonical<'a>,
     ) -> Vec<(&'a str, &'a Value)> {
-        let known = |key: &str| is_canonical(canonical, key) || typed.contains_key(key);
         let mut out: Vec<(&'a str, &'a Value)> = Vec::with_capacity(typed.len() + extra.len());
         let mut seen: HashSet<&'a str> = HashSet::with_capacity(out.capacity());
         let mut emit = |key: &'a str, out: &mut Vec<(&'a str, &'a Value)>| {
             if !seen.insert(key) {
                 return;
             }
-            let current = if known(key) {
-                typed.get(key)
-            } else {
-                extra.get(key)
+            let current = match typed.get(key) {
+                Some(value) => Some(value),
+                None if is_canonical(canonical, key) => None,
+                None => extra.get(key),
             };
             let value = self.resolve(key, current);
             if let Some(value) = value {

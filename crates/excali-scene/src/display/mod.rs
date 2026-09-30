@@ -24,6 +24,7 @@
 //! | [`DisplayItem::Stroke`] | `strokeStyle`, `lineWidth`, `lineCap`, `lineJoin`, `miterLimit`, `setLineDash`, `lineDashOffset`, the path, `stroke()` |
 //! | [`DisplayItem::Image`] | `imageSmoothingEnabled`, `filter`, `drawImage` with a source and destination rectangle |
 //! | [`DisplayItem::Text`] | `font`, `fillStyle`, `textAlign`, `direction`, `fillText` |
+//! | [`DisplayItem::Blit`] | `save()`, `globalAlpha`, `imageSmoothingEnabled` when set, the clip under its own matrix, `setTransform(…)`, `drawImage` of the whole bitmap, `restore()` |
 //! | [`DisplayItem::Group`] | `save()`, `transform(…)`, `globalAlpha *= opacity`, optionally the clip path and `clip(rule)`, the children, `restore()` |
 //!
 //! # Semantics
@@ -133,6 +134,10 @@ pub enum DisplayItem {
     Image(ImageItem),
     /// Draw one line of text.
     Text(TextRun),
+    /// Draw an element's cached bitmap under an absolute matrix
+    /// (`drawElementFromCanvas`): the enclosing groups' matrices and
+    /// opacity do not apply, their clips do.
+    Blit(Blit),
     /// Draw children under a transform, opacity and clip.
     Group(Group),
 }

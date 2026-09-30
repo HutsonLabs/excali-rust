@@ -1,0 +1,4 @@
+# actionlint: the labels of the repository's self-hosted runner (ex-710)
+self-hosted-runner:
+  labels:
+    - excali-perf

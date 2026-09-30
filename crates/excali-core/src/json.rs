@@ -258,25 +258,40 @@ pub(crate) fn js_number(x: f64) -> String {
     if x == 0.0 {
         return "0".to_owned();
     }
-    let sign = if x < 0.0 { "-" } else { "" };
-    let (digits, e) = shortest_digits(x.abs());
-    let k = digits.len() as i64;
+    let (buf, len, e) = shortest_digits(x.abs());
+    // ASCII digits
+    let digits = std::str::from_utf8(&buf[..len]).unwrap_or_default();
+    let k = len as i64;
     let n = e + 1;
-    let body = if k <= n && n <= 21 {
-        format!("{digits}{}", "0".repeat((n - k) as usize))
+    let mut out = String::with_capacity(len + 8);
+    if x < 0.0 {
+        out.push('-');
+    }
+    if k <= n && n <= 21 {
+        out.push_str(digits);
+        out.extend(std::iter::repeat_n('0', (n - k) as usize));
     } else if 0 < n && n <= 21 {
         let (int, frac) = digits.split_at(n as usize);
-        format!("{int}.{frac}")
+        out.push_str(int);
+        out.push('.');
+        out.push_str(frac);
     } else if -6 < n && n <= 0 {
-        format!("0.{}{digits}", "0".repeat((-n) as usize))
+        out.push_str("0.");
+        out.extend(std::iter::repeat_n('0', (-n) as usize));
+        out.push_str(digits);
     } else {
         let (first, rest) = digits.split_at(1);
-        let dot = if rest.is_empty() { "" } else { "." };
+        out.push_str(first);
+        if !rest.is_empty() {
+            out.push('.');
+            out.push_str(rest);
+        }
         let e = n - 1;
-        let e_sign = if e < 0 { '-' } else { '+' };
-        format!("{first}{dot}{rest}e{e_sign}{}", e.abs())
-    };
-    format!("{sign}{body}")
+        out.push('e');
+        out.push(if e < 0 { '-' } else { '+' });
+        out.push_str(&e.abs().to_string());
+    }
+    out
 }
 
 /// `parseFloat(string)` (ECMA-262 §19.2.4): the longest decimal prefix
@@ -306,44 +321,168 @@ pub fn number_to_string(x: f64) -> String {
 /// is even. Rust's `{:e}` gives a shortest, closest string but rounds such a
 /// tie up (571516643625357.25 is written ...357.3 where JS writes ...357.2),
 /// so ties are detected and resolved here.
-fn shortest_digits(x: f64) -> (String, i64) {
-    let sci = format!("{x:e}");
-    let (mantissa, exp) = sci.split_once('e').unwrap_or((&sci, "0"));
-    let mut digits: String = mantissa.chars().filter(|c| *c != '.').collect();
-    let e = exp.parse::<i64>().unwrap_or(0);
-    let Some(last) = digits.bytes().last().map(|b| b - b'0') else {
-        return (digits, e);
-    };
-    if last % 2 == 0 {
-        return (digits, e);
+fn shortest_digits(x: f64) -> ([u8; 32], usize, i64) {
+    // `{:e}` of a positive f64 is at most 23 bytes ("1.2345678901234567e-308")
+    let mut sci = StackText::default();
+    let _ = std::fmt::Write::write_fmt(&mut sci, format_args!("{x:e}"));
+    let sci = sci.as_bytes();
+    let mut buf = [0u8; 32];
+    let mut len = 0;
+    let mut e: i64 = 0;
+    for (i, &c) in sci.iter().enumerate() {
+        match c {
+            b'0'..=b'9' => {
+                buf[len] = c;
+                len += 1;
+            }
+            b'e' => {
+                e = std::str::from_utf8(&sci[i + 1..])
+                    .ok()
+                    .and_then(|t| t.parse().ok())
+                    .unwrap_or(0);
+                break;
+            }
+            _ => {}
+        }
     }
+    let last = buf[len - 1] - b'0';
+    if last.is_multiple_of(2) {
+        return (buf, len, e);
+    }
+    // A tie puts x exactly on the midpoint of the digits and a neighbour
+    // (one more digit, a 5), which [`equals_decimal`] decides on integers.
+    // The neighbours are tried in order, the first that also rounds to x
+    // deciding, as before.
+    let head = &buf[..len - 1];
+    let digits_of = |last: u8| -> u128 {
+        let v = head
+            .iter()
+            .fold(0u128, |v, &d| v * 10 + u128::from(d - b'0'));
+        v * 10 + u128::from(last)
+    };
+    let text = |last: u8| {
+        let mut t = String::from_utf8_lossy(head).into_owned();
+        t.push(char::from(b'0' + last));
+        t
+    };
     let parses_to_x = |d: &str| {
         let (first, rest) = d.split_at(1);
         format!("{first}.{rest}0e{e}").parse::<f64>() == Ok(x)
     };
-    let head = &digits[..digits.len() - 1];
-    for neighbour in [last - 1, last + 1] {
-        if neighbour > 9 || (neighbour == 0 && head.is_empty()) {
+    // the midpoint's last digit is worth 10^(e - k), k = len
+    let p = e - len as i64;
+    let valid = |neighbour: u8| !(neighbour > 9 || (neighbour == 0 && head.is_empty()));
+    let tie_with = |neighbour: u8| {
+        if !valid(neighbour) {
+            return Some(false);
+        }
+        equals_decimal_int(x, digits_of(last.min(neighbour)) * 10 + 5, p)
+    };
+    let ties = [tie_with(last - 1), tie_with(last + 1)];
+    // no tie with either neighbour: the digits stay whichever rounds to x
+    if ties == [Some(false), Some(false)] {
+        return (buf, len, e);
+    }
+    for (neighbour, fast) in [last - 1, last + 1].into_iter().zip(ties) {
+        if !valid(neighbour) {
             continue;
         }
-        let candidate = format!("{head}{neighbour}");
+        let candidate = text(neighbour);
         if !parses_to_x(&candidate) {
             continue;
         }
-        // Both strings round to x; it is a tie only if x lies exactly on
-        // their midpoint, which has one more digit, a 5. `{:.1100e}` is the
-        // exact expansion of x (an f64 has at most 767 significant digits).
-        let low = head.to_owned() + &(last.min(neighbour)).to_string();
-        let midpoint = low + "5";
-        let exact = format!("{x:.1100e}");
-        let (exact_mantissa, exact_exp) = exact.split_once('e').unwrap_or((&exact, "0"));
-        let exact_digits: String = exact_mantissa.chars().filter(|c| *c != '.').collect();
-        if exact_exp.parse::<i64>() == Ok(e) && exact_digits.trim_end_matches('0') == midpoint {
-            digits = candidate;
+        let midpoint = text(last.min(neighbour)) + "5";
+        let tie = fast.unwrap_or_else(|| exact_expansion_is(x, &midpoint, e));
+        if tie {
+            let digits = candidate.as_bytes();
+            buf[..digits.len()].copy_from_slice(digits);
         }
         break;
     }
-    (digits, e)
+    (buf, len, e)
+}
+
+/// A fixed buffer to format one number into without allocating.
+#[derive(Default)]
+struct StackText {
+    buf: [u8; 32],
+    len: usize,
+}
+
+impl StackText {
+    fn as_bytes(&self) -> &[u8] {
+        &self.buf[..self.len]
+    }
+}
+
+impl std::fmt::Write for StackText {
+    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+        let end = self.len + s.len();
+        if end > self.buf.len() {
+            return Err(std::fmt::Error);
+        }
+        self.buf[self.len..end].copy_from_slice(s.as_bytes());
+        self.len = end;
+        Ok(())
+    }
+}
+
+/// Whether the exact decimal expansion of `x` is `digits` (`d1.d2… × 10^e`)
+/// followed only by zeros. `{:.1100e}` is that expansion (an f64 has at
+/// most 767 significant digits); slow, so [`equals_decimal`] answers first.
+fn exact_expansion_is(x: f64, digits: &str, e: i64) -> bool {
+    let exact = format!("{x:.1100e}");
+    let (exact_mantissa, exact_exp) = exact.split_once('e').unwrap_or((&exact, "0"));
+    let exact_digits: String = exact_mantissa.chars().filter(|c| *c != '.').collect();
+    exact_exp.parse::<i64>() == Ok(e) && exact_digits.trim_end_matches('0') == digits
+}
+
+/// Whether finite `x > 0` is exactly the integer `digits` times `10^p`,
+/// decided on 128-bit integers: `x = m × 2^q` against `M × 10^p`. `None`
+/// when the numbers do not fit (`digits` over 18 digits, `p` below -27 or
+/// above 20).
+#[cfg(test)]
+fn equals_decimal(x: f64, digits: &str, p: i64) -> Option<bool> {
+    if digits.len() > 18 {
+        return None;
+    }
+    equals_decimal_int(x, digits.parse().ok()?, p)
+}
+
+/// [`equals_decimal`] of the integer `big_m` (under 10^18).
+fn equals_decimal_int(x: f64, big_m: u128, p: i64) -> Option<bool> {
+    if big_m >= 1_000_000_000_000_000_000 || !(-27..=20).contains(&p) {
+        return None;
+    }
+    let bits = x.to_bits();
+    let biased = ((bits >> 52) & 0x7FF) as i64;
+    let fraction = u128::from(bits & ((1 << 52) - 1));
+    let (m, q) = if biased == 0 {
+        (fraction, -1074)
+    } else {
+        (fraction | (1 << 52), biased - 1075)
+    };
+    if p < 0 {
+        // x × 10^n = m × 5^n × 2^(q + n) against M, n = -p
+        let n = (-p) as u32;
+        let lhs = m * 5u128.pow(n);
+        let s = q + i64::from(n);
+        Some(if s >= 0 {
+            i64::from(lhs.leading_zeros()) >= s && lhs << s == big_m
+        } else {
+            let t = -s;
+            t < 128 && i64::from(lhs.trailing_zeros()) >= t && lhs >> t == big_m
+        })
+    } else {
+        // M × 10^p < 10^38 < 2^127 against m × 2^q
+        let rhs = big_m * 10u128.pow(p as u32);
+        Some(if q >= 0 {
+            q <= 74 && m << q == rhs
+        } else {
+            let t = -q;
+            t < 128 && i64::from(m.trailing_zeros()) >= t && m >> t == rhs
+        })
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -400,7 +539,7 @@ impl Formatter for JsFormatter {
         w: &mut W,
         fragment: &str,
     ) -> io::Result<()> {
-        if !self.decode_sentinels || !fragment.contains(SENTINEL) {
+        if !self.decode_sentinels || !contains_sentinel(fragment) {
             return w.write_all(fragment.as_bytes());
         }
         // A sentinel pair is two characters that need no escaping, so
@@ -527,7 +666,7 @@ fn push_sentinel(out: &mut String, second: char) {
 /// U+FDD0. Everything else is copied unchanged; malformed input is left for
 /// serde_json to reject.
 fn encode_lone_surrogates(text: &str) -> String {
-    if !text.contains("\\u") && !text.contains(SENTINEL) {
+    if !text.contains("\\u") && !contains_sentinel(text) {
         return text.to_owned();
     }
     let bytes = text.as_bytes();
@@ -598,10 +737,27 @@ fn encode_lone_surrogates(text: &str) -> String {
     out
 }
 
+/// `s.contains(SENTINEL)` on bytes: U+FDD0 is `EF B7 90`, and in valid
+/// UTF-8 `EF` only starts a three-byte character, so the three bytes are
+/// that character. The char pattern search it replaces was a visible share
+/// of loading a scene (ex-710): every string is checked.
+pub(crate) fn contains_sentinel(s: &str) -> bool {
+    let b = s.as_bytes();
+    let mut i = 0;
+    while let Some(p) = b[i..].iter().position(|&c| c == 0xEF) {
+        let j = i + p;
+        if b.get(j + 1) == Some(&0xB7) && b.get(j + 2) == Some(&0x90) {
+            return true;
+        }
+        i = j + 1;
+    }
+    false
+}
+
 /// A public string in the sentinel form: every U+FDD0 doubled. Borrowed
 /// when there is none.
 pub(crate) fn escape_str(s: &str) -> Cow<'_, str> {
-    if !s.contains(SENTINEL) {
+    if !contains_sentinel(s) {
         return Cow::Borrowed(s);
     }
     let mut out = String::with_capacity(s.len() + SENTINEL_UTF8.len());
@@ -645,7 +801,7 @@ pub(crate) fn utf16_units(s: &str) -> Vec<u16> {
 /// surrogate becomes U+FFFD (what a lossy UTF-16 decode gives), a doubled
 /// U+FDD0 one U+FDD0. Borrowed when there is no sentinel.
 pub(crate) fn decode_str(s: &str) -> Cow<'_, str> {
-    if !s.contains(SENTINEL) {
+    if !contains_sentinel(s) {
         return Cow::Borrowed(s);
     }
     let mut out = String::with_capacity(s.len());
@@ -740,6 +896,33 @@ pub(crate) fn escape(value: &Value) -> Value {
 /// [`escape`] for an object.
 pub(crate) fn escape_map(map: &Map<String, Value>) -> Map<String, Value> {
     map_object(map, escape_str)
+}
+
+/// [`escape_map`] of an owned object: the object itself when no key or
+/// string in it holds the sentinel, which [`escape_str`] and
+/// [`decode_str`] leave as they are.
+pub(crate) fn escape_map_owned(map: Map<String, Value>) -> Map<String, Value> {
+    if has_sentinel_map(&map) {
+        escape_map(&map)
+    } else {
+        map
+    }
+}
+
+/// Whether a key or string anywhere in `map` holds the sentinel: without
+/// one, [`decode_map`] and [`escape_map`] give an equal copy.
+pub(crate) fn has_sentinel_map(map: &Map<String, Value>) -> bool {
+    map.iter()
+        .any(|(k, v)| contains_sentinel(k) || has_sentinel(v))
+}
+
+fn has_sentinel(value: &Value) -> bool {
+    match value {
+        Value::String(s) => contains_sentinel(s),
+        Value::Array(items) => items.iter().any(has_sentinel),
+        Value::Object(map) => has_sentinel_map(map),
+        _ => false,
+    }
 }
 
 /// The public value for a sentinel-form one ([`decode_str`] on every string
@@ -896,6 +1079,241 @@ mod tests {
         ("82075870703310.125", "82075870703310.12"),
         ("2806231691801.40625", "2806231691801.4062"),
     ];
+
+    #[test]
+    fn contains_sentinel_is_str_contains() {
+        for s in [
+            "",
+            "a",
+            "\u{FDD0}",
+            "x\u{FDD0}",
+            "\u{FDD0}y",
+            "\u{FDCF}\u{FDD1}",
+            "\u{FFFF}",
+            "\u{E000}\u{FDD0}\u{E001}",
+            "caf\u{e9}",
+            "\u{1F600}",
+            "\u{EFB7}\u{90}",
+            "ab\u{FDD0}\u{FDD0}",
+            "\u{FEFF}",
+        ] {
+            assert_eq!(contains_sentinel(s), s.contains(SENTINEL), "{s:?}");
+        }
+    }
+
+    #[test]
+    fn escape_map_owned_is_escape_map() {
+        let lone = format!("a{SENTINEL}b");
+        let cases = [
+            serde_json::json!({"a": 1, "b": ["x", {"c": "y"}], "d": null}),
+            serde_json::json!({"a": [[1, 2], {"k": lone}]}),
+            serde_json::json!({ lone.clone(): true }),
+            serde_json::json!({"t": lone}),
+        ];
+        for (i, case) in cases.iter().enumerate() {
+            let map = case.as_object().unwrap().clone();
+            assert_eq!(has_sentinel_map(&map), i > 0, "case {i}");
+            assert_eq!(escape_map_owned(map.clone()), escape_map(&map), "case {i}");
+            if i == 0 {
+                assert_eq!(decode_map(&map), map);
+            }
+        }
+    }
+
+    /// The ECMAScript formatting as first ported: `{:e}`, a tie decided on
+    /// the exact expansion. [`js_number`] must write the same.
+    fn reference_js_number(x: f64) -> String {
+        if !x.is_finite() {
+            return "null".to_owned();
+        }
+        if x == 0.0 {
+            return "0".to_owned();
+        }
+        let sign = if x < 0.0 { "-" } else { "" };
+        let a = x.abs();
+        let sci = format!("{a:e}");
+        let (mantissa, exp) = sci.split_once('e').unwrap();
+        let mut digits: String = mantissa.chars().filter(|c| *c != '.').collect();
+        let e = exp.parse::<i64>().unwrap();
+        let last = digits.bytes().last().unwrap() - b'0';
+        if last % 2 == 1 {
+            let parses_to_x = |d: &str| {
+                let (first, rest) = d.split_at(1);
+                format!("{first}.{rest}0e{e}").parse::<f64>() == Ok(a)
+            };
+            let head = digits[..digits.len() - 1].to_owned();
+            for neighbour in [last - 1, last + 1] {
+                if neighbour > 9 || (neighbour == 0 && head.is_empty()) {
+                    continue;
+                }
+                let candidate = format!("{head}{neighbour}");
+                if !parses_to_x(&candidate) {
+                    continue;
+                }
+                let midpoint = format!("{head}{}5", last.min(neighbour));
+                if exact_expansion_is(a, &midpoint, e) {
+                    digits = candidate;
+                }
+                break;
+            }
+        }
+        let k = digits.len() as i64;
+        let n = e + 1;
+        let body = if k <= n && n <= 21 {
+            format!("{digits}{}", "0".repeat((n - k) as usize))
+        } else if 0 < n && n <= 21 {
+            let (int, frac) = digits.split_at(n as usize);
+            format!("{int}.{frac}")
+        } else if -6 < n && n <= 0 {
+            format!("0.{}{digits}", "0".repeat((-n) as usize))
+        } else {
+            let (first, rest) = digits.split_at(1);
+            let dot = if rest.is_empty() { "" } else { "." };
+            let e = n - 1;
+            let e_sign = if e < 0 { '-' } else { '+' };
+            format!("{first}{dot}{rest}e{e_sign}{}", e.abs())
+        };
+        format!("{sign}{body}")
+    }
+
+    #[test]
+    fn js_number_writes_what_the_reference_writes() {
+        let mut values: Vec<f64> = NUMBERS
+            .iter()
+            .filter_map(|(input, _)| input.parse::<f64>().ok())
+            .collect();
+        let mut state: u64 = 0x2545_F491_4F6C_DD1D;
+        let mut next = || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        for _ in 0..4_000 {
+            values.push(f64::from_bits(next() & 0xFFEF_FFFF_FFFF_FFFF));
+            values.push((next() % 4_000_000) as f64 / 8.0 - 250_000.0);
+            values.push((next() >> 11) as f64 / (1u64 << 53) as f64 * 600.0 - 300.0);
+        }
+        // exact dyadic midpoints of short decimals, and their neighbours
+        for j in 1..30 {
+            for n in [1u64, 3, 7, 101, 12_345, 987_654_321] {
+                let x = (2 * n + 1) as f64 / (1u64 << j) as f64;
+                values.extend([
+                    x,
+                    -x,
+                    f64::from_bits(x.to_bits() + 1),
+                    f64::from_bits(x.to_bits() - 1),
+                ]);
+            }
+        }
+        for x in values {
+            assert_eq!(js_number(x), reference_js_number(x), "{x:e}");
+        }
+    }
+
+    /// The tie check on integers agrees with the exact decimal expansion
+    /// (`{:.1100e}`) wherever it answers: the ties above, their
+    /// neighbours, and a spread of doubles from subnormal to huge,
+    /// full-precision coordinates like a freedraw outline's included.
+    #[test]
+    fn the_integer_tie_check_agrees_with_the_exact_expansion() {
+        let mut values: Vec<f64> = NUMBERS
+            .iter()
+            .filter_map(|(input, _)| input.parse::<f64>().ok())
+            .filter(|x| x.is_finite() && *x > 0.0)
+            .flat_map(|x| {
+                [
+                    x,
+                    f64::from_bits(x.to_bits() - 1),
+                    f64::from_bits(x.to_bits() + 1),
+                ]
+            })
+            .collect();
+        // xorshift: every exponent, and coordinates of a drawing
+        let mut state: u64 = 0x9E37_79B9_7F4A_7C15;
+        let mut next = || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        for _ in 0..3_000 {
+            let bits = next() & 0x7FEF_FFFF_FFFF_FFFF;
+            values.push(f64::from_bits(bits.max(1)));
+            values.push((next() % 2_000_000) as f64 / 1024.0 + (next() % 1000) as f64 * 1e-13);
+            values.push((next() >> 11) as f64 / (1u64 << 53) as f64 * 300.0);
+        }
+        // exact halves at many scales: 0.5, 1.25, 2.375, ... x 10^k
+        for k in -30..30 {
+            for m in [
+                5u64,
+                25,
+                125,
+                375,
+                1_234_567_890_125,
+                57_151_664_362_535_725,
+            ] {
+                values.push(m as f64 * 10f64.powi(k));
+            }
+        }
+        let (mut answered, mut ties) = (0, 0);
+        for x in values.into_iter().filter(|x| x.is_finite() && *x > 0.0) {
+            let sci = format!("{x:e}");
+            let (mantissa, exp) = sci.split_once('e').unwrap();
+            let digits: String = mantissa.chars().filter(|c| *c != '.').collect();
+            let e = exp.parse::<i64>().unwrap();
+            for last in 0..10u8 {
+                let head = &digits[..digits.len() - 1];
+                if head.is_empty() && last == 0 {
+                    continue;
+                }
+                let midpoint = format!("{head}{last}5");
+                let slow = exact_expansion_is(x, &midpoint, e);
+                if let Some(fast) = equals_decimal(x, &midpoint, e - digits.len() as i64) {
+                    assert_eq!(fast, slow, "{x:e} against {midpoint}e{e}");
+                    answered += 1;
+                    ties += usize::from(fast);
+                }
+            }
+        }
+        // dyadic values against their own exact expansion and its neighbours
+        for j in 0..40 {
+            for n in [1u64, 3, 5, 77, 1_025, 999_999, 123_456_789] {
+                let x = n as f64 / (1u64 << j) as f64 * if j % 3 == 0 { 1e6 } else { 1.0 };
+                let exact = format!("{x:.1100e}");
+                let (mantissa, exp) = exact.split_once('e').unwrap();
+                let own: String = mantissa.chars().filter(|c| *c != '.').collect();
+                let own = own.trim_end_matches('0');
+                let e = exp.parse::<i64>().unwrap();
+                let p = e - (own.len() as i64 - 1);
+                let as_int: u128 = match own.parse() {
+                    Ok(v) if own.len() <= 18 => v,
+                    _ => continue,
+                };
+                for delta in [0i128, -1, 1] {
+                    let digits = (as_int as i128 + delta).to_string();
+                    if digits.len() != own.len() {
+                        continue;
+                    }
+                    if let Some(fast) = equals_decimal(x, &digits, p) {
+                        assert_eq!(
+                            fast,
+                            exact_expansion_is(x, &digits, e),
+                            "{x:e} against {digits}e{p}"
+                        );
+                        assert_eq!(fast, delta == 0, "{x:e} against {digits}e{p}");
+                        answered += 1;
+                        ties += usize::from(fast);
+                    }
+                }
+            }
+        }
+        assert!(
+            answered > 50_000,
+            "the integer check answered only {answered} times"
+        );
+        assert!(ties >= 100, "only {ties} ties");
+    }
 
     #[test]
     fn numbers_are_written_as_ecmascript_number_to_string() {

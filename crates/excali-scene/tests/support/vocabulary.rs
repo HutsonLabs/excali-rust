@@ -107,6 +107,7 @@ pub fn item_json(item: &DisplayItem) -> Value {
             v
         }
         DisplayItem::Text(_) => panic!("raster fixtures have no text"),
+        DisplayItem::Blit(_) => panic!("raster fixtures have no blits"),
     }
 }
 

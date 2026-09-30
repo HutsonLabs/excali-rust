@@ -844,3 +844,137 @@ fn every_built_in_image_has_a_sized_source() {
     }
     assert_eq!(BUILTIN_IMAGE_NAMES.len(), 4);
 }
+
+/// Consecutive images (ex-710: the editor blits every element's bitmap)
+/// share one `save()`/`restore()`; the matrix, alpha and smoothing are
+/// assigned only when they change. `drawImage` reads nothing else that an
+/// image changes, so each draws exactly as when isolated. Anything else,
+/// or an image with a filter, ends the run first.
+#[test]
+fn consecutive_images_share_one_save_and_set_only_what_changes() {
+    let img = |x: f64, smoothing: bool| {
+        let mut i = ImageItem::new("img", Rect::new(x, 0.0, 10.0, 10.0));
+        i.smoothing = smoothing;
+        DisplayItem::Image(i)
+    };
+    let at = |e: f64, items: Vec<DisplayItem>| {
+        DisplayItem::Group(Group {
+            transform: Transform::translate(e, 0.0),
+            ..Group::new(items)
+        })
+    };
+    let half = |items: Vec<DisplayItem>| {
+        DisplayItem::Group(Group {
+            opacity: 0.5,
+            ..Group::new(items)
+        })
+    };
+    let mut filtered = ImageItem::new("img", Rect::new(0.0, 0.0, 1.0, 1.0));
+    filtered.filter = Some(ImageFilter::DarkTheme);
+    let list = DisplayList::from_iter([
+        img(1.0, true),
+        img(2.0, true),
+        at(5.0, vec![img(3.0, false)]),
+        half(vec![img(4.0, false)]),
+        DisplayItem::Image(filtered),
+        img(5.0, true),
+        DisplayItem::FillRect {
+            rect: Rect::new(0.0, 0.0, 1.0, 1.0),
+            color: Color::new("red"),
+        },
+        img(6.0, true),
+    ]);
+    assert_eq!(
+        run(&list),
+        [
+            "save",
+            ID,
+            "globalAlpha=1",
+            "imageSmoothingEnabled=true",
+            "drawImage(img,0,0,640,480,1,0,10,10)",
+            "drawImage(img,0,0,640,480,2,0,10,10)",
+            "setTransform(1,0,0,1,5,0)",
+            "imageSmoothingEnabled=false",
+            "drawImage(img,0,0,640,480,3,0,10,10)",
+            ID,
+            "globalAlpha=0.5",
+            "drawImage(img,0,0,640,480,4,0,10,10)",
+            "restore",
+            "save",
+            ID,
+            "globalAlpha=1",
+            "imageSmoothingEnabled=true",
+            "filter=invert(93%) hue-rotate(180deg)",
+            "drawImage(img,0,0,640,480,0,0,1,1)",
+            "restore",
+            "save",
+            ID,
+            "globalAlpha=1",
+            "imageSmoothingEnabled=true",
+            "drawImage(img,0,0,640,480,5,0,10,10)",
+            "restore",
+            "save",
+            ID,
+            "globalAlpha=1",
+            "fillStyle=red",
+            "fillRect(0,0,1,1)",
+            "restore",
+            "save",
+            ID,
+            "globalAlpha=1",
+            "imageSmoothingEnabled=true",
+            "drawImage(img,0,0,640,480,6,0,10,10)",
+            "restore",
+        ]
+    );
+}
+
+#[test]
+fn a_clip_ends_the_run_and_the_blits_inside_it_run_again() {
+    let blit = |x: f64| {
+        DisplayItem::Blit(Blit {
+            id: "img".into(),
+            alpha: 1.0,
+            smoothing: Some(false),
+            clip: None,
+            transform: Transform::translate(x, 0.0),
+            dest: Rect::new(0.0, 0.0, 10.0, 10.0),
+        })
+    };
+    let clipped = DisplayItem::Group(Group {
+        clip: Some(Clip {
+            path: Path::rect(0.0, 0.0, 5.0, 5.0),
+            rule: FillRule::NonZero,
+        }),
+        ..Group::new(vec![blit(2.0), blit(3.0)])
+    });
+    let log = run(&DisplayList::from_iter([blit(1.0), clipped, blit(4.0)]));
+    let calls: Vec<&str> = log
+        .iter()
+        .map(String::as_str)
+        .filter(|c| {
+            c.starts_with("save")
+                || c.starts_with("restore")
+                || c.starts_with("clip")
+                || c.starts_with("drawImage")
+        })
+        .collect();
+    assert_eq!(
+        calls,
+        [
+            "save",
+            "drawImage(img,0,0,640,480,0,0,10,10)",
+            "restore",
+            "save",
+            "clip(nonzero)",
+            "save",
+            "drawImage(img,0,0,640,480,0,0,10,10)",
+            "drawImage(img,0,0,640,480,0,0,10,10)",
+            "restore",
+            "restore",
+            "save",
+            "drawImage(img,0,0,640,480,0,0,10,10)",
+            "restore",
+        ]
+    );
+}

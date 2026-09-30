@@ -70,6 +70,8 @@ jobs:
         run: python3 scripts/web/test_build.py -v
       - name: wasm size gate tests
         run: python3 scripts/gates/test_wasm_size.py -v
+      - name: performance budget gate tests
+        run: python3 scripts/gates/test_perf_budget.py -v
       - name: pinned binaryen tests
         run: python3 scripts/web/test_binaryen.py -v
       # ex-306 / ADR-004: every family's licence recorded with source URL and

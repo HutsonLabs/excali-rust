@@ -29,6 +29,7 @@ mod library_menu;
 mod search;
 
 use excali_canvas2d::{paint, WebCanvas};
+use excali_core::element::{Element, ElementKind};
 use excali_core::png::{encode_chunks, encode_text_chunk, extract_chunks};
 use excali_editor::actions::{
     build_context_menu, get_context_menu_items, show_selected_shape_actions, ActionContext,
@@ -381,10 +382,12 @@ impl Inner {
     }
 
     /// The canvas size and page offset into the app state, when they moved.
-    fn measure(&mut self) {
+    /// Returns whether the canvases or the viewport changed.
+    fn measure(&mut self) -> bool {
         let rect = self.container.get_bounding_client_rect();
         let (w, h) = (rect.width(), rect.height());
-        if self.layers.css_size() != (w, h) {
+        let resized = self.layers.css_size() != (w, h);
+        if resized {
             let scale = self.layers.device_pixel_ratio();
             self.layers.resize(w, h, scale);
         }
@@ -396,18 +399,28 @@ impl Inner {
             app.get("offsetTop").and_then(Value::as_f64),
         ];
         let want = [Some(w), Some(h), Some(rect.left()), Some(rect.top())];
-        if now != want {
+        let moved = now != want;
+        if moved {
             self.editor.set_viewport(w, h, rect.left(), rect.top());
         }
+        resized || moved
     }
 
     fn render(&mut self) {
         let size = self.layers.backing_size(Layer::Static);
-        let list = self.editor.static_scene(
+        let frame = self.editor.static_frame(
             f64::from(size.width),
             f64::from(size.height),
             self.layers.scale(),
         );
+        for id in &frame.dropped_bitmaps {
+            self.layers.drop_static_bitmap(id);
+        }
+        for (id, canvas) in &frame.new_bitmaps {
+            self.layers
+                .set_static_bitmap(id, canvas.width, canvas.height, &canvas.content);
+        }
+        let list = frame.list;
         let background = self
             .editor
             .app_state()
@@ -2794,11 +2807,15 @@ impl EditorCore {
         Ok(EditorCore { inner })
     }
 
-    /// The canvases and viewport after the host's size changed.
+    /// The canvases and viewport after the host's size changed, painted
+    /// again when anything did: the observer's first callback reports the
+    /// size the editor already has (upstream's resize handler updates the
+    /// state, and an unchanged state renders nothing).
     pub fn resize(&self) {
         let mut inner = self.inner.borrow_mut();
-        inner.measure();
-        inner.render();
+        if inner.measure() {
+            inner.render();
+        }
     }
 
     /// `theme`: `"light"`, `"dark"` or `"system"` (the page's
@@ -2850,9 +2867,36 @@ impl EditorCore {
         self.inner.borrow_mut().editor.scene_text()
     }
 
-    /// Paints the scene again (after its fonts loaded).
+    /// `loadFonts()`: [`crate::load_scene_fonts`] of the scene the editor
+    /// holds, its text elements taken as they are rather than written out
+    /// and parsed again. Resolves to the files of the faces loaded.
+    #[wasm_bindgen(js_name = loadFonts)]
+    pub fn load_fonts(&self) -> js_sys::Promise {
+        let texts: Vec<Element> = self
+            .inner
+            .borrow()
+            .editor
+            .elements()
+            .iter()
+            .filter(|e| !e.base.is_deleted && matches!(e.kind, ElementKind::Text(_)))
+            .cloned()
+            .collect();
+        wasm_bindgen_futures::future_to_promise(async move {
+            let files = crate::load_elements_fonts(texts).await?;
+            Ok(files
+                .into_iter()
+                .map(JsValue::from)
+                .collect::<js_sys::Array>()
+                .into())
+        })
+    }
+
+    /// Paints the scene again after its fonts loaded: text and its
+    /// containers are drawn again in them (`Fonts.onLoaded`).
     pub fn repaint(&self) {
-        self.inner.borrow_mut().render();
+        let mut inner = self.inner.borrow_mut();
+        inner.editor.fonts_loaded();
+        inner.render();
     }
 
     /// `save()`.

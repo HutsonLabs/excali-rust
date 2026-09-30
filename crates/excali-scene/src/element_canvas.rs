@@ -287,6 +287,12 @@ pub fn generate_element_canvas(
 #[derive(Clone, Debug, PartialEq)]
 pub struct ElementBitmap<S> {
     pub key: ElementCanvasKey,
+    /// A line's, arrow's or freedraw's `getElementAbsoluteCoords` when the
+    /// bitmap was made: they depend on the element alone, and upstream
+    /// reads a line's from the shape cache rather than tracing its curves
+    /// on every frame. `None` for the other types, whose coordinates may
+    /// follow another element (a label on an arrow).
+    pub coords: Option<[f64; 6]>,
     pub width: f64,
     pub height: f64,
     pub scale: f64,
@@ -349,7 +355,7 @@ impl<S> ElementCanvasCache<S> {
         config: &StaticCanvasRenderConfig,
         app_state: &StaticCanvasAppState,
         device_pixel_ratio: f64,
-        make_surface: impl FnOnce(&ElementCanvas) -> S,
+        make_surface: impl FnOnce(ElementCanvas) -> S,
     ) -> Result<Option<&ElementBitmap<S>>, RenderError> {
         let id = element.base.id.as_str();
         let stale = match self.entries.get(id) {
@@ -370,12 +376,21 @@ impl<S> ElementCanvasCache<S> {
             else {
                 return Ok(None);
             };
-            let surface = make_surface(&canvas);
+            let (key, width, height, scale) = (
+                canvas.key.clone(),
+                canvas.width,
+                canvas.height,
+                canvas.scale,
+            );
+            let coords = is_linear_or_freedraw(element)
+                .then(|| get_element_absolute_coords(element, elements_map, false));
+            let surface = make_surface(canvas);
             let bitmap = ElementBitmap {
-                key: canvas.key,
-                width: canvas.width,
-                height: canvas.height,
-                scale: canvas.scale,
+                key,
+                coords,
+                width,
+                height,
+                scale,
                 surface,
             };
             self.entries.insert(id.to_owned(), bitmap);
@@ -436,11 +451,39 @@ pub fn draw_element_from_canvas(
     offset: [f64; 2],
     base: Transform,
 ) -> ElementBlitPlacement {
+    let coords = get_element_absolute_coords(element, all_elements_map, false);
+    place_element_bitmap(
+        size,
+        coords,
+        element,
+        config,
+        app_state,
+        all_elements_map,
+        device_pixel_ratio,
+        offset,
+        base,
+    )
+}
+
+/// [`draw_element_from_canvas`] with the element's absolute coordinates
+/// already known (`coords`, `getElementAbsoluteCoords` without bound text).
+#[allow(clippy::too_many_arguments)]
+fn place_element_bitmap(
+    size: ElementCanvasSize,
+    coords: [f64; 6],
+    element: &Element,
+    config: &StaticCanvasRenderConfig,
+    app_state: &StaticCanvasAppState,
+    all_elements_map: &ElementsMap<'_>,
+    device_pixel_ratio: f64,
+    offset: [f64; 2],
+    base: Transform,
+) -> ElementBlitPlacement {
     let dpr = device_pixel_ratio;
     let [ox, oy] = offset;
     let (sx, sy) = (app_state.scroll_x, app_state.scroll_y);
     let padding = get_canvas_padding(element);
-    let [x1, y1, x2, y2, _, _] = get_element_absolute_coords(element, all_elements_map, false);
+    let [x1, y1, x2, y2, _, _] = coords;
     let cx = ((x1 + x2) / 2.0 + ox + sx) * dpr;
     let cy = ((y1 + y2) / 2.0 + oy + sy) * dpr;
 
@@ -603,7 +646,7 @@ pub fn render_element_cached<S>(
     base: Transform,
     render_state: Option<ElementRenderState>,
     cache: &mut ElementCanvasCache<S>,
-    make_surface: impl FnOnce(&ElementCanvas) -> S,
+    make_surface: impl FnOnce(ElementCanvas) -> S,
 ) -> Result<Option<ElementDraw>, RenderError> {
     let state = render_state.unwrap_or_else(|| {
         resolve_element_render_state(element, elements_map, config, all_elements_map)
@@ -693,8 +736,12 @@ pub fn render_element_cached<S>(
     } else {
         None
     };
-    let placement = draw_element_from_canvas(
+    let coords = bitmap
+        .coords
+        .unwrap_or_else(|| get_element_absolute_coords(element, all_elements_map, false));
+    let placement = place_element_bitmap(
         size,
+        coords,
         element,
         config,
         app_state,

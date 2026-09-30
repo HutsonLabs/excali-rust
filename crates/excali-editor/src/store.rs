@@ -25,7 +25,7 @@
 //! structural clone inside `maybeClone`") are pointer comparisons here.
 
 use std::cell::Cell;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::rc::Rc;
 
@@ -35,7 +35,7 @@ use excali_core::element::{Element, ElementKind};
 use excali_core::fractional_index::{
     sync_invalid_indices_immutable, ChangeStamp, SceneElementsMap,
 };
-use excali_core::library::{hash_elements_version, hash_string};
+use excali_core::library::{hash_elements_version_of, hash_string};
 use excali_core::order_key::OrderKeyError;
 use excali_text::text_measurements::{CharWidthCache, TextMetricsProvider};
 use indexmap::IndexMap;
@@ -289,6 +289,23 @@ pub struct StoreSnapshot {
     last_changed_app_state_hash: Cell<u32>,
 }
 
+/// The next elements a commit compares with the snapshot: lent by the
+/// caller, or the caller's own copy, which the snapshot moves the changed
+/// ones out of.
+enum NextElements<'a> {
+    Lent(&'a SceneElementsMap),
+    Owned(SceneElementsMap),
+}
+
+impl NextElements<'_> {
+    fn map(&self) -> &SceneElementsMap {
+        match self {
+            NextElements::Lent(map) => map,
+            NextElements::Owned(map) => map,
+        }
+    }
+}
+
 /// `isImageElement(element) && !isInitializedImageElement(element)`.
 fn is_uninitialized_image(element: &Element) -> bool {
     matches!(&element.kind, ElementKind::Image(image) if image.file_id.as_ref().is_none_or(|f| f.0.is_empty()))
@@ -429,6 +446,16 @@ impl StoreSnapshot {
         app_state: Option<&ObservedAppState>,
         stamp: &mut dyn ChangeStamp,
     ) -> Rc<StoreSnapshot> {
+        self.maybe_clone_next(action, elements.map(NextElements::Lent), app_state, stamp)
+    }
+
+    fn maybe_clone_next(
+        self: &Rc<Self>,
+        action: CaptureUpdateAction,
+        elements: Option<NextElements<'_>>,
+        app_state: Option<&ObservedAppState>,
+        stamp: &mut dyn ChangeStamp,
+    ) -> Rc<StoreSnapshot> {
         let compare_hashes = action == CaptureUpdateAction::Eventually;
         let next_elements = self.maybe_create_elements_snapshot(elements, compare_hashes, stamp);
         let next_app_state = self.maybe_create_app_state_snapshot(app_state, compare_hashes);
@@ -446,6 +473,33 @@ impl StoreSnapshot {
                 is_empty: false,
             },
         ))
+    }
+
+    /// Whether `next` (the scene's elements in order; for a repeated id the
+    /// last counts, as in the map the scene would pass) holds a change
+    /// [`StoreSnapshot::maybe_clone`] would detect: an element of the
+    /// snapshot missing, or one new or at a higher version that is not an
+    /// image without a file. Decided on the elements as they are, without
+    /// the copy into a map a commit would make.
+    pub fn has_element_changes(&self, next: &[Element]) -> bool {
+        let mut last: HashMap<&str, &Element> = HashMap::with_capacity(next.len());
+        for element in next {
+            last.insert(element.base.id.as_str(), element);
+        }
+        if self
+            .elements
+            .keys()
+            .any(|id| !last.contains_key(id.as_str()))
+        {
+            return true;
+        }
+        last.values().any(|element| {
+            let updated = match self.elements.get(element.base.id.as_str()) {
+                None => true,
+                Some(prev) => prev.base.version < element.base.version,
+            };
+            updated && !is_uninitialized_image(element)
+        })
     }
 
     fn maybe_create_app_state_snapshot(
@@ -469,7 +523,7 @@ impl StoreSnapshot {
 
     fn maybe_create_elements_snapshot(
         &self,
-        elements: Option<&SceneElementsMap>,
+        elements: Option<NextElements<'_>>,
         compare_hashes: bool,
         stamp: &mut dyn ChangeStamp,
     ) -> Rc<SnapshotElements> {
@@ -490,35 +544,46 @@ impl StoreSnapshot {
 
     fn detect_changed_elements(
         &self,
-        next: &SceneElementsMap,
+        next: NextElements<'_>,
         compare_hashes: bool,
         stamp: &mut dyn ChangeStamp,
     ) -> Option<SceneElementsMap> {
         let mut changed = SceneElementsMap::new();
         for (id, prev) in self.elements.iter() {
-            if !next.contains_key(id) {
+            if !next.map().contains_key(id) {
                 // element was deleted
                 changed.insert(id.clone(), deleted_copy(prev, stamp));
             }
         }
-        for (id, element) in next {
+        let updated = |id: &str, element: &Element| {
             let updated = match self.elements.get(id) {
                 None => true,
                 Some(prev) => prev.base.version < element.base.version,
             };
-            if updated {
-                if is_uninitialized_image(element) {
-                    // ignore any updates on uninitialized image elements
-                    continue;
+            // ignore any updates on uninitialized image elements
+            updated && !is_uninitialized_image(element)
+        };
+        match next {
+            NextElements::Lent(next) => {
+                for (id, element) in next {
+                    if updated(id, element) {
+                        changed.insert(id.clone(), element.clone());
+                    }
                 }
-                changed.insert(id.clone(), element.clone());
+            }
+            // the scene's own copy: the changed elements are moved
+            NextElements::Owned(next) => {
+                for (id, element) in next {
+                    if updated(&id, &element) {
+                        changed.insert(id, element);
+                    }
+                }
             }
         }
         if changed.is_empty() {
             return None;
         }
-        let values: Vec<Element> = changed.values().cloned().collect();
-        let hash = hash_elements_version(&values);
+        let hash = hash_elements_version_of(changed.values());
         if compare_hashes && self.last_changed_elements_hash.get() == hash {
             return None;
         }
@@ -875,6 +940,26 @@ impl Store {
         app_state: Option<&ObservedAppState>,
         env: &mut dyn HistoryEnv,
     ) -> Vec<StoreIncrement> {
+        self.commit_next(elements.map(NextElements::Lent), app_state, env)
+    }
+
+    /// [`Store::commit`] of the scene's own copy of its elements, which the
+    /// snapshot takes the changed ones from instead of copying them.
+    pub fn commit_owned(
+        &mut self,
+        elements: Option<SceneElementsMap>,
+        app_state: Option<&ObservedAppState>,
+        env: &mut dyn HistoryEnv,
+    ) -> Vec<StoreIncrement> {
+        self.commit_next(elements.map(NextElements::Owned), app_state, env)
+    }
+
+    fn commit_next(
+        &mut self,
+        elements: Option<NextElements<'_>>,
+        app_state: Option<&ObservedAppState>,
+        env: &mut dyn HistoryEnv,
+    ) -> Vec<StoreIncrement> {
         let mut increments = Vec::new();
         for micro in std::mem::take(&mut self.scheduled_micro_actions) {
             self.process_change(
@@ -893,7 +978,9 @@ impl Store {
         if elements.is_none() && app_state.is_none() {
             return increments;
         }
-        let next = self.snapshot.maybe_clone(action, elements, app_state, env);
+        let next = self
+            .snapshot
+            .maybe_clone_next(action, elements, app_state, env);
         if Rc::ptr_eq(&next, &self.snapshot) {
             return increments;
         }

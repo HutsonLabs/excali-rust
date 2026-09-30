@@ -28,7 +28,27 @@ use crate::{paint, Context2d};
 pub struct WebCanvas {
     pub context: CanvasRenderingContext2d,
     pub images: HashMap<String, HtmlImageElement>,
-    pub bitmaps: HashMap<String, HtmlCanvasElement>,
+    pub bitmaps: HashMap<String, Bitmap>,
+}
+
+/// A cached bitmap and its size, read once when it is stored: the editor
+/// blits every bitmap on every frame, and asking the canvas for its width
+/// and height each time costs two calls into the browser.
+pub struct Bitmap {
+    pub canvas: HtmlCanvasElement,
+    pub width: u32,
+    pub height: u32,
+}
+
+impl From<HtmlCanvasElement> for Bitmap {
+    fn from(canvas: HtmlCanvasElement) -> Bitmap {
+        let (width, height) = (canvas.width(), canvas.height());
+        Bitmap {
+            canvas,
+            width,
+            height,
+        }
+    }
 }
 
 impl WebCanvas {
@@ -223,8 +243,8 @@ impl Context2d for WebCanvas {
     }
 
     fn image_size(&self, id: &str) -> Option<(f64, f64)> {
-        if let Some(canvas) = self.bitmaps.get(id) {
-            return Some((f64::from(canvas.width()), f64::from(canvas.height())));
+        if let Some(bitmap) = self.bitmaps.get(id) {
+            return Some((f64::from(bitmap.width), f64::from(bitmap.height)));
         }
         let image = self.images.get(id)?;
         if !image.complete() || image.natural_width() == 0 {
@@ -237,13 +257,13 @@ impl Context2d for WebCanvas {
     }
 
     fn draw_image(&mut self, id: &str, source: &Rect, dest: &Rect) {
-        if let Some(canvas) = self.bitmaps.get(id) {
+        if let Some(bitmap) = self.bitmaps.get(id) {
             // InvalidStateError for a canvas of width or height 0: nothing
             // is drawn.
             let _ = self
                 .context
                 .draw_image_with_html_canvas_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
-                    canvas,
+                    &bitmap.canvas,
                     source.x,
                     source.y,
                     source.width,

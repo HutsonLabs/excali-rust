@@ -28,6 +28,7 @@
 //! before building the map. Neither can come from a file an editor wrote.
 
 use serde_json::{json, Map, Value};
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
@@ -226,13 +227,21 @@ pub fn bump_element_versions(
 /// [`restore_elements`] without local elements on sentinel-form values
 /// (from [`json::parse`]), giving sentinel-form elements: what the scene
 /// loader (`crate::document::load_scene_json`) restores, so lone
-/// surrogates in a file survive restore.
-pub(crate) fn restore_elements_sentinel(
-    elements: &[Value],
+/// surrogates in a file survive restore. The loader owns the elements,
+/// and each is moved into the lookup map restore reads (`arrayToMap`)
+/// rather than copied.
+pub(crate) fn restore_elements_sentinel_owned(
+    elements: Vec<Value>,
     opts: RestoreElementsOptions,
     env: &mut dyn RestoreEnv,
 ) -> Result<Vec<Map<String, Value>>, RestoreElementsError> {
-    restore_scene(elements, None, opts, &mut EscapingEnv(env))
+    let targets = target_maps(elements.into_iter().map(Cow::Owned))?;
+    restore_targets(
+        ElementsMap::from_encoded(targets),
+        None,
+        opts,
+        &mut EscapingEnv(env),
+    )
 }
 
 /// Which upstream call [`restore_elements_encoded`] makes.
@@ -293,21 +302,40 @@ fn restore_scene(
     opts: RestoreElementsOptions,
     env: &mut dyn RestoreEnv,
 ) -> Result<Elements, RestoreElementsError> {
-    // arrayToMap(targetElements) reads every item's id; other primitives
-    // and arrays are dropped by restoreElement (their `type` is undefined).
+    let targets = target_maps(elements.iter().map(Cow::Borrowed))?;
+    restore_targets(ElementsMap::from_encoded(targets), existing, opts, env)
+}
+
+/// The objects restore works on: arrayToMap(targetElements) reads every
+/// item's id; other primitives and arrays are dropped by restoreElement
+/// (their `type` is undefined).
+fn target_maps<'a>(
+    items: impl Iterator<Item = Cow<'a, Value>>,
+) -> Result<Vec<Map<String, Value>>, RestoreElementsError> {
     let mut targets = Vec::new();
-    for item in elements {
+    for item in items {
         match item {
-            Value::Null => {
+            Cow::Borrowed(Value::Null) | Cow::Owned(Value::Null) => {
                 return Err(RestoreElementsError::type_error(
                     "Cannot read properties of null (reading 'id')",
                 ))
             }
-            Value::Object(element) => targets.push(element.clone()),
+            Cow::Borrowed(Value::Object(element)) => targets.push(element.clone()),
+            Cow::Owned(Value::Object(element)) => targets.push(element),
             _ => {}
         }
     }
-    let targets_map = ElementsMap::from_encoded(targets.clone());
+    Ok(targets)
+}
+
+/// [`restore_scene`] of the target objects, in order, in `targets_map`.
+fn restore_targets(
+    targets_map: ElementsMap,
+    existing: Option<&[Map<String, Value>]>,
+    opts: RestoreElementsOptions,
+    env: &mut dyn RestoreEnv,
+) -> Result<Elements, RestoreElementsError> {
+    let targets = targets_map.elements();
     let existing_map = existing.map(|e| ElementsMap::from_encoded(e.to_vec()));
     let element_opts = RestoreOptions {
         delete_invisible_elements: opts.delete_invisible_elements,
@@ -315,7 +343,7 @@ fn restore_scene(
 
     let mut seen: HashSet<MapKey> = HashSet::new();
     let mut restored: Elements = Vec::new();
-    for element in &targets {
+    for element in targets {
         // legacy, no longer kept in elements
         if element.get("type").and_then(Value::as_str) == Some("selection") {
             continue;
@@ -396,11 +424,36 @@ fn restore_scene(
 
     let order = repair_bound_text_element_order(&mut restored, &map, env)?;
 
-    let mut out = Vec::with_capacity(order.len());
+    // the elbow arrows are fixed first, reading the elements as restored;
+    // the others are then moved out rather than copied (the last time an
+    // index is ordered; copied before that)
+    let mut fixes = Vec::with_capacity(order.len());
     for &p in &order {
-        out.push(fix_elbow_arrow(&restored, &map, p, env)?);
+        fixes.push(if is_elbow_arrow(&restored[p]) {
+            Some(fix_elbow_arrow(&restored, &map, p, env)?)
+        } else {
+            None
+        });
+    }
+    let mut remaining = vec![0usize; restored.len()];
+    for &p in &order {
+        remaining[p] += 1;
+    }
+    let mut out = Vec::with_capacity(order.len());
+    for (&p, fix) in order.iter().zip(fixes) {
+        remaining[p] -= 1;
+        out.push(match fix {
+            Some(fixed) => fixed,
+            None if remaining[p] == 0 => std::mem::take(&mut restored[p]),
+            None => restored[p].clone(),
+        });
     }
     Ok(out)
+}
+
+/// `isElbowArrow(element)`: what [`fix_elbow_arrow`] changes.
+fn is_elbow_arrow(element: &Map<String, Value>) -> bool {
+    is_type(element, "arrow") && js::truthy(element.get("elbowed"))
 }
 
 /// `element.type === ty`.
@@ -1162,8 +1215,7 @@ fn fix_elbow_arrow(
     env: &mut dyn RestoreEnv,
 ) -> Result<Map<String, Value>, RestoreElementsError> {
     let element = &elements[p];
-    let elbow = is_type(element, "arrow") && js::truthy(element.get("elbowed"));
-    if !elbow {
+    if !is_elbow_arrow(element) {
         return Ok(element.clone());
     }
     // restoreElement always gives an arrow an array of points
