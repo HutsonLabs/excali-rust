@@ -95,6 +95,16 @@ class OwnerDecisionsInThePlan(unittest.TestCase):
         r = rows()["ex-808"]
         self.assertIn("ex-e8", [d["depends_on_id"] for d in r["dependencies"] if d["type"] == "parent-child"])
 
+    def test_ex_810_and_811_follow_up_term_hut_on_26_9_3(self):
+        # Found by term.hut PR #93 (ex-809), 2026-09-30.
+        for id in ("ex-810", "ex-811"):
+            t = item(id)
+            self.assertEqual(t["epic"], "ex-e7")
+            self.assertEqual(t["type"], "bug")
+            self.assertEqual(t["blocked_by"], [])
+            self.assertTrue(any("2026-09-30" in e for e in t["evidence"]))
+        self.assertIn("App.tsx:3670", item("ex-810")["acceptance"])
+
     def test_ex_803_is_walked_by_an_agent_in_a_fresh_clone(self):
         t = item("ex-803")
         self.assertIn("fresh clone", t["acceptance"])

@@ -3030,6 +3030,42 @@
    "description": "",
    "type": "task",
    "labels": []
+  },
+  {
+   "id": "ex-810",
+   "epic": "ex-e7",
+   "title": "<excali-editor>: load() keeps a host-controlled theme",
+   "priority": 1,
+   "blocked_by": [],
+   "crates": [
+    "excali-wasm"
+   ],
+   "acceptance": "With a `theme` attribute set, load(text) leaves the element's theme as the host set it, as upstream's initializeScene takes `this.props.theme || restoredAppState.theme` (App.tsx:3670) and componentDidMount applies props.theme (App.tsx:3620-3621); the first paint after load filters the ink in the dark theme and the container keeps theme--dark on later chrome renders. Without the attribute, a file's appState.theme still applies. Rust and Playwright tests; term.hut can then drop its set-theme-after-load workaround (term.hut a076068).",
+   "evidence": [
+    "term.hut PR #93 (ex-809), 2026-09-30: on 26.9.3 load() took the theme from the file's app state (light when absent), so Mocha's first paint drew #1e1e1e ink unfiltered and the next chrome render dropped theme--dark",
+    "upstream packages/excalidraw/components/App.tsx:3620-3621, 3670, 4431-4432"
+   ],
+   "description": "",
+   "type": "bug",
+   "labels": []
+  },
+  {
+   "id": "ex-811",
+   "epic": "ex-e7",
+   "title": "<excali-editor>: narrow panes keep the main menu off the toolbar and the canvas hint off the scene",
+   "priority": 2,
+   "blocked_by": [],
+   "crates": [
+    "excali-wasm",
+    "excali-ui"
+   ],
+   "acceptance": "In a ~570 px wide editor (term.hut's preview pane) the main-menu trigger does not overlap the shape toolbar, and the 'To move canvas…' hint follows upstream's layout rules at that width (upstream LayerUI.tsx / HintViewer.tsx and the css breakpoints at the pinned commit); a Playwright test at that width checks the boxes do not intersect.",
+   "evidence": [
+    "term.hut PR #93 screenshots, 2026-09-30: at ~570 px the main-menu button overlaps the toolbar's left end and the hint sits over shapes near the top"
+   ],
+   "description": "",
+   "type": "bug",
+   "labels": []
   }
  ],
  "notes": "Authored 2026-09-28. ids are stable; never reuse an id for different work. blocked_by lists hard dependencies only."
