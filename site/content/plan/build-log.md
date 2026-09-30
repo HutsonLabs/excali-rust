@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-30 · ex-541 · Shortcut performs in <excali-editor>: deselect, flip, element lock, copy and paste styles, view mode, toggle theme
+
+The keyboard shortcuts that only named their action now do what upstream does in `<excali-editor>`. Esc clears the selection and goes back to the selection tool; inside a group being edited, it steps out one level. Shift+H and Shift+V flip the selection about its centre (arrows bound on both sides only swap their heads). Ctrl/Cmd+Shift+L locks the selection, holding several elements together in a lock group, and unlocks it again. Ctrl/Cmd+Alt+C copies an element's styles, with a "Copied styles." toast, and Ctrl/Cmd+Alt+V pastes them, including a text's font and a sticky note's ink and layout. Alt+R toggles view mode and Alt+Shift+D toggles the theme. The same performs also run from the menus and the command palette. PR: [#160](https://github.com/HutsonLabs/excali-rust/pull/160).
+
 ## 2026-09-30 · ex-542 · Clipboard and file shortcuts in <excali-editor>: copy as PNG, open (Ctrl+O), save as (Ctrl+Shift+S)
 
 The clipboard and file rows of the `<excali-editor>` shortcut table now work. Shift+Alt+C (and "Copy to clipboard as PNG" in the canvas and element context menus) puts a PNG of the selection on the system clipboard, or of the whole canvas when nothing is selected, and sets upstream's toast. Ctrl/Cmd+O and Ctrl/Cmd+Shift+S, and the main menu's Open and Save to..., now reach the host. The element fires the cancelable events `open-request` and `save-as-request` (with `detail.name`, which is `app.getName()`). A host that handles them shows its own file dialogs, and the Tauri example now answers them with the plugin's dialogs. When no host handles them, the element falls back to the browser: Open picks a file with a file input and loads it, and Save as downloads `<name>.excalidraw`. PR: [#159](https://github.com/HutsonLabs/excali-rust/pull/159).
