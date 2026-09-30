@@ -2411,6 +2411,205 @@
   box-sizing: border-box;
   position: absolute;
 }
+/* The action panels' rules, compiled with sass (expanded) from upstream's
+ * sources at the pin: packages/excalidraw/css/styles.scss's .buttonList
+ * rules (:246, :264-279, the outlineButtonIconStyles mixin of
+ * css/variables.module.scss) and .App-menu__left .buttonList (:942-946),
+ * then components/IconPicker.scss whole. */
+.excalidraw .buttonList label:focus-within {
+  outline: transparent;
+  box-shadow: 0 0 0 1px var(--color-brand-hover);
+}
+.excalidraw .buttonList .ToolIcon__icon {
+  all: unset !important;
+  display: flex !important;
+}
+.excalidraw .buttonList button {
+  background-color: transparent;
+}
+.excalidraw .buttonList label,
+.excalidraw .buttonList button,
+.excalidraw .buttonList .zIndexButton {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.625rem;
+  width: var(--button-width, var(--default-button-size));
+  height: var(--button-height, var(--default-button-size));
+  box-sizing: border-box;
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--button-border, var(--default-border-color));
+  border-radius: var(--border-radius-lg);
+  cursor: pointer;
+  background-color: var(--button-bg, var(--island-bg-color));
+  color: var(--button-color, var(--color-on-surface));
+  font-family: var(--ui-font);
+}
+.excalidraw .buttonList label svg,
+.excalidraw .buttonList button svg,
+.excalidraw .buttonList .zIndexButton svg {
+  width: var(--button-width, var(--lg-icon-size));
+  height: var(--button-height, var(--lg-icon-size));
+}
+.excalidraw .buttonList label:hover,
+.excalidraw .buttonList button:hover,
+.excalidraw .buttonList .zIndexButton:hover {
+  background-color: var(--button-hover-bg, var(--island-bg-color));
+  border-color: var(--button-hover-border, var(--button-border, var(--default-border-color)));
+  color: var(--button-hover-color, var(--button-color, var(--text-primary-color, inherit)));
+}
+.excalidraw .buttonList label:active,
+.excalidraw .buttonList button:active,
+.excalidraw .buttonList .zIndexButton:active {
+  background-color: var(--button-active-bg, var(--island-bg-color));
+  border-color: var(--button-active-border, var(--color-primary-darkest));
+}
+.excalidraw .buttonList label.active, .excalidraw .buttonList label.ToolIcon--checked,
+.excalidraw .buttonList button.active,
+.excalidraw .buttonList button.ToolIcon--checked,
+.excalidraw .buttonList .zIndexButton.active,
+.excalidraw .buttonList .zIndexButton.ToolIcon--checked {
+  background-color: var(--button-selected-bg, var(--color-surface-primary-container));
+  border-color: var(--button-selected-border, var(--color-surface-primary-container));
+}
+.excalidraw .buttonList label.active:hover, .excalidraw .buttonList label.ToolIcon--checked:hover,
+.excalidraw .buttonList button.active:hover,
+.excalidraw .buttonList button.ToolIcon--checked:hover,
+.excalidraw .buttonList .zIndexButton.active:hover,
+.excalidraw .buttonList .zIndexButton.ToolIcon--checked:hover {
+  background-color: var(--button-selected-hover-bg, var(--color-surface-primary-container));
+}
+.excalidraw .buttonList label.active svg, .excalidraw .buttonList label.ToolIcon--checked svg,
+.excalidraw .buttonList button.active svg,
+.excalidraw .buttonList button.ToolIcon--checked svg,
+.excalidraw .buttonList .zIndexButton.active svg,
+.excalidraw .buttonList .zIndexButton.ToolIcon--checked svg {
+  color: var(--button-color, var(--color-on-primary-container));
+}
+.excalidraw--mobile.excalidraw .buttonList label, .excalidraw .buttonList button, .excalidraw .buttonList .zIndexButton {
+  width: var(--mobile-action-button-size, var(--default-button-size));
+  height: var(--mobile-action-button-size, var(--default-button-size));
+}
+
+.excalidraw .buttonList label,
+.excalidraw .buttonList button,
+.excalidraw .buttonList .zIndexButton {
+  padding: 0;
+}
+.excalidraw .buttonList label svg,
+.excalidraw .buttonList button svg,
+.excalidraw .buttonList .zIndexButton svg {
+  width: var(--default-icon-size);
+  height: var(--default-icon-size);
+}
+.excalidraw .App-menu__left .buttonList {
+  padding: 0.25rem 0;
+}
+
+.excalidraw .picker {
+  padding: 0.5rem;
+  background: var(--popup-bg-color);
+  border: 0 solid rgba(255, 255, 255, 0.25);
+  box-shadow: var(--shadow-island-stronger);
+  border-radius: 4px;
+}
+:root[dir=rtl] .excalidraw .picker {
+  padding: 0.4rem;
+}
+.excalidraw .picker-sections,
+.excalidraw .picker-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.excalidraw .picker-container button,
+.excalidraw .picker button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.excalidraw .picker-container button:focus-visible,
+.excalidraw .picker button:focus-visible {
+  outline: transparent;
+  background-color: var(--button-gray-2);
+}
+.excalidraw .picker-container button:focus-visible svg,
+.excalidraw .picker button:focus-visible svg {
+  opacity: 1;
+}
+.excalidraw .picker-container button:hover,
+.excalidraw .picker button:hover {
+  background-color: var(--button-gray-2);
+}
+.excalidraw .picker-container button:active,
+.excalidraw .picker button:active {
+  background-color: var(--button-gray-3);
+}
+.excalidraw .picker-container button:disabled,
+.excalidraw .picker button:disabled {
+  cursor: not-allowed;
+}
+.excalidraw .picker-container button svg,
+.excalidraw .picker button svg {
+  margin: 0;
+  width: 36px;
+  height: 18px;
+  pointer-events: none;
+}
+.excalidraw .picker button {
+  padding: 0.25rem 0.28rem 0.35rem 0.25rem;
+}
+.excalidraw .picker-content {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  grid-gap: 0.5rem;
+  border-radius: 4px;
+}
+.excalidraw .picker-collapsible {
+  font-size: 0.75rem;
+  padding: 0;
+  color: var(--text-primary-color);
+}
+.excalidraw .picker-section-label {
+  font-size: 0.75rem;
+  color: var(--text-primary-color);
+}
+.excalidraw .picker-keybinding {
+  position: absolute;
+  bottom: 2px;
+  font-size: 0.7em;
+  color: var(--keybinding-color);
+}
+:root[dir=ltr] .excalidraw .picker-keybinding {
+  right: 2px;
+}
+:root[dir=rtl] .excalidraw .picker-keybinding {
+  left: 2px;
+}
+.excalidraw--mobile.excalidraw .picker-keybinding {
+  display: none;
+}
+
+.excalidraw .picker-type-canvasBackground .picker-keybinding {
+  color: #aaa;
+}
+.excalidraw .picker-type-elementBackground .picker-keybinding {
+  color: #fff;
+}
+.excalidraw .picker-swatch[aria-label=transparent] .picker-keybinding {
+  color: #aaa;
+}
+.excalidraw .picker-type-elementStroke .picker-keybinding {
+  color: #d4d4d4;
+}
+.excalidraw.theme--dark .picker-type-elementBackground .picker-keybinding {
+  color: #000;
+}
+.excalidraw.theme--dark .picker-swatch[aria-label=transparent] .picker-keybinding {
+  color: #000;
+}
 
 /* Generated by tools/goldens/color-picker.mjs; do not edit. Upstream's
  * packages/excalidraw/components/ColorPicker/ColorPicker.scss,

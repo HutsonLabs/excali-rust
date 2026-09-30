@@ -16,9 +16,9 @@ use excali_editor::actions::{
     align_enabled, bucket_fill_color, distribute_enabled, form_arrow_type, form_arrowhead,
     form_fill_style, form_font_family, form_font_size, form_opacity, form_roughness,
     form_roundness, form_stroke_style, form_stroke_variability, form_stroke_width_key,
-    form_text_align, form_vertical_align, get_form_value, group_enabled, link_panel_state,
-    linear_editor_target, polygon_toggle, reduce_to_common_value, selected_fill_styles,
-    ActionContext, ActionEnv, AppProps, ArrowType, ArrowheadPosition, EdgeRoundness,
+    form_text_align, form_vertical_align, get_form_value, group_enabled, linear_editor_target,
+    link_panel_state, polygon_toggle, reduce_to_common_value, selected_fill_styles, ActionContext,
+    ActionEnv, AppProps, ArrowType, ArrowheadPosition, EdgeRoundness,
 };
 use serde_json::{json, Value};
 
@@ -95,7 +95,10 @@ fn reduce_to_common_value_needs_one_non_null_value() {
             .collect()
     };
     let fill = |e: &Element| Some(e.base.fill_style);
-    assert_eq!(reduce_to_common_value(by_id(&["z1", "z2"]), fill), Some(FillStyle::Zigzag));
+    assert_eq!(
+        reduce_to_common_value(by_id(&["z1", "z2"]), fill),
+        Some(FillStyle::Zigzag)
+    );
     assert_eq!(reduce_to_common_value(by_id(&["z1", "h1"]), fill), None);
     assert_eq!(reduce_to_common_value(Vec::<&Element>::new(), fill), None);
     // a null value anywhere is no common value
@@ -130,10 +133,16 @@ fn get_form_value_reads_the_edited_text_then_the_selection_then_the_default() {
 
 #[test]
 fn fill_style() {
-    assert_eq!(form_fill_style(&World::select(&["z1", "z2"]).ctx()), Some(FillStyle::Zigzag));
+    assert_eq!(
+        form_fill_style(&World::select(&["z1", "z2"]).ctx()),
+        Some(FillStyle::Zigzag)
+    );
     assert_eq!(form_fill_style(&World::select(&["z1", "h1"]).ctx()), None);
     // text has no fill style: the predicate leaves it out
-    assert_eq!(form_fill_style(&World::select(&["z1", "tx1"]).ctx()), Some(FillStyle::Zigzag));
+    assert_eq!(
+        form_fill_style(&World::select(&["z1", "tx1"]).ctx()),
+        Some(FillStyle::Zigzag)
+    );
     assert_eq!(
         selected_fill_styles(&World::select(&["z1", "tx1", "h1"]).ctx()),
         vec![FillStyle::Zigzag, FillStyle::Hachure]
@@ -145,12 +154,24 @@ fn fill_style() {
 
 #[test]
 fn stroke_width_style_sloppiness_and_pressure() {
-    assert_eq!(form_stroke_width_key(&World::select(&["o2"]).ctx()), Some(StrokeWidthKey::Bold));
-    assert_eq!(form_stroke_width_key(&World::select(&["o3"]).ctx()), Some(StrokeWidthKey::Thin));
-    assert_eq!(form_stroke_width_key(&World::select(&["o2", "o3"]).ctx()), None);
+    assert_eq!(
+        form_stroke_width_key(&World::select(&["o2"]).ctx()),
+        Some(StrokeWidthKey::Bold)
+    );
+    assert_eq!(
+        form_stroke_width_key(&World::select(&["o3"]).ctx()),
+        Some(StrokeWidthKey::Thin)
+    );
+    assert_eq!(
+        form_stroke_width_key(&World::select(&["o2", "o3"]).ctx()),
+        None
+    );
     let w = World::new(&[], json!({ "currentItemStrokeWidthKey": "bold" }), None);
     assert_eq!(form_stroke_width_key(&w.ctx()), Some(StrokeWidthKey::Bold));
-    assert_eq!(form_stroke_style(&World::select(&["o2"]).ctx()), Some(StrokeStyle::Dashed));
+    assert_eq!(
+        form_stroke_style(&World::select(&["o2"]).ctx()),
+        Some(StrokeStyle::Dashed)
+    );
     assert_eq!(form_roughness(&World::select(&["o2"]).ctx()), Some(0.0));
     assert_eq!(form_roughness(&World::select(&["o2", "o3"]).ctx()), None);
     assert_eq!(
@@ -158,8 +179,15 @@ fn stroke_width_style_sloppiness_and_pressure() {
         Some(StrokeVariability::Constant)
     );
     // mixed: `?? appState.currentItemStrokeVariability`
-    let w = World::new(&["fd1", "fd2"], json!({ "currentItemStrokeVariability": "variable" }), None);
-    assert_eq!(form_stroke_variability(&w.ctx()), Some(StrokeVariability::Variable));
+    let w = World::new(
+        &["fd1", "fd2"],
+        json!({ "currentItemStrokeVariability": "variable" }),
+        None,
+    );
+    assert_eq!(
+        form_stroke_variability(&w.ctx()),
+        Some(StrokeVariability::Variable)
+    );
 }
 
 #[test]
@@ -170,33 +198,78 @@ fn text_properties() {
     assert_eq!(form_font_size(&World::select(&["tx1", "tx2"]).ctx()), None);
     let w = World::new(&[], json!({ "currentItemFontSize": 0 }), None);
     assert_eq!(form_font_size(&w.ctx()), Some(20.0));
-    assert_eq!(form_font_family(&World::select(&["tx2"]).ctx()), Some(FontFamily(6)));
-    assert_eq!(form_font_family(&World::select(&["c2"]).ctx()), form_font_family(&World::select(&["tx1"]).ctx()));
-    assert_eq!(form_text_align(&World::select(&["c2"]).ctx()), Some(TextAlign::Right));
+    assert_eq!(
+        form_font_family(&World::select(&["tx2"]).ctx()),
+        Some(FontFamily(6))
+    );
+    assert_eq!(
+        form_font_family(&World::select(&["c2"]).ctx()),
+        form_font_family(&World::select(&["tx1"]).ctx())
+    );
+    assert_eq!(
+        form_text_align(&World::select(&["c2"]).ctx()),
+        Some(TextAlign::Right)
+    );
     // vertical alignment: a container's label, or a bound text
-    assert_eq!(form_vertical_align(&World::select(&["c2"]).ctx()), Some(VerticalAlign::Top));
+    assert_eq!(
+        form_vertical_align(&World::select(&["c2"]).ctx()),
+        Some(VerticalAlign::Top)
+    );
     assert_eq!(form_vertical_align(&World::select(&["tx1"]).ctx()), None);
-    assert_eq!(form_vertical_align(&World::select(&[]).ctx()), Some(VerticalAlign::Middle));
+    assert_eq!(
+        form_vertical_align(&World::select(&[]).ctx()),
+        Some(VerticalAlign::Middle)
+    );
 }
 
 #[test]
 fn edges_arrows_and_polygons() {
     // a legacy roundness anywhere in the targets shows neither
     assert_eq!(form_roundness(&World::select(&["lr1"]).ctx()), None);
-    assert_eq!(form_roundness(&World::select(&["lr2"]).ctx()), Some(EdgeRoundness::Round));
-    assert_eq!(form_roundness(&World::select(&["p3"]).ctx()), Some(EdgeRoundness::Sharp));
+    assert_eq!(
+        form_roundness(&World::select(&["lr2"]).ctx()),
+        Some(EdgeRoundness::Round)
+    );
+    assert_eq!(
+        form_roundness(&World::select(&["p3"]).ctx()),
+        Some(EdgeRoundness::Sharp)
+    );
     let w = World::new(&[], json!({ "currentItemRoundness": "round" }), None);
     assert_eq!(form_roundness(&w.ctx()), Some(EdgeRoundness::Round));
     let ar1 = World::select(&["ar1"]);
-    assert_eq!(form_arrowhead(&ar1.ctx(), ArrowheadPosition::Start), Some(Arrowhead::Circle));
-    assert_eq!(form_arrowhead(&ar1.ctx(), ArrowheadPosition::End), Some(Arrowhead::CardinalityOne));
-    assert_eq!(form_arrowhead(&World::select(&["ar1", "ar2"]).ctx(), ArrowheadPosition::Start), None);
-    assert_eq!(form_arrow_type(&World::select(&["ar4"]).ctx()), Some(ArrowType::Elbow));
-    assert_eq!(form_arrow_type(&World::select(&["ar3"]).ctx()), Some(ArrowType::Round));
-    assert_eq!(form_arrow_type(&World::select(&["ar1"]).ctx()), Some(ArrowType::Sharp));
+    assert_eq!(
+        form_arrowhead(&ar1.ctx(), ArrowheadPosition::Start),
+        Some(Arrowhead::Circle)
+    );
+    assert_eq!(
+        form_arrowhead(&ar1.ctx(), ArrowheadPosition::End),
+        Some(Arrowhead::CardinalityOne)
+    );
+    assert_eq!(
+        form_arrowhead(
+            &World::select(&["ar1", "ar2"]).ctx(),
+            ArrowheadPosition::Start
+        ),
+        None
+    );
+    assert_eq!(
+        form_arrow_type(&World::select(&["ar4"]).ctx()),
+        Some(ArrowType::Elbow)
+    );
+    assert_eq!(
+        form_arrow_type(&World::select(&["ar3"]).ctx()),
+        Some(ArrowType::Round)
+    );
+    assert_eq!(
+        form_arrow_type(&World::select(&["ar1"]).ctx()),
+        Some(ArrowType::Sharp)
+    );
     assert_eq!(form_arrow_type(&World::select(&["ar1", "ar4"]).ctx()), None);
     // the polygon toggle shows over polygons only, checked when all are
-    assert_eq!(polygon_toggle(&World::select(&["p1", "p2"]).ctx()), Some(true));
+    assert_eq!(
+        polygon_toggle(&World::select(&["p1", "p2"]).ctx()),
+        Some(true)
+    );
     assert_eq!(polygon_toggle(&World::select(&["p1", "p3"]).ctx()), None);
     assert_eq!(polygon_toggle(&World::select(&["p4"]).ctx()), None);
     assert_eq!(polygon_toggle(&World::select(&[]).ctx()), None);
@@ -212,7 +285,9 @@ fn gates_links_and_bucket_fill() {
     assert!(align_enabled(&World::select(&["z1", "z2"]).ctx()));
     assert!(!align_enabled(&World::select(&["z1"]).ctx()));
     assert!(!distribute_enabled(&World::select(&["z1", "z2"]).ctx()));
-    assert!(distribute_enabled(&World::select(&["z1", "z2", "h1"]).ctx()));
+    assert!(distribute_enabled(
+        &World::select(&["z1", "z2", "h1"]).ctx()
+    ));
     assert!(group_enabled(&World::select(&["z1", "z2"]).ctx()));
     assert!(!group_enabled(&World::select(&["z1"]).ctx()));
     // the title reads the scene's first element (an embeddable here)
@@ -223,8 +298,16 @@ fn gates_links_and_bucket_fill() {
     let link = link_panel_state(&World::select(&["z1"]).ctx());
     assert_eq!(link.label, "labels.link.create");
     assert!(!link.checked);
-    let w = World::new(&[], json!({ "currentItemBackgroundColor": "transparent" }), None);
+    let w = World::new(
+        &[],
+        json!({ "currentItemBackgroundColor": "transparent" }),
+        None,
+    );
     assert_eq!(bucket_fill_color(&w.ctx()), "#b2f2bb");
-    let w = World::new(&[], json!({ "currentItemBackgroundColor": "#ffc9c9" }), None);
+    let w = World::new(
+        &[],
+        json!({ "currentItemBackgroundColor": "#ffc9c9" }),
+        None,
+    );
     assert_eq!(bucket_fill_color(&w.ctx()), "#ffc9c9");
 }

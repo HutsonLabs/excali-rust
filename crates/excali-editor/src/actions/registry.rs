@@ -1492,7 +1492,7 @@ fn p_wrap_selection_in_frame(ctx: &ActionContext<'_>) -> bool {
 }
 
 /// `enableActionGroup` (`actionGroup.tsx:73-84`).
-fn p_group(ctx: &ActionContext<'_>) -> bool {
+pub(crate) fn p_group(ctx: &ActionContext<'_>) -> bool {
     let selected = ctx.selected(false);
     selected.len() >= 2
         && !ctx.all_in_same_group(&selected)

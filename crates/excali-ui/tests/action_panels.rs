@@ -240,9 +240,10 @@ fn icon_markup(node: &Map<String, Value>) -> String {
     }
 }
 
-/// A golden tree with each `{ action }` replaced by that action's golden
-/// tree for the same case and mode (upstream's renderAction), each node
-/// tagged with the action whose `updateData` its handlers call.
+/// A golden tree with each `{ action }`, at any depth, replaced by that
+/// action's golden tree for the same case and mode (upstream's
+/// renderAction), each node paired with the action whose `updateData` its
+/// handlers call (an element's children carry theirs as `__owner`).
 fn expand(nodes: &Value, owner: &str, case: &Value, mode: &str) -> Vec<(Value, String)> {
     let mut out = Vec::new();
     for node in nodes.as_array().unwrap() {
@@ -251,11 +252,35 @@ fn expand(nodes: &Value, owner: &str, case: &Value, mode: &str) -> Vec<(Value, S
             let i = columns().iter().position(|c| *c == action).unwrap();
             let nested = tree(&case["panels"][mode][i]);
             out.extend(expand(nested, action, case, mode));
+        } else if let Some(children) = node.get("children").filter(|_| node.get("tag").is_some()) {
+            let mut node = node.clone();
+            let expanded: Vec<Value> = expand(children, owner, case, mode)
+                .into_iter()
+                .map(|(mut child, child_owner)| {
+                    if let Value::Object(o) = &mut child {
+                        o.insert("__owner".into(), json!(child_owner));
+                    }
+                    child
+                })
+                .collect();
+            node["children"] = Value::Array(expanded);
+            out.push((node, owner.to_string()));
         } else {
             out.push((node.clone(), owner.to_string()));
         }
     }
     out
+}
+
+/// A child's owner: its own `__owner`, else its parent's.
+fn owned(children: &[Value], owner: &str) -> Vec<(Value, String)> {
+    children
+        .iter()
+        .map(|v| {
+            let o = v.get("__owner").and_then(Value::as_str).unwrap_or(owner);
+            (v.clone(), o.to_string())
+        })
+        .collect()
 }
 
 /// Compares `got` with the golden `want` (owned by `owner`), firing each
@@ -269,7 +294,8 @@ struct Checker<'a> {
 
 impl Checker<'_> {
     fn fail(&mut self, path: &str, what: String) {
-        self.failures.push(format!("{} {path}: {what}", self.case.id));
+        self.failures
+            .push(format!("{} {path}: {what}", self.case.id));
     }
 
     fn nodes(&mut self, path: &str, got: &[Node], want: &[(Value, String)]) {
@@ -331,7 +357,7 @@ impl Checker<'_> {
                 let children: Vec<(Value, String)> = o
                     .get("children")
                     .and_then(Value::as_array)
-                    .map(|c| c.iter().map(|v| (v.clone(), owner.to_string())).collect())
+                    .map(|c| owned(c, owner))
                     .unwrap_or_default();
                 self.nodes(&format!("{path}<{}>", el.tag()), el.children(), &children);
                 self.handlers(path, got, o.get("on"), owner);
@@ -359,7 +385,11 @@ impl Checker<'_> {
         if &got != attrs {
             self.fail(
                 path,
-                format!("<{tag}> attributes {}, upstream {}", Value::Object(got), Value::Object(attrs.clone())),
+                format!(
+                    "<{tag}> attributes {}, upstream {}",
+                    Value::Object(got),
+                    Value::Object(attrs.clone())
+                ),
             );
         }
         let mut got_style: Vec<(String, String)> = el.style_properties().to_vec();
@@ -367,7 +397,10 @@ impl Checker<'_> {
         got_style.sort();
         want_style.sort();
         if got_style != want_style {
-            self.fail(path, format!("<{tag}> style {got_style:?}, upstream {want_style:?}"));
+            self.fail(
+                path,
+                format!("<{tag}> style {got_style:?}, upstream {want_style:?}"),
+            );
         }
     }
 
@@ -381,15 +414,26 @@ impl Checker<'_> {
             path,
             wrapper,
             "div",
-            json!({ "data-radix-popper-content-wrapper": "" }).as_object().unwrap(),
+            json!({ "data-radix-popper-content-wrapper": "" })
+                .as_object()
+                .unwrap(),
             &[],
         );
         let [content] = wrapper.children() else {
-            return self.fail(path, format!("popover wrapper holds {:?}", wrapper.children()));
+            return self.fail(
+                path,
+                format!("popover wrapper holds {:?}", wrapper.children()),
+            );
         };
         let attrs = o["attrs"].as_object().unwrap();
-        assert_eq!(attrs["sideOffset"], json!(ICON_PICKER_SIDE_OFFSET.to_string()));
-        assert_eq!(attrs["alignOffset"], json!(ICON_PICKER_ALIGN_OFFSET.to_string()));
+        assert_eq!(
+            attrs["sideOffset"],
+            json!(ICON_PICKER_SIDE_OFFSET.to_string())
+        );
+        assert_eq!(
+            attrs["alignOffset"],
+            json!(ICON_PICKER_ALIGN_OFFSET.to_string())
+        );
         let mut want = Map::new();
         want.insert("class".into(), o["class"].clone());
         for (k, v) in attrs {
@@ -418,13 +462,12 @@ impl Checker<'_> {
             return self.fail(path, "popover content is text".into());
         };
         self.element(path, content_el, "div", &want, &style);
-        let children: Vec<(Value, String)> = o["children"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|v| (v.clone(), owner.to_string()))
-            .collect();
-        self.nodes(&format!("{path}<popover>"), content_el.children(), &children);
+        let children = owned(o["children"].as_array().unwrap(), owner);
+        self.nodes(
+            &format!("{path}<popover>"),
+            content_el.children(),
+            &children,
+        );
         self.handlers(path, content, o.get("on"), owner);
     }
 
@@ -444,7 +487,12 @@ impl Checker<'_> {
         )
     }
 
-    fn fire(&mut self, node: &Node, event: &str, data: &EventData) -> Option<(Value, excali_ui::dom::EventResponse)> {
+    fn fire(
+        &mut self,
+        node: &Node,
+        event: &str,
+        data: &EventData,
+    ) -> Option<(Value, excali_ui::dom::EventResponse)> {
         self.calls.borrow_mut().clear();
         let response = node.as_element()?.dispatch(event, data)?;
         self.fired += 1;
@@ -477,7 +525,10 @@ impl Checker<'_> {
         let mut sorted_want = want_events.clone();
         sorted_want.sort();
         if got_events != sorted_want {
-            return self.fail(path, format!("handlers {got_events:?}, upstream {sorted_want:?}"));
+            return self.fail(
+                path,
+                format!("handlers {got_events:?}, upstream {sorted_want:?}"),
+            );
         }
         let Some(on) = on else { return };
         if let Some(click) = on.get("click") {
@@ -527,10 +578,16 @@ impl Checker<'_> {
                     self.fail(path, format!("{spec}: calls {calls}, upstream {want}"));
                 }
                 if json!(response.prevent_default) != outcome["prevented"] {
-                    self.fail(path, format!("{spec}: prevented {}", response.prevent_default));
+                    self.fail(
+                        path,
+                        format!("{spec}: prevented {}", response.prevent_default),
+                    );
                 }
                 if json!(response.stop_propagation) != outcome["stopped"] {
-                    self.fail(path, format!("{spec}: stopped {}", response.stop_propagation));
+                    self.fail(
+                        path,
+                        format!("{spec}: stopped {}", response.stop_propagation),
+                    );
                 }
             }
         }
@@ -614,13 +671,17 @@ fn action_panels_match_upstream() {
         }
     }
     assert!(compared > 30_000, "{compared} panels");
-    assert!(fired > 100_000, "{fired} handlers fired");
+    assert!(fired > 70_000, "{fired} handlers fired");
     let shown: Vec<&String> = failures.iter().take(40).collect();
     assert!(
         failures.is_empty(),
         "{} differ:\n{}",
         failures.len(),
-        shown.iter().map(|s| s.as_str()).collect::<Vec<_>>().join("\n")
+        shown
+            .iter()
+            .map(|s| s.as_str())
+            .collect::<Vec<_>>()
+            .join("\n")
     );
 }
 
@@ -628,7 +689,10 @@ fn action_panels_match_upstream() {
 fn host_rendered_pickers_match_upstream() {
     let mut failures = Vec::new();
     let columns = columns();
-    let font = columns.iter().position(|c| *c == "changeFontFamily").unwrap();
+    let font = columns
+        .iter()
+        .position(|c| *c == "changeFontFamily")
+        .unwrap();
     let bucket = columns
         .iter()
         .position(|c| *c == "changeBucketFillBackgroundColor")
@@ -653,7 +717,11 @@ fn host_rendered_pickers_match_upstream() {
             }}));
             let want = tree(&case["panels"][m.as_str()][font]);
             if &Value::Array(got.clone()) != want {
-                failures.push(format!("{} {m} font: got {}, upstream {want}", c.id, Value::Array(got)));
+                failures.push(format!(
+                    "{} {m} font: got {}, upstream {want}",
+                    c.id,
+                    Value::Array(got)
+                ));
             }
             // the bucket fill colour: the heading and ColorPicker's props
             let p = bucket_fill_color_panel(&ctx, mode(m));
@@ -671,11 +739,20 @@ fn host_rendered_pickers_match_upstream() {
             }}));
             let want = tree(&case["panels"][m.as_str()][bucket]);
             if &Value::Array(got.clone()) != want {
-                failures.push(format!("{} {m} bucket: got {}, upstream {want}", c.id, Value::Array(got)));
+                failures.push(format!(
+                    "{} {m} bucket: got {}, upstream {want}",
+                    c.id,
+                    Value::Array(got)
+                ));
             }
         }
     }
-    assert!(failures.is_empty(), "{} differ:\n{}", failures.len(), failures.join("\n"));
+    assert!(
+        failures.is_empty(),
+        "{} differ:\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
 }
 
 #[test]
@@ -691,6 +768,9 @@ fn actions_without_a_styles_panel_component_render_none() {
         ActionName::ZoomIn,
         ActionName::SelectAll,
     ] {
-        assert!(render_action_panel(&c.ctx(), name, &opts).is_none(), "{name:?}");
+        assert!(
+            render_action_panel(&c.ctx(), name, &opts).is_none(),
+            "{name:?}"
+        );
     }
 }

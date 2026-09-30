@@ -34,6 +34,7 @@
 
 mod color_targets;
 mod context;
+mod form_values;
 mod keys;
 mod manager;
 mod menus;
@@ -41,12 +42,22 @@ mod names;
 mod registry;
 mod shape_predicates;
 
+pub use crate::tools::ArrowType;
 pub use color_targets::{
     form_color, resolve_color_target, ColorProperty, ColorTarget, ColorTargetKind,
 };
 pub use context::{
     elements_are_in_same_group, frame_and_children_selected_together, has_bound_text_element,
     is_text_bindable_container, ActionContext, ActionEnv, AppProps, CanvasActions, FormFactor,
+};
+pub use form_values::{
+    align_enabled, arrow_type_str, bucket_fill_color, distribute_enabled, form_arrow_type,
+    form_arrowhead, form_fill_style, form_font_family, form_font_size, form_opacity,
+    form_roughness, form_roundness, form_stroke_style, form_stroke_variability,
+    form_stroke_width_key, form_text_align, form_vertical_align, get_form_value, group_enabled,
+    has_selected_groups, is_some_element_selected, linear_editor_target, link_panel_state,
+    polygon_toggle, reduce_to_common_value, selected_fill_styles, stroke_width_key_str,
+    ArrowheadPosition, EdgeRoundness, FormValue, LinkPanelState,
 };
 pub use keys::{
     get_shortcut_from_shortcut_name, get_shortcut_key, match_key, KeyEvent, KeyLabels,

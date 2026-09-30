@@ -44,6 +44,7 @@
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-canvas2d`, `excali-editor`.
 
 pub mod accessibility;
+pub mod action_panels;
 pub mod color_picker;
 pub mod command_palette;
 pub mod context_menu;
