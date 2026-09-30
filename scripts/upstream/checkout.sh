@@ -17,6 +17,8 @@
 #   UPSTREAM_DIR  checkout location; default <main clone>/.tools/upstream,
 #                 shared by every git worktree of this repository
 #   UPSTREAM_URL  remote; default site/config.toml extra.upstream
+#   UPSTREAM_FETCH_ATTEMPTS  tries per fetch on a network error; default 4
+#   UPSTREAM_FETCH_DELAY     seconds before the first retry, doubling; default 5
 #
 # Idempotent: when the checkout is already clean at the pin it exits without
 # touching the network. It never discards local changes, never adopts a
@@ -43,7 +45,7 @@ case "${1:-}" in
   --verify) mode=verify ;;
   --print-pin) mode=print-pin ;;
   --print-dir) mode=print-dir ;;
-  -h | --help) sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  -h | --help) sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
   *) usage ;;
 esac
 [ $# -le 1 ] || usage
@@ -71,6 +73,13 @@ fi
 
 url="${UPSTREAM_URL:-$(config_value upstream)}"
 [ -n "$url" ] || die "no extra.upstream in $config and UPSTREAM_URL unset"
+
+attempts="${UPSTREAM_FETCH_ATTEMPTS:-4}"
+printf '%s' "$attempts" | grep -Eq '^[1-9][0-9]*$' ||
+  die "UPSTREAM_FETCH_ATTEMPTS '$attempts' is not a positive integer"
+delay="${UPSTREAM_FETCH_DELAY:-5}"
+printf '%s' "$delay" | grep -Eq '^[0-9]+$' ||
+  die "UPSTREAM_FETCH_DELAY '$delay' is not a whole number of seconds"
 
 if [ -n "${UPSTREAM_DIR:-}" ]; then
   dest="$UPSTREAM_DIR"
@@ -166,6 +175,7 @@ fi
 cleanup_on_failure() {
   local status=$?
   if [ "$status" -ne 0 ]; then
+    rm -f "${fetch_err:-}"
     case "$created" in
       dir) rm -rf "$dest" ;;
       git-only) rm -rf "$dest/.git" ;;
@@ -176,10 +186,38 @@ trap cleanup_on_failure EXIT
 
 has_pin() { git -C "$dest" cat-file -e "$pin^{commit}" 2>/dev/null; }
 
+# fetch <args>: git fetch from origin, retried with doubling delays while the
+# error is a transport failure (DNS, connection, TLS, HTTP 5xx), which a hosted
+# runner sees now and then. Returns 1 at once for any other error (e.g. a
+# server refusing fetch-by-sha) and 2 once the network attempts are used up.
+fetch_err="$(mktemp)"
+fetch() {
+  local try=1 wait="$delay"
+  while :; do
+    if git -C "$dest" fetch -q "$@" 2>"$fetch_err"; then
+      return 0
+    fi
+    grep -Eqi 'could not resolve|unable to access|timed out|connection (refused|reset|closed|timed)|early eof|rpc failed|hung up unexpectedly|ssl|gnutls|returned error: 5[0-9][0-9]|network is unreachable' "$fetch_err" ||
+      return 1
+    cat "$fetch_err" >&2
+    if [ "$try" -ge "$attempts" ]; then
+      return 2
+    fi
+    printf 'upstream checkout: network error (attempt %s of %s), retrying in %ss\n' \
+      "$try" "$attempts" "$wait" >&2
+    sleep "$wait"
+    try=$((try + 1))
+    wait=$((wait * 2))
+  done
+}
+
 if ! has_pin; then
   echo "fetching $pin from $url"
   # Fast path: fetch exactly the pinned commit (GitHub serves any sha).
-  if ! git -C "$dest" fetch -q --depth 1 origin "$pin" 2>/dev/null || ! has_pin; then
+  status=0
+  fetch --depth 1 origin "$pin" || status=$?
+  [ "$status" -ne 2 ] || die "fetch from $url failed after $attempts attempts"
+  if [ "$status" -ne 0 ] || ! has_pin; then
     # Fallback for servers that refuse fetch-by-sha: fetch the refs and
     # history, then look for the commit locally.
     echo "fetch by sha refused; fetching all refs"
@@ -187,8 +225,13 @@ if ! has_pin; then
     if [ "$(git -C "$dest" rev-parse --is-shallow-repository)" = true ]; then
       unshallow="--unshallow"
     fi
-    git -C "$dest" fetch -q $unshallow --tags origin '+refs/heads/*:refs/remotes/origin/*' ||
-      die "fetch from $url failed"
+    status=0
+    fetch $unshallow --tags origin '+refs/heads/*:refs/remotes/origin/*' || status=$?
+    case "$status" in
+      0) ;;
+      2) die "fetch from $url failed after $attempts attempts" ;;
+      *) cat "$fetch_err" >&2; die "fetch from $url failed" ;;
+    esac
   fi
   has_pin || die "commit $pin not found at $url"
 fi
@@ -199,4 +242,5 @@ have="$(head_of "$dest")"
 [ "$have" = "$pin" ] || die "HEAD of $dest is '$have' after checkout, expected $pin"
 require_clean "$dest"
 created=""
+rm -f "$fetch_err"
 echo "upstream at $pin in $dest"

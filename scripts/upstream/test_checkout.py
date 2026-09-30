@@ -259,8 +259,10 @@ class CheckoutTests(unittest.TestCase):
         )
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("after 3 attempts", r.stderr)
-        # Three attempts for the sha, three for the refs fallback, no more.
-        self.assertEqual(count.read_text().strip(), "6")
+        # Three attempts, then stop: an unreachable server is not one that
+        # refuses fetch-by-sha, so the refs fallback is not tried.
+        self.assertEqual(count.read_text().strip(), "3")
+        self.assertNotIn("fetching all refs", r.stdout)
         self.assertFalse(self.dest.exists(), "failed fresh checkout was not cleaned up")
 
     def test_fetch_attempts_must_be_positive(self):
