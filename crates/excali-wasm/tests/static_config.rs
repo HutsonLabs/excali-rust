@@ -5,10 +5,11 @@
 //! `applyDarkModeFilter` (`element/src/renderElement.ts`,
 //! `renderer/staticScene.ts:57-66`) as the background does, and the grid is
 //! drawn only in grid mode (`appState.gridModeEnabled`, false by default:
-//! `appState.ts:76`).
+//! `appState.ts:76`; `actionToggleGridMode` toggles it).
 
 use excali_core::color::apply_dark_mode_filter;
 use excali_editor::actions::ActionName;
+use excali_editor::keyboard::Keystroke;
 use excali_scene::static_scene::{GRID_LINE_COLOR_BOLD, GRID_LINE_COLOR_REGULAR};
 use excali_text::text_measurements::CharCountTextMetrics;
 use excali_wasm::editor::Editor;
@@ -50,7 +51,10 @@ fn the_dark_theme_filters_the_elements_colours() {
 
     let printed = drawn(&mut editor(true));
     assert!(has(&printed, &dark), "no {dark} in the dark frame");
-    assert!(!has(&printed, stroke), "{stroke} drawn unfiltered in the dark theme");
+    assert!(
+        !has(&printed, stroke),
+        "{stroke} drawn unfiltered in the dark theme"
+    );
 }
 
 #[test]
@@ -71,5 +75,9 @@ fn the_grid_is_drawn_in_grid_mode_only_through_the_theme() {
         for c in &colors {
             assert!(has(&on, c), "no grid colour {c} in grid mode (dark {dark})");
         }
+        // Ctrl+' is the action's keyTest (actionToggleGridMode.tsx:33)
+        ed.key_down(&Keystroke::new("'", "Quote").ctrl());
+        assert_eq!(ed.app_state().grid_mode_enabled(), Some(false));
+        assert!(!has(&drawn(&mut ed), &colors[0]));
     }
 }

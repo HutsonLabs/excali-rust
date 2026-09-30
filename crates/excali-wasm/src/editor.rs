@@ -1166,6 +1166,17 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                     app_state.insert("stats", stats);
                     None
                 }
+                ActionName::GridMode => {
+                    // actionToggleGridMode.perform
+                    // (actionToggleGridMode.tsx:19-28)
+                    let on = app_state
+                        .get("gridModeEnabled")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false);
+                    app_state.insert("gridModeEnabled", json!(!on));
+                    app_state.insert("objectsSnapModeEnabled", json!(false));
+                    None
+                }
                 ActionName::ObjectsSnapMode => {
                     // actionToggleObjectsSnapMode.perform
                     // (actionToggleObjectsSnapMode.tsx:18-27)
@@ -3644,7 +3655,10 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         }
     }
 
-    /// The static scene's app state and render config.
+    /// The static scene's app state and render config: the grid in grid
+    /// mode and the theme's dark filter, as `App` passes them
+    /// (`renderGrid: isGridModeEnabled(this)`, `theme: this.state.theme`,
+    /// `App.tsx:2675-2690`).
     fn static_state(&self) -> (StaticCanvasAppState, StaticCanvasRenderConfig) {
         let app = self.session.app_state();
         let dark = app.get("theme").and_then(Value::as_str) == Some("dark");
@@ -3659,6 +3673,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             ..StaticCanvasAppState::default()
         };
         let config = StaticCanvasRenderConfig {
+            render_grid: self.grid_mode_enabled(),
+            theme: state.theme,
             pending_flowchart_nodes: self.flowchart.pending_nodes().to_vec(),
             clock: self.session.env.render_clock(),
             ..StaticCanvasRenderConfig::default()
