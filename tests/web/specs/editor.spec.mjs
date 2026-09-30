@@ -420,3 +420,90 @@ test("Tab opens the convert popup, a type converts and takes the focus", async (
   await expect(popup).toHaveCount(0);
   expect(errors).toEqual([]);
 });
+
+// ex-542: the shortcut table's clipboard and file rows. Shift+Alt+C is
+// actionCopyAsPng (actionClipboard.tsx:193-250): the selection's PNG export
+// on the system clipboard (copyBlobToClipboardAsPng). Ctrl/Cmd+O
+// (actionLoadScene) and Ctrl/Cmd+Shift+S (actionSaveFileToDisk,
+// actionExport.tsx:329-430) open upstream's file dialogs, which belong to the
+// host: the element asks with the cancelable open-request and save-as-request
+// events, and falls back to the browser's file input and a download when no
+// host answers.
+test.describe("clipboard and file shortcuts", () => {
+  test.use({ permissions: ["clipboard-read", "clipboard-write"] });
+
+  test("Shift+Alt+C copies the selection as PNG", async ({ page }) => {
+    const errors = await mount(page);
+    // the left edge of "a" (60, 300, 100 × 100)
+    const [x, y] = await client(page, [60, 350]);
+    await page.mouse.click(x, y);
+    expect(await page.evaluate(() => window.ed.getState().selectionCount)).toBe(1);
+
+    await page.keyboard.press("Shift+Alt+C");
+    // 100 × 100 and DEFAULT_EXPORT_PADDING on each side, at exportScale 1
+    await expect
+      .poll(() =>
+        page.evaluate(async () => {
+          const items = await navigator.clipboard.read();
+          const item = items.find((i) => i.types.includes("image/png"));
+          if (!item) return null;
+          const bitmap = await createImageBitmap(await item.getType("image/png"));
+          return [bitmap.width, bitmap.height];
+        }),
+      )
+      .toEqual([120, 120]);
+    expect(errors).toEqual([]);
+  });
+
+  test("Ctrl/Cmd+O and Ctrl/Cmd+Shift+S reach the host", async ({ page }) => {
+    const errors = await mount(page);
+    await page.evaluate(() => {
+      window.requests = [];
+      for (const type of ["open-request", "save-as-request"]) {
+        window.ed.addEventListener(type, (e) => {
+          e.preventDefault();
+          window.requests.push({ type, detail: e.detail });
+        });
+      }
+    });
+    await page.keyboard.press("ControlOrMeta+o");
+    await page.keyboard.press("ControlOrMeta+Shift+s");
+    const requests = await page.evaluate(() => window.requests);
+    expect(requests.map((r) => r.type)).toEqual(["open-request", "save-as-request"]);
+    expect(requests[0].detail).toEqual({});
+    // app.getName(): `${t("labels.untitled")}-${getDateTime()}`
+    expect(requests[1].detail.name).toMatch(/^Untitled-\d{4}-\d{2}-\d{2}-\d{4}$/);
+    expect(errors).toEqual([]);
+  });
+
+  test("with no host, the browser's file dialogs", async ({ page }) => {
+    const errors = await mount(page);
+    const saved = await page.evaluate(() => window.ed.save());
+
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.keyboard.press("ControlOrMeta+Shift+s"),
+    ]);
+    expect(download.suggestedFilename()).toMatch(
+      /^Untitled-\d{4}-\d{2}-\d{2}-\d{4}\.excalidraw$/,
+    );
+    const text = readFileSync(await download.path(), "utf8");
+    expect(JSON.parse(text)).toEqual(JSON.parse(saved));
+
+    const scene = JSON.parse(saved);
+    scene.elements = scene.elements.filter((e) => e.id === "a");
+    const [chooser] = await Promise.all([
+      page.waitForEvent("filechooser"),
+      page.keyboard.press("ControlOrMeta+o"),
+    ]);
+    await chooser.setFiles({
+      name: "one.excalidraw",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(scene)),
+    });
+    await expect
+      .poll(() => page.evaluate(() => window.ed.getState().elementCount))
+      .toBe(1);
+    expect(errors).toEqual([]);
+  });
+});

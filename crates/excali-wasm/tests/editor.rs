@@ -574,3 +574,127 @@ fn a_dragged_grid_step_moves_by_eight_pixels_a_step() {
     );
     ed.stats_drag_end();
 }
+
+/// The toast `actionCopyAsPng` leaves (`actionClipboard.tsx:218-229`).
+fn toast(ed: &Editor<CharCountTextMetrics>) -> Option<String> {
+    ed.app_state()
+        .get("toast")
+        .and_then(|t| t.get("message"))
+        .and_then(Value::as_str)
+        .map(str::to_owned)
+}
+
+#[test]
+fn shift_alt_c_copies_the_selection_as_png() {
+    let copy_as_png = Keystroke::new("C", "KeyC").alt().shift();
+    // predicate: probablySupportsClipboardBlob && elements.length > 0
+    let mut ed = editor();
+    ed.key_down(&copy_as_png);
+    assert!(!ed.take_events().contains(&HostEvent::CopyAsPng));
+    assert_eq!(toast(&ed), None);
+
+    ed.set_clipboard_blob(true);
+    select(&mut ed, "a");
+    ed.take_events();
+    let out = ed.key_down(&copy_as_png);
+    assert!(out.prevent_default);
+    assert_eq!(ed.take_events(), [HostEvent::CopyAsPng]);
+    assert_eq!(
+        toast(&ed).as_deref(),
+        Some("Copied selection to clipboard as PNG\n(Light mode)")
+    );
+    // prepareElementsForExport(elements, appState, true): the selection
+    // alone, 100 × 100 with DEFAULT_EXPORT_PADDING on each side
+    let png = ed.copy_as_png().unwrap();
+    assert_eq!((png.width, png.height), (120, 120));
+    assert!(png.payload.is_none(), "the clipboard PNG embeds no scene");
+
+    // a container exports with its label (includeBoundTextElement)
+    select(&mut ed, "box");
+    let png = ed.copy_as_png().unwrap();
+    assert_eq!((png.width, png.height), (220, 120));
+
+    // nothing selected: the whole canvas, as export("png") draws it
+    ed.set_app_state(
+        serde_json::json!({ "selectedElementIds": {}, "exportWithDarkMode": true })
+            .as_object()
+            .unwrap()
+            .clone(),
+    );
+    ed.perform_action(excali_editor::actions::ActionName::CopyAsPng);
+    assert_eq!(ed.take_events(), [HostEvent::CopyAsPng]);
+    assert_eq!(
+        toast(&ed).as_deref(),
+        Some("Copied canvas to clipboard as PNG\n(Dark mode)")
+    );
+    let whole = ed
+        .export_png(&ExportOptions {
+            dark: true,
+            ..ExportOptions::default()
+        })
+        .unwrap();
+    let png = ed.copy_as_png().unwrap();
+    assert_eq!((png.width, png.height), (whole.width, whole.height));
+
+    let env = EditorEnv::new(CharCountTextMetrics, 7, || 1.0);
+    let mut empty = Editor::new(env, "https://term.hut", false);
+    empty.set_clipboard_blob(true);
+    empty.key_down(&copy_as_png);
+    assert!(!empty.take_events().contains(&HostEvent::CopyAsPng));
+}
+
+#[test]
+fn ctrl_o_and_ctrl_shift_s_ask_the_host_for_its_file_dialogs() {
+    let mut ed = editor();
+    // actionLoadScene.keyTest: CtrlOrCmd+O
+    let out = ed.key_down(&Keystroke::new("o", "KeyO").ctrl());
+    assert!(out.prevent_default, "the browser's own Open is not shown");
+    assert_eq!(ed.take_events(), [HostEvent::OpenRequest]);
+
+    // actionSaveFileToDisk.keyTest: CtrlOrCmd+Shift+S, the name
+    // app.getName() starts from
+    let out = ed.key_down(&Keystroke::new("S", "KeyS").ctrl().shift());
+    assert!(out.prevent_default);
+    assert_eq!(
+        ed.take_events(),
+        [HostEvent::SaveAsRequest { name: None }]
+    );
+    ed.set_app_state(
+        serde_json::json!({ "name": "plan" })
+            .as_object()
+            .unwrap()
+            .clone(),
+    );
+    ed.take_events();
+    ed.key_down(&Keystroke::new("S", "KeyS").ctrl().shift());
+    assert_eq!(
+        ed.take_events(),
+        [HostEvent::SaveAsRequest {
+            name: Some("plan".into())
+        }]
+    );
+
+    // the main menu's Open and Save to... run the same actions
+    ed.perform_action(excali_editor::actions::ActionName::LoadScene);
+    ed.perform_action(excali_editor::actions::ActionName::SaveFileToDisk);
+    assert_eq!(
+        ed.take_events(),
+        [
+            HostEvent::OpenRequest,
+            HostEvent::SaveAsRequest {
+                name: Some("plan".into())
+            }
+        ]
+    );
+
+    // loadScene's predicate: not in view mode
+    ed.set_app_state(
+        serde_json::json!({ "viewModeEnabled": true })
+            .as_object()
+            .unwrap()
+            .clone(),
+    );
+    ed.take_events();
+    ed.key_down(&Keystroke::new("o", "KeyO").ctrl());
+    assert!(!ed.take_events().contains(&HostEvent::OpenRequest));
+}
