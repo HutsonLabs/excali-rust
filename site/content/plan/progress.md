@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-30 03:25 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-30 03:36 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**152 issues** · 127 closed (84%) · 3 in progress · 0 blocked · 21 open
+**152 issues** · 128 closed (84%) · 3 in progress · 0 blocked · 20 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -134,7 +134,7 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
 ## ex-e5 · Phase 5: Web runtime and editor
 
-<span class="status open">open</span> 35/39 children closed
+<span class="status open">open</span> 36/39 children closed
 
 Canvas2D backend, interaction state machine, history, DOM chrome without a framework, keyboard shortcuts, the <excali-editor> custom element.
 
@@ -174,11 +174,11 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-532` | Theme tokens: light and dark CSS custom properties embedded and overridable by the host | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-533` | excali-math js::sin/cos match V8's libm trig bit for bit; remove the 1e-12 tolerance in excali-editor tests/transform.rs | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-534` | Flowchart creator and navigator (flowchart.ts): Ctrl+Arrow pending nodes and arrows, Alt+Arrow navigation | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-535` | Element type conversion: convertElementTypes and the Tab / Shift+Tab convert popup | task | P2 | <span class="status in_progress">in progress</span> |  |  |
+| `ex-535` | Element type conversion: convertElementTypes and the Tab / Shift+Tab convert popup | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-536` | Colour picker top-picks customisation: drag a colour onto the strip, reorder, context-menu reset, tip | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-537` | Library sidebar header menu: load and save library files, the reset and remove confirm dialogs, the publish dialog | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-538` | Font picker top-picks customisation: drag a font onto the strip, reorder, context-menu reset | task | P2 | <span class="status in_progress">in progress</span> |  |  |
-| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-529`, `ex-535`, `ex-538` |
+| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-529`, `ex-538` |
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
 
@@ -210,7 +210,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 | `ex-703` | Sticky notes: element, rendering (shadow, edge, footer), label fitting | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-704` | Bucket fill tool | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-705` | Lasso selection | task | P2 | <span class="status closed">closed</span> |  |  |
-| `ex-706` | Autoshape (draw-shape) recognition | task | P3 | <span class="status open">open</span> | yes |  |
+| `ex-706` | Autoshape (draw-shape) recognition | task | P3 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-707` | Image crop editor | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-708` | Search sidebar (frames and texts) | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-709` | Accessibility: focus order, ARIA on controls, reduced motion, RTL mirroring of icons | task | P2 | <span class="status open">open</span> | yes |  |
