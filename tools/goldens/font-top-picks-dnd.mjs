@@ -527,7 +527,12 @@ const runDrag = async (up, window, iconNames, c) => {
     } else {
       throw new Error(`${c.name}: unknown step ${JSON.stringify(step)}`);
     }
-    // the host's batched update, then what the picker does with it
+    // the host's batched update, then what the picker does with it; radix
+    // dismisses the popover on Node's own timers (the fake clock is the
+    // window's), so let those run out within the step that set them, or
+    // under load they land in the next one
+    await act(async () => {});
+    await act(async () => new Promise((resolve) => globalThis.setTimeout(resolve, 20)));
     await act(async () => {});
     globalThis.__dndBegin = undefined;
     const strip = container.querySelector(".FontPicker__top-picks");
