@@ -94,6 +94,7 @@ fn render(case: &Value, step: &Value, input: &str) -> Option<(Element, Events)> 
         input,
         origin: ORIGIN,
         darwin: false,
+        select: true,
         on_event: Some(Rc::new(move |e| sink.borrow_mut().push(e))),
     });
     Some((el, events))
@@ -172,7 +173,9 @@ fn the_input_reports_typing_and_submits_on_enter_and_escape() {
                     value: Some(value.to_owned()),
                     ..EventData::default()
                 };
-                let response = input.dispatch("keydown", &data).expect("a keydown listener");
+                let response = input
+                    .dispatch("keydown", &data)
+                    .expect("a keydown listener");
                 assert!(response.stop_propagation, "{name} {key}");
                 assert_eq!(
                     response.prevent_default,

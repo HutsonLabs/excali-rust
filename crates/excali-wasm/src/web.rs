@@ -113,7 +113,7 @@ use crate::env::EditorEnv;
 /// (`css/styles.scss:40-60`), so its modal covers the page. Every
 /// `.excalidraw` has upstream's UI font and text colour (`styles.scss:
 /// 41-54`), which the chrome's own rules inherit, and the eye dropper's
-/// layers of `styles.scss:12-13`.
+/// and the hyperlink popup's layers of `styles.scss:12-14`.
 pub const ELEMENT_CSS: &str = "\
 .excalidraw {
   --ui-font: Assistant, system-ui, BlinkMacSystemFont, -apple-system, Segoe UI,
@@ -122,6 +122,7 @@ pub const ELEMENT_CSS: &str = "\
   --zIndex-layerUI: 4;
   --zIndex-eyeDropperBackdrop: 5;
   --zIndex-eyeDropperPreview: 6;
+  --zIndex-hyperlinkContainer: 7;
   font-family: var(--ui-font);
   color: var(--text-primary-color);
 }
@@ -200,6 +201,7 @@ pub fn stylesheet() -> String {
         excali_ui::main_menu::MAIN_MENU_CSS,
         excali_ui::context_menu::CONTEXT_MENU_CSS,
         excali_ui::convert_popup::CONVERT_POPUP_CSS,
+        excali_ui::hyperlink::HYPERLINK_CSS,
         excali_ui::library_sidebar::LIBRARY_SIDEBAR_CSS,
         excali_ui::search_menu::SEARCH_MENU_CSS,
         excali_ui::layers::CANVAS_LAYER_CSS,
@@ -237,6 +239,7 @@ fn install_element_stylesheet(document: &Document) -> Result<(), JsValue> {
     style.set_text_content(Some(
         &[
             excali_ui::layers::CANVAS_LAYER_CSS,
+            excali_ui::hyperlink::HYPERLINK_CSS,
             excali_ui::icons::ICONS_CSS,
             excali_ui::accessibility::ACCESSIBILITY_CSS,
             TEXT_EDITOR_CSS,
@@ -338,6 +341,8 @@ struct Inner {
     /// click on it asked for the focus (`panelRef.current?.focus()`).
     convert_popup: Option<(Mounted, Value)>,
     focus_convert_popup: bool,
+    /// The hyperlink popup and the panel it shows.
+    hyperlink_popup: Option<(Mounted, Value)>,
     /// The hint the toolbar last showed ([`current_hint`]).
     hint: Option<String>,
     /// The cursor hint's policy and the hint shown, with the nonce its
@@ -855,6 +860,7 @@ fn refresh_chrome(weak: &Weak<RefCell<Inner>>) {
     sync_text_editor(weak);
     search::scene_changed(weak);
     let _ = render_convert_popup(weak);
+    let _ = render_hyperlink_popup(weak);
     let Some(rc) = weak.upgrade() else {
         return;
     };
@@ -945,6 +951,91 @@ fn render_convert_popup(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
         focus_popup(Some(&mounted));
     }
     inner.convert_popup = Some((mounted, key));
+    Ok(())
+}
+
+/// The hyperlink popup (`App.tsx:2549-2565`, `Hyperlink.tsx`): mounted in
+/// the container while [`Editor::hyperlink_panel`] shows one with the
+/// default UI and no context menu open, mounted again when the panel
+/// changes (its input keeps its text: typing does not re-mount it). A
+/// popup whose input had the focus hands it back to the container, so the
+/// editor's keys keep working after Enter.
+fn render_hyperlink_popup(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
+    let Some(rc) = weak.upgrade() else {
+        return Ok(());
+    };
+    let mut inner = rc.borrow_mut();
+    let panel = if inner.ui == "none" || inner.context_menu.is_some() {
+        None
+    } else {
+        inner.editor.hyperlink_panel()
+    };
+    let key = panel.as_ref().map(|p| {
+        serde_json::json!({
+            "id": p.element_id,
+            "mode": p.mode.as_str(),
+            "left": p.left,
+            "top": p.top,
+            "link": p.link,
+            "embeddable": p.embeddable,
+        })
+    });
+    if inner.hyperlink_popup.as_ref().map(|(_, k)| k) == key.as_ref() {
+        return Ok(());
+    }
+    let document = inner.document();
+    let had_focus = inner.hyperlink_popup.as_ref().is_some_and(|(m, _)| {
+        let active = document.active_element().map(web_sys::Node::from);
+        active.is_some_and(|a| m.root().contains(Some(&a)))
+    });
+    if let Some((old, _)) = inner.hyperlink_popup.take() {
+        old.remove();
+    }
+    let (Some(panel), Some(key)) = (panel, key) else {
+        if had_focus {
+            let _ = inner.container.focus();
+        }
+        return Ok(());
+    };
+    let events = weak.clone();
+    let on_event: excali_ui::hyperlink::OnHyperlinkEvent = Rc::new(move |event| {
+        let Some(rc) = events.upgrade() else {
+            return;
+        };
+        let typing = matches!(event, excali_ui::hyperlink::HyperlinkEvent::Input(_));
+        {
+            let Ok(mut inner) = rc.try_borrow_mut() else {
+                return;
+            };
+            inner.editor.hyperlink_event(event);
+            if typing {
+                return;
+            }
+            inner.after_event();
+        }
+        refresh_chrome(&events);
+    });
+    let phone = matches!(
+        inner.editor.action_env.form_factor,
+        excali_editor::actions::FormFactor::Phone
+    );
+    let input = inner.editor.hyperlink_input().unwrap_or("").to_owned();
+    let node = Node::Element(excali_ui::hyperlink::hyperlink(
+        excali_ui::hyperlink::HyperlinkProps {
+            panel: &panel,
+            input: &input,
+            origin: &inner.editor.source,
+            darwin: is_darwin(),
+            select: !phone,
+            on_event: Some(on_event),
+        },
+    ));
+    let mounted = mount(&node, &document, &inner.container)?;
+    let editing = panel.mode == excali_editor::hyperlink::HyperlinkMode::Editor;
+    if had_focus && !editing {
+        let _ = inner.container.focus();
+    }
+    inner.hyperlink_popup = Some((mounted, key));
     Ok(())
 }
 
@@ -2447,6 +2538,7 @@ impl EditorCore {
                 styles_panel: styles_panel::StylesPanelHost::default(),
                 welcome_center: None,
                 convert_popup: None,
+                hyperlink_popup: None,
                 focus_convert_popup: false,
                 hint: None,
                 cursor_hints: CursorHints::default(),

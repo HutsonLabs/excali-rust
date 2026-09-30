@@ -136,6 +136,12 @@ const CASES = [
     steps: [{ click: "remove" }],
   },
   {
+    name: "remove-while-editing",
+    element: (up) => rect(up, { link: "https://excalidraw.com" }),
+    appState: { showHyperlinkPopup: "editor" },
+    steps: [{ type: "https://docs.excalidraw.com" }, { click: "remove" }],
+  },
+  {
     name: "info-without-link",
     element: (up) => rect(up),
     appState: { showHyperlinkPopup: "info" },

@@ -1103,6 +1103,174 @@
       ]
     },
     {
+      "name": "remove-while-editing",
+      "element": {
+        "id": "r",
+        "type": "rectangle",
+        "x": 10,
+        "y": 20,
+        "width": 100,
+        "height": 60,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 4,
+        "versionNonce": 1591223503,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": 1,
+        "link": "https://docs.excalidraw.com",
+        "locked": false
+      },
+      "appState": {"showHyperlinkPopup":"editor"},
+      "steps": [
+        {
+          "step": null,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":"https://excalidraw.com"},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "https://excalidraw.com",
+          "focused": true,
+          "selected": [0,22],
+          "link": "https://excalidraw.com",
+          "showHyperlinkPopup": "editor"
+        },
+        {
+          "step": {"type":"https://docs.excalidraw.com"},
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":"https://docs.excalidraw.com"},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "https://docs.excalidraw.com",
+          "focused": true,
+          "selected": [27,27],
+          "link": "https://excalidraw.com",
+          "showHyperlinkPopup": "editor"
+        },
+        {"step":{"click":"remove"},"dom":[],"value":null,"focused":false,"selected":null,"link":"https://docs.excalidraw.com","showHyperlinkPopup":false}
+      ]
+    },
+    {
       "name": "info-without-link",
       "element": {
         "id": "r",

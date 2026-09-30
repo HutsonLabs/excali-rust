@@ -24,6 +24,7 @@ mod cropping;
 pub mod drag;
 pub mod editor;
 pub mod env;
+mod hyperlink;
 mod interact;
 mod linear;
 mod multi;

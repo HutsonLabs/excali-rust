@@ -49,7 +49,8 @@ test("Enter and Escape submit the normalized link and show the info popup", () =
   assert.equal(last("clear-by-empty-input").link, null);
   assert.equal(last("remove").link, null);
   assert.equal(last("remove").showHyperlinkPopup, false);
-  // closing while editing submits what was typed
+  // closing while editing submits what was typed, after Remove too
+  assert.equal(last("remove-while-editing").link, "https://docs.excalidraw.com");
   assert.equal(last("info-without-link").link, "example.com");
   assert.equal(byName.get("sanitized").steps[2].link, "about:blank");
   // Ctrl+K in the input is kept from the editor's shortcut

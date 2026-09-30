@@ -528,15 +528,16 @@ test("Ctrl/Cmd+K edits the selected element's link", async ({ page }) => {
   const errors = await mount(page);
   const popup = page.locator("excali-editor .excalidraw-hyperlinkContainer");
   const input = popup.locator("input.excalidraw-hyperlinkContainer-input");
-  const link = async () => (await elements(page)).box.link;
+  const link = async () => (await elements(page)).b.link;
 
-  // "box" (60, 60, 200 × 100): the popup is centred 85 px above its top
-  const [bx, by] = await client(page, [160, 110]);
+  // "b" (400, 300, 100 × 100): the popup is centred 85 px above its top
+  const [bx, by] = await client(page, [450, 300]);
   await page.mouse.click(bx, by);
+  expect(await page.evaluate(() => window.ed.getState().selectionCount)).toBe(1);
   await page.keyboard.press("ControlOrMeta+k");
   await expect(popup).toBeVisible();
-  await expect(popup).toHaveAttribute("style", /top: -25px/);
-  await expect(popup).toHaveAttribute("style", /left: -30px/);
+  await expect(popup).toHaveAttribute("style", /top: 215px/);
+  await expect(popup).toHaveAttribute("style", /left: 260px/);
   await expect(input).toBeFocused();
   await expect(input).toHaveAttribute("placeholder", "Type or paste your link here");
 
@@ -550,23 +551,26 @@ test("Ctrl/Cmd+K edits the selected element's link", async ({ page }) => {
   // one history entry, the keys back on the editor
   await page.keyboard.press("ControlOrMeta+z");
   expect(await link()).toBe(null);
+  expect(await page.evaluate(() => window.ed.getState().selectionCount)).toBe(1);
   await page.keyboard.press("ControlOrMeta+Shift+z");
   expect(await link()).toBe("https://excalidraw.com");
 
-  // deselected, the link icon (getLinkHandleFromCoords: 262, 46, 12 × 12)
+  // deselected, the link icon (getLinkHandleFromCoords: 502, 286, 12 × 12)
   // is drawn and opens the link
   const [ex, ey] = await client(page, [900, 100]);
   await page.mouse.click(ex, ey);
   await expect(popup).toHaveCount(0);
   await page.evaluate(() => (window.events = []));
-  const [ix, iy] = await client(page, [268, 52]);
+  const [ix, iy] = await client(page, [508, 292]);
   await page.mouse.click(ix, iy);
   expect(await page.evaluate(() => window.events.at(-1))).toEqual({
     type: "open-link",
     detail: { href: "https://excalidraw.com" },
   });
 
-  // the editor again: the link selected, Ctrl+K kept in the input, Remove
+  // the editor again: the link selected, Ctrl+K kept in the input; Escape
+  // submits it unchanged, then Remove (in the editor mode upstream's unmount
+  // would submit the input again)
   await page.mouse.click(bx, by);
   await page.keyboard.press("ControlOrMeta+k");
   await expect(input).toBeFocused();
@@ -574,6 +578,9 @@ test("Ctrl/Cmd+K edits the selected element's link", async ({ page }) => {
   expect(await input.evaluate((i) => [i.selectionStart, i.selectionEnd])).toEqual([0, 22]);
   await page.keyboard.press("ControlOrMeta+k");
   await expect(input).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(input).toHaveCount(0);
+  expect(await link()).toBe("https://excalidraw.com");
   await popup.locator(".excalidraw-hyperlinkContainer--remove").click();
   expect(await link()).toBe(null);
   await expect(popup).toHaveCount(0);

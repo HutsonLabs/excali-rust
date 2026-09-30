@@ -25,6 +25,9 @@
 //!   editor asks with `open-request` and `save-as-request`; `copyAsPng`
 //!   (Shift+Alt+C) exports the selection ([`Editor::copy_as_png`]) for the
 //!   host to put on the clipboard.
+//! - **The link editor**: Ctrl/Cmd+K (`actionLink`) opens the hyperlink
+//!   popup (`Hyperlink.tsx`, `crate::hyperlink`): [`Editor::hyperlink_panel`]
+//!   says where, [`Editor::hyperlink_event`] runs its input and buttons.
 //! - **The viewport**: `AppPan` (the wheel or secondary button, Space held,
 //!   the hand tool) and `AppWheel` ([`handle_wheel`]) through
 //!   `viewport.translate`, the zoom actions through [`perform_zoom_action`].
@@ -492,6 +495,11 @@ pub struct Editor<P: TextMetricsProvider + Clone> {
     /// The convert element type popup's state while it is open
     /// (`keyboard.convert_popup_open`).
     pub(crate) convert_popup: ConvertElementTypePopup,
+    /// The hyperlink popup while it is mounted (`crate::hyperlink`).
+    pub(crate) hyperlink: Option<crate::hyperlink::HyperlinkMount>,
+    /// The selection tool was active at the last step (`App.tsx:4399-4406`
+    /// closes the popup when it is left).
+    pub(crate) hyperlink_selection_tool: bool,
     /// The stats panel's label drag while it is pressed
     /// (`DragInput.tsx:246-340`).
     pub(crate) stats_drag: Option<crate::stats::StatsDragState>,
@@ -589,6 +597,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             tools: ToolState::default(),
             keyboard: KeyboardState::default(),
             convert_popup: ConvertElementTypePopup::default(),
+            hyperlink: None,
+            hyperlink_selection_tool: true,
             stats_drag: None,
             flowchart: AppFlowchart::default(),
             actions: ActionManager::new(),
@@ -857,6 +867,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// last one.
     pub(crate) fn report(&mut self) {
         self.sync_convert_popup();
+        self.sync_hyperlink();
         let now = (scene_version(self.session.elements()), self.dirty());
         if now != self.reported {
             self.reported = now;
@@ -1125,7 +1136,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// history, the zoom actions, the app state toggles of the help
     /// dialog, zen mode and the stats panel, the edit actions, and the
     /// styles panel's actions without a value (the aligns, distributes,
-    /// font size steps and `togglePolygon`, [`perform_style_action`]).
+    /// font size steps, `togglePolygon` and `hyperlink`, which opens the
+    /// link editor, [`perform_style_action`]).
     pub fn perform_action(&mut self, name: ActionName) {
         match name {
             ActionName::Undo => return self.undo(),
@@ -1176,7 +1188,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 | ActionName::DistributeVertically
                 | ActionName::TogglePolygon
                 | ActionName::IncreaseFontSize
-                | ActionName::DecreaseFontSize => {
+                | ActionName::DecreaseFontSize
+                | ActionName::Hyperlink => {
                     perform_style_action(name, &elements, &app_state, &Value::Null, env)
                 }
                 ActionName::Copy => {

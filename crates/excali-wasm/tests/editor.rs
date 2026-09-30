@@ -1,7 +1,8 @@
 //! The editor behind `<excali-editor>` natively (ex-530): the host API of
 //! the term.hut integration page (`load`, `save`, `getState`, `export`,
 //! `importLibrary`, and the `change`, `save-request` and `open-link`
-//! events; ex-542's `open-request`, `save-as-request` and copy as PNG), and undo after a drag laying bound text and bound arrows out
+//! events; ex-542's `open-request`, `save-as-request` and copy as PNG; ex-543's link
+//! editor on Ctrl/Cmd+K), and undo after a drag laying bound text and bound arrows out
 //! again through the real leaf layouts.
 //!
 //! The scene (`fixtures/bound.excalidraw`) was saved with a stale layout: the
@@ -708,14 +709,24 @@ fn ctrl_o_and_ctrl_shift_s_ask_the_host_for_its_file_dialogs() {
     assert!(!ed.take_events().contains(&HostEvent::OpenRequest));
 }
 
-// ex-543: Ctrl/Cmd+K opens upstream's link editor (actionLink.tsx:24-42,
+// ex-543: Ctrl/Cmd+K opens upstream's link editor (actionLink.tsx:20-42,
 // Hyperlink.tsx); Enter or Escape submits normalizeLink(input) || null and
-// shows the info popup; Remove clears the link and closes it; closing the
-// popup while editing submits what was typed (the layout effect's cleanup,
-// Hyperlink.tsx:180-184).
+// shows the info popup; Remove clears the link and closes it; the popup
+// going away while its input shows submits what was typed (the layout
+// effect's cleanup, Hyperlink.tsx:182-186), after Remove too, as upstream's
+// does (tools/goldens/hyperlink.mjs, case remove-while-editing).
 
 fn ctrl_k(ed: &mut Editor<CharCountTextMetrics>) {
     ed.key_down(&Keystroke::new("k", "KeyK").ctrl());
+}
+
+/// A click on the left edge of `id`, the selection its own history entry.
+fn click_select(ed: &mut Editor<CharCountTextMetrics>, id: &str) {
+    let e = get(ed, id);
+    let (x, y) = (e.base.x, e.base.y + e.base.height / 2.0);
+    ed.pointer_down(PointerInput::at(x, y));
+    ed.pointer_up(PointerInput::at(x, y));
+    assert_eq!(selected_ids(ed), [id]);
 }
 
 #[test]
@@ -724,7 +735,7 @@ fn ctrl_k_opens_the_link_editor_above_the_selection() {
     let mut ed = editor();
     ctrl_k(&mut ed);
     assert!(ed.hyperlink_panel().is_none(), "nothing selected");
-    select(&mut ed, "box");
+    click_select(&mut ed, "box");
     ctrl_k(&mut ed);
     let panel = ed.hyperlink_panel().expect("the editor is open");
     assert_eq!(panel.mode, HyperlinkMode::Editor);
@@ -732,22 +743,23 @@ fn ctrl_k_opens_the_link_editor_above_the_selection() {
     // getCoordsForPopover: box (60, 60, 200 × 100) at scroll 0, zoom 1
     assert_eq!((panel.left, panel.top), (160.0 - 190.0, 60.0 - 85.0));
     assert_eq!(ed.hyperlink_input(), Some(""));
-    // opening it captured nothing
-    assert!(!ed.can_undo());
 }
 
 #[test]
 fn enter_sets_the_link_as_one_history_entry() {
     use excali_editor::hyperlink::{HyperlinkEvent, HyperlinkMode};
     let mut ed = editor();
-    select(&mut ed, "box");
+    click_select(&mut ed, "box");
     ctrl_k(&mut ed);
     ed.hyperlink_event(HyperlinkEvent::Input("excalidraw.com".into()));
     assert_eq!(ed.hyperlink_input(), Some("excalidraw.com"));
     assert_eq!(get(&ed, "box").base.link, None);
     ed.take_events();
     ed.hyperlink_event(HyperlinkEvent::Submit("  https://excalidraw.com  ".into()));
-    assert_eq!(get(&ed, "box").base.link.as_deref(), Some("https://excalidraw.com"));
+    assert_eq!(
+        get(&ed, "box").base.link.as_deref(),
+        Some("https://excalidraw.com")
+    );
     assert_eq!(ed.hyperlink_panel().unwrap().mode, HyperlinkMode::Info);
     assert!(ed
         .take_events()
@@ -761,21 +773,30 @@ fn enter_sets_the_link_as_one_history_entry() {
         .find(|e| e["id"] == "box")
         .unwrap();
     assert_eq!(box_["link"], "https://excalidraw.com");
+    // one entry: the next undo is the selection's
     undo(&mut ed);
     assert_eq!(get(&ed, "box").base.link, None);
-    assert!(!ed.can_undo(), "one history entry");
+    assert_eq!(selected_ids(&ed), ["box"]);
+    undo(&mut ed);
+    assert!(selected_ids(&ed).is_empty());
     redo(&mut ed);
-    assert_eq!(get(&ed, "box").base.link.as_deref(), Some("https://excalidraw.com"));
+    redo(&mut ed);
+    assert_eq!(
+        get(&ed, "box").base.link.as_deref(),
+        Some("https://excalidraw.com")
+    );
 }
 
 #[test]
 fn an_unchanged_link_records_nothing() {
     use excali_editor::hyperlink::HyperlinkEvent;
     let mut ed = editor();
-    select(&mut ed, "linked");
+    click_select(&mut ed, "linked");
     ctrl_k(&mut ed);
     assert_eq!(ed.hyperlink_input(), Some("https://example.com/docs"));
     ed.hyperlink_event(HyperlinkEvent::Submit("https://example.com/docs".into()));
+    undo(&mut ed);
+    assert!(selected_ids(&ed).is_empty());
     assert!(!ed.can_undo());
 }
 
@@ -783,20 +804,41 @@ fn an_unchanged_link_records_nothing() {
 fn remove_clears_the_link_and_closes_the_popup() {
     use excali_editor::hyperlink::{HyperlinkEvent, HyperlinkMode};
     let mut ed = editor();
-    select(&mut ed, "linked");
+    click_select(&mut ed, "linked");
     ctrl_k(&mut ed);
     ed.hyperlink_event(HyperlinkEvent::Submit("https://example.com/docs".into()));
     assert_eq!(ed.hyperlink_panel().unwrap().mode, HyperlinkMode::Info);
-    ed.hyperlink_event(HyperlinkEvent::Edit);
-    assert_eq!(ed.hyperlink_panel().unwrap().mode, HyperlinkMode::Editor);
     ed.hyperlink_event(HyperlinkEvent::Remove);
     assert_eq!(get(&ed, "linked").base.link, None);
     assert!(ed.hyperlink_panel().is_none());
-    assert_eq!(ed.app_state().get("showHyperlinkPopup"), Some(&Value::Bool(false)));
+    assert_eq!(ed.hyperlink_input(), None);
+    assert_eq!(
+        ed.app_state().get("showHyperlinkPopup"),
+        Some(&Value::Bool(false))
+    );
     undo(&mut ed);
     assert_eq!(
         get(&ed, "linked").base.link.as_deref(),
         Some("https://example.com/docs")
+    );
+    assert_eq!(selected_ids(&ed), ["linked"]);
+}
+
+#[test]
+fn remove_while_editing_submits_the_input_as_upstreams_does() {
+    use excali_editor::hyperlink::{HyperlinkEvent, HyperlinkMode};
+    let mut ed = editor();
+    click_select(&mut ed, "linked");
+    ctrl_k(&mut ed);
+    ed.hyperlink_event(HyperlinkEvent::Submit("https://example.com/docs".into()));
+    ed.hyperlink_event(HyperlinkEvent::Edit);
+    assert_eq!(ed.hyperlink_panel().unwrap().mode, HyperlinkMode::Editor);
+    ed.hyperlink_event(HyperlinkEvent::Input("https://other.com".into()));
+    ed.hyperlink_event(HyperlinkEvent::Remove);
+    assert!(ed.hyperlink_panel().is_none());
+    assert_eq!(
+        get(&ed, "linked").base.link.as_deref(),
+        Some("https://other.com")
     );
 }
 
@@ -804,7 +846,7 @@ fn remove_clears_the_link_and_closes_the_popup() {
 fn closing_the_editor_submits_what_was_typed() {
     use excali_editor::hyperlink::HyperlinkEvent;
     let mut ed = editor();
-    select(&mut ed, "box");
+    click_select(&mut ed, "box");
     ctrl_k(&mut ed);
     ed.hyperlink_event(HyperlinkEvent::Input("example.com".into()));
     // a click on empty canvas clears the selection, unmounting the popup
@@ -813,18 +855,27 @@ fn closing_the_editor_submits_what_was_typed() {
     assert!(ed.hyperlink_panel().is_none());
     assert_eq!(ed.hyperlink_input(), None);
     assert_eq!(get(&ed, "box").base.link.as_deref(), Some("example.com"));
-    // undone with the deselection that closed it
-    while ed.can_undo() {
-        undo(&mut ed);
-    }
-    assert_eq!(get(&ed, "box").base.link, None);
+}
+
+#[test]
+fn leaving_the_selection_tool_closes_the_popup() {
+    let mut ed = editor();
+    click_select(&mut ed, "linked");
+    ctrl_k(&mut ed);
+    assert!(ed.hyperlink_panel().is_some());
+    ed.key_down(&Keystroke::new("r", "KeyR"));
+    assert_eq!(
+        ed.app_state().get("showHyperlinkPopup"),
+        Some(&Value::Bool(false))
+    );
+    assert!(ed.hyperlink_panel().is_none());
 }
 
 #[test]
 fn ctrl_k_while_editing_does_nothing() {
     use excali_editor::hyperlink::{HyperlinkEvent, HyperlinkMode};
     let mut ed = editor();
-    select(&mut ed, "box");
+    click_select(&mut ed, "box");
     ctrl_k(&mut ed);
     ed.hyperlink_event(HyperlinkEvent::Input("a".into()));
     ctrl_k(&mut ed);

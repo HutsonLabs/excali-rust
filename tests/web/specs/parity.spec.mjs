@@ -786,6 +786,21 @@ const ROWS = {
     await expect.poll(async () => (await saved(page)).length, SHORT).toBe(2);
   },
 
+  "edit-hyperlink": async ({ page }) => {
+    await mount(page, sceneText([rect("a", 100, 100)]));
+    await click(page, [150, 100]);
+    await press(page, `${MOD}+k`);
+    const input = page.locator("excali-editor .excalidraw-hyperlinkContainer-input");
+    await expect(input).toBeFocused();
+    await page.keyboard.type(" excalidraw.com ");
+    await press(page, "Enter");
+    await expect(input).toHaveCount(0);
+    expect((await byId(page)).a.link).toBe("excalidraw.com");
+    await press(page, `${MOD}+z`);
+    expect((await byId(page)).a.link).toBe(null);
+    expect((await state(page)).selectionCount).toBe(1);
+  },
+
   // Bound text and arrows (crates/excali-wasm/tests/fixtures/bound.excalidraw:
   // "box" at (60, 60) 200 × 100 with the label "label"; "a" and "b", 100 ×
   // 100 at (60, 300) and (400, 300), joined by the arrow "link")

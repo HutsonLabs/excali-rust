@@ -92,6 +92,8 @@
 //! - [`text_editing`]: the text editor overlay (`textWysiwyg.tsx`) and
 //!   `App.startTextEditing` / `handleTextWysiwyg`: creating or picking the
 //!   text, the textarea's style, typing, indenting, submitting.
+//! - [`hyperlink`]: the hyperlink popup (`Hyperlink.tsx`): when it shows,
+//!   where, and the link its input submits.
 
 pub mod actions;
 pub mod arrow_endpoint_text;
@@ -113,6 +115,7 @@ pub mod frame;
 pub mod geometry;
 pub mod groups;
 pub mod history;
+pub mod hyperlink;
 pub mod interactive_scene;
 mod js_value;
 pub mod keyboard;

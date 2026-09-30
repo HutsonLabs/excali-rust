@@ -51,6 +51,13 @@ pub fn normalize_link(link: &str) -> String {
     sanitize_url(&escape_double_quotes(&trimmed))
 }
 
+/// `isLocalLink(link)` (`packages/common/src/url.ts:13-15`): whether
+/// `link` contains `origin` (upstream's `location.origin`) or starts with
+/// `/`, the links the hyperlink popup opens in the same tab.
+pub fn is_local_link(link: &str, origin: &str) -> bool {
+    link.contains(origin) || link.starts_with('/')
+}
+
 /// `toValidURL(link)` (`packages/common/src/url.ts:21-37`): the
 /// [`normalize_link`] form of `link`, made absolute on `origin` (upstream's
 /// `location.origin`, e.g. `https://excalidraw.com`) when it starts with
