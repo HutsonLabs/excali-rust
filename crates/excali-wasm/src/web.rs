@@ -8,7 +8,8 @@
 //! the desktop toolbar (`excali_ui::toolbar`) with the hint viewer
 //! (`excali_ui::hints`), the welcome screen on an empty scene
 //! (`excali_ui::welcome_screen`), the cursor hint after an arrow or line
-//! shortcut, and the library sidebar with
+//! shortcut, the stats panel while it is open (`excali_ui::stats`), and
+//! the library sidebar with
 //! LayerUI's trigger for it (`excali_ui::library_sidebar`), into which
 //! library items dragged onto the canvas drop, with its header menu's
 //! files and dialogs (`library_menu`). Keys are listened to on the
@@ -68,6 +69,10 @@ use excali_ui::library_sidebar::{
     SidebarTriggerProps,
 };
 use excali_ui::main_menu::{default_main_menu, Dispatch, MenuContext, MenuEffect, ThemeChoice};
+use excali_ui::stats::{
+    canvas_grid_step, should_show_stats, stats_panel, toggle_panel, OnStatsEvent, StatsEvent,
+    StatsProperty, StatsProps,
+};
 use excali_ui::text_editor::{
     measure_caret_offset, Handled, TextEditorOverlay, TextareaEvent, TextareaHandler,
     TEXTAREA_ATTRIBUTES, TEXT_EDITOR_CSS,
@@ -174,6 +179,7 @@ pub fn stylesheet() -> String {
         excali_ui::command_palette::COMMAND_PALETTE_CSS,
         excali_ui::hints::HINTS_CSS,
         excali_ui::welcome_screen::WELCOME_SCREEN_CSS,
+        excali_ui::stats::STATS_CSS,
         excali_ui::main_menu::MAIN_MENU_CSS,
         excali_ui::context_menu::CONTEXT_MENU_CSS,
         excali_ui::convert_popup::CONVERT_POPUP_CSS,
@@ -195,6 +201,7 @@ fn install_element_stylesheet(document: &Document) -> Result<(), JsValue> {
     excali_ui::command_palette::install_stylesheet(document)?;
     excali_ui::hints::install_stylesheet(document)?;
     excali_ui::welcome_screen::install_stylesheet(document)?;
+    excali_ui::stats::install_stylesheet(document)?;
     excali_ui::main_menu::install_stylesheet(document)?;
     excali_ui::context_menu::install_stylesheet(document)?;
     excali_ui::library_sidebar::install_stylesheet(document)?;
@@ -323,6 +330,8 @@ struct Inner {
     /// The library trigger and the default sidebar, and the library menu's
     /// own state.
     library_trigger: Option<Mounted>,
+    /// The stats panel, after the library trigger (`LayerUI.tsx:427-435`).
+    stats: Option<Mounted>,
     sidebar: Option<Mounted>,
     library_menu: LibraryMenuState,
     /// The search tab's menu (`SearchMenu`).
@@ -458,7 +467,26 @@ fn chrome_key(inner: &Inner) -> Value {
         "canFitSidebar": can_fit_sidebar(inner),
         "hint": current_hint(inner),
         "welcome": render_welcome_screen(inner),
+        "stats": stats_node(inner).map(|el| Node::Element(el).to_html()),
     })
+}
+
+/// The stats panel for the editor's state, `None` while LayerUI hides it
+/// (`shouldShowStats`, `LayerUI.tsx:305-310`), without handlers.
+fn stats_node(inner: &Inner) -> Option<excali_ui::dom::Element> {
+    stats_element(inner, None)
+}
+
+fn stats_element(inner: &Inner, on_event: Option<OnStatsEvent>) -> Option<excali_ui::dom::Element> {
+    if inner.ui == "none" || !should_show_stats(inner.editor.app_state()) {
+        return None;
+    }
+    let props = StatsProps {
+        elements: inner.editor.elements(),
+        app_state: inner.editor.app_state(),
+        grid_mode_enabled: inner.editor.props.grid_mode_enabled,
+    };
+    Some(stats_panel(&props, on_event).element)
 }
 
 /// `app.scene.getSelectedElements(appState)`: the non-deleted elements
@@ -659,6 +687,7 @@ fn refresh_chrome(weak: &Weak<RefCell<Inner>>) {
     let _ = render_footer(weak);
     let _ = render_main_menu(weak);
     let _ = render_library_sidebar(weak);
+    let _ = render_stats(weak);
     let _ = library_menu::render_library_dialogs(weak);
     let _ = render_help_dialog(weak);
     let _ = render_command_palette(weak);
@@ -1402,6 +1431,62 @@ fn render_library_sidebar(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
     Ok(())
 }
 
+/// Re-mounts the stats panel in the top-right corner while it shows: the
+/// close button runs `toggleStats`, a section header flips its bit of
+/// `appState.stats.panels`, a typed grid step sets `gridStep`
+/// (`CanvasGrid.tsx`), and Enter in an input focuses the container.
+fn render_stats(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
+    let Some(rc) = weak.upgrade() else {
+        return Ok(());
+    };
+    let mut inner = rc.borrow_mut();
+    if let Some(old) = inner.stats.take() {
+        old.remove();
+    }
+    let events = weak.clone();
+    let on_event = Rc::new(move |event: StatsEvent| {
+        let Some(rc) = events.upgrade() else {
+            return;
+        };
+        {
+            let mut inner = rc.borrow_mut();
+            match event {
+                StatsEvent::Close => inner.editor.perform_action(ActionName::Stats),
+                StatsEvent::TogglePanel(bit) => {
+                    let patch = toggle_panel(inner.editor.app_state(), bit);
+                    if let Value::Object(patch) = patch {
+                        inner.editor.set_app_state(patch);
+                    }
+                }
+                StatsEvent::Input {
+                    property: StatsProperty::GridStep,
+                    value,
+                } => {
+                    if let Some(step) = canvas_grid_step(value) {
+                        let mut patch = serde_json::Map::new();
+                        patch.insert("gridStep".into(), serde_json::json!(step));
+                        inner.editor.set_app_state(patch);
+                    }
+                }
+                // the element properties' edits are ex-539's
+                StatsEvent::Input { .. } => return,
+                StatsEvent::FocusContainer => {
+                    let _ = inner.container.focus();
+                    return;
+                }
+            }
+            inner.after_event();
+        }
+        refresh_chrome(&events);
+    }) as OnStatsEvent;
+    let Some(element) = stats_element(&inner, Some(on_event)) else {
+        return Ok(());
+    };
+    let document = inner.document();
+    inner.stats = Some(mount(&Node::Element(element), &document, &inner.top_right)?);
+    Ok(())
+}
+
 /// Re-mounts the footer (`Footer.tsx`): the zoom actions and the undo and
 /// redo buttons, run through the editor.
 fn render_footer(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
@@ -2129,6 +2214,7 @@ impl EditorCore {
             context_menu: None,
             top_right,
             library_trigger: None,
+            stats: None,
             sidebar: None,
             library_menu: LibraryMenuState::default(),
             search: search::SearchSession::default(),

@@ -176,6 +176,33 @@ fn cmd_s_asks_the_host_to_save() {
     assert_eq!(mac.take_events(), [HostEvent::SaveRequest]);
 }
 
+/// `actionToggleStats` (`actionToggleStats.tsx:17-27`): Alt+/ flips
+/// `stats.open` and keeps the panels bitmask.
+#[test]
+fn alt_slash_toggles_the_stats_panel() {
+    let mut ed = editor();
+    assert_eq!(
+        ed.app_state().get("stats"),
+        Some(&serde_json::json!({ "open": false, "panels": 3 }))
+    );
+    ed.key_down(&Keystroke::new("/", "Slash").alt());
+    assert_eq!(
+        ed.app_state().get("stats"),
+        Some(&serde_json::json!({ "open": true, "panels": 3 }))
+    );
+    ed.set_app_state(
+        serde_json::json!({ "stats": { "open": true, "panels": 1 } })
+            .as_object()
+            .unwrap()
+            .clone(),
+    );
+    ed.perform_action(excali_editor::actions::ActionName::Stats);
+    assert_eq!(
+        ed.app_state().get("stats"),
+        Some(&serde_json::json!({ "open": false, "panels": 1 }))
+    );
+}
+
 #[test]
 fn undoing_a_container_move_lays_its_label_out_again() {
     let mut ed = editor();

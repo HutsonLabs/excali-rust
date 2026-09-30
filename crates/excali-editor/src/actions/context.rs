@@ -318,12 +318,12 @@ pub(crate) fn is_bound_to_container(element: &Element) -> bool {
 
 /// `isTextBindableContainer(element)` with locked elements included
 /// (`typeChecks.ts:240-253`).
-pub(crate) fn is_text_bindable_container(element: &Element) -> bool {
+pub fn is_text_bindable_container(element: &Element) -> bool {
     element.element_type().is_text_container()
 }
 
 /// `hasBoundTextElement` (`typeChecks.ts:297-305`).
-pub(crate) fn has_bound_text_element(element: &Element) -> bool {
+pub fn has_bound_text_element(element: &Element) -> bool {
     is_text_bindable_container(element)
         && element
             .base
@@ -343,7 +343,7 @@ pub(crate) fn is_type(element: &Element, ty: ElementType) -> bool {
 
 /// `elementsAreInSameGroup` (`groups.ts:376-391`): some group holds every
 /// element.
-pub(crate) fn elements_are_in_same_group(elements: &[&Element]) -> bool {
+pub fn elements_are_in_same_group(elements: &[&Element]) -> bool {
     let mut counts: HashMap<&str, usize> = HashMap::new();
     let mut max = 0;
     for element in elements {
@@ -362,7 +362,7 @@ pub(crate) fn can_create_link_from_elements(selected: &[&Element]) -> bool {
 }
 
 /// `frameAndChildrenSelectedTogether` (`frame.ts:1000-1011`).
-pub(crate) fn frame_and_children_selected_together(selected: &[&Element]) -> bool {
+pub fn frame_and_children_selected_together(selected: &[&Element]) -> bool {
     let ids: HashSet<&str> = selected.iter().map(|e| e.base.id.as_str()).collect();
     selected.len() > 1
         && selected.iter().any(|e| {
