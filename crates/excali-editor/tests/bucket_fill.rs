@@ -126,7 +126,7 @@ fn replays_every_upstream_call() {
                 }
                 other => panic!("unknown fn {other}"),
             };
-            if expected != actual {
+            if !same(&expected, &actual) {
                 failures.push(format!(
                     "{id} call {k} ({}):\n  expected {}\n  actual   {}",
                     call["fn"],
@@ -143,6 +143,21 @@ fn replays_every_upstream_call() {
         failures.len(),
         failures.iter().take(12).cloned().collect::<Vec<_>>().join("\n")
     );
+}
+
+/// JSON equality with numbers compared as doubles (upstream writes `0`, the
+/// port `0.0`): every coordinate must be the same double.
+fn same(a: &Value, b: &Value) -> bool {
+    match (a, b) {
+        (Value::Number(x), Value::Number(y)) => x.as_f64() == y.as_f64(),
+        (Value::Array(x), Value::Array(y)) => {
+            x.len() == y.len() && x.iter().zip(y).all(|(x, y)| same(x, y))
+        }
+        (Value::Object(x), Value::Object(y)) => {
+            x.len() == y.len() && x.iter().all(|(k, v)| y.get(k).is_some_and(|w| same(v, w)))
+        }
+        _ => a == b,
+    }
 }
 
 fn truncate(value: &Value) -> String {
@@ -168,8 +183,8 @@ fn the_fixture_covers_every_outcome() {
                 seen.insert(format!("ok-{owner}"));
                 seen.insert(format!("ok-{placement}"));
             } else {
-                let reason = result["reason"].as_str().expect("reason");
-                seen.insert(reason.to_string());
+                let reason = reason(result["reason"].as_str().expect("reason"));
+                seen.insert(reason.as_str().to_string());
             }
         }
     }
@@ -181,6 +196,8 @@ fn the_fixture_covers_every_outcome() {
         "no_owner",
         "open_region",
         "too_complex",
+        "too_small",
+        "invalid_polygon",
         "restylable-true",
         "restylable-false",
     ] {

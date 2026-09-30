@@ -816,6 +816,10 @@ bucket fill (ex-704): upstream's `packages/element/src/bucketFill.ts`
   clicked at twelve points (every other one near an element's middle);
 - `random-lines-*`: 16 seeded grids of four to six crossing open lines, for
   the owner-less fallback.
+- `edge-*`: an owner buried under an opaque strokeless polygon
+  (`open_region`), slivers that collapse when simplified
+  (`invalid_polygon`) and bulged triangles that simplify below the minimum
+  area (`too_small`).
 
 A call records its scene (`elements`; the elements map is
 `arrayToMap(elements)`, which the generator checks), its inputs and

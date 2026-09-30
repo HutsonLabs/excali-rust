@@ -50,4 +50,19 @@ test("bucket-fill.json has a case for every test of bucketFill.test.ts", () => {
   assert.ok(upstream.every((c) => c.calls.length > 0));
   const random = cases.filter((c) => c.id.startsWith("random-"));
   assert.equal(random.length, 64);
+  // every outcome of computeBucketFillPolygon occurs
+  const outcomes = new Set(
+    cases
+      .flatMap((c) => c.calls)
+      .filter((call) => call.fn === "computeBucketFillPolygon")
+      .map((call) => (call.result.ok ? "ok" : call.result.reason)),
+  );
+  assert.deepEqual([...outcomes].sort(), [
+    "invalid_polygon",
+    "no_owner",
+    "ok",
+    "open_region",
+    "too_complex",
+    "too_small",
+  ]);
 });

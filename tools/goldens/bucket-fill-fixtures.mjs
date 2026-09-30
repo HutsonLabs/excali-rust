@@ -27,6 +27,8 @@
 //   minimal describe/it/expect/vi. Its assertions run as written, so the
 //   generator fails if the harness does not reproduce the test; each `it`
 //   is one case with every call it made.
+// - edge-*: scenes for the failure reasons the others leave out
+//   (open_region, invalid_polygon, too_small).
 // - random-*: seeded scenes of two to seven closed and open outlines
 //   (rectangles, diamonds, ellipses sharp and round, open, polygon and
 //   curved lines, freedraw loops), some rotated, opaque, hachure,
@@ -408,6 +410,121 @@ const lineCases = () =>
     },
   }));
 
+/**
+ * Scenes for the failure reasons the test and the random scenes leave out:
+ * an owner whose whole outline is buried under an opaque fill-compatible
+ * polygon above it (nothing bounds the click: open_region), sliver
+ * polygons whose face passes the area check but collapses when simplified
+ * (invalid_polygon), and bulged triangles whose simplified ring falls under
+ * the minimum area (too_small).
+ */
+const edgeCases = () => {
+  const paint = (up, x, y, points) =>
+    apiCreateElement(up, {
+      type: "line",
+      x,
+      y,
+      points,
+      ...up.getSizeFromPoints(points),
+      polygon: true,
+      roundness: null,
+      backgroundColor: "#ffc9c9",
+      fillStyle: "solid",
+      strokeColor: "transparent",
+    });
+  const polygon = (up, points, x = 0, y = 0) =>
+    apiCreateElement(up, {
+      type: "line",
+      x,
+      y,
+      points,
+      ...up.getSizeFromPoints(points),
+      polygon: true,
+      roundness: null,
+    });
+  const clicks = (up, rec, elements, points) => {
+    const elementsMap = up.arrayToMap(elements);
+    for (const point of points) rec.compute(up.computeBucketFillPolygon, { point, elements, elementsMap });
+  };
+  return [
+    {
+      id: "edge-owner-buried-under-paint",
+      run: (up, rec) => {
+        const rect = apiCreateElement(up, { type: "rectangle", x: 0, y: 0, width: 100, height: 100, roundness: null });
+        const cover = paint(up, -20, -20, [
+          [0, 0],
+          [140, 0],
+          [140, 140],
+          [0, 140],
+          [0, 0],
+        ]);
+        clicks(up, rec, [rect, cover], [
+          [50, 50],
+          [5, 5],
+        ]);
+      },
+    },
+    {
+      id: "edge-sliver-polygons",
+      run: (up, rec) => {
+        // a 24 px² sliver whose apex sits 0.6 px off its base, once per
+        // starting vertex: simplifying drops the apex when the face ring
+        // does not start on it
+        const ring = [
+          [0, 0],
+          [40, 0.6],
+          [80, 0],
+        ];
+        const elements = ring.map((_, start) => {
+          const pts = [...ring.slice(start), ...ring.slice(0, start)];
+          const points = [...pts, pts[0]].map(([x, y]) => [x - pts[0][0], y - pts[0][1]]);
+          return polygon(up, points, pts[0][0], start * 20 + pts[0][1]);
+        });
+        clicks(
+          up,
+          rec,
+          elements,
+          elements.map((_, i) => [40, i * 20 + 0.2]),
+        );
+      },
+    },
+    {
+      id: "edge-bulged-triangles",
+      run: (up, rec) => {
+        // a 3.6 px² triangle with a 0.7 px bulge on its long side (6.4 px²
+        // in all), once per starting vertex: simplifying drops the bulge
+        // when the face ring does not start on it
+        const ring = [
+          [0, 0],
+          [8, 0],
+          [4.09, 1.15],
+          [0, 0.9],
+        ];
+        const elements = ring.map((_, start) => {
+          const pts = [...ring.slice(start), ...ring.slice(0, start)];
+          const points = [...pts, pts[0]].map(([x, y]) => [x - pts[0][0], y - pts[0][1]]);
+          return apiCreateElement(up, {
+            type: "line",
+            x: pts[0][0],
+            y: start * 20 + pts[0][1],
+            points,
+            ...up.getSizeFromPoints(points),
+            polygon: true,
+            roundness: null,
+            strokeWidth: 1,
+          });
+        });
+        clicks(
+          up,
+          rec,
+          elements,
+          elements.map((_, i) => [2, i * 20 + 0.3]),
+        );
+      },
+    },
+  ];
+};
+
 // -- output -------------------------------------------------------------------
 
 const deterministic = (fn) => {
@@ -462,7 +579,7 @@ const buildFixture = (up, commit) => {
       }
     });
   }
-  for (const c of [...randomCases(), ...lineCases()]) run(c.id, null, () => c.run(up, rec));
+  for (const c of [...randomCases(), ...lineCases(), ...edgeCases()]) run(c.id, null, () => c.run(up, rec));
   return asciiJson({
     description:
       "computeBucketFillPolygon and isRestylableFill (packages/element/src/bucketFill.ts) on the scenes of " +
