@@ -106,7 +106,8 @@ fn align_left_from_perform_action_and_its_key() {
     assert!(ed.can_undo());
     ed.undo();
     assert_eq!(get(&ed, "b").base.x, 300.0);
-    // CtrlOrCmd+Shift+Up aligns the tops
+    // CtrlOrCmd+Shift+Up aligns the tops (of a selection the undo left)
+    select(&mut ed, &["a", "b"]);
     ed.key_down(&Keystroke::new("ArrowUp", "ArrowUp").ctrl().shift());
     assert_eq!(get(&ed, "b").base.y, 100.0);
 }
@@ -123,4 +124,32 @@ fn distribute_horizontally_from_perform_action() {
     assert_eq!(get(&ed, "b").base.x, 250.0);
     ed.undo();
     assert_eq!(get(&ed, "b").base.x, 150.0);
+}
+
+#[test]
+fn ctrl_shift_period_increases_the_font_size() {
+    let mut text = rectangle("t", 100.0, 100.0);
+    let fields = json!({
+        "type": "text", "width": 50, "height": 25, "text": "hello", "originalText": "hello",
+        "fontSize": 20, "fontFamily": 5, "textAlign": "left", "verticalAlign": "top",
+        "containerId": null, "autoResize": true, "lineHeight": 1.25
+    });
+    for (k, v) in fields.as_object().unwrap() {
+        text[k] = v.clone();
+    }
+    let mut ed = editor(vec![text]);
+    select(&mut ed, &["t"]);
+    ed.key_down(&Keystroke::new(".", "Period").ctrl().shift());
+    let size = match &get(&ed, "t").kind {
+        excali_core::element::ElementKind::Text(t) => t.font_size,
+        _ => panic!("a text"),
+    };
+    assert_eq!(size, 22.0);
+    assert_eq!(
+        ed.app_state()
+            .get("currentItemFontSize")
+            .and_then(Value::as_f64),
+        Some(22.0)
+    );
+    assert!(ed.can_undo());
 }

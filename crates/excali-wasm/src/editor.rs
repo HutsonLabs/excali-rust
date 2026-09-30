@@ -100,8 +100,8 @@ use excali_editor::convert_element_type::{ConvertElementTypePopup, ConvertPanel,
 use excali_editor::edit_actions::duplicate::duplicate_dragged_selection;
 use excali_editor::edit_actions::{
     bring_forward, bring_to_front, copy_selected, delete_selected, duplicate_selection, group,
-    insert_library_items, paste_elements, select_all, selected_elements, send_backward,
-    send_to_back, ungroup, ActionResult,
+    insert_library_items, paste_elements, perform_style_action, select_all, selected_elements,
+    send_backward, send_to_back, ungroup, ActionResult,
 };
 use excali_editor::eraser::EraserTrail;
 use excali_editor::flowchart::{insertion_index, insertion_runs, AppFlowchart, FlowchartOperation};
@@ -1092,8 +1092,10 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     }
 
     /// Runs the action `name` as the chrome does (`executeAction`): the
-    /// history, the zoom actions, and the app state toggles of the help
-    /// dialog, zen mode and the stats panel.
+    /// history, the zoom actions, the app state toggles of the help
+    /// dialog, zen mode and the stats panel, the edit actions, and the
+    /// styles panel's actions without a value (the aligns, distributes,
+    /// font size steps and `togglePolygon`, [`perform_style_action`]).
     pub fn perform_action(&mut self, name: ActionName) {
         match name {
             ActionName::Undo => return self.undo(),
@@ -1126,6 +1128,19 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 ActionName::BringForward => bring_forward(&elements, &app_state, env),
                 ActionName::SendToBack => send_to_back(&elements, &app_state, env),
                 ActionName::SendBackward => send_backward(&elements, &app_state, env),
+                ActionName::AlignTop
+                | ActionName::AlignBottom
+                | ActionName::AlignLeft
+                | ActionName::AlignRight
+                | ActionName::AlignVerticallyCentered
+                | ActionName::AlignHorizontallyCentered
+                | ActionName::DistributeHorizontally
+                | ActionName::DistributeVertically
+                | ActionName::TogglePolygon
+                | ActionName::IncreaseFontSize
+                | ActionName::DecreaseFontSize => {
+                    perform_style_action(name, &elements, &app_state, &Value::Null, env)
+                }
                 ActionName::Copy => {
                     self.copy();
                     return;
@@ -1176,7 +1191,15 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// passes (`updateData(value)`, `executeAction(action, "ui", value)`):
     /// [`perform_style_action`], its result written back through
     /// [`Self::apply_action`] (one history entry when captured).
-    pub fn perform_style_action(&mut self, _name: ActionName, _value: &Value) {}
+    pub fn perform_style_action(&mut self, name: ActionName, value: &Value) {
+        let elements = self.session.elements().to_vec();
+        let app_state = self.session.app_state().clone();
+        if let Some(result) =
+            perform_style_action(name, &elements, &app_state, value, &mut self.session.env)
+        {
+            self.apply_action(result);
+        }
+    }
 
     /// `actionToggleSearchMenu.perform` (`actionToggleSearchMenu.ts:26-51`):
     /// the default sidebar opened on its search tab (no capture), or, when
@@ -1283,8 +1306,10 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     }
 
     /// An action's result written back (`syncActionResult`): the
-    /// elements, the app state keys, and a capture when it asks for one.
+    /// elements, the app state keys, and a capture when it asks for one
+    /// (`IMMEDIATELY`; `NEVER` never recorded, `EVENTUALLY` with the next).
     fn apply_action(&mut self, result: ActionResult) {
+        let capture = result.capture_update();
         if let Some(elements) = result.elements {
             // Ok: the actions keep the fractional indices valid
             let _ = self.session.replace_all_elements(elements);
@@ -1298,8 +1323,13 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         if !patch.is_empty() {
             self.session.set_state(patch);
         }
-        if result.capture {
-            self.session.store.schedule_capture();
+        match capture {
+            CaptureUpdateAction::Immediately => self.session.store.schedule_capture(),
+            CaptureUpdateAction::Never => self
+                .session
+                .store
+                .schedule_action(CaptureUpdateAction::Never),
+            CaptureUpdateAction::Eventually => {}
         }
         self.session.commit();
         self.report();

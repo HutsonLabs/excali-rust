@@ -17,13 +17,18 @@
 //!   [`paste_elements`];
 //! - inserting library items (`LibraryMenuItems`'s click, App's drop,
 //!   `distributeLibraryItemsOnSquareGrid`): [`insert_library_items`] and
-//!   [`distribute_library_items_on_square_grid`].
+//!   [`distribute_library_items_on_square_grid`];
+//! - the styles panel's actions (`actionProperties.tsx`, `togglePolygon`,
+//!   `actionAlign.tsx`, `actionDistribute.tsx`, `actionLink.tsx`,
+//!   `actionCropEditor.tsx`): [`perform_style_action`], over a
+//!   [`StyleEnv`] that lays text out.
 //!
 //! Upstream mutates elements in place (`mutateElement`) or copies them
 //! (`newElementWith`); either way a changed element gets `version + 1`, a
 //! fresh `versionNonce` and `updated` now, drawn from the [`EditEnv`] in
 //! upstream's order.
 
+mod align;
 mod clipboard;
 mod delete;
 pub mod duplicate;

@@ -115,12 +115,16 @@ impl BindingEnv for Env {
     }
 }
 
-/// The generator as a version stamp while the layouter is busy.
+/// The generator as a version stamp while the layouter is busy: every
+/// layout mutation is a `scene.mutateElement`, whose `triggerUpdate()`
+/// draws the scene's nonce after the element's.
 struct Stamp<'a>(&'a mut excali_core::restore::TestEnv);
 
 impl ChangeStamp for Stamp<'_> {
     fn version_nonce(&mut self) -> f64 {
-        self.0.random_integer()
+        let nonce = self.0.random_integer();
+        let _scene_nonce = self.0.random_integer();
+        nonce
     }
 
     fn updated(&mut self) -> f64 {
