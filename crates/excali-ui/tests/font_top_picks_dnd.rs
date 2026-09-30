@@ -340,9 +340,18 @@ fn the_context_menu_resets_the_strip() {
         // dismisses the popover the menu takes the focus from
         let mut calls = Vec::new();
         if state.is_open() {
-            dispatch(&mut state, FontPickerEvent::PopupChange(false), &cx, &mut calls);
+            dispatch(
+                &mut state,
+                FontPickerEvent::PopupChange(false),
+                &cx,
+                &mut calls,
+            );
         }
-        assert_eq!(json!(calls), case["openedCalls"], "menu {name} opened calls");
+        assert_eq!(
+            json!(calls),
+            case["openedCalls"],
+            "menu {name} opened calls"
+        );
         p = props(case, &state);
         p.top_picks_menu = Some((60, 36));
         assert_same(
@@ -365,7 +374,12 @@ fn the_context_menu_resets_the_strip() {
         assert_eq!(listens(item, "click"), customized, "{name}");
         let mut calls = Vec::new();
         if customized {
-            dispatch(&mut state, FontPickerEvent::TopPicksChange(None), &cx, &mut calls);
+            dispatch(
+                &mut state,
+                FontPickerEvent::TopPicksChange(None),
+                &cx,
+                &mut calls,
+            );
             p = props(case, &state);
         }
         assert_eq!(json!(calls), case["calls"], "menu {name} calls");
@@ -395,7 +409,12 @@ fn the_tips_reset_link_resets_the_strip() {
             assert!(listens(reset, ev), "{name} {ev}");
         }
         let mut calls = Vec::new();
-        dispatch(&mut state, FontPickerEvent::TopPicksChange(None), &cx, &mut calls);
+        dispatch(
+            &mut state,
+            FontPickerEvent::TopPicksChange(None),
+            &cx,
+            &mut calls,
+        );
         assert_eq!(json!(calls), case["calls"], "{name}");
         assert_eq!(state_json(&state), case["state"], "{name}");
         assert_same(
@@ -432,14 +451,27 @@ fn only_the_full_panel_drags() {
         .filter(|e| has_class(e, "dropdown-menu-item"))
         .count();
     assert_eq!(picks, 3);
-    assert!(rows > 5, "{rows} rows");
+    // every row: Excalifont, Nunito, Lilita One, Comic Shanns
+    let all_rows = elements(&nodes)
+        .into_iter()
+        .filter(|e| has_class(e, "dropdown-menu-item"))
+        .count();
+    assert_eq!((rows, all_rows), (4, 4));
     let compact = json!({"mode": "compact", "scene": [5]});
     let mut p = props(&compact, &state);
     p.dnd = Some(font_picker_dnd());
     let nodes = font_picker(&p);
+    // no strip, and the list's rows drag nothing (the trigger's IconButton
+    // listens for its own pointerdown)
+    let rows: Vec<&Element> = elements(&nodes)
+        .into_iter()
+        .filter(|e| has_class(e, "dropdown-menu-item"))
+        .collect();
+    assert_eq!(rows.len(), 4);
+    assert!(rows.iter().all(|e| !listens(e, "pointerdown")));
     assert!(elements(&nodes)
         .iter()
-        .all(|e| !listens(e, "pointerdown") && !listens(e, "contextmenu")));
+        .all(|e| e.attribute("data-top-pick-index").is_none() && !listens(e, "contextmenu")));
     assert!(elements(&nodes)
         .iter()
         .all(|e| !has_class(e, "top-picks-dnd__tip")));
@@ -450,7 +482,10 @@ fn a_dragged_font_does_not_preview_the_rows_it_passes() {
     // FontPickerList.tsx:328-333
     let (f, g) = (FontFamily(7), FontFamily(6));
     assert_eq!(hover_event(false, None, f), Some(FontPickerEvent::Hover(f)));
-    assert_eq!(hover_event(false, Some(g), f), Some(FontPickerEvent::Hover(f)));
+    assert_eq!(
+        hover_event(false, Some(g), f),
+        Some(FontPickerEvent::Hover(f))
+    );
     assert_eq!(hover_event(false, Some(f), f), None);
     assert_eq!(hover_event(true, None, f), None);
 }
@@ -689,7 +724,7 @@ fn a_drop_pins_reorders_and_refuses_duplicates() {
 
 #[test]
 fn a_ghost_is_the_fonts_tile() {
-    // createFontGhost (fontTopPicksDnD.ts:19-81)
+    // createFontGhost (fontTopPicksDnD.ts:19-82)
     let style = FontGhostStyle {
         background_color: "rgb(236, 236, 244)".into(),
         color: "rgb(27, 27, 31)".into(),
