@@ -2682,6 +2682,27 @@
    "labels": []
   },
   {
+   "id": "ex-714",
+   "epic": "ex-e7",
+   "title": "Search matches drawn on the interactive canvas",
+   "priority": 3,
+   "blocked_by": [
+    "ex-708"
+   ],
+   "crates": [
+    "excali-editor",
+    "excali-wasm"
+   ],
+   "acceptance": "appState.searchMatches is drawn as upstream's renderSearchMatches draws it (every match's matched lines, the focused one stronger, frame name matches only when showOnCanvas); the viewport navigation to the focused match animates over 300 ms and honours scroll constraints as App.viewport.setViewport does.",
+   "evidence": [
+    "packages/excalidraw/renderer/interactiveScene.ts (renderSearchMatches) at the pin",
+    "packages/excalidraw/components/App.viewport.ts:672-760 (setViewport, animateToViewport)"
+   ],
+   "description": "ex-708 ported the search menu (excali_ui::search_menu) and writes appState.searchMatches, but excali-editor's interactive scene leaves searchMatches out (interactive_scene.rs module docs) and the host sets the navigated viewport at once (Editor::fit_bounds).",
+   "type": "task",
+   "labels": []
+  },
+  {
    "id": "ex-801",
    "epic": "ex-e8",
    "title": "Publish crates to crates.io under excali-*",

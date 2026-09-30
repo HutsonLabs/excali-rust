@@ -864,6 +864,37 @@ const ROWS = {
     expect(errors).toEqual([]);
   },
 
+  "ui-search": async ({ page }) => {
+    const errors = await mount(
+      page,
+      sceneText([
+        text("t1", 100, 300, "say hello"),
+        text("t2", 100, 100, "hello world"),
+        element("frame", "f1", 400, 100, 200, 150, { name: "hello frame" }),
+      ]),
+    );
+    await press(page, `${MOD}+KeyF`);
+    const search = page.locator("excali-editor .default-sidebar .layer-ui__search");
+    await expect(search).toBeVisible(SHORT);
+    await expect(search.locator(".layer-ui__search-header input")).toBeFocused(SHORT);
+    await page.keyboard.type("hello");
+    // handleSearch is debounced (350 ms); frames first, texts by y
+    await expect(search.locator(".layer-ui__search-count")).toContainText("1 / 3 results", SHORT);
+    await expect(search.locator(".layer-ui__search-result-title")).toHaveText(["Frames", "Texts"]);
+    await expect(search.locator(".layer-ui__result-item")).toHaveText([
+      "hello  frame",
+      "hello  world",
+      "say hello",
+    ]);
+    await expect(search.locator(".layer-ui__result-item.active")).toHaveText("hello  frame");
+    await page.keyboard.press("Enter");
+    await expect(search.locator(".layer-ui__result-item.active")).toHaveText("hello  world", SHORT);
+    await expect(search.locator(".layer-ui__search-count")).toContainText("2 / 3 results");
+    await page.keyboard.press("Escape");
+    await expect(page.locator("excali-editor .default-sidebar")).toHaveCount(0, SHORT);
+    expect(errors).toEqual([]);
+  },
+
   "ui-welcome-screen": async ({ page }) => {
     await mount(page);
     await expect(page.locator("excali-editor .welcome-screen-center")).toBeVisible(SHORT);

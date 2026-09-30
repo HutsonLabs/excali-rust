@@ -28,7 +28,8 @@
 //! (`components/CommandPalette/CommandPalette.tsx`); for [`library_sidebar`] the default
 //! sidebar with the library (`components/DefaultSidebar.tsx`,
 //! `components/Sidebar/*`, `components/LibraryMenu*.tsx`,
-//! `components/LibraryUnit.tsx`); for [`font_picker`] the font picker
+//! `components/LibraryUnit.tsx`); for [`search_menu`] the sidebar's search
+//! tab (`components/SearchMenu.tsx`); for [`font_picker`] the font picker
 //! (`components/FontPicker/*`); for [`hints`] the hint viewer and the
 //! cursor hint (`components/HintViewer.tsx`, `components/CursorHint.tsx`);
 //! for [`welcome_screen`] the welcome screen
@@ -59,6 +60,7 @@ pub mod library_sidebar;
 pub mod main_menu;
 pub mod mobile_menu;
 pub mod primitives;
+pub mod search_menu;
 pub mod styles_panel;
 pub mod text_editor;
 pub mod theme;

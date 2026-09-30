@@ -27,7 +27,10 @@ fn editor(darwin: bool) -> Editor<CharCountTextMetrics> {
 }
 
 fn open_sidebar(ed: &Editor<CharCountTextMetrics>) -> Value {
-    ed.app_state().get("openSidebar").cloned().unwrap_or(Value::Null)
+    ed.app_state()
+        .get("openSidebar")
+        .cloned()
+        .unwrap_or(Value::Null)
 }
 
 #[test]
@@ -35,12 +38,18 @@ fn ctrl_f_opens_the_search_tab() {
     let mut ed = editor(false);
     let out = ed.key_down(&Keystroke::new("f", "KeyF").ctrl());
     assert!(out.prevent_default, "the browser's find is not opened");
-    assert_eq!(open_sidebar(&ed), json!({ "name": "default", "tab": "search" }));
+    assert_eq!(
+        open_sidebar(&ed),
+        json!({ "name": "default", "tab": "search" })
+    );
     assert!(!ed.take_search_focus_request());
 
     // again while the search tab is open: the field is focused
     ed.key_down(&Keystroke::new("f", "KeyF").ctrl());
-    assert_eq!(open_sidebar(&ed), json!({ "name": "default", "tab": "search" }));
+    assert_eq!(
+        open_sidebar(&ed),
+        json!({ "name": "default", "tab": "search" })
+    );
     assert!(ed.take_search_focus_request());
     assert!(!ed.take_search_focus_request());
 }
@@ -49,17 +58,26 @@ fn ctrl_f_opens_the_search_tab() {
 fn cmd_f_opens_it_on_apple_platforms() {
     let mut ed = editor(true);
     ed.key_down(&Keystroke::new("f", "KeyF").meta());
-    assert_eq!(open_sidebar(&ed), json!({ "name": "default", "tab": "search" }));
+    assert_eq!(
+        open_sidebar(&ed),
+        json!({ "name": "default", "tab": "search" })
+    );
 }
 
 #[test]
 fn the_library_tab_switches_to_search() {
     let mut ed = editor(false);
     let mut patch = Map::new();
-    patch.insert("openSidebar".into(), json!({ "name": "default", "tab": "library" }));
+    patch.insert(
+        "openSidebar".into(),
+        json!({ "name": "default", "tab": "library" }),
+    );
     ed.set_app_state(patch);
     ed.key_down(&Keystroke::new("f", "KeyF").ctrl());
-    assert_eq!(open_sidebar(&ed), json!({ "name": "default", "tab": "search" }));
+    assert_eq!(
+        open_sidebar(&ed),
+        json!({ "name": "default", "tab": "search" })
+    );
 }
 
 #[test]
@@ -108,9 +126,16 @@ fn a_match_is_fitted_into_the_viewport() {
     // the target's centre is the centre of the viewport less the offsets
     let cx = (5025.0 + scroll_x) * zoom;
     let cy = (5012.5 + scroll_y) * zoom;
-    assert!((cx - (24.0 + (1000.0 - 24.0 - 326.0) / 2.0)).abs() < 1e-9, "{cx}");
+    assert!(
+        (cx - (24.0 + (1000.0 - 24.0 - 326.0) / 2.0)).abs() < 1e-9,
+        "{cx}"
+    );
     assert!((cy - (24.0 + (700.0 - 48.0) / 2.0)).abs() < 1e-9, "{cy}");
 
     ed.fit_bounds([0.0, 0.0, 10.0, 5.0], Fit::Contain, Offsets::default());
-    assert_eq!(ed.app_state().zoom().unwrap(), 30.0, "contain zooms in up to the maximum");
+    assert_eq!(
+        ed.app_state().zoom().unwrap(),
+        30.0,
+        "contain zooms in up to the maximum"
+    );
 }

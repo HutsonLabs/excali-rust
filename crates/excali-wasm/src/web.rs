@@ -25,6 +25,7 @@ use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
 mod library_menu;
+mod search;
 
 use excali_canvas2d::{paint, WebCanvas};
 use excali_core::png::{encode_chunks, encode_text_chunk, extract_chunks};
@@ -177,6 +178,7 @@ pub fn stylesheet() -> String {
         excali_ui::context_menu::CONTEXT_MENU_CSS,
         excali_ui::convert_popup::CONVERT_POPUP_CSS,
         excali_ui::library_sidebar::LIBRARY_SIDEBAR_CSS,
+        excali_ui::search_menu::SEARCH_MENU_CSS,
         excali_ui::layers::CANVAS_LAYER_CSS,
         excali_ui::icons::ICONS_CSS,
         excali_ui::accessibility::ACCESSIBILITY_CSS,
@@ -196,6 +198,7 @@ fn install_element_stylesheet(document: &Document) -> Result<(), JsValue> {
     excali_ui::main_menu::install_stylesheet(document)?;
     excali_ui::context_menu::install_stylesheet(document)?;
     excali_ui::library_sidebar::install_stylesheet(document)?;
+    excali_ui::search_menu::install_stylesheet(document)?;
     if document
         .query_selector("style[data-excali-ui=\"excali-editor\"]")?
         .is_some()
@@ -322,6 +325,8 @@ struct Inner {
     library_trigger: Option<Mounted>,
     sidebar: Option<Mounted>,
     library_menu: LibraryMenuState,
+    /// The search tab's menu (`SearchMenu`).
+    search: search::SearchSession,
     /// The header menu's open dialogs, portalled to the body, and what
     /// they were mounted from (`library_menu::dialogs_key`).
     library_dialogs: Vec<excali_ui::primitives::OpenModal>,
@@ -449,6 +454,7 @@ fn chrome_key(inner: &Inner) -> Value {
         "library": excali_core::library::library_items_hash(ed.library()),
         "libraryItems": ed.library().len(),
         "libraryMenu": library_menu_key(&inner.library_menu),
+        "search": inner.search.generation,
         "canFitSidebar": can_fit_sidebar(inner),
         "hint": current_hint(inner),
         "welcome": render_welcome_screen(inner),
@@ -639,6 +645,7 @@ fn sync_text_editor(weak: &Weak<RefCell<Inner>>) {
 /// step with the editor.
 fn refresh_chrome(weak: &Weak<RefCell<Inner>>) {
     sync_text_editor(weak);
+    search::scene_changed(weak);
     let _ = render_convert_popup(weak);
     let Some(rc) = weak.upgrade() else {
         return;
@@ -1304,6 +1311,8 @@ fn render_library_sidebar(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
         return Ok(());
     };
     let mut inner = rc.borrow_mut();
+    // the search tab's menu, from the field of the sidebar still mounted
+    let search_menu = search::render(weak, &mut inner);
     for old in [inner.library_trigger.take(), inner.sidebar.take()]
         .into_iter()
         .flatten()
@@ -1378,7 +1387,7 @@ fn render_library_sidebar(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
                 "excali-editor-library-menu-trigger".into(),
                 "excali-editor-library-menu".into(),
             ),
-            search_menu: None,
+            search_menu,
             on_event: Some(on_event),
         })
         .map(Node::Element);
@@ -2122,6 +2131,7 @@ impl EditorCore {
             library_trigger: None,
             sidebar: None,
             library_menu: LibraryMenuState::default(),
+            search: search::SearchSession::default(),
             library_dialogs: Vec::new(),
             library_dialogs_key: None,
             previews: std::collections::HashMap::new(),
@@ -2159,6 +2169,14 @@ impl EditorCore {
                     return;
                 };
                 palette_window_key_down(rc, &event);
+            })?;
+            // the search menu's (SearchMenu.tsx:279-338), while it is
+            // mounted
+            listen_capture(&inner, &window, "keydown", |rc, event| {
+                let Ok(event) = event.dyn_into::<KeyboardEvent>() else {
+                    return;
+                };
+                search::window_key_down(rc, &event);
             })?;
         }
         // library items dragged from the sidebar (`App.handleAppOnDrop`,

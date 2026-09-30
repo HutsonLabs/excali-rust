@@ -98,7 +98,11 @@ fn match_previews_are_upstreams() {
             "moreBefore": p.more_before,
             "moreAfter": p.more_after,
         });
-        assert_eq!(norm(&actual), norm(&case["result"]), "{text:?} at {index} for {query:?}");
+        assert_eq!(
+            norm(&actual),
+            norm(&case["result"]),
+            "{text:?} at {index} for {query:?}"
+        );
     }
 }
 
@@ -252,7 +256,10 @@ fn first_difference(expected: &Value, actual: &Value, path: String) -> String {
 
 fn assert_same(expected: &Value, actual: &Value, what: &str) {
     if expected != actual {
-        panic!("{what}: {}", first_difference(expected, actual, String::new()));
+        panic!(
+            "{what}: {}",
+            first_difference(expected, actual, String::new())
+        );
     }
 }
 
@@ -294,7 +301,11 @@ impl Host {
                     out.push(json!({ "setAppState": patch }));
                 }
                 SearchEffect::FocusMatches(index) => {
-                    let current = self.app.get("searchMatches").cloned().unwrap_or(Value::Null);
+                    let current = self
+                        .app
+                        .get("searchMatches")
+                        .cloned()
+                        .unwrap_or(Value::Null);
                     if let Some(next) = focus_search_matches(&current, index) {
                         self.app.insert("searchMatches".into(), next.clone());
                         out.push(json!({ "setAppState": { "searchMatches": next } }));
@@ -376,8 +387,10 @@ fn every_interaction_replays_as_upstream() {
             .map(|v| v.as_str().unwrap().to_owned())
             .collect();
         let cx = context(case, &elements, &visible);
-        let mut state = SearchMenuState::default();
-        state.input = case["query"].as_str().unwrap().to_owned();
+        let mut state = SearchMenuState {
+            input: case["query"].as_str().unwrap().to_owned(),
+            ..SearchMenuState::default()
+        };
         let mut host = Host {
             app: Map::new(),
             focused: false,
@@ -417,7 +430,9 @@ fn every_interaction_replays_as_upstream() {
                     let class = selector.trim_start_matches('.');
                     let mut found = Vec::new();
                     find_all(&before, class, &mut found);
-                    let target = found.get(index).unwrap_or_else(|| panic!("{what}: no {selector}"));
+                    let target = found
+                        .get(index)
+                        .unwrap_or_else(|| panic!("{what}: no {selector}"));
                     let event = match class {
                         "result-nav-btn" if index == 0 => Some(SearchMenuEvent::Next),
                         "result-nav-btn" => Some(SearchMenuEvent::Previous),
@@ -464,7 +479,11 @@ fn every_interaction_replays_as_upstream() {
                 &norm(&Value::Array(actual)),
                 &format!("{what} effects"),
             );
-            assert_eq!(prevented, step["defaultPrevented"] == true, "{what}: defaultPrevented");
+            assert_eq!(
+                prevented,
+                step["defaultPrevented"] == true,
+                "{what}: defaultPrevented"
+            );
             assert_eq!(host.focused, step["focused"] == true, "{what}: focus");
             if host.focused {
                 let sel = &step["selection"];
@@ -477,7 +496,11 @@ fn every_interaction_replays_as_upstream() {
             if step["event"] == "unmount" {
                 continue;
             }
-            let focus = if first { InputFocus::Select } else { InputFocus::None };
+            let focus = if first {
+                InputFocus::Select
+            } else {
+                InputFocus::None
+            };
             first = false;
             let dom = search_menu(SearchMenuProps {
                 state: &state,
@@ -517,7 +540,10 @@ fn the_highlighted_result_scrolls_into_view() {
         .filter(|e| e.attribute("class").unwrap().contains("active"))
         .collect();
     assert_eq!(active.len(), 1);
-    assert!(active[0].has_mount_hook(), "the active item scrolls itself into view");
+    assert!(
+        active[0].has_mount_hook(),
+        "the active item scrolls itself into view"
+    );
     assert!(items.iter().filter(|e| e.has_mount_hook()).count() == 1);
 }
 
@@ -584,7 +610,10 @@ fn results_group_frames_then_texts() {
             v["children"][1]["children"][0].as_str().unwrap().to_owned()
         })
         .collect();
-    assert_eq!(titles, [search_text("search.frames"), search_text("search.texts")]);
+    assert_eq!(
+        titles,
+        [search_text("search.frames"), search_text("search.texts")]
+    );
     // the deleted text never matches
     let (items, _) = handle_search("deleted", &cx);
     assert!(items.is_empty());

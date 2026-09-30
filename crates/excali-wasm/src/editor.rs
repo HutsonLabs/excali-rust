@@ -126,7 +126,8 @@ use excali_editor::scene::Scene;
 use excali_editor::selection::{get_elements_within_selection, BoxSelectionMode};
 use excali_editor::session::Session;
 use excali_editor::snapping::{
-    snap_dragged_elements, snap_new_element, snap_resizing_elements, SnapCache, SnapEvent,
+    is_element_in_viewport, snap_dragged_elements, snap_new_element, snap_resizing_elements,
+    SnapCache, SnapEvent,
 };
 use excali_editor::store::CaptureUpdateAction;
 use excali_editor::tools::{PointerType, ToolState};
@@ -136,7 +137,7 @@ use excali_editor::transform_handles::{
 };
 use excali_editor::viewport::{
     handle_wheel, perform_zoom_action, translate, viewport_coords_to_scene_coords,
-    zoom_to_fit_bounds, InputDevice, Offsets, TranslateOptions, Viewport, ViewportState,
+    zoom_to_fit_bounds, Fit, InputDevice, Offsets, TranslateOptions, Viewport, ViewportState,
     ViewportUpdate, WheelContext, WheelEvent, WheelTarget, ZoomAction, ZoomToFit,
 };
 use excali_math::js;
@@ -153,6 +154,7 @@ use excali_scene::static_scene::{
 use excali_svg::{export_to_svg, to_svg_file, FontContent};
 use excali_text::text_measurements::TextMetricsProvider;
 use excali_ui::footer::{toggle_shortcuts, toggle_zen_mode};
+use excali_ui::search_menu::{toggle_search_menu, SearchContext, SearchToggle};
 use serde_json::{json, Map, Value};
 
 use crate::cropping::CropPress;
@@ -492,6 +494,9 @@ pub struct Editor<P: TextMetricsProvider + Clone> {
     pub(crate) multi: Option<MultiPoint>,
     /// Natural image sizes the host measured, by file id.
     pub(crate) image_sizes: HashMap<String, (f64, f64)>,
+    /// `searchMenu` ran with the search tab open: the host focuses the
+    /// search field ([`Editor::take_search_focus_request`]).
+    pub(crate) search_focus_requested: bool,
 }
 
 const EMPTY_SCENE: &str =
@@ -536,6 +541,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             snap_cache: SnapCache::default(),
             multi: None,
             image_sizes: HashMap::new(),
+            search_focus_requested: false,
         };
         editor.start(editor.file.clone());
         editor
@@ -1018,6 +1024,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             ActionName::Redo => return self.redo(),
             ActionName::Finalize => return self.finalize(None),
             ActionName::ToggleLinearEditor => return self.toggle_linear_editor(),
+            ActionName::SearchMenu => return self.toggle_search_menu(),
             _ => {}
         }
         if let Some(action) = ZoomAction::from_name(name.as_str()) {
@@ -1078,6 +1085,67 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             let scene = Scene::new(self.session.elements().to_vec());
             self.apply(scene, app_state);
         }
+        self.report();
+    }
+
+    /// `actionToggleSearchMenu.perform` (`actionToggleSearchMenu.ts:26-51`):
+    /// the default sidebar opened on its search tab (no capture), or, when
+    /// that tab is open, the search field focused by the host.
+    fn toggle_search_menu(&mut self) {
+        match toggle_search_menu(self.session.app_state().as_map()) {
+            SearchToggle::Open(patch) => self.set_app_state(patch),
+            SearchToggle::FocusInput => self.search_focus_requested = true,
+            SearchToggle::None => {}
+        }
+    }
+
+    /// Whether `searchMenu` asked for the search field's focus since the
+    /// last call.
+    pub fn take_search_focus_request(&mut self) -> bool {
+        std::mem::take(&mut self.search_focus_requested)
+    }
+
+    /// The search menu's `app` (`SearchMenu.tsx`) for `f`: the scene, its
+    /// nonce (the scene version), `app.visibleElements` (the elements in
+    /// the viewport, `isElementInViewport`), the view, `padding` as
+    /// `app.viewport.getOffsets()`, and the text metrics.
+    pub fn with_search_context<R>(
+        &self,
+        padding: Offsets,
+        f: impl FnOnce(&SearchContext<'_>) -> R,
+    ) -> R {
+        let elements = self.session.elements();
+        let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
+        let map = ElementsMap::new(live.iter().copied());
+        let view = self.viewport_state();
+        let visible: Vec<String> = live
+            .iter()
+            .filter(|e| is_element_in_viewport(e, &view, &map))
+            .map(|e| e.base.id.clone())
+            .collect();
+        let cx = SearchContext {
+            elements,
+            scene_nonce: scene_version(elements).to_bits(),
+            visible_ids: &visible,
+            view,
+            padding,
+            metrics: &self.session.env.layouter.provider,
+        };
+        f(&cx)
+    }
+
+    /// `app.viewport.setViewport({target, fit, offsets})` for bounds
+    /// (`App.viewport.ts:672-760`, `getTargetViewport`): the zoom that fits
+    /// them into the viewport less `offsets` (scale-down never past 100%),
+    /// centred there. Set at once: upstream animates it over 300 ms.
+    pub fn fit_bounds(&mut self, target: [f64; 4], fit: Fit, offsets: Offsets) {
+        let state = self.viewport_state();
+        let options = ZoomToFit {
+            canvas_offsets: offsets,
+            fit,
+            ..ZoomToFit::new(target)
+        };
+        self.set_viewport_to(zoom_to_fit_bounds(&options, &state));
         self.report();
     }
 
