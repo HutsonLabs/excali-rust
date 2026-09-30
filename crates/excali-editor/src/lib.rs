@@ -45,7 +45,8 @@
 //!   over an [`edit_actions::EditEnv`].
 //! - [`new_element`]: the element a drawing tool creates and its size as
 //!   the pointer drags (`newElement.ts`, `dragNewElement`); [`eraser`]:
-//!   what an eraser path erases (`EraserTrail`).
+//!   what an eraser path erases (`EraserTrail`); [`lasso`]: what a
+//!   lasso path selects (`LassoTrail`, `getLassoSelectedElementIds`).
 //! - [`selection`]: box selection (`getElementsWithinSelection`,
 //!   `elementsOverlappingBBox`); [`groups`]: selecting whole groups
 //!   (`groups.ts`).
@@ -109,6 +110,7 @@ pub mod history;
 pub mod interactive_scene;
 mod js_value;
 pub mod keyboard;
+pub mod lasso;
 pub mod linear_element_editor;
 pub mod mutate;
 pub mod new_element;

@@ -14,6 +14,7 @@
 //! selection it leaves (`selectedElementIds`, `selectedGroupIds`,
 //! `selectedLinearElement`).
 
+use excali_core::constants::DEFAULT_STROKE_STREAMLINE;
 use excali_core::element::Element;
 use excali_editor::lasso::{
     get_elements_segments, get_lasso_selected_element_ids, LassoInput, LassoScene, LassoSelection,
@@ -21,7 +22,7 @@ use excali_editor::lasso::{
 };
 use excali_editor::selection::BoxSelectionMode;
 use excali_scene::bounds::ElementsMap;
-use serde_json::{Map, Value};
+use serde_json::{json, Map, Value};
 
 const FIXTURE: &str = include_str!("fixtures/lasso.json");
 
@@ -30,14 +31,25 @@ fn cases() -> Vec<Value> {
     fixture["cases"].as_array().expect("cases").clone()
 }
 
+/// The scene's elements. lasso.test.tsx writes some freedraw elements
+/// without `strokeOptions`; upstream's shape code reads a missing one as
+/// variable width and the default streamline (`shape.ts:728`, `:1218`,
+/// `:1274`, `:1290`), which is what `newFreeDrawElement` writes
+/// (`newElement.ts:597-600`), so the port is given that.
 fn scene(value: &Value) -> Vec<Element> {
     value
         .as_array()
         .expect("a scene")
         .iter()
         .map(|e| {
-            Element::from_map(e.as_object().expect("an element").clone())
-                .expect("an element upstream built")
+            let mut map = e.as_object().expect("an element").clone();
+            if map["type"] == "freedraw" && !map.contains_key("strokeOptions") {
+                map.insert(
+                    "strokeOptions".into(),
+                    json!({ "variability": "variable", "streamline": DEFAULT_STROKE_STREAMLINE }),
+                );
+            }
+            Element::from_map(map).expect("an element upstream built")
         })
         .collect()
 }
@@ -163,11 +175,7 @@ fn replay(case: &Value) -> usize {
             "add" => {
                 let mut next = state.take().expect("a state");
                 let [x, y] = point(&op["point"]);
-                let s = lasso_scene(
-                    &next,
-                    op["zoom"].as_f64().expect("zoom"),
-                    mode(&op["mode"]),
-                );
+                let s = lasso_scene(&next, op["zoom"].as_f64().expect("zoom"), mode(&op["mode"]));
                 if let Some(selection) = trail.add_point_to_path(x, y, op["keep"] == true, &s) {
                     next.apply(selection);
                 }
