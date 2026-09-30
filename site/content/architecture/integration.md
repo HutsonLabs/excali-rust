@@ -6,18 +6,20 @@ weight = 6
 
 This page is what a host needs to embed the editor: a plain web page, or a Tauri v2 app such as term.hut ([term.hut integration](../termhut-integration/)). The API of the element is on that page; the plugin's commands are on the [Tauri page](../tauri/).
 
-Every code block below is a copy of a file that runs. `scripts/site/snippets.py` checks each block against the file named in the comment before it (the example Tauri app, `examples/tauri-app`, or the browser page of the web suite, `tests/web/page/csp.html`), and fails the gates job if a block and its file drift apart. The example app runs in WKWebView in CI (`tauri-example`: it opens, saves, saves as and exports with no CSP violation), and `tests/web/specs/csp.spec.mjs` serves the browser page in Chromium with the header this page gives.
+Every code block below is a copy of a file that runs. `scripts/site/snippets.py` checks each block against the file named in the comment before it (the example Tauri app, `examples/tauri-app`, or the browser page of the web suite, `tests/web/page/csp.html`), and fails the gates job if a block and its file drift apart. The example app runs in WKWebView in CI (`tauri-example`: it opens, saves, saves as and exports with no CSP violation), and `tests/web/specs/csp.spec.mjs` serves the browser page in Chromium with the header this page gives. An agent followed this page step by step in a fresh clone, building a browser host and a new Tauri app outside the repository; the [walk-through](../integration-walk/) is the transcript, with what it found and how the page changed.
 
 ## 1. The files
 
-The web runtime is four entries, as `scripts/web/build.sh` builds them (or unpacked from a release's `excali-web_<version>.tar.gz`):
+The web runtime is four entries, as `scripts/web/build.sh [OUT]` builds them into `OUT` (`dist/` at the repository root by default), or unpacked from a release's `excali-web_<version>.tar.gz` (the four entries at the top level of the archive, its digest in the release's `SHA256SUMS`):
 
 | File | What |
 |---|---|
 | `excali_editor.js` | One plain ES module: wasm-bindgen's `--target web` glue and the `<excali-editor>` custom element |
-| `excali_editor_bg.wasm` | The module (about 1.0 MB gzipped) |
+| `excali_editor_bg.wasm` | The module (at most 1.5 MB gzipped: the build fails over the budget on the [phases page](../../plan/phases/); 1.18 MB on 2026-09-29) |
 | `excali.css` | The element's stylesheet |
 | `fonts/` | The range-split font files, their licences and `manifest.json` |
+
+The build needs the `wasm32-unknown-unknown` target (`rust-toolchain.toml` installs it with the pinned toolchain), `wasm-bindgen-cli` at the version `Cargo.lock` pins for the `wasm-bindgen` crate (the script prints the `cargo install --locked wasm-bindgen-cli --version …` line when it is missing or another version) and Python 3; it downloads and verifies binaryen's `wasm-opt` into `.tools/` when that is not on `PATH`, and fails if either file is over its budget.
 
 Keep them together in one directory: the module finds the wasm at `new URL('excali_editor_bg.wasm', import.meta.url)` and the fonts at `new URL("./fonts/", import.meta.url)`, so the directory can live at any path and nothing needs configuring. Serve the `.wasm` as `application/wasm`; any other type still works, but `WebAssembly.instantiateStreaming` fails and the glue falls back to the slower `WebAssembly.instantiate` with a console warning. `fonts/Xiaolai` (the CJK fallback, 12 MB of the 14 MB of fonts) may be left out: CJK text then falls back to a system font.
 
@@ -30,12 +32,14 @@ The example app copies the build into its frontend before each `cargo tauri dev`
 
 ## 2. Loading the module without a bundler
 
-Link the stylesheet and load a module script from your page. `init()` fetches and compiles the wasm; `defineExcaliEditor()` registers the element; from then on `<excali-editor>` is an ordinary element.
+Link the stylesheet and load a module script from your page. `init()` fetches and compiles the wasm; `defineExcaliEditor()` registers the element; from then on `<excali-editor>` is an ordinary element. This page serves the four entries at the root of the site, next to the page and its script, hence `/excali.css` and `/excali_editor.js`; the element goes into the page's `#host`:
 
 <!-- snippet: tests/web/page/csp.html -->
 ```html
 <link rel="stylesheet" href="/excali.css">
 <script type="module" src="/csp-app.js"></script>
+<!-- … -->
+<main id="host"></main>
 ```
 
 <!-- snippet: tests/web/page/csp-app.js -->
@@ -61,6 +65,7 @@ The example app does the same from `ui/` with the runtime in `ui/excali/`:
 <link rel="stylesheet" href="./excali/excali.css">
 <link rel="stylesheet" href="./app.css">
 <!-- … -->
+<main id="host"></main>
 <script type="module" src="./app.js"></script>
 ```
 
@@ -103,7 +108,7 @@ Send it as a response header on the page:
 Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'
 ```
 
-`tests/web/specs/csp.spec.mjs` reads this line from this page, serves `tests/web/page/csp.html` with it and checks, in Chromium, that the editor opens a scene with text, loads its font, saves and exports SVG and PNG with no violation; and that taking out `'wasm-unsafe-eval'`, `style-src`'s `'unsafe-inline'` or `img-src`'s `data:` breaks it, as does a nonce in `style-src` (see Tauri below). If the runtime is on another origin (a CDN), put that origin in `script-src`, `style-src`, `connect-src` and `font-src` in place of, or next to, `'self'`.
+`tests/web/specs/csp.spec.mjs` reads this line from this page, serves `tests/web/page/csp.html` with it and checks, in Chromium, that the editor opens a scene with text, loads its font, saves and exports SVG and PNG with no violation; and that taking out `'wasm-unsafe-eval'`, `style-src`'s `'unsafe-inline'` or `img-src`'s `data:` breaks it, as does a nonce in `style-src` (see Tauri below). If the runtime is on another origin (a CDN), put that origin in `script-src`, `style-src`, `connect-src` and `font-src` in place of, or next to, `'self'`, and have that server send `Access-Control-Allow-Origin` (the page's origin, or `*`): a module script, `init()`'s `fetch` of the wasm and web fonts are CORS requests, and without the header the browser refuses the module ("blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present", Chromium, 2026-09-29). `csp.spec.mjs` loads the runtime from a second origin both ways.
 
 ### In Tauri
 
@@ -165,7 +170,7 @@ From another repository, the path becomes a git dependency, `tauri-plugin-excali
         })
 ```
 
-`fonts_dir` is the bundle's `fonts/` resource, which `tauri.conf.json` copies from the repository's font assets:
+`app.path()` comes from the `tauri::Manager` trait, so `use tauri::Manager;`. `fonts_dir` is the example's own function (`src/lib.rs`): the bundle's `fonts/` resource, `resource_dir` joined with `fonts`, when it holds a `manifest.json`. The example's `tauri.conf.json` copies that resource from the repository's font assets:
 
 <!-- snippet: examples/tauri-app/src-tauri/tauri.conf.json#/bundle/resources -->
 ```json
@@ -173,6 +178,8 @@ From another repository, the path becomes a git dependency, `tauri-plugin-excali
   "../../../crates/excali-text/assets/fonts/": "fonts/"
 }
 ```
+
+That path exists only inside this repository. A host elsewhere bundles the web runtime's own `fonts/`, the same files (`scripts/web/build.sh` copies that directory): with the runtime in `ui/excali/`, `"resources": { "../ui/excali/fonts/": "fonts/" }`.
 
 `tauri_plugin_excali::init()` is the same plugin with the defaults (no font directory: exports fall back to system fonts; upstream's library allow-list).
 
@@ -257,4 +264,4 @@ editor.addEventListener("save-request", () => run("save"));
 python3 scripts/site/snippets.py check
 ```
 
-Run it from the repository root; `tests/web` (`npx playwright test specs/csp.spec.mjs`, after `scripts/web/build.sh`) serves the browser page with the header, and `examples/tauri-app/scripts/smoke.sh` runs the example app in the platform webview.
+Run it from the repository root; `tests/web` (after `scripts/web/build.sh`, then in `tests/web` `npm ci`, `npx playwright install chromium` and `npx playwright test specs/csp.spec.mjs`) serves the browser page with the header, and `examples/tauri-app/scripts/smoke.sh` runs the example app in the platform webview.
