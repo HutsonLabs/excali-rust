@@ -90,7 +90,8 @@ use excali_core::restore::{
     TextDimensionsRequest,
 };
 use excali_editor::actions::{
-    ActionContext, ActionEnv, ActionManager, ActionName, AppProps, ContextMenuKind, KeyDownOutcome,
+    ActionContext, ActionEnv, ActionManager, ActionName, AppProps, ColorProperty, ContextMenuKind,
+    KeyDownOutcome,
 };
 use excali_editor::binding::{
     bind_or_unbind_binding_element, BindingAppState, BindingOpts, LinearElementInitialState,
@@ -99,9 +100,9 @@ use excali_editor::collision::{hit_element, HitTestCache};
 use excali_editor::convert_element_type::{ConvertElementTypePopup, ConvertPanel, ConvertibleType};
 use excali_editor::edit_actions::duplicate::duplicate_dragged_selection;
 use excali_editor::edit_actions::{
-    bring_forward, bring_to_front, copy_selected, delete_selected, duplicate_selection, group,
-    insert_library_items, paste_elements, select_all, selected_elements, send_backward,
-    send_to_back, ungroup, ActionResult,
+    bring_forward, bring_to_front, copy_selected, delete_selected, duplicate_selection,
+    eye_dropper_preview, group, insert_library_items, paste_elements, perform_style_action,
+    select_all, selected_elements, send_backward, send_to_back, ungroup, ActionResult,
 };
 use excali_editor::eraser::EraserTrail;
 use excali_editor::flowchart::{insertion_index, insertion_runs, AppFlowchart, FlowchartOperation};
@@ -1092,8 +1093,10 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     }
 
     /// Runs the action `name` as the chrome does (`executeAction`): the
-    /// history, the zoom actions, and the app state toggles of the help
-    /// dialog, zen mode and the stats panel.
+    /// history, the zoom actions, the app state toggles of the help
+    /// dialog, zen mode and the stats panel, the edit actions, and the
+    /// styles panel's actions without a value (the aligns, distributes,
+    /// font size steps and `togglePolygon`, [`perform_style_action`]).
     pub fn perform_action(&mut self, name: ActionName) {
         match name {
             ActionName::Undo => return self.undo(),
@@ -1126,6 +1129,19 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 ActionName::BringForward => bring_forward(&elements, &app_state, env),
                 ActionName::SendToBack => send_to_back(&elements, &app_state, env),
                 ActionName::SendBackward => send_backward(&elements, &app_state, env),
+                ActionName::AlignTop
+                | ActionName::AlignBottom
+                | ActionName::AlignLeft
+                | ActionName::AlignRight
+                | ActionName::AlignVerticallyCentered
+                | ActionName::AlignHorizontallyCentered
+                | ActionName::DistributeHorizontally
+                | ActionName::DistributeVertically
+                | ActionName::TogglePolygon
+                | ActionName::IncreaseFontSize
+                | ActionName::DecreaseFontSize => {
+                    perform_style_action(name, &elements, &app_state, &Value::Null, env)
+                }
                 ActionName::Copy => {
                     self.copy();
                     return;
@@ -1170,6 +1186,45 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             self.apply(scene, app_state);
         }
         self.report();
+    }
+
+    /// Runs the styles panel's action `name` with the `value` its control
+    /// passes (`updateData(value)`, `executeAction(action, "ui", value)`):
+    /// [`perform_style_action`], its result written back through
+    /// [`Self::apply_action`] (one history entry when captured).
+    pub fn perform_style_action(&mut self, name: ActionName, value: &Value) {
+        let elements = self.session.elements().to_vec();
+        let app_state = self.session.app_state().clone();
+        if let Some(result) =
+            perform_style_action(name, &elements, &app_state, value, &mut self.session.env)
+        {
+            self.apply_action(result);
+        }
+        // changeArrowType's app.dismissLinearEditor() for an elbow arrow
+        // (App.tsx:3149-3160), a deferred setState
+        if name == ActionName::ChangeArrowType && value.as_str() == Some("elbow") {
+            if let Some(mut state) = self.linear_state().filter(|s| s.is_editing) {
+                state.is_editing = false;
+                self.set_linear_state(Some(&state));
+                self.session.commit();
+                self.report();
+            }
+        }
+    }
+
+    /// The eye dropper's live preview of `color` on `property`
+    /// ([`eye_dropper_preview`]), not captured: the pick on release is.
+    pub fn preview_color(&mut self, property: ColorProperty, color: &str) {
+        let elements = self.session.elements().to_vec();
+        let app_state = self.session.app_state().clone();
+        let result = eye_dropper_preview(
+            &elements,
+            &app_state,
+            property,
+            color,
+            &mut self.session.env,
+        );
+        self.apply_action(result);
     }
 
     /// `actionToggleSearchMenu.perform` (`actionToggleSearchMenu.ts:26-51`):
@@ -1277,8 +1332,10 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     }
 
     /// An action's result written back (`syncActionResult`): the
-    /// elements, the app state keys, and a capture when it asks for one.
+    /// elements, the app state keys, and a capture when it asks for one
+    /// (`IMMEDIATELY`; `NEVER` never recorded, `EVENTUALLY` with the next).
     fn apply_action(&mut self, result: ActionResult) {
+        let capture = result.capture_update();
         if let Some(elements) = result.elements {
             // Ok: the actions keep the fractional indices valid
             let _ = self.session.replace_all_elements(elements);
@@ -1292,8 +1349,13 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         if !patch.is_empty() {
             self.session.set_state(patch);
         }
-        if result.capture {
-            self.session.store.schedule_capture();
+        match capture {
+            CaptureUpdateAction::Immediately => self.session.store.schedule_capture(),
+            CaptureUpdateAction::Never => self
+                .session
+                .store
+                .schedule_action(CaptureUpdateAction::Never),
+            CaptureUpdateAction::Eventually => {}
         }
         self.session.commit();
         self.report();
@@ -1778,6 +1840,17 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         self.last_pointer = [input.client_x, input.client_y];
         // a press on the canvas closes the convert popup (App.tsx:8756-8758)
         self.keyboard.convert_popup_open = false;
+        // and the open popup (App.tsx:8772-8774)
+        if self
+            .session
+            .app_state()
+            .get("openPopup")
+            .is_some_and(|p| !p.is_null())
+        {
+            let mut patch = Map::new();
+            patch.insert("openPopup".into(), Value::Null);
+            self.session.set_state(patch);
+        }
         // a press without the previous one's release ends it first
         // (`maybeCleanupAfterMissingPointerUp`)
         if self.gesture.is_some() {

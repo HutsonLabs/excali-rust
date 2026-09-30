@@ -560,6 +560,7 @@ fn result(elements: Vec<Element>) -> Option<ActionResult> {
         elements: Some(elements),
         app_state: Map::new(),
         capture: true,
+        never: false,
     })
 }
 

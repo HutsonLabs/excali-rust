@@ -17,18 +17,24 @@
 //!   [`paste_elements`];
 //! - inserting library items (`LibraryMenuItems`'s click, App's drop,
 //!   `distributeLibraryItemsOnSquareGrid`): [`insert_library_items`] and
-//!   [`distribute_library_items_on_square_grid`].
+//!   [`distribute_library_items_on_square_grid`];
+//! - the styles panel's actions (`actionProperties.tsx`, `togglePolygon`,
+//!   `actionAlign.tsx`, `actionDistribute.tsx`, `actionLink.tsx`,
+//!   `actionCropEditor.tsx`): [`perform_style_action`], over a
+//!   [`StyleEnv`] that lays text out.
 //!
 //! Upstream mutates elements in place (`mutateElement`) or copies them
 //! (`newElementWith`); either way a changed element gets `version + 1`, a
 //! fresh `versionNonce` and `updated` now, drawn from the [`EditEnv`] in
 //! upstream's order.
 
+mod align;
 mod clipboard;
 mod delete;
 pub mod duplicate;
 mod grouping;
 mod library;
+mod properties;
 mod zindex;
 
 use std::collections::HashSet;
@@ -43,6 +49,7 @@ use serde_json::{Map, Value};
 use crate::groups::select_groups_for_selected_elements;
 use crate::mutate::bump_version;
 use crate::scene::MutationEnv;
+use crate::store::CaptureUpdateAction;
 
 pub use clipboard::{copy_selected, paste_elements};
 pub use delete::delete_selected;
@@ -56,6 +63,7 @@ pub use grouping::{group, ungroup};
 pub use library::{
     distribute_library_items_on_square_grid, duplicate_library_items, insert_library_items,
 };
+pub use properties::{eye_dropper_preview, perform_style_action, StyleEnv};
 pub use zindex::{bring_forward, bring_to_front, send_backward, send_to_back};
 
 /// Where the edit actions draw what upstream draws: new ids (`randomId()`,
@@ -80,11 +88,27 @@ pub struct ActionResult {
     pub elements: Option<Vec<Element>>,
     /// The app state keys the action sets.
     pub app_state: Map<String, Value>,
-    /// `captureUpdate: IMMEDIATELY` (else `EVENTUALLY`).
+    /// `captureUpdate: IMMEDIATELY` (else `EVENTUALLY`, or `NEVER` with
+    /// [`ActionResult::never`]).
     pub capture: bool,
+    /// `captureUpdate: NEVER` (the update is never undoable, as the font
+    /// picker's reset of what hovering previewed); only read when
+    /// `capture` is false.
+    pub never: bool,
 }
 
 impl ActionResult {
+    /// Upstream's `captureUpdate`.
+    pub fn capture_update(&self) -> CaptureUpdateAction {
+        if self.capture {
+            CaptureUpdateAction::Immediately
+        } else if self.never {
+            CaptureUpdateAction::Never
+        } else {
+            CaptureUpdateAction::Eventually
+        }
+    }
+
     /// `{ appState, elements, captureUpdate: EVENTUALLY }` with both as
     /// they were: nothing to do.
     fn unchanged() -> ActionResult {
@@ -391,5 +415,6 @@ pub fn select_all(elements: &[Element], app_state: &AppState) -> Option<ActionRe
         elements: None,
         app_state: patch,
         capture: true,
+        never: false,
     })
 }

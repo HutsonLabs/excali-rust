@@ -25,6 +25,57 @@ pub type Handler = Rc<dyn Fn(&Event)>;
 /// Called once the element is in the document (a layout effect).
 pub type MountHook = Rc<dyn Fn(&web_sys::Element)>;
 
+/// What a data listener ([`Element::on_data`]) reads from its event: the
+/// key and modifiers, and the target's value. Decoded from the DOM event
+/// when mounted; built directly to [`Element::dispatch`] natively.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct EventData {
+    /// `KeyboardEvent.key` (empty for other events).
+    pub key: String,
+    pub alt_key: bool,
+    pub ctrl_key: bool,
+    pub meta_key: bool,
+    pub shift_key: bool,
+    /// `event.target.value` for an input.
+    pub value: Option<String>,
+}
+
+impl EventData {
+    /// The event's data (modifiers from a keyboard or mouse event).
+    pub fn from_event(e: &Event) -> EventData {
+        let mut data = EventData::default();
+        if let Some(k) = e.dyn_ref::<web_sys::KeyboardEvent>() {
+            data.key = k.key();
+            data.alt_key = k.alt_key();
+            data.ctrl_key = k.ctrl_key();
+            data.meta_key = k.meta_key();
+            data.shift_key = k.shift_key();
+        } else if let Some(m) = e.dyn_ref::<web_sys::MouseEvent>() {
+            data.alt_key = m.alt_key();
+            data.ctrl_key = m.ctrl_key();
+            data.meta_key = m.meta_key();
+            data.shift_key = m.shift_key();
+        }
+        data.value = e
+            .target()
+            .and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok())
+            .map(|i| i.value());
+        data
+    }
+}
+
+/// What a data listener asks of its event.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct EventResponse {
+    /// `event.preventDefault()`.
+    pub prevent_default: bool,
+    /// `event.stopPropagation()` and `stopImmediatePropagation()`.
+    pub stop_propagation: bool,
+}
+
+/// A listener on the event's [`EventData`].
+pub type DataHandler = Rc<dyn Fn(&EventData) -> EventResponse>;
+
 /// A node of a tree: an element or text.
 #[derive(Clone)]
 pub enum Node {
@@ -97,6 +148,7 @@ pub struct Element {
     style: Vec<(String, String)>,
     children: Vec<Node>,
     listeners: Vec<(String, Handler)>,
+    data_listeners: Vec<(String, DataHandler)>,
     on_mount: Vec<MountHook>,
 }
 
@@ -110,6 +162,7 @@ impl Element {
             style: Vec::new(),
             children: Vec::new(),
             listeners: Vec::new(),
+            data_listeners: Vec::new(),
             on_mount: Vec::new(),
         }
     }
@@ -203,6 +256,49 @@ impl Element {
     pub fn on(mut self, event: impl Into<String>, handler: impl Fn(&Event) + 'static) -> Element {
         self.listeners.push((event.into(), Rc::new(handler)));
         self
+    }
+
+    /// Adds a listener for `event` on its [`EventData`]; mounted, it
+    /// applies the returned [`EventResponse`] to the DOM event. Natively,
+    /// [`Element::dispatch`] runs it.
+    pub fn on_data(
+        mut self,
+        event: impl Into<String>,
+        handler: impl Fn(&EventData) -> EventResponse + 'static,
+    ) -> Element {
+        let event = event.into();
+        let handler: DataHandler = Rc::new(handler);
+        self.data_listeners.push((event.clone(), handler.clone()));
+        self.on(event, move |e| {
+            let response = handler(&EventData::from_event(e));
+            if response.prevent_default {
+                e.prevent_default();
+            }
+            if response.stop_propagation {
+                e.stop_immediate_propagation();
+                e.stop_propagation();
+            }
+        })
+    }
+
+    /// Runs the element's data listeners for `event` with `data`, in
+    /// order, merging their responses; `None` when it has none.
+    pub fn dispatch(&self, event: &str, data: &EventData) -> Option<EventResponse> {
+        let mut out: Option<EventResponse> = None;
+        for (e, handler) in &self.data_listeners {
+            if e == event {
+                let r = handler(data);
+                let acc = out.get_or_insert_with(EventResponse::default);
+                acc.prevent_default |= r.prevent_default;
+                acc.stop_propagation |= r.stop_propagation;
+            }
+        }
+        out
+    }
+
+    /// The events data listeners are on, in order.
+    pub fn data_events(&self) -> impl Iterator<Item = &str> {
+        self.data_listeners.iter().map(|(e, _)| e.as_str())
     }
 
     /// Runs `hook` with the element once the tree is mounted, children
@@ -396,6 +492,34 @@ pub fn mount(node: &Node, document: &Document, parent: &web_sys::Node) -> Result
         hook(&el);
     }
     Ok(Mounted { root, listeners })
+}
+
+/// The mount hooks of a tree mounted with [`mount_deferred`], to run once
+/// it is in the document.
+#[must_use]
+pub struct PendingHooks(Hooks);
+
+impl PendingHooks {
+    /// Runs the hooks (children before parents, in order).
+    pub fn run(self) {
+        for (el, hook) in self.0 {
+            hook(&el);
+        }
+    }
+}
+
+/// [`mount`] into a `parent` that is not in the document yet (a fragment):
+/// the tree's mount hooks are returned, to run once it is.
+pub fn mount_deferred(
+    node: &Node,
+    document: &Document,
+    parent: &web_sys::Node,
+) -> Result<(Mounted, PendingHooks), JsValue> {
+    let mut listeners = Vec::new();
+    let mut hooks = Vec::new();
+    let root = create(node, document, &mut listeners, &mut hooks)?;
+    parent.append_child(&root)?;
+    Ok((Mounted { root, listeners }, PendingHooks(hooks)))
 }
 
 /// Creates `node`'s DOM without attaching it; its listeners stay attached

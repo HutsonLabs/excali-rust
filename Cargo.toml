@@ -129,6 +129,20 @@ lto = true
 codegen-units = 1
 panic = "abort"
 
+# The chrome and the editing code (the UI's DOM, the actions, the element's
+# host) at "z": they run on input, not per frame, and "z" keeps the module
+# within its gzip budget; the renderers (excali-scene, excali-rough,
+# excali-canvas2d, excali-freehand, excali-text, excali-math) stay at "s"
+# for first paint and pan (site/content/plan/phases.md#budgets).
+[profile.web-release.package.excali-ui]
+opt-level = "z"
+
+[profile.web-release.package.excali-editor]
+opt-level = "z"
+
+[profile.web-release.package.excali-wasm]
+opt-level = "z"
+
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
 rust_2018_idioms = { level = "deny", priority = -1 }

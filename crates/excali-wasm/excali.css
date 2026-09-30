@@ -2411,6 +2411,205 @@
   box-sizing: border-box;
   position: absolute;
 }
+/* The action panels' rules, compiled with sass (expanded) from upstream's
+ * sources at the pin: packages/excalidraw/css/styles.scss's .buttonList
+ * rules (:246, :264-279, the outlineButtonIconStyles mixin of
+ * css/variables.module.scss) and .App-menu__left .buttonList (:942-946),
+ * then components/IconPicker.scss whole. */
+.excalidraw .buttonList label:focus-within {
+  outline: transparent;
+  box-shadow: 0 0 0 1px var(--color-brand-hover);
+}
+.excalidraw .buttonList .ToolIcon__icon {
+  all: unset !important;
+  display: flex !important;
+}
+.excalidraw .buttonList button {
+  background-color: transparent;
+}
+.excalidraw .buttonList label,
+.excalidraw .buttonList button,
+.excalidraw .buttonList .zIndexButton {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.625rem;
+  width: var(--button-width, var(--default-button-size));
+  height: var(--button-height, var(--default-button-size));
+  box-sizing: border-box;
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--button-border, var(--default-border-color));
+  border-radius: var(--border-radius-lg);
+  cursor: pointer;
+  background-color: var(--button-bg, var(--island-bg-color));
+  color: var(--button-color, var(--color-on-surface));
+  font-family: var(--ui-font);
+}
+.excalidraw .buttonList label svg,
+.excalidraw .buttonList button svg,
+.excalidraw .buttonList .zIndexButton svg {
+  width: var(--button-width, var(--lg-icon-size));
+  height: var(--button-height, var(--lg-icon-size));
+}
+.excalidraw .buttonList label:hover,
+.excalidraw .buttonList button:hover,
+.excalidraw .buttonList .zIndexButton:hover {
+  background-color: var(--button-hover-bg, var(--island-bg-color));
+  border-color: var(--button-hover-border, var(--button-border, var(--default-border-color)));
+  color: var(--button-hover-color, var(--button-color, var(--text-primary-color, inherit)));
+}
+.excalidraw .buttonList label:active,
+.excalidraw .buttonList button:active,
+.excalidraw .buttonList .zIndexButton:active {
+  background-color: var(--button-active-bg, var(--island-bg-color));
+  border-color: var(--button-active-border, var(--color-primary-darkest));
+}
+.excalidraw .buttonList label.active, .excalidraw .buttonList label.ToolIcon--checked,
+.excalidraw .buttonList button.active,
+.excalidraw .buttonList button.ToolIcon--checked,
+.excalidraw .buttonList .zIndexButton.active,
+.excalidraw .buttonList .zIndexButton.ToolIcon--checked {
+  background-color: var(--button-selected-bg, var(--color-surface-primary-container));
+  border-color: var(--button-selected-border, var(--color-surface-primary-container));
+}
+.excalidraw .buttonList label.active:hover, .excalidraw .buttonList label.ToolIcon--checked:hover,
+.excalidraw .buttonList button.active:hover,
+.excalidraw .buttonList button.ToolIcon--checked:hover,
+.excalidraw .buttonList .zIndexButton.active:hover,
+.excalidraw .buttonList .zIndexButton.ToolIcon--checked:hover {
+  background-color: var(--button-selected-hover-bg, var(--color-surface-primary-container));
+}
+.excalidraw .buttonList label.active svg, .excalidraw .buttonList label.ToolIcon--checked svg,
+.excalidraw .buttonList button.active svg,
+.excalidraw .buttonList button.ToolIcon--checked svg,
+.excalidraw .buttonList .zIndexButton.active svg,
+.excalidraw .buttonList .zIndexButton.ToolIcon--checked svg {
+  color: var(--button-color, var(--color-on-primary-container));
+}
+.excalidraw--mobile.excalidraw .buttonList label, .excalidraw .buttonList button, .excalidraw .buttonList .zIndexButton {
+  width: var(--mobile-action-button-size, var(--default-button-size));
+  height: var(--mobile-action-button-size, var(--default-button-size));
+}
+
+.excalidraw .buttonList label,
+.excalidraw .buttonList button,
+.excalidraw .buttonList .zIndexButton {
+  padding: 0;
+}
+.excalidraw .buttonList label svg,
+.excalidraw .buttonList button svg,
+.excalidraw .buttonList .zIndexButton svg {
+  width: var(--default-icon-size);
+  height: var(--default-icon-size);
+}
+.excalidraw .App-menu__left .buttonList {
+  padding: 0.25rem 0;
+}
+
+.excalidraw .picker {
+  padding: 0.5rem;
+  background: var(--popup-bg-color);
+  border: 0 solid rgba(255, 255, 255, 0.25);
+  box-shadow: var(--shadow-island-stronger);
+  border-radius: 4px;
+}
+:root[dir=rtl] .excalidraw .picker {
+  padding: 0.4rem;
+}
+.excalidraw .picker-sections,
+.excalidraw .picker-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.excalidraw .picker-container button,
+.excalidraw .picker button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.excalidraw .picker-container button:focus-visible,
+.excalidraw .picker button:focus-visible {
+  outline: transparent;
+  background-color: var(--button-gray-2);
+}
+.excalidraw .picker-container button:focus-visible svg,
+.excalidraw .picker button:focus-visible svg {
+  opacity: 1;
+}
+.excalidraw .picker-container button:hover,
+.excalidraw .picker button:hover {
+  background-color: var(--button-gray-2);
+}
+.excalidraw .picker-container button:active,
+.excalidraw .picker button:active {
+  background-color: var(--button-gray-3);
+}
+.excalidraw .picker-container button:disabled,
+.excalidraw .picker button:disabled {
+  cursor: not-allowed;
+}
+.excalidraw .picker-container button svg,
+.excalidraw .picker button svg {
+  margin: 0;
+  width: 36px;
+  height: 18px;
+  pointer-events: none;
+}
+.excalidraw .picker button {
+  padding: 0.25rem 0.28rem 0.35rem 0.25rem;
+}
+.excalidraw .picker-content {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  grid-gap: 0.5rem;
+  border-radius: 4px;
+}
+.excalidraw .picker-collapsible {
+  font-size: 0.75rem;
+  padding: 0;
+  color: var(--text-primary-color);
+}
+.excalidraw .picker-section-label {
+  font-size: 0.75rem;
+  color: var(--text-primary-color);
+}
+.excalidraw .picker-keybinding {
+  position: absolute;
+  bottom: 2px;
+  font-size: 0.7em;
+  color: var(--keybinding-color);
+}
+:root[dir=ltr] .excalidraw .picker-keybinding {
+  right: 2px;
+}
+:root[dir=rtl] .excalidraw .picker-keybinding {
+  left: 2px;
+}
+.excalidraw--mobile.excalidraw .picker-keybinding {
+  display: none;
+}
+
+.excalidraw .picker-type-canvasBackground .picker-keybinding {
+  color: #aaa;
+}
+.excalidraw .picker-type-elementBackground .picker-keybinding {
+  color: #fff;
+}
+.excalidraw .picker-swatch[aria-label=transparent] .picker-keybinding {
+  color: #aaa;
+}
+.excalidraw .picker-type-elementStroke .picker-keybinding {
+  color: #d4d4d4;
+}
+.excalidraw.theme--dark .picker-type-elementBackground .picker-keybinding {
+  color: #000;
+}
+.excalidraw.theme--dark .picker-swatch[aria-label=transparent] .picker-keybinding {
+  color: #000;
+}
 
 /* Generated by tools/goldens/color-picker.mjs; do not edit. Upstream's
  * packages/excalidraw/components/ColorPicker/ColorPicker.scss,
@@ -2810,6 +3009,255 @@
 .excalidraw .excalidraw-eye-dropper-trigger.selected {
   color: var(--color-primary);
   background: var(--color-primary-light);
+}
+
+/* Generated by tools/goldens/font-picker.mjs; do not edit. Upstream's
+ * packages/excalidraw/components/FontPicker/FontPicker.scss,
+ * packages/excalidraw/components/QuickSearch.scss,
+ * packages/excalidraw/components/ScrollableList.scss,
+ * packages/excalidraw/components/TopPicksDnD/TopPicksDnD.scss
+ * at the pin, compiled with sass 1.51.0 (expanded) as one entry that
+ * @uses each in this order. */
+.excalidraw .FontPicker__container {
+  display: grid;
+  grid-template-columns: calc(1rem + 3 * var(--default-button-size)) 1rem 1fr;
+  align-items: center;
+}
+.excalidraw--mobile.excalidraw .FontPicker__container {
+  max-width: calc(2rem + 4 * var(--default-button-size));
+}
+
+.excalidraw .FontPicker__container--compact {
+  display: block;
+  grid-template-columns: none;
+}
+.excalidraw .FontPicker__top-picks-slots {
+  display: flex;
+  gap: inherit;
+}
+.excalidraw .FontPicker__top-picks .top-picks-dnd__pick.is-dnd-target {
+  transform: scale(1.1);
+  border-color: var(--color-primary);
+}
+.excalidraw .FontPicker__top-pick-sample {
+  font-size: 1rem;
+  line-height: 1;
+}
+.excalidraw .FontPicker__tip {
+  margin-top: 0.5rem;
+}
+
+.excalidraw-font-dnd-ghost-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.excalidraw {
+  --list-border-color: var(--color-gray-20);
+}
+.excalidraw .QuickSearch__wrapper {
+  position: relative;
+  height: 2.6rem;
+  border-bottom: 1px solid var(--list-border-color);
+}
+.excalidraw .QuickSearch__wrapper svg {
+  position: absolute;
+  top: 47.5%;
+  transform: translateY(-50%);
+  left: 0.75rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-gray-40);
+  z-index: 1;
+}
+.excalidraw.theme--dark {
+  --list-border-color: var(--color-gray-80);
+}
+.excalidraw.theme--dark .QuickSearch__wrapper {
+  border-bottom: none;
+}
+.excalidraw .QuickSearch__input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  border: 0 !important;
+  font-size: 0.875rem;
+  padding-left: 2.5rem !important;
+  padding-right: 0.75rem !important;
+}
+.excalidraw .QuickSearch__input::placeholder {
+  color: var(--color-gray-40);
+}
+.excalidraw .QuickSearch__input:focus {
+  box-shadow: none !important;
+}
+
+.excalidraw .ScrollableList__wrapper {
+  position: static !important;
+  border: none;
+  font-size: 0.875rem;
+  overflow-y: auto;
+}
+.excalidraw .ScrollableList__wrapper > .empty, .excalidraw .ScrollableList__wrapper > .hint {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-gray-60);
+  overflow: hidden;
+  text-align: center;
+  line-height: 150%;
+}
+
+.excalidraw .top-picks-dnd {
+  position: relative;
+}
+.excalidraw .top-picks-dnd__pick {
+  touch-action: none;
+}
+.excalidraw .top-picks-dnd.is-dnd-active .top-picks-dnd__pick {
+  pointer-events: none;
+  transition: transform 0.14s ease, opacity 0.14s ease, box-shadow 0.14s ease;
+}
+.excalidraw .top-picks-dnd__outline {
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  width: calc(100% + 10px);
+  height: calc(100% + 10px);
+  pointer-events: none;
+  overflow: visible;
+}
+.excalidraw .top-picks-dnd__outline rect {
+  x: 0.5px;
+  y: 0.5px;
+  rx: 6px;
+  width: calc(100% - 1px);
+  height: calc(100% - 1px);
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  animation: excalidraw-top-picks-dnd-march 0.8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .excalidraw .top-picks-dnd__outline rect {
+    animation: none;
+  }
+}
+@keyframes excalidraw-top-picks-dnd-march {
+  to {
+    stroke-dashoffset: -8;
+  }
+}
+.excalidraw .top-picks-dnd__pick.is-dnd-source {
+  opacity: 0.3;
+}
+.excalidraw .top-picks-dnd__pick.is-dnd-duplicate {
+  animation: excalidraw-top-picks-dnd-duplicate 0.45s ease-in-out infinite alternate;
+}
+@keyframes excalidraw-top-picks-dnd-duplicate {
+  from {
+    box-shadow: 0 0 0 2px var(--color-danger, #e03131);
+    transform: scale(1);
+  }
+  to {
+    box-shadow: 0 0 0 3px var(--color-danger, #e03131);
+    transform: scale(1.12);
+  }
+}
+.excalidraw .top-picks-dnd__tip {
+  padding: 0 0.5rem;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  text-align: left;
+  color: var(--color-gray-60);
+}
+.excalidraw .top-picks-dnd__tip-reset {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+.excalidraw .top-picks-dnd__tip-reset:hover {
+  text-decoration: underline;
+}
+.excalidraw .top-picks-dnd__context-menu {
+  background: var(--popup-bg-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-island);
+  padding: 0.25rem;
+}
+.excalidraw .top-picks-dnd__context-menu-item {
+  font-size: 0.75rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: var(--border-radius-md);
+  color: var(--text-primary-color);
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+.excalidraw .top-picks-dnd__context-menu-item[data-highlighted], .excalidraw .top-picks-dnd__context-menu-item:not([data-disabled]):hover {
+  background: var(--button-hover-bg);
+}
+.excalidraw .top-picks-dnd__context-menu-item[data-disabled] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.excalidraw-top-picks-dnd-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10000;
+  pointer-events: none;
+  will-change: transform;
+  transition: width 0.15s ease, height 0.15s ease;
+}
+.excalidraw-top-picks-dnd-ghost__content {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  box-shadow: var(--top-picks-dnd-ghost-ring, 0 0 transparent);
+  transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+}
+.excalidraw-top-picks-dnd-ghost--lifted .excalidraw-top-picks-dnd-ghost__content {
+  transform: scale(1.2);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25), var(--top-picks-dnd-ghost-ring, 0 0 transparent);
+}
+.excalidraw-top-picks-dnd-ghost--over .excalidraw-top-picks-dnd-ghost__content {
+  transform: scale(1.05);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2), var(--top-picks-dnd-ghost-ring, 0 0 transparent);
+}
+.excalidraw-top-picks-dnd-ghost--blocked .excalidraw-top-picks-dnd-ghost__content {
+  opacity: 0.4;
+  transform: scale(0.85);
+}
+.excalidraw-top-picks-dnd-ghost--dropping {
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.3, 1), width 0.18s ease, height 0.18s ease;
+}
+.excalidraw-top-picks-dnd-ghost--dropping .excalidraw-top-picks-dnd-ghost__content {
+  transform: scale(1);
+  box-shadow: var(--top-picks-dnd-ghost-ring, 0 0 transparent);
+}
+.excalidraw-top-picks-dnd-ghost--fade .excalidraw-top-picks-dnd-ghost__content {
+  opacity: 0;
+}
+
+body.excalidraw-top-picks-dnd-active {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+body.excalidraw-top-picks-dnd-active,
+body.excalidraw-top-picks-dnd-active * {
+  cursor: grabbing !important;
 }
 
 /* Generated by tools/goldens/color-top-picks-dnd.mjs; do not edit. Upstream's
@@ -4554,6 +5002,8 @@ body.excalidraw-top-picks-dnd-active * {
   --ui-font: Assistant, system-ui, BlinkMacSystemFont, -apple-system, Segoe UI,
     Roboto, Helvetica, Arial, sans-serif;
   --viewport-status-frame-border-width: 0px;
+  --zIndex-eyeDropperBackdrop: 5;
+  --zIndex-eyeDropperPreview: 6;
   font-family: var(--ui-font);
   color: var(--text-primary-color);
 }

@@ -476,7 +476,10 @@ jobs:
   # styles-panel.mjs --check for excali-ui's styles-panel.json (ex-519),
   # upstream's own getShapeActionPredicates, showSelectedShapeActions and
   # the full styles panel's tree (SelectedShapeActions, LayerUI's section
-  # and island) on hand-written and seeded selections; and icons.mjs
+  # and island) on hand-written and seeded selections; action-panels.mjs
+  # --check for excali-ui's action-panels.json (ex-540), what each styles
+  # panel action's PanelComponent renders and passes to updateData; and
+  # icons.mjs
   # --check for excali-ui's icons.json and src/icons/generated.rs (ex-517),
   # every icons.tsx export rendered by React's renderToStaticMarkup with
   # its size preset and mirror flag, and src/icons/icons.css, styles.scss's
@@ -512,6 +515,10 @@ jobs:
   # upstream's selection, group, element creation and edit action code on
   # the scenes of the gestures <excali-editor> wires, and its library
   # insertion (ex-526); and
+  # style-actions-fixtures.mjs --check for excali-editor's
+  # style-actions.json (ex-540), upstream's perform of the styles panel's
+  # actions (actionProperties.tsx, togglePolygon, align, distribute,
+  # hyperlink, cropEditor) on hand-written scenes; and
   # color-picker.mjs --check for excali-ui's color-picker.json and
   # src/color_picker/color_picker.css (ex-523), upstream's ColorPicker
   # rendered by React with radix-ui into jsdom, its keyboard map, hex input,
@@ -635,6 +642,8 @@ jobs:
         run: node tools/goldens/theme-tokens.mjs --check
       - name: excali-ui styles panel fixture matches upstream's getShapeActionPredicates and SelectedShapeActions
         run: node tools/goldens/styles-panel.mjs --check
+      - name: excali-ui action panels fixture matches upstream's action PanelComponents
+        run: node tools/goldens/action-panels.mjs --check
       - name: excali-ui icon set matches upstream's icons.tsx
         run: node tools/goldens/icons.mjs --check
       - name: excali-ui shapes toolbar fixture and stylesheet match upstream's Toolbar and ExtraToolsDropdown
@@ -683,6 +692,8 @@ jobs:
         run: node tools/goldens/png-export.mjs --check
       - name: excali-editor editing fixture matches upstream's selection, groups, newElement and edit actions
         run: node tools/goldens/editing-fixtures.mjs --check
+      - name: excali-editor style action fixture matches upstream's styles panel action performs
+        run: node tools/goldens/style-actions-fixtures.mjs --check
       - name: toolchain (from rust-toolchain.toml)
         run: rustup toolchain install
       - uses: Swatinem/rust-cache@v2

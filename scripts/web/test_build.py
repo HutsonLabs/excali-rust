@@ -250,6 +250,26 @@ class ProfileTest(unittest.TestCase):
             },
         )
 
+    def test_chrome_and_editing_crates_build_small(self):
+        # ex-540: the crates that run on input, not per frame, at "z";
+        # the renderers keep the profile's "s"
+        for package in ("excali-ui", "excali-editor", "excali-wasm"):
+            self.assertEqual(
+                self.section(f"profile.web-release.package.{package}"),
+                {"opt-level": '"z"'},
+            )
+        for package in (
+            "excali-scene",
+            "excali-rough",
+            "excali-canvas2d",
+            "excali-freehand",
+            "excali-text",
+            "excali-math",
+            "excali-core",
+        ):
+            with self.assertRaises(ValueError):
+                self.section(f"profile.web-release.package.{package}")
+
 
 if __name__ == "__main__":
     unittest.main()

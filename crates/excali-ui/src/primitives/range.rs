@@ -3,10 +3,7 @@
 
 use std::rc::Rc;
 
-use wasm_bindgen::JsCast;
-use web_sys::HtmlInputElement;
-
-use crate::dom::{Element, Node};
+use crate::dom::{Element, EventResponse, Node};
 
 use super::number;
 
@@ -43,6 +40,16 @@ impl Default for RangeProps {
             has_common_value: true,
             test_id: None,
         }
+    }
+}
+
+/// `+s`: JavaScript's number from a string (blank is 0).
+fn js_number(s: &str) -> f64 {
+    let s = s.trim();
+    if s.is_empty() {
+        0.0
+    } else {
+        s.parse().unwrap_or(f64::NAN)
     }
 }
 
@@ -87,13 +94,12 @@ pub fn range(props: RangeProps) -> Element {
                         .attr("value", number(props.value))
                         .attr("class", "range-input")
                         .attr_opt("data-testid", props.test_id)
-                        .on("input", move |e| {
-                            if let Some(input) = e
-                                .current_target()
-                                .and_then(|t| t.dyn_into::<HtmlInputElement>().ok())
-                            {
-                                on_change(input.value_as_number());
+                        // `+event.target.value`
+                        .on_data("input", move |data| {
+                            if let Some(value) = &data.value {
+                                on_change(js_number(value));
                             }
+                            EventResponse::default()
                         }),
                 )
                 .child(

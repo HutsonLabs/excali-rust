@@ -16,8 +16,9 @@
 #
 #   scripts/web/build.sh [OUT]      default OUT: dist (at the repository root)
 #
-# Steps: cargo build --profile web-release (Cargo.toml: opt-level "s", fat
-# LTO, one codegen unit, panic = "abort"); wasm-bindgen --target web; wasm-opt
+# Steps: cargo build --profile web-release (Cargo.toml: opt-level "s", "z"
+# for excali-ui, excali-editor and excali-wasm, fat LTO, one codegen unit,
+# panic = "abort"); wasm-bindgen --target web; wasm-opt
 # -Os from the pinned binaryen (scripts/web/binaryen.py downloads and
 # verifies it into .tools/ when it is not on PATH); then the gzip sizes are
 # checked against the budgets on site/content/plan/phases.md

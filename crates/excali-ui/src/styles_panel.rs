@@ -35,8 +35,13 @@ use crate::color_picker::{ColorPickerType, ColorTopPicksSlot, StylesPanelMode};
 use crate::icons::{self, Icon};
 
 /// The panel's rules of upstream's `css/styles.scss`
-/// (`.selected-shape-actions`, `.App-menu__left`).
-pub const STYLES_PANEL_CSS: &str = include_str!("styles_panel.css");
+/// (`.selected-shape-actions`, `.App-menu__left`), then the action
+/// panels' (`.buttonList`'s buttons and `IconPicker.scss`,
+/// [`crate::action_panels`]).
+pub const STYLES_PANEL_CSS: &str = concat!(
+    include_str!("styles_panel.css"),
+    include_str!("action_panels.css")
+);
 
 /// Adds [`STYLES_PANEL_CSS`] to the document's head once, after the
 /// primitives' stylesheet.
@@ -1018,6 +1023,14 @@ pub fn place_popovers(root: &web_sys::Element) {
         else {
             continue;
         };
+        // IconPicker's popover places itself
+        // (crate::action_panels::place_icon_pickers)
+        if wrapper
+            .first_element_child()
+            .is_some_and(|c| c.class_list().contains("picker"))
+        {
+            continue;
+        }
         let below = wrapper
             .first_element_child()
             .and_then(|c| c.get_attribute("data-side"))

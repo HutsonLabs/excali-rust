@@ -7,6 +7,8 @@
 //!   wrapped in `excali_editor::restore_env::RoutingEnv` by the loader;
 //! - [`MutationEnv`] and [`BindingEnv`] for `scene.mutateElement` and
 //!   `updateBoundElements` (keyboard nudges, dragging);
+//! - [`StyleEnv`] for the styles panel's actions (`redrawTextBoundingBox`
+//!   with or without a container);
 //! - [`ChangeStamp`] and [`HistoryEnv`] for the store and history, with the
 //!   real leaf layouts: `redrawTextBoundingBox` is
 //!   [`TextLayouter::redraw_text_bounding_box`] (ex-512), a sticky note's
@@ -25,6 +27,7 @@ use excali_core::restore::{
     RestoreEnv, StickyNoteLayout as RestoredStickyNoteLayout, StickyNoteLayoutRequest,
 };
 use excali_editor::binding::{update_bound_elements_in_map, BindingEnv};
+use excali_editor::edit_actions::StyleEnv;
 use excali_editor::resize_elements::{
     sticky_note_layout, StickyNoteLayout, StickyNoteLayoutOpts, TransformEnv,
 };
@@ -218,6 +221,52 @@ impl<P: TextMetricsProvider + Clone> HistoryEnv for EditorEnv<P> {
     /// development build does; release builds carry on.
     fn dev_checks(&self) -> bool {
         cfg!(debug_assertions)
+    }
+}
+
+/// The generator as the stamp of a `scene.mutateElement`: the element's
+/// version nonce, then the scene's (`triggerUpdate()`).
+struct SceneMutation<'a>(&'a mut Rng);
+
+impl ChangeStamp for SceneMutation<'_> {
+    fn version_nonce(&mut self) -> f64 {
+        let nonce = self.0.integer();
+        let _scene_nonce = self.0.integer();
+        nonce
+    }
+
+    fn updated(&mut self) -> f64 {
+        self.0.now()
+    }
+}
+
+/// The styles panel's actions: `redrawTextBoundingBox` with or without a
+/// container through the layouter, as for the history, a sticky note's
+/// arrows following it; each mutation a scene's, drawing the scene nonce.
+impl<P: TextMetricsProvider + Clone> StyleEnv for EditorEnv<P> {
+    fn redraw_text_bounding_box(
+        &mut self,
+        elements: &mut SceneElementsMap,
+        text_id: &str,
+        container_id: Option<&str>,
+    ) -> Result<(), String> {
+        let provider = self.layouter.provider.clone();
+        let mut arrow_widths = CharWidthCache::new();
+        self.layouter.redraw_text_bounding_box(
+            &mut SceneMutation(&mut self.rng),
+            elements,
+            text_id,
+            container_id,
+            &mut |stamp, elements, id| {
+                let mut env = StampBinding {
+                    stamp,
+                    provider: &provider,
+                    char_widths: &mut arrow_widths,
+                };
+                update_bound_elements_in_map(elements, id, &SceneElementsMap::new(), &mut env);
+                Ok(())
+            },
+        )
     }
 }
 
