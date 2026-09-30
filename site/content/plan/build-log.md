@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-30 · ex-b4q · Fix main: CI red (gates https://github.com/HutsonLabs/excali-rust/actions/runs/36683002882 17c7440)
+
+`scripts/upstream/checkout.sh` now retries its upstream fetch with doubling delays (4 attempts, 5 s first delay; `UPSTREAM_FETCH_ATTEMPTS` / `UPSTREAM_FETCH_DELAY`) when git reports a transport failure (DNS, connection, TLS, HTTP 5xx), so a momentary network blip on a hosted runner no longer turns main red. A server that refuses fetch-by-sha still falls back to fetching all refs at once, and a persistent network failure now stops with "failed after N attempts" instead of wrongly reporting "fetch by sha refused" and falling through. PR: [#153](https://github.com/HutsonLabs/excali-rust/pull/153).
+
 ## 2026-09-30 · ex-802 · Release tarball of the ES module and WASM as a GitHub release asset
 
 The web runtime now ships as a GitHub release asset: pushing a tag `v<version>` runs `.github/workflows/release.yml`, which builds `scripts/web/build.sh`, packs the four entries (`excali_editor.js`, `excali_editor_bg.wasm`, `excali.css`, `fonts/`) into a reproducible `excali-web_<version>.tar.gz` with `scripts/release/package.py`, and uploads it and `SHA256SUMS` to the release (creating it if needed, keeping other assets' checksum lines). A host fetches it with `scripts/release/fetch.sh <version> <dir>`, which downloads both assets, refuses the tarball unless its SHA-256 matches, and only then replaces `<dir>`: term.hut's vendor script can call it (or copy it) in place of building from a checkout, the same `curl -fsSL` pattern as its `scripts/vendor-catppuccin-icons.sh` plus the checksum. The integration guide and the term.hut integration page say how. PR: [#151](https://github.com/HutsonLabs/excali-rust/pull/151).
