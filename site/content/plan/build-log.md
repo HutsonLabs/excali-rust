@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-30 · ex-540 · Styles panel: the property actions' panel components and performs in <excali-editor>
+
+Every control of the styles panel in `<excali-editor>` now works: fill, stroke width and style, sloppiness, pressure, opacity, font family and size, text and vertical alignment, edges with the polygon toggle, arrowheads and arrow type, layers, align and distribute, group, duplicate, delete, link and crop each render their action's `PanelComponent` and run its perform on the selection as upstream does. The stroke and background colour pickers apply a top pick, a swatch, a keyboard hotkey, the hex input and the eye dropper with one history entry each; customising the top picks by drag and drop stores `colorTopPicks` without one; a press outside an open popup closes it. PR: [#155](https://github.com/HutsonLabs/excali-rust/pull/155).
+
 ## 2026-09-30 · ex-m8 · M8: v26.9.1 released on GitHub
 
 Milestone M8 is met: tag `v26.9.1` is on GitHub, its release (https://github.com/HutsonLabs/excali-rust/releases/tag/v26.9.1) carries the ES module + WASM tarball `excali-web_26.9.1.tar.gz` with its SHA-256 in `SHA256SUMS`, and the release notes now link the transcript of the integration guide walked in a fresh clone (https://hutsonlabs.github.io/excali-rust/architecture/integration-walk/). crates.io is not required (ex-801 deferred by the owner). PR: [#157](https://github.com/HutsonLabs/excali-rust/pull/157).

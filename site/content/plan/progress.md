@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-30 08:58 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-30 09:11 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**158 issues** · 145 closed (92%) · 1 in progress · 0 blocked · 10 open
+**158 issues** · 146 closed (92%) · 0 in progress · 0 blocked · 10 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -135,7 +135,7 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
 ## ex-e5 · Phase 5: Web runtime and editor
 
-<span class="status open">open</span> 39/41 children closed
+<span class="status open">open</span> 40/41 children closed
 
 Canvas2D backend, interaction state machine, history, DOM chrome without a framework, keyboard shortcuts, the <excali-editor> custom element.
 
@@ -180,8 +180,8 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-537` | Library sidebar header menu: load and save library files, the reset and remove confirm dialogs, the publish dialog | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-538` | Font picker top-picks customisation: drag a font onto the strip, reorder, context-menu reset | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-539` | Stats panel: element property edits (typed and dragged) | task | P3 | <span class="status closed">closed</span> |  |  |
-| `ex-540` | Styles panel: the property actions' panel components and performs in <excali-editor> | task | P1 | <span class="status in_progress">in progress</span> |  |  |
-| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-540` |
+| `ex-540` | Styles panel: the property actions' panel components and performs in <excali-editor> | task | P1 | <span class="status closed">closed</span> |  |  |
+| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> | yes |  |
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
 
