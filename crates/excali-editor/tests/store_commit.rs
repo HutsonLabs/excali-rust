@@ -112,3 +112,43 @@ fn a_scroll_commit_leaves_the_elements_snapshot() {
     s.commit();
     assert!(Rc::ptr_eq(&before, &s.store.snapshot().elements));
 }
+
+/// A commit that hands the store the scene's map (`Store::commit_owned`)
+/// takes the changed elements from it rather than copying them, and ends
+/// in the same snapshot and increments as one that lends it.
+#[test]
+fn an_owned_commit_is_a_lent_one() {
+    let scene = || session(vec![rect("a", 0.0, 0.0), rect("b", 200.0, 0.0)]);
+    let (mut lent, mut owned) = (scene(), scene());
+    let next = |s: &mut Session<TestEnv>| {
+        let (a, b) = (s.elements()[0].clone(), s.elements()[1].clone());
+        let moved = with(&a, json!({"x": 10}), &mut s.env);
+        let map: excali_core::fractional_index::SceneElementsMap = [moved, b]
+            .into_iter()
+            .map(|e| (e.base.id.clone(), e))
+            .collect();
+        map
+    };
+    let (lent_map, owned_map) = (next(&mut lent), next(&mut owned));
+    assert_eq!(lent_map, owned_map);
+    let observed = |s: &Session<TestEnv>| {
+        excali_editor::store::ObservedAppState::from_app_state(s.app_state())
+    };
+    let (lo, oo) = (observed(&lent), observed(&owned));
+    lent.store.schedule_action(CaptureUpdateAction::Immediately);
+    owned
+        .store
+        .schedule_action(CaptureUpdateAction::Immediately);
+    let before = Rc::clone(&owned.store.snapshot().elements);
+    let by_ref = lent.store.commit(Some(&lent_map), Some(&lo), &mut lent.env);
+    let by_value = owned
+        .store
+        .commit_owned(Some(owned_map), Some(&oo), &mut owned.env);
+    assert!(!by_value.is_empty());
+    assert_eq!(format!("{by_ref:?}"), format!("{by_value:?}"));
+    assert_eq!(
+        format!("{:?}", lent.store.snapshot().elements),
+        format!("{:?}", owned.store.snapshot().elements)
+    );
+    assert!(!Rc::ptr_eq(&before, &owned.store.snapshot().elements));
+}
