@@ -2971,6 +2971,65 @@
    "description": "",
    "type": "task",
    "labels": []
+  },
+  {
+   "id": "ex-807",
+   "epic": "ex-e8",
+   "title": "<excali-editor>: host-controlled theme and the host's canvas background",
+   "priority": 1,
+   "blocked_by": [
+    "ex-806"
+   ],
+   "crates": [
+    "excali-wasm",
+    "excali-editor"
+   ],
+   "acceptance": "A `theme` attribute set by the host makes the theme the host's, as upstream's `theme` prop without `onThemeChange` does (index.tsx:142-147): toggleTheme is not offered (main menu, command palette, help dialog, Alt+Shift+D). Without the attribute the element keeps its toggle. A host `--excali-canvas-background` custom property on the element paints the on-screen canvas behind a scene whose viewBackgroundColor is upstream's default (#ffffff), unfiltered in either theme, and outline arrowheads fill with it; a scene with its own background, and every export (PNG, SVG, clipboard), keep the scene's background. The property is read at each paint, so a host that repaints its tokens and sets `theme` again sees the new colour at once. The integration guide and the term.hut integration page document theming (the CSS tokens on .excalidraw, the attribute, the property). Rust and Playwright tests cover each clause.",
+   "evidence": [
+    "Owner decision, 2026-09-30: term.hut's own theme (its --ctp-* tokens, light and dark) applies to the drawing editor instead of a fixed dark or light mode",
+    "upstream packages/excalidraw/index.tsx:142-147 (toggleTheme null → true only without theme or with onThemeChange)",
+    "crates/excali-ui/src/theme.rs (host rules on .excalidraw override the tokens)",
+    "crates/excali-wasm/src/web.rs render(): --color-selection is already read from the container's computed style"
+   ],
+   "description": "",
+   "type": "task",
+   "labels": []
+  },
+  {
+   "id": "ex-808",
+   "epic": "ex-e8",
+   "title": "Release v26.9.3 with host theming",
+   "priority": 1,
+   "blocked_by": [
+    "ex-807"
+   ],
+   "crates": [],
+   "acceptance": "The workspace, every Cargo.lock and the example app are at 26.9.3 and scripts/gates/version.py check passes; scripts/release/notes/v26.9.3.md lists what changed since v26.9.2; the annotated tag v26.9.3 is pushed at the merge commit and its GitHub release (Latest) carries excali-web_26.9.3.tar.gz, the signed and notarized DMG, the updater tarball, its signature, latest.json and SHA256SUMS whose every line verifies. v26.9.2 is left as published. Nothing is published to any registry.",
+   "evidence": [
+    "Owner decision, 2026-09-30: cut a new release once term.hut's editor follows its theme",
+    "python3 scripts/gates/version.py next 2026-09"
+   ],
+   "description": "",
+   "type": "task",
+   "labels": []
+  },
+  {
+   "id": "ex-809",
+   "epic": "ex-e8",
+   "title": "term.hut: the editor is the only drawing view, in term.hut's theme, at v26.9.3",
+   "priority": 1,
+   "blocked_by": [
+    "ex-808"
+   ],
+   "crates": [],
+   "acceptance": "term.hut vendors v26.9.3 through scripts/vendor-excali.sh (SOURCE.json, SHA256SUMS). The <excali-editor> takes term.hut's theme: its chrome tokens map to the app's tokens in a stylesheet loaded with the module, `theme` follows the active theme's appearance, --excali-canvas-background is the app's --bg, and a theme switch repaints an open drawing. The read-only drawing view is gone: the excalidrawReadOnly setting, excalidrawView.js and excalidrawScene.js and their tests; a module that fails to load leaves the reason and the JSON toggle. Unit and e2e suites pass in term.hut CI; the PR is merged and a term.hut release is cut.",
+   "evidence": [
+    "Owner decision, 2026-09-30: no read-only mode; the editor replaces the viewer; term.hut theming instead of dark or light",
+    "term.hut ui/src/excalidrawEditor.js (theme hardcoded dark), ui/src/themes.js (light and dark themes, theme-changed), ui/src/bpmn-theme.css (the same token mapping for bpmn-js)"
+   ],
+   "description": "",
+   "type": "task",
+   "labels": []
   }
  ],
  "notes": "Authored 2026-09-28. ids are stable; never reuse an id for different work. blocked_by lists hard dependencies only."
