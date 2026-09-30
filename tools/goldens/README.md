@@ -796,6 +796,42 @@ CI runs `--check` in the `goldens` job, and
 `test/collision-fixtures.test.mjs` checks that two runs are byte-identical and
 that the fixture holds `collision.test.tsx`'s answers.
 
+## Bucket fill fixture
+
+`bucket-fill-fixtures.mjs` writes
+`crates/excali-editor/tests/fixtures/bucket-fill.json` for excali-editor's
+bucket fill (ex-704): upstream's `packages/element/src/bucketFill.ts`
+(`computeBucketFillPolygon`, `isRestylableFill`) on these scenes:
+
+- `upstream-*`: `packages/element/tests/bucketFill.test.ts` itself, loaded
+  from the checkout with two imports replaced (`API.createElement` becomes
+  the generator's `apiCreateElement`, and the two functions under test are
+  wrapped to record each call) and run under a minimal
+  `describe`/`it`/`it.each`/`expect`/`vi.spyOn`. The test's own assertions
+  run, so the generator fails when the harness does not reproduce it. One
+  case per `it`, holding every call it made;
+- `random-*`: 48 seeded scenes of two to seven rectangles, diamonds and
+  ellipses (sharp and round), open, polygon and curved lines and freedraw
+  loops, some rotated, opaque, hachure, translucent or strokeless, each
+  clicked at twelve points (every other one near an element's middle);
+- `random-lines-*`: 16 seeded grids of four to six crossing open lines, for
+  the owner-less fallback.
+
+A call records its scene (`elements`; the elements map is
+`arrayToMap(elements)`, which the generator checks), its inputs and
+upstream's result. Upstream runs in its test mode with `reseed(1)` before
+each case; `Math.random` throws except inside `getFreedrawFillPolygon`
+(roughness 0, see the hit testing fixture).
+
+```sh
+node tools/goldens/bucket-fill-fixtures.mjs           # write the fixture
+node tools/goldens/bucket-fill-fixtures.mjs --check   # exit 1 if it is stale
+```
+
+CI runs `--check` in the `goldens` job, and
+`test/bucket-fill-fixtures.test.mjs` checks that two runs are byte-identical
+and that every test of `bucketFill.test.ts` has a case.
+
 ## Linear element editor fixture
 
 `linear-editor-fixtures.mjs` writes
