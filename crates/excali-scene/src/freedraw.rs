@@ -21,8 +21,8 @@ use std::fmt;
 use excali_core::element::{Element, ElementKind, StrokeVariability};
 use excali_core::json::number_to_string;
 use excali_freehand::{
-    constant_width_outline, variable_width_outline, CONSTANT_WIDTH_SIZE_FACTOR,
-    VARIABLE_WIDTH_SIZE_FACTOR,
+    constant_width_outline, get_stroke_points, variable_width_outline, InputPoint, StrokeOptions,
+    CONSTANT_WIDTH_SIZE_FACTOR, VARIABLE_WIDTH_SIZE_FACTOR,
 };
 use excali_math::{polygon_from_points, LocalPoint as MathLocalPoint, Point, Polygon};
 use excali_rough::points_on_curve::{points_on_bezier_curves, simplify};
@@ -192,6 +192,35 @@ pub fn get_freedraw_max_stroke_radius(element: &Element) -> f64 {
         StrokeVariability::Constant => stroke_width * CONSTANT_WIDTH_SIZE_FACTOR,
         StrokeVariability::Variable => stroke_width * VARIABLE_WIDTH_SIZE_FACTOR + 3.0,
     }
+}
+
+/// `getFreedrawStrokeCenterPoints(element)` (`shape.ts:1305-1312`): the
+/// rendered centerline of a freedraw stroke, perfect-freehand's
+/// streamline-smoothed stroke points (`getStrokePoints` with size
+/// `strokeWidth * 4.25`, the element's streamline and `last: true`; the
+/// points go in as `[x, y]`, without pressures). `None` for any other
+/// element type.
+pub fn get_freedraw_stroke_center_points(element: &Element) -> Option<Vec<[f64; 2]>> {
+    let ElementKind::Freedraw(fields) = &element.kind else {
+        return None;
+    };
+    let input: Vec<InputPoint> = fields
+        .points
+        .iter()
+        .map(|&[x, y]| InputPoint::new(x, y))
+        .collect();
+    let options = StrokeOptions {
+        size: element.base.stroke_width * VARIABLE_WIDTH_SIZE_FACTOR,
+        streamline: fields.stroke_options.streamline,
+        last: true,
+        ..StrokeOptions::default()
+    };
+    Some(
+        get_stroke_points(&input, &options)
+            .into_iter()
+            .map(|p| p.point)
+            .collect(),
+    )
 }
 
 /// `med(A, B)` (`shape.ts:1314-1316`).

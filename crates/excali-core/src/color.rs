@@ -181,6 +181,11 @@ pub fn is_transparent(color: &str) -> bool {
     TinyColor::parse(color).alpha() == 0.0
 }
 
+/// `isOpaqueColor(color)` (`colors.ts:400-402`): the alpha is 1.
+pub fn is_opaque_color(color: &str) -> bool {
+    TinyColor::parse(color).alpha() == 1.0
+}
+
 /// `DARK_MODE_FILTER_INVERT_PERCENT`, `colors.ts:16`.
 const DARK_MODE_FILTER_INVERT_PERCENT: f64 = 93.0;
 /// `DARK_MODE_FILTER_HUE_ROTATE_DEGREES`, `colors.ts:17`.

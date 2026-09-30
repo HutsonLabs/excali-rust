@@ -17,6 +17,11 @@
 //!   interactive canvas draws around the element an end would bind to;
 //!   [`linear_element_editor`]: the point geometry and `movePoints` of
 //!   `LinearElementEditor` binding uses.
+//! - [`bucket_fill`]: the bucket fill tool (`bucketFill.ts`,
+//!   `App.bucketFill.ts`): the closed polygon of the region under a click
+//!   (a planar arrangement of the visible outlines around it, gaps bridged,
+//!   islands punched out as keyhole holes), where it goes in z-order, and
+//!   whether a click restyles existing paint, toasts or inserts a fill.
 //! - [`collision`]: hit testing (`packages/element/src/collision.ts`,
 //!   `App.getElementHitThreshold`, `App.hitElement`): thresholds, the
 //!   inside and outline rules, per-shape intersections and binding hit
@@ -88,6 +93,7 @@ pub mod arrow_endpoint_text;
 mod binary_heap;
 pub mod binding;
 pub mod binding_highlight;
+pub mod bucket_fill;
 pub mod collision;
 pub mod crop;
 pub mod delta;
