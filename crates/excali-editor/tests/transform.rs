@@ -20,7 +20,9 @@
 //! run by the port's own `updateBoundElements`
 //! ([`excali_editor::binding::update_bound_elements`]) and every element it
 //! changes compared with what upstream's changed, and a sticky-note layout
-//! is answered with what upstream returned.
+//! is computed by the port's own `getStickyNoteLayout`
+//! ([`excali_editor::resize_elements::sticky_note_layout`]) and compared
+//! with what upstream returned.
 //!
 //! The tests after the replay restate `resize.test.tsx`'s assertions on
 //! those gestures.
@@ -30,8 +32,8 @@ use std::collections::{HashSet, VecDeque};
 use excali_core::element::Element;
 use excali_editor::binding::{update_bound_elements, BindingEnv};
 use excali_editor::resize_elements::{
-    get_resize_arrow_direction, get_resize_offset_xy, resize_single_element, ArrowDirection,
-    ResizeOptions, StickyNoteLayout, StickyNoteLayoutAnchor, StickyNoteLayoutOpts,
+    get_resize_arrow_direction, get_resize_offset_xy, resize_single_element, sticky_note_layout,
+    ArrowDirection, ResizeOptions, StickyNoteLayout, StickyNoteLayoutAnchor, StickyNoteLayoutOpts,
     StickyNoteTextLayout, TransformEnv,
 };
 use excali_editor::resize_test::{
@@ -39,6 +41,7 @@ use excali_editor::resize_test::{
     get_transform_handle_type_from_coords, resize_test,
 };
 use excali_editor::scene::{MutationEnv, Scene};
+use excali_editor::text_layout::SceneArrowGeometry;
 use excali_editor::tools::PointerType;
 use excali_editor::transform::{TransformModifiers, TransformSession};
 use excali_editor::transform_handles::{
@@ -47,6 +50,7 @@ use excali_editor::transform_handles::{
     TransformHandleType, TransformHandles, DEFAULT_OMIT_SIDES, OMIT_SIDES_FOR_FRAME,
 };
 use excali_scene::bounds::ElementsMap;
+use excali_text::new_element::TextLayout;
 use excali_text::text_measurements::{CharCountTextMetrics, CharWidthCache, TextMetricsProvider};
 use serde_json::{Map, Value};
 
@@ -243,6 +247,8 @@ struct ReplayEnv {
     char_widths: CharWidthCache,
     hooks: VecDeque<Value>,
     context: String,
+    /// The `getStickyNoteLayout` calls reproduced.
+    sticky_layouts: usize,
 }
 
 impl MutationEnv for ReplayEnv {
@@ -386,9 +392,21 @@ impl TransformEnv for ReplayEnv {
             other => panic!("anchor {other}"),
         });
         assert_eq!(opts.anchor, anchor, "{ctx}: anchor");
+        // the port's getStickyNoteLayout, sharing the gesture's character
+        // width cache as upstream's module-global one is shared
+        let got = sticky_note_layout(
+            &mut TextLayout {
+                provider: &CharCountTextMetrics,
+                char_widths: &mut self.char_widths,
+                geometry: &mut SceneArrowGeometry,
+            },
+            container,
+            text,
+            opts,
+        );
         let r = &hook["result"];
         let c = &r["container"];
-        StickyNoteLayout {
+        let expected = StickyNoteLayout {
             x: num(&c["x"]),
             y: num(&c["y"]),
             width: num(&c["width"]),
@@ -409,7 +427,10 @@ impl TransformEnv for ReplayEnv {
                     angle: num(&t["angle"]),
                 })
             },
-        }
+        };
+        assert_eq!(got, expected, "{}: getStickyNoteLayout", self.context);
+        self.sticky_layouts += 1;
+        got
     }
 }
 
@@ -449,6 +470,12 @@ fn ids(v: &Value) -> Vec<String> {
 
 /// Replays one session case; returns the scene after every step.
 fn replay(case: &Value) -> Vec<Vec<Value>> {
+    replay_counting(case).0
+}
+
+/// [`replay`], with the number of `getStickyNoteLayout` calls the port
+/// reproduced.
+fn replay_counting(case: &Value) -> (Vec<Vec<Value>>, usize) {
     let id = case["id"].as_str().expect("id");
     let mut expected: Vec<Value> = case["elements"].as_array().expect("elements").clone();
     let mut scene = Scene::new(elements(&case["elements"]));
@@ -566,7 +593,7 @@ fn replay(case: &Value) -> Vec<Vec<Value>> {
         }
         states.push(expected.clone());
     }
-    states
+    (states, env.sticky_layouts)
 }
 
 // -- fixture replay -------------------------------------------------------------------
@@ -1137,7 +1164,9 @@ fn rotation_snaps_and_is_refused_where_upstream_refuses() {
     replay(&case("elbow-single-refused"));
 }
 
-/// A sticky note's label keeps its layout through a resize: the port asks
+/// A sticky note's label keeps its layout through a resize: the port lays
+/// out the note and its label as upstream does, every recorded
+/// `getStickyNoteLayout` reproduced from its arguments. The port asks
 /// for the layout with the intents upstream derives
 /// (`getStickyNoteResizeIntent`) and the minimum size
 /// (`getStickyNoteMinSize`).
@@ -1156,9 +1185,11 @@ fn sticky_notes_ask_for_their_layout() {
             .expect("steps")
             .iter()
             .flat_map(|s| s["hooks"].as_array().into_iter().flatten())
-            .any(|h| h["hook"] == "stickyNoteLayout");
-        assert!(asked, "{id}: no layout asked");
-        replay(&c);
+            .filter(|h| h["hook"] == "stickyNoteLayout")
+            .count();
+        assert!(asked > 0, "{id}: no layout asked");
+        let (_, reproduced) = replay_counting(&c);
+        assert_eq!(reproduced, asked, "{id}: layouts reproduced");
     }
 }
 

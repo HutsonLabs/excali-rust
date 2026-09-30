@@ -11,15 +11,24 @@
 #![allow(dead_code)]
 
 use std::collections::HashMap;
+use std::sync::OnceLock;
 
 use excali_core::element::Element;
 use excali_scene::display::{FontFaceSource, SvgDocument};
 use excali_scene::export::{svg_document, SvgExportAppState, SvgExportOptions, TextMetrics};
+use excali_scene::sticky_note::Clock;
 use excali_svg::FontContent;
 use serde_json::{Map, Value};
 
 pub fn fixture() -> Value {
     serde_json::from_str(include_str!("../fixtures/svg-export.json")).unwrap()
+}
+
+/// `Date.now()` while upstream exported, in UTC (the generator pins both):
+/// what sticky note footers read.
+pub fn now() -> f64 {
+    static NOW: OnceLock<f64> = OnceLock::new();
+    *NOW.get_or_init(|| fixture()["now"].as_f64().unwrap())
 }
 
 pub struct TenPxPerCodeUnit;
@@ -66,6 +75,7 @@ pub fn document(scene: &Value, source: &str, data_ids: bool) -> SvgDocument {
         render_embeddables: opts["renderEmbeddables"].as_bool().unwrap_or(false),
         reuse_images: opts["reuseImages"].as_bool().unwrap_or(true),
         data_ids,
+        clock: Clock::utc(now()),
         ..SvgExportOptions::new(source, &TenPxPerCodeUnit)
     };
     svg_document(&elements, &app_state, files, &options)
@@ -81,17 +91,10 @@ pub fn shell(document: &SvgDocument) -> SvgDocument {
     }
 }
 
-/// Upstream's whole document for a scene, without the nodes it draws for
-/// sticky notes (`stickyNoteNodes`), which ex-703 ports, and with an
-/// embeddable's `border: none` as a browser keeps it ([`chrome_border`]).
+/// Upstream's whole document for a scene, with an embeddable's
+/// `border: none` as a browser keeps it ([`chrome_border`]).
 pub fn expected_document(scene: &Value) -> String {
-    let mut expected = scene["document"].as_str().unwrap().to_owned();
-    for node in scene["stickyNoteNodes"].as_array().into_iter().flatten() {
-        let node = node.as_str().unwrap();
-        assert_eq!(expected.matches(node).count(), 1, "{}", scene["name"]);
-        expected = expected.replacen(node, "", 1);
-    }
-    chrome_border(&expected)
+    chrome_border(scene["document"].as_str().unwrap())
 }
 
 /// `style.border = "none"` as Chrome 153 serializes it in the `style`

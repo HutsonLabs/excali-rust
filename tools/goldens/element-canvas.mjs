@@ -44,8 +44,12 @@ import { fileURLToPath } from "node:url";
 
 import { format } from "./lib/format.mjs";
 import { contexts, installDom } from "./lib/recording-context.mjs";
+import { CREATED_THIS_YEAR, NOW, withPinnedNow } from "./lib/sticky-notes.mjs";
 import { loadUpstream, REPO_ROOT, verifyUpstream } from "./lib/upstream.mjs";
 import { ORIGIN, RANDOM_SEED } from "./static-scene.mjs";
+
+// A sticky note's footer date is in local time: pin the time zone.
+process.env.TZ = "UTC";
 
 export const OUT_DIR = join(REPO_ROOT, "crates", "excali-scene", "tests", "fixtures");
 export const OUT_FILE = "element-canvas.json";
@@ -55,6 +59,7 @@ export { renderElement, elementWithCanvasCache } from "./packages/element/src/re
 export { ShapeCache } from "./packages/element/src/shape";
 export {
   newElement,
+  newStickyNoteElement,
   newFrameElement,
   newTextElement,
   newFreeDrawElement,
@@ -178,6 +183,13 @@ const cases = (up) => {
     c("rectangle-zoom-gesture", [rect(up)], "r", { scale: 2, appState: { zoom: { value: 1.3 }, shouldCacheIgnoreZoom: true } }),
     c("ellipse", [up.newElement({ type: "ellipse", id: "e", x: -30.7, y: 5, width: 90, height: 45, seed: 5 })], "e", { scale: 1.25 }),
     c("diamond", [up.newElement({ type: "diamond", id: "d", x: 3, y: 4, width: 70, height: 50, seed: 4, roundness: { type: 2 } })], "d", { appState: { zoom: { value: 2 } } }),
+    // sticky notes (ex-703) are cached like the other shapes
+    c("sticky-note", [up.newStickyNoteElement({ type: "stickynote", id: "s", x: 10.3, y: 20.7, width: 200, height: 180, seed: 21, roughness: 2, created: CREATED_THIS_YEAR })], "s", { scale: 2 }),
+    c("sticky-note-turned-dark", [up.newStickyNoteElement({ type: "stickynote", id: "s", x: -4.5, y: 7.25, width: 150, height: 150, seed: 12, angle: 0.5, roundness: { type: 3 } })], "s", {
+      scale: 1.5,
+      appState: { theme: "dark", zoom: { value: 1.2 } },
+      renderConfig: { theme: "dark" },
+    }),
     c("text", [up.newTextElement({ id: "t", x: 13.4, y: 17.9, text: "two\nlines", seed: 6, fontSize: 20 })], "t", { scale: 2 }),
     c("text-rtl", [up.newTextElement({ id: "t", x: 13.4, y: 17.9, text: "123 שלום", seed: 8, fontSize: 36 })], "t", { scale: 1.5 }),
     c(
@@ -448,6 +460,8 @@ const build = async (upstream) => {
     description:
       "Upstream renderElement (packages/element/src/renderElement.ts) at the pinned commit on its editor path, the per-element bitmap cache, on a recording 2D context (tools/goldens/element-canvas.mjs): per case the element's cached bitmap (size, scale, offsets, cache key and its draws) and the main context's draws with each blit as a call; per sequence whether each step regenerated the bitmap. Text measures 10 px per UTF-16 code unit.",
     upstream: upstream.commit,
+    // Date.now() while rendering, in UTC (sticky note footers)
+    now: NOW,
     images: IMAGES,
     cases: out,
     sequences: seqs,
@@ -476,7 +490,7 @@ const main = async () => {
     process.stderr.write(`element-canvas: ${error.message}\n`);
     process.exit(1);
   }
-  const text = await deterministic(() => build(upstream));
+  const text = await deterministic(() => withPinnedNow(() => build(upstream)));
   const path = join(args.out ?? OUT_DIR, OUT_FILE);
   if (args.check) {
     if (!existsSync(path) || readFileSync(path, "utf8") !== text) {

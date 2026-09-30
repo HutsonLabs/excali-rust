@@ -10,8 +10,9 @@
 //! one `<text>` per line, image `<symbol>`s and `<use>`s with crops, flips
 //! and rounded clips, frame outlines and clips, embeddables as links or
 //! `<foreignObject>`s, and links as anchors. Upstream ran in test mode,
-//! so each element's node carries its `data-id`. Sticky notes, which
-//! ex-703 ports, are left out of upstream's documents.
+//! so each element's node carries its `data-id`. Sticky notes (ex-703)
+//! with their outline clip, shadow, edge and date footer, the clock pinned
+//! as upstream's was (`now`, UTC).
 
 mod support;
 

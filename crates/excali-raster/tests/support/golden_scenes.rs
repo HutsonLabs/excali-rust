@@ -13,6 +13,7 @@ use excali_scene::canvas_export::{
     export_canvas_png, export_to_canvas, png_payload, CanvasExportOptions, CanvasSizing, Dimensions,
 };
 use excali_scene::display::CanvasDocument;
+use excali_scene::sticky_note::Clock;
 use excali_text::text_measurements::TextMetricsProvider;
 use serde_json::{Map, Value};
 
@@ -102,6 +103,7 @@ pub fn document_with(
         },
         text_metrics: metrics,
         image_loads,
+        clock: Clock::default(),
     };
     if !utils {
         return export_canvas_png(&all, &app_state, &files, &options, source).unwrap();

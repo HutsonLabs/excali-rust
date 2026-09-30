@@ -22,6 +22,7 @@ use excali_scene::canvas_export::{
     canvas_height, canvas_width, export_canvas_png, export_to_canvas, png_payload,
     CanvasExportOptions, CanvasSizing, Dimensions, ExportCanvasError,
 };
+use excali_scene::sticky_note::Clock;
 use excali_text::text_measurements::TextMetricsProvider;
 use serde_json::{Map, Value};
 
@@ -116,6 +117,7 @@ fn export(scene: &Value) -> Exported {
         sizing,
         text_metrics: &TenPxPerCodeUnit,
         image_loads: &loads,
+        clock: Clock::default(),
     };
     let doc = export_to_canvas(&all, &app_state, &files, &options);
     assert!(doc.payload.is_none(), "exportToCanvas embeds nothing");
@@ -350,6 +352,7 @@ fn a_png_export_embeds_the_scene_when_asked() {
             sizing: CanvasSizing::ExportScale,
             text_metrics: &TenPxPerCodeUnit,
             image_loads: &loads,
+            clock: Clock::default(),
         };
         let png = export_canvas_png(&all, &app_state, &files, &options, source).unwrap();
         let canvas = export_to_canvas(&all, &app_state, &files, &options);
@@ -379,6 +382,7 @@ fn an_empty_canvas_cannot_be_exported() {
         sizing: CanvasSizing::ExportScale,
         text_metrics: &TenPxPerCodeUnit,
         image_loads: &loads,
+        clock: Clock::default(),
     };
     let err = export_canvas_png(&[], &Map::new(), &Map::new(), &options, "x").unwrap_err();
     assert_eq!(err, ExportCanvasError::EmptyCanvas);

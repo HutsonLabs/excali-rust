@@ -122,7 +122,8 @@ fn restore_hooks_are_reproduced() {
     }
 }
 
-/// Answers `getStickyNoteLayout` from the fixture (ex-703 ports it), so
+/// Answers `getStickyNoteLayout` from the fixture (excali-editor's
+/// `tests/restore_sticky_notes.rs` reproduces it), so
 /// that the scenes around the refresh hooks can be restored whole.
 struct StickyReplay {
     test: TestEnv,

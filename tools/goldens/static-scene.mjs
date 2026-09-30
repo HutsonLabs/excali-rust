@@ -56,7 +56,12 @@ import { fileURLToPath } from "node:url";
 
 import { format } from "./lib/format.mjs";
 import { installDom } from "./lib/recording-context.mjs";
+import { NOW, stickyNotes, withPinnedNow } from "./lib/sticky-notes.mjs";
 import { loadUpstream, REPO_ROOT, verifyUpstream } from "./lib/upstream.mjs";
+
+// A sticky note's footer date is in local time: pin the time zone (and,
+// while rendering, the clock) so every machine writes the same draws.
+process.env.TZ = "UTC";
 
 export const OUT_DIR = join(REPO_ROOT, "crates", "excali-scene", "tests", "fixtures");
 export const OUT_FILE = "static-scene.json";
@@ -68,6 +73,7 @@ const ENTRY = `
 export { renderStaticScene } from "./packages/excalidraw/renderer/staticScene";
 export {
   newElement,
+  newStickyNoteElement,
   newEmbeddableElement,
   newIframeElement,
   newFrameElement,
@@ -141,7 +147,7 @@ const bind = (container, label) => {
 const label = (up, id, text, extra = {}) =>
   up.newTextElement({ id, x: 0, y: 0, text, textAlign: "center", verticalAlign: "middle", seed: 40, ...extra });
 
-/** Every element kind the static scene draws (sticky notes are ex-703's). */
+/** Every element kind the static scene draws but sticky notes (stickyNoteScenes). */
 const allKinds = (up) => {
   const [box, boxLabel] = bind(
     up.newElement({ type: "rectangle", id: "box", x: 300, y: 20, width: 120, height: 70, seed: 3, backgroundColor: "#a5d8ff", fillStyle: "hachure" }),
@@ -570,6 +576,22 @@ const scenes = (up) => [
     appState: { frameToHighlight: frameDrag(up)[0] },
     renderConfig: { renderGrid: false },
   }),
+  // sticky notes (ex-703): shadow, fill, clipped edge and date footer
+  scene("sticky-notes", { width: 1000, height: 760, elements: stickyNotes(up, { x: 10, y: 10 }), renderConfig: { renderGrid: false } }),
+  scene("sticky-notes-dark", {
+    width: 1000,
+    height: 760,
+    elements: stickyNotes(up, { x: 10, y: 10 }),
+    appState: { theme: "dark", zoom: { value: 0.8 }, scrollX: 12.5, scrollY: -7.25 },
+    renderConfig: { theme: "dark", canvasBackgroundColor: "#121212", renderGrid: false },
+  }),
+  scene("sticky-notes-exporting", {
+    width: 1000,
+    height: 760,
+    scale: 2,
+    elements: stickyNotes(up, { x: 10, y: 10 }),
+    renderConfig: { isExporting: true, renderGrid: false },
+  }),
   scene("pending-flowchart", {
     elements: [
       up.newEmbeddableElement({ type: "embeddable", id: "flow-embed", x: 200, y: 10, width: 80, height: 60, seed: 60 }),
@@ -665,6 +687,8 @@ const build = async (upstream) => {
       "Upstream renderStaticScene (packages/excalidraw/renderer/staticScene.ts) at the pinned commit on a recording 2D context (tools/goldens/static-scene.mjs): per scene the inputs and every draw in order with its path, matrix, alpha and styles. Elements are drawn as vectors (renderElement's export path) instead of through the per-element bitmap cache; text measures 10 px per UTF-16 code unit.",
     upstream: upstream.commit,
     origin: ORIGIN,
+    // Date.now() while rendering, in UTC (sticky note footers)
+    now: NOW,
     scenes: out,
   });
 };
@@ -691,7 +715,7 @@ const main = async () => {
     process.stderr.write(`static-scene: ${error.message}\n`);
     process.exit(1);
   }
-  const text = await deterministic(() => build(upstream));
+  const text = await deterministic(() => withPinnedNow(() => build(upstream)));
   const path = join(args.out ?? OUT_DIR, OUT_FILE);
   if (args.check) {
     if (!existsSync(path) || readFileSync(path, "utf8") !== text) {

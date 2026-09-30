@@ -28,6 +28,7 @@ use excali_scene::static_scene::{
     GridConfig, StaticCanvasAppState, StaticCanvasRenderConfig, StaticScene, GRID_LINE_COLOR_BOLD,
     GRID_LINE_COLOR_REGULAR,
 };
+use excali_scene::sticky_note::Clock;
 use excali_text::text_measurements::TextMetricsProvider;
 use serde_json::{Map, Value};
 
@@ -163,8 +164,8 @@ fn embeds(value: &Value) -> HashMap<String, bool> {
         .collect()
 }
 
-/// Draws the scene as the port does.
-fn render(scene: &Value, origin_host: &str) -> DisplayList {
+/// Draws the scene as the port does, at `now` (UTC).
+fn render(scene: &Value, origin_host: &str, now: f64) -> DisplayList {
     let all = elements(&scene["elements"]);
     let rc = &scene["renderConfig"];
     let pending = elements(&rc["pendingFlowchartNodes"]);
@@ -183,6 +184,7 @@ fn render(scene: &Value, origin_host: &str) -> DisplayList {
         theme: theme(&rc["theme"]),
         element_render_overrides: overrides(&rc["elementRenderOverrides"]),
         location_host: origin_host.to_owned(),
+        clock: Clock::utc(now),
     };
     let state = app_state(&scene["appState"]);
     render_static_scene(&StaticScene {
@@ -210,11 +212,12 @@ fn every_scene_draws_what_upstream_draws() {
         .unwrap()
         .trim_start_matches("https://")
         .to_owned();
+    let now = doc["now"].as_f64().unwrap();
     let mut failures = Vec::new();
     let mut compared = 0;
     for scene in scenes() {
         let name = scene["name"].as_str().unwrap();
-        let list = render(&scene, &host);
+        let list = render(&scene, &host, now);
         match compare(&list, &scene["events"], &scene["images"]) {
             Ok(n) => compared += n,
             Err(why) => failures.push(format!("{name} {why}")),
@@ -250,6 +253,9 @@ fn the_fixture_covers_the_order_of_work() {
         "frame-clip-offsets",
         "frame-drag",
         "frame-selected",
+        "sticky-notes",
+        "sticky-notes-dark",
+        "sticky-notes-exporting",
     ] {
         assert!(names.iter().any(|n| n == name), "no scene {name}");
     }
@@ -307,7 +313,7 @@ fn frame_children_are_clipped_to_a_round_rect_of_radius_8_over_zoom() {
     for name in ["frame-clip", "frame-drag", "frame-clip-offsets"] {
         let s = scene(name);
         let mut recorder = Recorder::default();
-        render(&s, host).replay(&mut recorder);
+        render(&s, host, 0.0).replay(&mut recorder);
         let ported = recorder
             .0
             .iter()
@@ -457,7 +463,7 @@ fn iframes_come_last_and_bound_text_follows_its_container() {
         .into_iter()
         .find(|s| s["name"] == "elements-exporting")
         .unwrap();
-    let list = render(&scene, "excalidraw.com");
+    let list = render(&scene, "excalidraw.com", 0.0);
     let mut recorder = Recorder::default();
     list.replay(&mut recorder);
     let first_text = recorder.0.iter().find_map(|d| match d {
@@ -542,20 +548,37 @@ fn draws(all: &[Element]) -> Vec<Draw> {
     recorder.0
 }
 
+/// A selection element: upstream's `renderElement` throws for it
+/// (`Unimplemented type selection`) and the static scene skips it.
+fn selection(id: &str, x: f64) -> Element {
+    let mut raw: Map<String, Value> = serde_json::from_str(RECTANGLE).unwrap();
+    raw.insert("type".into(), "selection".into());
+    raw.insert("id".into(), id.into());
+    raw.insert("x".into(), x.into());
+    Element::from_map(raw).unwrap()
+}
+
 #[test]
-fn sticky_notes_are_not_drawn_here() {
-    // sticky notes are drawn by ex-703 (renderElement.ts:438-472); until
-    // then the static scene leaves them out and draws the rest as before
+fn sticky_notes_draw_shadow_fill_edge_and_footer() {
+    // renderElement.ts:438-472: the shadow and the paper filled, the edge
+    // stroked inside a clip to the outline, the date footer
     let with = draws(&[
         element(RECTANGLE, "a", 0.0),
         element(STICKY_NOTE, "sticky", 20.0),
-        element(RECTANGLE, "b", 50.0),
     ]);
-    let without = draws(&[element(RECTANGLE, "a", 0.0), element(RECTANGLE, "b", 50.0)]);
-    assert_eq!(format!("{with:?}"), format!("{without:?}"));
-    // the background and two rough rectangles, one stroke each
-    assert!(matches!(with[0], Draw::FillRect { .. }));
-    assert_eq!(with.len(), 3);
+    let without = draws(&[element(RECTANGLE, "a", 0.0)]);
+    let note = &with[without.len()..];
+    assert!(matches!(note[0], Draw::Fill { .. }));
+    assert!(matches!(note[1], Draw::Fill { .. }));
+    assert!(matches!(note[2], Draw::Clip { .. }));
+    assert!(matches!(note[3], Draw::Stroke { .. }));
+    assert!(matches!(note[4], Draw::Unclip));
+    match &note[5] {
+        // created at 1 ms, drawn at the epoch: this year's short date
+        Draw::Text { run, .. } => assert_eq!(run.text, "1 Jan"),
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(note.len(), 6);
 }
 
 fn linked_rectangle(bound: Option<&str>) -> Element {
@@ -573,13 +596,10 @@ fn linked_rectangle(bound: Option<&str>) -> Element {
 #[test]
 fn a_bound_text_that_cannot_draw_leaves_its_container_and_drops_its_icon() {
     // getBoundTextElement returns whatever element the container's text
-    // entry names; a sticky note there cannot be drawn yet, so, as when
+    // entry names; a selection there cannot be drawn, so, as when
     // upstream's renderElement throws for the label, the container stays
     // drawn and its link icon is skipped
-    let with = draws(&[
-        linked_rectangle(Some("sticky")),
-        element(STICKY_NOTE, "sticky", 20.0),
-    ]);
+    let with = draws(&[linked_rectangle(Some("sel")), selection("sel", 20.0)]);
     let plain = draws(&[element(RECTANGLE, "a", 0.0)]);
     assert_eq!(format!("{with:?}"), format!("{plain:?}"));
     // without the failing label the icon is drawn: a clip, the icon
@@ -629,11 +649,11 @@ fn a_clipped_element_whose_label_cannot_draw_does_not_clip_what_follows() {
             framed(RECTANGLE, "b", 300.0, None, None),
         ];
         if bound.is_some() {
-            all.push(element(STICKY_NOTE, "sticky", 20.0));
+            all.push(selection("sel", 20.0));
         }
         draws(&all)
     };
-    let failing = scene(Some("sticky"));
+    let failing = scene(Some("sel"));
     // the failing label changes nothing: same draws as with no label
     assert_eq!(format!("{failing:?}"), format!("{:?}", scene(None)));
     // one frame clip, closed before the element after it
