@@ -4,15 +4,15 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-30 11:01 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-30 13:47 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**161 issues** · 149 closed (93%) · 1 in progress · 0 blocked · 9 open
+**161 issues** · 157 closed (98%) · 0 in progress · 0 blocked · 2 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
 ## ex-e0 · Phase 0: Foundations
 
-<span class="status open">open</span> 13/13 children closed
+<span class="status closed">closed</span> 13/13 children closed
 
 Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo workspace and CI. Everything later phases depend on to be reproducible.
 
@@ -34,7 +34,7 @@ Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo work
 
 ## ex-e1 · Phase 1: Core model and file format (excali-core)
 
-<span class="status open">open</span> 19/19 children closed
+<span class="status closed">closed</span> 19/19 children closed
 
 Element types, serde with unknown-field preservation, restore/migration rules, AppState, fractional indexing, library formats, payload codecs, conformance corpus.
 
@@ -62,7 +62,7 @@ Element types, serde with unknown-field preservation, restore/migration rules, A
 
 ## ex-e2 · Phase 2: Geometry and sketch renderer
 
-<span class="status open">open</span> 21/21 children closed
+<span class="status closed">closed</span> 21/21 children closed
 
 excali-math, excali-rough (rough.js 4.6.4 semantics), excali-freehand, the display list, and golden tests against upstream output.
 
@@ -92,7 +92,7 @@ excali-math, excali-rough (rough.js 4.6.4 semantics), excali-freehand, the displ
 
 ## ex-e3 · Phase 3: Text and fonts (excali-text)
 
-<span class="status open">open</span> 12/12 children closed
+<span class="status closed">closed</span> 12/12 children closed
 
 Font metadata, measurement from font files, wrapping port, bound-text sizing, lazy font assets with verified licences.
 
@@ -113,7 +113,7 @@ Font metadata, measurement from font files, wrapping port, bound-text sizing, la
 
 ## ex-e4 · Phase 4: Headless rendering and export
 
-<span class="status open">open</span> 13/13 children closed
+<span class="status closed">closed</span> 13/13 children closed
 
 tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
@@ -135,7 +135,7 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
 ## ex-e5 · Phase 5: Web runtime and editor
 
-<span class="status open">open</span> 43/44 children closed
+<span class="status closed">closed</span> 44/44 children closed
 
 Canvas2D backend, interaction state machine, history, DOM chrome without a framework, keyboard shortcuts, the <excali-editor> custom element.
 
@@ -184,11 +184,11 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-541` | Shortcut performs in <excali-editor>: deselect, flip, element lock, copy and paste styles, view mode, toggle theme | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-542` | Clipboard and file shortcuts in <excali-editor>: copy as PNG, open (Ctrl+O), save as (Ctrl+Shift+S) | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-543` | Hyperlink editor (Ctrl+K) in <excali-editor> | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status in_progress">in progress</span> |  |  |
+| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status closed">closed</span> |  |  |
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
 
-<span class="status open">open</span> 8/8 children closed
+<span class="status closed">closed</span> 8/8 children closed
 
 Vendored module in term.hut with CRUD and library import; tauri-plugin-excali with dialogs, headless export and allow-listed fetch; example app.
 
