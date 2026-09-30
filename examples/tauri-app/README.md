@@ -38,7 +38,7 @@ In a session without Finder (SSH, CI), prefix `CI=true`, which skips the window 
 - **Export** (`plugin:excali|export`): the scene exported natively by `excali-cli`'s code, no webview involved, to `<name>.png` or `<name>.svg`, in the editor's theme. The fonts come from the bundle's `fonts/` resource (`crates/excali-text/assets/fonts`).
 - **Libraries**: Import library opens a `.excalidrawlib`; a library URL is fetched natively through `plugin:excali|library_fetch`, held to upstream's allow-list, from the editor's `library-fetch` event.
 
-The CSP in `tauri.conf.json` allows scripts from the app only, plus `'wasm-unsafe-eval'`, without which WebKit refuses to compile the module ("Refused to create a WebAssembly object because 'unsafe-eval' or 'wasm-unsafe-eval' is not an allowed source of script", seen in the smoke run with it removed).
+The CSP in `tauri.conf.json` allows scripts from the app only, plus `'wasm-unsafe-eval'`, without which WebKit refuses to compile the module ("Refused to create a WebAssembly object because 'unsafe-eval' or 'wasm-unsafe-eval' is not an allowed source of script", seen in the smoke run with it removed). The [integration guide](../../site/content/architecture/integration.md) quotes this app's CSP, capability and handlers, and `scripts/site/snippets.py` holds it to these files.
 
 ## Tests
 
