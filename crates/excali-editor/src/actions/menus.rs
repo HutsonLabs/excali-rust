@@ -403,7 +403,7 @@ pub fn commands_from_actions() -> Vec<PaletteActionCommand> {
 }
 
 /// The predicate of the palette's "Change stroke color" command
-/// (`CommandPalette.tsx:461-468`): a selection whose stroke can change
+/// (`CommandPalette.tsx:461-477`): a selection whose stroke can change
 /// (`canChangeStrokeColor`).
 pub fn palette_change_stroke_available(ctx: &ActionContext<'_>) -> bool {
     let selected: Vec<_> = ctx.selected(false).into_iter().cloned().collect();
@@ -415,7 +415,7 @@ pub fn palette_change_stroke_available(ctx: &ActionContext<'_>) -> bool {
 }
 
 /// The predicate of the palette's "Change background color" command
-/// (`CommandPalette.tsx:479-490`): a selection whose background can change
+/// (`CommandPalette.tsx:480-499`): a selection whose background can change
 /// (`canChangeBackgroundColor`).
 pub fn palette_change_background_available(ctx: &ActionContext<'_>) -> bool {
     let selected: Vec<_> = ctx.selected(false).into_iter().cloned().collect();

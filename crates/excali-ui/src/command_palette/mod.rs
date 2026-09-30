@@ -230,10 +230,10 @@ pub enum PalettePerform {
     /// The effect as built.
     Effect(PaletteEffect),
     /// The library command: close the sidebar when one is open, else open
-    /// the default sidebar on its library tab (`CommandPalette.tsx:431-445`).
+    /// the default sidebar on its library tab (`CommandPalette.tsx:424-446`).
     ToggleLibrary,
     /// The canvas background command: toggle the main menu and open the
-    /// canvas background picker (`CommandPalette.tsx:497-506`).
+    /// canvas background picker (`CommandPalette.tsx:503-514`).
     CanvasBackground,
 }
 
@@ -959,7 +959,7 @@ pub struct CommandPaletteProps {
     pub library_preview: Option<LibraryPreview>,
 }
 
-/// `CommandItem` (`CommandPalette.tsx:986-1043`).
+/// `CommandItem` (`CommandPalette.tsx:985-1043`).
 fn command_item(
     props: &CommandPaletteProps,
     command: &PaletteCommand,

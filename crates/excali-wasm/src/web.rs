@@ -1334,7 +1334,7 @@ fn close_command_palette(weak: &Weak<RefCell<Inner>>) {
     refresh_chrome(weak);
 }
 
-/// `executeCommand` (`CommandPalette.tsx:655-670`): closes the palette,
+/// `executeCommand` (`CommandPalette.tsx:655-672`): closes the palette,
 /// runs the command and remembers it as the last used one.
 fn execute_palette_command(weak: &Weak<RefCell<Inner>>, label: &str) {
     let Some(rc) = weak.upgrade() else {
