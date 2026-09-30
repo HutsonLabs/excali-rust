@@ -71,6 +71,20 @@ class OwnerDecisionsInThePlan(unittest.TestCase):
         self.assertEqual(blockers(r), ["ex-805"])
         self.assertIn("ex-e8", [d["depends_on_id"] for d in r["dependencies"] if d["type"] == "parent-child"])
 
+    def test_ex_807_to_809_theme_term_hut_through_v26_9_3(self):
+        # Owner decision, 2026-09-30: term.hut's theme, no read-only view.
+        chain = [("ex-807", "ex-806"), ("ex-808", "ex-807"), ("ex-809", "ex-808")]
+        for id, before in chain:
+            t = item(id)
+            self.assertEqual(t["epic"], "ex-e8")
+            self.assertEqual(t["blocked_by"], [before])
+            self.assertTrue(any("2026-09-30" in e for e in t["evidence"]))
+            self.assertEqual(blockers(rows()[id]), [before])
+        self.assertIn("--excali-canvas-background", item("ex-807")["acceptance"])
+        self.assertIn("index.tsx:142-147", item("ex-807")["acceptance"])
+        self.assertIn("v26.9.2 is left as published", item("ex-808")["acceptance"])
+        self.assertIn("read-only drawing view is gone", item("ex-809")["acceptance"])
+
     def test_ex_803_is_walked_by_an_agent_in_a_fresh_clone(self):
         t = item("ex-803")
         self.assertIn("fresh clone", t["acceptance"])
@@ -112,7 +126,7 @@ class SeedRows(unittest.TestCase):
     def test_deferred_task_does_not_block_its_milestone(self):
         r = rows()
         self.assertNotIn("ex-801", blockers(r["ex-m8"]))
-        self.assertEqual(blockers(r["ex-m8"]), ["ex-802", "ex-803", "ex-804", "ex-805", "ex-806"])
+        self.assertEqual(blockers(r["ex-m8"]), ["ex-802", "ex-803", "ex-804", "ex-805", "ex-806", "ex-807", "ex-808", "ex-809"])
 
     def test_deferred_task_is_still_seeded_with_its_parent(self):
         r = rows()["ex-801"]

@@ -46,7 +46,7 @@ Mounting and API (the surface `excali-wasm` exposes; names are final for v1):
 
 ```js
 const ed = document.createElement("excali-editor");
-ed.setAttribute("theme", "dark");            // "light" | "dark" | "system"
+ed.setAttribute("theme", "dark");            // "light" | "dark" | "system"; set: the host owns the theme (no toggle)
 ed.setAttribute("ui", "full");               // "full" | "compact" | "mobile" | "auto"
 host.appendChild(ed);
 
@@ -81,7 +81,8 @@ The element is `excali_wasm::web::EditorCore` behind a small shim (`crates/excal
 Host adapter rules:
 
 - The editor never touches the file system, the network or the clipboard beyond the DOM Clipboard API. Every side effect is an event the host handles.
-- `theme` maps to upstream's `.theme--dark` tokens. term.hut is dark-only, so it sets `theme="dark"` and may override `--color-primary*` and `--island-bg-color` with Catppuccin values inside the element's scope, as upstream's theming doc allows.
+- `theme` maps to upstream's `.theme--dark` tokens, and setting it makes the theme the host's, as upstream's `theme` prop without `onThemeChange` does (`index.tsx:142-147`): the element offers no theme toggle (no main-menu item, no help-dialog row, no command-palette command, Alt+Shift+D does nothing). Without the attribute the element keeps its own toggle; removing it gives the toggle back.
+- The chrome takes term.hut's palette from host rules on upstream's tokens (`--island-bg-color`, `--color-primary*`, `--color-surface-*`, `--default-bg-color`, `--text-primary-color`, …). The dark tokens sit on `.excalidraw.theme--dark`, so a rule for both themes needs that specificity or more: `excali-editor .excalidraw.excalidraw { … }` wins wherever term.hut's stylesheet is. The canvas takes `--excali-canvas-background` (on `<excali-editor>` or an ancestor), painted unfiltered behind a scene on the default `#ffffff` background and used for outline arrowheads; a scene with its own background keeps it, and exports never use it. `--color-selection` colours the selection. Both are read at each paint: after switching its palette, term.hut sets `theme` again (the same value repaints too). The [integration guide's Theming section](../integration/#7-theming) has the rules and a checked example.
 - Fonts are fetched relative to the module URL by unicode range, on demand.
 
 ## Save flow in term.hut

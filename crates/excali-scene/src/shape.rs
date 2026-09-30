@@ -81,6 +81,10 @@ pub struct RenderConfig<'a> {
     /// `canvasBackgroundColor`: the fill of outline arrowheads; the box
     /// shapes do not read it.
     pub canvas_background_color: &'a str,
+    /// Not upstream (ex-807): `canvas_background_color` is the embedding
+    /// host's on-screen colour, used as given in the dark theme too
+    /// ([`crate::static_scene::StaticCanvasRenderConfig::host_canvas_background`]).
+    pub canvas_background_unfiltered: bool,
     pub embeds_validation_status: Option<&'a EmbedsValidationStatus>,
     pub theme: Theme,
 }
@@ -91,6 +95,7 @@ impl Default for RenderConfig<'_> {
             is_exporting: false,
             // COLOR_PALETTE.white
             canvas_background_color: "#ffffff",
+            canvas_background_unfiltered: false,
             embeds_validation_status: None,
             theme: Theme::Light,
         }
@@ -691,7 +696,8 @@ fn arrowhead_polygon_options(options: &RoughJsOptions, fill: &str) -> RoughJsOpt
 /// | `cardinality_zero_or_many` | a crowfoot, a circle at offset 1.5 scaled 0.8 |
 ///
 /// The stroke colour and the canvas background go through the dark mode
-/// filter when the theme is dark. Filled heads (circle, triangle, diamond)
+/// filter when the theme is dark (the background not when it is the host's,
+/// `canvas_background_unfiltered`, ex-807). Filled heads (circle, triangle, diamond)
 /// fill with the stroke colour; the `_outline` kinds, and the circles of
 /// the `zero` cardinalities, fill with the canvas background. Line heads
 /// use [`arrowhead_line_options`].
@@ -706,8 +712,11 @@ pub fn get_arrowhead_shapes(
 ) -> Result<Vec<Drawable>, ShapeError> {
     let is_dark_mode = config.theme == Theme::Dark;
     let stroke_color = apply_dark_mode_filter(&element.base.stroke_color, is_dark_mode);
-    let background_fill_color =
-        apply_dark_mode_filter(config.canvas_background_color, is_dark_mode);
+    // a host's canvas colour (ex-807) is on screen as given
+    let background_fill_color = apply_dark_mode_filter(
+        config.canvas_background_color,
+        is_dark_mode && !config.canvas_background_unfiltered,
+    );
     const CARDINALITY_ONE_OR_MANY_OFFSET: f64 = -0.25;
     const CARDINALITY_ZERO_CIRCLE_SCALE: f64 = 0.8;
 

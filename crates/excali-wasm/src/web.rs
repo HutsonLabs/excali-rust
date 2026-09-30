@@ -384,6 +384,11 @@ struct Inner {
     listeners: Vec<Listener>,
     /// This state, for what finishes after the event (the clipboard write).
     this: Weak<RefCell<Inner>>,
+    /// Not upstream (ex-807): the host's `--excali-canvas-background` as
+    /// last read and the colour it resolved to ([`resolve_canvas_color`]),
+    /// and the 2D context that resolves it.
+    host_background: Option<(String, Option<String>)>,
+    color_probe: Option<CanvasRenderingContext2d>,
 }
 
 impl Inner {
@@ -419,6 +424,33 @@ impl Inner {
     }
 
     fn render(&mut self) {
+        // the container's custom properties, read at each paint so a host
+        // that swaps its tokens is followed on the next one
+        let style = self
+            .container
+            .owner_document()
+            .and_then(|d| d.default_view())
+            .and_then(|w| w.get_computed_style(&self.container).ok().flatten());
+        let custom = |name: &str| {
+            style
+                .as_ref()
+                .and_then(|style| style.get_property_value(name).ok())
+                .map(|c| c.trim().to_owned())
+                .filter(|c| !c.is_empty())
+        };
+        // not upstream (ex-807): the host's canvas colour behind a scene on
+        // the default background, on screen only
+        let host_background = custom("--excali-canvas-background").and_then(|raw| {
+            if let Some((last, resolved)) = &self.host_background {
+                if *last == raw {
+                    return resolved.clone();
+                }
+            }
+            let resolved = self.resolve_canvas_color(&raw);
+            self.host_background = Some((raw, resolved.clone()));
+            resolved
+        });
+        self.editor.set_host_canvas_background(host_background);
         let size = self.layers.backing_size(Layer::Static);
         let frame = self.editor.static_frame(
             f64::from(size.width),
@@ -433,25 +465,13 @@ impl Inner {
                 .set_static_bitmap(id, canvas.width, canvas.height, &canvas.content);
         }
         let list = frame.list;
-        let background = self
-            .editor
-            .app_state()
-            .view_background_color()
-            .map(str::to_owned);
+        let background = self.editor.static_background();
         self.layers.paint_static(background.as_deref(), &list);
         // the interactive canvas (renderInteractiveScene), in the
         // container's `--color-selection` (getSelectionColor)
-        let selection_color = self
-            .container
-            .owner_document()
-            .and_then(|d| d.default_view())
-            .and_then(|w| w.get_computed_style(&self.container).ok().flatten())
-            .and_then(|style| style.get_property_value("--color-selection").ok())
-            .map(|c| c.trim().to_owned())
-            .filter(|c| !c.is_empty())
-            .unwrap_or_else(|| {
-                excali_editor::interactive_scene::DEFAULT_SELECTION_COLOR.to_owned()
-            });
+        let selection_color = custom("--color-selection").unwrap_or_else(|| {
+            excali_editor::interactive_scene::DEFAULT_SELECTION_COLOR.to_owned()
+        });
         let size = self.layers.backing_size(Layer::Interactive);
         let interactive = self.editor.interactive_scene(
             f64::from(size.width),
@@ -460,6 +480,40 @@ impl Inner {
             &selection_color,
         );
         self.layers.paint_interactive(&interactive);
+    }
+
+    /// Not upstream (ex-807): the host's `--excali-canvas-background` as a
+    /// colour the canvas takes, or `None` when the canvas rejects it.
+    /// `getComputedStyle` gives an unregistered custom property's value
+    /// with its `var()` references substituted but otherwise as written
+    /// (CSS Variables 1, "computed value"), so `var(--bg)` arrives as the
+    /// token's text. That text goes through a 2D context's `fillStyle`,
+    /// the parser the static canvas paints with, and is read back in the
+    /// canvas's serialization (`#rrggbb` or `rgba(…)`). Assigned over two
+    /// different colours first: a value the canvas ignores leaves each in
+    /// place, so the two reads differ.
+    fn resolve_canvas_color(&mut self, css: &str) -> Option<String> {
+        if self.color_probe.is_none() {
+            let canvas = self
+                .document()
+                .create_element("canvas")
+                .ok()?
+                .dyn_into::<HtmlCanvasElement>()
+                .ok()?;
+            self.color_probe = canvas
+                .get_context("2d")
+                .ok()
+                .flatten()
+                .and_then(|c| c.dyn_into::<CanvasRenderingContext2d>().ok());
+        }
+        let ctx = self.color_probe.as_ref()?;
+        let read = |before: &str| {
+            ctx.set_fill_style_str(before);
+            ctx.set_fill_style_str(css);
+            ctx.fill_style().as_string()
+        };
+        let (a, b) = (read("#000000"), read("#ffffff"));
+        a.filter(|a| Some(a) == b.as_ref())
     }
 
     /// Paints the scene and the chrome again and dispatches the editor's
@@ -631,6 +685,8 @@ fn chrome_key(inner: &Inner) -> Value {
         "openMenu": ed.app_state().get("openMenu"),
         "openDialog": ed.app_state().get("openDialog"),
         "theme": ed.app_state().get("theme"),
+        // the host's theme attribute turns toggleTheme off (ex-807)
+        "toggleTheme": ed.props.canvas_actions.toggle_theme,
         "openSidebar": ed.app_state().get("openSidebar"),
         "sidebarDocked": ed.app_state().get("defaultSidebarDockedPreference"),
         "selection": ed.app_state().get("selectedElementIds"),
@@ -2564,6 +2620,8 @@ impl EditorCore {
                 fonts_base,
                 listeners: Vec::new(),
                 this: this.clone(),
+                host_background: None,
+                color_probe: None,
             })
         });
 
@@ -2862,6 +2920,21 @@ impl EditorCore {
         inner.editor.set_theme(dark);
         inner.render();
         Ok(())
+    }
+
+    /// Not upstream (ex-807): whether the host controls the theme. The
+    /// element passes `true` while it has a `theme` attribute, as
+    /// upstream's `theme` prop without `onThemeChange` does
+    /// (`packages/excalidraw/index.tsx:142-147`): `toggleTheme` is off, so
+    /// the main menu's theme item, the help dialog's shortcut row, the
+    /// command palette's theme command and Alt+Shift+D go. `false` gives the toggle back.
+    #[wasm_bindgen(js_name = setThemeControlled)]
+    pub fn set_theme_controlled(&self, controlled: bool) {
+        self.inner
+            .borrow_mut()
+            .editor
+            .set_theme_controlled(controlled);
+        refresh_chrome(&Rc::downgrade(&self.inner));
     }
 
     /// `ui`: `"full"`, `"compact"`, `"mobile"` or `"auto"` show the

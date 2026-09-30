@@ -39,6 +39,9 @@ class ExcaliEditorElement extends HTMLElement {
       },
       EXCALI_FONTS_BASE,
     );
+    // a theme attribute makes the theme the host's, as upstream's theme
+    // prop without onThemeChange (index.tsx:142-147): no theme toggle
+    this.#core.setThemeControlled(this.hasAttribute("theme"));
     this.#core.setTheme(this.getAttribute("theme") || "light");
     this.#core.setUi(this.getAttribute("ui") || "full");
     this.#resize = new ResizeObserver(() => this.#core?.resize());
@@ -57,7 +60,13 @@ class ExcaliEditorElement extends HTMLElement {
 
   attributeChangedCallback(name, _old, value) {
     if (!this.#core) return;
-    if (name === "theme") this.#core.setTheme(value || "light");
+    if (name === "theme") {
+      // null when the attribute was removed: the toggle comes back. Set
+      // again with the same value, it still repaints, which reads the
+      // host's --excali-canvas-background anew.
+      this.#core.setThemeControlled(value !== null);
+      this.#core.setTheme(value || "light");
+    }
     if (name === "ui") this.#core.setUi(value || "full");
   }
 

@@ -544,6 +544,12 @@ pub struct Editor<P: TextMetricsProvider + Clone> {
     pub(crate) bitmaps: ElementCanvasCache<()>,
     /// The bitmap ids the host holds.
     pub(crate) host_bitmaps: HashSet<String>,
+    /// Not upstream (ex-807): the embedding host's canvas colour
+    /// ([`Editor::set_host_canvas_background`]).
+    pub(crate) host_canvas_background: Option<String>,
+    /// The host colour the cached bitmaps' outline arrowheads were filled
+    /// with, so a change makes them again.
+    pub(crate) bitmaps_host_background: Option<String>,
 }
 
 /// The clean state [`Editor::dirty`] compares with.
@@ -624,6 +630,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             shortcut_host: ShortcutHost::default(),
             bitmaps: ElementCanvasCache::new(),
             host_bitmaps: HashSet::new(),
+            host_canvas_background: None,
+            bitmaps_host_background: None,
         };
         editor.start(editor.file.clone());
         editor
@@ -891,6 +899,53 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         self.viewport.clone_from(&patch);
         self.session.set_state(patch);
         self.session.commit();
+    }
+
+    /// Whether the host controls the theme, as upstream's `theme` prop
+    /// without `onThemeChange` does: `UIOptions.canvasActions.toggleTheme`
+    /// is left `null`, and only becomes `true` when the prop is unset or
+    /// `onThemeChange` is passed (`packages/excalidraw/index.tsx:142-147`).
+    /// The element passes `true` while it has a `theme` attribute, which it
+    /// has no `onThemeChange` for, so `toggleTheme` is off: the main menu
+    /// hides its theme item (`DefaultItems.tsx:256`), the help dialog its
+    /// shortcut row (`HelpDialog.tsx:310`), the command palette its theme
+    /// command (the action's predicate, `actionCanvas.tsx:462-464`, read by
+    /// `isCommandAvailable`, `CommandPalette.tsx:672-689`), and Alt+Shift+D
+    /// matches no action (`manager.tsx:97-104`).
+    pub fn set_theme_controlled(&mut self, controlled: bool) {
+        self.props.canvas_actions.toggle_theme = None;
+        self.props.canvas_actions.normalize(controlled, false);
+    }
+
+    /// Not upstream (ex-807): the embedding host's canvas colour, a colour
+    /// the canvas accepts (the web runtime resolves the element's
+    /// `--excali-canvas-background`), or `None`. While the scene's
+    /// `viewBackgroundColor` is upstream's default (`#ffffff`,
+    /// `COLOR_PALETTE.white`, compared case-insensitively) the static
+    /// canvas paints this colour instead, and fills outline arrowheads with
+    /// it, both without the dark filter. A scene with a background of its
+    /// own keeps it, and exports never read this.
+    pub fn set_host_canvas_background(&mut self, color: Option<String>) {
+        self.host_canvas_background = color.filter(|c| !c.trim().is_empty());
+    }
+
+    /// The host colour the static canvas paints now, if any
+    /// ([`Editor::set_host_canvas_background`]).
+    fn applied_host_background(&self) -> Option<&str> {
+        let host = self.host_canvas_background.as_deref()?;
+        let scene = self.session.app_state().view_background_color()?;
+        scene
+            .eq_ignore_ascii_case(excali_core::constants::COLOR_WHITE)
+            .then_some(host)
+    }
+
+    /// The colour the static canvas's bootstrap clears for
+    /// (`bootstrapCanvas`, `helpers.ts:95-124`): the host's when it paints
+    /// it, else `viewBackgroundColor`.
+    pub fn static_background(&self) -> Option<String> {
+        self.applied_host_background()
+            .or_else(|| self.session.app_state().view_background_color())
+            .map(str::to_owned)
     }
 
     /// `appState.theme`: `"light"` or `"dark"`.
@@ -3756,6 +3811,13 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// in the scene are dropped, as the WeakMap lets them go.
     pub fn static_frame(&mut self, width: f64, height: f64, scale: f64) -> StaticFrame {
         let (state, config) = self.static_state();
+        // not upstream (ex-807): the outline arrowheads in the bitmaps are
+        // filled with the host's colour, so a new one makes them again
+        if self.bitmaps_host_background != config.host_canvas_background {
+            self.bitmaps = ElementCanvasCache::new();
+            self.bitmaps_host_background
+                .clone_from(&config.host_canvas_background);
+        }
         let elements = self.session.elements();
         let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
         let map = ElementsMap::new(live.iter().copied());
@@ -3855,6 +3917,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             ..StaticCanvasAppState::default()
         };
         let config = StaticCanvasRenderConfig {
+            host_canvas_background: self.applied_host_background().map(str::to_owned),
             render_grid: self.grid_mode_enabled(),
             theme: state.theme,
             pending_flowchart_nodes: self.flowchart.pending_nodes().to_vec(),

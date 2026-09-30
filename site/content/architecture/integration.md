@@ -267,6 +267,39 @@ editor.addEventListener("save-as-request", (e) => {
 });
 ```
 
+## 7. Theming
+
+The chrome is drawn from upstream's CSS custom properties (`packages/excalidraw/css/theme.scss`; the list is on the [tokens page](../../design-system/tokens/)): the light values on `.excalidraw`, the dark ones on `.excalidraw.theme--dark`, both declared by `excali.css`. `.excalidraw` is the element's container, inside `<excali-editor>`, and carries `theme--dark` in the dark theme. A host themes the chrome with its own rules for those tokens, as upstream's theming does, with two things to mind:
+
+- **Specificity.** The element installs its stylesheet first in `<head>`, and a page usually links `excali.css` before its own styles, so a host rule wins over `.excalidraw` at equal specificity. The dark tokens are on `.excalidraw.theme--dark`, two classes: a rule meant for both themes needs at least that, such as `excali-editor .excalidraw.excalidraw` (two classes and a type, so it wins wherever the host's stylesheet is) or `.excalidraw.excalidraw` after `excali.css`.
+- **Inline tokens.** The container's inline style holds `--right-sidebar-width`, `--ui-pointerEvents` and `--zen-mode-transition-duration`, as upstream's `App` writes them; no stylesheet rule overrides those.
+
+The canvas is not drawn from the tokens. Two custom properties reach it, both read from the container's computed style at every paint, so they may be set on `<excali-editor>` or inherited from any ancestor:
+
+- `--excali-canvas-background` (not upstream): the colour of the on-screen canvas behind a scene whose `viewBackgroundColor` is upstream's default, `#ffffff`. It is painted as given in either theme (the dark filter upstream applies to the scene's background is not applied to it), and outline arrowheads (`triangle_outline`, `circle_outline`, `diamond_outline`, and the circles of the `zero` cardinalities) are filled with it, so they look hollow on it. A scene with a background of its own keeps it, through the dark filter in the dark theme as upstream draws it, and every export (PNG, SVG, the clipboard's PNG) keeps the scene's own background. The value is resolved as the canvas would: `var()` references are substituted by the browser, and the result is assigned to a 2D context's `fillStyle` and read back; a value the canvas rejects, or none, draws as upstream does.
+- `--color-selection`: upstream's own token, the selection's borders and handles, the selection box and the snap lines on the interactive canvas.
+
+A `theme` attribute makes the theme the host's, as upstream's `theme` prop without `onThemeChange` does (`packages/excalidraw/index.tsx:142-147`): the main menu has no theme item, the help dialog no toggle-theme row, the command palette no theme command, and Alt+Shift+D does nothing. Without the attribute the element's own toggle stays, and removing the attribute gives it back (the theme then returns to light).
+
+A host rule of this kind, from `tests/web/specs/theming.spec.mjs`, which checks each value in Chromium:
+
+<!-- snippet: tests/web/specs/theming.spec.mjs -->
+```css
+excali-editor .excalidraw.excalidraw {
+  --island-bg-color: #181825;
+  --color-primary: #cba6f7;
+  --color-selection: #cba6f7;
+}
+excali-editor {
+  --excali-canvas-background: #1e1e2e;
+}
+:root[data-palette="latte"] excali-editor {
+  --excali-canvas-background: #eff1f5;
+}
+```
+
+The chrome follows a change to the host's rules at once, as any CSS does. The canvas follows it at its next paint: after switching its palette (in the test, `document.documentElement.dataset.palette = "latte"`), a host sets `theme` again (`ed.setAttribute("theme", "light")`), which repaints even when the value is the same.
+
 ## Checking a change to this page
 
 <!-- snippet: scripts/site/snippets.py -->

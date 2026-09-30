@@ -205,6 +205,7 @@ fn every_matrix_case_matches_upstream() {
         let config = RenderConfig {
             is_exporting,
             canvas_background_color: &background,
+            canvas_background_unfiltered: false,
             embeds_validation_status: Some(&embeds),
             theme,
         };

@@ -175,6 +175,7 @@ fn render(scene: &Value, origin_host: &str, now: f64) -> DisplayList {
     let embeds = embeds(&rc["embedsValidationStatus"]);
     let config = StaticCanvasRenderConfig {
         canvas_background_color: rc["canvasBackgroundColor"].as_str().unwrap().to_owned(),
+        host_canvas_background: None,
         image_cache: images(&scene["images"]),
         render_grid: rc["renderGrid"].as_bool().unwrap(),
         render_links: rc["renderLinks"].as_bool().unwrap_or(true),

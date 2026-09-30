@@ -537,6 +537,7 @@ impl Renderer<'_, '_> {
         RenderConfig {
             is_exporting: true,
             canvas_background_color: self.config.canvas_background_color,
+            canvas_background_unfiltered: false,
             embeds_validation_status: Some(&self.embeds_validation_status),
             theme: self.config.theme,
         }

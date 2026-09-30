@@ -163,6 +163,14 @@ impl Default for StaticCanvasAppState {
 pub struct StaticCanvasRenderConfig {
     /// The fill of outline arrowheads.
     pub canvas_background_color: String,
+    /// Not upstream (ex-807): the embedding host's canvas colour
+    /// (`--excali-canvas-background` on `<excali-editor>`), painted in
+    /// place of the app state's `viewBackgroundColor` and used as the
+    /// outline arrowheads' fill, both without the dark filter: the host's
+    /// palette is already the one it wants on screen. `None` (every export,
+    /// and the editor unless the host sets one over a scene on upstream's
+    /// default background) draws as upstream does.
+    pub host_canvas_background: Option<String>,
     pub image_cache: HashMap<String, CachedImage>,
     pub render_grid: bool,
     /// `renderLinks !== false`: link icons in the editor.
@@ -186,6 +194,7 @@ impl Default for StaticCanvasRenderConfig {
     fn default() -> Self {
         StaticCanvasRenderConfig {
             canvas_background_color: COLOR_WHITE.to_owned(),
+            host_canvas_background: None,
             image_cache: HashMap::new(),
             render_grid: true,
             render_links: true,
@@ -381,7 +390,22 @@ pub fn stroke_grid(config: &GridConfig) -> DisplayItem {
 }
 
 /// `bootstrapCanvas`'s background (`helpers.ts:95-124`), in CSS pixels.
-fn background(width: f64, height: f64, color: Option<&str>, theme: Theme) -> Option<DisplayItem> {
+/// The host's colour (`host`, ex-807), when there is one, is painted as
+/// given: no dark filter, and not checked against the canvas's parser (the
+/// web runtime hands over a colour the canvas already read back).
+fn background(
+    width: f64,
+    height: f64,
+    color: Option<&str>,
+    theme: Theme,
+    host: Option<&str>,
+) -> Option<DisplayItem> {
+    if let Some(host) = host {
+        return Some(DisplayItem::FillRect {
+            rect: Rect::new(0.0, 0.0, width, height),
+            color: Color::new(host),
+        });
+    }
     let color = color?;
     if color == "transparent" {
         return None;
@@ -680,6 +704,7 @@ fn render_static_scene_with(scene: &StaticScene<'_>, draw: &mut DrawElement<'_>)
         normalized_height,
         app_state.view_background_color.as_deref(),
         app_state.theme,
+        config.host_canvas_background.as_deref(),
     ));
     root.push(with_transform(Transform::scale(zoom, zoom), scene_items));
     DisplayList::from_iter([with_transform(
