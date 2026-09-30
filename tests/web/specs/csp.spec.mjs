@@ -8,12 +8,13 @@
 // Taking out 'wasm-unsafe-eval', style-src's 'unsafe-inline' or img-src's
 // data:, or adding a nonce to style-src (what Tauri does for a <style> in
 // the page), breaks it the way the guide says.
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { expect, test } from "@playwright/test";
 
-import { PAGE_DIR, REPO_ROOT } from "../lib/serve.mjs";
+import { createWebServer, PAGE_DIR, REPO_ROOT } from "../lib/serve.mjs";
 
 const GUIDE = readFileSync(
   join(REPO_ROOT, "site", "content", "architecture", "integration.md"),
@@ -121,4 +122,109 @@ test("without img-src data: the canvas's built-in images are refused", async ({ 
   const violations = await open(page, without("img-src", "data:"));
   await page.waitForFunction(() => window.editor?.querySelector("canvas"));
   await expect.poll(() => violations.some((v) => v.startsWith("img-src data"))).toBe(true);
+});
+
+// The runtime on another origin (a CDN), as the guide describes it (ex-803):
+// that origin added to the directives the guide names, and the runtime's
+// server sending Access-Control-Allow-Origin, since a module script, init()'s
+// fetch of the wasm and web fonts are all CORS requests. Two more servers of
+// the build on their own ports are that other origin, one with the header
+// and one without. (Route handlers cannot stand in: Playwright's fulfilled
+// responses skip the browser's CORS check.)
+const DIRECTIVES = (() => {
+  const m = /on another origin \(a CDN\), put that origin in ((?:`[a-z-]+`(?:, | and )?)+)/.exec(GUIDE);
+  if (!m) throw new Error("integration.md does not say which directives take a CDN origin");
+  return [...m[1].matchAll(/`([a-z-]+)`/g)].map((d) => d[1]);
+})();
+
+const cdnHeader = (origin) =>
+  HEADER.split("; ")
+    .map((d) => (DIRECTIVES.includes(d.split(" ")[0]) ? `${d} ${origin}` : d))
+    .join("; ");
+
+// Per case, the runtime's server and a server of the page (csp.html and
+// csp-app.js pointed at the runtime's origin, with the policy for it). The
+// page is served for real rather than through a route: Chromium treats a
+// fulfilled page as public and refuses its requests to a loopback server.
+const cdn = {};
+
+const listen = async (server) => {
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return `http://127.0.0.1:${server.address().port}`;
+};
+
+test.beforeAll(async () => {
+  for (const cors of [true, false]) {
+    const runtime = createWebServer(join(REPO_ROOT, "dist"));
+    if (cors) {
+      runtime.prependListener("request", (_req, res) => res.setHeader("access-control-allow-origin", "*"));
+    }
+    const origin = await listen(runtime);
+    const dir = mkdtempSync(join(tmpdir(), "excali-csp-cdn-"));
+    writeFileSync(
+      join(dir, "csp.html"),
+      readFileSync(join(PAGE_DIR, "csp.html"), "utf8").replace('href="/excali.css"', `href="${origin}/excali.css"`),
+    );
+    writeFileSync(
+      join(dir, "csp-app.js"),
+      APP_JS.toString().replace('"/excali_editor.js"', `"${origin}/excali_editor.js"`),
+    );
+    const pageServer = createWebServer(dir, dir);
+    pageServer.prependListener("request", (_req, res) =>
+      res.setHeader("content-security-policy", cdnHeader(origin)),
+    );
+    cdn[cors] = { origin, page: `${await listen(pageServer)}/csp.html`, servers: [runtime, pageServer], dir };
+  }
+});
+
+test.afterAll(async () => {
+  for (const { servers, dir } of Object.values(cdn)) {
+    await Promise.all(servers.map((s) => new Promise((r) => s.close(r))));
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+async function openFromCdn(page, { page: url }) {
+  const violations = [];
+  const errors = [];
+  page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+  await page.exposeFunction("reportViolation", (v) => violations.push(v));
+  await page.addInitScript(() => {
+    document.addEventListener("securitypolicyviolation", (e) =>
+      window.reportViolation(`${e.violatedDirective} ${e.blockedURI || "inline"}`),
+    );
+  });
+  await page.goto(url);
+  return { violations, errors };
+}
+
+test("from another origin that sends Access-Control-Allow-Origin, under the guide's policy for it, the editor works", async ({
+  page,
+}) => {
+  const { origin } = cdn[true];
+  expect(cdnHeader(origin)).toContain(`script-src 'self' 'wasm-unsafe-eval' ${origin}`);
+  expect(cdnHeader(origin)).toContain(`font-src 'self' data: ${origin}`);
+  const { violations, errors } = await openFromCdn(page, cdn[true]);
+  await page.waitForFunction(() => window.editor?.querySelector("canvas"));
+  const state = await page.evaluate(async (scene) => {
+    await window.editor.load(scene);
+    await document.fonts.ready;
+    return window.editor.getState();
+  }, SCENE);
+  await page.waitForFunction(() => [...document.fonts].some((f) => f.status === "loaded"));
+  expect(state.elementCount).toBe(3);
+  // excali.css from the other origin applies
+  expect(await page.evaluate(() => getComputedStyle(window.editor).position)).toBe("relative");
+  expect(violations).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test("from another origin without Access-Control-Allow-Origin the module is refused", async ({ page }) => {
+  const { origin } = cdn[false];
+  const { violations, errors } = await openFromCdn(page, cdn[false]);
+  await expect
+    .poll(() => errors.some((e) => e.includes(`${origin}/excali_editor.js`) && e.includes("CORS")))
+    .toBe(true);
+  expect(await page.evaluate(() => window.editor)).toBeUndefined();
+  expect(violations).toEqual([]);
 });
