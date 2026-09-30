@@ -326,7 +326,8 @@ impl Keyboard {
         }
     }
 
-    fn select(&mut self, id: &str) {
+    /// Selects the element `id` alone.
+    pub fn select(&mut self, id: &str) {
         self.app_state
             .insert("selectedElementIds", json!({ id: true }));
     }
@@ -433,6 +434,9 @@ impl Keyboard {
             "selectedElementIds",
             "viewModeEnabled",
             "bindMode",
+            "theme",
+            "activeLockedId",
+            "toast",
         ];
         let app_state: Map<String, Value> = keys
             .iter()
@@ -457,6 +461,10 @@ impl Keyboard {
                     "width": e.base.width,
                     "height": e.base.height,
                     "version": e.base.version,
+                    "locked": e.base.locked,
+                    "strokeColor": e.base.stroke_color,
+                    "strokeStyle": map.get("strokeStyle"),
+                    "opacity": map.get("opacity"),
                     "boundElements": map.get("boundElements"),
                     "startBinding": map.get("startBinding"),
                     "endBinding": map.get("endBinding"),
