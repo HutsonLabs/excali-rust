@@ -1628,3 +1628,463 @@ pub fn eye_dropper_preview<E: StyleEnv>(
         never: false,
     }
 }
+
+impl<E: StyleEnv + crate::resize_elements::TransformEnv> crate::resize_elements::TransformEnv
+    for Triggering<'_, E>
+{
+    fn sticky_note_layout(
+        &mut self,
+        container: &Element,
+        text: Option<&Element>,
+        opts: &crate::resize_elements::StickyNoteLayoutOpts,
+    ) -> crate::resize_elements::StickyNoteLayout {
+        crate::resize_elements::TransformEnv::sticky_note_layout(self.0, container, text, opts)
+    }
+}
+
+// -- paste styles (actionStyles.ts) ---------------------------------------------------
+
+/// `DEFAULT_FONT_SIZE`, `DEFAULT_FONT_FAMILY` and `DEFAULT_TEXT_ALIGN`
+/// (`common/src/constants.ts`).
+const DEFAULT_FONT_SIZE: f64 = 20.0;
+const DEFAULT_FONT_FAMILY: f64 = 5.0;
+const DEFAULT_TEXT_ALIGN: &str = "left";
+/// `ROUNDNESS.LEGACY` (`constants.ts`).
+const ROUNDNESS_LEGACY: u8 = 1;
+
+/// `isExcalidrawElement(value)` (`typeChecks.ts:255-285`): an object whose
+/// `type` is an element type.
+fn is_excalidraw_element(value: &Value) -> bool {
+    matches!(
+        value.get("type").and_then(Value::as_str),
+        Some(
+            "text"
+                | "diamond"
+                | "rectangle"
+                | "stickynote"
+                | "iframe"
+                | "embeddable"
+                | "ellipse"
+                | "arrow"
+                | "freedraw"
+                | "line"
+                | "frame"
+                | "magicframe"
+                | "image"
+                | "selection"
+        )
+    )
+}
+
+/// `isUsingProportionalRadius(type)` (`typeChecks.ts:328-332`).
+fn is_using_proportional_radius(ty: &str) -> bool {
+    matches!(ty, "line" | "arrow" | "diamond" | "stickynote")
+}
+
+/// The copied `roundness` as pasted onto `element`
+/// (`canApplyRoundnessTypeToElement`, `getDefaultRoundnessTypeForElement`,
+/// `typeChecks.ts:334-373`).
+fn pasted_roundness(roundness: &Value, element: &Element) -> Value {
+    if !truthy(Some(roundness)) {
+        return Value::Null;
+    }
+    let ty = element.element_type().as_str();
+    let kind = roundness.get("type").and_then(Value::as_f64);
+    let applies = match kind {
+        Some(k)
+            if k == f64::from(ROUNDNESS_ADAPTIVE_RADIUS) || k == f64::from(ROUNDNESS_LEGACY) =>
+        {
+            is_using_adaptive_radius(ty)
+        }
+        Some(k) if k == f64::from(ROUNDNESS_PROPORTIONAL_RADIUS) => {
+            is_using_proportional_radius(ty)
+        }
+        _ => false,
+    };
+    if applies {
+        roundness.clone()
+    } else if is_using_proportional_radius(ty) {
+        json!({ "type": ROUNDNESS_PROPORTIONAL_RADIUS })
+    } else if is_using_adaptive_radius(ty) {
+        json!({ "type": ROUNDNESS_ADAPTIVE_RADIUS })
+    } else {
+        Value::Null
+    }
+}
+
+/// `value || fallback` of a JSON number.
+fn number_or(value: Option<&Value>, fallback: f64) -> f64 {
+    value
+        .and_then(Value::as_f64)
+        .filter(|&n| n != 0.0 && !n.is_nan())
+        .unwrap_or(fallback)
+}
+
+/// `newElementWith` of an [`Obj`] (`undefined` values skipped): the
+/// element itself when no value differs.
+fn obj_with<E: StyleEnv>(w: &mut Work<'_, E>, obj: Obj, updates: Map<String, Value>) -> Obj {
+    let current = w.get(&obj).clone();
+    match element_with(&current, updates, w.env) {
+        Some(next) => Obj::Own(Box::new(next)),
+        None => obj,
+    }
+}
+
+/// The key inputs `getStickyNoteLayout` reads (`STICKY_NOTE_LAYOUT_INPUTS`,
+/// `stickyNote.ts:867-877`).
+const STICKY_NOTE_CONTAINER_INPUTS: [&str; 5] = ["x", "y", "width", "baseHeight", "angle"];
+const STICKY_NOTE_TEXT_INPUTS: [&str; 6] = [
+    "originalText",
+    "baseFontSize",
+    "fontFamily",
+    "lineHeight",
+    "textAlign",
+    "verticalAlign",
+];
+
+/// `hasStickyNoteLayoutInputChanged(container, textElement,
+/// prevElementsMap)` (`stickyNote.ts:879-903`).
+fn has_sticky_note_layout_input_changed(
+    container: &Element,
+    text: Option<&Element>,
+    prev: &ElementsMap<'_>,
+) -> bool {
+    let Some(prev_container) = prev.get(&container.base.id) else {
+        return true;
+    };
+    let prev_text = text.and_then(|t| prev.get(&t.base.id));
+    if text.is_some() && prev_text.is_none() {
+        return true;
+    }
+    if text.is_none()
+        && prev_container
+            .base
+            .bound_elements
+            .iter()
+            .flatten()
+            .any(|b| b.kind == excali_core::element::BoundElementType::Text)
+    {
+        return true;
+    }
+    let differs = |a: &Element, b: &Element, keys: &[&str]| {
+        let (a, b) = (a.to_map(), b.to_map());
+        keys.iter().any(|k| a.get(*k) != b.get(*k))
+    };
+    differs(prev_container, container, &STICKY_NOTE_CONTAINER_INPUTS)
+        || match (text, prev_text) {
+            (Some(t), Some(p)) => differs(p, t, &STICKY_NOTE_TEXT_INPUTS),
+            _ => false,
+        }
+}
+
+/// `relayoutStickyNotes(elements, affectedIds, { prevElementsMap })`
+/// (`stickyNote.ts:905-958`): the notes among `affected` (or whose labels
+/// are) laid out again (`getStickyNoteLayout`) where their layout inputs
+/// changed, note and label each a `newElementWith`.
+fn relayout_sticky_notes<E: StyleEnv + crate::resize_elements::TransformEnv>(
+    elements: Vec<Element>,
+    affected: &[String],
+    prev: &ElementsMap<'_>,
+    env: &mut E,
+) -> Vec<Element> {
+    let mut containers: Vec<String> = Vec::new();
+    let mut replacements: Vec<Element> = Vec::new();
+    {
+        let map = ElementsMap::new(elements.iter());
+        for id in affected {
+            let Some(element) = map.get(id).filter(|e| !e.base.is_deleted) else {
+                continue;
+            };
+            let container = if is_sticky_note(Some(element)) {
+                Some(element.base.id.clone())
+            } else {
+                text_container_id(element)
+                    .and_then(|c| map.get(c))
+                    .filter(|c| !c.base.is_deleted && is_sticky_note(Some(c)))
+                    .map(|c| c.base.id.clone())
+            };
+            if let Some(c) = container {
+                if !containers.contains(&c) {
+                    containers.push(c);
+                }
+            }
+        }
+        for id in &containers {
+            let Some(container) = map.get(id) else {
+                continue;
+            };
+            let text = get_bound_text_element(container, &map);
+            if !has_sticky_note_layout_input_changed(container, text, prev) {
+                continue;
+            }
+            let layout = crate::resize_elements::TransformEnv::sticky_note_layout(
+                env,
+                container,
+                text,
+                &crate::resize_elements::StickyNoteLayoutOpts::default(),
+            );
+            let mut geometry = Map::new();
+            geometry.insert("x".into(), num(layout.x));
+            geometry.insert("y".into(), num(layout.y));
+            geometry.insert("width".into(), num(layout.width));
+            geometry.insert("height".into(), num(layout.height));
+            geometry.insert("baseHeight".into(), num(layout.base_height));
+            if let Some(next) = element_with(container, geometry, env) {
+                replacements.push(next);
+            }
+            if let (Some(text), Some(label)) = (text, layout.text) {
+                let mut updates = Map::new();
+                updates.insert("text".into(), json!(label.text));
+                updates.insert("fontSize".into(), num(label.font_size));
+                updates.insert("baseFontSize".into(), num(label.base_font_size));
+                updates.insert("width".into(), num(label.width));
+                updates.insert("height".into(), num(label.height));
+                updates.insert("x".into(), num(label.x));
+                updates.insert("y".into(), num(label.y));
+                updates.insert("angle".into(), num(label.angle));
+                if let Some(next) = element_with(text, updates, env) {
+                    replacements.push(next);
+                }
+            }
+        }
+    }
+    if replacements.is_empty() {
+        return elements;
+    }
+    elements
+        .into_iter()
+        .map(|element| {
+            match replacements
+                .iter()
+                .position(|r| r.base.id == element.base.id)
+            {
+                Some(i) => replacements[i].clone(),
+                None => element,
+            }
+        })
+        .collect()
+}
+
+/// `actionPasteStyles.perform` (`actionStyles.ts:85-221`): the styles of
+/// `copied` (upstream's `copiedStyles`: the copied element and its label)
+/// on the selection (with its labels, a label taking the copied label's):
+/// the colours, stroke, fill, opacity, sloppiness and the roundness the
+/// element can take; a text also the font size (a note's label as its
+/// ceiling), family, alignment and line height, laid out again (a note's
+/// label keeps its note's ink); an arrow the arrowheads; a frame no
+/// roundness or fill; a note normalised. Notes and their labels then share
+/// one ink and are laid out again, and the arrows bound to a note that
+/// moved or grew follow.
+pub(super) fn paste_styles<E: StyleEnv + crate::resize_elements::TransformEnv>(
+    elements: &[Element],
+    app_state: &AppState,
+    copied: &str,
+    env: &mut E,
+) -> ActionResult {
+    let copied: Value = serde_json::from_str(copied).unwrap_or(Value::Null);
+    let pasted = copied.get(0).cloned().unwrap_or(Value::Null);
+    let bound_text = copied.get(1).cloned().unwrap_or(Value::Null);
+    if !is_excalidraw_element(&pasted) {
+        return ActionResult {
+            elements: Some(elements.to_vec()),
+            app_state: Map::new(),
+            capture: false,
+            never: false,
+        };
+    }
+    let copied_elements: Vec<Element> = copied
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|v| is_excalidraw_element(v))
+        .filter_map(|v| {
+            v.as_object()
+                .and_then(|m| Element::from_map(m.clone()).ok())
+        })
+        .collect();
+    let copied_map = ElementsMap::new(copied_elements.iter());
+    let originals = elements.to_vec();
+    let elements_map = ElementsMap::new(originals.iter());
+
+    let mut w = Work {
+        scene: Scene::new(elements.to_vec()),
+        env,
+    };
+    let selected = selected_ids(&w.scene, app_state, true);
+    let mut slots: Vec<Obj> = Vec::with_capacity(elements.len());
+    for (i, element) in originals.iter().enumerate() {
+        if !selected.contains(&element.base.id) {
+            slots.push(Obj::Scene(i));
+            continue;
+        }
+        let is_text = matches!(element.kind, ElementKind::Text(_));
+        let from = if is_text && text_container_id(element).is_some() {
+            &bound_text
+        } else {
+            &pasted
+        };
+        if !truthy(Some(from)) {
+            slots.push(Obj::Scene(i));
+            continue;
+        }
+        let mut updates = Map::new();
+        for key in [
+            "backgroundColor",
+            "strokeWidth",
+            "strokeColor",
+            "strokeStyle",
+            "fillStyle",
+            "opacity",
+            "roughness",
+        ] {
+            if let Some(v) = from.get(key) {
+                updates.insert(key.into(), v.clone());
+            }
+        }
+        updates.insert(
+            "roundness".into(),
+            pasted_roundness(from.get("roundness").unwrap_or(&Value::Null), element),
+        );
+        let mut obj = obj_with(&mut w, Obj::Scene(i), updates);
+
+        if is_text {
+            let from_is_text = from.get("type").and_then(Value::as_str) == Some("text");
+            let font_size = if from_is_text {
+                // getBaseFontSize(source, copiedElementsMap)
+                let sticky_label = from
+                    .get("containerId")
+                    .and_then(Value::as_str)
+                    .filter(|c| !c.is_empty())
+                    .is_some_and(|c| is_sticky_note(copied_map.get(c)));
+                let base = from.get("baseFontSize").filter(|v| !v.is_null());
+                if sticky_label {
+                    number_or(base.or(from.get("fontSize")), DEFAULT_FONT_SIZE)
+                } else {
+                    number_or(from.get("fontSize"), DEFAULT_FONT_SIZE)
+                }
+            } else {
+                number_or(from.get("fontSize"), DEFAULT_FONT_SIZE)
+            };
+            let font_family = number_or(from.get("fontFamily"), DEFAULT_FONT_FAMILY);
+            let container = text_container_id(element)
+                .filter(|c| selected.iter().any(|s| s == c))
+                .map(str::to_owned);
+            let current = w.get(&obj).clone();
+            let sticky_label = is_sticky_note_bound_text(&current, &elements_map);
+            let mut text_updates = if sticky_label {
+                one(
+                    "baseFontSize",
+                    num(normalize_sticky_note_font_size(font_size)),
+                )
+            } else {
+                one("fontSize", num(font_size))
+            };
+            text_updates.insert("fontFamily".into(), num(font_family));
+            let align = from
+                .get("textAlign")
+                .and_then(Value::as_str)
+                .filter(|a| !a.is_empty())
+                .unwrap_or(DEFAULT_TEXT_ALIGN);
+            text_updates.insert("textAlign".into(), json!(align));
+            let line_height = number_or(
+                from.get("lineHeight"),
+                get_line_height(FontFamily(font_family as u32)),
+            );
+            text_updates.insert("lineHeight".into(), num(line_height));
+            obj = obj_with(&mut w, obj, text_updates);
+            if sticky_label {
+                // the copied stroke may be transparent; a note's label never is
+                let current = w.get(&obj).clone();
+                let ink = color_update(
+                    &current,
+                    ColorProperty::StrokeColor,
+                    &current.base.stroke_color,
+                    &elements_map,
+                );
+                obj = obj_with(&mut w, obj, ink);
+            } else {
+                w.redraw(&mut obj, container.as_deref());
+            }
+        }
+
+        let is_arrow = matches!(w.get(&obj).kind, ElementKind::Arrow(_));
+        if is_arrow && from.get("type").and_then(Value::as_str) == Some("arrow") {
+            let mut heads = Map::new();
+            for key in ["startArrowhead", "endArrowhead"] {
+                if let Some(v) = from.get(key) {
+                    heads.insert(key.into(), v.clone());
+                }
+            }
+            obj = obj_with(&mut w, obj, heads);
+        }
+        if excali_scene::frame::is_frame_like(element) {
+            let mut frame = one("roundness", Value::Null);
+            frame.insert("backgroundColor".into(), json!("transparent"));
+            obj = obj_with(&mut w, obj, frame);
+        }
+        if is_sticky_note(Some(w.get(&obj))) {
+            let current = w.get(&obj).clone();
+            if let Some(normalized) = normalize_sticky_note(&current, w.env) {
+                obj = Obj::Own(Box::new(normalized));
+            }
+        }
+        slots.push(obj);
+    }
+
+    // syncStickyNoteInk and relayoutStickyNotes over the live objects:
+    // what the map left as the scene's reads the scene as it is now
+    let own: Vec<bool> = slots.iter().map(|s| matches!(s, Obj::Own(_))).collect();
+    let mapped = w.materialize(slots);
+    let live = w.scene.elements().to_vec();
+    let prev = ElementsMap::new(live.iter());
+    let synced = sync_sticky_note_ink(mapped.clone(), &prev, w.env);
+    let next = relayout_sticky_notes(synced, &selected, &prev, w.env);
+    let replaced: Vec<bool> = next
+        .iter()
+        .zip(&mapped)
+        .zip(&own)
+        .map(|((n, m), own)| *own || n != m)
+        .collect();
+
+    // a restyled note may have grown or shrunk: the arrows bound to it follow
+    for element in &next {
+        if !is_sticky_note(Some(element)) || element.base.is_deleted {
+            continue;
+        }
+        let Some(before) = prev.get(&element.base.id) else {
+            continue;
+        };
+        if before.base.height != element.base.height
+            || before.base.x != element.base.x
+            || before.base.y != element.base.y
+        {
+            let original = before.clone();
+            w.scene.replace_element(element.clone());
+            update_bound_elements(
+                &mut w.scene,
+                &mut Triggering(w.env),
+                &element.base.id,
+                None,
+                None,
+            );
+            w.scene.replace_element(original);
+        }
+    }
+    let elements = next
+        .into_iter()
+        .enumerate()
+        .map(|(i, element)| {
+            if replaced[i] {
+                element
+            } else {
+                w.scene.elements()[i].clone()
+            }
+        })
+        .collect();
+    ActionResult {
+        elements: Some(elements),
+        app_state: Map::new(),
+        capture: true,
+        never: false,
+    }
+}

@@ -458,8 +458,14 @@ impl Inner {
     }
 
     /// Paints the scene and the chrome again and dispatches the editor's
-    /// events.
+    /// events; the container takes the app state's theme (Alt+Shift+D and
+    /// the command palette's toggleTheme set it).
     fn after_event(&mut self) {
+        let dark = self.editor.app_state().get("theme").and_then(Value::as_str) == Some("dark");
+        let _ = apply_theme(
+            &self.container,
+            if dark { Theme::Dark } else { Theme::Light },
+        );
         self.render();
         self.flush();
     }

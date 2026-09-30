@@ -6,16 +6,21 @@
 //! [`excali_editor::keyboard::on_key_down`] and [`on_key_up`] (the
 //! outcome applied back to the event), the command palette's capture
 //! listener, `copy` / `cut` / `paste`, and pointer presses (which modifier
-//! helpers hold, whether a pan starts). [`Keyboard::state`] reports the
-//! editor as JSON for the Playwright suite `tests/web/keyboard`.
+//! helpers hold, whether a pan starts). The shortcut actions' performs
+//! (deselect, the flips, toggleElementLock, copy and paste styles,
+//! viewMode, toggleTheme) run as `<excali-editor>` runs them
+//! ([`excali_editor::edit_actions::perform_shortcut_action`]).
+//! [`Keyboard::state`] reports the editor as JSON for the Playwright suite
+//! `tests/web/keyboard`.
 //! `scripts/web/keyboard.sh` builds it.
 
 use excali_core::app_state::AppState;
 use excali_core::element::Element;
-use excali_core::fractional_index::ChangeStamp;
+use excali_core::fractional_index::{ChangeStamp, SceneElementsMap};
 use excali_core::restore::RestoreEnv;
 use excali_editor::actions::{ActionEnv, ActionManager, AppProps, KeyDownOutcome};
-use excali_editor::binding::BindingEnv;
+use excali_editor::binding::{update_bound_elements_in_map, BindingEnv};
+use excali_editor::edit_actions::{perform_shortcut_action, ShortcutHost, StyleEnv};
 use excali_editor::flowchart::{insertion_index, insertion_runs, AppFlowchart, FlowchartOperation};
 use excali_editor::keyboard::{
     command_palette_key_down, on_clipboard_event, on_key_down, on_key_up, pan_starts,
@@ -23,8 +28,12 @@ use excali_editor::keyboard::{
     ClipboardEventKind, ClipboardOutcome, KeyEffect, KeyOutcome, KeyboardEditor, KeyboardState,
     PanStart,
 };
+use excali_editor::resize_elements::{
+    sticky_note_layout, StickyNoteLayout, StickyNoteLayoutOpts, TransformEnv,
+};
 use excali_editor::scene::{MutationEnv, Scene};
-use excali_editor::tools::{ToolKeyAction, ToolKeyOutcome, ToolState};
+use excali_editor::text_layout::TextLayouter;
+use excali_editor::tools::{ActiveTool, ToolKeyAction, ToolKeyOutcome, ToolState};
 use excali_text::text_measurements::{CharWidthCache, TextMetricsProvider};
 use excali_ui::keyboard::{apply_outcome, clipboard_target, keystroke, mouse_modifiers};
 use serde_json::{json, Map, Value};
@@ -33,6 +42,7 @@ use web_sys::{Element as DomElement, Event, KeyboardEvent, PointerEvent};
 
 /// Upstream's test text metrics: 10 px per UTF-16 code unit (arrow labels
 /// re-wrapped when a nudge moves a bound arrow).
+#[derive(Clone, Copy)]
 struct TenPxPerCodeUnit;
 
 impl TextMetricsProvider for TenPxPerCodeUnit {
@@ -42,12 +52,99 @@ impl TextMetricsProvider for TenPxPerCodeUnit {
 }
 
 /// `randomInteger()` from a counter, `randomId()` as `id0`, `id1`, ...
-/// and `getUpdatedTimestamp()` = 1, as in upstream's tests.
-#[derive(Default)]
+/// and `getUpdatedTimestamp()` = 1, as in upstream's tests; text laid out
+/// under the same metric.
 struct Env {
     nonce: f64,
     ids: u32,
     char_widths: CharWidthCache,
+    layouter: TextLayouter<TenPxPerCodeUnit>,
+}
+
+impl Default for Env {
+    fn default() -> Env {
+        Env {
+            nonce: 0.0,
+            ids: 0,
+            char_widths: CharWidthCache::default(),
+            layouter: TextLayouter::new(TenPxPerCodeUnit),
+        }
+    }
+}
+
+/// A version stamp from the counter, for the text layout's mutations.
+struct Counter<'a>(&'a mut f64);
+
+impl ChangeStamp for Counter<'_> {
+    fn version_nonce(&mut self) -> f64 {
+        *self.0 += 1.0;
+        *self.0
+    }
+
+    fn updated(&mut self) -> f64 {
+        1.0
+    }
+}
+
+/// The counter and the metric as a [`BindingEnv`], for the arrows a
+/// label's layout moves.
+struct CounterBinding<'a> {
+    stamp: &'a mut dyn ChangeStamp,
+    char_widths: &'a mut CharWidthCache,
+}
+
+impl MutationEnv for CounterBinding<'_> {
+    fn random_integer(&mut self) -> f64 {
+        self.stamp.version_nonce()
+    }
+
+    fn now(&mut self) -> f64 {
+        1.0
+    }
+}
+
+impl BindingEnv for CounterBinding<'_> {
+    fn text(&mut self) -> (&dyn TextMetricsProvider, &mut CharWidthCache) {
+        (&TenPxPerCodeUnit, self.char_widths)
+    }
+}
+
+impl StyleEnv for Env {
+    fn redraw_text_bounding_box(
+        &mut self,
+        elements: &mut SceneElementsMap,
+        text_id: &str,
+        container_id: Option<&str>,
+    ) -> Result<(), String> {
+        let char_widths = &mut self.char_widths;
+        let mut stamp = Counter(&mut self.nonce);
+        self.layouter.redraw_text_bounding_box(
+            &mut stamp,
+            elements,
+            text_id,
+            container_id,
+            &mut |stamp, elements, id| {
+                let mut env = CounterBinding {
+                    stamp,
+                    char_widths: &mut *char_widths,
+                };
+                update_bound_elements_in_map(elements, id, &SceneElementsMap::new(), &mut env);
+                Ok(())
+            },
+        )
+    }
+}
+
+impl TransformEnv for Env {
+    fn sticky_note_layout(
+        &mut self,
+        container: &Element,
+        text: Option<&Element>,
+        opts: &StickyNoteLayoutOpts,
+    ) -> StickyNoteLayout {
+        self.layouter
+            .with_layout(|layout, _| sticky_note_layout(layout, container, text, opts))
+    }
 }
 
 impl RestoreEnv for Env {
@@ -211,6 +308,8 @@ pub struct Keyboard {
     /// keys.
     flowchart: AppFlowchart,
     pointer: (f64, f64),
+    /// `copiedStyles`, kept across loads as upstream's module keeps it.
+    shortcuts: ShortcutHost,
 }
 
 #[wasm_bindgen]
@@ -234,6 +333,7 @@ impl Keyboard {
             binding: Env::default(),
             flowchart: AppFlowchart::default(),
             pointer: (0.0, 0.0),
+            shortcuts: ShortcutHost::default(),
         }
     }
 
@@ -292,7 +392,48 @@ impl Keyboard {
         let out = on_key_down(&mut ed, env, &stroke);
         apply_outcome(event, &out);
         self.answer_flowchart(&out);
+        for effect in &out.effects {
+            if let KeyEffect::Action(KeyDownOutcome::Perform(name)) = effect {
+                self.perform(*name);
+            }
+        }
         outcome_json(&out)
+    }
+
+    /// `<excali-editor>`'s perform of a shortcut action (the tools live in
+    /// [`ToolState`]); other actions are their features'.
+    fn perform(&mut self, name: excali_editor::actions::ActionName) {
+        let mut app_state = self.app_state.clone();
+        app_state.insert("activeTool", self.tools.active_tool.to_json());
+        let preferred = &self.tools.preferred_selection_tool;
+        app_state.insert(
+            "preferredSelectionTool",
+            json!({
+                "type": preferred.tool.tool_type().as_str(),
+                "initialized": preferred.initialized,
+            }),
+        );
+        let Some(mut result) = perform_shortcut_action(
+            name,
+            self.scene.elements(),
+            &app_state,
+            &Value::Null,
+            &mut self.shortcuts,
+            &mut self.binding,
+        ) else {
+            return;
+        };
+        if let Some(tool) = result.app_state.remove("activeTool") {
+            if let Some(tool) = ActiveTool::from_json(&tool) {
+                self.tools.active_tool = tool;
+            }
+        }
+        if let Some(elements) = result.elements {
+            self.scene = Scene::new(elements);
+        }
+        for (key, value) in result.app_state {
+            self.app_state.insert(key, value);
+        }
     }
 
     /// `AppFlowchart.handleKeyEvent`'s answer to the flowchart effects:

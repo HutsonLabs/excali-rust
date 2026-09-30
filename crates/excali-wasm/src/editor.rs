@@ -105,8 +105,9 @@ use excali_editor::convert_element_type::{ConvertElementTypePopup, ConvertPanel,
 use excali_editor::edit_actions::duplicate::duplicate_dragged_selection;
 use excali_editor::edit_actions::{
     bring_forward, bring_to_front, copy_selected, delete_selected, duplicate_selection,
-    eye_dropper_preview, group, insert_library_items, paste_elements, perform_style_action,
-    select_all, selected_elements, send_backward, send_to_back, ungroup, ActionResult,
+    eye_dropper_preview, group, insert_library_items, paste_elements, perform_shortcut_action,
+    perform_style_action, select_all, selected_elements, send_backward, send_to_back, ungroup,
+    ActionResult, ShortcutHost,
 };
 use excali_editor::eraser::EraserTrail;
 use excali_editor::flowchart::{insertion_index, insertion_runs, AppFlowchart, FlowchartOperation};
@@ -136,7 +137,7 @@ use excali_editor::snapping::{
     SnapCache, SnapEvent,
 };
 use excali_editor::store::CaptureUpdateAction;
-use excali_editor::tools::{PointerType, ToolState};
+use excali_editor::tools::{ActiveTool, PointerType, ToolState};
 use excali_editor::transform::{get_grid_point, TransformModifiers, TransformSession};
 use excali_editor::transform_handles::{
     EditorInterface, SelectedLinearElementState, TransformHandleType,
@@ -527,6 +528,9 @@ pub struct Editor<P: TextMetricsProvider + Clone> {
     /// `searchMenu` ran with the search tab open: the host focuses the
     /// search field ([`Editor::take_search_focus_request`]).
     pub(crate) search_focus_requested: bool,
+    /// `copiedStyles` (Ctrl/Cmd+Alt+C) and what else the shortcut actions
+    /// read from the host.
+    pub(crate) shortcut_host: ShortcutHost,
     /// `elementWithCanvasCache`: what each element's bitmap was made for;
     /// the host holds the bitmaps themselves ([`Editor::static_frame`]).
     pub(crate) bitmaps: ElementCanvasCache<()>,
@@ -607,6 +611,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             multi: None,
             image_sizes: HashMap::new(),
             search_focus_requested: false,
+            shortcut_host: ShortcutHost::default(),
             bitmaps: ElementCanvasCache::new(),
             host_bitmaps: HashSet::new(),
         };
@@ -1128,6 +1133,14 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             ActionName::Finalize => return self.finalize(None),
             ActionName::ToggleLinearEditor => return self.toggle_linear_editor(),
             ActionName::SearchMenu => return self.toggle_search_menu(),
+            ActionName::Deselect
+            | ActionName::FlipHorizontal
+            | ActionName::FlipVertical
+            | ActionName::ToggleElementLock
+            | ActionName::CopyStyles
+            | ActionName::PasteStyles
+            | ActionName::ViewMode
+            | ActionName::ToggleTheme => return self.perform_shortcut_action(name),
             _ => {}
         }
         if let Some(action) = ZoomAction::from_name(name.as_str()) {
@@ -1244,6 +1257,41 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             self.apply(scene, app_state);
         }
         self.report();
+    }
+
+    /// The perform of a shortcut action ([`perform_shortcut_action`]:
+    /// deselect, the flips, toggleElementLock, copy and paste styles,
+    /// viewMode, toggleTheme) written back through [`Self::apply_action`].
+    /// The tools live in [`ToolState`]: the action reads `activeTool` and
+    /// `preferredSelectionTool` from it, and deselect's tool goes back to it.
+    fn perform_shortcut_action(&mut self, name: ActionName) {
+        let elements = self.session.elements().to_vec();
+        let mut app_state = self.session.app_state().clone();
+        app_state.insert("activeTool", self.tools.active_tool.to_json());
+        let preferred = &self.tools.preferred_selection_tool;
+        app_state.insert(
+            "preferredSelectionTool",
+            json!({
+                "type": preferred.tool.tool_type().as_str(),
+                "initialized": preferred.initialized,
+            }),
+        );
+        let Some(mut result) = perform_shortcut_action(
+            name,
+            &elements,
+            &app_state,
+            &Value::Null,
+            &mut self.shortcut_host,
+            &mut self.session.env,
+        ) else {
+            return;
+        };
+        if let Some(tool) = result.app_state.remove("activeTool") {
+            if let Some(tool) = ActiveTool::from_json(&tool) {
+                self.tools.active_tool = tool;
+            }
+        }
+        self.apply_action(result);
     }
 
     /// Runs the styles panel's action `name` with the `value` its control

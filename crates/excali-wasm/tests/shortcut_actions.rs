@@ -98,7 +98,7 @@ fn ctrl_shift_l_locks_and_unlocks() {
         .last()
         .cloned()
         .expect("a lock group");
-    assert_eq!(get(&ed, "b").base.group_ids, [group.clone()]);
+    assert_eq!(get(&ed, "b").base.group_ids, std::slice::from_ref(&group));
     assert_eq!(state(&ed, "selectedElementIds"), Some(&json!({})));
     assert_eq!(state(&ed, "activeLockedId"), Some(&json!(group)));
     assert_eq!(
