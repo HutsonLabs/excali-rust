@@ -212,6 +212,62 @@ class CheckoutTests(unittest.TestCase):
         self.assertIn("fetching all refs", r.stdout, "fallback path was not exercised")
         self.assertEqual(self.head(), pin)
 
+    # --- transient network failures --------------------------------------
+
+    def flaky_git(self, failures):
+        """A PATH shim whose first `failures` fetches fail like a DNS outage
+        (main CI run 36683002882, 2026-09-30: "Could not resolve host:
+        github.com"), then defers to the real git."""
+        shim = self.tmp / "shim"
+        shim.mkdir(exist_ok=True)
+        real = shutil.which("git")
+        count = self.tmp / "fetch-count"
+        count.write_text("0")
+        (shim / "git").write_text(
+            "#!/bin/sh\n"
+            'for a in "$@"; do\n'
+            '  if [ "$a" = fetch ]; then\n'
+            f'    n=$(cat "{count}"); n=$((n + 1)); echo "$n" > "{count}"\n'
+            f'    if [ "$n" -le {failures} ]; then\n'
+            "      echo \"fatal: unable to access 'x': Could not resolve host: github.com\" >&2\n"
+            "      exit 128\n"
+            "    fi\n"
+            "    break\n"
+            "  fi\n"
+            "done\n"
+            f'exec "{real}" "$@"\n'
+        )
+        (shim / "git").chmod(0o755)
+        return count, {"PATH": f"{shim}{os.pathsep}{os.environ['PATH']}",
+                       "UPSTREAM_FETCH_DELAY": "0"}
+
+    def test_transient_fetch_failure_is_retried(self):
+        count, env = self.flaky_git(failures=2)
+        pin = self.commits[1]
+        r = self.run_script(pin=pin, extra_env=env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.head(), pin)
+        self.assertEqual(count.read_text().strip(), "3")
+        self.assertIn("retrying", r.stderr)
+        # A network failure is not a server refusing fetch-by-sha.
+        self.assertNotIn("fetching all refs", r.stdout)
+
+    def test_persistent_fetch_failure_gives_up(self):
+        count, env = self.flaky_git(failures=1000)
+        r = self.run_script(
+            pin=self.commits[1], extra_env={**env, "UPSTREAM_FETCH_ATTEMPTS": "3"}
+        )
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("after 3 attempts", r.stderr)
+        # Three attempts for the sha, three for the refs fallback, no more.
+        self.assertEqual(count.read_text().strip(), "6")
+        self.assertFalse(self.dest.exists(), "failed fresh checkout was not cleaned up")
+
+    def test_fetch_attempts_must_be_positive(self):
+        r = self.run_script(pin=self.commits[1], extra_env={"UPSTREAM_FETCH_ATTEMPTS": "0"})
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("UPSTREAM_FETCH_ATTEMPTS", r.stderr)
+
     # --- read-only: this is strictly a port ------------------------------
 
     def push_url(self):
