@@ -22,6 +22,10 @@
 //!   (a planar arrangement of the visible outlines around it, gaps bridged,
 //!   islands punched out as keyhole holes), where it goes in z-order, and
 //!   whether a click restyles existing paint, toasts or inserts a fill.
+//! - [`convert_to_shape`]: the autoshape tool's recognizer
+//!   (`convertToShape.ts`, on `pca.ts`): which of rectangle, diamond,
+//!   ellipse, line and arrow a freehand stroke reads as, and the element
+//!   that replaces it.
 //! - [`collision`]: hit testing (`packages/element/src/collision.ts`,
 //!   `App.getElementHitThreshold`, `App.hitElement`): thresholds, the
 //!   inside and outline rules, per-shape intersections and binding hit
@@ -97,6 +101,7 @@ pub mod binding_highlight;
 pub mod bucket_fill;
 pub mod collision;
 pub mod convert_element_type;
+pub mod convert_to_shape;
 pub mod crop;
 pub mod delta;
 pub mod distance;

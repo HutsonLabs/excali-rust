@@ -1,6 +1,6 @@
 // Inputs for goldens/math.json: calls into upstream's packages/math/src
-// (every exported function except pca.ts, which belongs to shape
-// recognition; curve.ts is ex-202, the rest ex-201). Only inputs live here;
+// (every exported function; curve.ts is ex-202, pca.ts ex-706 (shape
+// recognition), the rest ex-201). Only inputs live here;
 // every result is what upstream's own function returns for them
 // (generate.mjs).
 //
@@ -120,6 +120,16 @@ export const MATH_FUNCTIONS = {
     "curveLengthAtParameter",
     "curvePointAtLength",
   ],
+  "pca.ts": [
+    "centroid",
+    "principalAxes",
+    "principalCoords",
+    "orientPrincipalAxes",
+    "elongation",
+    "standardizedMoment",
+    "skewness",
+    "kurtosis",
+  ],
 };
 
 const RANDOM_PER_FUNCTION = 24;
@@ -141,7 +151,12 @@ export const PLATFORM_DEPENDENT_CASES = new Set([
   "curveClosestPoint/72",
 ]);
 
-export const mathCases = () => {
+/**
+ * The cases, in order. `math` is upstream's packages/math, used only for
+ * the axes object principalCoords, orientPrincipalAxes and elongation take
+ * as an argument (principalAxes' own result for the case's points).
+ */
+export const mathCases = (math) => {
   const next = rng(20260928);
   // Coordinates with a few decimals and full-precision ones, both signs.
   const num = (scale = 200) => {
@@ -646,6 +661,46 @@ export const mathCases = () => {
   add("curvePointAtLength", cS, 0.5, 0);
   repeat("curvePointAtLength", () => [cv(), unit()]);
   repeat("curvePointAtLength", () => [cv(), unit(), pos(300)]);
+
+  // pca.ts (ex-706). The axes object principalCoords and
+  // orientPrincipalAxes take is principalAxes' own result for the points.
+  const axesOf = (points) => math.principalAxes(points);
+  const clouds = [
+    [[0, 0], [10, 0]],
+    [[0, 0], [0, 10]],
+    [[1, 1], [2, 2], [3, 3]],
+    [[0, 0], [10, 0], [10, 10], [0, 10]],
+    [[0, 0], [100, 0], [100, 50], [0, 50]],
+    ngon(64, 50, 0),
+    [[3, 3], [3, 3], [3, 3]],
+  ];
+  const stretched = () => {
+    const a = angle();
+    const k = 0.05 + unit() * 3;
+    return cloud(2 + Math.floor(unit() * 40), 150).map(([x, y]) => [
+      x * Math.cos(a) - y * k * Math.sin(a),
+      x * Math.sin(a) + y * k * Math.cos(a),
+    ]);
+  };
+  const randomClouds = Array.from({ length: RANDOM_PER_FUNCTION }, () => (unit() < 0.5 ? stretched() : cloud(2 + Math.floor(unit() * 60), 300)));
+  for (const c of [...clouds, ...randomClouds]) {
+    add("centroid", c);
+    add("principalAxes", c);
+    add("principalCoords", c, axesOf(c));
+    add("principalCoords", c, axesOf(c), 1 / Math.sqrt(axesOf(c).majorVariance || 1));
+    add("orientPrincipalAxes", c, axesOf(c));
+    add("elongation", axesOf(c));
+  }
+  add("elongation", { centroid: [0, 0], major: [1, 0], minor: [0, 1], majorVariance: 0, minorVariance: 0 });
+  const samples = [[1], [2, 2, 2], [1, 2, 3], [0, 0, 0, 10], [1, 2, 3, 4, 100], [-5, 1e-9, 7.25, 3, 3, -2]];
+  const randomSamples = Array.from({ length: RANDOM_PER_FUNCTION }, () =>
+    Array.from({ length: 1 + Math.floor(unit() * 64) }, () => num(unit() < 0.5 ? 1 : 500)),
+  );
+  for (const v of [...samples, ...randomSamples]) {
+    for (const order of [1, 2, 3, 4, 5]) add("standardizedMoment", v, order);
+    add("skewness", v);
+    add("kurtosis", v);
+  }
 
   return cases;
 };

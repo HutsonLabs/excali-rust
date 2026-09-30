@@ -1,8 +1,7 @@
 //! Geometry primitives: points, vectors, segments, curves, polygons.
 //!
 //! Upstream counterpart: `packages/math`. Every function exported by
-//! `packages/math/src` except `pca.ts` (shape recognition) is ported here
-//! under its snake_case name (`pointRotateRads` -> [`point_rotate_rads`]).
+//! `packages/math/src` is ported here under its snake_case name (`pointRotateRads` -> [`point_rotate_rads`]).
 //! Where upstream has an optional trailing parameter with a default, the
 //! plain function uses the default and a `_with` variant takes it
 //! ([`points_equal`] / [`points_equal_with`]). `goldens/math.json`, generated
@@ -26,6 +25,7 @@ mod curve;
 mod ellipse;
 pub mod js;
 mod line;
+mod pca;
 mod point;
 mod polygon;
 mod range;
@@ -41,6 +41,7 @@ pub use constants::*;
 pub use curve::*;
 pub use ellipse::*;
 pub use line::*;
+pub use pca::*;
 pub use point::*;
 pub use polygon::*;
 pub use range::*;

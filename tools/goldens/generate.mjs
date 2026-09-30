@@ -337,8 +337,8 @@ const buildGoldens = (up) => {
   files.push({
     name: "math.json",
     description:
-      "packages/math/src (all but pca.ts): math[fn](...args) = result, undefined written as null. Points, vectors, segments, lines, triangles, rectangles, curves and ranges are arrays; an ellipse is { center, halfWidth, halfHeight }; curveIntersectLineSegment options are { tolerance, iterLimit }.",
-    cases: mathCases().map(mathCase(up)),
+      "packages/math/src: math[fn](...args) = result, undefined written as null. Points, vectors, segments, lines, triangles, rectangles, curves and ranges are arrays; an ellipse is { center, halfWidth, halfHeight }; curveIntersectLineSegment options are { tolerance, iterLimit }; principal axes are { centroid, major, minor, majorVariance, minorVariance }.",
+    cases: mathCases(up.math).map(mathCase(up)),
   });
   files.push({
     name: "js-sort.json",

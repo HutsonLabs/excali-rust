@@ -22,9 +22,9 @@
     {"name":"elements-matrix.json","cases":684,"sha256":"2c828355603780290147ba4db64283d4af9e10daeaf35565bc80078d20c22893"},
     {"name":"freehand.json","cases":51,"sha256":"5376d39d44a873434da5e01ebde06a2fab319b446887b8dfb84ae78d90a977a1"},
     {"name":"laser-pointer.json","cases":61,"sha256":"cc87317d60f9a532cb41a801daa89a3741312c9086173ebcb5c9e71d64257038"},
-    {"name":"math.json","cases":2942,"sha256":"6096ee4182c6f475cf4cee1dd3cdd40b8401cc8fd6748f30d5bd5c2e709f64a1"},
+    {"name":"math.json","cases":3339,"sha256":"b7fccf2f48d7d63b9dbf43b834597096bcf4403d3892762a2978d3a9b885e114"},
     {"name":"js-sort.json","cases":200,"sha256":"cdc8039d805c0cd0bb2e9352483c9b981b6dc2e418cd6814c43583c72002087c"},
-    {"name":"js-math.json","cases":3329,"sha256":"c88fb6ac6df07ecc3c65385830ac5e11f6bb73724ce01f1beb700f3c63d64a7e"},
+    {"name":"js-math.json","cases":3375,"sha256":"04313851c37e8096e5e1de845646bd09bc296a170fc6206b3fe4be79cf92d71a"},
     {"name":"fractional-indexing.json","cases":5165,"sha256":"398c068bd6414f829527ec74d960ffeed4026b53237fe3195e360bedb0f4c42f"},
     {"name":"fractional-index.json","cases":1274,"sha256":"563e16870b4b420c1ed8a8fbb8b665a8afc69fd06177e68d87f20178760ac3ba"}
   ]

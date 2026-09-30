@@ -34,10 +34,17 @@ mod ieee754;
 
 /// `Math.hypot(a, b)` as V8 computes it.
 pub fn hypot(a: f64, b: f64) -> f64 {
-    let (a, b) = (a.abs(), b.abs());
-    let one_arg_is_nan = a.is_nan() || b.is_nan();
+    hypot_n(&[a, b])
+}
+
+/// `Math.hypot(...values)` as V8 computes it (`MathHypot`, math.tq): the
+/// largest magnitude wins for infinities, a NaN argument gives NaN, and
+/// the rest is a Kahan sum of the squares normalised to the largest.
+pub fn hypot_n(values: &[f64]) -> f64 {
+    let one_arg_is_nan = values.iter().any(|v| v.is_nan());
     let mut max = 0.0_f64;
-    for v in [a, b] {
+    for v in values {
+        let v = v.abs();
         if !v.is_nan() && v > max {
             max = v;
         }
@@ -54,8 +61,8 @@ pub fn hypot(a: f64, b: f64) -> f64 {
     // Kahan summation, normalised to the largest magnitude.
     let mut sum = 0.0_f64;
     let mut compensation = 0.0_f64;
-    for v in [a, b] {
-        let n = v / max;
+    for v in values {
+        let n = v.abs() / max;
         let summand = n * n - compensation;
         let preliminary = sum + summand;
         compensation = (preliminary - sum) - summand;

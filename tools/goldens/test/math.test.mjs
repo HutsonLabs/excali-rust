@@ -1,6 +1,6 @@
 // goldens/math.json covers packages/math/src function for function (ex-201,
-// ex-202 for curve.ts): every function exported by the math package, except
-// pca.ts (shape recognition), has cases, and nothing else does. The export
+// ex-202 for curve.ts, ex-706 for pca.ts): every function exported by the
+// math package has cases, and nothing else does. The export
 // list is read from the pinned checkout, so an upstream function the golden
 // misses fails here.
 
@@ -13,14 +13,13 @@ import { fromBits, JS_MATH_FUNCTIONS, toBits } from "../js-math.mjs";
 import { MATH_FUNCTIONS } from "../math.mjs";
 import { golden, upstreamDir } from "./helpers.mjs";
 
-const EXCLUDED = new Set(["pca.ts"]);
 const EXPORTED_FN = /^export (?:function (\w+)|const (\w+)\s*=\s*(?:<[^=]*?>\s*)?\()/gm;
 
 const upstreamExports = () => {
   const src = join(upstreamDir(), "packages", "math", "src");
   const out = {};
   for (const file of readdirSync(src).sort()) {
-    if (!file.endsWith(".ts") || EXCLUDED.has(file)) continue;
+    if (!file.endsWith(".ts")) continue;
     const text = readFileSync(join(src, file), "utf8");
     const names = [...text.matchAll(EXPORTED_FN)].map((m) => m[1] ?? m[2]);
     if (names.length) out[file] = [...new Set(names)].sort();
@@ -28,7 +27,7 @@ const upstreamExports = () => {
   return out;
 };
 
-test("math.json lists exactly the functions packages/math exports (pca.ts aside)", () => {
+test("math.json lists exactly the functions packages/math exports", () => {
   const expected = upstreamExports();
   const listed = Object.fromEntries(
     Object.entries(MATH_FUNCTIONS)
