@@ -2952,6 +2952,25 @@
    "description": "",
    "type": "task",
    "labels": []
+  },
+  {
+   "id": "ex-806",
+   "epic": "ex-e8",
+   "title": "Release v26.9.2 with the signed macOS app and updater",
+   "priority": 2,
+   "blocked_by": [
+    "ex-805"
+   ],
+   "crates": [],
+   "acceptance": "The workspace, every Cargo.lock and the example app (Cargo.toml, Cargo.lock, tauri.conf.json) are at 26.9.2 and scripts/gates/version.py check passes; scripts/release/notes/v26.9.2.md lists what changed since v26.9.1; the annotated tag v26.9.2 is pushed at the merge commit and its GitHub release (Latest, not a prerelease) carries excali-web_26.9.2.tar.gz, the signed and notarized DMG, the updater tarball, its signature, latest.json and SHA256SUMS whose every line verifies; releases/latest/download/latest.json names 26.9.2. v26.9.1 is left as published. Nothing is published to crates.io, npm or any other registry.",
+   "evidence": [
+    "Owner decision, 2026-09-30: cut v26.9.2 (calendar build bump) so the release includes the example app's in-place updater (ex-805); v26.9.1 stays as published",
+    "site/content/decisions/adr-009-calendar-versioning.md",
+    "python3 scripts/gates/version.py next 2026-09 prints 26.9.2"
+   ],
+   "description": "",
+   "type": "task",
+   "labels": []
   }
  ],
  "notes": "Authored 2026-09-28. ids are stable; never reuse an id for different work. blocked_by lists hard dependencies only."

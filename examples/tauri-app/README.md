@@ -27,9 +27,9 @@ cargo tauri dev
 ### Signed and notarized (a release)
 
 ```sh
-scripts/release/macos-dmg.sh 26.9.1 --dry-run          # print every step, run none
-scripts/release/macos-dmg.sh 26.9.1                    # build, sign, notarize, stage
-scripts/release/macos-dmg.sh 26.9.1 --upload v26.9.1   # and attach to the GitHub release
+scripts/release/macos-dmg.sh 26.9.2 --dry-run          # print every step, run none
+scripts/release/macos-dmg.sh 26.9.2                    # build, sign, notarize, stage
+scripts/release/macos-dmg.sh 26.9.2 --upload v26.9.2   # and attach to the GitHub release
 ```
 
 From the repository root, on an Apple silicon Mac, at the commit of the release (the version must be `tauri.conf.json`'s). The script, after term.hut's `scripts/release.sh` and `scripts/publish-release.sh`:

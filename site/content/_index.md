@@ -25,7 +25,7 @@ This site is the review surface for the port before any editor code is written. 
 |---|---|
 | Upstream analysed | `excalidraw/excalidraw` at `438d8986`, 2026-09-27 |
 | Target host | term.hut (Tauri v2, vanilla JS, no bundler) and any Tauri v2 app |
-| Release | [v26.9.1](https://github.com/HutsonLabs/excali-rust/releases/tag/v26.9.1) (2026-09-30), the first calendar release ([ADR-009](decisions/adr-009-calendar-versioning/)): the web runtime tarball and its `SHA256SUMS` on GitHub, nothing on a registry |
+| Release | [v26.9.2](https://github.com/HutsonLabs/excali-rust/releases/tag/v26.9.2) (2026-09-30): the web runtime tarball, the example app's signed and notarized macOS disk image with its in-place updater (`latest.json`), and their `SHA256SUMS` on GitHub, nothing on a registry. The first calendar release was [v26.9.1](https://github.com/HutsonLabs/excali-rust/releases/tag/v26.9.1) ([ADR-009](decisions/adr-009-calendar-versioning/)) |
 | Editor code | phases 0 to 7 reached; see the [phases](plan/phases/) |
 | Task graph | tracked in-repo with beads, rendered on the [progress page](plan/progress/) |
 | Authorship | every commit and file passes the [authorship gate](decisions/adr-005-authorship-gate/) |

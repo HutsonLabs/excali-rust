@@ -152,10 +152,15 @@ class Check(unittest.TestCase):
 
 
 class Repository(unittest.TestCase):
-    """The real workspace is on the first calendar release (ADR-009)."""
+    """The real workspace is on the current calendar release (ADR-009)."""
 
-    def test_workspace_version_is_the_first_release(self):
-        self.assertEqual(version.workspace_version((ROOT / "Cargo.toml").read_text()), "26.9.1")
+    def test_workspace_version_is_the_current_release(self):
+        # 26.9.1 was the first release; 26.9.2 carries the example app's
+        # updater (ex-805), owner decision of 2026-09-30 (ex-806).
+        self.assertEqual(version.workspace_version((ROOT / "Cargo.toml").read_text()), "26.9.2")
+
+    def test_the_current_release_follows_the_first_in_the_same_month(self):
+        self.assertEqual(version.next_version("26.9.1", 2026, 9), "26.9.2")
 
     def test_repository_passes_the_gate(self):
         self.assertEqual(version.main(["check"]), 0)

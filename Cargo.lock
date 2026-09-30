@@ -986,7 +986,7 @@ dependencies = [
 
 [[package]]
 name = "excali-canvas2d"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "excali-scene",
  "js-sys",
@@ -996,7 +996,7 @@ dependencies = [
 
 [[package]]
 name = "excali-cli"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "clap",
  "excali-core",
@@ -1012,7 +1012,7 @@ dependencies = [
 
 [[package]]
 name = "excali-core"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "base64 0.23.1",
  "excali-math",
@@ -1028,7 +1028,7 @@ dependencies = [
 
 [[package]]
 name = "excali-editor"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "excali-core",
  "excali-math",
@@ -1044,7 +1044,7 @@ dependencies = [
 
 [[package]]
 name = "excali-freehand"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "excali-math",
  "serde_json",
@@ -1052,7 +1052,7 @@ dependencies = [
 
 [[package]]
 name = "excali-math"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "pxfm",
  "serde_json",
@@ -1060,7 +1060,7 @@ dependencies = [
 
 [[package]]
 name = "excali-raster"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "base64 0.23.1",
  "excali-core",
@@ -1076,7 +1076,7 @@ dependencies = [
 
 [[package]]
 name = "excali-rough"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "excali-math",
  "excali-rough",
@@ -1086,7 +1086,7 @@ dependencies = [
 
 [[package]]
 name = "excali-scene"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "excali-core",
  "excali-freehand",
@@ -1098,7 +1098,7 @@ dependencies = [
 
 [[package]]
 name = "excali-svg"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "excali-core",
  "excali-rough",
@@ -1113,7 +1113,7 @@ dependencies = [
 
 [[package]]
 name = "excali-text"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "excali-core",
  "excali-math",
@@ -1132,7 +1132,7 @@ dependencies = [
 
 [[package]]
 name = "excali-ui"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "excali-canvas2d",
  "excali-core",
@@ -1149,7 +1149,7 @@ dependencies = [
 
 [[package]]
 name = "excali-wasm"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "excali-canvas2d",
  "excali-core",
@@ -4178,7 +4178,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-excali"
-version = "26.9.1"
+version = "26.9.2"
 dependencies = [
  "excali-cli",
  "excali-core",
