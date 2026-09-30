@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-30 02:17 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-30 02:18 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**152 issues** · 123 closed (81%) · 4 in progress · 0 blocked · 24 open
+**152 issues** · 124 closed (82%) · 4 in progress · 0 blocked · 23 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -174,7 +174,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-532` | Theme tokens: light and dark CSS custom properties embedded and overridable by the host | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-533` | excali-math js::sin/cos match V8's libm trig bit for bit; remove the 1e-12 tolerance in excali-editor tests/transform.rs | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-534` | Flowchart creator and navigator (flowchart.ts): Ctrl+Arrow pending nodes and arrows, Alt+Arrow navigation | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-535` | Element type conversion: convertElementTypes and the Tab / Shift+Tab convert popup | task | P2 | <span class="status open">open</span> | yes |  |
+| `ex-535` | Element type conversion: convertElementTypes and the Tab / Shift+Tab convert popup | task | P2 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-536` | Colour picker top-picks customisation: drag a colour onto the strip, reorder, context-menu reset, tip | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-537` | Library sidebar header menu: load and save library files, the reset and remove confirm dialogs, the publish dialog | task | P2 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-538` | Font picker top-picks customisation: drag a font onto the strip, reorder, context-menu reset | task | P2 | <span class="status open">open</span> | yes |  |
@@ -199,7 +199,7 @@ Vendored module in term.hut with CRUD and library import; tauri-plugin-excali wi
 
 ## ex-e7 · Phase 7: Parity and polish
 
-<span class="status open">open</span> 6/14 children closed
+<span class="status open">open</span> 7/14 children closed
 
 Tablet and phone layouts, remaining tools, accessibility, performance budgets, locale loader, parity checklist to 100%.
 
@@ -211,14 +211,14 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 | `ex-704` | Bucket fill tool | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-705` | Lasso selection | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-706` | Autoshape (draw-shape) recognition | task | P3 | <span class="status open">open</span> | yes |  |
-| `ex-707` | Image crop editor | task | P2 | <span class="status in_progress">in progress</span> |  |  |
+| `ex-707` | Image crop editor | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-708` | Search sidebar (frames and texts) | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-709` | Accessibility: focus order, ARIA on controls, reduced motion, RTL mirroring of icons | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-710` | Performance budgets in CI (pan at 1,000 elements, first paint) | task | P1 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-711` | Locale loader using upstream JSON files (58 locales, 633 keys) | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-712` | Parity checklist to 100% for the v1 scope | task | P0 | <span class="status open">open</span> |  | `ex-529` |
 | `ex-713` | <excali-editor>: the interactive canvas and the App interactions ex-712 reduced | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-m7` | M7: parity checklist 100% for v1 scope | milestone | P2 | <span class="status open">open</span> |  | `ex-706`, `ex-707`, `ex-708`, `ex-709`, `ex-710`, `ex-711` … |
+| `ex-m7` | M7: parity checklist 100% for v1 scope | milestone | P2 | <span class="status open">open</span> |  | `ex-706`, `ex-708`, `ex-709`, `ex-710`, `ex-711`, `ex-712` |
 
 ## ex-e8 · Phase 8: Release
 
