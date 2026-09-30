@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-30 · ex-804 · Tag v26.9.1 and publish the GitHub release
+
+excali-rust has its first release, v26.9.1: the annotated tag `v26.9.1` is on `main` and the GitHub release https://github.com/HutsonLabs/excali-rust/releases/tag/v26.9.1 carries the web runtime `excali-web_26.9.1.tar.gz` (the `<excali-editor>` ES module, its WASM, the stylesheet and the fonts) and its `SHA256SUMS`, with release notes that say what the release does and how a host takes it (`scripts/release/fetch.sh 26.9.1 <dir>`, the `excali` CLI and `tauri-plugin-excali` by git tag). Nothing is published to crates.io, npm or any other registry. The notes live in `scripts/release/notes/v26.9.1.md`, and the release workflow now uses `scripts/release/notes/<tag>.md` for a tag that has one. The site home page, the Phase 8 plan, the integration guide (the plugin's git tag is now `v26.9.1`) and the README status name the release. PR: [#156](https://github.com/HutsonLabs/excali-rust/pull/156).
+
 ## 2026-09-30 · ex-dm2 · CI on main: never cancel the full suite; skip rust for tracker-only commits
 
 Every push to main now finishes the full Rust suite: `rust.yml` and `gates.yml` cancel superseded runs on pull requests only (`cancel-in-progress: ${{ github.event_name == 'pull_request' }}`), so the integrator's `<id>: close in tracker, build log` commit no longer cancels the merge commit's full-suite run. That commit touches only `.beads/issues.jsonl`, `site/content/plan/progress.md` and `site/content/plan/build-log.md`, and `rust.yml` skips pushes that touch only those files (`paths-ignore` on `push`; pull requests and `gates.yml` stay unfiltered). ex-dm2 is added to `plan/tasks.json` under ex-e0. PR: [#154](https://github.com/HutsonLabs/excali-rust/pull/154).
