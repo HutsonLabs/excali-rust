@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-30 04:23 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-30 04:30 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**152 issues** · 131 closed (86%) · 1 in progress · 0 blocked · 19 open
+**152 issues** · 132 closed (87%) · 1 in progress · 0 blocked · 18 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -134,7 +134,7 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
 ## ex-e5 · Phase 5: Web runtime and editor
 
-<span class="status open">open</span> 36/39 children closed
+<span class="status open">open</span> 37/39 children closed
 
 Canvas2D backend, interaction state machine, history, DOM chrome without a framework, keyboard shortcuts, the <excali-editor> custom element.
 
@@ -168,7 +168,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-526` | Library sidebar: tabs, header menu, personal/excalidraw sections, drag to canvas, add to library | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-527` | Command palette with category order and item lists | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-528` | Hints, tooltips, cursor hints, welcome screen | task | P2 | <span class="status closed">closed</span> |  |  |
-| `ex-529` | Stats panel (general and element properties) | task | P3 | <span class="status open">open</span> | yes |  |
+| `ex-529` | Stats panel (general and element properties) | task | P3 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-530` | <excali-editor> custom element: load/save/export/importLibrary/getState, events, host adapter | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-531` | Playwright parity suite against the checklist | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-532` | Theme tokens: light and dark CSS custom properties embedded and overridable by the host | task | P0 | <span class="status closed">closed</span> |  |  |
@@ -177,8 +177,8 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-535` | Element type conversion: convertElementTypes and the Tab / Shift+Tab convert popup | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-536` | Colour picker top-picks customisation: drag a colour onto the strip, reorder, context-menu reset, tip | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-537` | Library sidebar header menu: load and save library files, the reset and remove confirm dialogs, the publish dialog | task | P2 | <span class="status closed">closed</span> |  |  |
-| `ex-538` | Font picker top-picks customisation: drag a font onto the strip, reorder, context-menu reset | task | P2 | <span class="status in_progress">in progress</span> |  |  |
-| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-529`, `ex-538` |
+| `ex-538` | Font picker top-picks customisation: drag a font onto the strip, reorder, context-menu reset | task | P2 | <span class="status closed">closed</span> |  |  |
+| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-529` |
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
 
