@@ -147,3 +147,60 @@ fn loaded_fonts_remake_text_and_its_container() {
     ed.fonts_loaded();
     assert_eq!(made(&mut ed), ids(&["box", "label"]));
 }
+
+/// A 200 × 100 image at (0, 0) showing the left half of its 400 × 200 file
+/// (cropElement.test.tsx's scene with a crop), selected.
+fn cropped_image() -> Editor<CharCountTextMetrics> {
+    let env = EditorEnv::new(CharCountTextMetrics, 7, || 1.0);
+    let mut ed = Editor::new(env, "https://term.hut", false);
+    ed.set_viewport(1000.0, 700.0, 0.0, 0.0);
+    let scene = r##"{
+      "type": "excalidraw", "version": 2, "source": "https://excalidraw.com",
+      "elements": [{
+        "id": "img", "type": "image", "x": 0, "y": 0, "width": 200, "height": 100,
+        "fileId": "f1", "status": "saved", "scale": [1, 1],
+        "crop": { "x": 0, "y": 0, "width": 200, "height": 200,
+                  "naturalWidth": 400, "naturalHeight": 200 }
+      }],
+      "appState": { "viewBackgroundColor": "#ffffff" },
+      "files": { "f1": { "mimeType": "image/png", "id": "f1", "created": 1,
+        "dataURL": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZAAAADICAYAAADGFbfi" } }
+    }"##;
+    ed.load(scene).expect("the scene loads");
+    ed.pointer_down(PointerInput::at(100.0, 50.0));
+    ed.pointer_up(PointerInput::at(100.0, 50.0));
+    ed.take_events();
+    ed
+}
+
+#[test]
+fn the_crop_editor_blits_the_uncropped_image_made_for_each_frame() {
+    // renderElement.ts:1220-1251: while cropping, the uncropped image is
+    // rasterised for that draw and blitted at 0.1 before the element's
+    // cached bitmap; it is not cached, and goes when cropping ends
+    let mut ed = cropped_image();
+    made(&mut ed);
+    ed.key_down(&Keystroke::new("Enter", "Enter"));
+    let preview = bitmap_id("img:uncropped");
+    for _ in 0..2 {
+        let frame = ed.static_frame(1000.0, 700.0, 1.0);
+        assert_eq!(blits(&frame.list), [preview.clone(), bitmap_id("img")]);
+        let new: Vec<&str> = frame
+            .new_bitmaps
+            .iter()
+            .map(|(id, _)| id.as_str())
+            .collect();
+        assert_eq!(new, [preview.as_str()]);
+        assert!(
+            frame.dropped_bitmaps.is_empty(),
+            "{:?}",
+            frame.dropped_bitmaps
+        );
+    }
+    ed.key_down(&Keystroke::new("Escape", "Escape"));
+    let frame = ed.static_frame(1000.0, 700.0, 1.0);
+    assert_eq!(blits(&frame.list), [bitmap_id("img")]);
+    assert_eq!(frame.dropped_bitmaps, [preview]);
+    let frame = ed.static_frame(1000.0, 700.0, 1.0);
+    assert!(frame.new_bitmaps.is_empty() && frame.dropped_bitmaps.is_empty());
+}
