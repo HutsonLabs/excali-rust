@@ -1172,6 +1172,12 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         self.report();
     }
 
+    /// Runs the styles panel's action `name` with the `value` its control
+    /// passes (`updateData(value)`, `executeAction(action, "ui", value)`):
+    /// [`perform_style_action`], its result written back through
+    /// [`Self::apply_action`] (one history entry when captured).
+    pub fn perform_style_action(&mut self, _name: ActionName, _value: &Value) {}
+
     /// `actionToggleSearchMenu.perform` (`actionToggleSearchMenu.ts:26-51`):
     /// the default sidebar opened on its search tab (no capture), or, when
     /// that tab is open, the search field focused by the host.

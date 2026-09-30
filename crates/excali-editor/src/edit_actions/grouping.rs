@@ -575,6 +575,7 @@ pub fn group<E: EditEnv>(
         elements: Some(reordered),
         app_state: patch,
         capture: true,
+        never: false,
     })
 }
 
@@ -663,5 +664,6 @@ pub fn ungroup<E: EditEnv>(
         elements: Some(next),
         app_state: patch,
         capture: true,
+        never: false,
     })
 }

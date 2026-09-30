@@ -633,6 +633,7 @@ pub fn duplicate_selection<E: EditEnv>(
         elements: Some(next),
         app_state: patch,
         capture: true,
+        never: false,
     })
 }
 

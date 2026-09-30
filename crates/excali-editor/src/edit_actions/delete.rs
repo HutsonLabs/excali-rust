@@ -281,5 +281,6 @@ pub fn delete_selected<E: EditEnv>(
         elements: Some(next),
         app_state: patch,
         capture: is_some_element_selected(elements, &selected),
+        never: false,
     })
 }

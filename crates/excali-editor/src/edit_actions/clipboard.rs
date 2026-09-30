@@ -164,5 +164,6 @@ pub(super) fn add_elements_at<E: EditEnv>(
         elements: Some(next),
         app_state: patch,
         capture: true,
+        never: false,
     })
 }
