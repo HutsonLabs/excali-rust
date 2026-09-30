@@ -116,13 +116,15 @@ opt-level = 2
 
 # The web runtime's release build (scripts/web/build.sh, ex-501): the size
 # budget on site/content/plan/phases.md is measured on this profile's output
-# after wasm-opt -Oz. opt-level "z", fat LTO and one codegen unit trade build
-# time for bytes; panic = "abort" keeps unwinding tables out (wasm32 aborts
-# on panic either way). Native release builds (excali-cli) keep the default
+# after wasm-opt -Os. Fat LTO and one codegen unit trade build time for
+# bytes; opt-level "s" rather than "z" because the first paint budget on the
+# same page (ex-710) needs the speed: "z" loaded the 1,000-element scene
+# about 10-15% slower for 12% fewer bytes. panic = "abort" keeps unwinding
+# tables out (wasm32 aborts on panic either way). Native release builds (excali-cli) keep the default
 # release profile.
 [profile.web-release]
 inherits = "release"
-opt-level = "z"
+opt-level = "s"
 lto = true
 codegen-units = 1
 panic = "abort"

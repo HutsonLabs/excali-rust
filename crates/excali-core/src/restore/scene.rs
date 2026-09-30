@@ -295,7 +295,7 @@ fn restore_scene(
 ) -> Result<Elements, RestoreElementsError> {
     // arrayToMap(targetElements) reads every item's id; other primitives
     // and arrays are dropped by restoreElement (their `type` is undefined).
-    let mut targets = Vec::new();
+    let mut targets: Vec<&Map<String, Value>> = Vec::new();
     for item in elements {
         match item {
             Value::Null => {
@@ -303,11 +303,11 @@ fn restore_scene(
                     "Cannot read properties of null (reading 'id')",
                 ))
             }
-            Value::Object(element) => targets.push(element.clone()),
+            Value::Object(element) => targets.push(element),
             _ => {}
         }
     }
-    let targets_map = ElementsMap::from_encoded(targets.clone());
+    let targets_map = ElementsMap::from_encoded(targets.iter().map(|&e| e.clone()).collect());
     let existing_map = existing.map(|e| ElementsMap::from_encoded(e.to_vec()));
     let element_opts = RestoreOptions {
         delete_invisible_elements: opts.delete_invisible_elements,

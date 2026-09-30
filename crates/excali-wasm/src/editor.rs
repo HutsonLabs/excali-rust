@@ -3504,8 +3504,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 text_metrics: &self.session.env.layouter.provider,
             },
             &mut self.bitmaps,
-            &mut |element: &Element, canvas: ElementCanvas| {
-                new_bitmaps.push((bitmap_id(&element.base.id), canvas));
+            &mut |_: &Element, id: &str, canvas: ElementCanvas| {
+                new_bitmaps.push((id.to_owned(), canvas));
             },
         );
         let keep: HashSet<&str> = elements
@@ -3513,7 +3513,20 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             .chain(config.pending_flowchart_nodes.iter())
             .map(|e| e.base.id.as_str())
             .collect();
+        let before = self.bitmaps.len();
         self.bitmaps.retain(|id| keep.contains(id));
+        // the host holds a bitmap per cache entry: with none made or
+        // dropped, it holds the same ones
+        if new_bitmaps.is_empty()
+            && self.bitmaps.len() == before
+            && self.host_bitmaps.len() == before
+        {
+            return StaticFrame {
+                list,
+                new_bitmaps,
+                dropped_bitmaps: Vec::new(),
+            };
+        }
         let held: HashSet<String> = elements
             .iter()
             .chain(config.pending_flowchart_nodes.iter())

@@ -63,10 +63,10 @@ use excali_text::text_measurements::TextMetricsProvider;
 
 use crate::bounds::ElementsMap;
 use crate::display::{
-    Clip, Color, Dash, DisplayItem, DisplayList, Group, Path, Rect, Stroke, Transform,
+    bitmap_id, Clip, Color, Dash, DisplayItem, DisplayList, Group, Path, Rect, Stroke, Transform,
 };
 use crate::element_canvas::{
-    render_element_cached, ElementCanvas, ElementCanvasCache, ElementDraw,
+    render_element_cached, CropPreview, ElementCanvas, ElementCanvasCache, ElementDraw,
 };
 use crate::export::FrameRendering;
 use crate::frame::{frame_clip, get_target_frame, should_apply_frame_clip, CheckedGroups};
@@ -495,12 +495,15 @@ pub fn render_static_scene(scene: &StaticScene<'_>) -> DisplayList {
 /// editor path ([`render_element_cached`], `renderElement.ts:963-1009`),
 /// drawn from its bitmap in `cache` ([`DisplayItem::Blit`]) unless it is a
 /// frame or the scene is an export. `make_surface` makes the backend's
-/// surface of each bitmap the cache makes or makes again; a pan reuses
-/// them all.
+/// surface of each bitmap the cache makes or makes again, given the id its
+/// blit draws; a pan reuses them all. The crop editor's uncropped preview
+/// ([`ElementDraw::CropPreview`]) is made on every frame that draws it,
+/// under the preview blit's id, and what `make_surface` returns for it is
+/// not kept.
 pub fn render_static_scene_cached<S>(
     scene: &StaticScene<'_>,
     cache: &mut ElementCanvasCache<S>,
-    make_surface: &mut dyn FnMut(&Element, ElementCanvas) -> S,
+    make_surface: &mut dyn FnMut(&Element, &str, ElementCanvas) -> S,
 ) -> DisplayList {
     // bootstrapCanvas's `scale(dpr)`, then the zoom: the matrix every
     // element is drawn on
@@ -517,11 +520,22 @@ pub fn render_static_scene_cached<S>(
             base,
             state,
             cache,
-            |canvas| make_surface(element, canvas),
+            |canvas| make_surface(element, &bitmap_id(&element.base.id), canvas),
         )?;
         Ok(match draw {
             Some(ElementDraw::Vector(item)) => vec![item],
             Some(ElementDraw::Blit(blit)) => vec![DisplayItem::Blit(blit)],
+            // the crop editor's uncropped image, made for this frame only
+            // under its blit's id, then the element's own bitmap
+            Some(ElementDraw::CropPreview(crop)) => {
+                let CropPreview {
+                    uncropped,
+                    preview,
+                    blit,
+                } = *crop;
+                make_surface(element, &preview.id, uncropped);
+                vec![DisplayItem::Blit(preview), DisplayItem::Blit(blit)]
+            }
             // no bitmap (a side of 0): nothing drawn
             None => Vec::new(),
         })

@@ -372,10 +372,38 @@ fn paths_equal_the_whole_string_trimmed_once() {
     // numbers at the edges of the two decimals, of Number::toString's
     // notation and of the integers
     let mut edges = vec![
-        0.0, -0.0, 1.0, -1.0, 0.1, 0.01, 0.001, 0.009999, 0.995, 1.005, 0.07, 12.3, 12.30001,
-        12.2999999999, 99.99999999999, 1e-3, 1e-6, 1.5e-7, -1.5e-7, 999_999.994, 1e6, 1e21, 1.5e21,
-        123_456_789.125, f64::NAN, f64::INFINITY, -f64::INFINITY, 0.30000000000000004,
-        2.675, 1.4999999999999998, -0.004, -0.0049999,
+        0.0,
+        -0.0,
+        1.0,
+        -1.0,
+        0.1,
+        0.01,
+        0.001,
+        0.009999,
+        0.995,
+        1.005,
+        0.07,
+        12.3,
+        12.30001,
+        12.2999999999,
+        99.99999999999,
+        1e-3,
+        1e-6,
+        1.5e-7,
+        -1.5e-7,
+        999_999.994,
+        1e6,
+        1e21,
+        1.5e21,
+        123_456_789.125,
+        f64::NAN,
+        f64::INFINITY,
+        -f64::INFINITY,
+        0.30000000000000004,
+        2.675,
+        1.4999999999999998,
+        -0.004,
+        -0.0049999,
     ];
     for k in -8..8 {
         for d in [1.0, 5.0, 9.0, 9.99, 9.999_999_999_9] {
@@ -391,7 +419,11 @@ fn paths_equal_the_whole_string_trimmed_once() {
     }
     let mut outlines: Vec<Vec<[f64; 2]>> = edges
         .chunks(6)
-        .map(|c| c.chunks(2).map(|p| [p[0], *p.get(1).unwrap_or(&0.5)]).collect())
+        .map(|c| {
+            c.chunks(2)
+                .map(|p| [p[0], *p.get(1).unwrap_or(&0.5)])
+                .collect()
+        })
         .collect();
     for _ in 0..3_000 {
         let n = 1 + (next() % 40) as usize;
@@ -404,6 +436,10 @@ fn paths_equal_the_whole_string_trimmed_once() {
         outlines.push(pts);
     }
     for pts in &outlines {
-        assert_eq!(get_svg_path_from_stroke(pts), reference_path(pts), "{pts:?}");
+        assert_eq!(
+            get_svg_path_from_stroke(pts),
+            reference_path(pts),
+            "{pts:?}"
+        );
     }
 }

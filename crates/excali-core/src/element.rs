@@ -1225,10 +1225,20 @@ impl Element {
     /// get the decoded values (a lone surrogate reads as U+FFFD); the
     /// layout keeps the raw ones.
     pub(crate) fn from_encoded(raw: &Map<String, Value>) -> Result<Element, serde_json::Error> {
-        let decoded = Value::Object(json::decode_map(raw));
-        let base = ElementBase::deserialize(&decoded)?;
-        let kind = ElementKind::deserialize(&decoded)?;
-        let typed = json::escape_map(&typed_map(&base, &kind));
+        // without a sentinel the decoded object is `raw` itself
+        let (base, kind) = if json::has_sentinel_map(raw) {
+            let decoded = Value::Object(json::decode_map(raw));
+            (
+                ElementBase::deserialize(&decoded)?,
+                ElementKind::deserialize(&decoded)?,
+            )
+        } else {
+            (
+                ElementBase::deserialize(raw)?,
+                ElementKind::deserialize(raw)?,
+            )
+        };
+        let typed = json::escape_map_owned(typed_map(&base, &kind));
         let (layout, extra) = Layout::read(raw, &typed, canonical_keys(kind.element_type()));
         Ok(Element {
             base,

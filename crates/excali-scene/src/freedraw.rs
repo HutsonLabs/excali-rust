@@ -231,6 +231,10 @@ fn med(a: [f64; 2], b: [f64; 2]) -> [f64; 2] {
 /// `getSvgPathFromStroke(points)` (`shape.ts:1323-1344`): the closed
 /// quadratic path through the midpoints of an outline polygon, numbers
 /// trimmed to two decimals. An empty outline gives `""`.
+///
+/// The regex acts on each number on its own (the separators ` ` and `,`
+/// end its trailing run), so each is written already trimmed
+/// ([`push_trimmed`]) and the string is not scanned again.
 pub fn get_svg_path_from_stroke(points: &[[f64; 2]]) -> String {
     let Some(&first) = points.first() else {
         return String::new();
@@ -239,9 +243,9 @@ pub fn get_svg_path_from_stroke(points: &[[f64; 2]]) -> String {
     // joined with " "; an array item is written as `x,y`.
     let point = |out: &mut String, [x, y]: [f64; 2]| {
         out.push(' ');
-        out.push_str(&number_to_string(x));
+        push_trimmed(out, x);
         out.push(',');
-        out.push_str(&number_to_string(y));
+        push_trimmed(out, y);
     };
     let mut d = String::from("M");
     point(&mut d, first);
@@ -254,7 +258,55 @@ pub fn get_svg_path_from_stroke(points: &[[f64; 2]]) -> String {
     d.push_str(" L");
     point(&mut d, first);
     d.push_str(" Z");
-    trim_to_fixed_precision(&d)
+    d
+}
+
+/// `String(x)` with `TO_FIXED_PRECISION` applied, appended to `out`.
+fn push_trimmed(out: &mut String, x: f64) {
+    match two_decimals(x) {
+        Some((negative, hundredths)) => {
+            if negative {
+                out.push('-');
+            }
+            out.push_str(&(hundredths / 100).to_string());
+            out.push('.');
+            let cents = hundredths % 100;
+            out.push(char::from(b'0' + (cents / 10) as u8));
+            out.push(char::from(b'0' + (cents % 10) as u8));
+        }
+        None => out.push_str(&trim_to_fixed_precision(&number_to_string(x))),
+    }
+}
+
+/// The sign and `floor(|x| × 100)` when `String(x)` trimmed to two decimals
+/// is exactly those digits with two decimals, decided without writing
+/// `String(x)`: for `1e-3 <= |x| < 1e6` it is plain decimal notation, and
+/// the shortest digits differ from `|x|` by at most half an ulp, under
+/// `1.2e-10`, so where the fraction of `|x| × 100` is at least `1e-6` from
+/// a whole number they have more than two decimals and the same first two.
+/// `|x| × 10^18` is exact on 128 bits (`|x| = m × 2^q`, `m < 2^53`).
+/// `None` elsewhere, for the full algorithm.
+fn two_decimals(x: f64) -> Option<(bool, u64)> {
+    let a = x.abs();
+    if !(1e-3..1e6).contains(&a) {
+        return None;
+    }
+    let bits = a.to_bits();
+    // normal in this range
+    let m = u128::from((bits & ((1 << 52) - 1)) | (1 << 52));
+    let q = ((bits >> 52) & 0x7FF) as i64 - 1075;
+    if q >= 0 {
+        return None;
+    }
+    // m < 2^53 and 10^18 < 2^60: the product fits; the shift is under 128
+    let scaled = (m * 1_000_000_000_000_000_000) >> (-q) as u32;
+    const UNIT: u128 = 10_000_000_000_000_000;
+    const MARGIN: u128 = 10_000_000_000;
+    let (hundredths, tail) = (scaled / UNIT, scaled % UNIT);
+    if !(MARGIN..=UNIT - MARGIN).contains(&tail) {
+        return None;
+    }
+    Some((x < 0.0, u64::try_from(hundredths).ok()?))
 }
 
 /// `s.replace(TO_FIXED_PRECISION, "$1")` with upstream's

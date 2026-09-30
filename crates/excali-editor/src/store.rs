@@ -25,7 +25,7 @@
 //! structural clone inside `maybeClone`") are pointer comparisons here.
 
 use std::cell::Cell;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::rc::Rc;
 
@@ -446,6 +446,33 @@ impl StoreSnapshot {
                 is_empty: false,
             },
         ))
+    }
+
+    /// Whether `next` (the scene's elements in order; for a repeated id the
+    /// last counts, as in the map the scene would pass) holds a change
+    /// [`StoreSnapshot::maybe_clone`] would detect: an element of the
+    /// snapshot missing, or one new or at a higher version that is not an
+    /// image without a file. Decided on the elements as they are, without
+    /// the copy into a map a commit would make.
+    pub fn has_element_changes(&self, next: &[Element]) -> bool {
+        let mut last: HashMap<&str, &Element> = HashMap::with_capacity(next.len());
+        for element in next {
+            last.insert(element.base.id.as_str(), element);
+        }
+        if self
+            .elements
+            .keys()
+            .any(|id| !last.contains_key(id.as_str()))
+        {
+            return true;
+        }
+        last.values().any(|element| {
+            let updated = match self.elements.get(element.base.id.as_str()) {
+                None => true,
+                Some(prev) => prev.base.version < element.base.version,
+            };
+            updated && !is_uninitialized_image(element)
+        })
     }
 
     fn maybe_create_app_state_snapshot(

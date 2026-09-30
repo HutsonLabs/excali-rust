@@ -214,11 +214,17 @@ impl<E: HistoryEnv> Session<E> {
     /// The commit of `componentDidUpdate`: durable increments recorded in
     /// history, all increments returned.
     pub fn commit(&mut self) -> Vec<StoreIncrement> {
-        let elements = self.elements_map();
+        // elements the snapshot would find unchanged are not copied into a
+        // map to find it out (a scroll at 1,000 elements copied them all)
+        let elements = self
+            .store
+            .snapshot()
+            .has_element_changes(&self.elements)
+            .then(|| self.elements_map());
         let observed = ObservedAppState::from_app_state(&self.app_state);
         let increments = self
             .store
-            .commit(Some(&elements), Some(&observed), &mut self.env);
+            .commit(elements.as_ref(), Some(&observed), &mut self.env);
         for increment in &increments {
             if let StoreIncrement::Durable { delta, .. } = increment {
                 self.history.record(delta, &mut self.env);

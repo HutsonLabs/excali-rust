@@ -97,9 +97,19 @@ impl Layout {
         let mut layout = Layout::default();
         let mut extra = Map::new();
         for (key, value) in raw {
-            let current = if known(key) {
-                typed.get(key).cloned()
-            } else {
+            if known(key) {
+                // compared in place; copied only when it differs
+                let current = typed.get(key);
+                if !same_opt(current, Some(value)) {
+                    layout.verbatim.push(Verbatim {
+                        key: key.clone(),
+                        typed: current.cloned(),
+                        raw: Some(value.clone()),
+                    });
+                }
+                continue;
+            }
+            let current = {
                 let name = json::decode_str(key).into_owned();
                 if extra.contains_key(&name) || known(&name) {
                     layout.hidden.insert(key.clone(), value.clone());

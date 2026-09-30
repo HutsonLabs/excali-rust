@@ -371,25 +371,27 @@ fn shortest_digits(x: f64) -> ([u8; 32], usize, i64) {
     };
     // the midpoint's last digit is worth 10^(e - k), k = len
     let p = e - len as i64;
-    for neighbour in [last - 1, last + 1] {
-        if neighbour > 9 || (neighbour == 0 && head.is_empty()) {
+    let valid = |neighbour: u8| !(neighbour > 9 || (neighbour == 0 && head.is_empty()));
+    let tie_with = |neighbour: u8| {
+        if !valid(neighbour) {
+            return Some(false);
+        }
+        equals_decimal_int(x, digits_of(last.min(neighbour)) * 10 + 5, p)
+    };
+    let ties = [tie_with(last - 1), tie_with(last + 1)];
+    // no tie with either neighbour: the digits stay whichever rounds to x
+    if ties == [Some(false), Some(false)] {
+        return (buf, len, e);
+    }
+    for (neighbour, fast) in [last - 1, last + 1].into_iter().zip(ties) {
+        if !valid(neighbour) {
             continue;
         }
-        let low = last.min(neighbour);
-        let fast = equals_decimal_int(x, digits_of(low) * 10 + 5, p);
         let candidate = text(neighbour);
-        if fast == Some(false) {
-            // not a tie: the digits stay, whether or not this neighbour
-            // rounds to x (the loop ends at the first that does)
-            if parses_to_x(&candidate) {
-                break;
-            }
-            continue;
-        }
         if !parses_to_x(&candidate) {
             continue;
         }
-        let midpoint = text(low) + "5";
+        let midpoint = text(last.min(neighbour)) + "5";
         let tie = fast.unwrap_or_else(|| exact_expansion_is(x, &midpoint, e));
         if tie {
             let digits = candidate.as_bytes();
@@ -879,6 +881,33 @@ pub(crate) fn escape_map(map: &Map<String, Value>) -> Map<String, Value> {
     map_object(map, escape_str)
 }
 
+/// [`escape_map`] of an owned object: the object itself when no key or
+/// string in it holds the sentinel, which [`escape_str`] and
+/// [`decode_str`] leave as they are.
+pub(crate) fn escape_map_owned(map: Map<String, Value>) -> Map<String, Value> {
+    if has_sentinel_map(&map) {
+        escape_map(&map)
+    } else {
+        map
+    }
+}
+
+/// Whether a key or string anywhere in `map` holds the sentinel: without
+/// one, [`decode_map`] and [`escape_map`] give an equal copy.
+pub(crate) fn has_sentinel_map(map: &Map<String, Value>) -> bool {
+    map.iter()
+        .any(|(k, v)| k.contains(SENTINEL) || has_sentinel(v))
+}
+
+fn has_sentinel(value: &Value) -> bool {
+    match value {
+        Value::String(s) => s.contains(SENTINEL),
+        Value::Array(items) => items.iter().any(has_sentinel),
+        Value::Object(map) => has_sentinel_map(map),
+        _ => false,
+    }
+}
+
 /// The public value for a sentinel-form one ([`decode_str`] on every string
 /// and key). Two keys that decode alike (two different lone surrogates)
 /// keep the first position and the last value, as a duplicated key does.
@@ -1033,6 +1062,25 @@ mod tests {
         ("82075870703310.125", "82075870703310.12"),
         ("2806231691801.40625", "2806231691801.4062"),
     ];
+
+    #[test]
+    fn escape_map_owned_is_escape_map() {
+        let lone = format!("a{SENTINEL}b");
+        let cases = [
+            serde_json::json!({"a": 1, "b": ["x", {"c": "y"}], "d": null}),
+            serde_json::json!({"a": [[1, 2], {"k": lone}]}),
+            serde_json::json!({ lone.clone(): true }),
+            serde_json::json!({"t": lone}),
+        ];
+        for (i, case) in cases.iter().enumerate() {
+            let map = case.as_object().unwrap().clone();
+            assert_eq!(has_sentinel_map(&map), i > 0, "case {i}");
+            assert_eq!(escape_map_owned(map.clone()), escape_map(&map), "case {i}");
+            if i == 0 {
+                assert_eq!(decode_map(&map), map);
+            }
+        }
+    }
 
     /// The ECMAScript formatting as first ported: `{:e}`, a tie decided on
     /// the exact expansion. [`js_number`] must write the same.

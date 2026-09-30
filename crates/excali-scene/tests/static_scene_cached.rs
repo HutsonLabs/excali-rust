@@ -143,7 +143,7 @@ fn render(
             text_metrics: &TenPxPerCodeUnit,
         },
         cache,
-        &mut |element: &Element, _: ElementCanvas| {
+        &mut |element: &Element, _: &str, _: ElementCanvas| {
             made.push(element.base.id.clone());
             element.base.id.clone()
         },

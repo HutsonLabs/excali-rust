@@ -7,7 +7,7 @@
 #                                   the <excali-editor> custom element shim
 #                                   (crates/excali-wasm/js/excali-editor.js,
 #                                   ex-530), one plain ES module
-#   <out>/excali_editor_bg.wasm     the module after wasm-opt -Oz
+#   <out>/excali_editor_bg.wasm     the module after wasm-opt -Os
 #   <out>/excali.css                the element's stylesheet
 #                                   (crates/excali-wasm/excali.css)
 #   <out>/fonts/                    crates/excali-text/assets/fonts: the
@@ -16,9 +16,9 @@
 #
 #   scripts/web/build.sh [OUT]      default OUT: dist (at the repository root)
 #
-# Steps: cargo build --profile web-release (Cargo.toml: opt-level "z", fat
+# Steps: cargo build --profile web-release (Cargo.toml: opt-level "s", fat
 # LTO, one codegen unit, panic = "abort"); wasm-bindgen --target web; wasm-opt
-# -Oz from the pinned binaryen (scripts/web/binaryen.py downloads and
+# -Os from the pinned binaryen (scripts/web/binaryen.py downloads and
 # verifies it into .tools/ when it is not on PATH); then the gzip sizes are
 # checked against the budgets on site/content/plan/phases.md
 # (scripts/gates/wasm_size.py), and the build fails if either is over.
@@ -61,7 +61,7 @@ wasm-bindgen --target web --no-typescript --out-dir "$stage" --out-name excali_e
 # wasm-opt takes the enabled features from the module's target_features
 # section (rustc writes it, wasm-bindgen and wasm-opt keep it), so no
 # --enable-* flags are needed.
-"$wasm_opt" -Oz --strip-debug --strip-producers \
+"$wasm_opt" -Os --strip-debug --strip-producers \
   -o "$out/excali_editor_bg.wasm" "$stage/excali_editor_bg.wasm"
 cat "$stage/excali_editor.js" "$root/crates/excali-wasm/js/excali-editor.js" >"$out/excali_editor.js"
 cp "$root/crates/excali-wasm/excali.css" "$out/excali.css"
