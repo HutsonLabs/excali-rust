@@ -836,7 +836,7 @@ fn menu_items(content: &web_sys::Element) -> Vec<web_sys::HtmlElement> {
 /// Keys in the menu: Escape closes (`DropdownMenuContent.tsx:63-83`), Tab
 /// stays, the arrows, Home and End move focus among the items (radix's
 /// `Menu.Content` and roving focus group).
-fn menu_keydown(e: &KeyboardEvent, close: &dyn Fn()) {
+pub(crate) fn menu_keydown(e: &KeyboardEvent, close: &dyn Fn()) {
     let key = e.key();
     if key == "Escape" {
         e.prevent_default();
@@ -946,7 +946,7 @@ fn place(wrapper: &web_sys::Element, trigger_id: &str, align: DropdownAlign) {
 /// Asks to close on a press outside the dropdown's wrapper (the trigger
 /// toggles itself) while the menu is in the document (`useOutsideClick`,
 /// `DropdownMenuContent.tsx:48-61`).
-fn close_on_outside_press(wrapper: &web_sys::Element, close: Rc<dyn Fn()>) {
+pub(crate) fn close_on_outside_press(wrapper: &web_sys::Element, close: Rc<dyn Fn()>) {
     let Some(document) = wrapper.owner_document() else {
         return;
     };

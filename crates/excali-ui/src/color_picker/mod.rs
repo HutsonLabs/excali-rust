@@ -13,8 +13,13 @@
 //! here ([`toggle_popup`], [`close_popup`], [`toggle_eye_dropper`],
 //! [`escape`], [`change_hex_input`]) and renders again. The palettes and
 //! colour helpers are `packages/common/src/colors.ts`'s, in
-//! [`excali_core::color`]. Top-picks customisation (dragging colours onto
-//! the strip, `colorTopPicksDnD.ts`) is not here.
+//! [`excali_core::color`]. With `customizableTopPicks`
+//! ([`ColorPickerProps::customizable_top_picks`], `colorTopPicksDnD.ts`)
+//! a swatch or the trigger dragged onto the strip pins its colour, a pick
+//! dragged along the strip reorders it (both through
+//! [`crate::top_picks_dnd`]), the strip's context menu resets it and the
+//! popup shows the tip; the host keeps the picks in
+//! `appState.colorTopPicks` ([`color_top_picks_update`]).
 //!
 //! See `site/content/research/ui-design-system.md` sections 2 and 3.12.
 
@@ -24,11 +29,11 @@ pub mod keyboard;
 use std::rc::Rc;
 
 use excali_core::color::{
-    apply_dark_mode_filter, is_color_dark, is_transparent, js_trim, normalize_input_color,
-    PaletteColor, PaletteEntry, COLOR_OUTLINE_CONTRAST_THRESHOLD, DEFAULT_CANVAS_BACKGROUND_PICKS,
-    DEFAULT_ELEMENT_BACKGROUND_COLOR_INDEX, DEFAULT_ELEMENT_BACKGROUND_PICKS,
-    DEFAULT_ELEMENT_STROKE_COLOR_INDEX, DEFAULT_ELEMENT_STROKE_PICKS,
-    MAX_CUSTOM_COLORS_USED_IN_CANVAS,
+    apply_dark_mode_filter, color_to_hex, is_color_dark, is_transparent, js_trim,
+    normalize_input_color, PaletteColor, PaletteEntry, COLOR_OUTLINE_CONTRAST_THRESHOLD,
+    DEFAULT_CANVAS_BACKGROUND_PICKS, DEFAULT_ELEMENT_BACKGROUND_COLOR_INDEX,
+    DEFAULT_ELEMENT_BACKGROUND_PICKS, DEFAULT_ELEMENT_STROKE_COLOR_INDEX,
+    DEFAULT_ELEMENT_STROKE_PICKS, MAX_CUSTOM_COLORS_USED_IN_CANVAS,
 };
 use excali_core::element::Element as SceneElement;
 use excali_editor::actions::{get_shortcut_key, KeyLabels};
@@ -39,6 +44,10 @@ use web_sys::{Event, HtmlElement, HtmlInputElement, KeyboardEvent};
 use crate::dom::{class_names, Element, Node};
 use crate::icons;
 use crate::primitives::{island, IslandProps};
+use crate::top_picks_dnd::{
+    get_top_pick_reorder_offset, top_picks_dnd_outline, DragOrigin, Rect, TopPicksDnd,
+    TopPicksDndEvent,
+};
 
 pub use eye_dropper::{
     eye_dropper_cursor, position_element_beside_cursor, preview_border_color, sample_point,
@@ -73,7 +82,7 @@ pub fn install_stylesheet(document: &web_sys::Document) -> Result<(), wasm_bindg
     let primitives = document.query_selector("style[data-excali-ui=\"primitives\"]")?;
     let next = primitives.and_then(|p| p.next_sibling());
     head.insert_before(&style, next.as_ref())?;
-    Ok(())
+    crate::top_picks_dnd::install_stylesheet(document)
 }
 
 /// The English strings of the picker (`locales/en.json`); the key itself
@@ -95,6 +104,9 @@ pub fn color_picker_text(key: &str) -> &str {
         "colorPicker.noShades" => "No shades available for this color",
         "colorPicker.invalidColor" => "Not a valid color",
         "colorPicker.invalidHexLength" => "Hex code must be 3, 4, 6, or 8 characters",
+        "colorPicker.topPicksTip" => "Tip: drag any color onto your top picks to pin it",
+        "colorPicker.resetTopPicks" => "Reset to default top picks",
+        "buttons.reset" => "Reset",
         "colors.transparent" => "Transparent",
         "colors.black" => "Black",
         "colors.white" => "White",
@@ -450,6 +462,164 @@ pub fn hex_input_value(inner_value: &str) -> String {
         .to_owned()
 }
 
+// -- top picks customisation ---------------------------------------------------
+
+/// The `appState.colorTopPicks` slots (`types.ts:573-579`): where a
+/// customisable strip keeps its picks.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ColorTopPicksSlot {
+    ElementStroke,
+    ElementBackground,
+    BucketFill,
+    StickyNoteStroke,
+    StickyNoteBackground,
+}
+
+impl ColorTopPicksSlot {
+    pub const ALL: [ColorTopPicksSlot; 5] = [
+        ColorTopPicksSlot::ElementStroke,
+        ColorTopPicksSlot::ElementBackground,
+        ColorTopPicksSlot::BucketFill,
+        ColorTopPicksSlot::StickyNoteStroke,
+        ColorTopPicksSlot::StickyNoteBackground,
+    ];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            ColorTopPicksSlot::ElementStroke => "elementStroke",
+            ColorTopPicksSlot::ElementBackground => "elementBackground",
+            ColorTopPicksSlot::BucketFill => "bucketFill",
+            ColorTopPicksSlot::StickyNoteStroke => "stickyNoteStroke",
+            ColorTopPicksSlot::StickyNoteBackground => "stickyNoteBackground",
+        }
+    }
+}
+
+/// `isSameColor` (`colorTopPicksDnD.ts:12-21`): value equality of colours,
+/// so `#fff`, `#ffffff` and `white` cannot take two slots.
+pub fn is_same_color<S: AsRef<str> + ?Sized>(a: &S, b: &S) -> bool {
+    let (a, b) = (a.as_ref(), b.as_ref());
+    if a.to_lowercase() == b.to_lowercase() {
+        return true;
+    }
+    color_to_hex(a).is_some_and(|hex| Some(hex) == color_to_hex(b))
+}
+
+/// The `updateData` patch that stores a slot's picks
+/// (`ColorPicker.tsx:387-416`): `colorTopPicks` with the slot set to
+/// `picks`, or cleared (`null`, the defaults again) for `None`.
+pub fn color_top_picks_update(
+    color_top_picks: &serde_json::Map<String, serde_json::Value>,
+    slot: ColorTopPicksSlot,
+    picks: Option<&[String]>,
+) -> serde_json::Value {
+    let mut next = color_top_picks.clone();
+    next.insert(
+        slot.as_str().to_owned(),
+        picks.map_or(serde_json::Value::Null, |p| serde_json::json!(p)),
+    );
+    serde_json::json!({ "colorTopPicks": next })
+}
+
+/// Whether the strip can be customised (`isTopPicksCustomizable`,
+/// `ColorPicker.tsx:370`): a slot, and the full styles panel.
+fn is_top_picks_customizable(props: &ColorPickerProps) -> bool {
+    props.customizable_top_picks.is_some() && !props.compact()
+}
+
+/// The user's pinned picks when the strip is customisable and has any
+/// (`customTopPicks`, `ColorPicker.tsx:372-376`).
+fn custom_top_picks(props: &ColorPickerProps) -> Option<&[String]> {
+    (is_top_picks_customizable(props) && !props.color_top_picks.is_empty())
+        .then_some(props.color_top_picks.as_slice())
+}
+
+/// The picks the strip shows, which a drag edits (`effectiveTopPicks`,
+/// `ColorPicker.tsx:378-385`): the pinned ones, else the host's, else the
+/// stroke or background defaults.
+pub fn effective_top_picks(props: &ColorPickerProps) -> Vec<String> {
+    if let Some(custom) = custom_top_picks(props) {
+        return custom.to_vec();
+    }
+    let defaults = match props.ty {
+        ColorPickerType::ElementStroke => DEFAULT_ELEMENT_STROKE_PICKS,
+        _ => DEFAULT_ELEMENT_BACKGROUND_PICKS,
+    };
+    props
+        .top_picks
+        .unwrap_or(defaults)
+        .iter()
+        .map(|c| (*c).to_owned())
+        .collect()
+}
+
+/// The ghost's swatch (`createColorGhost`, `colorTopPicksDnD.ts:23-40`):
+/// the checkerboard for a transparent colour, else the colour the source
+/// renders (`rendered`, its computed background, which dark mode remaps),
+/// or the colour itself when it renders none.
+pub fn color_ghost(color: &str, rendered: Option<&str>) -> Element {
+    if is_transparent(color) {
+        return Element::new("div")
+            .attr("class", "excalidraw-color-dnd-ghost-swatch is-transparent");
+    }
+    let background = rendered
+        .filter(|r| !r.is_empty() && *r != "rgba(0, 0, 0, 0)")
+        .unwrap_or(color);
+    Element::new("div")
+        .attr("class", "excalidraw-color-dnd-ghost-swatch")
+        .style("background-color", background)
+}
+
+/// The colour picker's drag and drop (`ColorPickerDnD`).
+pub type ColorPickerDnd = TopPicksDnd<String>;
+
+/// A new [`ColorPickerDnd`] (`useColorTopPicksDnD`,
+/// `colorTopPicksDnD.ts:50-64`).
+pub fn color_picker_dnd() -> ColorPickerDnd {
+    TopPicksDnd::new(is_same_color)
+}
+
+/// Lets `el` start a drag of `value` from `origin` while the strip is
+/// customisable (`startSourceDrag`, `startPickDrag`).
+fn draggable(
+    el: Element,
+    props: &ColorPickerProps,
+    value: Option<&str>,
+    origin: DragOrigin,
+) -> Element {
+    if !is_top_picks_customizable(props) {
+        return el;
+    }
+    let dnd = props.dnd.clone();
+    let value = value.map(str::to_owned);
+    el.on("pointerdown", move |e: &Event| {
+        let Some(dnd) = &dnd else {
+            return;
+        };
+        let color = value.clone();
+        dnd.start_drag(e, value.clone(), origin, |source| {
+            let color = color.unwrap_or_default();
+            let rendered = web_sys::window()
+                .and_then(|w| w.get_computed_style(source).ok().flatten())
+                .and_then(|s| s.get_property_value("background-color").ok());
+            let ghost = color_ghost(&color, rendered.as_deref());
+            let content = source
+                .owner_document()
+                .and_then(|d| crate::dom::create_detached(&Node::Element(ghost), &d).ok())
+                .and_then(|n| n.dyn_into::<web_sys::Element>().ok())
+                .unwrap_or_else(|| source.clone());
+            let r = source.get_bounding_client_rect();
+            let home = Rect {
+                left: r.left(),
+                top: r.top(),
+                width: r.width(),
+                height: r.height(),
+            };
+            (content, home)
+        });
+    })
+}
+
 // -- DOM -----------------------------------------------------------------------
 
 /// What the user did.
@@ -474,6 +644,16 @@ pub enum ColorPickerEvent {
     /// The eye-dropper trigger was clicked: [`toggle_eye_dropper`] with
     /// no force.
     EyeDropperTrigger,
+    /// A drop made these the strip's picks: the host stores them
+    /// ([`color_top_picks_update`]).
+    TopPicksChange(Vec<String>),
+    /// The strip's context menu or the tip reset the picks: the host
+    /// clears the slot ([`color_top_picks_update`] with `None`).
+    ResetTopPicks,
+    /// The strip's context menu opens at this client point, or closes.
+    TopPicksMenu(Option<(i32, i32)>),
+    /// A drag's state changed: render again.
+    DragChange,
 }
 
 /// Called with each [`ColorPickerEvent`].
@@ -516,6 +696,16 @@ pub struct ColorPickerProps {
     /// The popup's id, which the trigger's `aria-controls` names.
     pub popup_id: String,
     pub on_event: Option<OnColorPickerEvent>,
+    /// `customizableTopPicks`: the `appState.colorTopPicks` slot the strip
+    /// is customised in; `None` for a fixed strip.
+    pub customizable_top_picks: Option<ColorTopPicksSlot>,
+    /// That slot's picks (`appState.colorTopPicks[slot]`; empty for none).
+    pub color_top_picks: Vec<String>,
+    /// The strip's context menu is open at this client point.
+    pub top_picks_menu: Option<(i32, i32)>,
+    /// The drag and drop ([`color_picker_dnd`]), kept by the host across
+    /// renders.
+    pub dnd: Option<ColorPickerDnd>,
 }
 
 impl ColorPickerProps {
@@ -566,44 +756,363 @@ fn button_separator() -> Node {
         .into()
 }
 
-/// `TopPicks` (`TopPicks.tsx:38-131`), without drag and drop.
+/// `TopPicks` (`TopPicks.tsx:38-131`) in its `TopPicksContextMenu`
+/// trigger (`TopPicksContextMenu.tsx:11-50`) while customisable.
 fn top_picks(props: &ColorPickerProps) -> Node {
-    let colors = props.top_picks.unwrap_or(match props.ty {
-        ColorPickerType::ElementStroke => DEFAULT_ELEMENT_STROKE_PICKS,
-        ColorPickerType::ElementBackground => DEFAULT_ELEMENT_BACKGROUND_PICKS,
-        ColorPickerType::CanvasBackground => DEFAULT_CANVAS_BACKGROUND_PICKS,
-    });
+    let customizable = is_top_picks_customizable(props);
+    let colors: Vec<String> = match custom_top_picks(props) {
+        Some(custom) => custom.to_vec(),
+        None => props
+            .top_picks
+            .unwrap_or(match props.ty {
+                ColorPickerType::ElementStroke => DEFAULT_ELEMENT_STROKE_PICKS,
+                ColorPickerType::ElementBackground => DEFAULT_ELEMENT_BACKGROUND_PICKS,
+                ColorPickerType::CanvasBackground => DEFAULT_CANVAS_BACKGROUND_PICKS,
+            })
+            .iter()
+            .map(|c| (*c).to_owned())
+            .collect(),
+    };
+    let drag_state = props
+        .dnd
+        .as_ref()
+        .filter(|_| customizable)
+        .and_then(|d| d.drag_state());
     let buttons = colors.iter().enumerate().map(|(index, color)| {
+        let offset = get_top_pick_reorder_offset(drag_state.as_ref(), index);
+        let state = drag_state.as_ref();
         let class = class_names([
             ("color-picker__button top-picks-dnd__pick", true),
-            ("active", props.color.as_deref() == Some(*color)),
-            (
-                "is-transparent",
-                *color == "transparent" || color.is_empty(),
-            ),
+            ("active", props.color.as_deref() == Some(color.as_str())),
+            ("is-transparent", color == "transparent" || color.is_empty()),
             (
                 "has-outline",
                 !is_color_dark(color, Some(COLOR_OUTLINE_CONTRAST_THRESHOLD)),
             ),
+            (
+                "is-dnd-source",
+                state.is_some_and(|s| s.origin == DragOrigin::Pick(index)),
+            ),
+            (
+                "is-dnd-target",
+                state
+                    .is_some_and(|s| s.origin == DragOrigin::Source && s.over_index == Some(index)),
+            ),
+            (
+                "is-dnd-duplicate",
+                state.is_some_and(|s| s.duplicate_index == Some(index)),
+            ),
         ]);
-        Element::new("button")
+        let el = Element::new("button")
             .attr("class", class)
             .style("--swatch-color", props.display_color(color))
+            .style_opt(
+                "transform",
+                (offset != 0.0).then(|| format!("translateX({offset}px)")),
+            )
             .attr("type", "button")
-            .attr("title", *color)
-            .attr("data-testid", format!("color-top-pick-{color}"))
-            .attr("data-top-pick-index", index.to_string())
+            .attr("title", color.as_str())
             .on(
                 "click",
-                props.handler(ColorPickerEvent::TopPick((*color).to_owned())),
+                props.handler(ColorPickerEvent::TopPick(color.clone())),
             )
-            .child(outline())
-            .into()
+            .attr("data-testid", format!("color-top-pick-{color}"))
+            .attr("data-top-pick-index", index.to_string())
+            .child(outline());
+        draggable(el, props, Some(color), DragOrigin::Pick(index)).into()
     });
+    let mut strip = Element::new("div")
+        .attr(
+            "class",
+            class_names([
+                ("color-picker__top-picks top-picks-dnd", true),
+                ("is-dnd-active", drag_state.is_some()),
+            ]),
+        )
+        .child_opt(drag_state.is_some().then(top_picks_dnd_outline))
+        .children_from(buttons);
+    if customizable {
+        let on_event = props.on_event.clone();
+        strip = strip
+            .attr(
+                "data-state",
+                if props.top_picks_menu.is_some() {
+                    "open"
+                } else {
+                    "closed"
+                },
+            )
+            .style("-webkit-touch-callout", "none")
+            .on("contextmenu", move |e: &Event| {
+                let Some(m) = e.dyn_ref::<web_sys::MouseEvent>() else {
+                    return;
+                };
+                e.prevent_default();
+                if let Some(f) = &on_event {
+                    f(ColorPickerEvent::TopPicksMenu(Some((
+                        m.client_x(),
+                        m.client_y(),
+                    ))));
+                }
+            });
+        strip = long_press_menu(strip, props);
+        if let Some(dnd) = props.dnd.clone() {
+            strip = strip.on_mount(move |el| dnd.set_strip(Some(el.clone())));
+        }
+    }
+    strip.into()
+}
+
+/// radix's `ContextMenu.Trigger` opens on a 700ms touch or pen press
+/// that does not move (`react-context-menu`'s `ContextMenuTrigger`).
+fn long_press_menu(strip: Element, props: &ColorPickerProps) -> Element {
+    use std::cell::Cell;
+    let timer: Rc<Cell<Option<i32>>> = Rc::default();
+    let clear = {
+        let timer = timer.clone();
+        move |e: &Event| {
+            let touch = e
+                .dyn_ref::<web_sys::PointerEvent>()
+                .is_some_and(|p| p.pointer_type() != "mouse");
+            if let (true, Some(handle), Some(window)) = (touch, timer.take(), web_sys::window()) {
+                window.clear_timeout_with_handle(handle);
+            }
+        }
+    };
+    let on_event = props.on_event.clone();
+    let start = {
+        let timer = timer.clone();
+        let clear = clear.clone();
+        move |e: &Event| {
+            clear(e);
+            let Some(p) = e.dyn_ref::<web_sys::PointerEvent>() else {
+                return;
+            };
+            if p.pointer_type() == "mouse" {
+                return;
+            }
+            let (x, y) = (p.client_x(), p.client_y());
+            let on_event = on_event.clone();
+            let fire = wasm_bindgen::closure::Closure::once_into_js(move || {
+                if let Some(f) = &on_event {
+                    f(ColorPickerEvent::TopPicksMenu(Some((x, y))));
+                }
+            });
+            if let Some(window) = web_sys::window() {
+                if let Ok(handle) = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+                    fire.unchecked_ref(),
+                    700,
+                ) {
+                    timer.set(Some(handle));
+                }
+            }
+        }
+    };
+    strip
+        .on("pointerdown", start)
+        .on("pointermove", clear.clone())
+        .on("pointercancel", clear.clone())
+        .on("pointerup", clear)
+}
+
+/// The strip's context menu (`TopPicksContextMenu.tsx:32-48`): radix's
+/// popper wrapper and `ContextMenu.Content` at the pointer, with one item
+/// that resets the picks, disabled while none are pinned.
+fn top_picks_menu(props: &ColorPickerProps, (x, y): (i32, i32)) -> Node {
+    let customized = custom_top_picks(props).is_some();
+    let on_event = props.on_event.clone();
+    let emit = move |event: ColorPickerEvent| {
+        if let Some(f) = &on_event {
+            f(event);
+        }
+    };
+    let select = {
+        let emit = emit.clone();
+        move || {
+            emit(ColorPickerEvent::ResetTopPicks);
+            emit(ColorPickerEvent::TopPicksMenu(None));
+        }
+    };
+    let mut item = Element::new("div")
+        .attr("role", "menuitem")
+        .attr("class", "top-picks-dnd__context-menu-item")
+        .attr("tabindex", "-1")
+        .attr("data-orientation", "vertical")
+        .attr("data-radix-collection-item", "");
+    if customized {
+        let (on_click, on_key) = (select.clone(), select);
+        item = item
+            .on("click", move |_| on_click())
+            .on("pointermove", |e: &Event| {
+                // radix focuses the item under the pointer
+                if let Some(h) = e
+                    .current_target()
+                    .and_then(|t| t.dyn_into::<HtmlElement>().ok())
+                {
+                    let _ = h.focus();
+                }
+            })
+            .on("keydown", move |e: &Event| {
+                if let Some(k) = e.dyn_ref::<KeyboardEvent>() {
+                    if k.key() == "Enter" || k.key() == " " {
+                        e.prevent_default();
+                        on_key();
+                    }
+                }
+            });
+    } else {
+        item = item.attr("aria-disabled", "true").attr("data-disabled", "");
+    }
+    let item = item.child(Node::text(color_picker_text("colorPicker.resetTopPicks")));
+    let close: Rc<dyn Fn()> = {
+        let emit = emit.clone();
+        Rc::new(move || emit(ColorPickerEvent::TopPicksMenu(None)))
+    };
+    let on_key = close.clone();
+    let content = Element::new("div")
+        .attr("role", "menu")
+        .attr("aria-orientation", "vertical")
+        .attr("data-state", "open")
+        .attr("data-radix-menu-content", "")
+        .attr("dir", "ltr")
+        .attr("class", "top-picks-dnd__context-menu")
+        .attr("tabindex", "-1")
+        .attr("data-orientation", "vertical")
+        .style("z-index", "var(--zIndex-ui-styles-popup)")
+        .style("outline", "none")
+        .style(
+            "--radix-context-menu-content-transform-origin",
+            "var(--radix-popper-transform-origin)",
+        )
+        .style(
+            "--radix-context-menu-content-available-width",
+            "var(--radix-popper-available-width)",
+        )
+        .style(
+            "--radix-context-menu-content-available-height",
+            "var(--radix-popper-available-height)",
+        )
+        .style(
+            "--radix-context-menu-trigger-width",
+            "var(--radix-popper-anchor-width)",
+        )
+        .style(
+            "--radix-context-menu-trigger-height",
+            "var(--radix-popper-anchor-height)",
+        )
+        .style("pointer-events", "auto")
+        .on("keydown", move |e: &Event| {
+            if let Some(k) = e.dyn_ref::<KeyboardEvent>() {
+                crate::toolbar::menu_keydown(k, &*on_key);
+            }
+        })
+        .child(item);
     Element::new("div")
-        .attr("class", "color-picker__top-picks top-picks-dnd")
-        .children_from(buttons)
+        .attr("data-radix-popper-content-wrapper", "")
+        .attr("dir", "ltr")
+        .on_mount(move |wrapper| {
+            place_at_point(wrapper, x, y);
+            crate::toolbar::close_on_outside_press(wrapper, close.clone());
+        })
+        .child(content)
         .into()
+}
+
+/// Places a context menu's popper wrapper at the client point, inside the
+/// viewport (radix's `side="right"`, `align="start"` on a virtual anchor
+/// at the pointer, flipping and shifting to fit), and focuses the menu.
+fn place_at_point(wrapper: &web_sys::Element, x: i32, y: i32) {
+    let Some(html) = wrapper.dyn_ref::<HtmlElement>() else {
+        return;
+    };
+    let style = html.style();
+    let _ = style.set_property("position", "fixed");
+    let _ = style.set_property("left", "0px");
+    let _ = style.set_property("top", "0px");
+    let _ = style.set_property("min-width", "max-content");
+    let _ = style.set_property("z-index", "var(--zIndex-ui-styles-popup)");
+    let c = wrapper.get_bounding_client_rect();
+    let (vw, vh) = web_sys::window()
+        .map(|w| {
+            let n = |v: Result<wasm_bindgen::JsValue, _>| v.ok().and_then(|v| v.as_f64());
+            (
+                n(w.inner_width()).unwrap_or(f64::INFINITY),
+                n(w.inner_height()).unwrap_or(f64::INFINITY),
+            )
+        })
+        .unwrap_or((f64::INFINITY, f64::INFINITY));
+    let (x, y) = (f64::from(x), f64::from(y));
+    let left = if x + c.width() > vw && x - c.width() >= 0.0 {
+        x - c.width()
+    } else {
+        x
+    };
+    let top = if y + c.height() > vh && y - c.height() >= 0.0 {
+        y - c.height()
+    } else {
+        y
+    };
+    let _ = style.set_property("transform", &format!("translate({left}px, {top}px)"));
+    if let Some(content) = wrapper
+        .first_element_child()
+        .and_then(|c| c.dyn_into::<HtmlElement>().ok())
+    {
+        let opts = web_sys::FocusOptions::new();
+        opts.set_prevent_scroll(true);
+        let _ = content.focus_with_options(&opts);
+    }
+}
+
+/// `TopPicksTip` (`TopPicksTip.tsx:11-60`): the hint under the popup,
+/// with a reset link while the picks are pinned.
+fn top_picks_tip(props: &ColorPickerProps) -> Node {
+    let mut tip = Element::new("div")
+        .attr("class", "top-picks-dnd__tip")
+        .child(Node::text(color_picker_text("colorPicker.topPicksTip")));
+    if custom_top_picks(props).is_some() {
+        let on_event = props.on_event.clone();
+        let reset = Element::new("button")
+            .attr("type", "button")
+            .attr("class", "top-picks-dnd__tip-reset")
+            .attr("title", color_picker_text("colorPicker.resetTopPicks"))
+            // the link unmounts on reset: it does not take the focus
+            .on("mousedown", |e: &Event| e.prevent_default())
+            .on("click", move |e: &Event| {
+                // ...and when it had it (keyboard), the picker gets it back
+                let button = e
+                    .current_target()
+                    .and_then(|t| t.dyn_into::<web_sys::Element>().ok());
+                let focus_target = button.as_ref().and_then(|b| {
+                    let active = b.owner_document()?.active_element()?;
+                    if &active != b {
+                        return None;
+                    }
+                    b.parent_element()?
+                        .closest("[tabindex]")
+                        .ok()
+                        .flatten()?
+                        .dyn_into::<HtmlElement>()
+                        .ok()
+                });
+                if let Some(f) = &on_event {
+                    f(ColorPickerEvent::ResetTopPicks);
+                }
+                if let Some(t) = focus_target.filter(|t| t.is_connected()) {
+                    let _ = t.focus();
+                }
+            })
+            .on("keydown", |e: &Event| {
+                // the pickers' key handlers act on these
+                if let Some(k) = e.dyn_ref::<KeyboardEvent>() {
+                    if k.key() == "Enter" || k.key() == " " {
+                        e.stop_propagation();
+                    }
+                }
+            })
+            .child(Node::text(color_picker_text("buttons.reset")));
+        tip = tip.child(Node::text(" · ")).child(reset);
+    }
+    tip.into()
 }
 
 /// `ColorPickerTrigger` (`ColorPicker.tsx:267-351`), a radix
@@ -667,7 +1176,8 @@ fn trigger(props: &ColorPickerProps) -> Node {
                 ),
         );
     }
-    button.into()
+    // the active colour can be dragged onto the strip to pin it
+    draggable(button, props, props.color.as_deref(), DragOrigin::Source).into()
 }
 
 /// `HotkeyLabel` (`HotkeyLabel.tsx`).
@@ -740,6 +1250,7 @@ fn custom_color_list(props: &ColorPickerProps, focus: bool) -> Node {
             .style("--swatch-color", display.as_str())
             .child(outline())
             .child(hotkey_label(&display, &(i + 1).to_string(), false));
+        let el = draggable(el, props, Some(c), DragOrigin::Source);
         focus_on_mount(el, focus && active).into()
     });
     Element::new("div")
@@ -826,6 +1337,7 @@ fn picker_color_list(
             .attr("data-testid", format!("color-{key}"))
             .child(outline())
             .child_opt(show_hotkey.then(|| hotkey_label(&display, keybinding, false)));
+        let el = draggable(el, props, Some(color), DragOrigin::Source);
         focus_on_mount(el, focus && active).into()
     });
     Element::new("div")
@@ -879,6 +1391,7 @@ fn shade_list(props: &ColorPickerProps, palette: &[PaletteEntry], focus: bool) -
                 )
                 .child(outline())
                 .child_opt(show_hotkey.then(|| hotkey_label(&display, &(i + 1).to_string(), true)));
+            let el = draggable(el, props, Some(c), DragOrigin::Source);
             focus_on_mount(el, focus && active).into()
         });
         return Element::new("div")
@@ -1134,7 +1647,9 @@ fn picker(props: &ColorPickerProps, palette: &'static [PaletteEntry]) -> Node {
                 .child(heading("colorPicker.shades"))
                 .child(shade_list(props, palette, section == Some(Section::Shades))),
         )
-        .child(color_input(props));
+        .child(color_input(props))
+        // only while the top picks are customisable
+        .child_opt(is_top_picks_customizable(props).then(|| top_picks_tip(props)));
     // the picker takes the focus when no section's control does
     let content = focus_on_mount(content, !has_focus_target);
     Element::new("div")
@@ -1297,6 +1812,12 @@ fn popup(props: &ColorPickerProps) -> Node {
         )
         .style("z-index", "var(--zIndex-ui-styles-popup)")
         .style_opt("margin-left", props.phone.then_some("0.5rem"))
+        // radix's DismissableLayer: a layer under a modal one (the strip's
+        // context menu) takes no pointer events
+        .style_opt(
+            "pointer-events",
+            (is_top_picks_customizable(props) && props.top_picks_menu.is_some()).then_some("none"),
+        )
         .child(island(
             IslandProps {
                 padding: Some(3.0),
@@ -1320,8 +1841,27 @@ fn popup(props: &ColorPickerProps) -> Node {
 /// into the editor container, which radix does before the picker's own
 /// element), then the picker: the top-picks strip and a separator unless
 /// the styles panel is compact, and the trigger.
+///
+/// While customisable, the strip's context menu follows when open
+/// (portaled into the container, and radix hides the rest from assistive
+/// technology meanwhile), and the drag and drop is told the picks and
+/// whom to tell of a drop.
 pub fn color_picker(props: &ColorPickerProps) -> Vec<Node> {
     let compact = props.compact();
+    let customizable = is_top_picks_customizable(props);
+    if let Some(dnd) = &props.dnd {
+        dnd.set_enabled(customizable);
+        dnd.set_picks(effective_top_picks(props));
+        let on_event = props.on_event.clone();
+        dnd.set_listener(Some(Rc::new(move |event| {
+            if let Some(f) = &on_event {
+                f(match event {
+                    TopPicksDndEvent::PicksChange(picks) => ColorPickerEvent::TopPicksChange(picks),
+                    TopPicksDndEvent::StateChanged => ColorPickerEvent::DragChange,
+                });
+            }
+        })));
+    }
     let container = Element::new("div")
         .attr("role", "dialog")
         .attr("aria-modal", "true")
@@ -1340,5 +1880,19 @@ pub fn color_picker(props: &ColorPickerProps) -> Vec<Node> {
         out.push(popup(props));
     }
     out.push(container.into());
+    if let (true, Some(at)) = (customizable, props.top_picks_menu) {
+        // radix's hideOthers while the menu is open
+        out = out
+            .into_iter()
+            .map(|n| match n {
+                Node::Element(el) => el
+                    .attr("aria-hidden", "true")
+                    .attr("data-aria-hidden", "true")
+                    .into(),
+                other => other,
+            })
+            .collect();
+        out.push(top_picks_menu(props, at));
+    }
     out
 }

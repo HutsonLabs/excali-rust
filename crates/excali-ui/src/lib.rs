@@ -32,7 +32,8 @@
 //! (`components/FontPicker/*`); for [`hints`] the hint viewer and the
 //! cursor hint (`components/HintViewer.tsx`, `components/CursorHint.tsx`);
 //! for [`welcome_screen`] the welcome screen
-//! (`components/welcome-screen/*`).
+//! (`components/welcome-screen/*`); for [`top_picks_dnd`]
+//! the pickers' top-picks drag and drop (`components/TopPicksDnD/*`).
 //!
 //! Targets: wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-canvas2d`, `excali-editor`.
@@ -58,4 +59,5 @@ pub mod styles_panel;
 pub mod text_editor;
 pub mod theme;
 pub mod toolbar;
+pub mod top_picks_dnd;
 pub mod welcome_screen;
