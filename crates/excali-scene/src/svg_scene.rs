@@ -47,9 +47,10 @@
 //! and its label, where it is: what was appended before stays, as in
 //! upstream's `try`/`catch` (`:876-908`).
 //!
-//! Not drawn: sticky notes, whose shadow, fill, edge and footer are
-//! ex-703's (`staticSvgScene.ts:158-270`); a sticky note is skipped with
-//! nothing but its link's anchor.
+//! Sticky notes (`staticSvgScene.ts:158-270`): a `<clipPath>` of the
+//! outline added to the root first, then a group holding the shadow, the
+//! filled outline, the outline stroked through that clip and the date
+//! footer `<text>` ([`crate::sticky_note`]), clipped to its frame.
 
 use std::collections::HashMap;
 use std::f64::consts::PI;
@@ -82,6 +83,11 @@ use crate::shape::{
     generate_element_shape, generate_freedraw_shapes, generate_linear_element_shapes,
     EmbedsValidationStatus, FreedrawShape, RenderConfig, ShapeError, Theme,
 };
+use crate::sticky_note::{
+    get_sticky_note_footer, get_sticky_note_path_commands, Clock, StickyNotePathCommand,
+    STICKY_NOTE_EDGE_SHADOW_OPACITY, STICKY_NOTE_EDGE_SHADOW_WIDTH, STICKY_NOTE_FOOTER_FONT_FAMILY,
+    STICKY_NOTE_FOOTER_FONT_SIZE, STICKY_NOTE_FOOTER_OPACITY, STICKY_NOTE_SHADOW_OPACITY,
+};
 use crate::utils::{get_corner_radius, is_path_a_loop};
 
 /// `MAX_DECIMALS_FOR_SVG_EXPORT` (`common/src/constants.ts:399`).
@@ -108,6 +114,8 @@ pub struct SvgRenderConfig<'a> {
     pub origin: &'a str,
     /// Measures the embeddable placeholder labels.
     pub text_metrics: &'a dyn TextMetricsProvider,
+    /// `Date.now()` and the viewer's time zone, for sticky note footers.
+    pub clock: Clock,
 }
 
 /// What `renderSceneToSvg` adds to the document.
@@ -124,8 +132,6 @@ pub struct SvgDrawing {
 pub enum SvgRenderError {
     /// "Selection rendering is not supported for SVG".
     Selection,
-    /// Sticky notes are ex-703's.
-    StickyNote,
     Shape(ShapeError),
     /// `querySelector("#" + symbolId)` threw: the id is not a selector.
     InvalidSelector(String),
@@ -137,7 +143,6 @@ impl fmt::Display for SvgRenderError {
             SvgRenderError::Selection => {
                 f.write_str("Selection rendering is not supported for SVG")
             }
-            SvgRenderError::StickyNote => f.write_str("sticky notes are not drawn yet (ex-703)"),
             SvgRenderError::Shape(e) => write!(f, "{e}"),
             SvgRenderError::InvalidSelector(s) => {
                 write!(f, "'#{s}' is not a valid selector")
@@ -249,6 +254,25 @@ fn or_zero(value: f64) -> String {
     } else {
         number_to_string(value)
     }
+}
+
+/// The `d` of a sticky note path (`getPathData`, `staticSvgScene.ts:159-171`):
+/// `M x y`, `L x y` and `Q cx cy x y` joined by spaces, then ` Z`.
+fn sticky_note_path_data(commands: &[StickyNotePathCommand]) -> String {
+    let n = number_to_string;
+    let mut parts: Vec<String> = commands
+        .iter()
+        .map(|command| match *command {
+            StickyNotePathCommand::Move([x, y]) => format!("M {} {}", n(x), n(y)),
+            StickyNotePathCommand::Line([x, y]) => format!("L {} {}", n(x), n(y)),
+            StickyNotePathCommand::Quadratic {
+                control: [cx, cy],
+                point: [x, y],
+            } => format!("Q {} {} {} {}", n(cx), n(cy), n(x), n(y)),
+        })
+        .collect();
+    parts.push("Z".to_owned());
+    parts.join(" ")
 }
 
 /// `translate(${offsetX || 0} ${offsetY || 0}) rotate(${degree} ${cx} ${cy})`.
@@ -575,7 +599,72 @@ impl Renderer<'_, '_> {
 
         match &element.kind {
             ElementKind::Selection => Err(SvgRenderError::Selection),
-            ElementKind::StickyNote(_) => Err(SvgRenderError::StickyNote),
+            ElementKind::StickyNote(_) => {
+                let dark = self.config.theme == Theme::Dark;
+                let path = |commands: &[StickyNotePathCommand], fill: &str| {
+                    let mut path = SvgTag::new("path");
+                    path.set("d", sticky_note_path_data(commands));
+                    path.set("fill", fill);
+                    path
+                };
+                let mut group = SvgTag::new("g");
+                group.set("transform", transform);
+                if opacity != 1.0 {
+                    group.set("opacity", opacity);
+                }
+
+                let mut shadow = path(&get_sticky_note_path_commands(element, true), "#000");
+                shadow.set("fill-opacity", STICKY_NOTE_SHADOW_OPACITY);
+                shadow.set("stroke", "none");
+                let commands = get_sticky_note_path_commands(element, false);
+                let mut rect = path(
+                    &commands,
+                    &apply_dark_mode_filter(&b.background_color, dark),
+                );
+                rect.set("stroke", "none");
+                let clip_id = format!("sticky-note-clipPath-{}", b.id);
+                let mut clip_path = SvgTag::new("clipPath");
+                clip_path.set("id", clip_id.as_str());
+                clip_path.set("clipPathUnits", "userSpaceOnUse");
+                let mut clip_shape = path(&commands, "#000");
+                clip_shape.set("stroke", "none");
+                clip_path.append(clip_shape);
+                self.add_to_root(&root, clip_path, element);
+
+                let mut edge_shadow = path(&commands, "none");
+                edge_shadow.set("stroke", "none");
+                edge_shadow.set("stroke", "#000");
+                edge_shadow.set("stroke-opacity", STICKY_NOTE_EDGE_SHADOW_OPACITY);
+                edge_shadow.set("stroke-width", STICKY_NOTE_EDGE_SHADOW_WIDTH * 2.0);
+                edge_shadow.set("clip-path", format!("url(#{clip_id})"));
+
+                group.append(shadow);
+                group.append(rect);
+                group.append(edge_shadow);
+
+                if let Some(footer) = get_sticky_note_footer(element, &self.config.clock) {
+                    let mut date = SvgTag::new("text");
+                    date.set("x", footer.x);
+                    date.set("y", footer.y);
+                    date.set("font-family", STICKY_NOTE_FOOTER_FONT_FAMILY);
+                    date.set(
+                        "font-size",
+                        format!("{}px", number_to_string(STICKY_NOTE_FOOTER_FONT_SIZE)),
+                    );
+                    // `text-anchor` is logical in SVG: pin the direction so
+                    // an RTL host page can't flip the label to the left edge
+                    date.set("text-anchor", "end");
+                    date.set("direction", "ltr");
+                    date.set("fill", apply_dark_mode_filter(&b.stroke_color, dark));
+                    date.set("fill-opacity", STICKY_NOTE_FOOTER_OPACITY);
+                    date.append(SvgNode::Text(footer.text));
+                    group.append(date);
+                }
+
+                let node = self.wrap_in_frame_clip(element, vec![group]);
+                self.add_wrapped(&root, node, element);
+                Ok(())
+            }
             ElementKind::Rectangle | ElementKind::Diamond | ElementKind::Ellipse => {
                 let shape = generate_element_shape(element, &generator, &self.shape_config())?;
                 let mut node = rough_group(&shape);

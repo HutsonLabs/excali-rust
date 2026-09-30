@@ -1216,7 +1216,8 @@ impl EditorCore {
             CanvasMetrics::new(&document)?,
             (js_sys::Math::random() * 9_007_199_254_740_991.0) as u64,
             js_sys::Date::now,
-        );
+        )
+        .with_time_zone(|time| -js_sys::Date::new(&JsValue::from_f64(time)).get_timezone_offset());
         let editor = Editor::new(env, &source, is_darwin());
         let inner = Rc::new(RefCell::new(Inner {
             editor,

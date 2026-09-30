@@ -36,6 +36,7 @@ use excali_scene::bounds::{
 use excali_scene::linear_element::get_bound_text_element_position;
 use excali_scene::rough_options::generate_rough_options;
 use excali_text::font_metadata::{get_font_string, get_line_height};
+use excali_text::new_element::TextLayout;
 use excali_text::text_element::{
     compute_bound_text_position, compute_container_dimension_for_bound_text,
     get_bound_text_max_height, get_bound_text_max_width, ArrowLabelGeometry,
@@ -50,6 +51,7 @@ use crate::binding::{
     get_arrow_local_fixed_points, unbind_binding_element, BindingEnd, BindingEnv,
 };
 use crate::scene::{ElementUpdate, MutationEnv, Scene};
+use crate::text_layout::{self, VerticalAnchor};
 use crate::transform_handles::{
     is_elbow_arrow, is_frame_like, TransformHandleDirection, TransformHandleType,
 };
@@ -129,15 +131,54 @@ pub trait TransformEnv: BindingEnv {
     }
 
     /// `getStickyNoteLayout(container, textElement, opts)`
-    /// (`stickyNote.ts:669-762`): the note's and its label's geometry.
-    /// stickyNote.ts is ex-703's: it implements this, and the gesture
-    /// tests then reproduce every recorded hook instead of replaying it.
+    /// (`stickyNote.ts:669-762`): the note's and its label's geometry,
+    /// which measures text; the editor answers with [`sticky_note_layout`].
     fn sticky_note_layout(
         &mut self,
         container: &Element,
         text: Option<&Element>,
         opts: &StickyNoteLayoutOpts,
     ) -> StickyNoteLayout;
+}
+
+/// `getStickyNoteLayout(container, textElement, opts)` as a resize asks
+/// for it ([`TransformEnv::sticky_note_layout`]): the port's
+/// [`crate::text_layout::get_sticky_note_layout`] with the label's own
+/// `originalText` and the anchor defaulting to the top edge.
+pub fn sticky_note_layout(
+    layout: &mut TextLayout<'_>,
+    container: &Element,
+    text: Option<&Element>,
+    opts: &StickyNoteLayoutOpts,
+) -> StickyNoteLayout {
+    let opts = text_layout::StickyNoteLayoutOpts {
+        original_text: None,
+        base_height: opts.base_height,
+        base_font_size: opts.base_font_size,
+        anchor: match opts.anchor {
+            Some(StickyNoteLayoutAnchor::Bottom) => VerticalAnchor::Bottom,
+            Some(StickyNoteLayoutAnchor::Center) => VerticalAnchor::Center,
+            Some(StickyNoteLayoutAnchor::Top) | None => VerticalAnchor::Top,
+        },
+    };
+    let laid_out = text_layout::get_sticky_note_layout(layout, container, text, &opts);
+    StickyNoteLayout {
+        x: laid_out.container.x,
+        y: laid_out.container.y,
+        width: laid_out.container.width,
+        height: laid_out.container.height,
+        base_height: laid_out.container.base_height,
+        text: laid_out.text.map(|t| StickyNoteTextLayout {
+            text: t.text,
+            font_size: t.font_size,
+            base_font_size: t.base_font_size,
+            width: t.width,
+            height: t.height,
+            x: t.x,
+            y: t.y,
+            angle: t.angle,
+        }),
+    }
 }
 
 /// A [`TransformEnv`] of any size as a [`BindingEnv`] trait object.

@@ -266,7 +266,8 @@ nothing else in the module changes. excali-core's fixture test checks that the
 port asks for the same calls and answers them with the recorded results;
 excali-editor (`tests/elbow_routing.rs`) and excali-text
 (`tests/refresh_text_dimensions.rs`) reproduce the recorded elbow routes and text
-refits from their arguments; the arrow labels of `refresh-arrow-labels` are
+refits from their arguments, and excali-editor (`tests/restore_sticky_notes.rs`)
+the sticky note layouts; the arrow labels of `refresh-arrow-labels` are
 placed by excali-editor's `SceneArrowGeometry`, so excali-editor
 (`tests/restore_arrow_labels.rs`) reproduces those.
 
@@ -933,7 +934,8 @@ ex-703). Their call sites are rewritten (the `patch` option of
 `loadUpstream`) to record each call's arguments and what it changed, which
 the Rust test checks through its `TransformEnv`: a binding call is run by
 the port's own `updateBoundElements` and its effect compared with the
-recorded one, a sticky-note layout is answered with the recorded result. Text is
+recorded one, a sticky-note layout is computed by the port's own
+`getStickyNoteLayout` and compared with the recorded result. Text is
 measured as `text.length * 10`, and the character width cache starts every
 gesture with no font in it.
 

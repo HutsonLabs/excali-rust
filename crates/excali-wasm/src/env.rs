@@ -21,15 +21,18 @@
 
 use excali_core::element::Element;
 use excali_core::fractional_index::{ChangeStamp, SceneElementsMap};
-use excali_core::restore::RestoreEnv;
+use excali_core::restore::{
+    RestoreEnv, StickyNoteLayout as RestoredStickyNoteLayout, StickyNoteLayoutRequest,
+};
 use excali_editor::binding::{update_bound_elements_in_map, BindingEnv};
 use excali_editor::resize_elements::{
-    StickyNoteLayout, StickyNoteLayoutAnchor, StickyNoteLayoutOpts, StickyNoteTextLayout,
-    TransformEnv,
+    sticky_note_layout, StickyNoteLayout, StickyNoteLayoutOpts, TransformEnv,
 };
+use excali_editor::restore_env;
 use excali_editor::scene::MutationEnv;
 use excali_editor::store::HistoryEnv;
-use excali_editor::text_layout::{self, get_sticky_note_layout, TextLayouter, VerticalAnchor};
+use excali_editor::text_layout::TextLayouter;
+use excali_scene::sticky_note::{utc, Clock};
 use excali_text::text_measurements::{CharWidthCache, TextMetricsProvider};
 
 /// nanoid's alphabet (`nanoid/url-alphabet`), which `randomId` draws from.
@@ -86,6 +89,9 @@ pub struct EditorEnv<P> {
     /// container heights text editing shares.
     pub layouter: TextLayouter<P>,
     rng: Rng,
+    /// Minutes east of UTC at a time: the viewer's time zone, which sticky
+    /// note footers are dated in (UTC unless the host sets it).
+    utc_offset_minutes: fn(f64) -> f64,
 }
 
 impl<P: TextMetricsProvider + Clone> EditorEnv<P> {
@@ -95,6 +101,22 @@ impl<P: TextMetricsProvider + Clone> EditorEnv<P> {
         EditorEnv {
             layouter: TextLayouter::new(provider),
             rng: Rng { state: seed, clock },
+            utc_offset_minutes: utc,
+        }
+    }
+
+    /// The same environment dated in the time zone `utc_offset_minutes`
+    /// gives (`-new Date(t).getTimezoneOffset()` in the browser).
+    pub fn with_time_zone(mut self, utc_offset_minutes: fn(f64) -> f64) -> EditorEnv<P> {
+        self.utc_offset_minutes = utc_offset_minutes;
+        self
+    }
+
+    /// `Date.now()` and the time zone, as the renderers read them.
+    pub fn render_clock(&self) -> Clock {
+        Clock {
+            now: self.rng.now(),
+            utc_offset_minutes: self.utc_offset_minutes,
         }
     }
 }
@@ -110,6 +132,16 @@ impl<P: TextMetricsProvider + Clone> RestoreEnv for EditorEnv<P> {
 
     fn random_integer(&mut self) -> f64 {
         self.rng.integer()
+    }
+
+    /// `getStickyNoteLayout` with the editor's layouter
+    /// ([`excali_editor::restore_env::sticky_note_layout`]).
+    fn sticky_note_layout(
+        &mut self,
+        request: StickyNoteLayoutRequest<'_>,
+    ) -> Option<RestoredStickyNoteLayout> {
+        self.layouter
+            .with_layout(|layout, _| restore_env::sticky_note_layout(layout, &request))
     }
 }
 
@@ -213,35 +245,7 @@ impl<P: TextMetricsProvider + Clone> TransformEnv for EditorEnv<P> {
         text: Option<&Element>,
         opts: &StickyNoteLayoutOpts,
     ) -> StickyNoteLayout {
-        let opts = text_layout::StickyNoteLayoutOpts {
-            original_text: None,
-            base_height: opts.base_height,
-            base_font_size: opts.base_font_size,
-            anchor: match opts.anchor {
-                Some(StickyNoteLayoutAnchor::Bottom) => VerticalAnchor::Bottom,
-                Some(StickyNoteLayoutAnchor::Center) => VerticalAnchor::Center,
-                Some(StickyNoteLayoutAnchor::Top) | None => VerticalAnchor::Top,
-            },
-        };
-        let layout = self
-            .layouter
-            .with_layout(|layout, _| get_sticky_note_layout(layout, container, text, &opts));
-        StickyNoteLayout {
-            x: layout.container.x,
-            y: layout.container.y,
-            width: layout.container.width,
-            height: layout.container.height,
-            base_height: layout.container.base_height,
-            text: layout.text.map(|t| StickyNoteTextLayout {
-                text: t.text,
-                font_size: t.font_size,
-                base_font_size: t.base_font_size,
-                width: t.width,
-                height: t.height,
-                x: t.x,
-                y: t.y,
-                angle: t.angle,
-            }),
-        }
+        self.layouter
+            .with_layout(|layout, _| sticky_note_layout(layout, container, text, opts))
     }
 }

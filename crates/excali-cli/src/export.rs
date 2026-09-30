@@ -39,6 +39,7 @@ use excali_scene::export::{svg_document, SvgExportAppState, SvgExportOptions};
 use excali_svg::{export_to_svg, to_svg_file, FontFiles};
 use excali_text::font_store::FontStore;
 
+use crate::env::render_clock;
 use crate::error::Failure;
 use crate::fonts::{load_fonts, GlyphText, Metrics};
 
@@ -200,6 +201,7 @@ pub fn png_canvas(scene: &LoadedScene, settings: &ExportSettings) -> Result<PngC
         sizing: CanvasSizing::ExportScale,
         text_metrics: &fonts,
         image_loads: &loads,
+        clock: render_clock(),
     };
     let document = export_canvas_png(&elements, &app_state, &files, &options, &settings.source)
         .map_err(|e| match e {
@@ -247,6 +249,7 @@ pub fn export_svg(scene: &LoadedScene, settings: &ExportSettings) -> Result<Stri
     let mut options = SvgExportOptions::new(&settings.source, &metrics);
     options.exporting_frame = frame.as_ref();
     options.skip_inlining_fonts = !settings.inline_fonts;
+    options.clock = render_clock();
     let document = svg_document(&elements, &state, Some(&files), &options);
     let root = export_to_svg(&document, &FontFiles::new(&settings.fonts_dir));
     Ok(to_svg_file(&root))

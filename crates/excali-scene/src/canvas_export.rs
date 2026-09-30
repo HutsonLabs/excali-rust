@@ -55,6 +55,7 @@ use crate::shape::Theme;
 use crate::static_scene::{
     render_static_scene, CachedImage, StaticCanvasAppState, StaticCanvasRenderConfig, StaticScene,
 };
+use crate::sticky_note::Clock;
 
 /// `MIME_TYPES.binary`: a file that is not an image, which
 /// `updateImageCache` refuses.
@@ -213,6 +214,8 @@ pub struct CanvasExportOptions<'a> {
     /// (`loadHTMLImageElement` resolving); only files present in `files`
     /// and not binary are asked.
     pub image_loads: &'a dyn Fn(&str) -> bool,
+    /// `Date.now()` and the viewer's time zone, for sticky note footers.
+    pub clock: Clock,
 }
 
 /// [`TextMetricsProvider`] as the frame labels measure.
@@ -426,6 +429,7 @@ pub fn export_to_canvas(
         // empty disables embeddable rendering
         embeds_validation_status: HashMap::new(),
         theme,
+        clock: opts.clock,
         ..StaticCanvasRenderConfig::default()
     };
     let render_map = ElementsMap::new(elements_for_render.iter().copied());

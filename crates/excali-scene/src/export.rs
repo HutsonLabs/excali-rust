@@ -43,6 +43,7 @@ use crate::canvas_export::{get_elements_overlapping_frame, label_element};
 use crate::display::{FontFaceSource, FrameClip, SvgDocument, SvgPayload};
 use crate::frame::is_frame_like;
 use crate::shape::Theme;
+use crate::sticky_note::Clock;
 use crate::svg_scene::{label_id, render_scene_to_svg, SvgRenderConfig};
 
 /// `DEFAULT_EXPORT_PADDING` (`common/src/constants.ts:402`), in pixels.
@@ -521,6 +522,8 @@ pub struct SvgExportOptions<'a> {
     pub origin: &'a str,
     /// Measures the frame names and embeddable placeholders.
     pub text_metrics: &'a dyn TextMetrics,
+    /// `Date.now()` and the viewer's time zone, for sticky note footers.
+    pub clock: Clock,
 }
 
 impl<'a> SvgExportOptions<'a> {
@@ -536,6 +539,7 @@ impl<'a> SvgExportOptions<'a> {
             data_ids: false,
             origin: source,
             text_metrics,
+            clock: Clock::default(),
         }
     }
 }
@@ -689,6 +693,7 @@ pub fn svg_document(
             data_ids: opts.data_ids,
             origin: opts.origin,
             text_metrics: &metrics,
+            clock: opts.clock,
         },
     );
 

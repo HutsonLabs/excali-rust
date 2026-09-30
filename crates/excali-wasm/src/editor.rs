@@ -82,7 +82,10 @@ use excali_core::library::{
     LibraryItemStatus,
 };
 use excali_core::library_url::{parse_library_tokens_from_url, validate_library_url};
-use excali_core::restore::{LegacyBinding, LegacyBindingRequest, RestoreEnv};
+use excali_core::restore::{
+    LegacyBinding, LegacyBindingRequest, RestoreEnv, StickyNoteLayout, StickyNoteLayoutRequest,
+    TextDimensionsRequest,
+};
 use excali_editor::actions::{
     ActionContext, ActionEnv, ActionManager, ActionName, AppProps, ContextMenuKind, KeyDownOutcome,
 };
@@ -283,6 +286,20 @@ impl<E: RestoreEnv> RestoreEnv for Restore<'_, E> {
         request: LegacyBindingRequest<'_>,
     ) -> Option<LegacyBinding> {
         self.0.migrate_legacy_binding(request)
+    }
+
+    fn refresh_text_dimensions(
+        &mut self,
+        request: TextDimensionsRequest<'_>,
+    ) -> Option<Map<String, Value>> {
+        self.0.refresh_text_dimensions(request)
+    }
+
+    fn sticky_note_layout(
+        &mut self,
+        request: StickyNoteLayoutRequest<'_>,
+    ) -> Option<StickyNoteLayout> {
+        self.0.sticky_note_layout(request)
     }
 }
 
@@ -1120,6 +1137,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         state.export_background = false;
         let metrics = Measure(&self.session.env.layouter.provider);
         let mut options = SvgExportOptions::new(&self.source, &metrics);
+        options.clock = self.session.env.render_clock();
         options.skip_inlining_fonts = true;
         options.render_embeddables = false;
         let document = svg_document(elements, &state, None, &options);
@@ -2970,7 +2988,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         state.export_scale = Some(opts.scale);
         state.export_padding = opts.padding;
         let metrics = Measure(&self.session.env.layouter.provider);
-        let options = SvgExportOptions::new(&self.source, &metrics);
+        let mut options = SvgExportOptions::new(&self.source, &metrics);
+        options.clock = self.session.env.render_clock();
         let document = svg_document(&elements, &state, Some(&files), &options);
         Ok(to_svg_file(&export_to_svg(&document, fonts)))
     }
@@ -2995,6 +3014,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             text_metrics: provider,
             // images are not decoded in the element yet: placeholders
             image_loads: &|_| false,
+            clock: self.session.env.render_clock(),
         };
         export_canvas_png(&elements, &app, &files, &options, &self.source)
             .map_err(|e| e.to_string())
@@ -3019,6 +3039,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         };
         let config = StaticCanvasRenderConfig {
             pending_flowchart_nodes: self.flowchart.pending_nodes().to_vec(),
+            clock: self.session.env.render_clock(),
             ..StaticCanvasRenderConfig::default()
         };
         render_static_scene(&StaticScene {
