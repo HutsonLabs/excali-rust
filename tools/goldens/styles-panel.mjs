@@ -105,13 +105,13 @@ export { setCustomTextMetricsProvider } from "./packages/element/src/textMeasure
 export { reseed } from "./packages/common/src/random";
 `;
 
-const CONTAINER_ID = "excali-id";
+export const CONTAINER_ID = "excali-id";
 
-const FRAGMENT = Symbol.for("excali-rust.fragment");
+export const FRAGMENT = Symbol.for("excali-rust.fragment");
 
 // Packages the module graph of Actions.tsx (through actions/index and the
 // components it imports) reaches but the full panel never calls.
-const STUBS = [
+export const STUBS = [
   "fuzzy",
   "pica",
   "react-dom",
@@ -119,7 +119,7 @@ const STUBS = [
   "image-blob-reduce",
 ];
 
-const SHIMS = {
+export const SHIMS = {
   // Section reads the container's id (App.tsx:593-594).
   // The compact panel's PropertiesPopover reads the editor interface.
   "packages/excalidraw/components/App": `module.exports = {
@@ -189,18 +189,18 @@ const parseArgs = (argv) => {
 };
 
 /** What JSON.stringify writes, read back. */
-const json = (value) => JSON.parse(JSON.stringify(value));
+export const json = (value) => JSON.parse(JSON.stringify(value));
 
 // -- scenes ---------------------------------------------------------------------------
 
 /** Every element fixed: `created` and `updated` would be Date.now(). */
-const fixed = (element) => ({ ...element, created: 1, updated: 1 });
+export const fixed = (element) => ({ ...element, created: 1, updated: 1 });
 
-const bind = (container, text) => {
+export const bind = (container, text) => {
   container.boundElements = [...(container.boundElements ?? []), { type: "text", id: text.id }];
 };
 
-const SCENES = {
+export const SCENES = {
   main: (up) => {
     const at = (x, y) => ({ x, y, width: 100, height: 60 });
     const r1 = up.newElement({ type: "rectangle", id: "r1", ...at(0, 0), seed: 1 });
@@ -243,7 +243,7 @@ const SCENES = {
 
 // -- cases ----------------------------------------------------------------------------
 
-const TOOLS = [
+export const TOOLS = [
   "selection",
   "lasso",
   "rectangle",
@@ -265,12 +265,12 @@ const TOOLS = [
   "bucketfill",
 ];
 
-const tool = (type) => (type === "custom" ? { type: "custom", customType: "comment" } : { type, customType: null });
+export const tool = (type) => (type === "custom" ? { type: "custom", customType: "comment" } : { type, customType: null });
 
-const selecting = (ids) => Object.fromEntries(ids.map((id) => [id, true]));
+export const selecting = (ids) => Object.fromEntries(ids.map((id) => [id, true]));
 
 /** [id, { tool?, select?, state?, rtl? }] */
-const handCases = () => {
+export const handCases = () => {
   const cases = [];
   for (const t of [...TOOLS, "custom"]) {
     cases.push([`tool-${t}`, { tool: t }]);
