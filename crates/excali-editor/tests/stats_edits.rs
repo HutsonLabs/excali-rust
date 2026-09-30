@@ -159,7 +159,11 @@ fn same_json(actual: &Value, expected: &Value, path: &str) -> Result<(), String>
         }
         (Value::Array(a), Value::Array(e)) => {
             if a.len() != e.len() {
-                return Err(format!("{path}: {} items != {} (expected)", a.len(), e.len()));
+                return Err(format!(
+                    "{path}: {} items != {} (expected)",
+                    a.len(),
+                    e.len()
+                ));
             }
             for (i, (a, e)) in a.iter().zip(e).enumerate() {
                 same_json(a, e, &format!("{path}[{i}]"))?;
@@ -173,7 +177,9 @@ fn same_json(actual: &Value, expected: &Value, path: &str) -> Result<(), String>
                 }
                 match (a.get(key), e.get(key)) {
                     (Some(av), Some(ev)) => same_json(av, ev, &format!("{path}.{key}"))?,
-                    (None, Some(ev)) => return Err(format!("{path}.{key}: missing, expected {ev}")),
+                    (None, Some(ev)) => {
+                        return Err(format!("{path}.{key}: missing, expected {ev}"))
+                    }
                     (Some(av), None) => return Err(format!("{path}.{key}: {av}, expected no key")),
                     (None, None) => unreachable!(),
                 }
@@ -210,7 +216,12 @@ fn run(scene_json: &Value, case: &Value) -> Outcome {
     if let Some(text) = case["gesture"]["typed"].as_str() {
         let gesture = StatsGesture::begin(&scene, &app_state, prop)
             .unwrap_or_else(|| panic!("{name}: the panel shows the input"));
-        patches.extend(gesture.apply(&mut scene, &app_state, StatsChange::typed(typed(text)), &mut env));
+        patches.extend(gesture.apply(
+            &mut scene,
+            &app_state,
+            StatsChange::typed(typed(text)),
+            &mut env,
+        ));
     } else {
         let steps = case["gesture"]["drag"].as_array().expect("drag");
         let gesture = StatsGesture::begin(&scene, &app_state, prop)
@@ -282,10 +293,18 @@ fn edits_match_upstream() {
         }
         let patches = patches_json(&out.patches);
         if patches != result["patches"] {
-            failures.push(format!("{name}: patches {patches} != {}", result["patches"]));
+            failures.push(format!(
+                "{name}: patches {patches} != {}",
+                result["patches"]
+            ));
         }
     }
-    assert!(failures.is_empty(), "{} cases differ:\n{}", failures.len(), failures.join("\n"));
+    assert!(
+        failures.is_empty(),
+        "{} cases differ:\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
 }
 
 #[test]
@@ -304,15 +323,20 @@ fn every_callback_and_both_gestures_are_covered() {
                         == multiple
             });
             // Y is covered for groups by MultiPosition's Y cases
-            assert!(covered || (input == "Y" && multiple), "{input} multiple={multiple}");
+            assert!(
+                covered || (input == "Y" && multiple),
+                "{input} multiple={multiple}"
+            );
         }
     }
     assert!(cases.iter().any(|c| c["gesture"]["typed"].is_string()));
     assert!(cases.iter().any(|c| c["gesture"]["drag"].is_array()));
-    assert!(cases.iter().any(|c| c["appState"]["croppingElementId"].is_string()));
     assert!(cases
         .iter()
-        .any(|c| c["gesture"]["drag"].as_array().is_some_and(|d| d.iter().any(|s| s["shift"] == true))));
+        .any(|c| c["appState"]["croppingElementId"].is_string()));
+    assert!(cases.iter().any(|c| c["gesture"]["drag"]
+        .as_array()
+        .is_some_and(|d| d.iter().any(|s| s["shift"] == true))));
 }
 
 #[test]
@@ -372,4 +396,19 @@ fn inputs_the_panel_does_not_show_have_no_gesture() {
     // a container's font size is its label's
     let g = StatsGesture::begin(&scene, &select(&["box"]), StatsProperty::FontSize).expect("label");
     assert_eq!(g.elements[0].base.id, "lbl");
+}
+
+#[test]
+fn grid_step_drags() {
+    use excali_editor::stats::grid_step_after_drag;
+    // CanvasGrid.tsx:36-56
+    assert_eq!(grid_step_after_drag(5.0, 2.0, false), Some(7.0));
+    assert_eq!(grid_step_after_drag(5.0, 0.0, false), None);
+    assert_eq!(grid_step_after_drag(5.0, 1.0, true), Some(20.0));
+    // 12 - 10 = 2 steps to 0, which leaves the step
+    assert_eq!(grid_step_after_drag(12.0, -1.0, true), None);
+    assert_eq!(grid_step_after_drag(25.0, -1.0, true), Some(20.0));
+    assert_eq!(grid_step_after_drag(99.0, 5.0, false), Some(100.0));
+    assert_eq!(grid_step_after_drag(1.0, -1.0, false), None);
+    assert_eq!(grid_step_after_drag(2.0, -3.0, false), Some(1.0));
 }

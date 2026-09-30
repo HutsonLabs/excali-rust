@@ -501,3 +501,76 @@ fn ctrl_arrow_creates_and_alt_arrow_navigates_a_flowchart() {
     undo(&mut ed);
     assert_eq!(selected_ids(&ed), vec![node_id]);
 }
+
+fn select(ed: &mut Editor<CharCountTextMetrics>, id: &str) {
+    ed.set_app_state(
+        serde_json::json!({ "selectedElementIds": { id: true } })
+            .as_object()
+            .unwrap()
+            .clone(),
+    );
+}
+
+#[test]
+fn a_typed_stats_value_is_one_history_entry() {
+    use excali_editor::stats::StatsProperty;
+    let mut ed = editor();
+    select(&mut ed, "box");
+    let before = (get(&ed, "box").base.x, get(&ed, "label").base.x);
+    assert!(ed.stats_input(StatsProperty::X, 300.0));
+    // Position's callback: the container's top left at x 300, its label
+    // moved with it
+    assert_eq!(get(&ed, "box").base.x, 300.0);
+    assert_eq!(get(&ed, "label").base.x, before.1 + 300.0 - before.0);
+    assert!(ed.can_undo());
+    undo(&mut ed);
+    assert_eq!(get(&ed, "box").base.x, before.0);
+    redo(&mut ed);
+    assert_eq!(get(&ed, "box").base.x, 300.0);
+    // a font size with nothing to size is no input
+    select(&mut ed, "b");
+    assert!(!ed.stats_input(StatsProperty::FontSize, 30.0));
+}
+
+#[test]
+fn a_dragged_stats_label_is_one_history_entry() {
+    use excali_editor::stats::StatsProperty;
+    let mut ed = editor();
+    select(&mut ed, "box");
+    let width = get(&ed, "box").base.width;
+    assert!(ed.stats_drag_start(StatsProperty::Width));
+    ed.stats_drag_move(100.0, false);
+    ed.stats_drag_move(110.0, false);
+    assert_eq!(get(&ed, "box").base.width, width + 10.0);
+    ed.stats_drag_move(125.0, false);
+    ed.stats_drag_end();
+    assert_eq!(get(&ed, "box").base.width, width + 25.0);
+    // one entry for the whole drag: one undo goes back to the start
+    undo(&mut ed);
+    assert_eq!(get(&ed, "box").base.width, width);
+}
+
+#[test]
+fn a_dragged_grid_step_moves_by_eight_pixels_a_step() {
+    use excali_editor::stats::StatsProperty;
+    let mut ed = editor();
+    ed.set_app_state(
+        serde_json::json!({ "gridStep": 5 })
+            .as_object()
+            .unwrap()
+            .clone(),
+    );
+    assert!(ed.stats_drag_start(StatsProperty::GridStep));
+    ed.stats_drag_move(0.0, false);
+    ed.stats_drag_move(20.0, false);
+    assert_eq!(
+        ed.app_state().get("gridStep"),
+        Some(&serde_json::json!(7.0))
+    );
+    ed.stats_drag_move(28.0, true);
+    assert_eq!(
+        ed.app_state().get("gridStep"),
+        Some(&serde_json::json!(20.0))
+    );
+    ed.stats_drag_end();
+}

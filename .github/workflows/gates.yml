@@ -495,6 +495,9 @@ jobs:
   # stats.mjs --check for excali-ui's stats.json and src/stats/stats.css
   # (ex-529), upstream's Stats over a real Scene rendered by React into
   # jsdom, its section headers and close button; and
+  # stats-edits.mjs --check for excali-editor's stats_edits.json (ex-539),
+  # upstream's Stats over a real Scene with values typed into its inputs and
+  # its labels dragged, and what each callback did to the scene; and
   # editing-fixtures.mjs --check for excali-editor's editing.json (ex-712),
   # upstream's selection, group, element creation and edit action code on
   # the scenes of the gestures <excali-editor> wires, and its library
@@ -640,6 +643,8 @@ jobs:
         run: node tools/goldens/hints.mjs --check
       - name: excali-ui stats panel fixture and stylesheet match upstream's Stats, its sections and drag inputs
         run: node tools/goldens/stats.mjs --check
+      - name: excali-editor stats panel edits match upstream's Position, Dimension, Angle, FontSize and Multi* callbacks through DragInput
+        run: node tools/goldens/stats-edits.mjs --check
       - name: excali-ui colour picker fixture and stylesheet match upstream's ColorPicker, keyboard map, ColorInput and colors.ts
         run: node tools/goldens/color-picker.mjs --check
       - name: excali-ui colour top-picks fixture and stylesheet match upstream's customizableTopPicks, TopPicksDnD, its context menu and tip

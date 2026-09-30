@@ -110,3 +110,4 @@ The suite's first test fails when a row has no test, a test has no row, or a sta
 | ui-welcome-screen | An empty scene shows the welcome screen (`.welcome-screen-center`). | `excalidraw/components/App.tsx:4342`, `excalidraw/components/welcome-screen/WelcomeScreen.Center.tsx:95` | ex-528 | pass |
 | ui-hints | With a tool active the hint viewer (`.HintViewer`) shows upstream's hint. | `excalidraw/components/HintViewer.tsx:305`, `excalidraw/locales/en.json:377` | ex-528 | pass |
 | ui-stats | Alt+/ opens the stats panel (`.exc-stats`). | `excalidraw/actions/actionToggleStats.tsx:26`, `excalidraw/components/Stats/index.tsx:186` | ex-529 | pass |
+| ui-stats-edit | In the stats panel a typed X moves the selected element and a W label dragged to the right widens it, each undone in one step. | `excalidraw/components/Stats/DragInput.tsx:122`, `excalidraw/components/Stats/Position.tsx:30`, `excalidraw/components/Stats/Dimension.tsx:44` | ex-539 | pass |
