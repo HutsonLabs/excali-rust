@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-30 04:00 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-30 04:13 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**152 issues** · 129 closed (85%) · 3 in progress · 0 blocked · 19 open
+**152 issues** · 130 closed (86%) · 2 in progress · 0 blocked · 19 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -199,7 +199,7 @@ Vendored module in term.hut with CRUD and library import; tauri-plugin-excali wi
 
 ## ex-e7 · Phase 7: Parity and polish
 
-<span class="status open">open</span> 7/14 children closed
+<span class="status open">open</span> 8/14 children closed
 
 Tablet and phone layouts, remaining tools, accessibility, performance budgets, locale loader, parity checklist to 100%.
 
@@ -210,7 +210,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 | `ex-703` | Sticky notes: element, rendering (shadow, edge, footer), label fitting | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-704` | Bucket fill tool | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-705` | Lasso selection | task | P2 | <span class="status closed">closed</span> |  |  |
-| `ex-706` | Autoshape (draw-shape) recognition | task | P3 | <span class="status in_progress">in progress</span> |  |  |
+| `ex-706` | Autoshape (draw-shape) recognition | task | P3 | <span class="status closed">closed</span> |  |  |
 | `ex-707` | Image crop editor | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-708` | Search sidebar (frames and texts) | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-709` | Accessibility: focus order, ARIA on controls, reduced motion, RTL mirroring of icons | task | P2 | <span class="status in_progress">in progress</span> |  |  |
@@ -218,7 +218,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 | `ex-711` | Locale loader using upstream JSON files (58 locales, 633 keys) | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-712` | Parity checklist to 100% for the v1 scope | task | P0 | <span class="status open">open</span> |  | `ex-529` |
 | `ex-713` | <excali-editor>: the interactive canvas and the App interactions ex-712 reduced | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-m7` | M7: parity checklist 100% for v1 scope | milestone | P2 | <span class="status open">open</span> |  | `ex-706`, `ex-708`, `ex-709`, `ex-710`, `ex-711`, `ex-712` |
+| `ex-m7` | M7: parity checklist 100% for v1 scope | milestone | P2 | <span class="status open">open</span> |  | `ex-708`, `ex-709`, `ex-710`, `ex-711`, `ex-712` |
 
 ## ex-e8 · Phase 8: Release
 

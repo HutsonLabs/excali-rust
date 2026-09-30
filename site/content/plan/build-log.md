@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-29 · ex-706 · Autoshape (draw-shape) recognition
+
+The autoshape ("draw to shape") recognizer now works in the port, bit for bit with upstream: `excali_editor::convert_to_shape::recognize_shape` reads a freehand stroke as a rectangle, diamond, ellipse, line or arrow (or leaves it freedraw), with upstream's size gate at the current zoom and its "only an arrow continues an arrow" rule, and `convert_to_shape` builds the element that replaces the stroke (box, arrow tip, short arrows as lines, roundness, stroke width and style from the app state, enclosing frame). It is built on a new port of `packages/math/src/pca.ts` in `excali-math` (principal axes, principal coordinates, orientation, elongation, standardized moments, skewness, kurtosis), so `excali-math` now covers every function `packages/math/src` exports. `excali_math::js::hypot_n` adds V8's n-argument `Math.hypot`. PR: [#143](https://github.com/HutsonLabs/excali-rust/pull/143).
+
 ## 2026-09-29 · ex-m6 · M6: term.hut CRUD and library import end to end
 
 Phase 6 milestone M6 is reached. term.hut creates, opens, edits, saves and deletes a `.excalidraw` drawing and imports a library from a libraries.excalidraw.com link or a `.excalidrawlib` file, with the editor loaded as a vendored ES module and no build step (D4), and this now runs in term.hut's own CI; the example Tauri app embeds the same module and opens, saves and exports PNG and SVG through `tauri-plugin-excali` (D5). This PR updates the phase 6 status in `site/content/plan/phases.md` and in the README. It changes no code. PR: [#142](https://github.com/HutsonLabs/excali-rust/pull/142).
