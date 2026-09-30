@@ -40,7 +40,10 @@ mod names;
 mod registry;
 mod shape_predicates;
 
-pub use context::{ActionContext, ActionEnv, AppProps, CanvasActions, FormFactor};
+pub use context::{
+    elements_are_in_same_group, frame_and_children_selected_together, has_bound_text_element,
+    is_text_bindable_container, ActionContext, ActionEnv, AppProps, CanvasActions, FormFactor,
+};
 pub use keys::{
     get_shortcut_from_shortcut_name, get_shortcut_key, match_key, KeyEvent, KeyLabels,
     SHORTCUT_NAMES,

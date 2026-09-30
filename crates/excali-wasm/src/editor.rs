@@ -1017,7 +1017,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
 
     /// Runs the action `name` as the chrome does (`executeAction`): the
     /// history, the zoom actions, and the app state toggles of the help
-    /// dialog and zen mode.
+    /// dialog, zen mode and the stats panel.
     pub fn perform_action(&mut self, name: ActionName) {
         match name {
             ActionName::Undo => return self.undo(),
@@ -1064,6 +1064,14 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 }
                 ActionName::ZenMode => {
                     toggle_zen_mode(&mut app_state);
+                    None
+                }
+                ActionName::Stats => {
+                    // actionToggleStats.perform (actionToggleStats.tsx:17-24)
+                    let mut stats = app_state.get("stats").cloned().unwrap_or(json!({}));
+                    let open = stats.get("open").and_then(Value::as_bool).unwrap_or(false);
+                    stats["open"] = json!(!open);
+                    app_state.insert("stats", stats);
                     None
                 }
                 ActionName::ObjectsSnapMode => {

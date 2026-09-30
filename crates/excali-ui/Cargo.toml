@@ -12,6 +12,8 @@ publish = false
 excali-canvas2d = { path = "../excali-canvas2d" }
 excali-core = { path = "../excali-core" }
 excali-editor = { path = "../excali-editor" }
+# The stats panel's rotations and JavaScript rounding (excali_ui::stats).
+excali-math = { path = "../excali-math" }
 excali-scene = { path = "../excali-scene" }
 excali-text = { path = "../excali-text" }
 # The browser's FontFace / document.fonts API behind excali_ui::fonts, and

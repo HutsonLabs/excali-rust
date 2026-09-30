@@ -157,7 +157,11 @@ fn every_case_renders_upstreams_dom() {
         let input = case_input(&fx, case);
         let panel = stats_panel(&props(&input), None);
         let expected: Vec<Value> = case["dom"].as_array().unwrap().iter().map(expand).collect();
-        same(name, &json!(expected), &json!([tree(&Node::Element(panel.element))]));
+        same(
+            name,
+            &json!(expected),
+            &json!([tree(&Node::Element(panel.element))]),
+        );
     }
 }
 
@@ -196,7 +200,7 @@ fn the_controls_are_in_document_order() {
     let rect = fx["elements"][0].as_object().unwrap().clone();
     let elements = vec![Element::from_map(rect).unwrap()];
     let mut app_state = AppState::default();
-    app_state.insert("selectedElementIds".into(), json!({ "rect": true }));
+    app_state.insert("selectedElementIds", json!({ "rect": true }));
     let panel = stats_panel(
         &StatsProps {
             elements: &elements,
@@ -229,9 +233,19 @@ fn the_panel_bits_are_upstreams() {
     );
     // toggling flips one bit and leaves the other (`index.tsx:201-209, 250-261`)
     let mut state = AppState::default();
-    assert_eq!(state.get("stats"), Some(&json!({ "open": false, "panels": 3 })));
-    for (panels, bit, want) in [(3, 1, 2), (3, 2, 1), (0, 1, 1), (0, 2, 2), (1, 1, 0), (2, 1, 3)] {
-        state.insert("stats".into(), json!({ "open": false, "panels": panels }));
+    assert_eq!(
+        state.get("stats"),
+        Some(&json!({ "open": false, "panels": 3 }))
+    );
+    for (panels, bit, want) in [
+        (3, 1, 2),
+        (3, 2, 1),
+        (0, 1, 1),
+        (0, 2, 2),
+        (1, 1, 0),
+        (2, 1, 3),
+    ] {
+        state.insert("stats", json!({ "open": false, "panels": panels }));
         assert_eq!(
             toggle_panel(&state, bit),
             json!({ "stats": { "open": true, "panels": want } })
@@ -274,12 +288,18 @@ fn the_panel_shows_as_layer_ui_decides() {
     assert!(!with(json!({})));
     assert!(with(json!({ "stats": { "open": true, "panels": 3 } })));
     assert!(with(json!({ "stats": { "open": true, "panels": 0 } })));
-    assert!(!with(json!({ "stats": { "open": true, "panels": 3 }, "zenModeEnabled": true })));
-    assert!(!with(json!({ "stats": { "open": true, "panels": 3 }, "viewModeEnabled": true })));
+    assert!(!with(
+        json!({ "stats": { "open": true, "panels": 3 }, "zenModeEnabled": true })
+    ));
+    assert!(!with(
+        json!({ "stats": { "open": true, "panels": 3 }, "viewModeEnabled": true })
+    ));
     assert!(!with(
         json!({ "stats": { "open": true, "panels": 3 }, "openDialog": { "name": "elementLinkSelector" } })
     ));
-    assert!(with(json!({ "stats": { "open": true, "panels": 3 }, "openDialog": { "name": "help" } })));
+    assert!(with(
+        json!({ "stats": { "open": true, "panels": 3 }, "openDialog": { "name": "help" } })
+    ));
 }
 
 /// `DragInput.handleInputValue` (`DragInput.tsx:122-173`): a finite number,
@@ -298,7 +318,9 @@ fn a_typed_value_applies_as_drag_input_decides() {
     // within the smallest delta: nothing to apply
     assert_eq!(typed_value("10.004", Some(10.0)), Ok(None));
     assert_eq!(typed_value("10", Some(10.0)), Ok(None));
-    assert_eq!(typed_value("10.01", Some(10.0)), Ok(Some(10.01)));
+    // |10.01 - 10| is 0.00999..., under the delta in floating point too
+    assert_eq!(typed_value("10.01", Some(10.0)), Ok(None));
+    assert_eq!(typed_value("10.02", Some(10.0)), Ok(Some(10.02)));
     // "Mixed" always takes a number
     assert_eq!(typed_value("10", None), Ok(Some(10.0)));
     // not finite: the input goes back to the shown value

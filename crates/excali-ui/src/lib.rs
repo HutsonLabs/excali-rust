@@ -36,7 +36,8 @@
 //! (`components/welcome-screen/*`); for [`top_picks_dnd`]
 //! the pickers' top-picks drag and drop (`components/TopPicksDnD/*`); for
 //! [`accessibility`] the accessible names upstream's icon-only triggers
-//! lack (ADR-012).
+//! lack (ADR-012); for [`stats`] the stats panel
+//! (`components/Stats/*`).
 //!
 //! Targets: wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-canvas2d`, `excali-editor`.
@@ -61,6 +62,7 @@ pub mod main_menu;
 pub mod mobile_menu;
 pub mod primitives;
 pub mod search_menu;
+pub mod stats;
 pub mod styles_panel;
 pub mod text_editor;
 pub mod theme;

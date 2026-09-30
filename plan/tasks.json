@@ -2114,6 +2114,28 @@
    "labels": []
   },
   {
+   "id": "ex-539",
+   "epic": "ex-e5",
+   "title": "Stats panel: element property edits (typed and dragged)",
+   "priority": 3,
+   "blocked_by": [
+    "ex-529"
+   ],
+   "crates": [
+    "excali-editor",
+    "excali-ui",
+    "excali-wasm"
+   ],
+   "acceptance": "A typed value or a label drag in the stats panel changes the selection as upstream's Position, Dimension, Angle, FontSize and their Multi* callbacks do (aspect ratio, crop, bound text, bindings, frames, step size with Shift), goldens from upstream's callbacks over fixture scenes, and <excali-editor> applies them with one history entry per edit.",
+   "evidence": [
+    "packages/excalidraw/components/Stats/{DragInput,Position,Dimension,Angle,FontSize,MultiPosition,MultiDimension,MultiAngle,MultiFontSize,utils}.tsx at the pinned commit",
+    "site/content/research/ui-design-system.md section 3.9"
+   ],
+   "description": "ex-529 renders the panel, its sections and bitmask, and hands a typed value back as StatsEvent::Input (excali_ui::stats::typed_value); the grid step is applied, the element properties are not. This ports the dragInputCallback of each component and DragInput's pointer drag (sensitivity, SMALLEST_DELTA, STEP_SIZE).",
+   "type": "task",
+   "labels": []
+  },
+  {
    "id": "ex-530",
    "epic": "ex-e5",
    "title": "<excali-editor> custom element: load/save/export/importLibrary/getState, events, host adapter",

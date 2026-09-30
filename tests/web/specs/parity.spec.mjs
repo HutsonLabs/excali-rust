@@ -910,10 +910,21 @@ const ROWS = {
     );
   },
 
+  // index.tsx:186-236: the General section's scene rows; a header click
+  // flips its STATS_PANELS bit, the close button runs toggleStats
   "ui-stats": async ({ page }) => {
     await mount(page);
     await press(page, "Alt+Slash");
-    await expect(page.locator("excali-editor .exc-stats")).toBeVisible(SHORT);
+    const stats = page.locator("excali-editor .exc-stats");
+    await expect(stats).toBeVisible(SHORT);
+    await expect(stats.locator("h2")).toHaveText("Properties", SHORT);
+    await expect(stats.locator(".exc-stats__row").first()).toHaveText("Scene", SHORT);
+    await stats.locator("h3", { hasText: "General" }).click();
+    await expect(stats.locator(".exc-stats__rows")).toHaveCount(0, SHORT);
+    await stats.locator("h3", { hasText: "General" }).click();
+    await expect(stats.locator(".exc-stats__rows")).toHaveCount(1, SHORT);
+    await stats.locator(".close").click();
+    await expect(stats).toHaveCount(0, SHORT);
   },
 };
 
