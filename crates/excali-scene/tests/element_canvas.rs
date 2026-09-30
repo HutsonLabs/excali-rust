@@ -29,6 +29,7 @@ use excali_scene::element_canvas::{
 use excali_scene::render_element::ElementRenderOverride;
 use excali_scene::shape::Theme;
 use excali_scene::static_scene::{CachedImage, StaticCanvasAppState, StaticCanvasRenderConfig};
+use excali_scene::sticky_note::Clock;
 use serde_json::Value;
 
 #[path = "support/draws.rs"]
@@ -106,6 +107,7 @@ fn render_config(value: &Value, images: &Value) -> StaticCanvasRenderConfig {
             .collect::<HashSet<_>>(),
         theme: theme(&value["theme"]),
         element_render_overrides: overrides,
+        clock: Clock::utc(fixture()["now"].as_f64().unwrap()),
         ..StaticCanvasRenderConfig::default()
     }
 }

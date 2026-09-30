@@ -46,6 +46,7 @@ use excali_scene::display::{
 };
 use excali_text::font_store::FontStore;
 
+use crate::env::render_clock;
 use crate::error::Failure;
 use crate::export::truthy;
 use crate::fonts::GlyphText;
@@ -206,6 +207,7 @@ pub fn item_document(
         },
         text_metrics: fonts,
         image_loads: &no_files,
+        clock: render_clock(),
     };
     export_to_canvas(elements, app_state, &Map::new(), &options)
 }

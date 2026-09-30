@@ -37,8 +37,7 @@
 //   data-id (isTestEnv, staticSvgScene.ts:140-145), and the text elements
 //   export makes (frame name labels, embeddable placeholder labels) are
 //   named by randomId's test sequence, id0, id1, ..., which restarts for
-//   each scene. `stickyNoteNodes` lists the nodes upstream draws for sticky
-//   notes (their data-id is the note's), which ex-703 ports.
+//   each scene.
 //
 // Deterministic: upstream runs in its test mode (import.meta.env.MODE
 // "test"), Math.random throws while generating, and every input is fixed.
@@ -58,10 +57,12 @@ import { join, relative, resolve } from "node:path";
 import { JSDOM } from "jsdom";
 
 import { format } from "./lib/format.mjs";
+import { NOW, stickyNotes, withPinnedNow } from "./lib/sticky-notes.mjs";
 import { loadUpstream, REPO_ROOT, verifyUpstream } from "./lib/upstream.mjs";
 
-// The sticky note's date (formatted by toLocaleDateString) depends on the
-// time zone; pin it so every machine writes the same documents.
+// The sticky note's footer date is in local time and drops the current
+// year: pin the time zone, and the clock while exporting (NOW, recorded as
+// `now`), so every machine writes the same documents.
 process.env.TZ = "UTC";
 
 export const SCENE_DIR = join(REPO_ROOT, "crates", "excali-scene", "tests", "fixtures");
@@ -1028,6 +1029,17 @@ const scenes = (up) => {
     { name: "frame-children-exported", elements: frameChildren(up), appState: DEFAULT_OPTIONS, files: IMAGE_FILES, opts: { exportingFrame: "fc-frame" } },
     { name: "arrow-labels-dark", elements: arrowLabels(up), appState: { ...DEFAULT_OPTIONS, exportWithDarkMode: true } },
     { name: "refused", elements: refused(up), appState: DEFAULT_OPTIONS },
+    // sticky notes (ex-703): shadow, fill, clipped edge and date footer
+    { name: "sticky-notes", elements: stickyNotes(up), appState: { ...DEFAULT_OPTIONS, exportBackground: true } },
+    { name: "sticky-notes-dark", elements: stickyNotes(up), appState: { ...DEFAULT_OPTIONS, exportWithDarkMode: true } },
+    {
+      name: "sticky-notes-framed",
+      elements: [
+        up.newFrameElement({ id: "sn-frame", x: -20, y: -20, width: 150, height: 150, seed: 40 }),
+        up.newStickyNoteElement({ type: "stickynote", id: "sn-framed", x: 0, y: 0, width: 200, height: 200, seed: 41, frameId: "sn-frame", angle: 0.4 }),
+      ],
+      appState: DEFAULT_OPTIONS,
+    },
   ];
 };
 
@@ -1130,10 +1142,6 @@ const run = async (up, scene) => {
     console.error = consoleError;
   }
   delete globalThis.__svgExportShell;
-  const stickyNotes = new Set(elements.filter((e) => e.type === "stickynote").map((e) => e.id));
-  const stickyNoteNodes = [...svg.querySelectorAll("[data-id]")]
-    .filter((n) => stickyNotes.has(n.getAttribute("data-id")))
-    .map((n) => n.outerHTML);
 
   // What exportToSvg computes before building the document, recomputed with
   // its own (exposed) helpers on the same inputs.
@@ -1159,7 +1167,6 @@ const run = async (up, scene) => {
       opts: scene.opts ?? null,
       shell: shell(svg, captured, Boolean(appState.exportBackground && appState.viewBackgroundColor)),
       document: svg.outerHTML,
-      ...(stickyNoteNodes.length ? { stickyNoteNodes } : {}),
       // The rough.js paths RoughSVG.draw writes with fixedDecimalPlaceDigits
       // MAX_DECIMALS_FOR_SVG_EXPORT (staticSvgScene.ts:60-74), in document
       // order: the two-decimal numbers of the upstream test's scene.
@@ -1275,6 +1282,8 @@ const build = async (upstream) => {
         "Upstream exportToSvg (packages/excalidraw/scene/export.ts:293-508) at the pinned commit under jsdom 22.1.0 in test mode (tools/goldens/svg-export.mjs): the arguments, the document shell (svgRoot.outerHTML before the elements are rendered) and the whole document. getExportSource() is `source`; a font face's content is font:<its last url, upstream's asset fallback>#<characters>; text measures 10 px per UTF-16 code unit.",
       upstream: upstream.commit,
       source: EXPORT_SOURCE,
+      // Date.now() while exporting, in UTC (sticky note footers)
+      now: NOW,
       scenes: svgScenes,
     }),
   };
@@ -1302,7 +1311,7 @@ const main = async () => {
     process.stderr.write(`svg-export: ${error.message}\n`);
     process.exit(1);
   }
-  const out = await deterministic(() => build(upstream));
+  const out = await deterministic(() => withPinnedNow(() => build(upstream)));
   const targets = Object.entries(out).map(([file, text]) => {
     const dir = args.out ?? { [BOUNDS_FILE]: SCENE_DIR, [SVG_FILE]: SVG_DIR, [EMBED_LINKS_FILE]: CORE_DIR }[file];
     return { path: join(dir, file), text };

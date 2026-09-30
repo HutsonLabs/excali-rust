@@ -41,9 +41,15 @@
 //! `drawElementOnCanvas`. Here the element's render offset is a
 //! translation, as the export path applies it.
 //!
-//! Not drawn here: sticky notes (their shadow, fill, edge and footer are
-//! ex-703's; [`RenderError::StickyNote`]) and the frame clip of a frame's
-//! children (`clipElementToFrame`, ex-403). Safari's pixel inversion of
+//! - Sticky notes (`:387-472`): the shadow outline filled black at
+//!   `STICKY_NOTE_SHADOW_OPACITY`, the outline filled with the background
+//!   colour, the outline stroked inside itself (clipped to it) black at
+//!   `STICKY_NOTE_EDGE_SHADOW_OPACITY`, then the creation-date footer
+//!   right-aligned in 12px Helvetica in the stroke colour
+//!   ([`crate::sticky_note`]).
+//!
+//! Not drawn here: the frame clip of a frame's children
+//! (`clipElementToFrame`, ex-403). Safari's pixel inversion of
 //! dark SVG images (`:553-601`) is Safari's; the port applies the filter
 //! as the other browsers do.
 
@@ -56,6 +62,7 @@ use excali_core::element::{
     Element, ElementBase, ElementKind, FontFamily, ImageStatus, TextAlign as ElementTextAlign,
     TextFields, VerticalAlign,
 };
+use excali_core::json::number_to_string;
 use excali_math::js;
 use excali_math::{point_from, point_rotate_rads, Global, Point, Radians};
 use excali_rough::RoughGenerator;
@@ -88,6 +95,11 @@ use crate::shape::{
     FreedrawShape, RenderConfig, ShapeError, Theme,
 };
 use crate::static_scene::{StaticCanvasAppState, StaticCanvasRenderConfig};
+use crate::sticky_note::{
+    get_sticky_note_footer, get_sticky_note_path_commands, StickyNotePathCommand,
+    STICKY_NOTE_EDGE_SHADOW_OPACITY, STICKY_NOTE_EDGE_SHADOW_WIDTH, STICKY_NOTE_FOOTER_FONT_FAMILY,
+    STICKY_NOTE_FOOTER_FONT_SIZE, STICKY_NOTE_FOOTER_OPACITY, STICKY_NOTE_SHADOW_OPACITY,
+};
 use crate::utils::get_corner_radius;
 
 /// `DEFAULT_REDUCED_GLOBAL_ALPHA` (`common/src/constants.ts:594`).
@@ -123,8 +135,6 @@ pub enum RenderError {
     Shape(ShapeError),
     /// `toFixed` threw while drawing a rough.js shape.
     ToFixed(ToFixedRangeError),
-    /// Sticky notes are drawn by ex-703.
-    StickyNote,
     /// A selection element is never part of a scene
     /// (`Unimplemented type selection`).
     Selection,
@@ -135,7 +145,6 @@ impl fmt::Display for RenderError {
         match self {
             RenderError::Shape(e) => e.fmt(f),
             RenderError::ToFixed(e) => e.fmt(f),
-            RenderError::StickyNote => f.write_str("sticky notes are not drawn yet"),
             RenderError::Selection => f.write_str("Unimplemented type selection"),
         }
     }
@@ -434,7 +443,6 @@ fn draw_element(
                 vec![DisplayItem::Stroke { path, stroke }],
             )])
         }
-        ElementKind::StickyNote(_) => Err(RenderError::StickyNote),
         ElementKind::Selection => Err(RenderError::Selection),
         _ => {
             let [x1, y1, x2, y2, _, _] = get_element_absolute_coords(element, elements_map, false);
@@ -630,11 +638,87 @@ pub(crate) fn draw_element_on_canvas(
                 })
                 .collect())
         }
-        ElementKind::Frame(_)
-        | ElementKind::MagicFrame(_)
-        | ElementKind::StickyNote(_)
-        | ElementKind::Selection => Ok(Vec::new()),
+        ElementKind::StickyNote(_) => Ok(draw_sticky_note(element, config)),
+        ElementKind::Frame(_) | ElementKind::MagicFrame(_) | ElementKind::Selection => {
+            Ok(Vec::new())
+        }
     }
+}
+
+/// `drawStickyNotePath(context, commands)` (`renderElement.ts:387-407`).
+pub fn sticky_note_path(commands: &[StickyNotePathCommand]) -> Path {
+    let mut path = Path::new();
+    for command in commands {
+        match *command {
+            StickyNotePathCommand::Move([x, y]) => path.move_to(x, y),
+            StickyNotePathCommand::Line([x, y]) => path.line_to(x, y),
+            StickyNotePathCommand::Quadratic {
+                control: [cx, cy],
+                point: [x, y],
+            } => path.quad_to(cx, cy, x, y),
+        };
+    }
+    path.close();
+    path
+}
+
+/// The `stickynote` case of `drawElementOnCanvas` (`renderElement.ts:438-472`).
+fn draw_sticky_note(element: &Element, config: &StaticCanvasRenderConfig) -> Vec<DisplayItem> {
+    let b = &element.base;
+    let dark = config.theme == Theme::Dark;
+    let shadow = sticky_note_path(&get_sticky_note_path_commands(element, true));
+    let outline = sticky_note_path(&get_sticky_note_path_commands(element, false));
+    let mut items = vec![
+        DisplayItem::Fill {
+            path: shadow,
+            color: Color::new(format!(
+                "rgba(0, 0, 0, {})",
+                number_to_string(STICKY_NOTE_SHADOW_OPACITY)
+            )),
+            rule: FillRule::NonZero,
+        },
+        DisplayItem::Fill {
+            path: outline.clone(),
+            color: Color::new(apply_dark_mode_filter(&b.background_color, dark)),
+            rule: FillRule::NonZero,
+        },
+        // strokeStickyNoteEdge: the inner half of the stroke, clipped to the
+        // outline
+        DisplayItem::Group(Group {
+            clip: Some(Clip {
+                path: outline.clone(),
+                rule: FillRule::NonZero,
+            }),
+            ..Group::new(vec![DisplayItem::Stroke {
+                path: outline,
+                stroke: Stroke::new(
+                    Color::new(format!(
+                        "rgba(0, 0, 0, {})",
+                        number_to_string(STICKY_NOTE_EDGE_SHADOW_OPACITY)
+                    )),
+                    STICKY_NOTE_EDGE_SHADOW_WIDTH * 2.0,
+                ),
+            }])
+        }),
+    ];
+    // the label is absolute, so a cached bitmap only goes stale at a year
+    // boundary, and is regenerated on the next zoom, theme or element change
+    if let Some(footer) = get_sticky_note_footer(element, &config.clock) {
+        items.push(DisplayItem::Group(Group {
+            opacity: STICKY_NOTE_FOOTER_OPACITY,
+            ..Group::new(vec![DisplayItem::Text(TextRun {
+                align: TextAlign::Right,
+                ..TextRun::new(
+                    footer.text,
+                    footer.x,
+                    footer.y,
+                    Font::new(STICKY_NOTE_FOOTER_FONT_SIZE, STICKY_NOTE_FOOTER_FONT_FAMILY),
+                    Color::new(apply_dark_mode_filter(&b.stroke_color, dark)),
+                )
+            })])
+        }));
+    }
+    items
 }
 
 /// `drawImagePlaceholder`'s box in the light theme (`renderElement.ts:366`).

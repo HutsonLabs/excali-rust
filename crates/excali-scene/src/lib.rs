@@ -29,6 +29,8 @@
 //!   created alone on the canvas above it.
 //! - [`rough_canvas`]: roughjs's `RoughCanvas.draw`, producing display items.
 //! - [`rough_options`]: `generateRoughOptions` and `adjustRoughness`.
+//! - [`sticky_note`]: a sticky note's outline, shadow and date footer, which
+//!   both renderers paint.
 //! - [`shape`]: the rough.js shapes of boxes, lines and arrows, and a
 //!   freedraw's loop fill under its stroke path;
 //!   [`elbow_arrow`] and [`heading`]: the elbow arrow path and
@@ -56,5 +58,6 @@ pub mod rough_canvas;
 pub mod rough_options;
 pub mod shape;
 pub mod static_scene;
+pub mod sticky_note;
 pub mod svg_scene;
 pub mod utils;

@@ -578,10 +578,7 @@ pub fn render_element_cached<S>(
     let vector = config.is_exporting
         || matches!(
             element.kind,
-            ElementKind::Frame(_)
-                | ElementKind::MagicFrame(_)
-                | ElementKind::StickyNote(_)
-                | ElementKind::Selection
+            ElementKind::Frame(_) | ElementKind::MagicFrame(_) | ElementKind::Selection
         );
     if vector {
         let item = render_element(

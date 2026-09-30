@@ -1,6 +1,7 @@
 {
   "description": "Upstream renderElement (packages/element/src/renderElement.ts) at the pinned commit on its editor path, the per-element bitmap cache, on a recording 2D context (tools/goldens/element-canvas.mjs): per case the element's cached bitmap (size, scale, offsets, cache key and its draws) and the main context's draws with each blit as a call; per sequence whether each step regenerated the bitmap. Text measures 10 px per UTF-16 code unit.",
   "upstream": "438d89861f53d8a90ad566113ecac1b83761098f",
+  "now": 1790683200000,
   "images": {"file-png":{"mimeType":"image/png","naturalWidth":64,"naturalHeight":48}},
   "cases": [
     {
@@ -1190,6 +1191,352 @@
         ]
       },
       "events": [{"op":"blit","m":[2,0,0,2,-34,-32],"alpha":1,"smoothing":false,"args":[0,0,110,90],"width":220,"height":180}]
+    },
+    {
+      "name": "sticky-note",
+      "scale": 2,
+      "elements": [
+        {
+          "id": "s",
+          "type": "stickynote",
+          "x": 10.3,
+          "y": 20.7,
+          "width": 200,
+          "height": 180,
+          "angle": 0,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "#ffdf6b",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 2,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": null,
+          "roundness": null,
+          "seed": 21,
+          "version": 2,
+          "versionNonce": 428152832,
+          "isDeleted": false,
+          "boundElements": null,
+          "updated": 1,
+          "created": 1772753400000,
+          "link": null,
+          "locked": false,
+          "baseHeight": 180
+        }
+      ],
+      "draw": "s",
+      "appState": {
+        "zoom": {"value":1},
+        "scrollX": 0,
+        "scrollY": 0,
+        "theme": "light",
+        "shouldCacheIgnoreZoom": false,
+        "frameRendering": {"enabled":true,"clip":true,"name":true,"outline":true},
+        "selectedElementIds": {},
+        "hoveredElementIds": {},
+        "openDialog": null
+      },
+      "renderConfig": {
+        "canvasBackgroundColor": "#ffffff",
+        "renderGrid": false,
+        "isExporting": false,
+        "embedsValidationStatus": {},
+        "elementsPendingErasure": [],
+        "pendingFlowchartNodes": null,
+        "theme": "light"
+      },
+      "base": [2,0,0,2,0,0],
+      "cached": {
+        "width": 440,
+        "height": 400,
+        "scale": 1,
+        "zoomValue": 1,
+        "theme": "light",
+        "canvasOffsetX": -100,
+        "canvasOffsetY": 0,
+        "imageCrop": null,
+        "containingFrameOpacity": 100,
+        "events": [
+          {
+            "op": "fill",
+            "m": [2,0,0,2,20,20],
+            "alpha": 1,
+            "fillStyle": ["rgba(0, 0, 0, 0.16)"],
+            "rule": "nonzero",
+            "path": [
+              ["moveTo",3.5264711958914994,1.862683237865567],
+              ["lineTo",169.4127848911525,1.7491472218628086],
+              ["quadraticCurveTo",185.61278109685784,1.7380596101877768,200.01277730256317,3.526971998512745],
+              ["quadraticCurveTo",200.01277730256317,3.526971998512745,200.01277730256317,3.526971998512745],
+              ["quadraticCurveTo",201.86608757781903,17.926884282675033,201.91939785307486,34.12679656683732],
+              ["lineTo",202.41495181847364,184.71560394030064],
+              ["quadraticCurveTo",202.41495181847364,184.71560394030064,202.41495181847364,184.71560394030064],
+              ["lineTo",2.7640059833228587,183.7484367893636],
+              ["quadraticCurveTo",2.7640059833228587,183.7484367893636,2.7640059833228587,183.7484367893636],
+              ["lineTo",3.5264711958914994,1.862683237865567],
+              ["quadraticCurveTo",3.5264711958914994,1.862683237865567,3.5264711958914994,1.862683237865567],
+              ["closePath"]
+            ]
+          },
+          {
+            "op": "fill",
+            "m": [2,0,0,2,20,20],
+            "alpha": 1,
+            "fillStyle": ["rgba(0, 0, 0, 0.16)","#ffdf6b"],
+            "rule": "nonzero",
+            "path": [
+              ["moveTo",-0.29250192280858756,-0.22883446287363768],
+              ["lineTo",166.66381880334436,-0.4627060999629247],
+              ["quadraticCurveTo",182.86380290932416,-0.48539896230684465,195.46378701530398,3.0919081753492357],
+              ["quadraticCurveTo",195.46378701530398,3.0919081753492357,195.46378701530398,3.0919081753492357],
+              ["quadraticCurveTo",199.13808120234486,15.691737815619282,199.21237538938576,31.891567455889327],
+              ["lineTo",199.89938291247935,181.69339286081492],
+              ["quadraticCurveTo",199.89938291247935,181.69339286081492,199.89938291247935,181.69339286081492],
+              ["lineTo",1.598762568421662,179.3338555484265],
+              ["quadraticCurveTo",1.598762568421662,179.3338555484265,1.598762568421662,179.3338555484265],
+              ["lineTo",-0.29250192280858756,-0.22883446287363768],
+              ["quadraticCurveTo",-0.29250192280858756,-0.22883446287363768,-0.29250192280858756,-0.22883446287363768],
+              ["closePath"]
+            ]
+          },
+          {
+            "op": "clip",
+            "m": [2,0,0,2,20,20],
+            "rule": "nonzero",
+            "path": [
+              ["moveTo",-0.29250192280858756,-0.22883446287363768],
+              ["lineTo",166.66381880334436,-0.4627060999629247],
+              ["quadraticCurveTo",182.86380290932416,-0.48539896230684465,195.46378701530398,3.0919081753492357],
+              ["quadraticCurveTo",195.46378701530398,3.0919081753492357,195.46378701530398,3.0919081753492357],
+              ["quadraticCurveTo",199.13808120234486,15.691737815619282,199.21237538938576,31.891567455889327],
+              ["lineTo",199.89938291247935,181.69339286081492],
+              ["quadraticCurveTo",199.89938291247935,181.69339286081492,199.89938291247935,181.69339286081492],
+              ["lineTo",1.598762568421662,179.3338555484265],
+              ["quadraticCurveTo",1.598762568421662,179.3338555484265,1.598762568421662,179.3338555484265],
+              ["lineTo",-0.29250192280858756,-0.22883446287363768],
+              ["quadraticCurveTo",-0.29250192280858756,-0.22883446287363768,-0.29250192280858756,-0.22883446287363768],
+              ["closePath"]
+            ]
+          },
+          {
+            "op": "stroke",
+            "m": [2,0,0,2,20,20],
+            "alpha": 1,
+            "strokeStyle": ["rgba(0, 0, 0, 0.08)"],
+            "lineWidth": 1,
+            "lineCap": "butt",
+            "lineJoin": "miter",
+            "miterLimit": 10,
+            "dash": [],
+            "dashOffset": 0,
+            "path": [
+              ["moveTo",-0.29250192280858756,-0.22883446287363768],
+              ["lineTo",166.66381880334436,-0.4627060999629247],
+              ["quadraticCurveTo",182.86380290932416,-0.48539896230684465,195.46378701530398,3.0919081753492357],
+              ["quadraticCurveTo",195.46378701530398,3.0919081753492357,195.46378701530398,3.0919081753492357],
+              ["quadraticCurveTo",199.13808120234486,15.691737815619282,199.21237538938576,31.891567455889327],
+              ["lineTo",199.89938291247935,181.69339286081492],
+              ["quadraticCurveTo",199.89938291247935,181.69339286081492,199.89938291247935,181.69339286081492],
+              ["lineTo",1.598762568421662,179.3338555484265],
+              ["quadraticCurveTo",1.598762568421662,179.3338555484265,1.598762568421662,179.3338555484265],
+              ["lineTo",-0.29250192280858756,-0.22883446287363768],
+              ["quadraticCurveTo",-0.29250192280858756,-0.22883446287363768,-0.29250192280858756,-0.22883446287363768],
+              ["closePath"]
+            ]
+          },
+          {"op":"unclip"},
+          {
+            "op": "text",
+            "m": [2,0,0,2,20,20],
+            "alpha": 1,
+            "fillStyle": ["rgba(0, 0, 0, 0.16)","#ffdf6b","#1e1e1e"],
+            "font": "12px Helvetica, Arial, sans-serif",
+            "textAlign": "right",
+            "direction": "inherit",
+            "text": "5 Mar",
+            "x": 184,
+            "y": 166
+          }
+        ]
+      },
+      "events": [{"op":"blit","m":[1,0,0,1,1,21],"alpha":1,"smoothing":false,"args":[0,0,440,400],"width":440,"height":400}]
+    },
+    {
+      "name": "sticky-note-turned-dark",
+      "scale": 1.5,
+      "elements": [
+        {
+          "id": "s",
+          "type": "stickynote",
+          "x": -4.5,
+          "y": 7.25,
+          "width": 150,
+          "height": 150,
+          "angle": 0.5,
+          "strokeColor": "#1e1e1e",
+          "backgroundColor": "#ffdf6b",
+          "fillStyle": "solid",
+          "strokeWidth": 2,
+          "strokeStyle": "solid",
+          "roughness": 1,
+          "opacity": 100,
+          "groupIds": [],
+          "frameId": null,
+          "index": null,
+          "roundness": {"type":3},
+          "seed": 12,
+          "version": 2,
+          "versionNonce": 2130208768,
+          "isDeleted": false,
+          "boundElements": null,
+          "updated": 1,
+          "created": 1,
+          "link": null,
+          "locked": false,
+          "baseHeight": 150
+        }
+      ],
+      "draw": "s",
+      "appState": {
+        "zoom": {"value":1.2},
+        "scrollX": 0,
+        "scrollY": 0,
+        "theme": "dark",
+        "shouldCacheIgnoreZoom": false,
+        "frameRendering": {"enabled":true,"clip":true,"name":true,"outline":true},
+        "selectedElementIds": {},
+        "hoveredElementIds": {},
+        "openDialog": null
+      },
+      "renderConfig": {
+        "canvasBackgroundColor": "#ffffff",
+        "renderGrid": false,
+        "isExporting": false,
+        "embedsValidationStatus": {},
+        "elementsPendingErasure": [],
+        "pendingFlowchartNodes": null,
+        "theme": "dark"
+      },
+      "base": [1.7999999999999998,0,0,1.7999999999999998,0,0],
+      "cached": {
+        "width": 318,
+        "height": 318,
+        "scale": 1.2,
+        "zoomValue": 1.2,
+        "theme": "dark",
+        "canvasOffsetX": -100,
+        "canvasOffsetY": 0,
+        "imageCrop": null,
+        "containingFrameOpacity": 100,
+        "events": [
+          {
+            "op": "fill",
+            "m": [1.7999999999999998,0,0,1.7999999999999998,24,24],
+            "alpha": 1,
+            "fillStyle": ["rgba(0, 0, 0, 0.16)"],
+            "rule": "nonzero",
+            "path": [
+              ["moveTo",9.19884882556995,2.542543336957327],
+              ["lineTo",145.71189165844794,1.682308703918376],
+              ["quadraticCurveTo",151.7117725359276,1.644500555936247,151.70771077701625,7.644499181112302],
+              ["lineTo",151.61437436325673,145.52032255167697],
+              ["quadraticCurveTo",151.61031260434538,151.52032117685303,145.6104577391764,151.5620536211661],
+              ["lineTo",7.773477218031691,152.52078916446615],
+              ["quadraticCurveTo",1.7736223528627306,152.5625216087792,1.8306403797330528,146.56279253617836],
+              ["lineTo",3.141949921219963,8.580080557540303],
+              ["quadraticCurveTo",3.198967948090285,2.580351484939456,9.19884882556995,2.542543336957327],
+              ["closePath"]
+            ]
+          },
+          {
+            "op": "fill",
+            "m": [1.7999999999999998,0,0,1.7999999999999998,24,24],
+            "alpha": 1,
+            "fillStyle": ["rgba(0, 0, 0, 0.16)","#4b3000"],
+            "rule": "nonzero",
+            "path": [
+              ["moveTo",5.363564042012665,-1.1697327950837693],
+              ["lineTo",144.24137189810958,1.220816642731302],
+              ["quadraticCurveTo",150.24048319947906,1.3240813210140914,150.18822890975437,7.323853774133074],
+              ["lineTo",149.01056905776338,142.54129097108083],
+              ["quadraticCurveTo",148.9583147680387,148.54106342419982,142.9587960282708,148.61705612894116],
+              ["lineTo",6.587530118888762,150.34439823669413],
+              ["quadraticCurveTo",0.5880113791208714,150.42039094143547,0.5396169625688894,144.4205861129059],
+              ["lineTo",-0.5871528428048445,4.726807355162999],
+              ["quadraticCurveTo",-0.6355472593568265,-1.2729974733665586,5.363564042012665,-1.1697327950837693],
+              ["closePath"]
+            ]
+          },
+          {
+            "op": "clip",
+            "m": [1.7999999999999998,0,0,1.7999999999999998,24,24],
+            "rule": "nonzero",
+            "path": [
+              ["moveTo",5.363564042012665,-1.1697327950837693],
+              ["lineTo",144.24137189810958,1.220816642731302],
+              ["quadraticCurveTo",150.24048319947906,1.3240813210140914,150.18822890975437,7.323853774133074],
+              ["lineTo",149.01056905776338,142.54129097108083],
+              ["quadraticCurveTo",148.9583147680387,148.54106342419982,142.9587960282708,148.61705612894116],
+              ["lineTo",6.587530118888762,150.34439823669413],
+              ["quadraticCurveTo",0.5880113791208714,150.42039094143547,0.5396169625688894,144.4205861129059],
+              ["lineTo",-0.5871528428048445,4.726807355162999],
+              ["quadraticCurveTo",-0.6355472593568265,-1.2729974733665586,5.363564042012665,-1.1697327950837693],
+              ["closePath"]
+            ]
+          },
+          {
+            "op": "stroke",
+            "m": [1.7999999999999998,0,0,1.7999999999999998,24,24],
+            "alpha": 1,
+            "strokeStyle": ["rgba(0, 0, 0, 0.08)"],
+            "lineWidth": 1,
+            "lineCap": "butt",
+            "lineJoin": "miter",
+            "miterLimit": 10,
+            "dash": [],
+            "dashOffset": 0,
+            "path": [
+              ["moveTo",5.363564042012665,-1.1697327950837693],
+              ["lineTo",144.24137189810958,1.220816642731302],
+              ["quadraticCurveTo",150.24048319947906,1.3240813210140914,150.18822890975437,7.323853774133074],
+              ["lineTo",149.01056905776338,142.54129097108083],
+              ["quadraticCurveTo",148.9583147680387,148.54106342419982,142.9587960282708,148.61705612894116],
+              ["lineTo",6.587530118888762,150.34439823669413],
+              ["quadraticCurveTo",0.5880113791208714,150.42039094143547,0.5396169625688894,144.4205861129059],
+              ["lineTo",-0.5871528428048445,4.726807355162999],
+              ["quadraticCurveTo",-0.6355472593568265,-1.2729974733665586,5.363564042012665,-1.1697327950837693],
+              ["closePath"]
+            ]
+          },
+          {"op":"unclip"},
+          {
+            "op": "text",
+            "m": [1.7999999999999998,0,0,1.7999999999999998,24,24],
+            "alpha": 1,
+            "fillStyle": ["rgba(0, 0, 0, 0.16)","#4b3000","#d3d3d3"],
+            "font": "12px Helvetica, Arial, sans-serif",
+            "textAlign": "right",
+            "direction": "inherit",
+            "text": "1 Jan 1970",
+            "x": 134,
+            "y": 136
+          }
+        ]
+      },
+      "events": [
+        {
+          "op": "blit",
+          "m": [1.0530990742684472,0.5753106463250435,-0.5753106463250435,1.0530990742684472,86.51372388646392,-42.71519913674308],
+          "alpha": 1,
+          "smoothing": true,
+          "args": [-26.75,-9.125,265,265],
+          "width": 318,
+          "height": 318
+        }
+      ]
     },
     {
       "name": "text",

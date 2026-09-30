@@ -11,6 +11,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use excali_core::restore::RestoreEnv;
+use excali_scene::sticky_note::Clock;
 
 /// nanoid's alphabet (`nanoid/url-alphabet`), which `randomId` draws from.
 const URL_ALPHABET: &[u8; 64] = b"useandom-26T198340PX75pxJACKVERYMINDBUSHWOLF_GQZbfghjklqvwyzrict";
@@ -72,6 +73,13 @@ impl RestoreEnv for CliEnv {
     fn random_integer(&mut self) -> f64 {
         (self.next() >> 33) as f64
     }
+}
+
+/// What a sticky note's date footer reads: the time [`CliEnv`] would give
+/// (`SOURCE_DATE_EPOCH` or the clock), in UTC, since the CLI does not read
+/// the host's time zone.
+pub fn render_clock() -> Clock {
+    Clock::utc(CliEnv::from_environment().now())
 }
 
 #[cfg(test)]

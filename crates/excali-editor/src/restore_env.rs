@@ -15,6 +15,12 @@
 //!
 //! [`RoutingEnv`] wraps another environment, answers those two requests
 //! and hands every other one to the wrapped environment.
+//!
+//! `restoreElements` with `refreshDimensions` also refits every sticky note
+//! and its label with `getStickyNoteLayout` (`restore.ts:931-941`,
+//! [`RestoreEnv::sticky_note_layout`]), which measures text:
+//! [`StickyNoteEnv`] wraps another environment with a [`TextLayouter`] and
+//! answers it with [`sticky_note_layout`].
 
 use excali_core::element::{BindMode, Element, FixedPointBinding};
 use excali_core::json::number_to_string;
@@ -23,6 +29,8 @@ use excali_core::restore::{
     StickyNoteLayout, StickyNoteLayoutRequest, TextDimensionsRequest,
 };
 use excali_scene::bounds::ElementsMap as SceneMap;
+use excali_text::new_element::TextLayout;
+use excali_text::text_measurements::TextMetricsProvider;
 use serde_json::{Map, Value};
 
 use crate::binding::{
@@ -33,6 +41,7 @@ use crate::collision::is_point_in_element;
 use crate::elbow_arrow::{update_elbow_arrow_points, ElbowArrowUpdates, ElementsMap};
 use crate::js_value::num;
 use crate::linear_element_editor::get_point_at_index_global_coordinates;
+use crate::text_layout::{get_sticky_note_layout, StickyNoteLayoutOpts, TextLayouter};
 
 /// `inner` with the elbow arrow router and the legacy binding migration.
 #[derive(Debug, Clone, Default)]
@@ -128,6 +137,99 @@ impl<E: RestoreEnv> RestoreEnv for RoutingEnv<E> {
         )
         .ok()?;
         Some(update.to_map())
+    }
+}
+
+/// `getStickyNoteLayout(note, getBoundTextElement(note))` as
+/// `restoreElements` calls it (`restore.ts:931-941`): the note and its
+/// label read into the element model, laid out by [`get_sticky_note_layout`]
+/// with no options (the label's `originalText`, the note's `baseHeight`, the
+/// label's font ceiling, the top edge held). The keys to assign to the note
+/// (`x`, `y`, `width`, `height`, `baseHeight`) and to the label (`text`,
+/// `fontSize`, `baseFontSize`, `width`, `height`, `x`, `y`, `angle`).
+///
+/// `None`, which leaves both as restored, when the model cannot read the
+/// note or its label.
+pub fn sticky_note_layout(
+    layout: &mut TextLayout<'_>,
+    request: &StickyNoteLayoutRequest<'_>,
+) -> Option<StickyNoteLayout> {
+    let note = Element::from_restored(request.note.clone()).ok()?;
+    let text = match request.text {
+        Some(text) => Some(Element::from_restored(text.clone()).ok()?),
+        None => None,
+    };
+    let laid_out = get_sticky_note_layout(
+        layout,
+        &note,
+        text.as_ref(),
+        &StickyNoteLayoutOpts::default(),
+    );
+    Some(StickyNoteLayout {
+        container: laid_out.container.to_map(),
+        text: laid_out.text.map(|label| label.to_map()),
+    })
+}
+
+/// `inner` with sticky note layout: `layouter` measures and wraps the
+/// labels.
+#[derive(Debug, Default)]
+pub struct StickyNoteEnv<E, P> {
+    pub inner: E,
+    pub layouter: TextLayouter<P>,
+}
+
+impl<E: RestoreEnv, P: TextMetricsProvider> StickyNoteEnv<E, P> {
+    pub fn new(inner: E, provider: P) -> StickyNoteEnv<E, P> {
+        StickyNoteEnv {
+            inner,
+            layouter: TextLayouter::new(provider),
+        }
+    }
+}
+
+impl<E: RestoreEnv, P: TextMetricsProvider> RestoreEnv for StickyNoteEnv<E, P> {
+    fn now(&mut self) -> f64 {
+        self.inner.now()
+    }
+
+    fn random_id(&mut self) -> String {
+        self.inner.random_id()
+    }
+
+    fn random_integer(&mut self) -> f64 {
+        self.inner.random_integer()
+    }
+
+    fn migrate_legacy_binding(
+        &mut self,
+        request: LegacyBindingRequest<'_>,
+    ) -> Option<LegacyBinding> {
+        self.inner.migrate_legacy_binding(request)
+    }
+
+    fn refresh_text_dimensions(
+        &mut self,
+        request: TextDimensionsRequest<'_>,
+    ) -> Option<Map<String, Value>> {
+        self.inner.refresh_text_dimensions(request)
+    }
+
+    /// [`sticky_note_layout`] with the layouter's provider and wrapping
+    /// cache.
+    fn sticky_note_layout(
+        &mut self,
+        request: StickyNoteLayoutRequest<'_>,
+    ) -> Option<StickyNoteLayout> {
+        self.layouter
+            .with_layout(|layout, _| sticky_note_layout(layout, &request))
+    }
+
+    fn update_elbow_arrow_points(
+        &mut self,
+        request: ElbowArrowRequest<'_>,
+    ) -> Option<Map<String, Value>> {
+        self.inner.update_elbow_arrow_points(request)
     }
 }
 

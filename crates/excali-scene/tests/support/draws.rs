@@ -4,8 +4,8 @@
 //! scene goldens).
 
 use excali_scene::display::{
-    Clip, Color, DisplayList, FillRule, ImageItem, PaintState, Painter, Path, PathCommand, Rect,
-    Rgba, Stroke, TextRun, Transform,
+    Clip, Color, Direction, DisplayList, FillRule, ImageItem, PaintState, Painter, Path,
+    PathCommand, Rect, Rgba, Stroke, TextRun, Transform,
 };
 use excali_scene::render_element::builtin_image;
 use serde_json::Value;
@@ -412,7 +412,14 @@ pub fn check(e: &Value, draw: &Draw, images: &Value) -> Result<(), String> {
                 ),
                 (e["font"] == run.font.css().as_str(), "font"),
                 (e["textAlign"] == run.align.as_css(), "textAlign"),
-                (e["direction"] == run.direction.as_css(), "direction"),
+                // "inherit": the canvas has no `dir` yet (only a text
+                // element sets it, renderElement.ts:627-634) and inherits
+                // the page's, left to right
+                (
+                    e["direction"] == run.direction.as_css()
+                        || (e["direction"] == "inherit" && run.direction == Direction::Ltr),
+                    "direction",
+                ),
             ];
             match checks.iter().find(|(ok, _)| !ok) {
                 Some((_, what)) => Err(format!("text {what}: {run:?}")),

@@ -72,6 +72,7 @@ use crate::render_element::{
     resolve_element_render_state, with_transform, ElementRenderOverride, ElementRenderState,
 };
 use crate::shape::{EmbedsValidationStatus, ShapeError, Theme};
+use crate::sticky_note::Clock;
 
 /// `GridLineColor[THEME.LIGHT].bold` (`staticScene.ts:57-66`).
 pub const GRID_LINE_COLOR_BOLD: &str = "#dddddd";
@@ -168,6 +169,9 @@ pub struct StaticCanvasRenderConfig {
     /// `window.location.host`, which tells element links from other links
     /// (`isElementLink`).
     pub location_host: String,
+    /// `Date.now()` and the viewer's time zone, which a sticky note's date
+    /// footer reads.
+    pub clock: Clock,
 }
 
 impl Default for StaticCanvasRenderConfig {
@@ -184,6 +188,7 @@ impl Default for StaticCanvasRenderConfig {
             theme: Theme::Light,
             element_render_overrides: HashMap::new(),
             location_host: String::new(),
+            clock: Clock::default(),
         }
     }
 }
