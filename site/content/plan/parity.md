@@ -24,6 +24,8 @@ The suite's first test fails when a row has no test, a test has no row, or a sta
 | export-svg | `export("svg")` gives the SVG document upstream saves (the XML preamble, then an `<svg>` carrying `svg-source:excalidraw`, and with `embedScene` the `payload-type:application/vnd.excalidraw+json` comment). | `common/src/constants.ts:410` (`SVG_DOCUMENT_PREAMBLE`), `excalidraw/data/index.ts:143`, `excalidraw/scene/export.ts:368`, `excalidraw/scene/export.ts:523` | ex-530 | pass |
 | export-png-size | `export("png")` of one 100 × 100 rectangle is a 120 × 120 PNG: the bounds plus the default padding of 10 on each side. | `common/src/constants.ts:402` (`DEFAULT_EXPORT_PADDING`), `excalidraw/scene/export.ts` (`exportToCanvas`) | ex-530 | pass |
 | host-events | An edit fires `change` with `{ dirty: true }`; Ctrl/Cmd+S fires `save-request` instead of the browser's save. | `excalidraw/components/App.tsx` (`onChange`), `excalidraw/actions/actionExport.tsx:253` (`actionSaveToActiveFile`) | ex-530 | pass |
+| copy-as-png | Shift+Alt+C puts the selection's PNG export on the clipboard (the canvas when nothing is selected), with the default padding. | `excalidraw/actions/actionClipboard.tsx:193-250` (`actionCopyAsPng`), `excalidraw/data/index.ts:48-96,194-214` (`prepareElementsForExport`, `exportCanvas("clipboard")`), `excalidraw/clipboard.ts:557` (`copyBlobToClipboardAsPng`) | ex-542 | pass |
+| host-file-dialogs | Ctrl/Cmd+O and Ctrl/Cmd+Shift+S open the host's file dialogs: the element fires `open-request` and `save-as-request`. | `excalidraw/actions/actionExport.tsx:329-430` (`actionSaveFileToDisk`, `actionLoadScene`), `excalidraw/data/json.ts:76-112` (`saveAsJSON`, `loadFromJSON`) | ex-542 | pass |
 
 ## Canvas and view
 

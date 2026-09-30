@@ -8,6 +8,8 @@
 
 const EXCALI_FONTS_BASE = new URL("./fonts/", import.meta.url).href;
 
+const CANCELABLE = new Set(["open-link", "library-publish", "open-request", "save-as-request"]);
+
 class ExcaliEditorElement extends HTMLElement {
   static get observedAttributes() {
     return ["theme", "ui"];
@@ -25,9 +27,16 @@ class ExcaliEditorElement extends HTMLElement {
     }
     this.#core = new EditorCore(
       this,
-      // a host answers open-link and library-publish with preventDefault()
-      (type, detail) =>
-        this.#emit(type, detail, type === "open-link" || type === "library-publish"),
+      // a host answers open-link, library-publish, open-request and
+      // save-as-request with preventDefault()
+      (type, detail) => {
+        const handled = !this.#emit(type, detail, CANCELABLE.has(type));
+        if (!handled && type === "open-request") queueMicrotask(() => this.#openFile());
+        if (!handled && type === "save-as-request") {
+          queueMicrotask(() => this.#downloadFile(detail.name));
+        }
+        return !handled;
+      },
       EXCALI_FONTS_BASE,
     );
     this.#core.setTheme(this.getAttribute("theme") || "light");
@@ -125,6 +134,36 @@ class ExcaliEditorElement extends HTMLElement {
         reject(new Error(`The host did not handle library-fetch for ${url}.`));
       }
     });
+  }
+
+  // open-request unanswered: loadFromJSON's fileOpen (data/json.ts:101-112)
+  // with the browser's file input, as over-permissive as upstream's (no
+  // extensions); the file's text loads as load(text) does, a file that does
+  // not load leaving the scene as it was.
+  #openFile() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.addEventListener("change", async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        await this.load(await file.text());
+      } catch (e) {
+        console.warn(e);
+      }
+    });
+    input.click();
+  }
+
+  // save-as-request unanswered: saveAsJSON's fileSave (data/json.ts:76-99) as
+  // browser-fs-access's legacy download, `${name}.excalidraw`.
+  #downloadFile(name) {
+    const blob = new Blob([this.#editor().save()], { type: "application/vnd.excalidraw+json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${name}.excalidraw`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 30_000);
   }
 
   /** The personal library as .excalidrawlib JSON text. */

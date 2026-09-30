@@ -20,7 +20,11 @@
 //!   select all, the edit actions of `excali_editor::edit_actions`).
 //!   Cmd+S (Ctrl+S elsewhere) is the host's: upstream's
 //!   `saveToActiveFile` writes to the file handle, which the host owns, so
-//!   the editor asks with `save-request`.
+//!   the editor asks with `save-request`; `loadScene` (Cmd+O) and
+//!   `saveFileToDisk` (Cmd+Shift+S) open file dialogs, the host's, so the
+//!   editor asks with `open-request` and `save-as-request`; `copyAsPng`
+//!   (Shift+Alt+C) exports the selection ([`Editor::copy_as_png`]) for the
+//!   host to put on the clipboard.
 //! - **The viewport**: `AppPan` (the wheel or secondary button, Space held,
 //!   the hand tool) and `AppWheel` ([`handle_wheel`]) through
 //!   `viewport.translate`, the zoom actions through [`perform_zoom_action`].
@@ -147,7 +151,9 @@ use excali_math::js;
 use excali_scene::bounds::{
     get_common_bounds, get_container_element, get_element_absolute_coords, ElementsMap,
 };
-use excali_scene::canvas_export::{export_canvas_png, CanvasExportOptions, CanvasSizing};
+use excali_scene::canvas_export::{
+    export_canvas_png, get_elements_overlapping_frame, CanvasExportOptions, CanvasSizing,
+};
 use excali_scene::display::{bitmap_id, CanvasDocument, DisplayList};
 use excali_scene::element_canvas::{ElementCanvas, ElementCanvasCache};
 use excali_scene::export::{svg_document, SvgExportAppState, SvgExportOptions};
@@ -187,6 +193,18 @@ pub enum HostEvent {
     SaveRequest,
     /// `open-link`: the user opened an element's link.
     OpenLink { href: String },
+    /// `actionCopyAsPng` (`actionClipboard.tsx:193-250`): the host writes
+    /// [`Editor::copy_as_png`] to the system clipboard
+    /// (`copyBlobToClipboardAsPng`).
+    CopyAsPng,
+    /// `open-request`: `actionLoadScene` (Cmd+O, Ctrl+O elsewhere;
+    /// `actionExport.tsx:394-430`), whose `loadFromJSON` file dialog is the
+    /// host's; the host answers with `load(text)`.
+    OpenRequest,
+    /// `save-as-request`: `actionSaveFileToDisk` (Cmd+Shift+S;
+    /// `actionExport.tsx:329-392`), whose `saveAsJSON` file dialog is the
+    /// host's; `name` is `appState.name`, where `app.getName()` starts.
+    SaveAsRequest { name: Option<String> },
 }
 
 /// `export(type, options)`'s options: the export dialog's choices.
@@ -886,6 +904,12 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         self.session.commit();
     }
 
+    /// `probablySupportsClipboardBlob` (`clipboard.ts:68-72`), which
+    /// `actionCopyAsPng`'s predicate reads: the host sets it.
+    pub fn set_clipboard_blob(&mut self, supported: bool) {
+        self.action_env.clipboard_blob = supported;
+    }
+
     /// Whether `stroke` is Cmd+S (Ctrl+S elsewhere) without Shift.
     fn is_save(&self, stroke: &Keystroke) -> bool {
         stroke.key.eq_ignore_ascii_case("s")
@@ -1144,6 +1168,29 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 }
                 ActionName::Copy => {
                     self.copy();
+                    return;
+                }
+                ActionName::CopyAsPng => {
+                    if self.prepare_elements_for_export(true).0.is_empty() {
+                        // exportCanvas throws alerts.cannotExportEmptyCanvas
+                        app_state.insert("errorMessage", json!("Cannot export empty canvas."));
+                    } else {
+                        self.events.push(HostEvent::CopyAsPng);
+                        copy_as_png_toast(&elements, &mut app_state);
+                    }
+                    None
+                }
+                ActionName::LoadScene => {
+                    self.events.push(HostEvent::OpenRequest);
+                    return;
+                }
+                ActionName::SaveFileToDisk => {
+                    let name = app_state
+                        .get("name")
+                        .and_then(Value::as_str)
+                        .filter(|n| !n.is_empty())
+                        .map(str::to_owned);
+                    self.events.push(HostEvent::SaveAsRequest { name });
                     return;
                 }
                 ActionName::Cut => {
@@ -3517,6 +3564,80 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         Ok(to_svg_file(&export_to_svg(&document, fonts)))
     }
 
+    /// What `actionCopyAsPng` puts on the clipboard, up to the pixels:
+    /// `prepareElementsForExport(elements, appState, true)`
+    /// (`data/index.ts:48-96`, the selection, or the canvas when nothing is
+    /// selected) drawn as `exportCanvas("clipboard")` draws it
+    /// (`data/index.ts:98-219`), with the app state's `exportBackground`,
+    /// `exportWithDarkMode` and `exportScale`, and no scene embedded.
+    pub fn copy_as_png(&self) -> Result<CanvasDocument, String> {
+        let (elements, exporting_frame) = self.prepare_elements_for_export(true);
+        let files = self.files();
+        let mut app = self.session.app_state().clone().into_map();
+        app.insert("exportEmbedScene".into(), json!(false));
+        let options = CanvasExportOptions {
+            export_background: app
+                .get("exportBackground")
+                .and_then(Value::as_bool)
+                .unwrap_or(true),
+            export_padding: None,
+            view_background_color: app
+                .get("viewBackgroundColor")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_owned(),
+            exporting_frame: exporting_frame.as_ref(),
+            sizing: CanvasSizing::ExportScale,
+            text_metrics: &self.session.env.layouter.provider,
+            image_loads: &|_| false,
+            clock: self.session.env.render_clock(),
+        };
+        export_canvas_png(&elements, &app, &files, &options, &self.source)
+            .map_err(|e| e.to_string())
+    }
+
+    /// `prepareElementsForExport(elements, appState, exportSelectionOnly)`
+    /// (`data/index.ts:48-96`): the exported elements and the frame
+    /// exported alone.
+    fn prepare_elements_for_export(&self, selection_only: bool) -> (Vec<Element>, Option<Element>) {
+        let scene = Scene::new(self.session.elements().to_vec());
+        let app_state = self.session.app_state();
+        let live: Vec<Element> = scene.non_deleted().into_iter().cloned().collect();
+        let is_selected = |id: &str| {
+            app_state
+                .get("selectedElementIds")
+                .and_then(|ids| ids.get(id))
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+        };
+        let is_exporting_selection = selection_only && live.iter().any(|e| is_selected(&e.base.id));
+        if !is_exporting_selection {
+            return (live, None);
+        }
+        let selected: Vec<Element> = get_selected_elements(&scene, app_state, true, false)
+            .into_iter()
+            .cloned()
+            .collect();
+        match selected.as_slice() {
+            [frame] if is_frame_like(frame) => {
+                let map = ElementsMap::new(live.iter());
+                let overlapping: Vec<Element> = get_elements_overlapping_frame(&live, frame, &map)
+                    .into_iter()
+                    .cloned()
+                    .collect();
+                (overlapping, Some(frame.clone()))
+            }
+            [_, _, ..] => (
+                get_selected_elements(&scene, app_state, true, true)
+                    .into_iter()
+                    .cloned()
+                    .collect(),
+                None,
+            ),
+            _ => (selected, None),
+        }
+    }
+
     /// `export("png", options)` up to the pixels: the canvas
     /// `exportCanvas("png")` draws, with the scene to embed when asked.
     pub fn export_png(&self, opts: &ExportOptions) -> Result<CanvasDocument, String> {
@@ -3736,4 +3857,28 @@ impl<P: TextMetricsProvider> excali_scene::export::TextMetrics for Measure<'_, P
     fn measure(&self, text: &str, font: &str) -> f64 {
         self.0.get_line_width(text, font)
     }
+}
+
+/// `actionCopyAsPng`'s toast (`actionClipboard.tsx:218-229`,
+/// `toast.copyToClipboardAsPng` in `locales/en.json`): what was copied and
+/// in which colour scheme.
+fn copy_as_png_toast(elements: &[Element], app_state: &mut AppState) {
+    let any_selected = elements.iter().any(|e| {
+        !e.base.is_deleted
+            && app_state
+                .get("selectedElementIds")
+                .and_then(|ids| ids.get(&e.base.id))
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+    });
+    let dark = app_state
+        .get("exportWithDarkMode")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let message = format!(
+        "Copied {} to clipboard as PNG\n({})",
+        if any_selected { "selection" } else { "canvas" },
+        if dark { "Dark mode" } else { "Light mode" },
+    );
+    app_state.insert("toast", json!({ "message": message }));
 }

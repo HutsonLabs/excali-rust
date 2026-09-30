@@ -252,11 +252,19 @@ editor.addEventListener("library-fetch", (e) => {
 });
 ```
 
-Cmd+S inside the editor arrives as `save-request`:
+Cmd+S inside the editor arrives as `save-request`, Cmd+O and Cmd+Shift+S as `open-request` and `save-as-request`, which the app answers with the plugin's dialogs:
 
 <!-- snippet: examples/tauri-app/ui/app.js -->
 ```js
 editor.addEventListener("save-request", () => run("save"));
+editor.addEventListener("open-request", (e) => {
+  e.preventDefault();
+  run("open");
+});
+editor.addEventListener("save-as-request", (e) => {
+  e.preventDefault();
+  run("save-as");
+});
 ```
 
 ## Checking a change to this page

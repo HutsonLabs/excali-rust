@@ -115,14 +115,23 @@ document.querySelector(".bar").addEventListener("click", (e) => {
   const action = e.target.closest("button[data-action]")?.dataset.action;
   if (action) run(action);
 });
-// Cmd+S inside the editor.
+// Cmd+S, Cmd+O and Cmd+Shift+S inside the editor.
 editor.addEventListener("save-request", () => run("save"));
+editor.addEventListener("open-request", (e) => {
+  e.preventDefault();
+  run("open");
+});
+editor.addEventListener("save-as-request", (e) => {
+  e.preventDefault();
+  run("save-as");
+});
 document.addEventListener("keydown", (e) => {
   if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
   const key = e.key.toLowerCase();
   const action = key === "o" ? "open" : key === "s" ? (e.shiftKey ? "save-as" : "save") : null;
-  // Cmd+S inside the editor arrives as save-request.
-  if (!action || (action === "save" && editor.contains(e.target))) return;
+  // inside the editor these arrive as save-request, open-request and
+  // save-as-request
+  if (!action || editor.contains(e.target)) return;
   e.preventDefault();
   run(action);
 });
