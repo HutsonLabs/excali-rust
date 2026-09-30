@@ -11,12 +11,16 @@
 //! `isRestylableFill`.
 //!
 //! The tests after the replay restate a few of `bucketFill.test.ts`'s
-//! assertions on the port directly.
+//! assertions on the port directly, and those of
+//! `packages/excalidraw/tests/bucketFill.test.tsx` that are about what a
+//! click does to the scene (`App.bucketFill.ts`'s `fill`).
 
 use excali_core::element::Element;
+use excali_core::element::{ElementKind, FillStyle};
 use excali_editor::bucket_fill::{
-    compute_bucket_fill_polygon, is_bucket_fill_compatible, is_restylable_fill,
-    renders_opaque_fill, BucketFillFailureReason, BucketFillOptions, Placement,
+    bucket_fill_click, compute_bucket_fill_polygon, get_bucket_fill_background_color,
+    is_bucket_fill_compatible, is_restylable_fill, renders_opaque_fill, BucketFillClick,
+    BucketFillFailureReason, BucketFillOptions, BucketFillOutcome, Placement,
 };
 use excali_scene::bounds::ElementsMap;
 use serde_json::{json, Value};
@@ -47,7 +51,12 @@ fn point(value: &Value) -> [f64; 2] {
 }
 
 fn points(value: &Value) -> Vec<[f64; 2]> {
-    value.as_array().expect("points").iter().map(point).collect()
+    value
+        .as_array()
+        .expect("points")
+        .iter()
+        .map(point)
+        .collect()
 }
 
 /// `{ ...DEFAULT_BUCKET_FILL_OPTIONS, ...options }`.
@@ -87,8 +96,12 @@ fn compute(call: &Value) -> Value {
     let scene = elements(call);
     let map = ElementsMap::new(scene.iter());
     let refs: Vec<&Element> = scene.iter().collect();
-    match compute_bucket_fill_polygon(point(&call["point"]), &refs, &map, &options(&call["options"]))
-    {
+    match compute_bucket_fill_polygon(
+        point(&call["point"]),
+        &refs,
+        &map,
+        &options(&call["options"]),
+    ) {
         Ok(fill) => json!({
             "ok": true,
             "ownerId": fill.owner_id,
@@ -120,8 +133,7 @@ fn replays_every_upstream_call() {
                     let scene = elements(call);
                     let map = ElementsMap::new(scene.iter());
                     let hit = element(&call["hitElement"]);
-                    let answer =
-                        is_restylable_fill(&hit, &points(&call["scenePoints"]), &map);
+                    let answer = is_restylable_fill(&hit, &points(&call["scenePoints"]), &map);
                     (call["result"].clone(), Value::Bool(answer))
                 }
                 other => panic!("unknown fn {other}"),
@@ -141,7 +153,12 @@ fn replays_every_upstream_call() {
         failures.is_empty(),
         "{} of {calls} calls differ from upstream:\n{}",
         failures.len(),
-        failures.iter().take(12).cloned().collect::<Vec<_>>().join("\n")
+        failures
+            .iter()
+            .take(12)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("\n")
     );
 }
 
@@ -178,8 +195,14 @@ fn the_fixture_covers_every_outcome() {
             if call["fn"] == "isRestylableFill" {
                 seen.insert(format!("restylable-{result}"));
             } else if result["ok"] == true {
-                let owner = if result["ownerId"].is_null() { "ownerless" } else { "owned" };
-                let placement = result["insertion"]["placement"].as_str().expect("placement");
+                let owner = if result["ownerId"].is_null() {
+                    "ownerless"
+                } else {
+                    "owned"
+                };
+                let placement = result["insertion"]["placement"]
+                    .as_str()
+                    .expect("placement");
                 seen.insert(format!("ok-{owner}"));
                 seen.insert(format!("ok-{placement}"));
             } else {
@@ -201,7 +224,10 @@ fn the_fixture_covers_every_outcome() {
         "restylable-true",
         "restylable-false",
     ] {
-        assert!(seen.contains(outcome), "no call with outcome {outcome}: {seen:?}");
+        assert!(
+            seen.contains(outcome),
+            "no call with outcome {outcome}: {seen:?}"
+        );
     }
 }
 
@@ -237,8 +263,9 @@ fn area(points: &[[f64; 2]]) -> f64 {
 fn fills_a_simple_rectangle_below_its_transparent_owner() {
     let rect = rectangle("r", 0.0, 0.0, 100.0, 100.0, json!({}));
     let map = ElementsMap::new([&rect]);
-    let fill = compute_bucket_fill_polygon([50.0, 50.0], &[&rect], &map, &BucketFillOptions::default())
-        .expect("a fill");
+    let fill =
+        compute_bucket_fill_polygon([50.0, 50.0], &[&rect], &map, &BucketFillOptions::default())
+            .expect("a fill");
     assert_eq!(fill.owner_id.as_deref(), Some("r"));
     assert!(fill.boundary_element_ids.is_empty());
     assert_eq!(fill.insertion.placement, Placement::Below);
@@ -251,11 +278,16 @@ fn fills_a_simple_rectangle_below_its_transparent_owner() {
 fn open_canvas_has_no_owner() {
     let rect = rectangle("r", 0.0, 0.0, 100.0, 100.0, json!({}));
     let map = ElementsMap::new([&rect]);
-    let result =
-        compute_bucket_fill_polygon([500.0, 500.0], &[&rect], &map, &BucketFillOptions::default());
+    let result = compute_bucket_fill_polygon(
+        [500.0, 500.0],
+        &[&rect],
+        &map,
+        &BucketFillOptions::default(),
+    );
     assert_eq!(result.err(), Some(BucketFillFailureReason::NoOwner));
     let empty = ElementsMap::new([]);
-    let result = compute_bucket_fill_polygon([0.0, 0.0], &[], &empty, &BucketFillOptions::default());
+    let result =
+        compute_bucket_fill_polygon([0.0, 0.0], &[], &empty, &BucketFillOptions::default());
     assert_eq!(result.err(), Some(BucketFillFailureReason::NoOwner));
 }
 
@@ -263,12 +295,21 @@ fn open_canvas_has_no_owner() {
 fn a_fill_is_restylable_on_the_same_region_only() {
     let rect = rectangle("r", 0.0, 0.0, 100.0, 100.0, json!({}));
     let map = ElementsMap::new([&rect]);
-    let fill = compute_bucket_fill_polygon([50.0, 50.0], &[&rect], &map, &BucketFillOptions::default())
-        .expect("a fill");
+    let fill =
+        compute_bucket_fill_polygon([50.0, 50.0], &[&rect], &map, &BucketFillOptions::default())
+            .expect("a fill");
     let [ox, oy] = fill.scene_points[0];
-    let local: Vec<[f64; 2]> = fill.scene_points.iter().map(|[x, y]| [x - ox, y - oy]).collect();
-    let (min_x, max_x) = local.iter().fold((f64::MAX, f64::MIN), |(a, b), p| (a.min(p[0]), b.max(p[0])));
-    let (min_y, max_y) = local.iter().fold((f64::MAX, f64::MIN), |(a, b), p| (a.min(p[1]), b.max(p[1])));
+    let local: Vec<[f64; 2]> = fill
+        .scene_points
+        .iter()
+        .map(|[x, y]| [x - ox, y - oy])
+        .collect();
+    let (min_x, max_x) = local
+        .iter()
+        .fold((f64::MAX, f64::MIN), |(a, b), p| (a.min(p[0]), b.max(p[0])));
+    let (min_y, max_y) = local
+        .iter()
+        .fold((f64::MAX, f64::MIN), |(a, b), p| (a.min(p[1]), b.max(p[1])));
     let paint = element(&json!({
         "id": "fill", "type": "line", "x": ox, "y": oy, "width": max_x - min_x,
         "height": max_y - min_y, "angle": 0, "strokeColor": "transparent",
@@ -286,7 +327,230 @@ fn a_fill_is_restylable_on_the_same_region_only() {
     let scene = [&rect, &paint];
     let map = ElementsMap::new(scene);
     assert!(is_restylable_fill(&paint, &fill.scene_points, &map));
-    let half: Vec<[f64; 2]> = vec![[0.0, 0.0], [50.0, 0.0], [50.0, 100.0], [0.0, 100.0], [0.0, 0.0]];
+    let half: Vec<[f64; 2]> = vec![
+        [0.0, 0.0],
+        [50.0, 0.0],
+        [50.0, 100.0],
+        [0.0, 100.0],
+        [0.0, 0.0],
+    ];
     assert!(!is_restylable_fill(&paint, &half, &map));
     assert!(!is_restylable_fill(&rect, &fill.scene_points, &map));
+}
+
+// -- the tool: packages/excalidraw/tests/bucketFill.test.tsx ------------------------
+
+/// A click with the tool at `point` on `scene` (all non-deleted), with
+/// `hit` the element under the pointer.
+fn click<'a>(
+    point: [f64; 2],
+    scene: &'a [&'a Element],
+    map: &'a ElementsMap<'a>,
+    hit: Option<&'a Element>,
+    background_color: &'a str,
+) -> BucketFillOutcome {
+    bucket_fill_click(&BucketFillClick {
+        point,
+        elements: scene,
+        elements_map: map,
+        elements_including_deleted: scene,
+        hit_element: hit,
+        top_layer_frame_id: None,
+        background_color,
+        fill_style: FillStyle::Solid,
+        opacity: 100.0,
+        id: "fill",
+        seed: 7.0,
+        timestamp: 1.0,
+    })
+}
+
+/// `seedRectangle()`: the owner the app tests click into.
+fn seed_rectangle() -> Element {
+    rectangle("rect", 20.0, 20.0, 120.0, 100.0, json!({}))
+}
+
+fn inserted(outcome: BucketFillOutcome) -> (Element, Option<usize>) {
+    match outcome {
+        BucketFillOutcome::Insert { fill, index } => (*fill, index),
+        other => panic!("expected an insert, got {other:?}"),
+    }
+}
+
+#[test]
+fn creates_an_unselected_line_polygon_with_the_current_background_color() {
+    let rect = seed_rectangle();
+    let scene = [&rect];
+    let map = ElementsMap::new(scene);
+    let (fill, index) = inserted(click([80.0, 70.0], &scene, &map, Some(&rect), "#ffec99"));
+    let ElementKind::Line(line) = &fill.kind else {
+        panic!("not a line");
+    };
+    assert!(line.polygon);
+    assert_eq!(fill.base.background_color, "#ffec99");
+    assert_eq!(fill.base.stroke_color, "transparent");
+    assert_eq!(fill.base.fill_style, FillStyle::Solid);
+    assert_eq!(fill.base.stroke_width, 1.0);
+    assert_eq!(fill.base.roughness, 0.0);
+    assert!(fill.base.roundness.is_none());
+    assert!(fill.base.custom_data.is_none());
+    // normalized: points[0] is [0, 0], and the polygon is explicitly closed
+    assert_eq!(line.linear.points.first(), Some(&[0.0, 0.0]));
+    assert_eq!(line.linear.points.last(), Some(&[0.0, 0.0]));
+    // immediately below the owner
+    assert_eq!(index, Some(0));
+    assert!(is_bucket_fill_compatible(&fill));
+}
+
+#[test]
+fn re_clicking_a_filled_region_restyles_instead_of_stacking() {
+    let rect = seed_rectangle();
+    let scene = [&rect];
+    let map = ElementsMap::new(scene);
+    let (fill, _) = inserted(click([80.0, 70.0], &scene, &map, Some(&rect), "#ffec99"));
+    let scene = [&fill, &rect];
+    let map = ElementsMap::new(scene);
+    // the same colour: nothing changes
+    assert_eq!(
+        click([80.0, 70.0], &scene, &map, Some(&fill), "#ffec99"),
+        BucketFillOutcome::Unchanged
+    );
+    // a changed colour restyles the existing fill
+    assert_eq!(
+        click([80.0, 70.0], &scene, &map, Some(&fill), "#ffc9c9"),
+        BucketFillOutcome::Restyle {
+            element_id: "fill".into(),
+            background_color: "#ffc9c9".into(),
+            fill_style: FillStyle::Solid,
+            opacity: 100.0,
+        }
+    );
+}
+
+#[test]
+fn restyles_an_orphaned_fill_even_when_no_region_can_be_derived() {
+    let rect = seed_rectangle();
+    let scene = [&rect];
+    let map = ElementsMap::new(scene);
+    let (fill, _) = inserted(click([80.0, 70.0], &scene, &map, Some(&rect), "#ffec99"));
+    // the rectangle is deleted: only the paint is left
+    let scene = [&fill];
+    let map = ElementsMap::new(scene);
+    assert!(matches!(
+        click([80.0, 70.0], &scene, &map, Some(&fill), "#ffc9c9"),
+        BucketFillOutcome::Restyle { .. }
+    ));
+}
+
+#[test]
+fn clicking_a_since_subdivided_part_of_a_filled_region_creates_a_new_fill() {
+    let rect = seed_rectangle();
+    let scene = [&rect];
+    let map = ElementsMap::new(scene);
+    let (fill, _) = inserted(click([80.0, 70.0], &scene, &map, Some(&rect), "#ffec99"));
+    let splitter = element(&json!({
+        "id": "splitter", "type": "line", "x": 10, "y": 70, "width": 140, "height": 0,
+        "angle": 0, "strokeColor": "#1e1e1e", "backgroundColor": "transparent",
+        "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1,
+        "opacity": 100, "groupIds": [], "frameId": null, "index": null, "roundness": null,
+        "seed": 1, "version": 1, "versionNonce": 0, "isDeleted": false,
+        "boundElements": null, "updated": 1, "link": null, "locked": false,
+        "points": [[0, 0], [140, 0]], "polygon": false, "lastCommittedPoint": null,
+        "startBinding": null, "endBinding": null, "startArrowhead": null,
+        "endArrowhead": null,
+    }));
+    let scene = [&fill, &rect, &splitter];
+    let map = ElementsMap::new(scene);
+    let (top, _) = inserted(click([80.0, 45.0], &scene, &map, Some(&fill), "#ffec99"));
+    assert!(
+        area(match &top.kind {
+            ElementKind::Line(line) => &line.linear.points,
+            _ => panic!("not a line"),
+        }) < 0.6 * 12000.0
+    );
+}
+
+#[test]
+fn falls_back_to_green_when_the_shared_background_color_is_transparent() {
+    assert_eq!(
+        get_bucket_fill_background_color("transparent", false),
+        "#b2f2bb"
+    );
+    let rect = seed_rectangle();
+    let scene = [&rect];
+    let map = ElementsMap::new(scene);
+    let (fill, _) = inserted(click(
+        [80.0, 70.0],
+        &scene,
+        &map,
+        Some(&rect),
+        "transparent",
+    ));
+    assert_eq!(fill.base.background_color, "#b2f2bb");
+}
+
+#[test]
+fn inserts_the_overlap_fill_below_the_lowest_participant_or_above_a_coverer() {
+    for (background, expected) in [("transparent", 0), ("#ff0000", 1)] {
+        let below = rectangle(
+            "below",
+            0.0,
+            0.0,
+            100.0,
+            100.0,
+            json!({ "backgroundColor": background }),
+        );
+        let owner = rectangle("owner", 50.0, 50.0, 100.0, 100.0, json!({}));
+        let scene = [&below, &owner];
+        let map = ElementsMap::new(scene);
+        let (_, index) = inserted(click([75.0, 75.0], &scene, &map, Some(&owner), "#ffec99"));
+        assert_eq!(index, Some(expected), "below {background}");
+    }
+}
+
+#[test]
+fn does_nothing_on_empty_canvas_and_toasts_on_an_open_region() {
+    let rect = seed_rectangle();
+    let scene = [&rect];
+    let map = ElementsMap::new(scene);
+    assert_eq!(
+        click([400.0, 400.0], &scene, &map, None, "#ffec99"),
+        BucketFillOutcome::Nothing
+    );
+    // an owner buried under opaque paint: nothing bounds the click
+    let cover = element(&json!({
+        "id": "cover", "type": "line", "x": 0, "y": 0, "width": 160, "height": 140,
+        "angle": 0, "strokeColor": "transparent", "backgroundColor": "#ffc9c9",
+        "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 0,
+        "opacity": 100, "groupIds": [], "frameId": null, "index": null, "roundness": null,
+        "seed": 1, "version": 1, "versionNonce": 0, "isDeleted": false,
+        "boundElements": null, "updated": 1, "link": null, "locked": false,
+        "points": [[0, 0], [160, 0], [160, 140], [0, 140], [0, 0]], "polygon": true,
+        "lastCommittedPoint": null, "startBinding": null, "endBinding": null,
+        "startArrowhead": null, "endArrowhead": null,
+    }));
+    let scene = [&rect, &cover];
+    let map = ElementsMap::new(scene);
+    assert_eq!(
+        click([80.0, 70.0], &scene, &map, Some(&rect), "#ffec99"),
+        BucketFillOutcome::Toast("bucketfill.noRegion")
+    );
+}
+
+#[test]
+fn a_fill_takes_its_owners_frame_and_groups() {
+    let rect = rectangle(
+        "rect",
+        20.0,
+        20.0,
+        120.0,
+        100.0,
+        json!({ "frameId": "frame", "groupIds": ["g1", "g2"] }),
+    );
+    let scene = [&rect];
+    let map = ElementsMap::new(scene);
+    let (fill, _) = inserted(click([80.0, 70.0], &scene, &map, Some(&rect), "#ffec99"));
+    assert_eq!(fill.base.frame_id.as_deref(), Some("frame"));
+    let groups: Vec<String> = fill.base.group_ids.iter().map(|g| g.to_string()).collect();
+    assert_eq!(groups, ["g1", "g2"]);
 }
