@@ -31,6 +31,13 @@
 // - `formFactor`: the breakpoints, getFormFactor, isMobileBreakpoint and
 //   isTabletBreakpoint over a grid of editor sizes, and
 //   deriveStylesPanelMode for every form factor and desktop UI mode;
+// - `colors` on every case: what the PanelComponents of
+//   actionChangeStrokeColor and actionChangeBackgroundColor
+//   (actions/actionProperties.tsx:358-551) render in the full panel, the
+//   heading and `{ colorPicker }` with the ColorPicker's props (type,
+//   label, color, topPicks, customizableTopPicks, excludedColors), as
+//   resolveColorTarget (actions/colorTargets.ts) and getFormValue decide
+//   them;
 // - `locale`: the English strings of the legends and titles
 //   (locales/en.json).
 //
@@ -78,6 +85,8 @@ export { getTargetElements } from "./packages/excalidraw/scene";
 export { t } from "./packages/excalidraw/i18n";
 export { CLASSES } from "./packages/common/src/constants";
 export { showSelectedShapeActions } from "./packages/element/src/showSelectedShapeActions";
+export { actionChangeStrokeColor, actionChangeBackgroundColor } from "./packages/excalidraw/actions/actionProperties";
+export { ColorPicker } from "./packages/excalidraw/components/ColorPicker/ColorPicker";
 export { Scene } from "./packages/element/src/Scene";
 export {
   newElement,
@@ -430,6 +439,9 @@ const randomCases = (elements) => {
  * first export names an alias. */
 const iconNames = new Map();
 
+/** The ColorPicker component (`memo` is the identity here). */
+let colorPicker = null;
+
 /** The rendered JSX as a plain tree (see the header). */
 const flatten = (node) => {
   if (node === null || node === undefined || node === false || node === true) return [];
@@ -439,6 +451,10 @@ const flatten = (node) => {
   if (iconNames.has(node)) return [{ icon: iconNames.get(node) }];
   const { type, props } = node;
   if (type === FRAGMENT) return flatten(props.children);
+  if (type === colorPicker) {
+    const { type: pickerType, label, color, topPicks, customizableTopPicks, excludedColors } = props;
+    return [{ colorPicker: { type: pickerType, label, color, topPicks, customizableTopPicks, excludedColors: excludedColors ?? null } }];
+  }
   if (typeof type === "function") return flatten(type(props));
   if (typeof type !== "string") throw new Error(`unexpected element type ${String(type)}`);
   const out = { tag: type };
@@ -539,6 +555,16 @@ const runCase = (up, window, sceneName, elements, [id, c], mobile = false) => {
       setAppState: () => {},
     }),
   );
+  // the two colour actions' PanelComponents as the full panel renders them
+  // (renderAction passes the elements including deleted ones,
+  // manager.tsx:222-224; getStylesPanelInfo reads a desktop in full mode)
+  const panelApp = { ...app, editorInterface: { formFactor: "desktop", desktopUIMode: "full" } };
+  const colors = Object.fromEntries(
+    [up.actionChangeStrokeColor, up.actionChangeBackgroundColor].map((action) => [
+      action.name,
+      flatten(action.PanelComponent({ elements, appState, updateData: () => {}, app: panelApp, data: undefined })),
+    ]),
+  );
   const mobileTrees = mobile ? { mobile: mobileTree(up, appState, elementsMap, app, 0) } : {};
   const widths =
     mobile && MOBILE_WIDTH_CASES.includes(id)
@@ -555,6 +581,7 @@ const runCase = (up, window, sceneName, elements, [id, c], mobile = false) => {
     predicates: json(predicates),
     tree,
     compact,
+    colors,
     ...mobileTrees,
     ...widths,
   };
@@ -641,6 +668,7 @@ const build = async (upstream) => {
     },
   });
   up.setCustomTextMetricsProvider({ getLineWidth: (text) => text.length * 10 });
+  colorPicker = up.ColorPicker;
   iconNames.clear();
   for (const [name, value] of Object.entries(up.icons)) {
     if (value && typeof value === "object" && value.type === "svg" && !iconNames.has(value)) iconNames.set(value, name);
@@ -666,7 +694,7 @@ const build = async (upstream) => {
     upstream: upstream.commit,
     containerId: CONTAINER_ID,
     locale: Object.fromEntries(
-      ["labels.layers", "labels.align", "labels.actions", "headings.selectedShapeActions", "labels.stroke", "labels.arrowtypes", "labels.textAlign"].map((k) => [k, up.t(k)]),
+      ["labels.layers", "labels.align", "labels.actions", "headings.selectedShapeActions", "labels.stroke", "labels.arrowtypes", "labels.textAlign", "labels.textColor", "labels.background"].map((k) => [k, up.t(k)]),
     ),
     wrapper: [[900, false], [768, true], [600.5, false]].map((c) => wrapperCase(up, c)),
     compactWrapper: [[900, false], [768, true], [600.5, false]].map((c) => compactWrapperCase(up, c)),
