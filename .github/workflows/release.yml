@@ -1,0 +1,78 @@
+# ex-802: the web runtime as a GitHub release asset (ADR-009). Pushing a tag
+# v<version> (or running this workflow on one) builds the web runtime with
+# scripts/web/build.sh as rust.yml's web-runtime job does, packs it into
+# excali-web_<version>.tar.gz with scripts/release/package.py, and uploads
+# the tarball and SHA256SUMS to the GitHub release of that tag, creating the
+# release when it does not exist yet (ex-804 writes its notes). Lines of
+# SHA256SUMS for other assets already on the release are kept. The tag must
+# be the workspace version's (scripts/gates/version.py tag). Hosts fetch the
+# assets with scripts/release/fetch.sh. Nothing goes to a registry (ex-801).
+name: release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and upload (v<version>)"
+        required: true
+permissions:
+  contents: write
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+jobs:
+  web-runtime:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ env.TAG }}
+          fetch-depth: 0
+      - name: the tag is the workspace version's
+        run: |
+          want="$(python3 scripts/gates/version.py tag)"
+          if [ "$TAG" != "$want" ]; then
+            echo "tag $TAG, but the workspace version's tag is $want" >&2
+            exit 1
+          fi
+          python3 scripts/gates/version.py check
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: |
+          want="$(awk '/^name = "wasm-bindgen"$/ { getline; gsub(/"/, "", $3); print $3; exit }' Cargo.lock)"
+          if [ "$(wasm-bindgen --version 2>/dev/null | awk '{ print $2 }')" != "$want" ]; then
+            cargo install --locked wasm-bindgen-cli --version "$want"
+          fi
+      - name: binaryen (pinned) cache
+        uses: actions/cache@v6
+        with:
+          path: .tools/binaryen-version_133
+          key: binaryen-version_133-${{ runner.os }}-${{ runner.arch }}
+      - name: build the web runtime (dist/, gzip size budget)
+        run: scripts/web/build.sh
+      - name: SHA256SUMS already on the release
+        run: |
+          mkdir -p release
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release download "$TAG" --pattern SHA256SUMS --dir release || true
+          fi
+      - name: pack excali-web_<version>.tar.gz
+        run: |
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" python3 scripts/release/package.py pack dist release
+          python3 scripts/release/package.py verify release "excali-web_${TAG#v}.tar.gz"
+      - name: upload to the release
+        run: |
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --verify-tag --title "$TAG" \
+              --notes "excali-rust $TAG. The web runtime: excali-web_${TAG#v}.tar.gz, its digest in SHA256SUMS (fetch with scripts/release/fetch.sh ${TAG#v} <dir>)."
+          fi
+          gh release upload "$TAG" "release/excali-web_${TAG#v}.tar.gz" release/SHA256SUMS --clobber
+      - name: fetch it back as a host does
+        run: |
+          sh scripts/release/fetch.sh "${TAG#v}" "$RUNNER_TEMP/excali"
+          diff -r dist "$RUNNER_TEMP/excali"

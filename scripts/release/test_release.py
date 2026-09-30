@@ -119,6 +119,18 @@ class ReleaseTest(unittest.TestCase):
         self.assertEqual(r.returncode, 1)
         self.assertIn("excali-web_26.9.1.tar.gz", r.stderr)
 
+    def test_verify_names_checks_only_those_lines(self):
+        out = self.tmp / "release"
+        out.mkdir()
+        (out / "SHA256SUMS").write_text("0" * 64 + "  excali-example_26.9.1_aarch64.dmg\n")
+        self.packed(out)
+        self.assertEqual(self.pack("verify", str(out)).returncode, 1, "the dmg is not here")
+        r = self.pack("verify", str(out), "excali-web_26.9.1.tar.gz")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        r = self.pack("verify", str(out), "excali-web_26.10.1.tar.gz")
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("excali-web_26.10.1.tar.gz", r.stderr)
+
     def test_existing_sha256sums_lines_for_other_assets_are_kept(self):
         out = self.tmp / "release"
         out.mkdir()

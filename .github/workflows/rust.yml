@@ -186,6 +186,14 @@ jobs:
         run: scripts/web/build.sh
       - name: gzip size budget
         run: python3 scripts/gates/wasm_size.py check dist
+      # ex-802: the release asset from this build, fetched back as a host's
+      # vendor script does (file:// in place of the GitHub release URL).
+      - name: release tarball and SHA256SUMS, fetched back
+        run: |
+          python3 scripts/release/package.py pack dist "$RUNNER_TEMP/download/v$(python3 scripts/gates/version.py print)"
+          python3 scripts/release/package.py verify "$RUNNER_TEMP/download/v$(python3 scripts/gates/version.py print)"
+          EXCALI_RELEASE_URL="file://$RUNNER_TEMP/download" sh scripts/release/fetch.sh "$(python3 scripts/gates/version.py print)" "$RUNNER_TEMP/excali"
+          diff -r dist "$RUNNER_TEMP/excali"
       - name: keep the web build
         uses: actions/upload-artifact@v7
         with:

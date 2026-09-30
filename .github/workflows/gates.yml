@@ -68,6 +68,10 @@ jobs:
       # budget run in rust.yml, job web-runtime.
       - name: web build pipeline tests
         run: python3 scripts/web/test_build.py -v
+      # ex-802: the release tarball (reproducible, SHA256SUMS) and the fetch
+      # a host's vendor script runs, offline through a file:// release.
+      - name: release asset tests
+        run: python3 scripts/release/test_release.py -v
       - name: wasm size gate tests
         run: python3 scripts/gates/test_wasm_size.py -v
       - name: pinned binaryen tests
