@@ -13,8 +13,17 @@
 // frame's time runs from dispatching the wheel event to the static canvas
 // read back with one getImageData, which makes Chromium execute the frame's
 // deferred drawing; the budget holds the 95th percentile of the measured
-// frames after a warm-up. First paint is the median of five fresh loads
-// after one load that is not measured.
+// frames after a warm-up, the median of three rounds, each in a fresh page.
+// First paint is the median of five fresh loads after one load that is not
+// measured.
+//
+// Calibration: before each first paint load and each pan round the
+// calibration workload of perf/page/calibrate.html runs in a fresh page of
+// the same browser, and each measurement records the median of its own
+// calibrations (firstPaintCalibrationMs, panCalibrationMs);
+// scripts/gates/perf_budget.py scales the measurement by the phases page's
+// reference calibration over that median, so a slower or busier runner
+// gets proportionally more milliseconds.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
@@ -29,6 +38,9 @@ const FIRST_PAINT_RUNS = 5;
 // a first load, not measured: the browser's own first-launch work (disk
 // cache, font and code caches) is not the editor's
 const FIRST_PAINT_WARMUP = 1;
+const PAN_ROUNDS = 3;
+// the calibration's wasm hash (calibrate.html) over this many iterations
+const CALIBRATION_ITERATIONS = 10_000_000;
 
 /** Merges `entry` into the results file. */
 const record = (entry) => {
@@ -59,6 +71,50 @@ const open = async (page) => {
   await page.waitForFunction(() => window.firstPaint !== undefined, null, { timeout: 30_000 });
   return errors;
 };
+
+/** The integer hash of calibrate.html's wasm module, in JS. */
+const calibrationHash = (n) => {
+  let h = 0;
+  for (let i = 0; i < n; i++) h = ((Math.imul(h, 1103515245) + 12345) | 0) ^ i;
+  return h;
+};
+
+/** Runs the calibration workload in a fresh page: its record. */
+const calibrate = async (browser) => {
+  const page = await browser.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+  await page.goto("/calibrate.html");
+  await page.waitForFunction(() => window.calibration !== undefined, null, { timeout: 30_000 });
+  const calibration = await page.evaluate(() => window.calibration);
+  await page.close();
+  expect(errors).toEqual([]);
+  expect(calibration.wasm).toBe(calibrationHash(CALIBRATION_ITERATIONS));
+  expect(calibration.ms).toBeGreaterThan(0);
+  return calibration;
+};
+
+const round2 = (v) => Number(v.toFixed(2));
+
+/** The calibrations' median and each run, for the record. */
+const calibrationRecord = (prefix, runs) => ({
+  [`${prefix}CalibrationMs`]: round2(percentile(runs.map((c) => c.ms), 50)),
+  [`${prefix}CalibrationRunsMs`]: runs.map((c) => round2(c.ms)),
+  [`${prefix}CalibrationPartsMs`]: Object.fromEntries(
+    Object.keys(runs[0].parts).map((k) => [k, round2(percentile(runs.map((c) => c.parts[k]), 50))]),
+  ),
+});
+
+test("the calibration workload does the same work on every run", async ({ browser }) => {
+  const a = await calibrate(browser);
+  const b = await calibrate(browser);
+  // the same hash (checked against JS in calibrate()) and the same pixels
+  expect(b.wasm).toBe(a.wasm);
+  expect(b.digest).toBe(a.digest);
+  expect(a.digest).not.toBe(0);
+  for (const part of ["wasmMs", "canvasMs", "jsMs"]) expect(a.parts[part]).toBeGreaterThan(0);
+});
 
 test("the scene holds 1,000 elements, all in the viewport", async ({ page }) => {
   const errors = await open(page);
@@ -98,12 +154,15 @@ test("first paint after module load", async ({ browser }) => {
   // the median of fresh loads, each in a new page, so one slow start on a
   // shared runner does not decide the budget
   const runs = [];
+  const calibrations = [];
   for (let i = 0; i < FIRST_PAINT_WARMUP; i++) {
+    await calibrate(browser);
     const page = await browser.newPage();
     await open(page);
     await page.close();
   }
   for (let i = 0; i < FIRST_PAINT_RUNS; i++) {
+    calibrations.push(await calibrate(browser));
     const page = await browser.newPage();
     const errors = await open(page);
     const first = await page.evaluate(() => window.firstPaint);
@@ -125,6 +184,7 @@ test("first paint after module load", async ({ browser }) => {
   record({
     firstPaintMs: Number(percentile(ms, 50).toFixed(2)),
     firstPaintRunsMs: ms.map((v) => Number(v.toFixed(2))),
+    ...calibrationRecord("firstPaint", calibrations),
     fontsLoadedMs: Number(percentile(runs.map((r) => r.fontsMs), 50).toFixed(2)),
     // the median of each phase: module init, mount, load(), the static
     // canvas's raster and presenting the frame
@@ -137,9 +197,9 @@ test("first paint after module load", async ({ browser }) => {
   });
 });
 
-test("pan at 1,000 elements", async ({ page }) => {
-  // an over-budget build still finishes, so the gate can report by how much
-  test.setTimeout(180_000);
+/** One pan round over the scene in a fresh page. */
+const panRound = async (browser) => {
+  const page = await browser.newPage();
   const errors = await open(page);
   const run = await page.evaluate(
     async ({ warmup, frames }) => {
@@ -190,19 +250,43 @@ test("pan at 1,000 elements", async ({ page }) => {
     },
     { warmup: WARMUP, frames: FRAMES },
   );
+  await page.close();
   expect(run.times).toHaveLength(FRAMES);
   // the view moved on every frame: the static canvas differs from the frame before
   for (let i = 1; i < run.probes.length; i++) expect(run.probes[i]).not.toBe(run.probes[i - 1]);
   expect(errors).toEqual([]);
   const mean = (v) => v.reduce((a, b) => a + b, 0) / v.length;
+  return {
+    p50: percentile(run.times, 50),
+    p95: percentile(run.times, 95),
+    max: Math.max(...run.times),
+    fps: 1000 / mean(run.intervals),
+    // the wheel handler alone (wasm and canvas calls), before the raster
+    handlerP50: percentile(run.handler, 50),
+    handlerP95: percentile(run.handler, 95),
+  };
+};
+
+test("pan at 1,000 elements", async ({ browser }) => {
+  // an over-budget build still finishes, so the gate can report by how much
+  test.setTimeout(300_000);
+  const rounds = [];
+  const calibrations = [];
+  for (let r = 0; r < PAN_ROUNDS; r++) {
+    calibrations.push(await calibrate(browser));
+    rounds.push(await panRound(browser));
+  }
+  const median = (k) => round2(percentile(rounds.map((round) => round[k]), 50));
   record({
     panFrames: FRAMES,
-    panFrameP50Ms: Number(percentile(run.times, 50).toFixed(2)),
-    panFrameP95Ms: Number(percentile(run.times, 95).toFixed(2)),
-    panFrameMaxMs: Number(Math.max(...run.times).toFixed(2)),
-    panFps: Number((1000 / mean(run.intervals)).toFixed(1)),
-    // the wheel handler alone (wasm and canvas calls), before the raster
-    panHandlerP50Ms: Number(percentile(run.handler, 50).toFixed(2)),
-    panHandlerP95Ms: Number(percentile(run.handler, 95).toFixed(2)),
+    panRounds: PAN_ROUNDS,
+    panFrameP50Ms: median("p50"),
+    panFrameP95Ms: median("p95"),
+    panFrameP95RunsMs: rounds.map((round) => round2(round.p95)),
+    panFrameMaxMs: round2(Math.max(...rounds.map((round) => round.max))),
+    panFps: Number(percentile(rounds.map((round) => round.fps), 50).toFixed(1)),
+    panHandlerP50Ms: median("handlerP50"),
+    panHandlerP95Ms: median("handlerP95"),
+    ...calibrationRecord("pan", calibrations),
   });
 });

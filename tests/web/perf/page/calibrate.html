@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>excali-editor performance calibration</title>
+<!-- The calibration workload of the performance budgets (ex-710): a fixed,
+     deterministic piece of the work a first paint and a pan frame do,
+     timed in the same browser on the same runner in the same job as the
+     measurements. scripts/gates/perf_budget.py scales each measurement by
+     the reference calibration on site/content/plan/phases.md (## Budgets)
+     over this one, so the budgets hold across runners and against a
+     machine busy with other work. Nothing here comes from the port: the
+     workload stays the same while the editor changes.
+
+       wasm    compile and instantiate a small module, then 10 million
+               iterations of an integer hash in it
+       canvas  400 bitmaps of 96 × 96 with curves stroked and an ellipse
+               filled in each (the editor's per-element bitmaps), blitted
+               onto a 1000 × 700 canvas in 12 passes, each read back with
+               getImageData so the drawing cannot stay deferred
+       js      5,000 records through JSON.stringify and JSON.parse, into a
+               Map by string key and sorted
+
+     window.calibration: { ms, parts: { wasmMs, canvasMs, jsMs }, wasm,
+     digest }, `wasm` the hash's result and `digest` one of the last pass's
+     pixels, for the spec to check the work was done. -->
+<style>
+  body { margin: 0; }
+</style>
+</head>
+<body>
+<canvas id="target" width="1000" height="700"></canvas>
+<script type="module">
+  // (func (export "run") (param $n i32) (result i32) (local $i i32) (local $h i32)
+  //   (loop (local.set $h (i32.xor (i32.add (i32.mul (local.get $h)
+  //     (i32.const 1103515245)) (i32.const 12345)) (local.get $i)))
+  //     (br_if 0 (i32.lt_s (local.tee $i (i32.add (local.get $i) (i32.const 1)))
+  //       (local.get $n))))
+  //   (local.get $h))
+  const MODULE = new Uint8Array([
+    0, 97, 115, 109, 1, 0, 0, 0, 1, 6, 1, 96, 1, 127, 1, 127, 3, 2, 1, 0, 7, 7, 1, 3, 114,
+    117, 110, 0, 0, 10, 42, 1, 40, 1, 2, 127, 3, 64, 32, 2, 65, 237, 156, 153, 142, 4, 108,
+    65, 185, 224, 0, 106, 32, 1, 115, 33, 2, 32, 1, 65, 1, 106, 34, 1, 32, 0, 72, 13, 0, 11,
+    32, 2, 11,
+  ]);
+  const ITERATIONS = 10_000_000;
+  const BITMAPS = 400;
+  const SIZE = 96;
+  const PASSES = 12;
+  const RECORDS = 5_000;
+
+  // xorshift32 from a fixed seed: the same drawing on every run
+  let seed = 2463534242;
+  const random = () => {
+    seed ^= seed << 13;
+    seed ^= seed >>> 17;
+    seed ^= seed << 5;
+    return (seed >>> 0) / 4294967296;
+  };
+  const COLORS = ["#1e1e1e", "#e03131", "#2f9e44", "#1971c2", "#f08c00"];
+
+  const parts = {};
+  const t0 = performance.now();
+  let t = t0;
+
+  const { instance } = await WebAssembly.instantiate(MODULE);
+  const wasm = instance.exports.run(ITERATIONS);
+  parts.wasmMs = performance.now() - t;
+  t = performance.now();
+
+  const bitmaps = [];
+  for (let b = 0; b < BITMAPS; b++) {
+    const canvas = document.createElement("canvas");
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    const ctx = canvas.getContext("2d");
+    ctx.lineCap = "round";
+    ctx.fillStyle = COLORS[b % COLORS.length];
+    ctx.beginPath();
+    ctx.ellipse(SIZE / 2, SIZE / 2, 10 + random() * 30, 10 + random() * 30, random() * Math.PI, 0, 2 * Math.PI);
+    ctx.fill();
+    for (let s = 0; s < 6; s++) {
+      ctx.strokeStyle = COLORS[(b + s) % COLORS.length];
+      ctx.lineWidth = 1 + random() * 3;
+      ctx.beginPath();
+      ctx.moveTo(random() * SIZE, random() * SIZE);
+      for (let q = 0; q < 4; q++) {
+        ctx.quadraticCurveTo(random() * SIZE, random() * SIZE, random() * SIZE, random() * SIZE);
+      }
+      ctx.stroke();
+    }
+    bitmaps.push([canvas, random() * (1000 - SIZE), random() * (700 - SIZE)]);
+  }
+  const target = document.getElementById("target").getContext("2d");
+  let digest = 0;
+  for (let pass = 0; pass < PASSES; pass++) {
+    target.setTransform(1, 0, 0, 1, 0, 0);
+    target.fillStyle = "#ffffff";
+    target.fillRect(0, 0, 1000, 700);
+    target.setTransform(1, 0, 0, 1, (pass % 4) * 7 - 10, (pass % 3) * 5 - 5);
+    for (const [canvas, x, y] of bitmaps) target.drawImage(canvas, x, y);
+    const { data } = target.getImageData(500, 350, 1, 1);
+    digest = (Math.imul(digest, 31) + data[0] + (data[1] << 8) + (data[2] << 16)) | 0;
+  }
+  parts.canvasMs = performance.now() - t;
+  t = performance.now();
+
+  const records = [];
+  for (let r = 0; r < RECORDS; r++) {
+    records.push({
+      id: `el-${r}-${Math.floor(random() * 1e9).toString(36)}`,
+      x: random() * 1000,
+      y: random() * 700,
+      points: Array.from({ length: 8 }, () => [random() * 100, random() * 100]),
+    });
+  }
+  const parsed = JSON.parse(JSON.stringify(records));
+  const byId = new Map(parsed.map((r) => [r.id, r]));
+  const sorted = [...byId.keys()].sort();
+  if (sorted.length !== RECORDS) throw new Error("calibration: records lost");
+  parts.jsMs = performance.now() - t;
+
+  window.calibration = { ms: performance.now() - t0, parts, wasm, digest };
+</script>
+</body>
+</html>
