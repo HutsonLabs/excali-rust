@@ -22,7 +22,8 @@
 //! `components/dropdownMenu/*`); for [`context_menu`] the canvas and
 //! element context menus (`components/ContextMenu.tsx`); for [`footer`]
 //! the footer's zoom, undo/redo, help and exit-zen controls
-//! (`components/footer/Footer.tsx`); for [`library_sidebar`] the default
+//! (`components/footer/Footer.tsx`); for [`help_dialog`] the help dialog
+//! and its shortcut islands (`components/HelpDialog.tsx`); for [`library_sidebar`] the default
 //! sidebar with the library (`components/DefaultSidebar.tsx`,
 //! `components/Sidebar/*`, `components/LibraryMenu*.tsx`,
 //! `components/LibraryUnit.tsx`).
@@ -36,6 +37,7 @@ pub mod dom;
 pub mod editor_interface;
 pub mod fonts;
 pub mod footer;
+pub mod help_dialog;
 pub mod icons;
 pub mod keyboard;
 pub mod layers;
