@@ -85,6 +85,16 @@ class OwnerDecisionsInThePlan(unittest.TestCase):
         self.assertIn("v26.9.2 is left as published", item("ex-808")["acceptance"])
         self.assertIn("read-only drawing view is gone", item("ex-809")["acceptance"])
 
+    def test_ex_808_cuts_v26_9_3_with_the_signed_app(self):
+        t = item("ex-808")
+        self.assertEqual(t["title"], "Release v26.9.3 with host theming")
+        for needle in ("26.9.3", "v26.9.3", "Latest", "latest.json", "SHA256SUMS", "notarized",
+                       "excali-web_26.9.3.tar.gz", "v26.9.2 is left as published", "registry"):
+            self.assertIn(needle, t["acceptance"])
+        # The seed puts it under the release epic, after host theming.
+        r = rows()["ex-808"]
+        self.assertIn("ex-e8", [d["depends_on_id"] for d in r["dependencies"] if d["type"] == "parent-child"])
+
     def test_ex_803_is_walked_by_an_agent_in_a_fresh_clone(self):
         t = item("ex-803")
         self.assertIn("fresh clone", t["acceptance"])

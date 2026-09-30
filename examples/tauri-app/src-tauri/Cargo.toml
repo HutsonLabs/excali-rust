@@ -7,7 +7,7 @@
 [package]
 name = "excali-tauri-example"
 description = "Example Tauri app embedding the <excali-editor> web component."
-version = "26.9.2"
+version = "26.9.3"
 edition = "2021"
 rust-version = "1.94"
 license = "MIT"

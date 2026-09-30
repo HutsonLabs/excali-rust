@@ -109,7 +109,7 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
 name = "excali-canvas2d"
-version = "26.9.2"
+version = "26.9.3"
 dependencies = [
  "excali-scene",
  "js-sys",
@@ -118,7 +118,7 @@ dependencies = [
 
 [[package]]
 name = "excali-core"
-version = "26.9.2"
+version = "26.9.3"
 dependencies = [
  "excali-math",
  "indexmap",
@@ -130,7 +130,7 @@ dependencies = [
 
 [[package]]
 name = "excali-editor"
-version = "26.9.2"
+version = "26.9.3"
 dependencies = [
  "excali-core",
  "excali-math",
@@ -144,28 +144,28 @@ dependencies = [
 
 [[package]]
 name = "excali-freehand"
-version = "26.9.2"
+version = "26.9.3"
 dependencies = [
  "excali-math",
 ]
 
 [[package]]
 name = "excali-math"
-version = "26.9.2"
+version = "26.9.3"
 dependencies = [
  "pxfm",
 ]
 
 [[package]]
 name = "excali-rough"
-version = "26.9.2"
+version = "26.9.3"
 dependencies = [
  "excali-math",
 ]
 
 [[package]]
 name = "excali-scene"
-version = "26.9.2"
+version = "26.9.3"
 dependencies = [
  "excali-core",
  "excali-freehand",
@@ -177,7 +177,7 @@ dependencies = [
 
 [[package]]
 name = "excali-text"
-version = "26.9.2"
+version = "26.9.3"
 dependencies = [
  "excali-core",
  "excali-math",
@@ -193,7 +193,7 @@ dependencies = [
 
 [[package]]
 name = "excali-ui"
-version = "26.9.2"
+version = "26.9.3"
 dependencies = [
  "excali-canvas2d",
  "excali-core",
