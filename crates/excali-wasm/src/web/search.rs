@@ -4,7 +4,8 @@
 //! through the menu's state machine against the editor
 //! ([`crate::editor::Editor::with_search_context`]), the debounced search
 //! on a [`SEARCH_DEBOUNCE_MS`] timer, and the navigation to the focused
-//! match ([`crate::editor::Editor::fit_bounds`]).
+//! match ([`crate::editor::Editor::navigate_to`], animated over
+//! [`SEARCH_NAVIGATION_MS`] on animation frames, [`super::animate_viewport`]).
 //!
 //! `app.viewport.getOffsets()` measures the UI marked `data-viewport-ui`;
 //! here it is upstream's 24 px padding on every side plus the sidebar's
@@ -13,7 +14,7 @@
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
-use excali_editor::viewport::Offsets;
+use excali_editor::viewport::{Offsets, SetViewportOptions, ViewportAnimation};
 use excali_ui::dom::Node;
 use excali_ui::keyboard::keystroke;
 use excali_ui::library_sidebar::{CANVAS_SEARCH_TAB, DEFAULT_SIDEBAR_NAME};
@@ -39,6 +40,10 @@ pub(super) struct SearchSession {
     timer: Option<i32>,
     pub(super) generation: u64,
 }
+
+/// The navigation's duration (`animation: { duration: 300 }`,
+/// `SearchMenu.tsx:230-235`), in ms.
+const SEARCH_NAVIGATION_MS: f64 = 300.0;
 
 /// `getOffsets()` as described in the module docs.
 fn offsets() -> Offsets {
@@ -96,7 +101,13 @@ fn apply(weak: &Weak<RefCell<Inner>>, inner: &mut Inner, effects: Vec<SearchEffe
                 }
             }
             SearchEffect::SetViewport { target, fit } => {
-                inner.editor.fit_bounds(target, fit, offsets());
+                inner.editor.navigate_to(SetViewportOptions {
+                    fit,
+                    offsets: Some(offsets()),
+                    animation: ViewportAnimation::Duration(SEARCH_NAVIGATION_MS),
+                    ..SetViewportOptions::new(target)
+                });
+                super::animate_viewport(weak, inner);
             }
             SearchEffect::FocusInput => {
                 if let Some(input) = search_input(inner) {

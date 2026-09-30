@@ -336,6 +336,8 @@ struct Inner {
     library_menu: LibraryMenuState,
     /// The search tab's menu (`SearchMenu`).
     search: search::SearchSession,
+    /// An animation frame of the viewport navigation is requested.
+    viewport_frame_pending: bool,
     /// The header menu's open dialogs, portalled to the body, and what
     /// they were mounted from (`library_menu::dialogs_key`).
     library_dialogs: Vec<excali_ui::primitives::OpenModal>,
@@ -949,6 +951,47 @@ fn hide_cursor_hint(inner: &mut Inner) {
     if let Some((mounted, _)) = inner.cursor_hint.take() {
         mounted.remove();
     }
+}
+
+/// Runs the editor's viewport navigation on animation frames until it
+/// settles, as `AnimationController` (`renderer/animation.ts`) runs
+/// `animateToViewport`: each frame steps it at the frame's timestamp and
+/// paints.
+fn animate_viewport(weak: &Weak<RefCell<Inner>>, inner: &mut Inner) {
+    if inner.viewport_frame_pending || !inner.editor.is_viewport_animating() {
+        return;
+    }
+    inner.viewport_frame_pending = true;
+    request_viewport_frame(weak.clone());
+}
+
+fn request_viewport_frame(weak: Weak<RefCell<Inner>>) {
+    if let Some(window) = web_sys::window() {
+        let callback = Closure::once_into_js(move |now: f64| viewport_frame(&weak, now));
+        let _ = window.request_animation_frame(callback.unchecked_ref());
+    }
+}
+
+fn viewport_frame(weak: &Weak<RefCell<Inner>>, now: f64) {
+    let Some(rc) = weak.upgrade() else {
+        return;
+    };
+    {
+        let Ok(mut inner) = rc.try_borrow_mut() else {
+            // busy: try again on the next frame
+            request_viewport_frame(weak.clone());
+            return;
+        };
+        inner.viewport_frame_pending = false;
+        if !inner.editor.is_viewport_animating() {
+            return;
+        }
+        inner.editor.viewport_frame(now);
+        inner.after_event();
+        let weak = weak.clone();
+        animate_viewport(&weak, &mut inner);
+    }
+    refresh_chrome(weak);
 }
 
 fn set_timeout(ms: f64, f: impl FnOnce() + 'static) {
@@ -2218,6 +2261,7 @@ impl EditorCore {
             sidebar: None,
             library_menu: LibraryMenuState::default(),
             search: search::SearchSession::default(),
+            viewport_frame_pending: false,
             library_dialogs: Vec::new(),
             library_dialogs_key: None,
             previews: std::collections::HashMap::new(),

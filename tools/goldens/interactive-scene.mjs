@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Interactive scene goldens for excali-editor (ex-713): upstream's own
+// Interactive scene goldens for excali-editor (ex-713, search matches
+// ex-714): upstream's own
 // renderInteractiveScene (packages/excalidraw/renderer/interactiveScene.ts,
 // with renderSnaps.ts and renderer/helpers.ts) run from the pinned checkout
 // under Node, drawing on the recording 2D context static-scene.mjs uses.
@@ -183,6 +184,21 @@ const scenes = (up) => {
   const target = (type = "rectangle", extra = {}) =>
     up.newElement({ type, id: "target", x: 180, y: 60, width: 140, height: 100, seed: 8, ...extra });
   const bindingArrow = () => arrow("drawing", [[0, 0], [120, -60]]);
+  const searchTexts = (angle = 0) => [
+    up.newTextElement({ id: "t1", x: 30, y: 40, text: "find me\nand me too", seed: 14, fontSize: 20, angle }),
+    up.newTextElement({ id: "t2", x: 180, y: 150, text: "me", seed: 15, fontSize: 20 }),
+  ];
+  const searchFrames = () => [
+    up.newFrameElement({ id: "f1", x: 20, y: 40, width: 120, height: 90, seed: 17, name: "Frame one" }),
+    up.newFrameElement({ id: "f2", x: 170, y: 40, width: 100, height: 80, seed: 18, name: "Frame two" }),
+    { ...up.newFrameElement({ id: "f3", x: 40, y: 170, width: 160, height: 60, seed: 19, name: "Frame three" }), angle: 0.2 },
+  ];
+  /** A SearchMatch: [offsetX, offsetY, width, height, showOnCanvas] per line. */
+  const match = (id, focus, lines) => ({
+    id,
+    focus,
+    matchedLines: lines.map(([offsetX, offsetY, width, height, showOnCanvas]) => ({ offsetX, offsetY, width, height, showOnCanvas })),
+  });
   const snapLines = [
     { type: "points", points: [[20, 30], [120, 30], [260, 30]] },
     { type: "points", points: [[70, 20], [70, 180]] },
@@ -446,6 +462,87 @@ const scenes = (up) => {
       elements: [text()],
       appState: { selectedElementIds: ids("text") },
       editorInterface: { formFactor: "tablet", userAgent: { isMobileDevice: true } },
+    }),
+    // search matches (the search menu's appState.searchMatches)
+    scene("search-matches-texts", {
+      elements: searchTexts(),
+      appState: {
+        searchMatches: {
+          focusedId: "t2",
+          matches: [
+            match("t1", false, [[0, 0, 40, 25, true], [30, 25, 50, 25, true]]),
+            match("t2", true, [[10, 0, 30, 25, true]]),
+          ],
+        },
+      },
+    }),
+    scene("search-matches-rotated-dark-zoomed", {
+      width: 600,
+      height: 450,
+      scale: 1.5,
+      elements: searchTexts(0.4),
+      appState: {
+        theme: "dark",
+        zoom: { value: 1.5 },
+        scrollX: -12.3,
+        scrollY: 7.7,
+        selectedElementIds: ids("t1"),
+        searchMatches: {
+          focusedId: "t1",
+          matches: [
+            match("t1", true, [[0, 0, 40, 25, true], [30, 25, 50, 25, true]]),
+            match("t2", false, [[10, 0, 30, 25, true]]),
+          ],
+        },
+      },
+    }),
+    scene("search-matches-bound-text", {
+      elements: [
+        rect(up, "box", 40, 40, 200, 120, { boundElements: [{ type: "text", id: "label" }] }),
+        up.newTextElement({ id: "label", x: 90, y: 87.5, text: "label here", seed: 16, fontSize: 20, containerId: "box" }),
+      ],
+      appState: { searchMatches: { focusedId: null, matches: [match("label", false, [[60, 0, 40, 25, true]])] } },
+    }),
+    scene("search-matches-frames", {
+      elements: searchFrames(),
+      appState: {
+        zoom: { value: 2 },
+        scrollX: -10,
+        searchMatches: {
+          focusedId: "f3",
+          matches: [
+            match("f1", false, [[0, -18, 36, 14, true]]),
+            match("f2", false, [[0, -18, 36, 14, false]]),
+            match("f3", true, [[4, -18, 28, 14, false]]),
+          ],
+        },
+      },
+    }),
+    scene("search-matches-frames-zoomed-out-dark", {
+      elements: searchFrames(),
+      appState: {
+        theme: "dark",
+        zoom: { value: 0.5 },
+        scrollX: 30,
+        scrollY: 20,
+        searchMatches: {
+          focusedId: "f1",
+          matches: [
+            match("f1", true, [[0, -18, 36, 14, true]]),
+            match("f2", false, [[0, -18, 36, 14, true]]),
+          ],
+        },
+      },
+    }),
+    scene("search-matches-missing-and-empty", {
+      elements: searchTexts(),
+      appState: {
+        selectedElementIds: ids("t2"),
+        searchMatches: {
+          focusedId: null,
+          matches: [match("gone", true, [[0, 0, 40, 25, true]]), match("t1", false, []), match("t2", false, [[0, 0, 20, 25, true]])],
+        },
+      },
     }),
   ];
 };

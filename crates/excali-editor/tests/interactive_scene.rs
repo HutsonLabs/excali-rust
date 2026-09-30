@@ -16,7 +16,9 @@
 //! handles, midpoints and hover highlights, the focus point indicator, the
 //! binding highlight with its midpoints and frame clip, the frame and
 //! element highlights, snap lines, the text box and its auto-resize
-//! handle, under zoom, scroll, device pixel ratios and the dark theme.
+//! handle, the search matches (texts, bound text, frames, the focused
+//! match, frame names hidden on the canvas, missing elements, ex-714),
+//! under zoom, scroll, device pixel ratios and the dark theme.
 //!
 //! [`Painter`]: excali_scene::display::Painter
 
@@ -156,6 +158,10 @@ fn the_fixture_covers_the_scope() {
         "snap-lines",
         "text-editing",
         "image-cropping",
+        "search-matches-texts",
+        "search-matches-rotated-dark-zoomed",
+        "search-matches-frames",
+        "search-matches-missing-and-empty",
     ] {
         assert!(names.iter().any(|n| n == name), "no scene {name}");
     }
@@ -222,6 +228,19 @@ fn from_app_state_reads_upstream_json() {
     let s = scene("snap-lines");
     let state = InteractiveCanvasAppState::from_app_state(s["appState"].as_object().unwrap());
     assert_eq!(state.snap_lines.len(), 5);
+
+    let s = scene("search-matches-frames");
+    let state = InteractiveCanvasAppState::from_app_state(s["appState"].as_object().unwrap());
+    assert_eq!(state.search_matches.len(), 3);
+    let focused = &state.search_matches[2];
+    assert_eq!(focused.id, "f3");
+    assert!(focused.focus);
+    let line = &focused.matched_lines[0];
+    assert_eq!(
+        (line.offset_x, line.offset_y, line.width, line.height),
+        (4.0, -18.0, 28.0, 14.0)
+    );
+    assert!(!line.show_on_canvas);
 
     // the defaults of an empty app state
     let empty = InteractiveCanvasAppState::from_app_state(&serde_json::Map::new());
