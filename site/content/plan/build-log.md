@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-29 · ex-522 · Help dialog with the three shortcut islands
+
+The editor now has upstream's Help dialog. Pressing `?` or the footer's help button opens it, and it shows the four header links (Documentation, blog, GitHub issues, YouTube) and, under "Keyboard shortcuts", the Tools, View and Editor islands row for row as upstream shows them. The rows follow the platform: Cmd/Option on a Mac, Ctrl+Y for redo on Windows, one command palette shortcut in Firefox, copy as PNG only with the async clipboard, and toggle theme only when the host enables the theme action. Esc, a click on the backdrop or the close button (on phones) closes it and clears `openMenu` and `openDialog`. The shortcuts page has a new "Help dialog" section with the dialog's three tables, and a test fails if the page and the dialog stop matching. PR: [#126](https://github.com/HutsonLabs/excali-rust/pull/126).
+
 ## 2026-09-29 · ex-604 · term.hut: Import library from URL or file with the allow-list
 
 ex-604. The work is in term.hut: [HutsonLabs/term.hut#90](https://github.com/HutsonLabs/term.hut/pull/90), merged as `4708ba2` on 2026-09-29. This PR records it on the term.hut integration page, in the library-import section. The tracker close and the build-log entry are the integrator's, after the merge. PR: [#123](https://github.com/HutsonLabs/excali-rust/pull/123).
