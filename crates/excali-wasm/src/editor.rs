@@ -626,6 +626,12 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         serialize_library_as_json(&self.library, &self.source)
     }
 
+    /// These items as a `.excalidrawlib` file (`serializeLibraryAsJSON`),
+    /// as `saveLibraryAsJSON` and the publish dialog's submission write it.
+    pub fn library_items_json(&self, items: &[LibraryItem]) -> String {
+        serialize_library_as_json(items, &self.source)
+    }
+
     pub(crate) fn selected_ids(&self) -> Vec<String> {
         self.session
             .app_state()
@@ -1132,6 +1138,17 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// background on white, no embeddables, fonts not inlined; the `<svg>`
     /// element's markup.
     pub fn library_item_svg(&self, elements: &[Element]) -> String {
+        self.item_svg(elements, false)
+    }
+
+    /// A publish dialog item's preview (`SingleLibraryItem`,
+    /// `PublishLibrary.tsx:124-141`): `exportToSvg` of its elements on the
+    /// dialog's white background, fonts not inlined.
+    pub fn publish_item_svg(&self, elements: &[Element]) -> String {
+        self.item_svg(elements, true)
+    }
+
+    fn item_svg(&self, elements: &[Element], background: bool) -> String {
         struct NoFonts;
         impl FontContent for NoFonts {
             fn content(&self, _: &excali_scene::display::FontFaceSource) -> String {
@@ -1139,7 +1156,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             }
         }
         let mut state = SvgExportAppState::new("#ffffff");
-        state.export_background = false;
+        state.export_background = background;
         let metrics = Measure(&self.session.env.layouter.provider);
         let mut options = SvgExportOptions::new(&self.source, &metrics);
         options.clock = self.session.env.render_clock();

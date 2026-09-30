@@ -10,7 +10,8 @@
 //! (`excali_ui::welcome_screen`), the cursor hint after an arrow or line
 //! shortcut, and the library sidebar with
 //! LayerUI's trigger for it (`excali_ui::library_sidebar`), into which
-//! library items dragged onto the canvas drop. Keys are listened to on the
+//! library items dragged onto the canvas drop, with its header menu's
+//! files and dialogs (`library_menu`). Keys are listened to on the
 //! container, as `Excalidraw` does with `handleKeyboardGlobally` off (its
 //! default); pointer presses on the interactive canvas, which captures the
 //! pointer until the release. Each event goes to the [`Editor`], then the
@@ -22,6 +23,8 @@
 
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
+
+mod library_menu;
 
 use excali_canvas2d::{paint, WebCanvas};
 use excali_core::png::{encode_chunks, encode_text_chunk, extract_chunks};
@@ -93,7 +96,9 @@ use crate::env::EditorEnv;
 /// The element's own rules: the host is a positioned block filling its
 /// parent, as the `Excalidraw` component fills its own, the container
 /// fills it, and the toolbar island sits centred at the top, as upstream's
-/// `App-menu_top` places it (`LayerUI.tsx`, `css/styles.scss`).
+/// `App-menu_top` places it (`LayerUI.tsx`, `css/styles.scss`); a
+/// dialog's portal container in the body has upstream's `.excalidraw` box
+/// (`css/styles.scss:40-60`), so its modal covers the page.
 pub const ELEMENT_CSS: &str = "\
 excali-editor {
   display: block;
@@ -131,6 +136,17 @@ excali-editor .excali-editor__top-left {
   top: var(--editor-container-padding, 1rem);
   left: var(--editor-container-padding, 1rem);
   z-index: 4;
+}
+.excalidraw.excalidraw-modal-container {
+  overflow: hidden;
+  color: var(--text-primary-color);
+  display: flex;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  width: 100%;
 }
 ";
 
@@ -284,6 +300,10 @@ struct Inner {
     library_trigger: Option<Mounted>,
     sidebar: Option<Mounted>,
     library_menu: LibraryMenuState,
+    /// The header menu's open dialogs, portalled to the body, and what
+    /// they were mounted from (`library_menu::dialogs_key`).
+    library_dialogs: Vec<excali_ui::primitives::OpenModal>,
+    library_dialogs_key: Option<Value>,
     /// Each library item's preview, by id, with the elements it shows.
     previews: std::collections::HashMap<String, (u64, String)>,
     /// The text editor's box (`.excalidraw-textEditorContainer`) and the
@@ -485,6 +505,7 @@ fn library_menu_key(state: &LibraryMenuState) -> Value {
         "menuOpen": state.menu_open,
         "tabStop": state.tab_stop,
         "rerendered": state.rerendered,
+        "dialogs": library_menu::dialogs_key(state),
     })
 }
 
@@ -608,6 +629,7 @@ fn refresh_chrome(weak: &Weak<RefCell<Inner>>) {
     let _ = render_footer(weak);
     let _ = render_main_menu(weak);
     let _ = render_library_sidebar(weak);
+    let _ = library_menu::render_library_dialogs(weak);
     let _ = render_help_dialog(weak);
     let _ = render_command_palette(weak);
     let _ = render_welcome_center(weak);
@@ -1092,8 +1114,23 @@ fn library_context<'a>(
     }
 }
 
-/// A sidebar event, run through `update` and applied to the editor.
-fn library_event(inner: &mut Inner, event: LibrarySidebarEvent) {
+/// A sidebar event, run through `update` and applied to the editor; the
+/// effects that wait on the user or the network are returned for
+/// `library_menu` to run once the editor is released.
+fn library_event(inner: &mut Inner, event: LibrarySidebarEvent) -> Vec<LibraryEffect> {
+    let mut jobs = Vec::new();
+    let mut events = vec![event];
+    while let Some(event) = events.pop() {
+        jobs.extend(library_event_once(inner, event, &mut events));
+    }
+    jobs
+}
+
+fn library_event_once(
+    inner: &mut Inner,
+    event: LibrarySidebarEvent,
+    answers: &mut Vec<LibrarySidebarEvent>,
+) -> Vec<LibraryEffect> {
     let items = inner.editor.library().to_vec();
     let pending = inner.editor.pending_library_elements();
     let cx = library_context(inner, &items, &pending);
@@ -1103,33 +1140,43 @@ fn library_event(inner: &mut Inner, event: LibrarySidebarEvent) {
         .editor
         .with_restore_env(|env| update_library(&mut state, event, &cx, env));
     inner.library_menu = state;
+    let mut jobs = Vec::new();
     for effect in out.effects {
+        if library_menu::is_job(&effect) {
+            jobs.push(effect);
+            continue;
+        }
         match effect {
             LibraryEffect::SetAppState(patch) => inner.editor.set_app_state(patch),
-            LibraryEffect::FocusContainer => {
-                let _ = inner.container.focus();
-            }
             LibraryEffect::Insert(ids) => {
                 inner.editor.insert_library(&ids, None, docked_and_fits);
             }
             LibraryEffect::SetLibrary(items) => inner.editor.set_library(items),
-            LibraryEffect::ResetLibrary => inner.editor.set_library(Vec::new()),
+            LibraryEffect::ResetLibrary => {
+                inner.editor.set_library(Vec::new());
+                inner.previews.clear();
+            }
             LibraryEffect::DeletePreviews(ids) => {
                 for id in ids {
                     inner.previews.remove(&id);
                 }
             }
-            // the host owns analytics and files (the element's
-            // importLibrary and exportLibrary); the menu's confirm and
-            // publish dialogs are ex-537's
+            // as the publish dialog mounts
+            LibraryEffect::LoadPublishData => answers.push(LibrarySidebarEvent::PublishDataLoaded(
+                library_menu::load_publish_data(),
+            )),
+            LibraryEffect::SavePublishData(data) => library_menu::save_publish_data(data.as_ref()),
+            LibraryEffect::Alert(message) => library_menu::alert(&message),
+            // the host owns analytics; the focus, the files and the
+            // submission are jobs
             LibraryEffect::TrackEvent(..)
+            | LibraryEffect::FocusContainer
             | LibraryEffect::LoadLibrary
             | LibraryEffect::ExportLibrary(_)
-            | LibraryEffect::ConfirmReset
-            | LibraryEffect::ConfirmRemove { .. }
-            | LibraryEffect::Publish(_) => {}
+            | LibraryEffect::SubmitLibrary { .. } => {}
         }
     }
+    jobs
 }
 
 /// A preview's markup as a node: an `<svg>` replaced by the export's once
@@ -1178,19 +1225,8 @@ fn render_library_sidebar(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
         previews.pending = Some(preview_node(inner.editor.library_item_svg(&pending)));
     }
     let events = weak.clone();
-    let on_event = Rc::new(move |event: LibrarySidebarEvent| {
-        let Some(rc) = events.upgrade() else {
-            return;
-        };
-        {
-            let Ok(mut inner) = rc.try_borrow_mut() else {
-                return;
-            };
-            library_event(&mut inner, event);
-            inner.after_event();
-        }
-        refresh_chrome(&events);
-    }) as Rc<dyn Fn(LibrarySidebarEvent)>;
+    let on_event = Rc::new(move |event: LibrarySidebarEvent| library_menu::dispatch(&events, event))
+        as Rc<dyn Fn(LibrarySidebarEvent)>;
     let dark = inner
         .editor
         .app_state()
@@ -1964,6 +2000,8 @@ impl EditorCore {
             library_trigger: None,
             sidebar: None,
             library_menu: LibraryMenuState::default(),
+            library_dialogs: Vec::new(),
+            library_dialogs_key: None,
             previews: std::collections::HashMap::new(),
             editor_box,
             overlay: None,
@@ -2395,6 +2433,9 @@ impl EditorCore {
             overlay.unmount();
         }
         if let Some(dialog) = inner.help_dialog.take() {
+            dialog.close();
+        }
+        for dialog in std::mem::take(&mut inner.library_dialogs) {
             dialog.close();
         }
         if let Some(palette) = inner.palette.take() {

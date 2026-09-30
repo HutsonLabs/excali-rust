@@ -10,7 +10,13 @@
  * packages/excalidraw/components/Sidebar/SidebarTrigger.scss,
  * packages/excalidraw/components/Sidebar/Sidebar.scss
  * at the pin, compiled with sass 1.51.0 (expanded) as one entry that
- * @uses each in this order. */
+ * @uses each in this order, after the sidebar's and the dialogs'
+ * z-index tokens of css/styles.scss's :root. */
+.excalidraw {
+  --zIndex-ui-library: 120;
+  --zIndex-modal: 1000;
+}
+
 .excalidraw .Spinner {
   display: flex;
   align-items: center;

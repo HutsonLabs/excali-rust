@@ -25,7 +25,9 @@ class ExcaliEditorElement extends HTMLElement {
     }
     this.#core = new EditorCore(
       this,
-      (type, detail) => this.#emit(type, detail, type === "open-link"),
+      // a host answers open-link and library-publish with preventDefault()
+      (type, detail) =>
+        this.#emit(type, detail, type === "open-link" || type === "library-publish"),
       EXCALI_FONTS_BASE,
     );
     this.#core.setTheme(this.getAttribute("theme") || "light");
