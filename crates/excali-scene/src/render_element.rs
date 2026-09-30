@@ -552,7 +552,11 @@ pub(crate) fn draw_element_on_canvas(
     let generator = RoughGenerator::new();
     let shape_config = RenderConfig {
         is_exporting: config.is_exporting,
-        canvas_background_color: &config.canvas_background_color,
+        canvas_background_color: config
+            .host_canvas_background
+            .as_deref()
+            .unwrap_or(&config.canvas_background_color),
+        canvas_background_unfiltered: config.host_canvas_background.is_some(),
         embeds_validation_status: Some(&config.embeds_validation_status),
         theme: config.theme,
     };

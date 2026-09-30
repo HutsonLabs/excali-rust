@@ -425,6 +425,8 @@ pub fn export_to_canvas(
     };
     let render_config = StaticCanvasRenderConfig {
         canvas_background_color: opts.view_background_color.clone(),
+        // an export keeps the scene's own background (ex-807)
+        host_canvas_background: None,
         image_cache,
         render_grid: false,
         is_exporting: true,

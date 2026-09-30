@@ -584,6 +584,7 @@ fn app_state(value: &Value) -> StaticCanvasAppState {
 fn render_config(value: &Value) -> StaticCanvasRenderConfig {
     StaticCanvasRenderConfig {
         canvas_background_color: value["canvasBackgroundColor"].as_str().unwrap().to_owned(),
+        host_canvas_background: None,
         render_grid: value["renderGrid"].as_bool().unwrap(),
         is_exporting: value["isExporting"].as_bool().unwrap(),
         theme: if value["theme"] == "dark" {

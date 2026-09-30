@@ -98,6 +98,7 @@ fn check_file(file: &str) -> usize {
         let config = RenderConfig {
             is_exporting,
             canvas_background_color: &background,
+            canvas_background_unfiltered: false,
             embeds_validation_status: Some(&embeds),
             theme,
         };
@@ -196,6 +197,7 @@ fn linear_body(c: &Value) -> Drawable {
     let config = RenderConfig {
         is_exporting,
         canvas_background_color: &background,
+        canvas_background_unfiltered: false,
         embeds_validation_status: Some(&embeds),
         theme,
     };
@@ -284,6 +286,7 @@ fn elbow_arrow_bodies_match_upstream() {
         let config = RenderConfig {
             is_exporting,
             canvas_background_color: &background,
+            canvas_background_unfiltered: false,
             embeds_validation_status: Some(&embeds),
             theme,
         };
@@ -325,6 +328,7 @@ fn check_arrows(file: &str) -> usize {
         let config = RenderConfig {
             is_exporting,
             canvas_background_color: &background,
+            canvas_background_unfiltered: false,
             embeds_validation_status: Some(&embeds),
             theme,
         };

@@ -92,6 +92,7 @@ fn render_config(value: &Value, images: &Value) -> StaticCanvasRenderConfig {
         .unwrap_or_default();
     StaticCanvasRenderConfig {
         canvas_background_color: value["canvasBackgroundColor"].as_str().unwrap().to_owned(),
+        host_canvas_background: None,
         image_cache: images
             .as_object()
             .unwrap()
