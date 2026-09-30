@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-30 · ex-m8 · M8: v26.9.1 released on GitHub
+
+Milestone M8 is met: tag `v26.9.1` is on GitHub, its release (https://github.com/HutsonLabs/excali-rust/releases/tag/v26.9.1) carries the ES module + WASM tarball `excali-web_26.9.1.tar.gz` with its SHA-256 in `SHA256SUMS`, and the release notes now link the transcript of the integration guide walked in a fresh clone (https://hutsonlabs.github.io/excali-rust/architecture/integration-walk/). crates.io is not required (ex-801 deferred by the owner). PR: [#157](https://github.com/HutsonLabs/excali-rust/pull/157).
+
 ## 2026-09-30 · ex-804 · Tag v26.9.1 and publish the GitHub release
 
 excali-rust has its first release, v26.9.1: the annotated tag `v26.9.1` is on `main` and the GitHub release https://github.com/HutsonLabs/excali-rust/releases/tag/v26.9.1 carries the web runtime `excali-web_26.9.1.tar.gz` (the `<excali-editor>` ES module, its WASM, the stylesheet and the fonts) and its `SHA256SUMS`, with release notes that say what the release does and how a host takes it (`scripts/release/fetch.sh 26.9.1 <dir>`, the `excali` CLI and `tauri-plugin-excali` by git tag). Nothing is published to crates.io, npm or any other registry. The notes live in `scripts/release/notes/v26.9.1.md`, and the release workflow now uses `scripts/release/notes/<tag>.md` for a tag that has one. The site home page, the Phase 8 plan, the integration guide (the plugin's git tag is now `v26.9.1`) and the README status name the release. PR: [#156](https://github.com/HutsonLabs/excali-rust/pull/156).
