@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-30 17:40 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-30 18:24 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**166 issues** · 161 closed (97%) · 0 in progress · 0 blocked · 3 open
+**168 issues** · 162 closed (96%) · 0 in progress · 0 blocked · 4 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -205,7 +205,7 @@ Vendored module in term.hut with CRUD and library import; tauri-plugin-excali wi
 
 ## ex-e7 · Phase 7: Parity and polish
 
-<span class="status open">open</span> 15/16 children closed
+<span class="status open">open</span> 15/18 children closed
 
 Tablet and phone layouts, remaining tools, accessibility, performance budgets, locale loader, parity checklist to 100%.
 
@@ -226,11 +226,13 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 | `ex-713` | <excali-editor>: the interactive canvas and the App interactions ex-712 reduced | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-714` | Search matches drawn on the interactive canvas | task | P3 | <span class="status closed">closed</span> |  |  |
 | `ex-715` | Lazy UI construction to cut first paint | task | P2 | <span class="status deferred">deferred</span> |  |  |
-| `ex-m7` | M7: parity checklist 100% for v1 scope | milestone | P2 | <span class="status closed">closed</span> |  |  |
+| `ex-810` | <excali-editor>: load() keeps a host-controlled theme | bug | P1 | <span class="status open">open</span> | yes |  |
+| `ex-811` | <excali-editor>: narrow panes keep the main menu off the toolbar and the canvas hint off the scene | bug | P2 | <span class="status open">open</span> | yes |  |
+| `ex-m7` | M7: parity checklist 100% for v1 scope | milestone | P2 | <span class="status closed">closed</span> |  | `ex-810`, `ex-811` |
 
 ## ex-e8 · Phase 8: Release
 
-<span class="status open">open</span> 8/10 children closed
+<span class="status open">open</span> 9/10 children closed
 
 First calendar release v26.9.1 (ADR-009): ES module + WASM tarball as a GitHub release asset, integration guide walked by an agent in a fresh clone, tag and gh release. crates.io publishing (ex-801) is deferred by the owner.
 
@@ -244,8 +246,8 @@ First calendar release v26.9.1 (ADR-009): ES module + WASM tarball as a GitHub r
 | `ex-806` | Release v26.9.2 with the signed macOS app and updater | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-807` | <excali-editor>: host-controlled theme and the host's canvas background | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-808` | Release v26.9.3 with host theming | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-809` | term.hut: the editor is the only drawing view, in term.hut's theme, at v26.9.3 | task | P1 | <span class="status open">open</span> | yes |  |
-| `ex-m8` | M8: v26.9.1 released on GitHub | milestone | P2 | <span class="status closed">closed</span> |  | `ex-809` |
+| `ex-809` | term.hut: the editor is the only drawing view, in term.hut's theme, at v26.9.3 | task | P1 | <span class="status closed">closed</span> |  |  |
+| `ex-m8` | M8: v26.9.1 released on GitHub | milestone | P2 | <span class="status closed">closed</span> |  |  |
 
 ## Unfiled
 
