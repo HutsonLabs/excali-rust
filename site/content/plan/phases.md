@@ -101,6 +101,8 @@ Each phase is an epic in the tracker (`ex-e0` … `ex-e8`). A milestone is reach
 
 ## Phase 7 — Parity and polish (`ex-e7`)
 
+**Status (2026-09-30): M7 reached.** Every phase 7 task (ex-701 to ex-714) is merged. All 64 rows of the [parity checklist](@/plan/parity.md) are `pass`: each is one test of `tests/web/specs/parity.spec.mjs`, run on `<excali-editor>` in Chromium by the `web-runtime` job of `.github/workflows/rust.yml` on every pull request and push to `main`, and a row still marked `gap` would run as an expected failure, so the checklist cannot claim a row the element does not do. The budgets run in the `web-perf` job on the pinned self-hosted runner (`[self-hosted, excali-perf]`, an M4 Pro), with each measurement normalised by a calibration workload (reference 130 ms) and compared by `scripts/gates/perf_budget.py`; on ex-710's pull request (<https://github.com/HutsonLabs/excali-rust/actions/runs/36681607377>) first paint after module load was 156.6 ms normalised against 300 ms (52.2%) and the p95 pan frame at 1,000 elements 4.8 ms against 16.7 ms (28.8%), with the release WASM at 1,464,581 bytes gzip against 1,500,000. To verify, run `scripts/web/build.sh`, `npx playwright test specs/parity.spec.mjs` in `tests/web`, `scripts/web/perf.sh --no-build`, then `bd show ex-m7`.
+
 Tablet and phone layouts; compact styles panel; sticky notes, bucket fill, lasso, autoshape, image crop, frames with names, search; accessibility (focus order, ARIA on controls, reduced motion); performance budgets (60 fps pan at 1,000 elements on a 2020 laptop; first paint under 300 ms after module load); locale loader with the upstream JSON files.
 
 **Milestone M7.** [Parity checklist](@/plan/parity.md) at 100% for the v1 scope; budgets met in CI on a pinned runner.
