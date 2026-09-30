@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-30 · ex-dm2 · CI on main: never cancel the full suite; skip rust for tracker-only commits
+
+Every push to main now finishes the full Rust suite: `rust.yml` and `gates.yml` cancel superseded runs on pull requests only (`cancel-in-progress: ${{ github.event_name == 'pull_request' }}`), so the integrator's `<id>: close in tracker, build log` commit no longer cancels the merge commit's full-suite run. That commit touches only `.beads/issues.jsonl`, `site/content/plan/progress.md` and `site/content/plan/build-log.md`, and `rust.yml` skips pushes that touch only those files (`paths-ignore` on `push`; pull requests and `gates.yml` stay unfiltered). ex-dm2 is added to `plan/tasks.json` under ex-e0. PR: [#154](https://github.com/HutsonLabs/excali-rust/pull/154).
+
 ## 2026-09-30 · ex-b4q · Fix main: CI red (gates https://github.com/HutsonLabs/excali-rust/actions/runs/36683002882 17c7440)
 
 `scripts/upstream/checkout.sh` now retries its upstream fetch with doubling delays (4 attempts, 5 s first delay; `UPSTREAM_FETCH_ATTEMPTS` / `UPSTREAM_FETCH_DELAY`) when git reports a transport failure (DNS, connection, TLS, HTTP 5xx), so a momentary network blip on a hosted runner no longer turns main red. A server that refuses fetch-by-sha still falls back to fetching all refs at once, and a persistent network failure now stops with "failed after N attempts" instead of wrongly reporting "fetch by sha refused" and falling through. PR: [#153](https://github.com/HutsonLabs/excali-rust/pull/153).
