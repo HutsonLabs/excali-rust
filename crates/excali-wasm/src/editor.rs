@@ -3491,6 +3491,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         let map = ElementsMap::new(live.iter().copied());
         let all = ElementsMap::new(elements.iter());
         let mut new_bitmaps = Vec::new();
+        // bitmaps made for this frame alone (the crop editor's preview)
+        let mut previews = Vec::new();
         let list = render_static_scene_cached(
             &StaticScene {
                 canvas_width: width,
@@ -3504,7 +3506,10 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 text_metrics: &self.session.env.layouter.provider,
             },
             &mut self.bitmaps,
-            &mut |_: &Element, id: &str, canvas: ElementCanvas| {
+            &mut |element: &Element, id: &str, canvas: ElementCanvas| {
+                if id != bitmap_id(&element.base.id) {
+                    previews.push(id.to_owned());
+                }
                 new_bitmaps.push((id.to_owned(), canvas));
             },
         );
@@ -3532,6 +3537,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             .chain(config.pending_flowchart_nodes.iter())
             .filter(|e| self.bitmaps.get(&e.base.id).is_some())
             .map(|e| bitmap_id(&e.base.id))
+            .chain(previews)
             .collect();
         let mut dropped_bitmaps: Vec<String> =
             self.host_bitmaps.difference(&held).cloned().collect();
