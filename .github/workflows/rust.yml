@@ -237,44 +237,78 @@ jobs:
             tests/web/test-results/
           retention-days: 14
   # ex-710: the performance budgets (site/content/plan/phases.md#budgets),
-  # first paint after module load and a pan frame at 1,000 elements, on a
-  # pinned runner: ubuntu-24.04 x64 and Playwright's Chromium (the macos-15
-  # M1 virtual machine was too noisy to hold a budget; the phases page has
-  # the numbers). The release is built in a step of its own so the
-  # measurements do not share the machine with the build; then
-  # scripts/web/perf.sh runs tests/web/perf and fails when a measurement is
-  # over its budget (scripts/gates/perf_budget.py).
+  # first paint after module load and a pan frame at 1,000 elements, on the
+  # pinned self-hosted runner (macOS arm64, Apple M4 Pro, this repository
+  # only; GitHub's macos-15 and ubuntu-24.04 runners varied too much between
+  # runs to hold a budget, the phases page has the numbers). Each
+  # measurement is normalised by a calibration workload timed in the same
+  # browser just before it (tests/web/perf/page/calibrate.html), which also
+  # absorbs other builds sharing the machine. The repository is public: the
+  # job runs for pushes and for pull requests from its own branches, never
+  # for a fork's. Everything it installs (cargo home, wasm-bindgen, binaryen,
+  # node modules, Chromium) goes into the job's workspace and is removed at
+  # the end. The release is built in a step of its own so the measurements
+  # do not share the machine with the build; then scripts/web/perf.sh runs
+  # tests/web/perf and fails when a normalised measurement is over its
+  # budget (scripts/gates/perf_budget.py).
   web-perf:
-    runs-on: ubuntu-24.04
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, excali-perf]
+    env:
+      CARGO_HOME: ${{ github.workspace }}/.ci/cargo
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.ci/ms-playwright
+      npm_config_cache: ${{ github.workspace }}/.ci/npm
     steps:
       - uses: actions/checkout@v7
+      - name: the runner's rustup and the job's cargo bin on PATH
+        run: |
+          # Homebrew's rustup keeps its cargo proxies out of the prefix's bin
+          command -v cargo >/dev/null || echo "$(brew --prefix rustup)/bin" >> "$GITHUB_PATH"
+          mkdir -p "$CARGO_HOME/bin"
+          echo "$CARGO_HOME/bin" >> "$GITHUB_PATH"
       - name: toolchain (from rust-toolchain.toml)
         run: rustup toolchain install
-      - uses: Swatinem/rust-cache@v2
+      - name: wasm-bindgen-cli version (Cargo.lock)
+        id: wasm-bindgen
+        run: echo "version=$(awk '/^name = "wasm-bindgen"$/ { getline; gsub(/"/, "", $3); print $3; exit }' Cargo.lock)" >> "$GITHUB_OUTPUT"
+      - name: wasm-bindgen-cli cache
+        id: wasm-bindgen-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: .ci/cargo/bin/wasm-bindgen
+          key: wasm-bindgen-${{ steps.wasm-bindgen.outputs.version }}-${{ runner.os }}-${{ runner.arch }}
       - name: wasm-bindgen-cli at the Cargo.lock version
-        run: |
-          want="$(awk '/^name = "wasm-bindgen"$/ { getline; gsub(/"/, "", $3); print $3; exit }' Cargo.lock)"
-          if [ "$(wasm-bindgen --version 2>/dev/null | awk '{ print $2 }')" != "$want" ]; then
-            cargo install --locked wasm-bindgen-cli --version "$want"
-          fi
+        if: steps.wasm-bindgen-cache.outputs.cache-hit != 'true'
+        run: cargo install --locked wasm-bindgen-cli --version "${{ steps.wasm-bindgen.outputs.version }}"
+      - name: keep wasm-bindgen-cli
+        if: steps.wasm-bindgen-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: .ci/cargo/bin/wasm-bindgen
+          key: wasm-bindgen-${{ steps.wasm-bindgen.outputs.version }}-${{ runner.os }}-${{ runner.arch }}
       - name: binaryen (pinned) cache
-        uses: actions/cache@v6
+        id: binaryen-cache
+        uses: actions/cache/restore@v6
         with:
           path: .tools/binaryen-version_133
           key: binaryen-version_133-${{ runner.os }}-${{ runner.arch }}
       - name: build the web runtime
         run: scripts/web/build.sh
+      - name: keep binaryen
+        if: steps.binaryen-cache.outputs.cache-hit != 'true' && hashFiles('.tools/binaryen-version_133/**') != ''
+        uses: actions/cache/save@v6
+        with:
+          path: .tools/binaryen-version_133
+          key: binaryen-version_133-${{ runner.os }}-${{ runner.arch }}
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: tests/web/package-lock.json
       - name: install
         working-directory: tests/web
         run: npm ci
-      - name: install chromium
+      - name: install chromium (into the workspace)
         working-directory: tests/web
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
       - name: first paint and pan at 1,000 elements within budget
         run: scripts/web/perf.sh --no-build
         env:
@@ -288,6 +322,9 @@ jobs:
             tests/web/test-results-perf/
             tests/web/playwright-report-perf/
           retention-days: 14
+      - name: clean up
+        if: always()
+        run: rm -rf .ci .tools target dist tests/web/node_modules tests/web/test-results-perf tests/web/playwright-report-perf
   # ex-217: the golden harness (excali_rough::goldens, cargo feature
   # `goldens`) and every parity target that compares with goldens/ through it,
   # on arm64, the architecture the goldens were generated on (the check job

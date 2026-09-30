@@ -12,13 +12,13 @@
      machine busy with other work. Nothing here comes from the port: the
      workload stays the same while the editor changes.
 
-       wasm    compile and instantiate a small module, then 10 million
+       wasm    compile and instantiate a small module, then 16 million
                iterations of an integer hash in it
-       canvas  400 bitmaps of 96 × 96 with curves stroked and an ellipse
+       canvas  200 bitmaps of 96 × 96 with curves stroked and an ellipse
                filled in each (the editor's per-element bitmaps), blitted
-               onto a 1000 × 700 canvas in 12 passes, each read back with
+               onto a 1000 × 700 canvas in 6 passes, each read back with
                getImageData so the drawing cannot stay deferred
-       js      5,000 records through JSON.stringify and JSON.parse, into a
+       js      10,000 records through JSON.stringify and JSON.parse, into a
                Map by string key and sorted
 
      window.calibration: { ms, parts: { wasmMs, canvasMs, jsMs }, wasm,
@@ -43,11 +43,11 @@
     65, 185, 224, 0, 106, 32, 1, 115, 33, 2, 32, 1, 65, 1, 106, 34, 1, 32, 0, 72, 13, 0, 11,
     32, 2, 11,
   ]);
-  const ITERATIONS = 10_000_000;
-  const BITMAPS = 400;
+  const ITERATIONS = 16_000_000;
+  const BITMAPS = 200;
   const SIZE = 96;
-  const PASSES = 12;
-  const RECORDS = 5_000;
+  const PASSES = 6;
+  const RECORDS = 10_000;
 
   // xorshift32 from a fixed seed: the same drawing on every run
   let seed = 2463534242;

@@ -40,7 +40,7 @@ const FIRST_PAINT_RUNS = 5;
 const FIRST_PAINT_WARMUP = 1;
 const PAN_ROUNDS = 3;
 // the calibration's wasm hash (calibrate.html) over this many iterations
-const CALIBRATION_ITERATIONS = 10_000_000;
+const CALIBRATION_ITERATIONS = 16_000_000;
 
 /** Merges `entry` into the results file. */
 const record = (entry) => {

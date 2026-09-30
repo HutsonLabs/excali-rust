@@ -7,10 +7,11 @@
 #
 # 1. Builds the release into dist/ (scripts/web/build.sh) unless --no-build.
 # 2. Runs the Playwright suite tests/web/perf (playwright.perf.config.mjs),
-#    which writes the measurements to PERF_RESULTS.
-# 3. Holds them to the budgets: scripts/gates/perf_budget.py.
+#    which writes the measurements and their calibrations to PERF_RESULTS.
+# 3. Holds them, normalised by the calibrations, to the budgets:
+#    scripts/gates/perf_budget.py.
 #
-# CI runs this on every PR on a pinned runner (rust.yml, job web-perf), with
+# CI runs this on the pinned self-hosted runner (rust.yml, job web-perf), with
 # --no-build after a build step of its own.
 #
 # Needs: what scripts/web/build.sh needs, and `npm ci` plus

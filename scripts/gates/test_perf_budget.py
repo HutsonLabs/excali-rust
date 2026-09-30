@@ -185,7 +185,7 @@ class CheckTest(unittest.TestCase):
         self.assertEqual(code, 1, out)
 
     def test_the_page_sets_the_reference(self):
-        code, out = self.run_check(self.results(), page(self.tmp, calibration="10 ms"))
+        code, out = self.run_check(self.results(), page(self.tmp, calibration="1000 ms"))
         self.assertEqual(code, 1, out)
 
     def test_a_missing_or_bad_measurement_fails(self):
