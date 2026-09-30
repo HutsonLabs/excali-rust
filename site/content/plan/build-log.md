@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-29 · ex-m6 · M6: term.hut CRUD and library import end to end
+
+Phase 6 milestone M6 is reached. term.hut creates, opens, edits, saves and deletes a `.excalidraw` drawing and imports a library from a libraries.excalidraw.com link or a `.excalidrawlib` file, with the editor loaded as a vendored ES module and no build step (D4), and this now runs in term.hut's own CI; the example Tauri app embeds the same module and opens, saves and exports PNG and SVG through `tauri-plugin-excali` (D5). This PR updates the phase 6 status in `site/content/plan/phases.md` and in the README. It changes no code. PR: [#142](https://github.com/HutsonLabs/excali-rust/pull/142).
+
 ## 2026-09-29 · ex-535 · Element type conversion: convertElementTypes and the Tab / Shift+Tab convert popup
 
 Element type conversion now works in the editor. Select shapes and press Tab: the convert popup opens under the selection and lists the types the selection can become, with the current one pressed. Each further Tab changes the selection to the next type and Shift+Tab to the previous one. Rectangles, diamonds and ellipses cycle among themselves; lines and unbound arrows cycle through line, sharp, curved and elbow arrow. Each conversion is one undo step. Clicking a type converts to it and moves focus to the popup, so Tab keeps cycling from there. Escape, a press on the canvas, or selecting a different kind of element closes the popup. PR: [#140](https://github.com/HutsonLabs/excali-rust/pull/140).
