@@ -41,7 +41,7 @@
 // and EyeDropper.scss compiled (expanded) as one entry.
 //
 // Top-picks customisation (drag and drop, its context menu and tip,
-// customizableTopPicks) is not rendered: no case passes
+// customizableTopPicks) is color-top-picks-dnd.mjs's: no case here passes
 // customizableTopPicks.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -59,7 +59,7 @@ export const STYLESHEET = join("src", "color_picker", "color_picker.css");
 
 export const STYLESHEETS = ["components/ColorPicker/ColorPicker.scss", "components/EyeDropper.scss"];
 
-const ENTRY = `
+export const ENTRY = `
 export { ColorPicker } from "./packages/excalidraw/components/ColorPicker/ColorPicker";
 export { ColorInput } from "./packages/excalidraw/components/ColorPicker/ColorInput";
 export * as utils from "./packages/excalidraw/components/ColorPicker/colorPickerUtils";
@@ -76,7 +76,7 @@ export { createRoot } from "react-dom/client";
 
 // App.tsx (the whole editor) supplies the hooks the picker reads; the shim
 // answers them from globalThis.__ui.
-const SHIMS = {
+export const SHIMS = {
   "packages/excalidraw/components/App": `
     module.exports = {
       useApp: () => globalThis.__ui.app,
@@ -99,7 +99,7 @@ const SHIMS = {
   "packages/excalidraw/analytics": `module.exports = { trackEvent: () => {} };`,
 };
 
-const STUBS = ["fuzzy", "pica", "image-blob-reduce", "browser-fs-access"];
+export const STUBS = ["fuzzy", "pica", "image-blob-reduce", "browser-fs-access"];
 
 const usage = () => {
   process.stderr.write("usage: color-picker.mjs [--check] [--out DIR]\n");
@@ -118,7 +118,7 @@ const parseArgs = (argv) => {
 
 // -- DOM ----------------------------------------------------------------------
 
-const installDom = () => {
+export const installDom = () => {
   const dom = new JSDOM("<!doctype html><html><head></head><body></body></html>", {
     url: "http://localhost/",
     pretendToBeVisual: true,
@@ -212,7 +212,7 @@ const styleOf = (node) => {
   return {};
 };
 
-const staticIcons = (icons) =>
+export const staticIcons = (icons) =>
   Object.entries(icons).filter(
     ([, value]) => value && value.$$typeof === Symbol.for("react.transitional.element") && value.type === "svg",
   );
@@ -224,14 +224,14 @@ const renameIds = (value, ids) =>
     return ids.get(id);
   });
 
-const makeTree = (iconNames, ids) => {
+export const makeTree = (iconNames, ids, plainSvg = () => false) => {
   const tree = (node) => {
     if (node.nodeType === 3) return node.data;
     if (node.localName === "svg") {
       const name = iconNames.get(node.outerHTML);
       if (name) return { icon: name };
       // radix's Popover.Arrow is the one other svg
-      if (!node.querySelector(":scope > polygon")) {
+      if (!plainSvg(node) && !node.querySelector(":scope > polygon")) {
         throw new Error(`an svg that is no icons.tsx export: ${node.outerHTML.slice(0, 120)}`);
       }
     }
@@ -243,7 +243,11 @@ const makeTree = (iconNames, ids) => {
     // offsets
     const popper = node.hasAttribute("data-radix-popper-content-wrapper");
     const placed = node.parentElement?.hasAttribute("data-radix-popper-content-wrapper");
-    const arrow = node.localName === "span" && node.firstElementChild?.localName === "svg" && !iconNames.has(node.firstElementChild.outerHTML);
+    const arrow =
+      node.localName === "span" &&
+      node.firstElementChild?.localName === "svg" &&
+      !iconNames.has(node.firstElementChild.outerHTML) &&
+      !plainSvg(node.firstElementChild);
     return {
       tag: node.localName,
       attrs: sorted(placed ? attrs.filter(([n]) => n !== "data-side" && n !== "data-align") : attrs),
