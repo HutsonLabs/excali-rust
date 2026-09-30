@@ -65,7 +65,7 @@ export { createRoot } from "react-dom/client";
 
 // App.tsx (the whole editor) supplies the hooks; the shim answers them from
 // globalThis.__ui.
-const SHIMS = {
+export const SHIMS = {
   "packages/excalidraw/components/App": `
     module.exports = {
       useApp: () => globalThis.__ui.app,
@@ -84,7 +84,7 @@ const SHIMS = {
   "packages/excalidraw/analytics": `module.exports = { trackEvent: () => {} };`,
 };
 
-const STUBS = ["fuzzy", "pica", "image-blob-reduce", "browser-fs-access"];
+export const STUBS = ["fuzzy", "pica", "image-blob-reduce", "browser-fs-access"];
 
 const usage = () => {
   process.stderr.write("usage: stats.mjs [--check] [--out DIR]\n");
@@ -281,7 +281,7 @@ const CASES = [
 
 // -- DOM ----------------------------------------------------------------------
 
-const installDom = () => {
+export const installDom = () => {
   const dom = new JSDOM("<!doctype html><html><head></head><body></body></html>", {
     url: "http://localhost/",
     pretendToBeVisual: true,
