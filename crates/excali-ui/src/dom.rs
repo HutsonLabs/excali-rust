@@ -241,6 +241,12 @@ impl Element {
         &self.children
     }
 
+    /// Whether a hook runs once the element is mounted
+    /// ([`Element::on_mount`]).
+    pub fn has_mount_hook(&self) -> bool {
+        !self.on_mount.is_empty()
+    }
+
     /// The events listened for, in order.
     pub fn listened_events(&self) -> impl Iterator<Item = &str> {
         self.listeners.iter().map(|(e, _)| e.as_str())

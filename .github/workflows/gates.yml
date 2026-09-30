@@ -509,6 +509,10 @@ jobs:
   # src/library_sidebar/library_sidebar.css (ex-526), upstream's
   # DefaultSidebar with the LibraryMenu rendered by React with radix-ui into
   # jsdom, per case and after each step of every interaction; and
+  # search-menu.mjs --check for excali-ui's search-menu.json and
+  # src/search_menu/search_menu.css (ex-708), upstream's SearchMenu rendered
+  # by React into jsdom after each step of every interaction, its search
+  # helpers and actionToggleSearchMenu; and
   # font-picker.mjs --check for excali-ui's font-picker.json and
   # src/font_picker/font_picker.css (ex-524), upstream's FontPicker
   # rendered by React with radix-ui into jsdom under a host keeping the
@@ -634,6 +638,8 @@ jobs:
         run: node tools/goldens/color-top-picks-dnd.mjs --check
       - name: excali-ui library sidebar fixture and stylesheet match upstream's DefaultSidebar, Sidebar and LibraryMenu
         run: node tools/goldens/library-sidebar.mjs --check
+      - name: excali-ui search menu fixture and stylesheet match upstream's SearchMenu and actionToggleSearchMenu
+        run: node tools/goldens/search-menu.mjs --check
       - name: excali-ui font picker fixture and stylesheet match upstream's FontPicker, FontPickerList and keyboard map
         run: node tools/goldens/font-picker.mjs --check
       - name: excali-ui font top-picks fixture matches upstream's fontTopPicksDnD, TopPicksDnD, its context menu and tip

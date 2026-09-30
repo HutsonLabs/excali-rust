@@ -38,7 +38,8 @@
 //! [`LibraryEffect::LoadPublishData`], [`LibraryEffect::SavePublishData`],
 //! [`LibraryEffect::SubmitLibrary`]).
 //!
-//! Not here: the search tab's content (`SearchMenu`, ex-708; the host's
+//! Not here: the search tab's content (`SearchMenu`,
+//! [`crate::search_menu`], which the host passes as
 //! [`LibrarySidebarProps::search_menu`]), host sidebars and tab
 //! triggers (`Sidebar` with another name, `DefaultSidebar.TabTriggers`),
 //! radix's arrow-key roving focus among the tab triggers, and the

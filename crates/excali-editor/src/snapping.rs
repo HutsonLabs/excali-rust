@@ -397,7 +397,7 @@ fn is_bound_to_container(element: &Element) -> bool {
 
 /// `isElementInViewport(element, width, height, appState, elementsMap)`
 /// (`sizeHelpers.ts:80-115`).
-fn is_element_in_viewport(
+pub fn is_element_in_viewport(
     element: &Element,
     viewport: &ViewportState,
     elements_map: &ElementsMap<'_>,
