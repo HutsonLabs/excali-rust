@@ -1637,7 +1637,11 @@ fn the_popup_closes_on_escape_a_canvas_press_or_a_change_of_kind() {
     assert!(ed.convert_panel().is_some());
     key(&mut ed, Keystroke::new("Escape", "Escape"));
     assert!(ed.convert_panel().is_none());
+    // and, as it goes on to the action manager (App.tsx:5640-5764),
+    // deselects (actionDeselect)
+    assert_eq!(app(&ed, "selectedElementIds"), json!({}));
 
+    click(&mut ed, [140.0, 140.0]);
     tab(&mut ed, false);
     assert!(ed.convert_panel().is_some());
     // a press on the canvas closes it (and selects the line: another kind)

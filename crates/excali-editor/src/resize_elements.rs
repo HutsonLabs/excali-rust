@@ -1750,7 +1750,7 @@ fn multiple_anchor(bb: &BoundingBox, handle: TransformHandleDirection) -> [f64; 
 /// The copies of the selection at pointer-down and, for their arrows'
 /// labels, the labels placed where the arrows put them
 /// (`resizeElements.ts:1097-1132`).
-fn original_selection_with_labels(
+pub(crate) fn original_selection_with_labels(
     scene: &Scene,
     ids: &[String],
     original_elements: &[Element],
@@ -1884,7 +1884,8 @@ struct PendingResize {
 /// scales every selected element about the anchor, flipping across it; the
 /// aspect ratio is kept with Shift or when an element is rotated, a text or
 /// in a group. Nothing changes when a text or label would go below
-/// `MIN_FONT_SIZE`.
+/// `MIN_FONT_SIZE`. Returns whether the resize ran to its end, where
+/// upstream calls `scene.triggerUpdate()` (which draws the scene's nonce).
 pub fn resize_multiple_elements(
     ids: &[String],
     handle: TransformHandleDirection,
@@ -1892,7 +1893,7 @@ pub fn resize_multiple_elements(
     env: &mut dyn TransformEnv,
     original_elements: &[Element],
     options: MultipleResize,
-) {
+) -> bool {
     let MultipleResize {
         should_maintain_aspect_ratio,
         should_resize_from_center,
@@ -1905,7 +1906,7 @@ pub fn resize_multiple_elements(
 
     // do not allow next width or height to be 0
     if next_height == 0.0 || next_width == 0.0 {
-        return;
+        return false;
     }
 
     // originalElementsMap holds snapshots of the (non-deleted) selection
@@ -1927,7 +1928,7 @@ pub fn resize_multiple_elements(
     }
 
     if !(truthy(next_width) && truthy(next_height)) {
-        return;
+        return false;
     }
 
     let mut scale_x = if handle.includes('e') || handle.includes('w') {
@@ -2081,7 +2082,7 @@ pub fn resize_multiple_elements(
 
         if is_text(orig) {
             let Some(size) = measure_font_size_from_width(orig, &scene_map, width) else {
-                return;
+                return false;
             };
             update.font_size = Some(size);
         }
@@ -2096,7 +2097,7 @@ pub fn resize_multiple_elements(
             if keep_aspect_ratio {
                 let new_font_size = t.font_size * scale;
                 if new_font_size < MIN_FONT_SIZE {
-                    return;
+                    return false;
                 }
                 bound_text_font_size = Some(new_font_size);
             } else {
@@ -2185,4 +2186,5 @@ pub fn resize_multiple_elements(
             }
         }
     }
+    true
 }

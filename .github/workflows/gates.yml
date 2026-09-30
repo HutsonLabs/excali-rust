@@ -519,6 +519,10 @@ jobs:
   # style-actions.json (ex-540), upstream's perform of the styles panel's
   # actions (actionProperties.tsx, togglePolygon, align, distribute,
   # hyperlink, cropEditor) on hand-written scenes; and
+  # shortcut-actions-fixtures.mjs --check for excali-editor's
+  # shortcut-actions.json (ex-541), upstream's perform of deselect, the
+  # flips, toggleElementLock, copy and paste styles, viewMode and
+  # toggleTheme on hand-written scenes; and
   # color-picker.mjs --check for excali-ui's color-picker.json and
   # src/color_picker/color_picker.css (ex-523), upstream's ColorPicker
   # rendered by React with radix-ui into jsdom, its keyboard map, hex input,
@@ -694,6 +698,8 @@ jobs:
         run: node tools/goldens/editing-fixtures.mjs --check
       - name: excali-editor style action fixture matches upstream's styles panel action performs
         run: node tools/goldens/style-actions-fixtures.mjs --check
+      - name: excali-editor shortcut action fixture matches upstream's shortcut action performs
+        run: node tools/goldens/shortcut-actions-fixtures.mjs --check
       - name: toolchain (from rust-toolchain.toml)
         run: rustup toolchain install
       - uses: Swatinem/rust-cache@v2

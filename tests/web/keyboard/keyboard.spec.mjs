@@ -16,7 +16,10 @@
 //   editing, eyedropper, flowchart, element type conversion);
 // - the keys an action owns reach the action manager, which names the
 //   action whose keyTest took the key (App.tsx:5764); the action's perform
-//   is its feature's.
+//   is its feature's, except deselect, the flips, toggleElementLock, copy
+//   and paste styles, viewMode and toggleTheme (ex-541), which the harness
+//   runs (excali_editor::edit_actions::perform_shortcut_action) and whose
+//   change the rows check.
 //
 // Ctrl is ControlOrMeta: Cmd where upstream's isDarwin holds.
 import { readFileSync } from "node:fs";
@@ -306,6 +309,7 @@ const ROWS = {
     // on the canvas, Escape deselects
     await page.focus("#container");
     expect(action(await press(page, "Escape"))).toBe("deselect");
+    expect((await state(page)).appState.selectedElementIds).toEqual({});
   },
   "Tools: Tab / Shift+Tab": async (page) => {
     await load(page, TWO_RECTS, { selectedElementIds: { r1: true } });
@@ -381,8 +385,20 @@ const ROWS = {
   "View: Alt+Z": (page) => expectActions(page, [["Alt+KeyZ", "zenMode"]]),
   "View: Alt+S": (page) => expectActions(page, [["Alt+KeyS", "objectsSnapMode"]]),
   "View: Ctrl+'": (page) => expectActions(page, [[`${MOD}+Quote`, "gridMode"]]),
-  "View: Alt+R": (page) => expectActions(page, [["Alt+KeyR", "viewMode"]]),
-  "View: Alt+Shift+D": (page) => expectActions(page, [["Alt+Shift+KeyD", "toggleTheme"]]),
+  "View: Alt+R": async (page) => {
+    // actionToggleViewMode.perform (actionToggleViewMode.tsx:18-25)
+    await expectActions(page, [["Alt+KeyR", "viewMode"]]);
+    expect((await state(page)).appState.viewModeEnabled).toBe(true);
+    await expectActions(page, [["Alt+KeyR", "viewMode"]]);
+    expect((await state(page)).appState.viewModeEnabled, "and back").toBe(false);
+  },
+  "View: Alt+Shift+D": async (page) => {
+    // actionToggleTheme.perform (actionCanvas.tsx:429-448)
+    await expectActions(page, [["Alt+Shift+KeyD", "toggleTheme"]]);
+    expect((await state(page)).appState.theme).toBe("dark");
+    await expectActions(page, [["Alt+Shift+KeyD", "toggleTheme"]]);
+    expect((await state(page)).appState.theme, "and back").toBe("light");
+  },
   "View: Alt+/": (page) => expectActions(page, [["Alt+Slash", "stats"]]),
   "View: Ctrl+F": (page) => expectActions(page, [[`${MOD}+f`, "searchMenu"]]),
   "View: Ctrl+/ or Ctrl+Shift+P": async (page) => {
@@ -536,11 +552,15 @@ const ROWS = {
     await expectActions(page, [["Alt+Shift+KeyC", "copyAsPng"]]);
   },
   "Editor: Ctrl+Alt+C / V": async (page) => {
-    await load(page, TWO_RECTS, { selectedElementIds: { r1: true } });
-    await expectActions(page, [
-      [`${MOD}+Alt+KeyC`, "copyStyles"],
-      [`${MOD}+Alt+KeyV`, "pasteStyles"],
-    ]);
+    // actionCopyStyles and actionPasteStyles (actionStyles.ts:52-230)
+    const styled = { ...rect("r1"), strokeColor: "#e03131", strokeStyle: "dashed", opacity: 60 };
+    await load(page, [styled, rect("r2", 200, 0)], { selectedElementIds: { r1: true } });
+    await expectActions(page, [[`${MOD}+Alt+KeyC`, "copyStyles"]]);
+    expect((await state(page)).appState.toast).toEqual({ message: "Copied styles." });
+    await page.evaluate(() => window.keyboard.select("r2"));
+    await expectActions(page, [[`${MOD}+Alt+KeyV`, "pasteStyles"]]);
+    const r2 = (await state(page)).elements.find((e) => e.id === "r2");
+    expect([r2.strokeColor, r2.strokeStyle, r2.opacity]).toEqual(["#e03131", "dashed", 60]);
   },
   "Editor: Ctrl+[ / ]": async (page) => {
     await load(page, TWO_RECTS, { selectedElementIds: { r1: true } });
@@ -594,8 +614,13 @@ const ROWS = {
     expect(read.altKey, "Alt+drag duplicates").toBe(true);
   },
   "Editor: Ctrl+Shift+L": async (page) => {
+    // actionToggleElementLock.perform (actionElementLock.ts:50-146)
     await load(page, TWO_RECTS, { selectedElementIds: { r1: true } });
     await expectActions(page, [[`${MOD}+Shift+KeyL`, "toggleElementLock"]]);
+    const after = await state(page);
+    expect(after.elements.find((e) => e.id === "r1").locked).toBe(true);
+    expect(after.appState.selectedElementIds, "a locked element is deselected").toEqual({});
+    expect(after.appState.activeLockedId).toBe("r1");
   },
   "Editor: Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y": (page) =>
     expectActions(page, [
@@ -611,10 +636,18 @@ const ROWS = {
     ]);
   },
   "Editor: Shift+H / Shift+V": async (page) => {
-    await load(page, TWO_RECTS, { selectedElementIds: { r1: true } });
-    await expectActions(page, [
-      ["Shift+H", "flipHorizontal"],
-      ["Shift+V", "flipVertical"],
+    // actionFlipHorizontal and actionFlipVertical (actionFlip.ts:28-80): a
+    // selection of two flips across its centre
+    await load(page, [rect("r1"), rect("r2", 200, 200)], { selectedElementIds: { r1: true, r2: true } });
+    await expectActions(page, [["Shift+H", "flipHorizontal"]]);
+    expect([await position(page, "r1"), await position(page, "r2")]).toEqual([
+      [200, 0],
+      [0, 200],
+    ]);
+    await expectActions(page, [["Shift+V", "flipVertical"]]);
+    expect([await position(page, "r1"), await position(page, "r2")]).toEqual([
+      [200, 200],
+      [0, 0],
     ]);
   },
   "Editor: Ctrl+Shift+< / >": async (page) => {
@@ -638,8 +671,13 @@ const ROWS = {
     expect(read.maintainAspectRatio).toBe(false);
   },
   "Editor: Esc": async (page) => {
+    // actionDeselect.perform (actionDeselect.ts:65-128)
     await load(page, TWO_RECTS, { selectedElementIds: { r1: true } });
     await expectActions(page, [["Escape", "deselect"]]);
+    expect((await state(page)).appState.selectedElementIds).toEqual({});
+    await press(page, "r");
+    await expectActions(page, [["Escape", "deselect"]]);
+    expect(await tool(page), "and goes back to the selection tool").toBe("selection");
   },
   "Editor: ?": async (page) => {
     await press(page, "?");
