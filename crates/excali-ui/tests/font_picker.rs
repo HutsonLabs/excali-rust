@@ -1,0 +1,617 @@
+//! The font picker (ex-524): upstream's `FontPicker`
+//! (`components/FontPicker/*`): the three top picks (Excalifont
+//! "Hand-drawn", Nunito "Normal", Comic Shanns "Code", or the customised
+//! `fontTopPicks`), the trigger, and the popup's search box, "In this
+//! scene" and "Available fonts" groups with the "old" badge of deprecated
+//! fonts; its keyboard map (`keyboardNavHandlers.ts`: arrows, Enter,
+//! Escape, Shift+F); and the app state its host keeps
+//! (`actionChangeFontFamily`, `actions/actionProperties.tsx`).
+//!
+//! Fixture: `tests/fixtures/font-picker.json`, written by
+//! `tools/goldens/font-picker.mjs` from upstream at the pinned commit
+//! (React 19.0.0, radix-ui 1.4.3, jsdom 22.1.0). `src/font_picker/
+//! font_picker.css` is the same generator's FontPicker.scss,
+//! QuickSearch.scss, ScrollableList.scss and TopPicksDnD.scss.
+
+use std::collections::BTreeMap;
+
+use excali_core::constants::FONT_TOP_PICKS_SLOTS;
+use excali_core::element::FontFamily;
+use excali_scene::shape::Theme;
+use excali_ui::color_picker::{KeyInput, StylesPanelMode};
+use excali_ui::dom::Node;
+use excali_ui::font_picker::{
+    all_fonts, filtered_fonts, font_family_icon, font_family_label, font_family_string,
+    font_picker, font_picker_key_handler, font_picker_text, get_font_top_picks, hovered_font,
+    is_default_font, FontListContext, FontPickerEvent, FontPickerKeyEffect, FontPickerProps,
+    FontPickerState, DEFAULT_FONTS, FONT_PICKER_CSS,
+};
+use serde_json::{json, Map, Value};
+
+fn fixture() -> &'static Value {
+    use std::sync::OnceLock;
+    static FIXTURE: OnceLock<Value> = OnceLock::new();
+    FIXTURE.get_or_init(|| serde_json::from_str(include_str!("fixtures/font-picker.json")).unwrap())
+}
+
+fn family(v: &Value) -> Option<FontFamily> {
+    v.as_u64().map(|n| FontFamily(n as u32))
+}
+
+fn families(v: &Value) -> Vec<FontFamily> {
+    v.as_array()
+        .unwrap()
+        .iter()
+        .map(|x| family(x).unwrap())
+        .collect()
+}
+
+// -- constants -------------------------------------------------------------------
+
+#[test]
+fn the_three_default_top_picks_are_upstreams() {
+    let c = &fixture()["constants"];
+    assert_eq!(json!(FONT_TOP_PICKS_SLOTS), c["FONT_TOP_PICKS_SLOTS"]);
+    let defaults: Vec<Value> = DEFAULT_FONTS
+        .iter()
+        .map(|f| {
+            json!({
+                "value": f.value.0,
+                "text": font_picker_text(f.text_key),
+                "testId": f.test_id,
+                "icon": f.icon.name,
+            })
+        })
+        .collect();
+    assert_eq!(json!(defaults), c["DEFAULT_FONTS"]);
+    assert_eq!(DEFAULT_FONTS.len(), FONT_TOP_PICKS_SLOTS);
+}
+
+#[test]
+fn each_registered_family_has_upstreams_icon_label_and_css_family() {
+    for f in fixture()["constants"]["families"].as_array().unwrap() {
+        let id = family(&f["id"]).unwrap();
+        assert_eq!(font_family_icon(id).name, f["icon"], "icon of {id:?}");
+        assert_eq!(font_family_label(id), f["label"], "label of {id:?}");
+        assert_eq!(font_family_string(id), f["css"], "css of {id:?}");
+    }
+}
+
+#[test]
+fn the_list_holds_the_public_families_sorted_by_label() {
+    let expected: Vec<(Value, Value, bool)> = {
+        let mut v: Vec<_> = fixture()["constants"]["families"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|f| f["private"] == false && f["fallback"] == false)
+            .map(|f| {
+                (
+                    f["id"].clone(),
+                    f["label"].clone(),
+                    f["deprecated"].as_bool().unwrap(),
+                )
+            })
+            .collect();
+        v.sort_by_key(|(_, label, _)| label.as_str().unwrap().to_lowercase());
+        v
+    };
+    let actual: Vec<(Value, Value, bool)> = all_fonts()
+        .iter()
+        .map(|f| (json!(f.value.0), json!(f.text), f.deprecated))
+        .collect();
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn is_default_font_is_upstreams() {
+    for c in fixture()["isDefaultFont"].as_array().unwrap() {
+        let v = c["value"].as_u64().map(|n| FontFamily(n as u32));
+        assert_eq!(json!(is_default_font(v)), c["result"], "{v:?}");
+    }
+}
+
+#[test]
+fn top_picks_dedupe_cap_and_pad_with_the_defaults() {
+    let f = FontFamily;
+    assert_eq!(get_font_top_picks(&[]), vec![f(5), f(6), f(8)]);
+    assert_eq!(get_font_top_picks(&[f(7)]), vec![f(7), f(5), f(6)]);
+    assert_eq!(
+        get_font_top_picks(&[f(2), f(2), f(6), f(5), f(7)]),
+        vec![f(2), f(6), f(5)]
+    );
+    assert_eq!(get_font_top_picks(&[f(6), f(8)]), vec![f(6), f(8), f(5)]);
+}
+
+#[test]
+fn the_locale_strings_are_upstreams() {
+    for (key, value) in fixture()["locale"].as_object().unwrap() {
+        assert_eq!(font_picker_text(key), value.as_str().unwrap(), "{key}");
+    }
+}
+
+#[test]
+fn the_stylesheet_is_the_generated_one() {
+    assert!(FONT_PICKER_CSS.starts_with("/* Generated by tools/goldens/font-picker.mjs"));
+    assert!(FONT_PICKER_CSS.contains(".FontPicker__container"));
+    assert!(FONT_PICKER_CSS.contains(".QuickSearch__wrapper"));
+    assert!(FONT_PICKER_CSS.contains(".ScrollableList__wrapper"));
+}
+
+// -- keyboard ---------------------------------------------------------------------
+
+fn effect_json(effect: &FontPickerKeyEffect) -> Value {
+    match effect {
+        FontPickerKeyEffect::FocusSearch => json!(["focusSearch"]),
+        FontPickerKeyEffect::Close => json!(["close"]),
+        FontPickerKeyEffect::Select(f) => json!(["select", f.0]),
+        FontPickerKeyEffect::Hover(f) => json!(["hover", f.0]),
+    }
+}
+
+#[test]
+fn the_key_map_is_keyboard_nav_handlers() {
+    let cases = fixture()["keyNav"].as_array().unwrap();
+    assert!(cases.len() > 50);
+    for c in cases {
+        let list = families(&c["list"]);
+        let mods: Vec<&str> = c["mods"]
+            .as_array()
+            .map(|m| m.iter().map(|x| x.as_str().unwrap()).collect())
+            .unwrap_or_default();
+        let input = KeyInput {
+            key: c["key"].as_str().unwrap().to_owned(),
+            code: String::new(),
+            shift: mods.contains(&"shift"),
+            // jsdom's navigator.platform is empty: KEYS.CTRL_OR_CMD is
+            // ctrlKey there, as off a Mac
+            ctrl_or_cmd: mods.contains(&"ctrl"),
+        };
+        let out = font_picker_key_handler(&input, family(&c["hovered"]), &list);
+        let calls: Vec<Value> = out.effect.iter().map(effect_json).collect();
+        assert_eq!(
+            (json!(out.handled), json!(calls)),
+            (c["handled"].clone(), c["calls"].clone()),
+            "{c}"
+        );
+    }
+}
+
+// -- DOM parity and the host's state ------------------------------------------------
+
+fn tree(node: &Node) -> Value {
+    match node {
+        Node::Text(text) => Value::String(text.clone()),
+        Node::Element(el) => {
+            let attrs: BTreeMap<_, _> = el
+                .attributes()
+                .iter()
+                .map(|(k, v)| (k.clone(), Value::String(v.clone())))
+                .collect();
+            let style: BTreeMap<_, _> = el
+                .style_properties()
+                .iter()
+                .map(|(k, v)| (k.clone(), Value::String(v.clone())))
+                .collect();
+            let mut out = Map::new();
+            out.insert("tag".into(), json!(el.tag()));
+            out.insert("attrs".into(), json!(attrs));
+            out.insert("style".into(), json!(style));
+            let children = el.children().iter().map(tree).collect();
+            out.insert("children".into(), Value::Array(merge_text(children)));
+            Value::Object(out)
+        }
+    }
+}
+
+fn merge_text(nodes: Vec<Value>) -> Vec<Value> {
+    let mut out: Vec<Value> = Vec::new();
+    for n in nodes {
+        match (out.last_mut(), &n) {
+            (Some(Value::String(prev)), Value::String(text)) => prev.push_str(text),
+            _ => out.push(n),
+        }
+    }
+    out.retain(|n| n.as_str() != Some(""));
+    out
+}
+
+fn expand(v: &Value) -> Value {
+    match v {
+        Value::Object(o) if o.contains_key("icon") => {
+            let name = o["icon"].as_str().unwrap();
+            let icon = excali_ui::icons::icon(name).unwrap_or_else(|| panic!("no icon {name}"));
+            tree(&Node::Element(icon.element(Theme::Light).unwrap()))
+        }
+        Value::Object(o) => {
+            let mut out = Map::new();
+            for (k, x) in o {
+                if k == "children" {
+                    let kids = x.as_array().unwrap().iter().map(expand).collect();
+                    out.insert(k.clone(), Value::Array(merge_text(kids)));
+                } else {
+                    out.insert(k.clone(), x.clone());
+                }
+            }
+            Value::Object(out)
+        }
+        _ => v.clone(),
+    }
+}
+
+/// Where two trees first differ, as a path and both values.
+fn first_difference(expected: &Value, actual: &Value, path: String) -> String {
+    match (expected, actual) {
+        (Value::Array(a), Value::Array(b)) => {
+            for (i, (x, y)) in a.iter().zip(b).enumerate() {
+                if x != y {
+                    return first_difference(x, y, format!("{path}[{i}]"));
+                }
+            }
+            format!("{path}: {} children expected, {} actual", a.len(), b.len())
+        }
+        (Value::Object(a), Value::Object(b)) if a.keys().eq(b.keys()) => {
+            for (k, x) in a {
+                if x != &b[k] {
+                    return first_difference(x, &b[k], format!("{path}.{k}"));
+                }
+            }
+            unreachable!()
+        }
+        _ => format!("{path}:\nexpected {expected}\nactual   {actual}"),
+    }
+}
+
+fn state_json(s: &FontPickerState) -> Value {
+    json!({
+        "openPopup": s.open_popup,
+        "selectedFontFamily": s.selected.map(|f| f.0),
+        "currentHoveredFontFamily": s.hovered.map(|f| f.0),
+        "fontTopPicks": s.top_picks.as_ref().map(|p| p.iter().map(|f| f.0).collect::<Vec<_>>()),
+    })
+}
+
+fn state_from(v: &Value) -> FontPickerState {
+    FontPickerState {
+        open_popup: v["openPopup"].as_str().map(str::to_owned),
+        selected: family(&v["selectedFontFamily"]),
+        hovered: family(&v["currentHoveredFontFamily"]),
+        top_picks: v["fontTopPicks"]
+            .as_array()
+            .map(|_| families(&v["fontTopPicks"])),
+        search: String::new(),
+    }
+}
+
+/// A callback as the fixture records it: the host's
+/// `setAppState({openPopup})` of the trigger is `TriggerSelect`.
+fn call_json(e: &FontPickerEvent, before: &FontPickerState) -> Value {
+    match e {
+        FontPickerEvent::Select(f) => json!(["select", f.0]),
+        FontPickerEvent::Hover(f) => json!(["hover", f.0]),
+        FontPickerEvent::Leave => json!(["leave"]),
+        FontPickerEvent::PopupChange(open) => json!(["popupChange", open]),
+        FontPickerEvent::TriggerSelect => {
+            let next = before.open_popup.as_deref().filter(|p| *p != "fontFamily");
+            json!(["setAppState", {"openPopup": next}])
+        }
+        FontPickerEvent::TopPicksChange(p) => {
+            json!([
+                "topPicksChange",
+                p.as_ref()
+                    .map(|p| p.iter().map(|f| f.0).collect::<Vec<_>>())
+            ])
+        }
+        FontPickerEvent::Search(_) => unreachable!("not a callback of the host"),
+    }
+}
+
+/// React re-renders and radix re-fire the same callback (both the list's
+/// unmount and the popover's dismissal close it); the host's state only
+/// sees each change once.
+fn dedup(calls: Vec<Value>) -> Vec<Value> {
+    let mut out: Vec<Value> = Vec::new();
+    for c in calls {
+        if out.last() != Some(&c) {
+            out.push(c);
+        }
+    }
+    out
+}
+
+fn mode(case: &Value) -> StylesPanelMode {
+    match case["mode"].as_str().unwrap() {
+        "full" => StylesPanelMode::Full,
+        "compact" => StylesPanelMode::Compact,
+        "mobile" => StylesPanelMode::Mobile,
+        other => panic!("mode {other}"),
+    }
+}
+
+fn context(case: &Value) -> FontListContext {
+    FontListContext {
+        scene_families: families(&case["scene"]),
+        show_deprecated_fonts: case["showDeprecatedFonts"].as_bool().unwrap(),
+    }
+}
+
+fn props(case: &Value, state: &FontPickerState) -> FontPickerProps {
+    FontPickerProps {
+        state: state.clone(),
+        mode: mode(case),
+        list: context(case),
+        theme: if case["theme"] == "dark" {
+            Theme::Dark
+        } else {
+            Theme::Light
+        },
+        phone: case["formFactor"] == "phone",
+        is_darwin: false,
+        popup_id: "radix-1".into(),
+        on_event: None,
+    }
+}
+
+/// The events the picker's DOM sends for a step: what its listeners
+/// compute from the state it was rendered with.
+fn step_events(
+    step: &Value,
+    state: &FontPickerState,
+    cx: &FontListContext,
+) -> Vec<FontPickerEvent> {
+    let filtered = filtered_fonts(cx, &state.search);
+    let hovered = hovered_font(&filtered, state).0;
+    if step["click"] == "trigger" {
+        // IconButton's onSelect, then radix's toggle
+        let open = state.is_open();
+        return vec![
+            FontPickerEvent::TriggerSelect,
+            FontPickerEvent::PopupChange(!open),
+        ];
+    }
+    if step["click"] == "topPick" {
+        let picks = get_font_top_picks(state.top_picks.as_deref().unwrap_or(&[]));
+        let i = step["index"].as_u64().unwrap() as usize;
+        return vec![FontPickerEvent::Select(picks[i])];
+    }
+    if step["click"] == "item" {
+        return vec![FontPickerEvent::Select(family(&step["value"]).unwrap())];
+    }
+    if let Some(key) = step["key"].as_str() {
+        let input = KeyInput {
+            key: key.to_owned(),
+            code: String::new(),
+            shift: step["shiftKey"] == true,
+            ctrl_or_cmd: false,
+        };
+        let values: Vec<FontFamily> = filtered.all().map(|f| f.value).collect();
+        let out = font_picker_key_handler(&input, hovered, &values);
+        return match out.effect {
+            Some(FontPickerKeyEffect::Close) => vec![FontPickerEvent::PopupChange(false)],
+            Some(FontPickerKeyEffect::Select(f)) => vec![FontPickerEvent::Select(f)],
+            Some(FontPickerKeyEffect::Hover(f)) => vec![FontPickerEvent::Hover(f)],
+            Some(FontPickerKeyEffect::FocusSearch) | None => vec![],
+        };
+    }
+    if let Some(f) = family(&step["hover"]) {
+        return if hovered == Some(f) {
+            vec![]
+        } else {
+            vec![FontPickerEvent::Hover(f)]
+        };
+    }
+    if step["leave"] == true {
+        return vec![FontPickerEvent::Leave];
+    }
+    if let Some(term) = step["search"].as_str() {
+        return vec![FontPickerEvent::Search(term.trim().to_lowercase())];
+    }
+    panic!("step {step}")
+}
+
+/// radix portals the popup into the editor container: React inserts it
+/// before the picker when both mount together and appends it after when
+/// the popup opens later. The popper is fixed-positioned, so the order is
+/// no layout; the builder always puts it first.
+fn portal_first(mut nodes: Vec<Value>) -> Vec<Value> {
+    nodes.sort_by_key(|n| {
+        n["attrs"]
+            .get("data-radix-popper-content-wrapper")
+            .is_none()
+    });
+    nodes
+}
+
+#[test]
+fn every_case_and_step_renders_upstreams_dom_and_state() {
+    let cases = fixture()["cases"].as_array().unwrap();
+    assert!(cases.len() >= 25, "{} cases", cases.len());
+    for case in cases {
+        let name = case["name"].as_str().unwrap();
+        let cx = context(case);
+        let mut state = state_from(&case["initial"]);
+        for (i, step) in case["steps"].as_array().unwrap().iter().enumerate() {
+            let mut calls = Vec::new();
+            if i == 0 {
+                for e in state.mount(&cx) {
+                    calls.push(call_json(&e, &state));
+                }
+            } else {
+                for event in step_events(&step["step"], &state, &cx) {
+                    let before = state.clone();
+                    for e in state.dispatch(event, &cx) {
+                        calls.push(call_json(&e, &before));
+                    }
+                }
+            }
+            let at = format!("case {name}, step {i} {}", step["step"]);
+            assert_eq!(state_json(&state), step["state"], "{at}: state");
+            let expected_calls = dedup(step["calls"].as_array().unwrap().clone());
+            assert_eq!(dedup(calls), expected_calls, "{at}: calls");
+            let expected =
+                portal_first(step["dom"].as_array().unwrap().iter().map(expand).collect());
+            let actual: Vec<Value> = font_picker(&props(case, &state)).iter().map(tree).collect();
+            if actual != expected {
+                panic!(
+                    "{at}: {}",
+                    first_difference(&json!(expected), &json!(actual), String::new())
+                );
+            }
+        }
+    }
+}
+
+// -- research 3.13 ---------------------------------------------------------------
+
+fn walk<'a>(n: &'a Node, out: &mut Vec<&'a excali_ui::dom::Element>) {
+    if let Node::Element(el) = n {
+        out.push(el);
+        for c in el.children() {
+            walk(c, out);
+        }
+    }
+}
+
+fn elements(nodes: &[Node]) -> Vec<&excali_ui::dom::Element> {
+    let mut out = Vec::new();
+    for n in nodes {
+        walk(n, &mut out);
+    }
+    out
+}
+
+fn text_of(el: &excali_ui::dom::Element) -> String {
+    el.children()
+        .iter()
+        .map(|c| match c {
+            Node::Text(t) => t.clone(),
+            Node::Element(e) => text_of(e),
+        })
+        .collect()
+}
+
+fn open_props(scene: &[FontFamily]) -> FontPickerProps {
+    FontPickerProps {
+        state: FontPickerState {
+            open_popup: Some("fontFamily".into()),
+            selected: Some(FontFamily::EXCALIFONT),
+            ..FontPickerState::default()
+        },
+        mode: StylesPanelMode::Full,
+        list: FontListContext {
+            scene_families: scene.to_vec(),
+            show_deprecated_fonts: false,
+        },
+        theme: Theme::Light,
+        phone: false,
+        is_darwin: false,
+        popup_id: "radix-1".into(),
+        on_event: None,
+    }
+}
+
+#[test]
+fn research_3_13_top_picks_groups_badge_and_search() {
+    let nodes = font_picker(&open_props(&[FontFamily::EXCALIFONT, FontFamily::VIRGIL]));
+    let els = elements(&nodes);
+    let picks: Vec<_> = els
+        .iter()
+        .filter(|e| e.attribute("data-top-pick-index").is_some())
+        .map(|e| e.attribute("title").unwrap())
+        .collect();
+    assert_eq!(picks, ["Hand-drawn", "Normal", "Code"]);
+    let groups: Vec<_> = els
+        .iter()
+        .filter(|e| e.attribute("class") == Some("dropdown-menu-group-title"))
+        .map(|e| text_of(e))
+        .collect();
+    assert_eq!(groups, ["In this scene", "Available fonts"]);
+    // Virgil is deprecated: listed (and badged "old") only because the
+    // scene uses it
+    let badges: Vec<_> = els
+        .iter()
+        .filter(|e| e.attribute("class") == Some("DropDownMenuItemBadge"))
+        .map(|e| text_of(e))
+        .collect();
+    assert_eq!(badges, ["old"]);
+    assert!(els
+        .iter()
+        .any(|e| e.attribute("class") == Some("QuickSearch__input")));
+    let unused = font_picker(&open_props(&[FontFamily::EXCALIFONT]));
+    assert!(!elements(&unused)
+        .iter()
+        .any(|e| e.attribute("title") == Some("Virgil")));
+}
+
+#[test]
+fn shift_f_opens_it_and_refocuses_the_search_inside() {
+    // App.tsx:6022-6050 sets openPopup to "fontFamily" (the editor's
+    // keyboard handler, crates/excali-editor/tests/keyboard.rs); the
+    // picker reads it from the app state
+    let app_state = json!({
+        "openPopup": "fontFamily",
+        "currentItemFontFamily": 5,
+        "currentHoveredFontFamily": null,
+        "fontTopPicks": null,
+    });
+    let state =
+        FontPickerState::from_app_state(app_state.as_object().unwrap(), Some(FontFamily(5)));
+    assert!(state.is_open());
+    let mut props = open_props(&[]);
+    props.state = state;
+    let nodes = font_picker(&props);
+    assert!(elements(&nodes)
+        .iter()
+        .any(|e| e.attribute("data-radix-popper-content-wrapper").is_some()));
+    // inside, Shift+F focuses the search (keyboardNavHandlers.ts:24-32)
+    let out = font_picker_key_handler(
+        &KeyInput {
+            key: "F".into(),
+            code: "KeyF".into(),
+            shift: true,
+            ctrl_or_cmd: false,
+        },
+        None,
+        &[],
+    );
+    assert!(out.handled);
+    assert_eq!(out.effect, Some(FontPickerKeyEffect::FocusSearch));
+}
+
+#[test]
+fn the_controls_listen_for_their_events() {
+    let nodes = font_picker(&open_props(&[FontFamily::EXCALIFONT]));
+    let els = elements(&nodes);
+    let listens = |el: &excali_ui::dom::Element, ev: &str| el.listened_events().any(|e| e == ev);
+    for pick in els
+        .iter()
+        .filter(|e| e.attribute("data-top-pick-index").is_some())
+    {
+        assert!(listens(pick, "click"));
+    }
+    let items: Vec<_> = els
+        .iter()
+        .filter(|e| e.tag() == "button" && e.attribute("value").is_some())
+        .collect();
+    assert_eq!(items.len(), 4);
+    for item in items {
+        assert!(listens(item, "click"));
+        assert!(listens(item, "mousemove"));
+    }
+    let content = els
+        .iter()
+        .find(|e| e.attribute("id") == Some("radix-1"))
+        .unwrap();
+    assert!(listens(content, "keydown"));
+    assert!(listens(content, "pointerleave"));
+    let input = els
+        .iter()
+        .find(|e| e.attribute("class") == Some("QuickSearch__input"))
+        .unwrap();
+    assert!(listens(input, "input"));
+    let trigger = els
+        .iter()
+        .find(|e| e.attribute("data-testid") == Some("font-family-show-fonts"))
+        .unwrap();
+    assert!(listens(trigger, "click"));
+}

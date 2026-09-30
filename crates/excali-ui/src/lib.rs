@@ -26,7 +26,8 @@
 //! and its shortcut islands (`components/HelpDialog.tsx`); for [`library_sidebar`] the default
 //! sidebar with the library (`components/DefaultSidebar.tsx`,
 //! `components/Sidebar/*`, `components/LibraryMenu*.tsx`,
-//! `components/LibraryUnit.tsx`).
+//! `components/LibraryUnit.tsx`); for [`font_picker`] the font picker
+//! (`components/FontPicker/*`).
 //!
 //! Targets: wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-canvas2d`, `excali-editor`.
@@ -35,6 +36,7 @@ pub mod color_picker;
 pub mod context_menu;
 pub mod dom;
 pub mod editor_interface;
+pub mod font_picker;
 pub mod fonts;
 pub mod footer;
 pub mod help_dialog;

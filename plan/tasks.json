@@ -2282,6 +2282,30 @@
    "labels": []
   },
   {
+   "id": "ex-538",
+   "epic": "ex-e5",
+   "title": "Font picker top-picks customisation: drag a font onto the strip, reorder, context-menu reset",
+   "priority": 2,
+   "blocked_by": [
+    "ex-524",
+    "ex-536"
+   ],
+   "crates": [
+    "excali-ui"
+   ],
+   "acceptance": "Dragging a list font onto the font picker's strip pins it in appState.fontTopPicks (an already pinned font is refused), dragging a pick reorders, the strip's context menu and the tip's Reset link reset it to the defaults; DOM and state held to upstream's fontTopPicksDnD.ts and TopPicksDnD/* at the pin, as FontPicker.test.tsx's top picks drag & drop cases do.",
+   "evidence": [
+    "packages/excalidraw/components/FontPicker/fontTopPicksDnD.ts",
+    "packages/excalidraw/components/FontPicker/FontPicker.tsx:115-187",
+    "packages/excalidraw/components/TopPicksDnD/topPicksDnD.tsx",
+    "packages/excalidraw/components/TopPicksDnD/TopPicksContextMenu.tsx",
+    "packages/excalidraw/components/FontPicker/FontPicker.test.tsx"
+   ],
+   "description": "Split from ex-524, which ports the picker with its strip, tip and context-menu trigger rendered as upstream's, and the tip's Reset link (FontPickerEvent::TopPicksChange(None)), but without the drag and drop and the context menu's content. Shares TopPicksDnD with ex-536.",
+   "type": "task",
+   "labels": []
+  },
+  {
    "id": "ex-601",
    "epic": "ex-e6",
    "title": "term.hut: vendor the module and route .excalidraw to the editor in preview.js",

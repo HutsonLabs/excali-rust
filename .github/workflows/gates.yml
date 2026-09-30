@@ -480,7 +480,11 @@ jobs:
   # excali-ui's library-sidebar.json and
   # src/library_sidebar/library_sidebar.css (ex-526), upstream's
   # DefaultSidebar with the LibraryMenu rendered by React with radix-ui into
-  # jsdom, per case and after each step of every interaction.
+  # jsdom, per case and after each step of every interaction; and
+  # font-picker.mjs --check for excali-ui's font-picker.json and
+  # src/font_picker/font_picker.css (ex-524), upstream's FontPicker
+  # rendered by React with radix-ui into jsdom under a host keeping the
+  # app state, per case and step, and its keyboard map.
   # Runs on arm64: V8's float results for some shapes differ in the last bits
   # between x64 and arm64, and the committed goldens are the arm64 output
   # (macOS and Linux arm64 agree byte for byte).
@@ -581,6 +585,8 @@ jobs:
         run: node tools/goldens/color-picker.mjs --check
       - name: excali-ui library sidebar fixture and stylesheet match upstream's DefaultSidebar, Sidebar and LibraryMenu
         run: node tools/goldens/library-sidebar.mjs --check
+      - name: excali-ui font picker fixture and stylesheet match upstream's FontPicker, FontPickerList and keyboard map
+        run: node tools/goldens/font-picker.mjs --check
       - name: excali-editor viewport fixture matches upstream's zoom, scroll constraints, zoom-to-fit, wheel handler and zoom actions
         run: node tools/goldens/viewport.mjs --check
       - name: excali-editor text editing fixture matches upstream's textWysiwyg, startTextEditing and redrawTextBoundingBox
