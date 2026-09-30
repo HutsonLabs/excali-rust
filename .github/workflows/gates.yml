@@ -472,6 +472,9 @@ jobs:
   # help-dialog.mjs --check for excali-ui's help-dialog.json and
   # src/help_dialog/help_dialog.css (ex-522), upstream's HelpDialog in its
   # Dialog rendered by React into jsdom per platform; and
+  # hints.mjs --check for excali-ui's hints.json, src/hints/hints.css and
+  # src/welcome_screen/* (ex-528), upstream's HintViewer, CursorHint and
+  # WelcomeScreen rendered by React into jsdom per platform; and
   # editing-fixtures.mjs --check for excali-editor's editing.json (ex-712),
   # upstream's selection, group, element creation and edit action code on
   # the scenes of the gestures <excali-editor> wires, and its library
@@ -590,6 +593,8 @@ jobs:
         run: node tools/goldens/footer.mjs --check
       - name: excali-ui help dialog fixture and stylesheet match upstream's HelpDialog on each platform
         run: node tools/goldens/help-dialog.mjs --check
+      - name: excali-ui hints and welcome screen fixture, stylesheets and logo match upstream's HintViewer, CursorHint and WelcomeScreen
+        run: node tools/goldens/hints.mjs --check
       - name: excali-ui colour picker fixture and stylesheet match upstream's ColorPicker, keyboard map, ColorInput and colors.ts
         run: node tools/goldens/color-picker.mjs --check
       - name: excali-ui library sidebar fixture and stylesheet match upstream's DefaultSidebar, Sidebar and LibraryMenu

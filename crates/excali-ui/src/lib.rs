@@ -29,7 +29,10 @@
 //! sidebar with the library (`components/DefaultSidebar.tsx`,
 //! `components/Sidebar/*`, `components/LibraryMenu*.tsx`,
 //! `components/LibraryUnit.tsx`); for [`font_picker`] the font picker
-//! (`components/FontPicker/*`).
+//! (`components/FontPicker/*`); for [`hints`] the hint viewer and the
+//! cursor hint (`components/HintViewer.tsx`, `components/CursorHint.tsx`);
+//! for [`welcome_screen`] the welcome screen
+//! (`components/welcome-screen/*`).
 //!
 //! Targets: wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-canvas2d`, `excali-editor`.
@@ -43,6 +46,7 @@ pub mod font_picker;
 pub mod fonts;
 pub mod footer;
 pub mod help_dialog;
+pub mod hints;
 pub mod icons;
 pub mod keyboard;
 pub mod layers;
@@ -54,3 +58,4 @@ pub mod styles_panel;
 pub mod text_editor;
 pub mod theme;
 pub mod toolbar;
+pub mod welcome_screen;

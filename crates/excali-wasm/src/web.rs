@@ -5,7 +5,10 @@
 //! The core mounts upstream's container (`div.excalidraw
 //! .excalidraw-container`, focusable, `theme--dark` in the dark theme) in
 //! the host element, the layered canvases in it (`excali_ui::layers`) and
-//! the desktop toolbar (`excali_ui::toolbar`), and the library sidebar with
+//! the desktop toolbar (`excali_ui::toolbar`) with the hint viewer
+//! (`excali_ui::hints`), the welcome screen on an empty scene
+//! (`excali_ui::welcome_screen`), the cursor hint after an arrow or line
+//! shortcut, and the library sidebar with
 //! LayerUI's trigger for it (`excali_ui::library_sidebar`), into which
 //! library items dragged onto the canvas drop. Keys are listened to on the
 //! container, as `Excalidraw` does with `handleKeyboardGlobally` off (its
@@ -28,9 +31,11 @@ use excali_editor::actions::{
 };
 use excali_editor::keyboard::{
     command_palette_key_down, is_command_palette_toggle_shortcut, ClipboardEventKind,
-    ClipboardOutcome,
+    ClipboardOutcome, KeyEffect,
 };
-use excali_editor::tools::{SetActiveToolOptions, Tool, ToolRequest, ToolState};
+use excali_editor::tools::{
+    ArrowType, SetActiveToolOptions, Tool, ToolKeyOutcome, ToolRequest, ToolState,
+};
 use excali_scene::display::FontFaceSource;
 use excali_scene::shape::Theme;
 use excali_svg::FontContent;
@@ -46,6 +51,10 @@ use excali_ui::context_menu::{
 use excali_ui::dom::{mount, Mounted, Node};
 use excali_ui::footer::{footer, FooterControl, FooterProps, OnFooterEvent};
 use excali_ui::help_dialog::{close_help_dialog, help_dialog, HelpDialogProps, Platform};
+use excali_ui::hints::{
+    cursor_hint, hint_viewer, position_element_beside_cursor, ContainerRect, CursorHints,
+    HintContext, CURSOR_HINT_DURATION, CURSOR_HINT_FADE_DURATION, CURSOR_HINT_GAP,
+};
 use excali_ui::keyboard::{apply_outcome, clipboard_target, keystroke};
 use excali_ui::layers::{CanvasLayers, Layer};
 use excali_ui::library_sidebar::{
@@ -63,6 +72,10 @@ use excali_ui::theme::{apply_container_tokens, apply_theme};
 use excali_ui::toolbar::{
     activate_extra_tool, activate_tool_button, install_stylesheet, toolbar, ToolbarEvent,
     ToolbarProps,
+};
+use excali_ui::welcome_screen::{
+    help_hint, menu_hint, toolbar_hint, welcome_screen_center, WelcomeScreenEvent,
+    WelcomeScreenProps,
 };
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
@@ -133,6 +146,8 @@ pub fn stylesheet() -> String {
         excali_ui::footer::FOOTER_CSS,
         excali_ui::help_dialog::HELP_DIALOG_CSS,
         excali_ui::command_palette::COMMAND_PALETTE_CSS,
+        excali_ui::hints::HINTS_CSS,
+        excali_ui::welcome_screen::WELCOME_SCREEN_CSS,
         excali_ui::main_menu::MAIN_MENU_CSS,
         excali_ui::context_menu::CONTEXT_MENU_CSS,
         excali_ui::library_sidebar::LIBRARY_SIDEBAR_CSS,
@@ -148,6 +163,8 @@ fn install_element_stylesheet(document: &Document) -> Result<(), JsValue> {
     excali_ui::footer::install_stylesheet(document)?;
     excali_ui::help_dialog::install_stylesheet(document)?;
     excali_ui::command_palette::install_stylesheet(document)?;
+    excali_ui::hints::install_stylesheet(document)?;
+    excali_ui::welcome_screen::install_stylesheet(document)?;
     excali_ui::main_menu::install_stylesheet(document)?;
     excali_ui::context_menu::install_stylesheet(document)?;
     excali_ui::library_sidebar::install_stylesheet(document)?;
@@ -244,9 +261,20 @@ struct Inner {
     palette: Option<PaletteSession>,
     /// The palette's last run command, by label (`lastUsedPaletteItem`).
     palette_last_used: Option<String>,
-    /// The top-left corner (`App-menu_top__left`) and the main menu in it.
+    /// The top-left corner (`App-menu_top__left`) and the main menu in it,
+    /// with the welcome screen's menu hint under it.
     top_left: HtmlElement,
     main_menu: Option<Mounted>,
+    menu_hint: Option<Mounted>,
+    /// The welcome screen's centre (`WelcomeScreenCenterTunnel.Out`).
+    welcome_center: Option<Mounted>,
+    /// The hint the toolbar last showed ([`current_hint`]).
+    hint: Option<String>,
+    /// The cursor hint's policy and the hint shown, with the nonce its
+    /// timers check.
+    cursor_hints: CursorHints,
+    cursor_hint: Option<(Mounted, u32)>,
+    cursor_hint_nonce: u32,
     /// The open context menu (`appState.contextMenu`).
     context_menu: Option<Mounted>,
     /// The top-right corner, where LayerUI puts the library trigger.
@@ -380,7 +408,73 @@ fn chrome_key(inner: &Inner) -> Value {
         "libraryItems": ed.library().len(),
         "libraryMenu": library_menu_key(&inner.library_menu),
         "canFitSidebar": can_fit_sidebar(inner),
+        "hint": current_hint(inner),
+        "welcome": render_welcome_screen(inner),
     })
+}
+
+/// `app.scene.getSelectedElements(appState)`: the non-deleted elements
+/// `selectedElementIds` holds.
+fn selected_elements(inner: &Inner) -> Vec<excali_core::element::Element> {
+    let ids = inner.editor.app_state().get("selectedElementIds");
+    inner
+        .editor
+        .elements()
+        .iter()
+        .filter(|e| {
+            !e.base.is_deleted
+                && ids
+                    .and_then(|ids| ids.get(&e.base.id))
+                    .is_some_and(|v| v.as_bool() == Some(true))
+        })
+        .cloned()
+        .collect()
+}
+
+/// The hint viewer's element for the editor's state (`LayerUI` renders it
+/// with `isMobile` from the phone form factor, which this layout is not).
+fn hint_node(inner: &Inner) -> Option<excali_ui::dom::Element> {
+    let selected = selected_elements(inner);
+    let ctx = HintContext {
+        app_state: inner.editor.app_state(),
+        selected_elements: &selected,
+        is_mobile: false,
+        can_fit_sidebar: can_fit_sidebar(inner),
+        grid_mode_enabled: None,
+        active_resize_handle: inner.editor.active_resize_handle(),
+    };
+    hint_viewer(&ctx, is_darwin())
+}
+
+/// The hint text the viewer shows, `None` for none: what the toolbar is
+/// re-rendered on.
+fn current_hint(inner: &Inner) -> Option<String> {
+    hint_node(inner).map(|el| Node::Element(el).to_html())
+}
+
+/// `renderWelcomeScreen` (`App.tsx:2516-2522`): not loading (the core
+/// loads synchronously), `showWelcomeScreen` (which `componentDidUpdate`
+/// turns on whenever the scene has no elements, `App.tsx:4342-4344`), the
+/// preferred selection tool active, not in zen mode, and no elements,
+/// deleted ones included.
+fn render_welcome_screen(inner: &Inner) -> bool {
+    let ed = &inner.editor;
+    let empty = ed.elements().is_empty();
+    let show = empty
+        || ed
+            .app_state()
+            .get("showWelcomeScreen")
+            .and_then(Value::as_bool)
+            == Some(true);
+    let tools = ed.tools();
+    let preferred =
+        tools.active_tool.tool.builtin() == Some(tools.preferred_selection_tool.tool.tool_type());
+    let zen = ed
+        .app_state()
+        .get("zenModeEnabled")
+        .and_then(Value::as_bool)
+        == Some(true);
+    inner.ui != "none" && show && preferred && !zen && empty
 }
 
 fn library_menu_key(state: &LibraryMenuState) -> Value {
@@ -516,6 +610,187 @@ fn refresh_chrome(weak: &Weak<RefCell<Inner>>) {
     let _ = render_library_sidebar(weak);
     let _ = render_help_dialog(weak);
     let _ = render_command_palette(weak);
+    let _ = render_welcome_center(weak);
+}
+
+/// Re-mounts the welcome screen's centre in the container while
+/// [`render_welcome_screen`] holds; its items run their actions.
+fn render_welcome_center(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
+    let Some(rc) = weak.upgrade() else {
+        return Ok(());
+    };
+    let mut inner = rc.borrow_mut();
+    if let Some(old) = inner.welcome_center.take() {
+        old.remove();
+    }
+    if !render_welcome_screen(&inner) {
+        return Ok(());
+    }
+    let events = weak.clone();
+    let on_event = Rc::new(move |event: WelcomeScreenEvent| {
+        let Some(rc) = events.upgrade() else {
+            return;
+        };
+        {
+            let Ok(mut inner) = rc.try_borrow_mut() else {
+                return;
+            };
+            inner.editor.perform_action(event.action());
+            inner.after_event();
+        }
+        refresh_chrome(&events);
+    });
+    let view_mode = inner
+        .editor
+        .app_state()
+        .get("viewModeEnabled")
+        .and_then(Value::as_bool)
+        == Some(true);
+    let node = Node::Element(welcome_screen_center(&WelcomeScreenProps {
+        form_factor: excali_ui::editor_interface::FormFactor::Desktop,
+        view_mode_enabled: view_mode,
+        is_darwin: is_darwin(),
+        on_event: Some(on_event),
+    }));
+    let document = inner.document();
+    let mounted = mount(&node, &document, &inner.container)?;
+    inner.welcome_center = Some(mounted);
+    Ok(())
+}
+
+/// The cursor hint for a tool key's outcome (`App.tsx:5808-5821`):
+/// `cursorHints.onArrowTypeCycled` or `onToolShortcut`.
+fn show_cursor_hint(weak: &Weak<RefCell<Inner>>, effects: &[KeyEffect]) {
+    let Some(rc) = weak.upgrade() else {
+        return;
+    };
+    let Some((tool, next, hint)) = effects.iter().find_map(|e| match e {
+        KeyEffect::Tool(ToolKeyOutcome::Tool {
+            tool,
+            next_arrow_type,
+            hint,
+            ..
+        }) => Some((*tool, *next_arrow_type, *hint)),
+        _ => None,
+    }) else {
+        return;
+    };
+    let mut inner = rc.borrow_mut();
+    if inner.ui == "none" {
+        return;
+    }
+    let now = js_sys::Date::now();
+    let pointer = inner.editor.last_pointer();
+    let position = (pointer[0], pointer[1]);
+    let arrow_type = match inner
+        .editor
+        .app_state()
+        .get("currentItemArrowType")
+        .and_then(Value::as_str)
+    {
+        Some("sharp") => ArrowType::Sharp,
+        Some("elbow") => ArrowType::Elbow,
+        _ => ArrowType::Round,
+    };
+    let icon = match (next, hint) {
+        (Some(next), _) => inner.cursor_hints.on_arrow_type_cycled(next, now, position),
+        (None, Some(source)) => inner
+            .cursor_hints
+            .on_tool_shortcut(tool, source, arrow_type, now, position),
+        (None, None) => None,
+    };
+    let Some(icon) = icon else {
+        return;
+    };
+    if let Some((old, _)) = inner.cursor_hint.take() {
+        old.remove();
+    }
+    inner.cursor_hint_nonce = inner.cursor_hint_nonce.wrapping_add(1);
+    let nonce = inner.cursor_hint_nonce;
+    let document = inner.document();
+    let Ok(mounted) = mount(
+        &Node::Element(cursor_hint(icon, false, 0.0, 0.0)),
+        &document,
+        &inner.container,
+    ) else {
+        return;
+    };
+    inner.cursor_hint = Some((mounted, nonce));
+    place_cursor_hint(&inner, pointer[0], pointer[1]);
+    drop(inner);
+    // CURSOR_HINT_DURATION, then the fade-out, then gone
+    let fade = weak.clone();
+    let hide = weak.clone();
+    set_timeout(CURSOR_HINT_DURATION, move || {
+        if let Some(rc) = fade.upgrade() {
+            let inner = rc.borrow();
+            if let Some((mounted, n)) = &inner.cursor_hint {
+                if *n == nonce {
+                    if let Some(el) = mounted.element() {
+                        let _ = el.class_list().add_1("CursorHint--fade-out");
+                    }
+                }
+            }
+        }
+    });
+    set_timeout(
+        CURSOR_HINT_DURATION + CURSOR_HINT_FADE_DURATION,
+        move || {
+            if let Some(rc) = hide.upgrade() {
+                let mut inner = rc.borrow_mut();
+                if inner.cursor_hint.as_ref().is_some_and(|(_, n)| *n == nonce) {
+                    if let Some((mounted, _)) = inner.cursor_hint.take() {
+                        mounted.remove();
+                    }
+                }
+            }
+        },
+    );
+}
+
+/// Moves the cursor hint beside a pointer at client `(x, y)`
+/// (`positionElementBesideCursor`, `CURSOR_HINT_GAP`).
+fn place_cursor_hint(inner: &Inner, x: f64, y: f64) {
+    let Some(el) = inner
+        .cursor_hint
+        .as_ref()
+        .and_then(|(m, _)| m.element())
+        .and_then(|e| e.dyn_into::<HtmlElement>().ok())
+    else {
+        return;
+    };
+    let rect = inner.container.get_bounding_client_rect();
+    let (left, top) = position_element_beside_cursor(
+        (x, y),
+        (f64::from(el.offset_width()), f64::from(el.offset_height())),
+        ContainerRect {
+            left: rect.left(),
+            top: rect.top(),
+            width: rect.width(),
+            height: rect.height(),
+        },
+        CURSOR_HINT_GAP,
+    );
+    let _ = el
+        .style()
+        .set_property("transform", &format!("translate({left}px, {top}px)"));
+}
+
+/// Removes the cursor hint (a pointerdown hides it at once).
+fn hide_cursor_hint(inner: &mut Inner) {
+    if let Some((mounted, _)) = inner.cursor_hint.take() {
+        mounted.remove();
+    }
+}
+
+fn set_timeout(ms: f64, f: impl FnOnce() + 'static) {
+    if let Some(window) = web_sys::window() {
+        let callback = Closure::once_into_js(f);
+        let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+            callback.unchecked_ref(),
+            ms as i32,
+        );
+    }
 }
 
 /// Re-mounts the toolbar for the current tools.
@@ -565,10 +840,19 @@ fn render_toolbar(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
         diagram_to_code: false,
         extra_tools_open: inner.extra_tools_open,
         id_prefix: "excali-editor".into(),
-        hint_viewer: None,
+        hint_viewer: hint_node(&inner).map(Node::Element),
         ttd_trigger: None,
         on_event: Some(on_event),
     }));
+    // the shapes section's `position: relative` box, with the welcome
+    // screen's toolbar hint before the toolbar (LayerUI.tsx:353-357)
+    let node = Node::Element(
+        excali_ui::dom::Element::new("div")
+            .style("position", "relative")
+            .child_opt(render_welcome_screen(&inner).then(toolbar_hint))
+            .child(node),
+    );
+    inner.hint = current_hint(&inner);
     let document = inner.document();
     let mounted = mount(&node, &document, &inner.top)?;
     inner.toolbar = Some(mounted);
@@ -623,6 +907,9 @@ fn render_main_menu(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
     if let Some(old) = inner.main_menu.take() {
         old.remove();
     }
+    if let Some(old) = inner.menu_hint.take() {
+        old.remove();
+    }
     if inner.ui == "none" {
         return Ok(());
     }
@@ -661,6 +948,11 @@ fn render_main_menu(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
     let document = inner.document();
     let mounted = mount(&node, &document, &inner.top_left)?;
     inner.main_menu = Some(mounted);
+    // WelcomeScreenMenuHintTunnel.Out, under the menu (LayerUI.tsx:245)
+    if render_welcome_screen(&inner) {
+        let hint = mount(&Node::Element(menu_hint()), &document, &inner.top_left)?;
+        inner.menu_hint = Some(hint);
+    }
     Ok(())
 }
 
@@ -992,6 +1284,8 @@ fn render_footer(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
         undo_stack_empty: !inner.editor.can_undo(),
         redo_stack_empty: !inner.editor.can_redo(),
         is_darwin: is_darwin(),
+        render_welcome_screen: render_welcome_screen(&inner),
+        welcome_screen_help_hint: Some(Node::Element(help_hint())),
         on_event: Some(on_event),
         ..FooterProps::default()
     }));
@@ -1659,6 +1953,12 @@ impl EditorCore {
             palette_last_used: None,
             top_left,
             main_menu: None,
+            menu_hint: None,
+            welcome_center: None,
+            hint: None,
+            cursor_hints: CursorHints::default(),
+            cursor_hint: None,
+            cursor_hint_nonce: 0,
             context_menu: None,
             top_right,
             library_trigger: None,
@@ -1686,6 +1986,7 @@ impl EditorCore {
             apply_outcome(&event, &out);
             inner.after_event();
             drop(inner);
+            show_cursor_hint(&Rc::downgrade(rc), &out.effects);
             refresh_chrome(&Rc::downgrade(rc));
         })?;
         // the command palette's window listeners (capture phase,
@@ -1776,6 +2077,8 @@ impl EditorCore {
                 let _ = target.set_pointer_capture(event.pointer_id());
             }
             inner.measure();
+            // the cursor hint gets out of the way at once (CursorHint.tsx:175-181)
+            hide_cursor_hint(&mut inner);
             inner.editor.pointer_down(pointer_input(&event));
             inner.after_event();
             drop(inner);
@@ -1788,6 +2091,17 @@ impl EditorCore {
             let mut inner = rc.borrow_mut();
             inner.editor.pointer_move(pointer_input(&event));
             inner.after_event();
+            place_cursor_hint(
+                &inner,
+                f64::from(event.client_x()),
+                f64::from(event.client_y()),
+            );
+            // a hover can change the hint (toggleArrowhead)
+            let stale = inner.hint != current_hint(&inner);
+            drop(inner);
+            if stale {
+                refresh_chrome(&Rc::downgrade(rc));
+            }
         })?;
         for name in ["pointerup", "pointercancel"] {
             listen(&inner, &interactive, name, |rc, event| {

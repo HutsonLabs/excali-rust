@@ -90,6 +90,13 @@ impl Icon {
     }
 }
 
+/// An element tree from markup React wrote for a static component
+/// (elements with double-quoted attributes and end tags, no text), as the
+/// icons are read.
+pub(crate) fn parse_markup(markup: &str) -> Element {
+    markup::parse(markup)
+}
+
 /// The icon exported as `name`.
 pub fn icon(name: &str) -> Option<&'static Icon> {
     ICONS.iter().copied().find(|i| i.name == name)

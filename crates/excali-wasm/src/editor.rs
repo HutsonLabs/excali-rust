@@ -1144,6 +1144,15 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         export_to_svg(&document, &NoFonts).outer_html()
     }
 
+    /// `app.activeResizeHandle`: the transform handle being dragged, as
+    /// `TransformHandleType` names it (`"se"`, `"rotation"`).
+    pub fn active_resize_handle(&self) -> Option<&'static str> {
+        match self.gesture.as_ref() {
+            Some(Gesture::Transform(session, _)) => session.handle().map(|h| h.as_str()),
+            _ => None,
+        }
+    }
+
     /// `viewport.lastPosition`: where the pointer last was, in the page.
     pub fn last_pointer(&self) -> [f64; 2] {
         self.last_pointer
