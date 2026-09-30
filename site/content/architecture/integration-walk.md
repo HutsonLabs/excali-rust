@@ -25,7 +25,7 @@ The Rust builds used a fresh `target/` in each clone in the second walk (`CARGO_
 
 ## Second walk: clean
 
-`ex-803/integration-guide-walked-by` at `9b62268`, 2026-09-29.
+`ex-803/integration-guide-walked-by` at `9b62268`, 2026-09-29 (the branch before its rebase onto a later `main`; the guide is the same at `290ca559`).
 
 ```text
 # Walk 2 of the integration guide (ex-803), after the fixes, in $W
