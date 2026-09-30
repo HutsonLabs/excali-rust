@@ -51,6 +51,7 @@ import { fileURLToPath } from "node:url";
 
 import { ENTRY as PICKER_ENTRY, installDom, makeTree, SHIMS, staticIcons, STUBS } from "./color-picker.mjs";
 import { format } from "./lib/format.mjs";
+import { installClock, installTouchCallout, patchBegin, pointerEventClass, START } from "./lib/top-picks-dnd.mjs";
 import { loadUpstream, REPO_ROOT, verifyUpstream } from "./lib/upstream.mjs";
 
 export const OUT_DIR = join(REPO_ROOT, "crates", "excali-ui");
@@ -65,19 +66,6 @@ const ENTRY = `${PICKER_ENTRY}
 export { getTopPickReorderOffset } from "./${DND_MODULE}";
 export { isSameColor } from "./${COLOR_DND_MODULE}";
 `;
-
-// Records each drag session begin() starts (after its early returns): the
-// value and origin upstream's pickers pass.
-const BEGIN_ANCHOR = `      window.addEventListener("pointermove", onPointerMove, true);
-      window.addEventListener("pointerup", onPointerUp, true);`;
-
-const patchBegin = (source) => {
-  const at = source.indexOf(BEGIN_ANCHOR);
-  if (source.split(BEGIN_ANCHOR).length !== 2) {
-    throw new Error("topPicksDnD.tsx: begin()'s listeners not found once");
-  }
-  return `${source.slice(0, at)}      globalThis.__dndBegin?.(value, origin);\n${source.slice(at)}`;
-};
 
 const usage = () => {
   process.stderr.write("usage: color-top-picks-dnd.mjs [--check] [--out DIR]\n");
@@ -104,22 +92,6 @@ const LAYOUT = {
   other: { left: 300, top: 200, width: 28, height: 28 },
 };
 
-// radix's ContextMenu.Trigger styles the strip `WebkitTouchCallout: "none"`
-// (react-context-menu's ContextMenuTrigger); jsdom's CSSStyleDeclaration
-// has no such property, so React's write would be an expando: route it
-// through setProperty, which the recorder notes, as WebKit keeps it.
-const installTouchCallout = (window) => {
-  Object.defineProperty(window.CSSStyleDeclaration.prototype, "WebkitTouchCallout", {
-    configurable: true,
-    get() {
-      return this.getPropertyValue("-webkit-touch-callout");
-    },
-    set(value) {
-      this.setProperty("-webkit-touch-callout", value);
-    },
-  });
-};
-
 const installLayout = (window) => {
   const rect = ({ left, top, width, height }) => new window.DOMRect(left, top, width, height);
   window.Element.prototype.getBoundingClientRect = function () {
@@ -132,51 +104,6 @@ const installLayout = (window) => {
     return rect(LAYOUT.other);
   };
 };
-
-const START = 1000;
-
-const installClock = (window, act) => {
-  const clock = { now: START, seq: 0, timers: [], frames: [] };
-  window.setTimeout = (fn, ms = 0, ...args) => {
-    const id = ++clock.seq;
-    clock.timers.push({ id, due: clock.now + Math.max(0, Number(ms) || 0), fn: () => fn(...args) });
-    return id;
-  };
-  window.clearTimeout = (id) => {
-    clock.timers = clock.timers.filter((t) => t.id !== id);
-  };
-  globalThis.requestAnimationFrame = (fn) => {
-    clock.frames.push(fn);
-    return clock.frames.length;
-  };
-  Object.defineProperty(globalThis.performance, "now", { value: () => clock.now, configurable: true, writable: true });
-  clock.advance = async (ms) => {
-    const target = clock.now + ms;
-    for (;;) {
-      const due = clock.timers.filter((t) => t.due <= target).sort((a, b) => a.due - b.due || a.id - b.id)[0];
-      if (!due) break;
-      clock.timers = clock.timers.filter((t) => t !== due);
-      clock.now = due.due;
-      await act(async () => due.fn());
-    }
-    clock.now = target;
-  };
-  clock.frame = async () => {
-    const frames = clock.frames;
-    clock.frames = [];
-    await act(async () => frames.forEach((f) => f(clock.now)));
-  };
-  return clock;
-};
-
-const pointerEventClass = (window) =>
-  class PointerEvent extends window.MouseEvent {
-    constructor(type, init = {}) {
-      super(type, init);
-      Object.defineProperty(this, "pointerId", { value: init.pointerId ?? 1 });
-      Object.defineProperty(this, "pointerType", { value: "mouse" });
-    }
-  };
 
 // -- host -------------------------------------------------------------------------
 

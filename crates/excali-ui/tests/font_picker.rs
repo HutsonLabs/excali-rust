@@ -302,7 +302,9 @@ fn call_json(e: &FontPickerEvent, before: &FontPickerState) -> Value {
                     .map(|p| p.iter().map(|f| f.0).collect::<Vec<_>>())
             ])
         }
-        FontPickerEvent::Search(_) => unreachable!("not a callback of the host"),
+        FontPickerEvent::Search(_)
+        | FontPickerEvent::TopPicksMenu(_)
+        | FontPickerEvent::DragChange => unreachable!("not a callback of the host"),
     }
 }
 
@@ -349,6 +351,8 @@ fn props(case: &Value, state: &FontPickerState) -> FontPickerProps {
         is_darwin: false,
         popup_id: "radix-1".into(),
         on_event: None,
+        top_picks_menu: None,
+        dnd: None,
     }
 }
 
@@ -507,6 +511,8 @@ fn open_props(scene: &[FontFamily]) -> FontPickerProps {
         is_darwin: false,
         popup_id: "radix-1".into(),
         on_event: None,
+        top_picks_menu: None,
+        dnd: None,
     }
 }
 
