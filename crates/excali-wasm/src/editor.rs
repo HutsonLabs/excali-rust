@@ -95,6 +95,7 @@ use excali_editor::binding::{
     bind_or_unbind_binding_element, BindingAppState, BindingOpts, LinearElementInitialState,
 };
 use excali_editor::collision::{hit_element, HitTestCache};
+use excali_editor::convert_element_type::{ConvertElementTypePopup, ConvertPanel, ConvertibleType};
 use excali_editor::edit_actions::duplicate::duplicate_dragged_selection;
 use excali_editor::edit_actions::{
     bring_forward, bring_to_front, copy_selected, delete_selected, duplicate_selection, group,
@@ -109,8 +110,8 @@ use excali_editor::interactive_scene::{
 };
 use excali_editor::keyboard::{
     get_selected_elements, on_clipboard_event, on_key_down, on_key_up, pan_starts,
-    ClipboardEventKind, ClipboardOutcome, ClipboardTarget, KeyEffect, KeyOutcome, KeyboardEditor,
-    KeyboardState, Keystroke, PanStart,
+    ClipboardEventKind, ClipboardOutcome, ClipboardTarget, ConversionType, ConvertDirection,
+    KeyEffect, KeyOutcome, KeyboardEditor, KeyboardState, Keystroke, PanStart,
 };
 use excali_editor::lasso::{LassoScene, LassoSelection, LassoTrail};
 use excali_editor::linear_element_editor::create_point_at;
@@ -460,6 +461,9 @@ pub struct Editor<P: TextMetricsProvider + Clone> {
     pub(crate) library: Vec<LibraryItem>,
     pub(crate) tools: ToolState,
     pub(crate) keyboard: KeyboardState,
+    /// The convert element type popup's state while it is open
+    /// (`keyboard.convert_popup_open`).
+    pub(crate) convert_popup: ConvertElementTypePopup,
     /// `App.flowchart`: the pending nodes of Ctrl+Arrow and the Alt+Arrow
     /// walk.
     pub(crate) flowchart: AppFlowchart,
@@ -512,6 +516,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             library: Vec::new(),
             tools: ToolState::default(),
             keyboard: KeyboardState::default(),
+            convert_popup: ConvertElementTypePopup::default(),
             flowchart: AppFlowchart::default(),
             actions: ActionManager::new(),
             props,
@@ -549,6 +554,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         self.file = file;
         self.tools = ToolState::default();
         self.keyboard = KeyboardState::default();
+        self.convert_popup.reset();
         self.flowchart.clear();
         self.gesture = None;
         self.clean = self.serialize();
@@ -665,9 +671,86 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         std::mem::take(&mut self.events)
     }
 
+    /// The convert popup's effects after an event (`ConvertElementTypePopup`
+    /// and its Panel, `ConvertElementTypePopup.tsx:157-255`): closed when
+    /// the selection empties or changes kind, its caches primed while open.
+    fn sync_convert_popup(&mut self) {
+        if !self.keyboard.convert_popup_open {
+            self.convert_popup.reset();
+            return;
+        }
+        let scene = Scene::new(self.session.elements().to_vec());
+        self.convert_popup.sync(
+            &mut self.keyboard.convert_popup_open,
+            &scene,
+            self.session.app_state(),
+        );
+    }
+
+    /// The open convert popup's panel (`App.tsx:2770-2774`), `None` while it
+    /// is closed or the selection converts to nothing.
+    pub fn convert_panel(&self) -> Option<ConvertPanel> {
+        if !self.keyboard.convert_popup_open {
+            return None;
+        }
+        let scene = Scene::new(self.session.elements().to_vec());
+        ConvertElementTypePopup::panel(&scene, self.session.app_state())
+    }
+
+    /// `convertElementTypes(app, { conversionType, nextType, direction })`
+    /// on the scene, then `store.scheduleCapture()` when it converted
+    /// (`App.tsx:5655-5665`).
+    pub(crate) fn convert_element_types(
+        &mut self,
+        conversion: Option<ConversionType>,
+        next_type: Option<ConvertibleType>,
+        direction: ConvertDirection,
+    ) -> bool {
+        let mut scene = Scene::new(self.session.elements().to_vec());
+        let mut app_state = self.session.app_state().clone();
+        self.convert_popup.prime(&scene, &app_state);
+        let converted = self.convert_popup.convert(
+            &mut scene,
+            &mut app_state,
+            &mut self.tools.active_tool,
+            &mut self.session.env,
+            conversion,
+            next_type,
+            direction,
+        );
+        if converted {
+            self.session.store.schedule_capture();
+            self.apply(scene, app_state);
+        }
+        converted
+    }
+
+    /// A click on the convert popup's button for `kind` (`onSelect`,
+    /// `ConvertElementTypePopup.tsx:307-324`): the checked type does
+    /// nothing, another converts the selection to it and schedules a
+    /// capture. Returns whether it converted.
+    pub fn convert_popup_select(&mut self, kind: ConvertibleType) -> bool {
+        let mut scene = Scene::new(self.session.elements().to_vec());
+        let mut app_state = self.session.app_state().clone();
+        let converted = self.convert_popup.select(
+            &mut scene,
+            &mut app_state,
+            &mut self.tools.active_tool,
+            &mut self.session.env,
+            kind,
+        );
+        if converted {
+            self.session.store.schedule_capture();
+            self.apply(scene, app_state);
+        }
+        self.report();
+        converted
+    }
+
     /// A `change` event when the scene or the dirty flag moved since the
     /// last one.
     pub(crate) fn report(&mut self) {
+        self.sync_convert_popup();
         let now = (scene_version(self.session.elements()), self.dirty());
         if now != self.reported {
             self.reported = now;
@@ -776,6 +859,12 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 KeyEffect::Action(KeyDownOutcome::Perform(name)) => self.perform_action(*name),
                 KeyEffect::ExecuteAction(name) => self.perform_action(*name),
                 KeyEffect::Scrolled(translation) => self.set_viewport_to(translation.viewport),
+                KeyEffect::ConvertElementType {
+                    conversion,
+                    direction,
+                } => {
+                    self.convert_element_types(*conversion, None, *direction);
+                }
                 _ => {}
             }
         }
@@ -1490,6 +1579,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// A `pointerdown` on the canvas.
     pub fn pointer_down(&mut self, input: PointerInput) {
         self.last_pointer = [input.client_x, input.client_y];
+        // a press on the canvas closes the convert popup (App.tsx:8756-8758)
+        self.keyboard.convert_popup_open = false;
         // a press without the previous one's release ends it first
         // (`maybeCleanupAfterMissingPointerUp`)
         if self.gesture.is_some() {

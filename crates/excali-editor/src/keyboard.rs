@@ -462,16 +462,6 @@ fn bindings(e: &Element) -> (Option<&FixedPointBinding>, Option<&FixedPointBindi
     }
 }
 
-/// `hasBoundTextElement(element)` (`typeChecks.ts:297-305`).
-fn has_bound_text_element(e: &Element) -> bool {
-    is_text_container(e)
-        && e.base
-            .bound_elements
-            .iter()
-            .flatten()
-            .any(|b| b.kind == BoundElementType::Text)
-}
-
 /// `getBoundTextElement(element, elementsMap)` is not null: a bound text
 /// that exists in the scene and is not deleted.
 fn has_live_bound_text(scene: &Scene, e: &Element) -> bool {
@@ -482,28 +472,7 @@ fn has_live_bound_text(scene: &Scene, e: &Element) -> bool {
         .any(|b| b.kind == BoundElementType::Text && scene.get_non_deleted(&b.id).is_some())
 }
 
-/// `getConversionTypeFromElements(elements)`
-/// (`ConvertElementTypePopup.tsx:641-672`).
-pub fn get_conversion_type(elements: &[&Element]) -> Option<ConversionType> {
-    let mut can_be_linear = false;
-    for e in elements {
-        if matches!(
-            e.kind,
-            ElementKind::Rectangle | ElementKind::Diamond | ElementKind::Ellipse
-        ) {
-            return Some(ConversionType::Generic);
-        }
-        let eligible_linear = is_linear(e)
-            && (!is_arrow(e) || {
-                let (start, end) = bindings(e);
-                start.is_none() && end.is_none() && !has_bound_text_element(e)
-            });
-        if eligible_linear {
-            can_be_linear = true;
-        }
-    }
-    can_be_linear.then_some(ConversionType::Linear)
-}
+pub use crate::convert_element_type::get_conversion_type;
 
 // ---------------------------------------------------------------------------
 // app state
@@ -617,7 +586,7 @@ fn arrow_type_name(t: ArrowType) -> &'static str {
     }
 }
 
-fn binding_app_state(app_state: &AppState) -> BindingAppState {
+pub(crate) fn binding_app_state(app_state: &AppState) -> BindingAppState {
     let defaults = BindingAppState::default();
     let flag = |key: &str, default: bool| {
         app_state

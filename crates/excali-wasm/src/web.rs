@@ -166,6 +166,7 @@ pub fn stylesheet() -> String {
         excali_ui::welcome_screen::WELCOME_SCREEN_CSS,
         excali_ui::main_menu::MAIN_MENU_CSS,
         excali_ui::context_menu::CONTEXT_MENU_CSS,
+        excali_ui::convert_popup::CONVERT_POPUP_CSS,
         excali_ui::library_sidebar::LIBRARY_SIDEBAR_CSS,
         excali_ui::layers::CANVAS_LAYER_CSS,
         TEXT_EDITOR_CSS,
@@ -284,6 +285,10 @@ struct Inner {
     menu_hint: Option<Mounted>,
     /// The welcome screen's centre (`WelcomeScreenCenterTunnel.Out`).
     welcome_center: Option<Mounted>,
+    /// The convert element type popup, the panel it shows, and whether a
+    /// click on it asked for the focus (`panelRef.current?.focus()`).
+    convert_popup: Option<(Mounted, Value)>,
+    focus_convert_popup: bool,
     /// The hint the toolbar last showed ([`current_hint`]).
     hint: Option<String>,
     /// The cursor hint's policy and the hint shown, with the nonce its
@@ -617,6 +622,7 @@ fn sync_text_editor(weak: &Weak<RefCell<Inner>>) {
 /// step with the editor.
 fn refresh_chrome(weak: &Weak<RefCell<Inner>>) {
     sync_text_editor(weak);
+    let _ = render_convert_popup(weak);
     let Some(rc) = weak.upgrade() else {
         return;
     };
@@ -633,6 +639,85 @@ fn refresh_chrome(weak: &Weak<RefCell<Inner>>) {
     let _ = render_help_dialog(weak);
     let _ = render_command_palette(weak);
     let _ = render_welcome_center(weak);
+}
+
+/// The convert element type popup (`App.tsx:2770-2774`): mounted in the
+/// container while it is open with the default UI, mounted again when the
+/// panel changes. A click on a type converts the selection and focuses the
+/// panel, so Tab and Shift+Tab keep cycling from it; a panel that had the
+/// focus keeps it across a re-mount.
+fn render_convert_popup(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
+    let Some(rc) = weak.upgrade() else {
+        return Ok(());
+    };
+    let mut inner = rc.borrow_mut();
+    let panel = if inner.ui == "none" {
+        None
+    } else {
+        inner.editor.convert_panel()
+    };
+    let key = panel.as_ref().map(|p| {
+        serde_json::json!({
+            "left": p.left,
+            "top": p.top,
+            "shapes": p.shapes.iter().map(|s| (s.kind.name(), s.checked)).collect::<Vec<_>>(),
+        })
+    });
+    let focus_requested = std::mem::take(&mut inner.focus_convert_popup);
+    if key.is_some() && inner.convert_popup.as_ref().map(|(_, k)| k) == key.as_ref() {
+        if focus_requested {
+            focus_popup(inner.convert_popup.as_ref().map(|(m, _)| m));
+        }
+        return Ok(());
+    }
+    let document = inner.document();
+    let had_focus = inner.convert_popup.as_ref().is_some_and(|(m, _)| {
+        let active = document.active_element().map(web_sys::Node::from);
+        active.is_some_and(|a| m.root().contains(Some(&a)))
+    });
+    if let Some((old, _)) = inner.convert_popup.take() {
+        old.remove();
+    }
+    let (Some(panel), Some(key)) = (panel, key) else {
+        if had_focus {
+            let _ = inner.container.focus();
+        }
+        return Ok(());
+    };
+    let events = weak.clone();
+    let on_select: excali_ui::convert_popup::OnConvert = Rc::new(move |kind| {
+        let Some(rc) = events.upgrade() else {
+            return;
+        };
+        {
+            let Ok(mut inner) = rc.try_borrow_mut() else {
+                return;
+            };
+            inner.editor.convert_popup_select(kind);
+            inner.focus_convert_popup = true;
+            inner.after_event();
+        }
+        refresh_chrome(&events);
+    });
+    let node = Node::Element(excali_ui::convert_popup::convert_popup(
+        &panel,
+        Some(on_select),
+    ));
+    let mounted = mount(&node, &document, &inner.container)?;
+    if focus_requested || had_focus {
+        focus_popup(Some(&mounted));
+    }
+    inner.convert_popup = Some((mounted, key));
+    Ok(())
+}
+
+fn focus_popup(mounted: Option<&Mounted>) {
+    if let Some(el) = mounted
+        .and_then(Mounted::element)
+        .and_then(|e| e.dyn_into::<HtmlElement>().ok())
+    {
+        let _ = el.focus();
+    }
 }
 
 /// Re-mounts the welcome screen's centre in the container while
@@ -1991,6 +2076,8 @@ impl EditorCore {
             main_menu: None,
             menu_hint: None,
             welcome_center: None,
+            convert_popup: None,
+            focus_convert_popup: false,
             hint: None,
             cursor_hints: CursorHints::default(),
             cursor_hint: None,

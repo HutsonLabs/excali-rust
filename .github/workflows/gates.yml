@@ -389,6 +389,11 @@ jobs:
   # placeCluster, FlowChartCreator.createNodes, FlowChartNavigator
   # .exploreByDirection, isNodeInFlowchart) on hand-written and seeded
   # flowcharts, and
+  # convert-element-type-fixtures.mjs --check for excali-editor's
+  # convert-element-type.json (ex-535), upstream's own
+  # ConvertElementTypePopup.tsx (convertElementTypes with the Panel's cache
+  # priming, getConversionTypeFromElements, convertLineToElbow) on the
+  # scenes of convertElementType*.test.tsx and seeded lines and arrows, and
   # binding-fixtures.mjs --check for excali-editor's binding.json (ex-510),
   # upstream's own binding.ts (fixed points, updateBoundPoint,
   # updateBoundElements, outline snapping, the binding strategies,
@@ -463,7 +468,10 @@ jobs:
   # its size preset and mirror flag; and toolbar.mjs --check for excali-ui's
   # toolbar.json and src/toolbar/toolbar.css (ex-518), upstream's desktop
   # Toolbar and extra-tools dropdown rendered by React with radix-ui into
-  # jsdom, per tool state; and mobile-menu.mjs --check for excali-ui's
+  # jsdom, per tool state; and convert-popup.mjs --check for excali-ui's
+  # convert-popup.json and src/convert_popup/convert_popup.css (ex-535),
+  # upstream's ConvertElementTypePopup rendered by React into jsdom per
+  # selection; and mobile-menu.mjs --check for excali-ui's
   # mobile-menu.json and src/mobile_menu/mobile_menu.css (ex-702),
   # upstream's MobileToolbar, ToolPopover and MobileMenu rendered by React
   # with radix-ui into jsdom per tool state, width and click; and main-menu.mjs --check for
@@ -570,6 +578,8 @@ jobs:
         run: node tools/goldens/linear-editor-fixtures.mjs --check
       - name: excali-editor flowchart fixture matches upstream's flowchart.ts
         run: node tools/goldens/flowchart-fixtures.mjs --check
+      - name: excali-editor convert element type fixture matches upstream's ConvertElementTypePopup.tsx
+        run: node tools/goldens/convert-element-type-fixtures.mjs --check
       - name: excali-editor arrow endpoint text fixture matches upstream's arrowEndpointText.ts and dragNewTextElement
         run: node tools/goldens/arrow-endpoint-text-fixtures.mjs --check
       - name: excali-scene export bounds, excali-svg document and excali-core embed link fixtures match upstream's exportToSvg and getEmbedLink
@@ -596,6 +606,8 @@ jobs:
         run: node tools/goldens/icons.mjs --check
       - name: excali-ui shapes toolbar fixture and stylesheet match upstream's Toolbar and ExtraToolsDropdown
         run: node tools/goldens/toolbar.mjs --check
+      - name: excali-ui convert element type popup fixture and stylesheet match upstream's ConvertElementTypePopup
+        run: node tools/goldens/convert-popup.mjs --check
       - name: excali-ui phone layout fixture and stylesheet match upstream's MobileToolbar, ToolPopover and MobileMenu
         run: node tools/goldens/mobile-menu.mjs --check
       - name: excali-ui main menu fixture and stylesheet match upstream's MainMenu and DefaultItems

@@ -380,3 +380,43 @@ test("right-click opens the canvas or the element context menu", async ({ page }
   expect((await elements(page)).a.isDeleted).toBe(true);
   expect(errors).toEqual([]);
 });
+
+// ex-535: the convert element type popup (ConvertElementTypePopup.tsx,
+// App.tsx:5636-5672). Tab with a shape selected opens it under the shape,
+// each Tab after converts to the next type; a click on a type converts to
+// it and focuses the panel, so Shift+Tab keeps cycling from there; Escape
+// closes it. excali-ui's tests/convert_popup.rs holds the panel to
+// upstream's own component.
+test("Tab opens the convert popup, a type converts and takes the focus", async ({ page }) => {
+  const errors = await mount(page);
+  const type = async () => (await elements(page)).linked.type;
+  const popup = page.locator("excali-editor .ConvertElementTypePopup");
+
+  const [lx, ly] = await client(page, [600, 530]);
+  await page.mouse.click(lx, ly);
+  expect(await page.evaluate(() => window.ed.getState().selectionCount)).toBe(1);
+  await expect(popup).toHaveCount(0);
+
+  await page.keyboard.press("Tab");
+  await expect(popup).toBeVisible();
+  await expect(popup.locator('[data-testid="toolbar-rectangle"]')).toHaveAttribute("aria-pressed", "true");
+  expect(await type()).toBe("rectangle");
+
+  await page.keyboard.press("Tab");
+  expect(await type()).toBe("diamond");
+  await expect(popup.locator('[data-testid="toolbar-diamond"]')).toHaveAttribute("aria-pressed", "true");
+
+  await popup.locator('[data-testid="toolbar-ellipse"]').click();
+  expect(await type()).toBe("ellipse");
+  const focused = () =>
+    page.evaluate(() => document.activeElement?.classList.contains("ConvertElementTypePopup") ?? false);
+  expect(await focused()).toBe(true);
+
+  await page.keyboard.press("Shift+Tab");
+  expect(await type()).toBe("diamond");
+  expect(await focused()).toBe(true);
+
+  await page.keyboard.press("Escape");
+  await expect(popup).toHaveCount(0);
+  expect(errors).toEqual([]);
+});

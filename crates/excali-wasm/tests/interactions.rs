@@ -1570,3 +1570,102 @@ fn the_image_being_cropped_shows_its_uncropped_image_faintly() {
     assert!(!json!(get(&ed, "img").to_map())["crop"].is_null());
     assert_eq!(translucent_groups(&ed), 0);
 }
+
+// -- converting element types (ex-535) ------------------------------------------
+
+/// Tab or Shift+Tab with the editor focused (`App.tsx:5642-5672`).
+fn tab(ed: &mut Ed, shift: bool) {
+    let mut stroke = Keystroke::new("Tab", "Tab");
+    stroke.modifiers.shift_key = shift;
+    stroke.target.editor_focused = true;
+    key(ed, stroke);
+}
+
+fn kind(ed: &Ed, id: &str) -> &'static str {
+    get(ed, id).element_type().as_str()
+}
+
+#[test]
+fn tab_opens_the_convert_popup_then_cycles_the_shape() {
+    let mut ed = editor_with(vec![filled("r", 100.0, 100.0, 80.0)]);
+    click(&mut ed, [140.0, 140.0]);
+    assert_eq!(app(&ed, "selectedElementIds"), json!({ "r": true }));
+    assert!(ed.convert_panel().is_none());
+
+    // the first Tab opens the popup and converts nothing
+    tab(&mut ed, false);
+    let panel = ed.convert_panel().expect("the popup is open");
+    let checked: Vec<bool> = panel.shapes.iter().map(|s| s.checked).collect();
+    assert_eq!(checked, [true, false, false]);
+    assert_eq!(kind(&ed, "r"), "rectangle");
+    let undo_before = ed.can_undo();
+
+    // each Tab after it steps to the next type, Shift+Tab back
+    tab(&mut ed, false);
+    assert_eq!(kind(&ed, "r"), "diamond");
+    assert!(ed.can_undo());
+    tab(&mut ed, false);
+    assert_eq!(kind(&ed, "r"), "ellipse");
+    tab(&mut ed, true);
+    assert_eq!(kind(&ed, "r"), "diamond");
+    assert_eq!(app(&ed, "selectedElementIds"), json!({ "r": true }));
+    assert!(ed.convert_panel().unwrap().shapes[1].checked);
+
+    // each conversion is its own undo step
+    ed.undo();
+    assert_eq!(kind(&ed, "r"), "ellipse");
+    ed.undo();
+    ed.undo();
+    assert_eq!(kind(&ed, "r"), "rectangle");
+    assert_eq!(ed.can_undo(), undo_before);
+}
+
+#[test]
+fn the_popup_closes_on_escape_a_canvas_press_or_a_change_of_kind() {
+    let line = el(
+        "line",
+        "l",
+        400.0,
+        400.0,
+        100.0,
+        json!({ "points": [[0, 0], [100, 100]], "startBinding": null, "endBinding": null,
+                "startArrowhead": null, "endArrowhead": null, "polygon": false }),
+    );
+    let mut ed = editor_with(vec![filled("r", 100.0, 100.0, 80.0), line]);
+    click(&mut ed, [140.0, 140.0]);
+    tab(&mut ed, false);
+    assert!(ed.convert_panel().is_some());
+    key(&mut ed, Keystroke::new("Escape", "Escape"));
+    assert!(ed.convert_panel().is_none());
+
+    tab(&mut ed, false);
+    assert!(ed.convert_panel().is_some());
+    // a press on the canvas closes it (and selects the line: another kind)
+    click(&mut ed, [450.0, 450.0]);
+    assert_eq!(app(&ed, "selectedElementIds"), json!({ "l": true }));
+    assert!(ed.convert_panel().is_none());
+
+    // a line cycles through the arrows; the tool stays the selection
+    tab(&mut ed, false);
+    tab(&mut ed, false);
+    let l = json!(get(&ed, "l").to_map());
+    assert_eq!(l["type"], "arrow");
+    assert_eq!(l["elbowed"], false);
+    assert_eq!(l["roundness"], Value::Null);
+    assert_eq!(app(&ed, "selectedLinearElement")["elementId"], "l");
+    assert_eq!(tool(&ed), "selection");
+}
+
+#[test]
+fn a_click_on_the_popup_converts_to_its_type() {
+    let mut ed = editor_with(vec![filled("r", 100.0, 100.0, 80.0)]);
+    click(&mut ed, [140.0, 140.0]);
+    tab(&mut ed, false);
+    use excali_editor::convert_element_type::ConvertibleType;
+    assert!(!ed.convert_popup_select(ConvertibleType::Rectangle));
+    assert!(ed.convert_popup_select(ConvertibleType::Ellipse));
+    assert_eq!(kind(&ed, "r"), "ellipse");
+    assert!(ed.convert_panel().unwrap().shapes[2].checked);
+    ed.undo();
+    assert_eq!(kind(&ed, "r"), "rectangle");
+}
