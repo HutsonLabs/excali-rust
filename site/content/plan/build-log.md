@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-29 · ex-607 · Integration docs: CSP, capabilities, module loading without a bundler
+
+The site has an integration guide (Architecture ▸ Integration guide, `site/content/architecture/integration.md`) for embedding `<excali-editor>` in a plain web page or a Tauri v2 app. It covers the runtime files, loading the module with no bundler, the Content-Security-Policy with the reason for each source (a browser header, and the `tauri.conf.json` object with the IPC source for each platform), the Tauri trap where any `<style>` element in the page turns off `'unsafe-inline'` for the editor's own styles, registering `tauri-plugin-excali`, its capability file, and the page's `invoke` calls. Every code block is a copy of a file that runs. `scripts/site/snippets.py` fails the gates job if a block no longer matches the example Tauri app or the web suite's browser page. The browser header is served to Chromium in `tests/web/specs/csp.spec.mjs`. PR: [#127](https://github.com/HutsonLabs/excali-rust/pull/127).
+
 ## 2026-09-29 · ex-522 · Help dialog with the three shortcut islands
 
 The editor now has upstream's Help dialog. Pressing `?` or the footer's help button opens it, and it shows the four header links (Documentation, blog, GitHub issues, YouTube) and, under "Keyboard shortcuts", the Tools, View and Editor islands row for row as upstream shows them. The rows follow the platform: Cmd/Option on a Mac, Ctrl+Y for redo on Windows, one command palette shortcut in Firefox, copy as PNG only with the async clipboard, and toggle theme only when the host enables the theme action. Esc, a click on the backdrop or the close button (on phones) closes it and clears `openMenu` and `openDialog`. The shortcuts page has a new "Help dialog" section with the dialog's three tables, and a test fails if the page and the dialog stop matching. PR: [#126](https://github.com/HutsonLabs/excali-rust/pull/126).

@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-30 00:04 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-30 00:20 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**152 issues** · 114 closed (75%) · 4 in progress · 0 blocked · 33 open
+**152 issues** · 115 closed (76%) · 4 in progress · 0 blocked · 32 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -166,7 +166,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-524` | Font picker: three top picks, scene/available groups, deprecated badge, search | task | P2 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-525` | Context menus (canvas and element) generated from the actions registry | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-526` | Library sidebar: tabs, header menu, personal/excalidraw sections, drag to canvas, add to library | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-527` | Command palette with category order and item lists | task | P2 | <span class="status open">open</span> | yes |  |
+| `ex-527` | Command palette with category order and item lists | task | P2 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-528` | Hints, tooltips, cursor hints, welcome screen | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-529` | Stats panel (general and element properties) | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-530` | <excali-editor> custom element: load/save/export/importLibrary/getState, events, host adapter | task | P0 | <span class="status closed">closed</span> |  |  |
@@ -182,7 +182,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
 
-<span class="status open">open</span> 6/8 children closed
+<span class="status open">open</span> 7/8 children closed
 
 Vendored module in term.hut with CRUD and library import; tauri-plugin-excali with dialogs, headless export and allow-listed fetch; example app.
 
@@ -194,8 +194,8 @@ Vendored module in term.hut with CRUD and library import; tauri-plugin-excali wi
 | `ex-604` | term.hut: Import library from URL or file with the allow-list | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-605` | tauri-plugin-excali: dialogs, headless export, allow-listed library fetch, capability file | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-606` | Example Tauri app embedding the editor | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-607` | Integration docs: CSP, capabilities, module loading without a bundler | task | P2 | <span class="status in_progress">in progress</span> |  |  |
-| `ex-m6` | M6: term.hut CRUD and library import end to end | milestone | P2 | <span class="status open">open</span> |  | `ex-607` |
+| `ex-607` | Integration docs: CSP, capabilities, module loading without a bundler | task | P2 | <span class="status closed">closed</span> |  |  |
+| `ex-m6` | M6: term.hut CRUD and library import end to end | milestone | P2 | <span class="status open">open</span> | yes |  |
 
 ## ex-e7 · Phase 7: Parity and polish
 
@@ -230,6 +230,6 @@ First calendar release v26.9.1 (ADR-009): ES module + WASM tarball as a GitHub r
 |---|---|---|---|---|---|---|
 | `ex-801` | Publish crates to crates.io under excali-* | task | P1 | <span class="status deferred">deferred</span> |  | `ex-712` |
 | `ex-802` | Release tarball of the ES module and WASM as a GitHub release asset | task | P1 | <span class="status open">open</span> |  | `ex-712` |
-| `ex-803` | Integration guide walked by an agent in a fresh clone | task | P2 | <span class="status open">open</span> |  | `ex-607` |
+| `ex-803` | Integration guide walked by an agent in a fresh clone | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-804` | Tag v26.9.1 and publish the GitHub release | task | P2 | <span class="status open">open</span> |  | `ex-802`, `ex-803` |
 | `ex-m8` | M8: v26.9.1 released on GitHub | milestone | P2 | <span class="status open">open</span> |  | `ex-802`, `ex-803`, `ex-804` |
