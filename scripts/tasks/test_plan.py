@@ -448,6 +448,38 @@ class PostMergeCloseAndAffectedCi(unittest.TestCase):
             self.assertNotIn("run: cargo test --workspace --locked\n", body, job)
             self.assertIn("cargo clippy --workspace" if job == "check" else "", body)
 
+    def test_main_runs_are_never_cancelled(self):
+        # ex-dm2: the driver's tracker commit follows every merge; cancelling
+        # in progress on main would kill the merge commit's full suite.
+        for name in ("rust", "gates"):
+            text = (ROOT / ".github" / "workflows" / f"{name}.yml").read_text()
+            block = text.split("\nconcurrency:\n", 1)[1].split("\n", 2)[:2]
+            self.assertEqual(block[0].strip(), f"group: {name}-${{{{ github.ref }}}}", name)
+            self.assertEqual(
+                block[1].strip(),
+                "cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
+                name,
+            )
+            self.assertNotIn("cancel-in-progress: true", text, name)
+
+    def test_rust_skips_tracker_only_pushes(self):
+        rust = (ROOT / ".github" / "workflows" / "rust.yml").read_text()
+        on = rust.split("\non:\n", 1)[1].split("\npermissions:", 1)[0]
+        push = on.split("  push:\n", 1)[1]
+        pr = on.split("  push:\n", 1)[0]
+        self.assertIn("paths-ignore:", push)
+        self.assertNotIn("paths-ignore", pr)
+        for f in self.TRACKER:
+            self.assertIn(f"- {f}", push)
+        gates = (ROOT / ".github" / "workflows" / "gates.yml").read_text()
+        self.assertNotIn("paths-ignore", gates)
+
+    def test_ex_dm2_row(self):
+        r = item("ex-dm2")
+        self.assertEqual(r["epic"], "ex-e0")
+        self.assertIn("cancel-in-progress", r["acceptance"])
+        self.assertIn("paths-ignore", r["acceptance"])
+
 
 if __name__ == "__main__":
     unittest.main()
