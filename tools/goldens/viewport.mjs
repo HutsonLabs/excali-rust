@@ -20,6 +20,11 @@
 // - `zoomAt`: getViewportForZoomWithScrollConstraints (viewport.ts);
 // - `translate`: AppViewport.translate (components/App.viewport.ts:771-825)
 //   on a stand-in App: the state it commits and what it calls;
+// - `setViewport`: AppViewport.setViewport (components/App.viewport.ts:
+//   672-760) on a stand-in App with AnimationController's frames run on a
+//   controlled clock: after each navigation, animation frame or user
+//   translate, the state, what was called and whether a locked transition
+//   is pending;
 // - `zoomToFitBounds`, `centerScrollOn`, `scrollBoundsIntoView` (including
 //   tests/viewport.test.ts), `closestElementBounds`, `scrollToContent`
 //   (getClosestElementBounds, getScrollToContentState): viewport.ts;
@@ -116,7 +121,7 @@ const STUBS = [
 const SHIMS = {
   // React's batching (unstable_batchedUpdates) only groups renders
   "packages/excalidraw/reactUtils":
-    "module.exports = { withBatchedUpdates: (fn) => fn, withBatchedUpdatesThrottled: (fn) => fn };",
+    "module.exports = { withBatchedUpdates: (fn) => fn, withBatchedUpdatesThrottled: (fn) => fn, isRenderThrottlingEnabled: () => false };",
   // register() only adds the action to the registry and returns it
   "packages/excalidraw/actions/register": "module.exports = { register: (action) => action };",
 };
@@ -399,6 +404,149 @@ const translate = (up, window) =>
       calls,
       result: viewportOf(app.state),
     };
+  });
+
+// -- AppViewport.setViewport ------------------------------------------------------------
+
+/**
+ * Runs fn with AnimationController's clock in hand: its frames
+ * (setTimeout, render throttling being off) are queued instead of
+ * scheduled, and performance.now() reads `clock.now`. `clock.frame(t)`
+ * runs the frames queued so far at time t.
+ */
+const withClock = (fn) => {
+  const queue = [];
+  let nextId = 1;
+  const clock = {
+    now: 0,
+    frame(t) {
+      clock.now = t;
+      for (const entry of queue.splice(0)) entry.cb();
+    },
+  };
+  const { setTimeout: st, clearTimeout: ct } = globalThis;
+  const now = performance.now;
+  globalThis.setTimeout = (cb) => {
+    const id = nextId++;
+    queue.push({ id, cb });
+    return id;
+  };
+  globalThis.clearTimeout = (id) => {
+    const i = queue.findIndex((e) => e.id === id);
+    if (i >= 0) queue.splice(i, 1);
+  };
+  performance.now = () => clock.now;
+  try {
+    return fn(clock);
+  } finally {
+    globalThis.setTimeout = st;
+    globalThis.clearTimeout = ct;
+    performance.now = now;
+  }
+};
+
+const SEARCH_OFFSETS = { top: 24, right: 326, bottom: 24, left: 24 };
+
+/** Frames every `step` ms from `from` to `to` inclusive. */
+const frames = (from, to, step = 16) => {
+  const out = [];
+  for (let t = from; t <= to; t += step) out.push(["frame", t]);
+  return out;
+};
+
+/**
+ * [name, state, steps]: a step is ["set", t, opts] (setViewport at time
+ * t), ["frame", t] (an animation frame at t) or ["translate", t, update]
+ * (a user pan or zoom).
+ */
+const SET_VIEWPORT_CASES = [
+  // the search menu's navigation (SearchMenu.tsx:230-235): 300 ms,
+  // scale-down, the UI's offsets
+  ["search-scale-down", {}, [["set", 1000, { target: [2000, 1500, 2100, 1540], fit: "scale-down", animation: { duration: 300 }, offsets: SEARCH_OFFSETS }], ...frames(1000, 1320)]],
+  ["search-contain-tiny-text", { zoom: 0.5, scrollX: 40, scrollY: -30 }, [["set", 1000, { target: [120, 80, 170, 90], fit: "contain", animation: { duration: 300 }, offsets: SEARCH_OFFSETS }], ...frames(1000, 1320, 20)]],
+  ["search-zoom-out", { zoom: 3, scrollX: -500, scrollY: -700 }, [["set", 1000, { target: [-4000, -3000, 5000, 3500], fit: "scale-down", animation: { duration: 300 } }], ...frames(1000, 1320, 25)]],
+  ["pure-pan", { scrollX: 12, scrollY: 34 }, [["set", 1000, { target: [800, 900, 850, 950], fit: "none", animation: { duration: 300 } }], ...frames(1000, 1320, 30)]],
+  ["uneven-frames", { zoom: 1.3 }, [["set", 5, { target: [300, 200, 900, 700], animation: { duration: 300 } }], ["frame", 20], ["frame", 21], ["frame", 150.5], ["frame", 151], ["frame", 304.9], ["frame", 305], ["frame", 400]]],
+  ["clears-lock", { scrollConstraints: SCROLL_LOCK }, [["set", 1000, { target: [300, 200, 500, 300], animation: { duration: 300 } }], ...frames(1000, 1400, 50)]],
+  ["installs-lock", {}, [["set", 1000, { target: [0, 0, 1500, 1200], lock: { scroll: true, zoom: true }, animation: { duration: 300 } }], ...frames(1000, 1400, 50)]],
+  ["installs-lock-rigid", { zoom: 2 }, [["set", 1000, { target: [100, 100, 3100, 2100], fit: "contain", lock: { scroll: true, overscroll: false }, animation: { duration: 300 } }], ...frames(1000, 1400, 100)]],
+  ["installs-lock-give", {}, [["set", 1000, { target: [100, 100, 600, 400], lock: { zoom: true, overscroll: 40 }, animation: { duration: 300 }, offsets: { right: 302 } }], ...frames(1000, 1400, 100)]],
+  ["installs-lock-negative-give", {}, [["set", 1000, { target: [100, 100, 600, 400], lock: { scroll: true, overscroll: -5 }, animation: false }]]],
+  ["replaces-lock", { scrollConstraints: SCROLL_LOCK }, [["set", 1000, { target: [0, 0, 400, 300], lock: { scroll: true }, animation: { duration: 300 } }], ...frames(1000, 1400, 100)]],
+  ["no-animation", { scrollConstraints: SCROLL_LOCK, shouldCacheIgnoreZoom: true }, [["set", 1000, { target: [2000, 1500, 2100, 1540], animation: false }], ["frame", 1100]]],
+  ["no-animation-lock", {}, [["set", 1000, { target: [0, 0, 400, 300], lock: { scroll: true, zoom: true }, animation: false }]]],
+  ["default-duration", {}, [["set", 1000, { target: [2000, 1500, 2100, 1540] }], ...frames(1000, 1600, 50)]],
+  ["animation-true", {}, [["set", 1000, { target: [2000, 1500, 2100, 1540], animation: true }], ...frames(1000, 1600, 100)]],
+  ["animation-no-duration", {}, [["set", 1000, { target: [2000, 1500, 2100, 1540], animation: {} }], ...frames(1000, 1600, 100)]],
+  ["zero-duration", {}, [["set", 1000, { target: [2000, 1500, 2100, 1540], animation: { duration: 0 } }], ["frame", 1016]]],
+  // a second navigation takes over from the viewport the first reached
+  ["superseded", {}, [
+    ["set", 1000, { target: [2000, 1500, 2100, 1540], animation: { duration: 300 }, offsets: SEARCH_OFFSETS }],
+    ["frame", 1000], ["frame", 1016], ["frame", 1100],
+    ["set", 1110, { target: [-600, -400, -500, -380], animation: { duration: 300 }, offsets: SEARCH_OFFSETS }],
+    ...frames(1116, 1500, 32),
+  ]],
+  ["superseded-by-immediate", {}, [
+    ["set", 1000, { target: [2000, 1500, 2100, 1540], animation: { duration: 300 } }],
+    ["frame", 1000], ["frame", 1100],
+    ["set", 1110, { target: [-600, -400, -500, -380], animation: false }],
+    ["frame", 1200],
+  ]],
+  // a user pan takes over from an unlocked transition
+  ["user-pan-interrupts", {}, [
+    ["set", 1000, { target: [2000, 1500, 2100, 1540], animation: { duration: 300 } }],
+    ["frame", 1000], ["frame", 1100],
+    ["translate", 1105, { scrollX: -20, scrollY: 10 }],
+    ["frame", 1200], ["frame", 1400],
+  ]],
+  // ... but not from a transition into a locked viewport
+  ["user-pan-ignored-while-locking", {}, [
+    ["set", 1000, { target: [0, 0, 1500, 1200], lock: { scroll: true }, animation: { duration: 300 } }],
+    ["frame", 1000], ["frame", 1100],
+    ["translate", 1105, { scrollX: -20, scrollY: 10 }],
+    ["frame", 1200], ["frame", 1300], ["frame", 1316],
+    ["translate", 1320, { scrollX: 5000, scrollY: 10 }],
+  ]],
+  ["unresolved-target", { scrollX: 3 }, [["set", 1000, { target: "missing", animation: { duration: 300 } }], ["frame", 1100]]],
+];
+
+const setViewportOut = (app) => ({
+  ...viewportOf(app.state),
+  scrollConstraints: app.state.scrollConstraints,
+  shouldCacheIgnoreZoom: app.state.shouldCacheIgnoreZoom,
+});
+
+const setViewport = (up, window) =>
+  SET_VIEWPORT_CASES.map(([name, s, steps]) => {
+    const state = editorState(s);
+    const { app, calls } = makeApp(up, window, { state });
+    app.scene.getNonDeletedElementsMap = () => new Map();
+    const out = withClock((clock) =>
+      steps.map(([kind, t, arg]) => {
+        clock.now = t;
+        let returned;
+        withAnimationLog(up, calls, () => {
+          if (kind === "set") app.viewport.setViewport(arg);
+          else if (kind === "frame") clock.frame(t);
+          else {
+            const payload = { ...arg, ...(arg.zoom === undefined ? {} : { zoom: { value: arg.zoom } }) };
+            returned = app.viewport.translate(() => payload);
+          }
+        });
+        const step = {
+          step: [kind, t, ...(arg === undefined ? [] : [arg])],
+          ...(returned === undefined ? {} : { returned }),
+          calls: calls.splice(0),
+          lockedTransitionPending: app.viewport.isLockedTransitionPending,
+          animating: app.viewport.isAnimating,
+          state: setViewportOut(app),
+        };
+        return step;
+      }),
+    );
+    // nothing left running for the next case
+    app.viewport.destroy();
+    return { name, state: { ...editorOut(state), shouldCacheIgnoreZoom: state.shouldCacheIgnoreZoom }, steps: out };
   });
 
 // -- zoomToFitBounds ------------------------------------------------------------------------
@@ -857,7 +1005,7 @@ const build = async (upstream) => {
   return format(
     encode({
       description:
-        "Upstream's viewport code at the pinned commit (tools/goldens/viewport.mjs): getNormalizedZoom, the viewport/scene coordinate transforms, constrainScrollState, getViewportForZoomWithScrollConstraints, AppViewport.translate, zoomToFitBounds, centerScrollOn, scrollBoundsIntoView, getClosestElementBounds, getScrollToContentState, AppWheel.handle event by event and the zoom actions (perform and keyTest), on stand-in Apps. Text measures 10 px per UTF-16 code unit. Non-finite numbers are the strings NaN, Infinity and -Infinity.",
+        "Upstream's viewport code at the pinned commit (tools/goldens/viewport.mjs): getNormalizedZoom, the viewport/scene coordinate transforms, constrainScrollState, getViewportForZoomWithScrollConstraints, AppViewport.translate, AppViewport.setViewport step by step (animation frames on a controlled clock), zoomToFitBounds, centerScrollOn, scrollBoundsIntoView, getClosestElementBounds, getScrollToContentState, AppWheel.handle event by event and the zoom actions (perform and keyTest), on stand-in Apps. Text measures 10 px per UTF-16 code unit. Non-finite numbers are the strings NaN, Infinity and -Infinity.",
       upstream: upstream.commit,
       constants: { MIN_ZOOM: up.MIN_ZOOM, MAX_ZOOM: up.MAX_ZOOM, ZOOM_STEP: up.ZOOM_STEP, DEFAULT_OVERSCROLL: up.DEFAULT_OVERSCROLL },
       normalizedZoom: normalizedZoom(up),
@@ -865,6 +1013,7 @@ const build = async (upstream) => {
       constrain: constrain(up),
       zoomAt: zoomAt(up),
       translate: translate(up, window),
+      setViewport: setViewport(up, window),
       zoomToFitBounds: zoomToFitBounds(up),
       centerScrollOn: centerScrollOn(up),
       scrollBoundsIntoView: scrollBoundsIntoView(up),

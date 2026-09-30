@@ -7,7 +7,8 @@
 //! `getViewportForZoomWithScrollConstraints`, `zoomToFitBounds`,
 //! `centerScrollOn`, `scrollBoundsIntoView`, `getClosestElementBounds` and
 //! `getScrollToContentState` (`packages/excalidraw/viewport.ts`),
-//! `AppViewport.translate` (`components/App.viewport.ts`), `AppWheel.handle`
+//! `AppViewport.translate` and `AppViewport.setViewport` step by step
+//! with its animation frames (`components/App.viewport.ts`), `AppWheel.handle`
 //! (`components/App.wheel.ts`) event by event, and the zoom actions of
 //! `actions/actionCanvas.tsx` (perform and keyTest). Every case is
 //! reproduced exactly (same doubles).
@@ -22,13 +23,15 @@ use excali_core::app_state::AppState;
 use excali_core::constants::{MAX_ZOOM, MIN_ZOOM, ZOOM_STEP};
 use excali_core::element::Element;
 use excali_editor::viewport::{
-    center_scroll_on, constrain_scroll_state, get_closest_element_bounds, get_normalized_zoom,
-    get_scroll_to_content_state, get_viewport_for_zoom_with_scroll_constraints, handle_wheel,
-    perform_zoom_action, scene_coords_to_viewport_coords, scroll_bounds_into_view, translate,
-    viewport_coords_to_scene_coords, wheel_zoom_value, zoom_to_fit_bounds, Fit, InputDevice,
-    Offsets, ScrollConstraints, TooLarge, TranslateOptions, Viewport, ViewportState,
-    ViewportUpdate, WheelContext, WheelEvent, WheelOutcome, WheelTarget, ZoomAction, ZoomKeyEvent,
-    ZoomToFit, DEFAULT_OVERSCROLL,
+    center_scroll_on, constrain_scroll_state, ease_out, get_closest_element_bounds,
+    get_normalized_zoom, get_scroll_to_content_state,
+    get_viewport_for_zoom_with_scroll_constraints, handle_wheel, perform_zoom_action,
+    scene_coords_to_viewport_coords, scroll_bounds_into_view, translate,
+    viewport_coords_to_scene_coords, wheel_zoom_value, zoom_to_fit_bounds, AppViewport, Fit,
+    InputDevice, Offsets, Overscroll, ScrollConstraints, SetViewportOptions, TooLarge,
+    TranslateOptions, Viewport, ViewportAnimation, ViewportLock, ViewportState, ViewportUpdate,
+    WheelContext, WheelEvent, WheelOutcome, WheelTarget, ZoomAction, ZoomKeyEvent, ZoomToFit,
+    DEFAULT_OVERSCROLL,
 };
 use excali_math::js;
 use serde_json::{json, Map, Value};
@@ -430,6 +433,141 @@ fn upstream_scroll_lock_suites() {
     let small = view_200x100(9999.0, 0.0, 0.1, Some(give));
     assert!((constrain_scroll_state(&small, 30.0).scroll_x - 800.0).abs() < 1e-9);
     assert!((constrain_scroll_state(&small, 0.0).scroll_x - 500.0).abs() < 1e-9);
+}
+
+fn set_viewport_options(v: &Value) -> SetViewportOptions {
+    SetViewportOptions {
+        target: v["target"].as_array().map(|_| bounds(&v["target"])),
+        fit: match v.get("fit").and_then(Value::as_str) {
+            Some("contain") => Fit::Contain,
+            Some("none") => Fit::None,
+            _ => Fit::ScaleDown,
+        },
+        offsets: v.get("offsets").map(Offsets::from_json),
+        lock: v.get("lock").map(|l| ViewportLock {
+            scroll: l["scroll"].as_bool().unwrap_or(false),
+            zoom: l["zoom"].as_bool().unwrap_or(false),
+            overscroll: match l.get("overscroll") {
+                None | Some(Value::Bool(true)) => Overscroll::Default,
+                Some(Value::Bool(false)) => Overscroll::Off,
+                Some(n) => Overscroll::Give(num(n)),
+            },
+        }),
+        animation: match v.get("animation") {
+            None | Some(Value::Bool(true)) => ViewportAnimation::Default,
+            Some(Value::Bool(false)) => ViewportAnimation::Off,
+            Some(o) => o.get("duration").map_or(ViewportAnimation::Default, |d| {
+                ViewportAnimation::Duration(num(d))
+            }),
+        },
+    }
+}
+
+#[test]
+fn set_viewport_matches_upstream() {
+    let f = fixture();
+    let cases = f["setViewport"].as_array().expect("setViewport");
+    assert!(cases.len() >= 20);
+    for case in cases {
+        let name = case["name"].as_str().unwrap();
+        let mut s = state(&case["state"]);
+        let mut cache = case["state"]["shouldCacheIgnoreZoom"].as_bool().unwrap();
+        let mut nav = AppViewport::default();
+        for (i, step) in case["steps"].as_array().unwrap().iter().enumerate() {
+            let what = format!("{name} step {i} {}", step["step"]);
+            let kind = step["step"][0].as_str().unwrap();
+            let t = num(&step["step"][1]);
+            let arg = &step["step"][2];
+            let mut calls: Vec<&str> = Vec::new();
+            match kind {
+                "set" => {
+                    if let Some(patch) = nav.set_viewport(&s, &set_viewport_options(arg)) {
+                        calls = vec!["requestUnfollow", "cancelSnapBack"];
+                        patch.apply(&mut s, &mut cache);
+                    }
+                }
+                "frame" => {
+                    if let Some(patch) = nav.frame(t) {
+                        patch.apply(&mut s, &mut cache);
+                    }
+                }
+                "translate" => {
+                    let update = ViewportUpdate {
+                        scroll_x: opt_num(arg, "scrollX"),
+                        scroll_y: opt_num(arg, "scrollY"),
+                        zoom: opt_num(arg, "zoom"),
+                    };
+                    let out = nav.translate(&s, Some(update), TranslateOptions::default());
+                    assert_eq!(out.is_some(), step["returned"].as_bool().unwrap(), "{what}");
+                    if let Some(out) = out {
+                        if out.reset_should_cache_ignore_zoom {
+                            cache = false;
+                        }
+                        if out.translation.cancel_snap_back {
+                            calls.push("cancelSnapBack");
+                        }
+                        calls.push("requestUnfollow");
+                        s = s.with_viewport(out.translation.viewport);
+                    }
+                }
+                other => panic!("{what}: unknown step {other}"),
+            }
+            assert_eq!(calls, strings(&step["calls"]), "{what} calls");
+            assert_eq!(
+                nav.is_locked_transition_pending(),
+                step["lockedTransitionPending"].as_bool().unwrap(),
+                "{what} lockedTransitionPending"
+            );
+            assert_eq!(
+                nav.is_animating(),
+                step["animating"].as_bool().unwrap(),
+                "{what} animating"
+            );
+            let expected = &step["state"];
+            assert_viewport(s.viewport(), expected, &what);
+            assert_eq!(
+                s.scroll_constraints,
+                ScrollConstraints::from_json(&expected["scrollConstraints"]),
+                "{what} scrollConstraints"
+            );
+            assert_eq!(
+                cache,
+                expected["shouldCacheIgnoreZoom"].as_bool().unwrap(),
+                "{what} shouldCacheIgnoreZoom"
+            );
+        }
+    }
+}
+
+#[test]
+fn set_viewport_eases_out_over_the_duration() {
+    // easeOut (packages/common/src/utils.ts:232-234): 1 - (1 - k)^4
+    assert_eq!(ease_out(0.0), 0.0);
+    assert_eq!(ease_out(0.5), 0.9375);
+    assert_eq!(ease_out(1.0), 1.0);
+    // the search menu's navigation: 300 ms, settled on the last frame
+    let s = ViewportState {
+        width: 1000.0,
+        height: 800.0,
+        ..state(&json!({ "zoom": 1 }))
+    };
+    let mut nav = AppViewport::default();
+    let opts = SetViewportOptions {
+        animation: ViewportAnimation::Duration(300.0),
+        ..SetViewportOptions::new([2000.0, 1500.0, 2100.0, 1540.0])
+    };
+    let first = nav.set_viewport(&s, &opts).expect("resolved");
+    assert_eq!(first.should_cache_ignore_zoom, Some(true));
+    assert!(nav.is_animating());
+    assert!(nav.frame(10.0).is_some());
+    let mid = nav.frame(160.0).expect("a frame");
+    assert_eq!(mid.should_cache_ignore_zoom, Some(true));
+    assert!(nav.is_animating());
+    let last = nav.frame(310.0).expect("the last frame");
+    assert_eq!(last.should_cache_ignore_zoom, Some(false));
+    assert_eq!(last.scroll_constraints, Some(None));
+    assert!(!nav.is_animating());
+    assert_eq!(nav.frame(400.0), None);
 }
 
 #[test]

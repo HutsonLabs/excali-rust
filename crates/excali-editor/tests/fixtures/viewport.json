@@ -1,5 +1,5 @@
 {
-  "description": "Upstream's viewport code at the pinned commit (tools/goldens/viewport.mjs): getNormalizedZoom, the viewport/scene coordinate transforms, constrainScrollState, getViewportForZoomWithScrollConstraints, AppViewport.translate, zoomToFitBounds, centerScrollOn, scrollBoundsIntoView, getClosestElementBounds, getScrollToContentState, AppWheel.handle event by event and the zoom actions (perform and keyTest), on stand-in Apps. Text measures 10 px per UTF-16 code unit. Non-finite numbers are the strings NaN, Infinity and -Infinity.",
+  "description": "Upstream's viewport code at the pinned commit (tools/goldens/viewport.mjs): getNormalizedZoom, the viewport/scene coordinate transforms, constrainScrollState, getViewportForZoomWithScrollConstraints, AppViewport.translate, AppViewport.setViewport step by step (animation frames on a controlled clock), zoomToFitBounds, centerScrollOn, scrollBoundsIntoView, getClosestElementBounds, getScrollToContentState, AppWheel.handle event by event and the zoom actions (perform and keyTest), on stand-in Apps. Text measures 10 px per UTF-16 code unit. Non-finite numbers are the strings NaN, Infinity and -Infinity.",
   "upstream": "438d89861f53d8a90ad566113ecac1b83761098f",
   "constants": {"MIN_ZOOM":0.1,"MAX_ZOOM":30,"ZOOM_STEP":0.1,"DEFAULT_OVERSCROLL":150},
   "normalizedZoom": [
@@ -926,6 +926,1566 @@
       "returned": true,
       "calls": ["cancelSnapBack","requestUnfollow","scheduleSnapBack"],
       "result": {"scrollX":12,"scrollY":0,"zoom":1}
+    }
+  ],
+  "setViewport": [
+    {
+      "name": "search-scale-down",
+      "state": {"scrollX":0,"scrollY":0,"zoom":1,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[2000,1500,2100,1540],"fit":"scale-down","animation":{"duration":300},"offsets":{"top":24,"right":326,"bottom":24,"left":24}}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1000],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1016],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-334.86802944000016,"scrollY":-220.48923749135812,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1032],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-617.6757350400001,"scrollY":-406.70007245432106,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1048],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-854.12081664,"scrollY":-562.3840768,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1064],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1049.57067264,"scrollY":-691.0753400098766,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1080],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1209.0623999999998,"scrollY":-796.0904691358023,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1096],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1337.3027942400001,"scrollY":-880.5285888000002,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1112],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1438.66834944,"scrollY":-947.2713411950617,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1128],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1517.2052582400001,"scrollY":-998.9828860839507,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1144],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1576.62941184,"scrollY":-1038.1099008,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1160],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1620.3264000000001,"scrollY":-1066.8815802469137,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1176],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1651.35151104,"scrollY":-1087.3096368987653,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1192],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1672.4297318400002,"scrollY":-1101.1883008,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1208],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1685.95574784,"scrollY":-1110.094319565432,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1224],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1693.99394304,"scrollY":-1115.3869583802468,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1240],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1698.2784,"scrollY":-1118.2079999999999,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1256],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1700.2128998399999,"scrollY":-1119.4817447506173,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1272],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1700.87092224,"scrollY":-1119.915010528395,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1288],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1700.99564544,"scrollY":-1119.9971328,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1304],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-1701,"scrollY":-1120,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        },
+        {
+          "step": ["frame",1320],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-1701,"scrollY":-1120,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        }
+      ]
+    },
+    {
+      "name": "search-contain-tiny-text",
+      "state": {"scrollX":40,"scrollY":-30,"zoom":0.5,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[120,80,170,90],"fit":"contain","animation":{"duration":300},"offsets":{"top":24,"right":326,"bottom":24,"left":24}}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":40,"scrollY":-30,"zoom":0.5,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1000],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":40,"scrollY":-30,"zoom":0.5,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1020],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-49.51294706222532,"scrollY":-43.71428906838569,"zoom":1.097015245727508,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1040],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-84.72220469718664,"scrollY":-49.10870354066819,"zoom":2.0685251627667713,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1060],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-100.45226504585564,"scrollY":-51.51870792288158,"zoom":3.4227113024573734,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1080],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-108.24856080780725,"scrollY":-52.71317930664362,"zoom":5.06671029144212,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1100],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-112.4396071385162,"scrollY":-53.355290004198736,"zoom":6.830341912104768,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1120],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-114.83015594059765,"scrollY":-53.72154626521802,"zoom":8.522417512008307,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1140],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-116.24576378609692,"scrollY":-53.93843170847301,"zoom":9.987568714769422,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1160],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-117.09674416294186,"scrollY":-54.06881051134567,"zoom":11.13871736466447,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1180],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-117.60356935571262,"scrollY":-54.14646125829255,"zoom":11.959693081223945,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1200],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-117.89419972176317,"scrollY":-54.19098877060088,"zoom":12.487472520502479,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1220],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-118.04875621232834,"scrollY":-54.214668388561975,"zoom":12.78757309086144,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1240],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-118.12078209609624,"scrollY":-54.225703482621746,"zoom":12.932407922287892,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1260],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-118.1473286354738,"scrollY":-54.22977068101861,"zoom":12.98662053753252,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1280],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-118.15343900553599,"scrollY":-54.2307068515291,"zoom":12.999163379909428,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1300],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-118.15384615384616,"scrollY":-54.23076923076923,"zoom":13,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        },
+        {
+          "step": ["frame",1320],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-118.15384615384616,"scrollY":-54.23076923076923,"zoom":13,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        }
+      ]
+    },
+    {
+      "name": "search-zoom-out",
+      "state": {"scrollX":-500,"scrollY":-700,"zoom":3,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[-4000,-3000,5000,3500],"fit":"scale-down","animation":{"duration":300}}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-500,"scrollY":-700,"zoom":3,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1000],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-500,"scrollY":-700,"zoom":3,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1025],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-217.0770780567921,"scrollY":-445.36939854340505,"zoom":1.1386643274348027,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1050],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":280.4293357187826,"scrollY":2.386324103970836,"zoom":0.54454886697976,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1075],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":973.9881995259105,"scrollY":626.5892321744998,"zoom":0.31524603625772507,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1100],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":1763.9747722354934,"scrollY":1337.5770686144672,"zoom":0.2130569292712815,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1125],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":2517.4849262811194,"scrollY":2015.7361319045153,"zoom":0.16273959724308545,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1150],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":3130.069846945199,"scrollY":2567.062499243694,"zoom":0.13652661376677988,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1175],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":3558.096835738765,"scrollY":2952.286746355205,"zoom":0.12271553466586599,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1200],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":3813.6763185296145,"scrollY":3182.308255309022,"zoom":0.1157252743957008,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1225],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":3940.2271597653944,"scrollY":3296.2039997661386,"zoom":0.11255073168506141,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1250],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":3988.135556072635,"scrollY":3339.3215516518153,"zoom":0.11139392428997735,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1275],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":3999.26180639185,"scrollY":3349.335175826484,"zoom":0.11112866169682695,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1300],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":4000.0045000045,"scrollY":3350.0036000036,"zoom":0.111111,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        }
+      ]
+    },
+    {
+      "name": "pure-pan",
+      "state": {"scrollX":12,"scrollY":34,"zoom":1,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[800,900,850,950],"fit":"none","animation":{"duration":300}}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":12,"scrollY":34,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1000],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":12,"scrollY":34,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1030],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-103.8943,"scrollY":-158.24009999999998,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1060],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-186.96479999999997,"scrollY":-296.0336,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1090],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-244.0863,"scrollY":-390.78409999999997,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1120],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-281.3248,"scrollY":-452.5536,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1150],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-303.9375,"scrollY":-490.0625,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1180],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-316.3728,"scrollY":-510.6896,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1210],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-322.2703,"scrollY":-520.4721,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1240],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-324.46079999999995,"scrollY":-524.1056,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1270],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-324.96630000000005,"scrollY":-524.9440999999999,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1300],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-325,"scrollY":-525,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        }
+      ]
+    },
+    {
+      "name": "uneven-frames",
+      "state": {"scrollX":0,"scrollY":0,"zoom":1.3,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",5,{"target":[300,200,900,700],"animation":{"duration":300}}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1.3,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",20],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1.3,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",21],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1.1622676272440526,"scrollY":-0.5811338136220263,"zoom":1.295482906468491,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",150.5],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-88.56785223365642,"scrollY":-44.28392611682821,"zoom":1.0270967424539943,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",151],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-88.70038265732822,"scrollY":-44.35019132866411,"zoom":1.0267742052697084,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",304.9],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-99.99927029187239,"scrollY":-49.999635145936196,"zoom":1.0000016839446686,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",305],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-99.99928943069963,"scrollY":-49.99964471534982,"zoom":1.0000016397779974,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",400],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-100,"scrollY":-50,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        }
+      ]
+    },
+    {
+      "name": "clears-lock",
+      "state": {
+        "scrollX": 0,
+        "scrollY": 0,
+        "zoom": 1,
+        "width": 1000,
+        "height": 800,
+        "offsetLeft": 0,
+        "offsetTop": 0,
+        "scrollConstraints": {"lockScroll":true,"lockZoom":false,"zoom":1,"overscroll":150,"x":0,"y":0,"width":2000,"height":1600},
+        "shouldCacheIgnoreZoom": false
+      },
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[300,200,500,300],"animation":{"duration":300}}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1000],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1050],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":51.77469135802468,"scrollY":77.66203703703702,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1100],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":80.2469135802469,"scrollY":120.37037037037035,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1150],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":93.75,"scrollY":140.625,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1200],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":98.76543209876543,"scrollY":148.14814814814815,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1250],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":99.92283950617285,"scrollY":149.88425925925927,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1300],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":100,"scrollY":150,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        },
+        {
+          "step": ["frame",1350],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":100,"scrollY":150,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        },
+        {
+          "step": ["frame",1400],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":100,"scrollY":150,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        }
+      ]
+    },
+    {
+      "name": "installs-lock",
+      "state": {"scrollX":0,"scrollY":0,"zoom":1,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[0,0,1500,1200],"lock":{"scroll":true,"zoom":true},"animation":{"duration":300}}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1000],
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1050],
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":-0.0001751921496569413,"scrollY":-0.00014015371971493062,"zoom":0.8106425700798149,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1100],
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":-0.00028841035496056876,"scrollY":-0.0002307282839509678,"zoom":0.7222580213303973,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1150],
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":-0.0003468487698585284,"scrollY":-0.00027747901586579226,"zoom":0.683777251498053,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1200],
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":-0.00036938242808823876,"scrollY":-0.00029550594244819424,"zoom":0.6700125253593197,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1250],
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":-0.0003746479015635213,"scrollY":-0.000299718321228101,"zoom":0.6668756050637915,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1300],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {
+            "scrollX": -0.0003749998124931153,
+            "scrollY": -0.0002999998499717549,
+            "zoom": 0.666667,
+            "scrollConstraints": {"x":0,"y":0,"width":1500,"height":1200,"lockScroll":true,"lockZoom":true,"zoom":0.666667,"overscroll":150},
+            "shouldCacheIgnoreZoom": false
+          }
+        },
+        {
+          "step": ["frame",1350],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {
+            "scrollX": -0.0003749998124931153,
+            "scrollY": -0.0002999998499717549,
+            "zoom": 0.666667,
+            "scrollConstraints": {"x":0,"y":0,"width":1500,"height":1200,"lockScroll":true,"lockZoom":true,"zoom":0.666667,"overscroll":150},
+            "shouldCacheIgnoreZoom": false
+          }
+        },
+        {
+          "step": ["frame",1400],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {
+            "scrollX": -0.0003749998124931153,
+            "scrollY": -0.0002999998499717549,
+            "zoom": 0.666667,
+            "scrollConstraints": {"x":0,"y":0,"width":1500,"height":1200,"lockScroll":true,"lockZoom":true,"zoom":0.666667,"overscroll":150},
+            "shouldCacheIgnoreZoom": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "installs-lock-rigid",
+      "state": {"scrollX":0,"scrollY":0,"zoom":2,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[100,100,3100,2100],"fit":"contain","lock":{"scroll":true,"overscroll":false},"animation":{"duration":300}}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":2,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1000],
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":2,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1100],
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":-64.23010469946453,"scrollY":64.23183894003931,"zoom":0.4748837248290865,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1200],
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":-97.37322365249803,"scrollY":97.37585277160261,"zoom":0.34078864983767315,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1300],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {
+            "scrollX": -99.99849999849994,
+            "scrollY": 100.0012000012,
+            "zoom": 0.333333,
+            "scrollConstraints": {"x":100,"y":100,"width":3000,"height":2000,"lockScroll":true,"lockZoom":false,"zoom":0.333333,"overscroll":0},
+            "shouldCacheIgnoreZoom": false
+          }
+        },
+        {
+          "step": ["frame",1400],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {
+            "scrollX": -99.99849999849994,
+            "scrollY": 100.0012000012,
+            "zoom": 0.333333,
+            "scrollConstraints": {"x":100,"y":100,"width":3000,"height":2000,"lockScroll":true,"lockZoom":false,"zoom":0.333333,"overscroll":0},
+            "shouldCacheIgnoreZoom": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "installs-lock-give",
+      "state": {"scrollX":0,"scrollY":0,"zoom":1,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[100,100,600,400],"lock":{"zoom":true,"overscroll":40},"animation":{"duration":300},"offsets":{"right":302}}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1000],
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1100],
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":-0.802469135802469,"scrollY":120.37037037037035,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1200],
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":-0.9876543209876543,"scrollY":148.14814814814815,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1300],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {
+            "scrollX": -1,
+            "scrollY": 150,
+            "zoom": 1,
+            "scrollConstraints": {"x":100,"y":100,"width":500,"height":300,"lockScroll":false,"lockZoom":true,"zoom":1,"overscroll":40,"offsets":{"right":302}},
+            "shouldCacheIgnoreZoom": false
+          }
+        },
+        {
+          "step": ["frame",1400],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {
+            "scrollX": -1,
+            "scrollY": 150,
+            "zoom": 1,
+            "scrollConstraints": {"x":100,"y":100,"width":500,"height":300,"lockScroll":false,"lockZoom":true,"zoom":1,"overscroll":40,"offsets":{"right":302}},
+            "shouldCacheIgnoreZoom": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "installs-lock-negative-give",
+      "state": {"scrollX":0,"scrollY":0,"zoom":1,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[100,100,600,400],"lock":{"scroll":true,"overscroll":-5},"animation":false}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {
+            "scrollX": 150,
+            "scrollY": 150,
+            "zoom": 1,
+            "scrollConstraints": {"x":100,"y":100,"width":500,"height":300,"lockScroll":true,"lockZoom":false,"zoom":1,"overscroll":0},
+            "shouldCacheIgnoreZoom": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "replaces-lock",
+      "state": {
+        "scrollX": 0,
+        "scrollY": 0,
+        "zoom": 1,
+        "width": 1000,
+        "height": 800,
+        "offsetLeft": 0,
+        "offsetTop": 0,
+        "scrollConstraints": {"lockScroll":true,"lockZoom":false,"zoom":1,"overscroll":150,"x":0,"y":0,"width":2000,"height":1600},
+        "shouldCacheIgnoreZoom": false
+      },
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[0,0,400,300],"lock":{"scroll":true},"animation":{"duration":300}}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1000],
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1100],
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":240.7407407407407,"scrollY":200.61728395061726,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1200],
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":296.2962962962963,"scrollY":246.91358024691357,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1300],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {
+            "scrollX": 300,
+            "scrollY": 250,
+            "zoom": 1,
+            "scrollConstraints": {"x":0,"y":0,"width":400,"height":300,"lockScroll":true,"lockZoom":false,"zoom":1,"overscroll":150},
+            "shouldCacheIgnoreZoom": false
+          }
+        },
+        {
+          "step": ["frame",1400],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {
+            "scrollX": 300,
+            "scrollY": 250,
+            "zoom": 1,
+            "scrollConstraints": {"x":0,"y":0,"width":400,"height":300,"lockScroll":true,"lockZoom":false,"zoom":1,"overscroll":150},
+            "shouldCacheIgnoreZoom": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "no-animation",
+      "state": {
+        "scrollX": 0,
+        "scrollY": 0,
+        "zoom": 1,
+        "width": 1000,
+        "height": 800,
+        "offsetLeft": 0,
+        "offsetTop": 0,
+        "scrollConstraints": {"lockScroll":true,"lockZoom":false,"zoom":1,"overscroll":150,"x":0,"y":0,"width":2000,"height":1600},
+        "shouldCacheIgnoreZoom": true
+      },
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[2000,1500,2100,1540],"animation":false}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-1550,"scrollY":-1120,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        },
+        {
+          "step": ["frame",1100],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-1550,"scrollY":-1120,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        }
+      ]
+    },
+    {
+      "name": "no-animation-lock",
+      "state": {"scrollX":0,"scrollY":0,"zoom":1,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[0,0,400,300],"lock":{"scroll":true,"zoom":true},"animation":false}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {
+            "scrollX": 300,
+            "scrollY": 250,
+            "zoom": 1,
+            "scrollConstraints": {"x":0,"y":0,"width":400,"height":300,"lockScroll":true,"lockZoom":true,"zoom":1,"overscroll":150},
+            "shouldCacheIgnoreZoom": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "default-duration",
+      "state": {"scrollX":0,"scrollY":0,"zoom":1,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[2000,1500,2100,1540]}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1000],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1050],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-533.045,"scrollY":-385.168,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1100],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-915.1199999999999,"scrollY":-661.2479999999999,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1150],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1177.845,"scrollY":-851.088,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1200],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1349.1200000000001,"scrollY":-974.8480000000001,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1250],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1453.125,"scrollY":-1050,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1300],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1510.3200000000002,"scrollY":-1091.328,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1350],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1537.445,"scrollY":-1110.928,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1400],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1547.52,"scrollY":-1118.2079999999999,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1450],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1549.845,"scrollY":-1119.888,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1500],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-1550,"scrollY":-1120,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        },
+        {
+          "step": ["frame",1550],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-1550,"scrollY":-1120,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        },
+        {
+          "step": ["frame",1600],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-1550,"scrollY":-1120,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        }
+      ]
+    },
+    {
+      "name": "animation-true",
+      "state": {"scrollX":0,"scrollY":0,"zoom":1,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[2000,1500,2100,1540],"animation":true}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1000],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1100],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-915.1199999999999,"scrollY":-661.2479999999999,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1200],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1349.1200000000001,"scrollY":-974.8480000000001,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1300],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1510.3200000000002,"scrollY":-1091.328,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1400],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1547.52,"scrollY":-1118.2079999999999,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1500],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-1550,"scrollY":-1120,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        },
+        {
+          "step": ["frame",1600],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-1550,"scrollY":-1120,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        }
+      ]
+    },
+    {
+      "name": "animation-no-duration",
+      "state": {"scrollX":0,"scrollY":0,"zoom":1,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[2000,1500,2100,1540],"animation":{}}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1000],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1100],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-915.1199999999999,"scrollY":-661.2479999999999,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1200],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1349.1200000000001,"scrollY":-974.8480000000001,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1300],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1510.3200000000002,"scrollY":-1091.328,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1400],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1547.52,"scrollY":-1118.2079999999999,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1500],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-1550,"scrollY":-1120,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        },
+        {
+          "step": ["frame",1600],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-1550,"scrollY":-1120,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        }
+      ]
+    },
+    {
+      "name": "zero-duration",
+      "state": {"scrollX":0,"scrollY":0,"zoom":1,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[2000,1500,2100,1540],"animation":{"duration":0}}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-1550,"scrollY":-1120,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        },
+        {
+          "step": ["frame",1016],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-1550,"scrollY":-1120,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        }
+      ]
+    },
+    {
+      "name": "superseded",
+      "state": {"scrollX":0,"scrollY":0,"zoom":1,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[2000,1500,2100,1540],"animation":{"duration":300},"offsets":{"top":24,"right":326,"bottom":24,"left":24}}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1000],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1016],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-334.86802944000016,"scrollY":-220.48923749135812,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1100],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1364.9999999999998,"scrollY":-898.7654320987654,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["set",1110,{"target":[-600,-400,-500,-380],"animation":{"duration":300},"offsets":{"top":24,"right":326,"bottom":24,"left":24}}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1364.9999999999998,"scrollY":-898.7654320987654,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1116],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1364.9999999999998,"scrollY":-898.7654320987654,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1148],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-542.8848535387651,"scrollY":-285.5323753193719,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1180],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":31.959437305679216,"scrollY":143.2561261017529,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1212],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":414.9256473600004,"scrollY":428.91871320493857,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1244],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":654.3725482982719,"scrollY":607.5272154698371,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1276],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":791.6249086419754,"scrollY":709.9066508154247,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1308],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":860.9734937600001,"scrollY":761.6352256000001,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1340],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":889.6750658686418,"scrollY":783.0443346211857,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1372],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":897.9523840316049,"scrollY":789.2185611159274,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1404],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":898.99420416,"scrollY":789.9956767604939,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1436],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":899,"scrollY":790,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        },
+        {
+          "step": ["frame",1468],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":899,"scrollY":790,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        },
+        {
+          "step": ["frame",1500],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":899,"scrollY":790,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        }
+      ]
+    },
+    {
+      "name": "superseded-by-immediate",
+      "state": {"scrollX":0,"scrollY":0,"zoom":1,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[2000,1500,2100,1540],"animation":{"duration":300}}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1000],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1100],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1243.827160493827,"scrollY":-898.7654320987654,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["set",1110,{"target":[-600,-400,-500,-380],"animation":false}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":1050,"scrollY":790,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        },
+        {
+          "step": ["frame",1200],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":1050,"scrollY":790,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        }
+      ]
+    },
+    {
+      "name": "user-pan-interrupts",
+      "state": {"scrollX":0,"scrollY":0,"zoom":1,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[2000,1500,2100,1540],"animation":{"duration":300}}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1000],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1100],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": true,
+          "state": {"scrollX":-1243.827160493827,"scrollY":-898.7654320987654,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["translate",1105,{"scrollX":-20,"scrollY":10}],
+          "returned": true,
+          "calls": ["cancelSnapBack","requestUnfollow"],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-20,"scrollY":10,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        },
+        {
+          "step": ["frame",1200],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-20,"scrollY":10,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        },
+        {
+          "step": ["frame",1400],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":-20,"scrollY":10,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        }
+      ]
+    },
+    {
+      "name": "user-pan-ignored-while-locking",
+      "state": {"scrollX":0,"scrollY":0,"zoom":1,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",1000,{"target":[0,0,1500,1200],"lock":{"scroll":true},"animation":{"duration":300}}],
+          "calls": ["requestUnfollow","cancelSnapBack"],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1000],
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":0,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1100],
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":-0.00028841035496056876,"scrollY":-0.0002307282839509678,"zoom":0.7222580213303973,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["translate",1105,{"scrollX":-20,"scrollY":10}],
+          "returned": false,
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":-0.00028841035496056876,"scrollY":-0.0002307282839509678,"zoom":0.7222580213303973,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1200],
+          "calls": [],
+          "lockedTransitionPending": true,
+          "animating": true,
+          "state": {"scrollX":-0.00036938242808823876,"scrollY":-0.00029550594244819424,"zoom":0.6700125253593197,"scrollConstraints":null,"shouldCacheIgnoreZoom":true}
+        },
+        {
+          "step": ["frame",1300],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {
+            "scrollX": -0.0003749998124931153,
+            "scrollY": -0.0002999998499717549,
+            "zoom": 0.666667,
+            "scrollConstraints": {"x":0,"y":0,"width":1500,"height":1200,"lockScroll":true,"lockZoom":false,"zoom":0.666667,"overscroll":150},
+            "shouldCacheIgnoreZoom": false
+          }
+        },
+        {
+          "step": ["frame",1316],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {
+            "scrollX": -0.0003749998124931153,
+            "scrollY": -0.0002999998499717549,
+            "zoom": 0.666667,
+            "scrollConstraints": {"x":0,"y":0,"width":1500,"height":1200,"lockScroll":true,"lockZoom":false,"zoom":0.666667,"overscroll":150},
+            "shouldCacheIgnoreZoom": false
+          }
+        },
+        {
+          "step": ["translate",1320,{"scrollX":5000,"scrollY":10}],
+          "returned": true,
+          "calls": ["cancelSnapBack","requestUnfollow","scheduleSnapBack"],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {
+            "scrollX": 224.99988750005625,
+            "scrollY": 10,
+            "zoom": 0.666667,
+            "scrollConstraints": {"x":0,"y":0,"width":1500,"height":1200,"lockScroll":true,"lockZoom":false,"zoom":0.666667,"overscroll":150},
+            "shouldCacheIgnoreZoom": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "unresolved-target",
+      "state": {"scrollX":3,"scrollY":0,"zoom":1,"width":1000,"height":800,"offsetLeft":0,"offsetTop":0,"scrollConstraints":null,"shouldCacheIgnoreZoom":false},
+      "steps": [
+        {
+          "step": ["set",1000,{"target":"missing","animation":{"duration":300}}],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":3,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        },
+        {
+          "step": ["frame",1100],
+          "calls": [],
+          "lockedTransitionPending": false,
+          "animating": false,
+          "state": {"scrollX":3,"scrollY":0,"zoom":1,"scrollConstraints":null,"shouldCacheIgnoreZoom":false}
+        }
+      ]
     }
   ],
   "zoomToFitBounds": [
