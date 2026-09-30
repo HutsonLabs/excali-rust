@@ -369,6 +369,8 @@ struct Inner {
     dispatch: js_sys::Function,
     fonts_base: String,
     listeners: Vec<Listener>,
+    /// This state, for what finishes after the event (the clipboard write).
+    this: Weak<RefCell<Inner>>,
 }
 
 impl Inner {
@@ -461,6 +463,22 @@ impl Inner {
                 HostEvent::Change { dirty } => ("change", serde_json::json!({ "dirty": dirty })),
                 HostEvent::SaveRequest => ("save-request", serde_json::json!({})),
                 HostEvent::OpenLink { href } => ("open-link", serde_json::json!({ "href": href })),
+                HostEvent::CopyAsPng => {
+                    if let Err(e) = self.copy_as_png() {
+                        web_sys::console::warn_1(&e);
+                        let message = e
+                            .dyn_ref::<js_sys::Error>()
+                            .map(|e| String::from(e.message()))
+                            .unwrap_or_else(|| COULD_NOT_COPY_TO_CLIPBOARD.to_owned());
+                        self.set_error_message(&message);
+                    }
+                    continue;
+                }
+                HostEvent::OpenRequest => ("open-request", serde_json::json!({})),
+                HostEvent::SaveAsRequest { name } => (
+                    "save-as-request",
+                    serde_json::json!({ "name": name.unwrap_or_else(default_name) }),
+                ),
             };
             let detail = js_sys::JSON::parse(&detail.to_string()).unwrap_or(JsValue::NULL);
             let _ = self
@@ -468,6 +486,115 @@ impl Inner {
                 .call2(&JsValue::NULL, &JsValue::from_str(name), &detail);
         }
     }
+}
+
+/// `alerts.couldNotCopyToClipboard` (`locales/en.json`).
+const COULD_NOT_COPY_TO_CLIPBOARD: &str = "Couldn't copy to clipboard.";
+
+impl Inner {
+    /// `exportCanvas("clipboard")`'s write (`data/index.ts:194-214`,
+    /// `copyBlobToClipboardAsPng`, `clipboard.ts:557-585`): the
+    /// [`Editor::copy_as_png`] canvas as a PNG in a `ClipboardItem` built
+    /// in this tick, which Safari needs for the user's intent; a failed
+    /// write is `alerts.couldNotCopyToClipboard` in `appState.errorMessage`.
+    fn copy_as_png(&mut self) -> Result<(), JsValue> {
+        let doc = self.editor.copy_as_png().map_err(js_err)?;
+        let bytes = paint_png(&self.document(), &doc)?;
+        let parts = js_sys::Array::of1(&js_sys::Uint8Array::from(bytes.as_slice()));
+        let options = web_sys::BlobPropertyBag::new();
+        options.set_type("image/png");
+        let blob = web_sys::Blob::new_with_u8_array_sequence_and_options(&parts, &options)?;
+        let window = web_sys::window().ok_or_else(|| js_err("no window"))?;
+        let item_type: js_sys::Function =
+            js_sys::Reflect::get(&window, &JsValue::from_str("ClipboardItem"))?.dyn_into()?;
+        let items = js_sys::Object::new();
+        js_sys::Reflect::set(
+            &items,
+            &JsValue::from_str("image/png"),
+            &js_sys::Promise::resolve(&blob),
+        )?;
+        let item = js_sys::Reflect::construct(&item_type, &js_sys::Array::of1(&items))?;
+        let clipboard = window.navigator().clipboard();
+        let written = clipboard.write(&js_sys::Array::of1(&item));
+        let this = self.this.clone();
+        let failed = Closure::once(move |error: JsValue| {
+            web_sys::console::warn_1(&error);
+            let Some(rc) = this.upgrade() else {
+                return;
+            };
+            let Ok(mut inner) = rc.try_borrow_mut() else {
+                return;
+            };
+            inner.set_error_message(COULD_NOT_COPY_TO_CLIPBOARD);
+            inner.after_event();
+            drop(inner);
+            refresh_chrome(&this);
+        });
+        let _ = written.catch(&failed);
+        failed.forget();
+        Ok(())
+    }
+
+    /// Sets `appState.errorMessage` (and drops the toast, which upstream
+    /// shows only once the write succeeded).
+    fn set_error_message(&mut self, message: &str) {
+        let patch = [
+            ("errorMessage".to_owned(), Value::String(message.to_owned())),
+            ("toast".to_owned(), Value::Null),
+        ]
+        .into_iter()
+        .collect();
+        self.editor.set_app_state(patch);
+    }
+}
+
+/// `app.getName()`'s default (`App.tsx:6355-6361`):
+/// `${t("labels.untitled")}-${getDateTime()}`, the local date and time as
+/// `getDateTime` writes it (`common/src/utils.ts:33-46`).
+fn default_name() -> String {
+    let now = js_sys::Date::new_0();
+    format!(
+        "Untitled-{}-{:02}-{:02}-{:02}{:02}",
+        now.get_full_year(),
+        now.get_month() + 1,
+        now.get_date(),
+        now.get_hours(),
+        now.get_minutes()
+    )
+}
+
+/// The PNG file of `doc`: its display list painted on a canvas, the scene
+/// embedded in a `tEXt` chunk when it carries one (`encodePngMetadata`).
+fn paint_png(
+    document: &Document,
+    doc: &excali_scene::display::CanvasDocument,
+) -> Result<Vec<u8>, JsValue> {
+    let canvas: HtmlCanvasElement = document.create_element("canvas")?.dyn_into()?;
+    canvas.set_width(doc.width);
+    canvas.set_height(doc.height);
+    let context: CanvasRenderingContext2d = canvas
+        .get_context("2d")?
+        .ok_or_else(|| JsValue::from_str("no 2d context"))?
+        .dyn_into()?;
+    paint(&doc.list, &mut WebCanvas::new(context));
+    let url = canvas.to_data_url_with_type("image/png")?;
+    let data = url
+        .split_once(',')
+        .map(|(_, d)| d)
+        .ok_or_else(|| js_err("the canvas gave no data URL"))?;
+    let bytes: Vec<u8> = excali_core::encode::atob(data)
+        .map_err(js_err)?
+        .chars()
+        .map(|c| c as u8)
+        .collect();
+    let Some(payload) = &doc.payload else {
+        return Ok(bytes);
+    };
+    let mut chunks = extract_chunks(&bytes).map_err(js_err)?;
+    let chunk = encode_text_chunk(&payload.keyword, &payload.text).map_err(js_err)?;
+    let last = chunks.len() - 1;
+    chunks.insert(last, chunk);
+    Ok(encode_chunks(&chunks))
 }
 
 /// What the chrome shows: the tools, the extra tools menu, the zoom, the
@@ -2282,50 +2409,54 @@ impl EditorCore {
             js_sys::Date::now,
         )
         .with_time_zone(|time| -js_sys::Date::new(&JsValue::from_f64(time)).get_timezone_offset());
-        let editor = Editor::new(env, &source, is_darwin());
-        let inner = Rc::new(RefCell::new(Inner {
-            editor,
-            host,
-            container: container.clone(),
-            layers,
-            layer_ui,
-            top,
-            toolbar: None,
-            footer: None,
-            help_dialog: None,
-            palette: None,
-            palette_last_used: None,
-            top_left,
-            main_menu: None,
-            menu_hint: None,
-            styles_panel: styles_panel::StylesPanelHost::default(),
-            welcome_center: None,
-            convert_popup: None,
-            focus_convert_popup: false,
-            hint: None,
-            cursor_hints: CursorHints::default(),
-            cursor_hint: None,
-            cursor_hint_nonce: 0,
-            context_menu: None,
-            top_right,
-            library_trigger: None,
-            stats: None,
-            sidebar: None,
-            library_menu: LibraryMenuState::default(),
-            search: search::SearchSession::default(),
-            viewport_frame_pending: false,
-            library_dialogs: Vec::new(),
-            library_dialogs_key: None,
-            previews: std::collections::HashMap::new(),
-            editor_box,
-            overlay: None,
-            extra_tools_open: false,
-            chrome_key: None,
-            ui: "full".into(),
-            dispatch,
-            fonts_base,
-            listeners: Vec::new(),
-        }));
+        let mut editor = Editor::new(env, &source, is_darwin());
+        editor.set_clipboard_blob(help_platform().clipboard_blob);
+        let inner = Rc::new_cyclic(|this| {
+            RefCell::new(Inner {
+                editor,
+                host,
+                container: container.clone(),
+                layers,
+                layer_ui,
+                top,
+                toolbar: None,
+                footer: None,
+                help_dialog: None,
+                palette: None,
+                palette_last_used: None,
+                top_left,
+                main_menu: None,
+                menu_hint: None,
+                styles_panel: styles_panel::StylesPanelHost::default(),
+                welcome_center: None,
+                convert_popup: None,
+                focus_convert_popup: false,
+                hint: None,
+                cursor_hints: CursorHints::default(),
+                cursor_hint: None,
+                cursor_hint_nonce: 0,
+                context_menu: None,
+                top_right,
+                library_trigger: None,
+                stats: None,
+                sidebar: None,
+                library_menu: LibraryMenuState::default(),
+                search: search::SearchSession::default(),
+                viewport_frame_pending: false,
+                library_dialogs: Vec::new(),
+                library_dialogs_key: None,
+                previews: std::collections::HashMap::new(),
+                editor_box,
+                overlay: None,
+                extra_tools_open: false,
+                chrome_key: None,
+                ui: "full".into(),
+                dispatch,
+                fonts_base,
+                listeners: Vec::new(),
+                this: this.clone(),
+            })
+        });
 
         let target: &web_sys::EventTarget = container.as_ref();
         listen(&inner, target, "keydown", |rc, event| {
@@ -2716,33 +2847,7 @@ impl EditorCore {
         let opts = export_options(&options)?;
         let inner = self.inner.borrow();
         let doc = inner.editor.export_png(&opts).map_err(js_err)?;
-        let document = inner.document();
-        let canvas: HtmlCanvasElement = document.create_element("canvas")?.dyn_into()?;
-        canvas.set_width(doc.width);
-        canvas.set_height(doc.height);
-        let context: CanvasRenderingContext2d = canvas
-            .get_context("2d")?
-            .ok_or_else(|| JsValue::from_str("no 2d context"))?
-            .dyn_into()?;
-        paint(&doc.list, &mut WebCanvas::new(context));
-        let url = canvas.to_data_url_with_type("image/png")?;
-        let data = url
-            .split_once(',')
-            .map(|(_, d)| d)
-            .ok_or_else(|| js_err("the canvas gave no data URL"))?;
-        let bytes: Vec<u8> = excali_core::encode::atob(data)
-            .map_err(js_err)?
-            .chars()
-            .map(|c| c as u8)
-            .collect();
-        let Some(payload) = doc.payload else {
-            return Ok(bytes);
-        };
-        let mut chunks = extract_chunks(&bytes).map_err(js_err)?;
-        let chunk = encode_text_chunk(&payload.keyword, &payload.text).map_err(js_err)?;
-        let last = chunks.len() - 1;
-        chunks.insert(last, chunk);
-        Ok(encode_chunks(&chunks))
+        paint_png(&inner.document(), &doc)
     }
 
     /// Whether `input` of `importLibrary` is a URL: the URL to fetch

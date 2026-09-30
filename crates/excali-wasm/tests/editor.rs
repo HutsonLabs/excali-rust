@@ -587,13 +587,7 @@ fn toast(ed: &Editor<CharCountTextMetrics>) -> Option<String> {
 #[test]
 fn shift_alt_c_copies_the_selection_as_png() {
     let copy_as_png = Keystroke::new("C", "KeyC").alt().shift();
-    // predicate: probablySupportsClipboardBlob && elements.length > 0
     let mut ed = editor();
-    ed.key_down(&copy_as_png);
-    assert!(!ed.take_events().contains(&HostEvent::CopyAsPng));
-    assert_eq!(toast(&ed), None);
-
-    ed.set_clipboard_blob(true);
     select(&mut ed, "a");
     ed.take_events();
     let out = ed.key_down(&copy_as_png);
@@ -636,11 +630,29 @@ fn shift_alt_c_copies_the_selection_as_png() {
     let png = ed.copy_as_png().unwrap();
     assert_eq!((png.width, png.height), (whole.width, whole.height));
 
+    // the key runs the action whatever its predicate says
+    // (ActionManager.handleKeyDown): on an empty canvas exportCanvas
+    // throws, and the error is the app state's
     let env = EditorEnv::new(CharCountTextMetrics, 7, || 1.0);
     let mut empty = Editor::new(env, "https://term.hut", false);
-    empty.set_clipboard_blob(true);
     empty.key_down(&copy_as_png);
     assert!(!empty.take_events().contains(&HostEvent::CopyAsPng));
+    assert_eq!(toast(&empty), None);
+    assert_eq!(
+        empty.app_state().get("errorMessage"),
+        Some(&Value::from("Cannot export empty canvas."))
+    );
+
+    // in view mode the key does nothing (the action has no `viewMode`)
+    ed.set_app_state(
+        serde_json::json!({ "viewModeEnabled": true, "toast": null })
+            .as_object()
+            .unwrap()
+            .clone(),
+    );
+    ed.take_events();
+    ed.key_down(&copy_as_png);
+    assert!(!ed.take_events().contains(&HostEvent::CopyAsPng));
 }
 
 #[test]
@@ -655,10 +667,7 @@ fn ctrl_o_and_ctrl_shift_s_ask_the_host_for_its_file_dialogs() {
     // app.getName() starts from
     let out = ed.key_down(&Keystroke::new("S", "KeyS").ctrl().shift());
     assert!(out.prevent_default);
-    assert_eq!(
-        ed.take_events(),
-        [HostEvent::SaveAsRequest { name: None }]
-    );
+    assert_eq!(ed.take_events(), [HostEvent::SaveAsRequest { name: None }]);
     ed.set_app_state(
         serde_json::json!({ "name": "plan" })
             .as_object()

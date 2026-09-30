@@ -347,8 +347,11 @@ test("right-click opens the canvas or the element context menu", async ({ page }
   const [cx, cy] = await client(page, [900, 100]);
   await page.mouse.click(cx, cy, { button: "right" });
   await expect(menu).toBeVisible();
+  // actionCopyAsPng's predicate is probablySupportsClipboardBlob, which
+  // Chromium has (App.tsx:13856-13873)
   expect(await rows(page)).toEqual([
     "paste",
+    "copyAsPng",
     "selectAll",
     "gridMode",
     "objectsSnapMode",
@@ -429,6 +432,12 @@ test("Tab opens the convert popup, a type converts and takes the focus", async (
 // host: the element asks with the cancelable open-request and save-as-request
 // events, and falls back to the browser's file input and a download when no
 // host answers.
+/** A click on empty canvas: the keys go to the element's container. */
+const focusCanvas = async (page) => {
+  const [x, y] = await client(page, [900, 100]);
+  await page.mouse.click(x, y);
+};
+
 test.describe("clipboard and file shortcuts", () => {
   test.use({ permissions: ["clipboard-read", "clipboard-write"] });
 
@@ -457,6 +466,7 @@ test.describe("clipboard and file shortcuts", () => {
 
   test("Ctrl/Cmd+O and Ctrl/Cmd+Shift+S reach the host", async ({ page }) => {
     const errors = await mount(page);
+    await focusCanvas(page);
     await page.evaluate(() => {
       window.requests = [];
       for (const type of ["open-request", "save-as-request"]) {
@@ -479,6 +489,7 @@ test.describe("clipboard and file shortcuts", () => {
   test("with no host, the browser's file dialogs", async ({ page }) => {
     const errors = await mount(page);
     const saved = await page.evaluate(() => window.ed.save());
+    await focusCanvas(page);
 
     const [download] = await Promise.all([
       page.waitForEvent("download"),
