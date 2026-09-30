@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-30 10:36 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-30 11:01 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**161 issues** · 148 closed (92%) · 2 in progress · 0 blocked · 9 open
+**161 issues** · 149 closed (93%) · 1 in progress · 0 blocked · 9 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -135,7 +135,7 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
 ## ex-e5 · Phase 5: Web runtime and editor
 
-<span class="status open">open</span> 42/44 children closed
+<span class="status open">open</span> 43/44 children closed
 
 Canvas2D backend, interaction state machine, history, DOM chrome without a framework, keyboard shortcuts, the <excali-editor> custom element.
 
@@ -183,8 +183,8 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-540` | Styles panel: the property actions' panel components and performs in <excali-editor> | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-541` | Shortcut performs in <excali-editor>: deselect, flip, element lock, copy and paste styles, view mode, toggle theme | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-542` | Clipboard and file shortcuts in <excali-editor>: copy as PNG, open (Ctrl+O), save as (Ctrl+Shift+S) | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-543` | Hyperlink editor (Ctrl+K) in <excali-editor> | task | P1 | <span class="status in_progress">in progress</span> |  |  |
-| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status in_progress">in progress</span> |  | `ex-543` |
+| `ex-543` | Hyperlink editor (Ctrl+K) in <excali-editor> | task | P1 | <span class="status closed">closed</span> |  |  |
+| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status in_progress">in progress</span> |  |  |
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
 
