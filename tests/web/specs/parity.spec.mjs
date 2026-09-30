@@ -290,6 +290,50 @@ const ROWS = {
     });
   },
 
+  "copy-as-png": async ({ page }) => {
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    await mount(page, sceneText([rect("r", 100, 100), rect("s", 300, 100, 50, 50)]));
+    await click(page, [150, 150]);
+    await press(page, "Shift+Alt+C");
+    const png = () =>
+      page.evaluate(async () => {
+        try {
+          const items = await navigator.clipboard.read();
+          const item = items.find((i) => i.types.includes("image/png"));
+          if (!item) return null;
+          const bitmap = await createImageBitmap(await item.getType("image/png"));
+          return [bitmap.width, bitmap.height];
+        } catch {
+          // read while the next write lands: "Clipboard data has changed"
+          return null;
+        }
+      });
+    // the selection alone: 100 × 100 and the default padding
+    await expect.poll(png).toEqual([120, 120]);
+    // nothing selected: the canvas, 250 × 100 and the padding
+    await click(page, [600, 400]);
+    expect((await state(page)).selectionCount).toBe(0);
+    await press(page, "Shift+Alt+C");
+    await expect.poll(png).toEqual([270, 120]);
+  },
+
+  "host-file-dialogs": async ({ page }) => {
+    await mount(page, sceneText([rect("r", 100, 100)]));
+    await page.evaluate(() => {
+      window.requests = [];
+      for (const type of ["open-request", "save-as-request"]) {
+        window.ed.addEventListener(type, (e) => {
+          e.preventDefault();
+          window.requests.push(type);
+        });
+      }
+    });
+    await click(page, [600, 400]);
+    await press(page, `${MOD}+o`);
+    await press(page, `${MOD}+Shift+s`);
+    expect(await page.evaluate(() => window.requests)).toEqual(["open-request", "save-as-request"]);
+  },
+
   // Canvas and view
 
   "view-theme": async ({ page }) => {

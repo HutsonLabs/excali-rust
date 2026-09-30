@@ -20,7 +20,11 @@
 //!   select all, the edit actions of `excali_editor::edit_actions`).
 //!   Cmd+S (Ctrl+S elsewhere) is the host's: upstream's
 //!   `saveToActiveFile` writes to the file handle, which the host owns, so
-//!   the editor asks with `save-request`.
+//!   the editor asks with `save-request`; `loadScene` (Cmd+O) and
+//!   `saveFileToDisk` (Cmd+Shift+S) open file dialogs, the host's, so the
+//!   editor asks with `open-request` and `save-as-request`; `copyAsPng`
+//!   (Shift+Alt+C) exports the selection ([`Editor::copy_as_png`]) for the
+//!   host to put on the clipboard.
 //! - **The viewport**: `AppPan` (the wheel or secondary button, Space held,
 //!   the hand tool) and `AppWheel` ([`handle_wheel`]) through
 //!   `viewport.translate`, the zoom actions through [`perform_zoom_action`].

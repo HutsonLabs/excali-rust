@@ -1,7 +1,7 @@
 //! The editor behind `<excali-editor>` natively (ex-530): the host API of
 //! the term.hut integration page (`load`, `save`, `getState`, `export`,
 //! `importLibrary`, and the `change`, `save-request` and `open-link`
-//! events), and undo after a drag laying bound text and bound arrows out
+//! events; ex-542's `open-request`, `save-as-request` and copy as PNG), and undo after a drag laying bound text and bound arrows out
 //! again through the real leaf layouts.
 //!
 //! The scene (`fixtures/bound.excalidraw`) was saved with a stale layout: the
