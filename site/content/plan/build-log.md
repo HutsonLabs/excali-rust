@@ -6,6 +6,10 @@ weight = 5
 
 Each entry records a task that merged to main: the date, the task id and title, what now works, and the pull request that landed it. The newest entries are at the top. The [progress page](@/plan/progress.md) has the full status of the task graph.
 
+## 2026-09-30 · ex-802 · Release tarball of the ES module and WASM as a GitHub release asset
+
+The web runtime now ships as a GitHub release asset: pushing a tag `v<version>` runs `.github/workflows/release.yml`, which builds `scripts/web/build.sh`, packs the four entries (`excali_editor.js`, `excali_editor_bg.wasm`, `excali.css`, `fonts/`) into a reproducible `excali-web_<version>.tar.gz` with `scripts/release/package.py`, and uploads it and `SHA256SUMS` to the release (creating it if needed, keeping other assets' checksum lines). A host fetches it with `scripts/release/fetch.sh <version> <dir>`, which downloads both assets, refuses the tarball unless its SHA-256 matches, and only then replaces `<dir>`: term.hut's vendor script can call it (or copy it) in place of building from a checkout, the same `curl -fsSL` pattern as its `scripts/vendor-catppuccin-icons.sh` plus the checksum. The integration guide and the term.hut integration page say how. PR: [#151](https://github.com/HutsonLabs/excali-rust/pull/151).
+
 ## 2026-09-30 · ex-m7 · M7: parity checklist 100% for v1 scope
 
 Milestone M7 is reached: all 64 rows of the parity checklist pass on `<excali-editor>` in Chromium (no row is left as `gap`), and the performance budgets hold on the pinned self-hosted runner: first paint after module load about 156 ms normalised against 300 ms, and a p95 pan frame at 1,000 elements about 4.6 ms against 16.7 ms. This PR records the phase 7 status in `site/content/plan/phases.md` and the README; every phase 7 task (ex-701 to ex-714) is already merged. PR: [#152](https://github.com/HutsonLabs/excali-rust/pull/152).
