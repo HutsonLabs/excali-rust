@@ -30,19 +30,29 @@
 //! item puts [`drag_data`] on the drag (`MIME_TYPE_EXCALIDRAWLIB_IDS`),
 //! which the canvas's drop reads back.
 //!
+//! The dialogs the header menu opens (the Reset and Remove confirmation,
+//! the publish dialog and its success dialog) are [`library_dialogs`]
+//! (`dialogs.rs`); the host mounts them with `primitives::open_modal`, and
+//! does the files, storage and network their effects ask for
+//! ([`LibraryEffect::LoadLibrary`], [`LibraryEffect::ExportLibrary`],
+//! [`LibraryEffect::LoadPublishData`], [`LibraryEffect::SavePublishData`],
+//! [`LibraryEffect::SubmitLibrary`]).
+//!
 //! Not here: the search tab's content (`SearchMenu`, ex-708; the host's
-//! [`LibrarySidebarProps::search_menu`]), the confirm and publish dialogs
-//! the menu opens ([`LibraryEffect::ConfirmReset`],
-//! [`LibraryEffect::ConfirmRemove`], [`LibraryEffect::Publish`]; the host
-//! shows them with `primitives::dialog` and reports back
-//! [`LibrarySidebarEvent::ResetConfirmed`] or
-//! [`LibrarySidebarEvent::RemoveConfirmed`]), host sidebars and tab
+//! [`LibrarySidebarProps::search_menu`]), host sidebars and tab
 //! triggers (`Sidebar` with another name, `DefaultSidebar.TabTriggers`),
 //! radix's arrow-key roving focus among the tab triggers, and the
 //! batched rendering of long sections (`LibraryMenuSection` renders 17 or
 //! 64 units per transition; every unit is built here).
 
 mod deburr;
+mod dialogs;
+
+pub use dialogs::{
+    dialog_action_button, library_dialogs, publish_form_fields, ActionType, LibraryDialog,
+    LibraryDialogsProps, PublishField, PublishLibraryData, PublishState, PublishSuccess,
+    PUBLISH_LIBRARY_STORAGE_KEY,
+};
 
 use std::rc::Rc;
 
@@ -147,6 +157,46 @@ pub fn library_text(key: &str) -> &str {
         "alerts.resetLibrary" => "This will clear your library. Are you sure?",
         "confirmDialog.resetLibrary" => "Reset library",
         "confirmDialog.removeItemsFromLib" => "Remove selected items from library",
+        "alerts.removeItemsFromsLibrary" => "Delete {{count}} item(s) from library?",
+        "buttons.confirm" => "Confirm",
+        "buttons.cancel" => "Cancel",
+        "buttons.saveLibNames" => "Save name(s) and exit",
+        "buttons.submit" => "Submit",
+        "labels.statusPublished" => "Published",
+        "publishDialog.title" => "Publish library",
+        "publishDialog.itemName" => "Item name",
+        "publishDialog.authorName" => "Author name",
+        "publishDialog.githubUsername" => "GitHub username",
+        "publishDialog.twitterUsername" => "Twitter username",
+        "publishDialog.libraryName" => "Library name",
+        "publishDialog.libraryDesc" => "Library description",
+        "publishDialog.website" => "Website",
+        "publishDialog.placeholder.authorName" => "Your name or username",
+        "publishDialog.placeholder.libraryName" => "Name of your library",
+        "publishDialog.placeholder.libraryDesc" => {
+            "Description of your library to help people understand its usage"
+        }
+        "publishDialog.placeholder.githubHandle" => {
+            "GitHub handle (optional), so you can edit the library once submitted for review"
+        }
+        "publishDialog.placeholder.twitterHandle" => {
+            "Twitter username (optional), so we know who to credit when promoting over Twitter"
+        }
+        "publishDialog.placeholder.website" => {
+            "Link to your personal website or elsewhere (optional)"
+        }
+        "publishDialog.errors.required" => "Required",
+        "publishDialog.errors.website" => "Enter a valid URL",
+        "publishDialog.noteDescription" => "Submit your library to be included in the <link>public library repository</link> for other people to use in their drawings.",
+        "publishDialog.noteGuidelines" => "The library needs to be manually approved first. Please read the <link>guidelines</link> before submitting. You will need a GitHub account to communicate and make changes if requested, but it is not strictly required.",
+        "publishDialog.noteLicense" => "By submitting, you agree the library will be published under the <link>MIT License</link>, which in short means anyone can use them without restrictions.",
+        "publishDialog.noteItems" => "Each library item must have its own name so it's filterable. The following library items will be included:",
+        "publishDialog.atleastOneLibItem" => {
+            "Please select at least one library item to get started"
+        }
+        "publishDialog.republishWarning" => "Note: some of the selected items are marked as already published/submitted. You should only resubmit items when updating an existing library or submission.",
+        "publishSuccessDialog.title" => "Library submitted",
+        "publishSuccessDialog.content" => "Thank you {{authorName}}. Your library has been submitted for review. You can track the status <link>here</link>",
         other => other,
     }
 }
@@ -300,6 +350,12 @@ pub struct LibraryMenuState {
     /// other). Until then the tab panel active at mount keeps radix's
     /// `animation-duration: 0s`, which stops its mount animation.
     pub rerendered: bool,
+    /// `showRemoveLibAlert`: the Reset or Remove confirmation is open.
+    pub confirm_open: bool,
+    /// `showPublishLibraryDialog`, with the dialog's own state.
+    pub publish: Option<PublishState>,
+    /// `publishLibSuccess`: the success dialog is open.
+    pub publish_success: Option<PublishSuccess>,
 }
 
 impl LibraryMenuState {
@@ -311,6 +367,10 @@ impl LibraryMenuState {
         self.last_selected_item = None;
         self.search.clear();
         self.hovered = None;
+        // the header menu's dialogs are LibraryDropdownMenuButton's state
+        self.confirm_open = false;
+        self.publish = None;
+        self.publish_success = None;
     }
 
     /// The sidebar closes.
@@ -401,10 +461,33 @@ pub enum LibrarySidebarEvent {
     MenuClose,
     /// A header menu entry.
     MenuSelect(LibraryMenuAction),
-    /// The reset confirmed.
-    ResetConfirmed,
-    /// The removal of the selected items confirmed.
-    RemoveConfirmed,
+    /// The confirmation's Cancel button.
+    ConfirmCancel,
+    /// The confirmation's Confirm button: reset the library, or remove the
+    /// selected items.
+    ConfirmAccept,
+    /// A dialog's close request (Escape, a click on the backdrop, the
+    /// phone's close button: `Dialog.onClose`).
+    DialogClose(LibraryDialog),
+    /// A publish dialog field's value.
+    PublishInput { field: PublishField, value: String },
+    /// A publish dialog item's name.
+    PublishItemName { id: String, value: String },
+    /// A publish dialog item's remove button.
+    PublishRemoveItem(String),
+    /// The publish form submitted (the browser has checked its required
+    /// fields and the website's pattern).
+    PublishSubmit,
+    /// "Save name(s) and exit".
+    PublishSaveNames,
+    /// What the host read for [`LibraryEffect::LoadPublishData`].
+    PublishDataLoaded(Option<PublishLibraryData>),
+    /// The library backend took the submission: its tracking url.
+    PublishSucceeded { url: String },
+    /// The submission failed: `String(error)`.
+    PublishFailed(String),
+    /// The success dialog's Close button.
+    PublishSuccessClose,
 }
 
 /// Where a key went down.
@@ -444,14 +527,23 @@ pub enum LibraryEffect {
     ExportLibrary(Vec<String>),
     /// Drop these items' previews.
     DeletePreviews(Vec<String>),
-    /// Ask to reset the library (`ConfirmDialog` with
-    /// `confirmDialog.resetLibrary` and `alerts.resetLibrary`).
-    ConfirmReset,
-    /// Ask to remove the selected items (`confirmDialog.removeItemsFromLib`,
-    /// `alerts.removeItemsFromsLibrary`).
-    ConfirmRemove { count: usize },
-    /// Open the publish dialog (`PublishLibrary`) for these items.
-    Publish(Vec<String>),
+    /// `EditorLocalStorage.get(PUBLISH_LIBRARY)` as the publish dialog
+    /// mounts: the host answers with
+    /// [`LibrarySidebarEvent::PublishDataLoaded`].
+    LoadPublishData,
+    /// `EditorLocalStorage.set(PUBLISH_LIBRARY, data)`, or `.delete` for
+    /// `None` ([`PUBLISH_LIBRARY_STORAGE_KEY`]).
+    SavePublishData(Option<PublishLibraryData>),
+    /// Submit these items, as a `.excalidrawlib`, with the form's fields
+    /// to the library backend (`PublishLibrary.onSubmit`); the host answers
+    /// with [`LibrarySidebarEvent::PublishSucceeded`] or
+    /// [`LibrarySidebarEvent::PublishFailed`].
+    SubmitLibrary {
+        items: Vec<LibraryItem>,
+        data: PublishLibraryData,
+    },
+    /// `window.alert(message)`.
+    Alert(String),
 }
 
 /// What [`update`] returns: the effects, and whether the DOM event's
@@ -708,25 +800,144 @@ pub fn update(
                     };
                     effects.push(LibraryEffect::ExportLibrary(ids));
                 }
-                LibraryMenuAction::Publish => effects.push(LibraryEffect::Publish(selected)),
-                LibraryMenuAction::Reset => effects.push(LibraryEffect::ConfirmReset),
-                LibraryMenuAction::Remove => effects.push(LibraryEffect::ConfirmRemove {
-                    count: state.selected_items.len(),
-                }),
+                LibraryMenuAction::Publish => {
+                    state.publish = Some(PublishState::default());
+                    effects.push(LibraryEffect::LoadPublishData);
+                }
+                LibraryMenuAction::Reset | LibraryMenuAction::Remove => state.confirm_open = true,
             }
         }
-        LibrarySidebarEvent::ResetConfirmed => effects.push(LibraryEffect::ResetLibrary),
-        LibrarySidebarEvent::RemoveConfirmed => {
-            let next = cx
-                .items
+        LibrarySidebarEvent::ConfirmCancel => {
+            confirm_button(state, effects);
+            state.confirm_open = false;
+            effects.push(LibraryEffect::FocusContainer);
+        }
+        LibrarySidebarEvent::ConfirmAccept => {
+            confirm_button(state, effects);
+            if state.selected_items.is_empty() {
+                effects.push(LibraryEffect::ResetLibrary);
+            } else {
+                // LibraryDropdownMenu's removeFromLibrary
+                let next = cx
+                    .items
+                    .iter()
+                    .filter(|i| !state.selected_items.contains(&i.id))
+                    .cloned()
+                    .collect();
+                effects.push(LibraryEffect::SetLibrary(next));
+                effects.push(LibraryEffect::DeletePreviews(state.selected_items.clone()));
+                set_selected(state, Vec::new());
+            }
+            state.confirm_open = false;
+            effects.push(LibraryEffect::FocusContainer);
+        }
+        LibrarySidebarEvent::DialogClose(which) => {
+            // Dialog's onClose, then the dialog's onCloseRequest
+            effects.push(LibraryEffect::SetAppState(patch([(
+                "openMenu",
+                Value::Null,
+            )])));
+            state.menu_open = false;
+            match which {
+                LibraryDialog::Confirm => state.confirm_open = false,
+                LibraryDialog::Publish => close_publish(state, cx, effects),
+                LibraryDialog::PublishSuccess => state.publish_success = None,
+            }
+        }
+        LibrarySidebarEvent::PublishSaveNames => close_publish(state, cx, effects),
+        LibrarySidebarEvent::PublishDataLoaded(data) => {
+            if let (Some(publish), Some(data)) = (state.publish.as_mut(), data) {
+                publish.data = data;
+            }
+        }
+        LibrarySidebarEvent::PublishInput { field, value } => {
+            if let Some(publish) = state.publish.as_mut() {
+                publish.data.set(field, value);
+            }
+        }
+        LibrarySidebarEvent::PublishItemName { id, value } => {
+            if let Some(publish) = state.publish.as_mut() {
+                // the dialog's items are the library's own until a submit
+                // fails validation
+                if !publish.detached {
+                    publish.library_names.insert(id.clone(), value.clone());
+                }
+                publish.dialog_names.insert(id, value);
+            }
+        }
+        LibrarySidebarEvent::PublishRemoveItem(id) => {
+            let next = state
+                .selected_items
                 .iter()
-                .filter(|i| !state.selected_items.contains(&i.id))
+                .filter(|s| **s != id)
                 .cloned()
                 .collect();
-            effects.push(LibraryEffect::SetLibrary(next));
-            effects.push(LibraryEffect::DeletePreviews(state.selected_items.clone()));
-            set_selected(state, Vec::new());
+            set_selected(state, next);
+            // the items change: clonedLibItems are the library's again
+            if let Some(publish) = state.publish.as_mut() {
+                publish.dialog_names = publish.library_names.clone();
+                publish.detached = false;
+                publish.errors.clear();
+            }
         }
+        LibrarySidebarEvent::PublishSubmit => {
+            if let Some(publish) = state.publish.as_ref() {
+                let items = dialogs::publish_items(cx, state, publish);
+                let errors: std::collections::HashMap<String, String> = items
+                    .iter()
+                    .map(|i| {
+                        let error = if i.name.as_deref().unwrap_or("").is_empty() {
+                            library_text("publishDialog.errors.required")
+                        } else {
+                            ""
+                        };
+                        (i.id.clone(), error.to_owned())
+                    })
+                    .collect();
+                let publish = state.publish.as_mut().expect("the publish dialog is open");
+                if errors.values().any(|e| !e.is_empty()) {
+                    publish.errors = errors;
+                    publish.detached = true;
+                    publish.submitting = false;
+                } else {
+                    publish.submitting = true;
+                    effects.push(LibraryEffect::SubmitLibrary {
+                        items,
+                        data: publish.data.clone(),
+                    });
+                }
+            }
+        }
+        LibrarySidebarEvent::PublishSucceeded { url } => {
+            if let Some(publish) = state.publish.take() {
+                effects.push(LibraryEffect::SavePublishData(None));
+                // onPublishLibSuccess: the library, its selected items
+                // published
+                let next = cx
+                    .items
+                    .iter()
+                    .map(|i| {
+                        let mut item = dialogs::named(i, &publish.library_names);
+                        if state.selected_items.contains(&item.id) {
+                            item.status = LibraryItemStatus::Published;
+                        }
+                        item
+                    })
+                    .collect();
+                state.publish_success = Some(PublishSuccess {
+                    url,
+                    author_name: publish.data.author_name,
+                });
+                effects.push(LibraryEffect::SetLibrary(next));
+            }
+        }
+        LibrarySidebarEvent::PublishFailed(message) => {
+            if let Some(publish) = state.publish.as_mut() {
+                effects.push(LibraryEffect::Alert(message));
+                publish.submitting = false;
+            }
+        }
+        LibrarySidebarEvent::PublishSuccessClose => state.publish_success = None,
     }
     // an app state change renders an open sidebar again (one that closes
     // has been reset, one that opens mounts)
@@ -742,6 +953,37 @@ pub fn update(
         state.rerendered = true;
     }
     out
+}
+
+/// A confirmation button's `setAppState({ openMenu: null })` and
+/// `setIsLibraryMenuOpen(false)` (`ConfirmDialog.tsx:44-73`); the button
+/// then focuses the container.
+fn confirm_button(state: &mut LibraryMenuState, effects: &mut Vec<LibraryEffect>) {
+    effects.push(LibraryEffect::SetAppState(patch([(
+        "openMenu",
+        Value::Null,
+    )])));
+    state.menu_open = false;
+}
+
+/// PublishLibrary's `onDialogClose`: the library stored with the names
+/// typed (`updateItemsInStorage`, which stores the library's items), the
+/// fields saved, the dialog closed.
+fn close_publish(
+    state: &mut LibraryMenuState,
+    cx: &LibraryContext<'_>,
+    effects: &mut Vec<LibraryEffect>,
+) {
+    let Some(publish) = state.publish.take() else {
+        return;
+    };
+    effects.push(LibraryEffect::SetLibrary(
+        cx.items
+            .iter()
+            .map(|i| dialogs::named(i, &publish.library_names))
+            .collect(),
+    ));
+    effects.push(LibraryEffect::SavePublishData(Some(publish.data)));
 }
 
 /// What Escape does in the library before Sidebar's own listener sees it.
