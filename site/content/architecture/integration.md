@@ -19,7 +19,7 @@ The web runtime is four entries, as `scripts/web/build.sh [OUT]` builds them int
 | `excali.css` | The element's stylesheet |
 | `fonts/` | The range-split font files, their licences and `manifest.json` |
 
-To take a release instead of building, run `scripts/release/fetch.sh <version> <dir>` (for example `scripts/release/fetch.sh 26.9.1 vendor/excali`): it downloads `excali-web_<version>.tar.gz` and `SHA256SUMS` from the GitHub release `v<version>`, refuses the tarball unless its SHA-256 matches its line, and only then replaces `<dir>` with the four entries. It needs `curl`, `tar` and `shasum` or `sha256sum`, and is short enough to copy into a host's own vendor script. The tarball is reproducible: `scripts/release/package.py pack dist <out>` packs a build with its entries in byte order, owner `0:0`, modes `0644`/`0755`, every mtime the commit time and no timestamp in the gzip header, so the same commit packs to the same digest. Pushing a tag `v<version>` runs `.github/workflows/release.yml`, which builds, packs and uploads both assets to that release.
+To take a release instead of building, run `scripts/release/fetch.sh <version> <dir>` (for example `scripts/release/fetch.sh 26.9.1 vendor/excali`): it downloads `excali-web_<version>.tar.gz` and `SHA256SUMS` from the GitHub release `v<version>`, refuses the tarball unless its SHA-256 matches its line, and only then replaces `<dir>` with the four entries. It needs `curl`, `tar` and `shasum` or `sha256sum`, and is short enough to copy into a host's own vendor script. The tarball is reproducible: `scripts/release/package.py pack dist <out>` packs a build with its entries in byte order, owner `0:0`, modes `0644`/`0755`, every mtime the commit time and no timestamp in the gzip header, so the same commit packs to the same digest. Pushing a tag `v<version>` runs `.github/workflows/release.yml`, which builds, packs and uploads both assets to that release, with the notes in `scripts/release/notes/v<version>.md` when the tag has that file. The first release is [v26.9.1](https://github.com/HutsonLabs/excali-rust/releases/tag/v26.9.1).
 
 The build needs the `wasm32-unknown-unknown` target (`rust-toolchain.toml` installs it with the pinned toolchain), `wasm-bindgen-cli` at the version `Cargo.lock` pins for the `wasm-bindgen` crate (the script prints the `cargo install --locked wasm-bindgen-cli --version …` line when it is missing or another version) and Python 3; it downloads and verifies binaryen's `wasm-opt` into `.tools/` when that is not on `PATH`, and fails if either file is over its budget.
 
@@ -154,7 +154,7 @@ tauri-plugin-dialog = "2.8.0"
 tauri-plugin-excali = { path = "../../../crates/tauri-plugin-excali" }
 ```
 
-From another repository, the path becomes a git dependency, `tauri-plugin-excali = { git = "https://github.com/HutsonLabs/excali-rust", tag = "v26.9.1-rc.1" }` (the plugin is not on crates.io). Register the dialog plugin, then the excali plugin with the font directory headless exports read:
+From another repository, the path becomes a git dependency, `tauri-plugin-excali = { git = "https://github.com/HutsonLabs/excali-rust", tag = "v26.9.1" }` (the plugin is not on crates.io). Register the dialog plugin, then the excali plugin with the font directory headless exports read:
 
 <!-- snippet: examples/tauri-app/src-tauri/src/lib.rs -->
 ```rust

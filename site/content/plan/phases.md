@@ -114,7 +114,7 @@ The first release is **26.9.1**, numbered by calendar `YY.M.BUILD` ([ADR-009](..
 **Deliverables.**
 - The ES module + WASM tarball, with its SHA-256, as a GitHub release asset that term.hut's vendor script can fetch (`ex-802`).
 - The integration guide, walked by an agent step by step in a fresh clone in a temp directory, with the transcript recorded on the issue (`ex-803`).
-- Tag `v26.9.1` and the GitHub release (`gh release create v26.9.1`), created by an agent (`ex-804`).
+- Tag `v26.9.1` and the GitHub release (`gh release create v26.9.1`), created by an agent (`ex-804`). Done 2026-09-30: the annotated tag `v26.9.1` is on `main` and the release <https://github.com/HutsonLabs/excali-rust/releases/tag/v26.9.1> carries `excali-web_26.9.1.tar.gz` and `SHA256SUMS`, with the notes from `scripts/release/notes/v26.9.1.md`.
 - Publishing the `excali-*` crates to crates.io (`ex-801`) is deferred by the owner (2026-09-27); nothing goes to crates.io, npm or any other registry, and the release does not wait on it.
 
 **Milestone M8.** `v26.9.1` is tagged and its GitHub release carries the tarball and checksum; the guide walk transcript is linked. An agent closes M8 once that check is green in CI with the evidence posted.

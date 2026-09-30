@@ -3,7 +3,9 @@
 # scripts/web/build.sh as rust.yml's web-runtime job does, packs it into
 # excali-web_<version>.tar.gz with scripts/release/package.py, and uploads
 # the tarball and SHA256SUMS to the GitHub release of that tag, creating the
-# release when it does not exist yet (ex-804 writes its notes). Lines of
+# release when it does not exist yet. The release notes are
+# scripts/release/notes/<tag>.md when the tag has that file (ex-804), a line
+# naming the assets otherwise. Lines of
 # SHA256SUMS for other assets already on the release are kept. The tag must
 # be the workspace version's (scripts/gates/version.py tag). Hosts fetch the
 # assets with scripts/release/fetch.sh. Nothing goes to a registry (ex-801).
@@ -67,9 +69,17 @@ jobs:
           python3 scripts/release/package.py verify release "excali-web_${TAG#v}.tar.gz"
       - name: upload to the release
         run: |
-          if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" --verify-tag --title "$TAG" \
-              --notes "excali-rust $TAG. The web runtime: excali-web_${TAG#v}.tar.gz, its digest in SHA256SUMS (fetch with scripts/release/fetch.sh ${TAG#v} <dir>)."
+          notes="scripts/release/notes/$TAG.md"
+          if [ ! -f "$notes" ]; then
+            notes="$RUNNER_TEMP/notes.md"
+            echo "excali-rust $TAG. The web runtime: excali-web_${TAG#v}.tar.gz, its digest in SHA256SUMS (fetch with scripts/release/fetch.sh ${TAG#v} <dir>)." > "$notes"
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            if [ -f "scripts/release/notes/$TAG.md" ]; then
+              gh release edit "$TAG" --notes-file "$notes"
+            fi
+          else
+            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$notes"
           fi
           gh release upload "$TAG" "release/excali-web_${TAG#v}.tar.gz" release/SHA256SUMS --clobber
       - name: fetch it back as a host does
