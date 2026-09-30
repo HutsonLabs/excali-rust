@@ -1,5 +1,4 @@
-//! Ports of upstream's `packages/math/tests/*.test.ts` at the pinned commit
-//! (pca.test.ts belongs to shape recognition).
+//! Ports of upstream's `packages/math/tests/*.test.ts` at the pinned commit.
 //! Test names and cases follow the upstream `describe`/`it` blocks one for one.
 
 use excali_math::*;
@@ -600,5 +599,181 @@ mod vector_test {
         assert!(!is_vector(&Unknown::Null));
         assert!(!is_vector(&Unknown::Undefined));
         assert!(!is_vector(&pair(5.0, f64::NAN)));
+    }
+}
+
+mod pca_test {
+    use super::*;
+    use std::f64::consts::PI;
+
+    fn rotate(points: &[P], angle: f64, scale: f64) -> Vec<P> {
+        points
+            .iter()
+            .map(|q| {
+                pt(
+                    (q.x * js::cos(angle) - q.y * js::sin(angle)) * scale + 17.0,
+                    (q.x * js::sin(angle) + q.y * js::cos(angle)) * scale - 4.0,
+                )
+            })
+            .collect()
+    }
+
+    fn horizontal_spread() -> Vec<P> {
+        (0..21).map(|i| pt(f64::from(i) - 10.0, 0.0)).collect()
+    }
+
+    fn us(coords: &[PrincipalCoords]) -> Vec<f64> {
+        coords.iter().map(|[u, _]| *u).collect()
+    }
+
+    // describe("centroid")
+    #[test]
+    fn centroid_averages_the_points() {
+        assert_eq!(
+            centroid(&[pt(0.0, 0.0), pt(4.0, 0.0), pt(2.0, 6.0)]),
+            pt(2.0, 2.0)
+        );
+    }
+
+    // describe("principalAxes")
+    #[test]
+    fn principal_axes_finds_the_direction_the_points_spread_along() {
+        let axes = principal_axes(&horizontal_spread());
+        assert!(close_to(axes.major.x.abs(), 1.0, 2));
+        assert!(close_to(axes.major.y, 0.0, 2));
+        assert!(axes.major_variance > axes.minor_variance);
+    }
+
+    #[test]
+    fn principal_axes_tracks_the_points_when_they_are_rotated() {
+        let axes = principal_axes(&rotate(&horizontal_spread(), PI / 6.0, 1.0));
+        assert!(close_to(axes.major.x.abs(), js::cos(PI / 6.0), 2));
+        assert!(close_to(axes.major.y.abs(), js::sin(PI / 6.0), 2));
+    }
+
+    #[test]
+    fn principal_axes_keeps_the_axes_orthonormal() {
+        let mut points = rotate(&horizontal_spread(), 1.1, 1.0);
+        points.push(pt(3.0, 9.0));
+        let PrincipalAxes { major, minor, .. } = principal_axes(&points);
+        assert!(close_to(js::hypot(major.x, major.y), 1.0, 2));
+        assert!(close_to(js::hypot(minor.x, minor.y), 1.0, 2));
+        assert!(close_to(major.x * minor.x + major.y * minor.y, 0.0, 2));
+    }
+
+    #[test]
+    fn principal_axes_falls_back_to_the_coordinate_axes_for_an_already_diagonal_covariance() {
+        let axes = principal_axes(&[pt(-1.0, 0.0), pt(1.0, 0.0), pt(0.0, -5.0), pt(0.0, 5.0)]);
+        assert_eq!(axes.major, vector(0.0, 1.0));
+    }
+
+    // describe("principalCoords")
+    #[test]
+    fn principal_coords_undoes_translation_rotation_and_scale() {
+        let points = rotate(&horizontal_spread(), 0.7, 3.0);
+        let axes = principal_axes(&points);
+        let coords = principal_coords_with(&points, &axes, 1.0 / axes.major_variance.sqrt());
+        let mut us = us(&coords);
+        us.sort_by(f64::total_cmp);
+        assert!(coords.iter().all(|[_, v]| v.abs() < 1e-9));
+        assert!(close_to(us[0].abs(), us[us.len() - 1].abs(), 2));
+        assert!(close_to(us[0].abs(), 1.65, 1));
+    }
+
+    // describe("orientPrincipalAxes")
+    #[test]
+    fn orient_principal_axes_points_the_major_axis_at_the_dense_end() {
+        let lopsided: Vec<P> = (0..5)
+            .map(|i| pt(-100.0 + f64::from(i) * 10.0, 0.0))
+            .chain((0..30).map(|i| pt(f64::from(i), 0.0)))
+            .collect();
+        for angle in [0.0, 1.0, 2.5, 4.0] {
+            let points = rotate(&lopsided, angle, 1.0);
+            let axes = orient_principal_axes(&points, &principal_axes(&points));
+            assert!(skewness(&us(&principal_coords(&points, &axes))) < 0.0, "{angle}");
+        }
+    }
+
+    #[test]
+    fn orient_principal_axes_leaves_a_symmetric_point_set_alone() {
+        let spread = horizontal_spread();
+        let axes = principal_axes(&spread);
+        assert_eq!(orient_principal_axes(&spread, &axes), axes);
+    }
+
+    // describe("elongation")
+    #[test]
+    fn elongation_is_0_for_a_straight_spread_and_1_for_an_isotropic_one() {
+        assert!(close_to(elongation(&principal_axes(&horizontal_spread())), 0.0, 2));
+        let circle: Vec<P> = (0..36)
+            .map(|i| {
+                let a = f64::from(i) * PI / 18.0;
+                pt(js::cos(a), js::sin(a))
+            })
+            .collect();
+        assert!(close_to(elongation(&principal_axes(&circle)), 1.0, 2));
+    }
+
+    #[test]
+    fn elongation_is_invariant_to_rotation_and_scale() {
+        let points: Vec<P> = (0..40)
+            .map(|i| {
+                let t = f64::from(i) / 6.0;
+                pt(js::cos(t) * 4.0, js::sin(t))
+            })
+            .collect();
+        assert!(close_to(
+            elongation(&principal_axes(&rotate(&points, 0.9, 7.0))),
+            elongation(&principal_axes(&points)),
+            2
+        ));
+    }
+
+    // describe("standardizedMoment")
+    #[test]
+    fn standardized_moment_is_0_for_a_sample_with_no_spread() {
+        assert_eq!(standardized_moment(&[3.0, 3.0, 3.0], 3.0), 0.0);
+    }
+
+    #[test]
+    fn standardized_moment_is_unchanged_by_shifting_and_scaling_the_sample() {
+        let sample = [1.0, 2.0, 2.0, 3.0, 9.0, 4.0];
+        let moved: Vec<f64> = sample.iter().map(|v| v * 5.0 + 100.0).collect();
+        assert!(close_to(
+            standardized_moment(&moved, 3.0),
+            standardized_moment(&sample, 3.0),
+            2
+        ));
+    }
+
+    // describe("skewness")
+    #[test]
+    fn skewness_is_0_for_a_symmetric_sample() {
+        assert!(close_to(skewness(&[-2.0, -1.0, 0.0, 1.0, 2.0]), 0.0, 2));
+    }
+
+    #[test]
+    fn skewness_is_positive_when_the_tail_runs_to_the_right_of_the_mass() {
+        assert!(skewness(&[1.0, 1.0, 1.0, 1.0, 1.0, 9.0]) > 0.0);
+        assert!(skewness(&[-9.0, -1.0, -1.0, -1.0, -1.0, -1.0]) < 0.0);
+    }
+
+    // describe("kurtosis")
+    #[test]
+    fn kurtosis_separates_a_uniform_sample_from_a_normal_ish_one() {
+        let uniform: Vec<f64> = (0..101).map(|i| f64::from(i) / 100.0).collect();
+        assert!(close_to(kurtosis(&uniform), 1.8, 1));
+    }
+
+    #[test]
+    fn kurtosis_is_invariant_to_rotation_via_the_principal_frame() {
+        let points: Vec<P> = (0..50)
+            .map(|i| pt(f64::from(i) - 25.0, f64::from(i % 5 - 2) * 0.3))
+            .collect();
+        let project = |pts: &[P]| {
+            let axes = principal_axes(pts);
+            kurtosis(&us(&principal_coords(pts, &axes)))
+        };
+        assert!(close_to(project(&rotate(&points, 1.3, 2.0)), project(&points), 2));
     }
 }

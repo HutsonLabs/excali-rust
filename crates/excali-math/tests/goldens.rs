@@ -3,8 +3,8 @@
 //! `goldens/math.json` is written by `tools/goldens/generate.mjs`, which runs
 //! upstream's TypeScript from the pinned checkout under Node: every case is a
 //! call `math[fn](...args)` and the value upstream returned. The file covers
-//! every function the package exports except `pca.ts`
-//! (`tools/goldens/test/math.test.mjs` checks that against the checkout); this
+//! every function the package exports (`tools/goldens/test/math.test.mjs`
+//! checks that against the checkout); this
 //! test checks that the Rust port returns the same doubles, compared with `==`
 //! (so `-0` equals `0`, as JSON cannot tell them apart).
 //!
@@ -82,6 +82,22 @@ fn crv(v: &Value) -> Curve<Global> {
     curve(p(&v[0]), p(&v[1]), p(&v[2]), p(&v[3]))
 }
 
+/// `principalAxes`' `{ centroid, major, minor, majorVariance,
+/// minorVariance }` object.
+fn axes(v: &Value) -> PrincipalAxes<Global> {
+    PrincipalAxes {
+        centroid: p(&v["centroid"]),
+        major: vec2(&v["major"]),
+        minor: vec2(&v["minor"]),
+        major_variance: f(&v["majorVariance"]),
+        minor_variance: f(&v["minorVariance"]),
+    }
+}
+
+fn numbers(v: &Value) -> Vec<f64> {
+    v.as_array().expect("number list").iter().map(f).collect()
+}
+
 fn steps(v: &Value) -> u32 {
     u32::try_from(v.as_u64().expect("integer step count")).expect("u32 step count")
 }
@@ -135,6 +151,16 @@ fn out_opt_p(q: Option<P>) -> Value {
 
 fn out_seg<S: Space>(s: LineSegment<S>) -> Value {
     json!([out_p(s.0), out_p(s.1)])
+}
+
+fn out_axes(a: &PrincipalAxes<Global>) -> Value {
+    json!({
+        "centroid": out_p(a.centroid),
+        "major": out_v(a.major),
+        "minor": out_v(a.minor),
+        "majorVariance": a.major_variance,
+        "minorVariance": a.minor_variance,
+    })
 }
 
 fn out_range(r: InclusiveRange) -> Value {
@@ -433,6 +459,24 @@ fn call(fun: &str, a: &[Value]) -> Value {
             f(arg(2)),
         )),
         "curvePointAtLength" => out_p(curve_point_at_length(crv(arg(0)), f(arg(1)))),
+        // pca.ts
+        "centroid" => out_p(centroid(&points(arg(0)))),
+        "principalAxes" => out_axes(&principal_axes(&points(arg(0)))),
+        "principalCoords" => {
+            let coords = if has(2) {
+                principal_coords_with(&points(arg(0)), &axes(arg(1)), f(arg(2)))
+            } else {
+                principal_coords(&points(arg(0)), &axes(arg(1)))
+            };
+            json!(coords)
+        }
+        "orientPrincipalAxes" => {
+            out_axes(&orient_principal_axes(&points(arg(0)), &axes(arg(1))))
+        }
+        "elongation" => json!(elongation(&axes(arg(0)))),
+        "standardizedMoment" => json!(standardized_moment(&numbers(arg(0)), f(arg(1)))),
+        "skewness" => json!(skewness(&numbers(arg(0)))),
+        "kurtosis" => json!(kurtosis(&numbers(arg(0)))),
         other => panic!("math.json calls {other}, which the port does not cover"),
     }
 }
@@ -587,6 +631,15 @@ fn every_covered_function_has_cases() {
         "vectorNormalize",
         "vectorScale",
         "vectorSubtract",
+        // pca.ts
+        "centroid",
+        "principalAxes",
+        "principalCoords",
+        "orientPrincipalAxes",
+        "elongation",
+        "standardizedMoment",
+        "skewness",
+        "kurtosis",
     ];
     let expected: BTreeSet<String> = expected.iter().map(|s| (*s).to_owned()).collect();
     assert_eq!(seen, expected);
