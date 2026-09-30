@@ -23,7 +23,8 @@ excali-text = { path = "../excali-text" }
 # the elements, events, focus and the tooltip's MutationObserver behind
 # excali_ui::dom and excali_ui::primitives; the elements
 # excali_ui::styles_panel mounts; the canvas pixels (ImageData) the eye
-# dropper of excali_ui::color_picker samples.
+# dropper of excali_ui::color_picker samples; the locale files
+# excali_ui::i18n fetches (Response).
 # excali_ui::main_menu's app state patches and the app state
 # excali_ui::footer's help and zen-mode actions write are JSON values, as
 # the editor's app state is.
@@ -73,6 +74,7 @@ web-sys = { version = "0.3.106", features = [
   "PointerEvent",
   "Range",
   "ResizeObserver",
+  "Response",
   "ScrollIntoViewOptions",
   "ScrollLogicalPosition",
   "SvgElement",
