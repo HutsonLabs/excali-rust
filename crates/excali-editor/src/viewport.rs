@@ -17,6 +17,12 @@
 //!   [`get_scroll_to_content_state`];
 //! - `packages/excalidraw/components/App.viewport.ts:771-825`:
 //!   `AppViewport.translate` ([`translate`]);
+//! - `packages/excalidraw/components/App.viewport.ts:173-351, 672-760,
+//!   860-863`: `setViewport` for a box, with `getConstrainedTargetViewport`,
+//!   `interpolateViewport` and the eased `animateToViewport`
+//!   ([`AppViewport`], [`get_constrained_target_viewport`],
+//!   [`interpolate_viewport`]), and `easeOut`
+//!   (`packages/common/src/utils.ts:232-234`, [`ease_out`]);
 //! - `packages/excalidraw/components/App.wheel.ts`: `AppWheel.handle` and
 //!   `zoomBy` ([`handle_wheel`], [`wheel_zoom_value`]);
 //! - `packages/excalidraw/appState.ts:352-355`: `resolveInputDevice`
@@ -36,10 +42,11 @@
 //! would run named in the result ([`Translation`], [`WheelOutcome`]):
 //! requesting to stop following a collaborator, cancelling or scheduling
 //! the scroll-lock rubberband snap-back, flushing a pending drag-pan move,
-//! the zoom-scaled bitmap flag. The animated `setViewport` navigation and
-//! its snap-back animation are the App's; a caller skips [`translate`]
-//! while an animated transition into a locked viewport is pending
-//! (`isLockedTransitionPending`).
+//! the zoom-scaled bitmap flag. The one state kept is [`AppViewport`]'s:
+//! the animated `setViewport` transition, which the host advances frame by
+//! frame and which takes over (or, into a locked viewport, holds off) the
+//! user's pans and zooms. The rubberband snap-back animation is the
+//! host's.
 
 use excali_core::app_state::AppState;
 use excali_core::constants::{MAX_ZOOM, MIN_ZOOM, ZOOM_STEP};
@@ -612,6 +619,415 @@ pub fn center_scroll_on(
     let mut scroll_y = (height - offsets.bottom) / 2.0 / zoom - scene_point.1;
     scroll_y += offsets.top / 2.0 / zoom;
     (scroll_x, scroll_y)
+}
+
+// -- setViewport ----------------------------------------------------------------------
+
+/// `DEFAULT_SCROLL_ANIMATION_DURATION` (`App.viewport.ts:51`), in ms.
+pub const DEFAULT_SCROLL_ANIMATION_DURATION: f64 = 500.0;
+
+/// `easeOut(k)` (`packages/common/src/utils.ts:232-234`): `1 - (1 - k)^4`.
+pub fn ease_out(k: f64) -> f64 {
+    1.0 - js::pow(1.0 - k, 4.0)
+}
+
+/// `SetViewportOptions["lock"]["overscroll"]`: `true` or missing, `false`,
+/// or a number.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub enum Overscroll {
+    /// [`DEFAULT_OVERSCROLL`].
+    #[default]
+    Default,
+    /// A rigid lock.
+    Off,
+    /// The give in viewport px (negative is 0).
+    Give(f64),
+}
+
+impl Overscroll {
+    /// `resolveOverscroll` (`App.viewport.ts:173-183`).
+    pub fn resolve(self) -> f64 {
+        match self {
+            Overscroll::Default => DEFAULT_OVERSCROLL,
+            Overscroll::Off => 0.0,
+            Overscroll::Give(give) => js::max(give, 0.0),
+        }
+    }
+}
+
+/// `SetViewportOptions["lock"]` (`viewport.ts:85-97`): the scroll and zoom
+/// lock a navigation installs.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct ViewportLock {
+    /// Constrain panning to the target box.
+    pub scroll: bool,
+    /// Make the resolved zoom the minimum zoom.
+    pub zoom: bool,
+    pub overscroll: Overscroll,
+}
+
+/// `SetViewportOptions["animation"]`: `false`, `true` or missing (or an
+/// object without a duration), or a duration in ms.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub enum ViewportAnimation {
+    Off,
+    #[default]
+    Default,
+    Duration(f64),
+}
+
+impl ViewportAnimation {
+    /// `resolveAnimationDuration` (`App.viewport.ts:309-319`): `None` for
+    /// no animation.
+    pub fn duration(self) -> Option<f64> {
+        match self {
+            ViewportAnimation::Off => None,
+            ViewportAnimation::Default => Some(DEFAULT_SCROLL_ANIMATION_DURATION),
+            ViewportAnimation::Duration(ms) => Some(ms),
+        }
+    }
+}
+
+/// `SetViewportOptions` (`viewport.ts:59-110`) for a box target, the UI
+/// offsets resolved by the caller (`resolveOffsets`).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SetViewportOptions {
+    /// The box in scene coordinates; `None` for a target that did not
+    /// resolve (an unknown id, deleted elements), which changes nothing.
+    pub target: Option<Bounds>,
+    pub fit: Fit,
+    pub offsets: Option<Offsets>,
+    pub lock: Option<ViewportLock>,
+    pub animation: ViewportAnimation,
+}
+
+impl SetViewportOptions {
+    /// Upstream's defaults for a box: scale down, no offsets, no lock, the
+    /// default animation.
+    pub fn new(target: Bounds) -> SetViewportOptions {
+        SetViewportOptions {
+            target: Some(target),
+            fit: Fit::ScaleDown,
+            offsets: None,
+            lock: None,
+            animation: ViewportAnimation::Default,
+        }
+    }
+}
+
+/// Where a navigation lands: the viewport and the scroll lock to install
+/// (`None` clears the previous one).
+#[derive(Debug, Clone, PartialEq)]
+pub struct TargetViewport {
+    pub viewport: Viewport,
+    pub scroll_constraints: Option<ScrollConstraints>,
+}
+
+/// `getConstrainedTargetViewport(appState, bounds, {fit, offsets, lock})`
+/// (`App.viewport.ts:185-244`): `zoomToFitBounds` (not stepped) for the
+/// box, and with a scroll or zoom lock the constraints of the box, the
+/// viewport clamped into them.
+pub fn get_constrained_target_viewport(
+    state: &ViewportState,
+    bounds: Bounds,
+    fit: Fit,
+    offsets: Option<Offsets>,
+    lock: Option<ViewportLock>,
+) -> TargetViewport {
+    let options = ZoomToFit {
+        canvas_offsets: offsets.unwrap_or_default(),
+        fit,
+        ..ZoomToFit::new(bounds)
+    };
+    let viewport = zoom_to_fit_bounds(&options, state);
+    let Some(lock) = lock.filter(|l| l.scroll || l.zoom) else {
+        return TargetViewport {
+            viewport,
+            scroll_constraints: None,
+        };
+    };
+    let [x1, y1, x2, y2] = bounds;
+    let constraints = ScrollConstraints {
+        x: x1,
+        y: y1,
+        width: x2 - x1,
+        height: y2 - y1,
+        lock_scroll: lock.scroll,
+        lock_zoom: lock.zoom,
+        zoom: viewport.zoom,
+        overscroll: lock.overscroll.resolve(),
+        offsets: offsets.unwrap_or_default(),
+    };
+    let locked = ViewportState {
+        scroll_constraints: Some(constraints.clone()),
+        ..state.with_viewport(viewport)
+    };
+    TargetViewport {
+        viewport: constrain_scroll_state(&locked, 0.0),
+        scroll_constraints: Some(constraints),
+    }
+}
+
+/// `interpolateViewport({from, target, factor})` (`App.viewport.ts:246-
+/// 301`): the zoom blended geometrically and `scroll × zoom` linearly by
+/// the weight that zoom implies, so every scene point moves on a straight
+/// screen line; `factor >= 1` lands on the target exactly.
+pub fn interpolate_viewport(from: Viewport, target: Viewport, factor: f64) -> Viewport {
+    if factor >= 1.0 {
+        return target;
+    }
+    let zoom = from.zoom * js::pow(target.zoom / from.zoom, factor);
+    let m = if target.zoom == from.zoom {
+        factor
+    } else {
+        (zoom - from.zoom) / (target.zoom - from.zoom)
+    };
+    Viewport {
+        scroll_x: ((1.0 - m) * from.scroll_x * from.zoom + m * target.scroll_x * target.zoom)
+            / zoom,
+        scroll_y: ((1.0 - m) * from.scroll_y * from.zoom + m * target.scroll_y * target.zoom)
+            / zoom,
+        zoom,
+    }
+}
+
+/// The app state keys a navigation step sets: the viewport, the scroll
+/// lock (`Some(None)` clears it) and `shouldCacheIgnoreZoom` (frames draw
+/// from zoom-scaled bitmaps until the transition settles).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct ViewportPatch {
+    pub viewport: Option<Viewport>,
+    pub scroll_constraints: Option<Option<ScrollConstraints>>,
+    pub should_cache_ignore_zoom: Option<bool>,
+}
+
+impl ViewportPatch {
+    /// This patch, then `next` over it (two `setState` calls in a row).
+    fn then(self, next: ViewportPatch) -> ViewportPatch {
+        ViewportPatch {
+            viewport: next.viewport.or(self.viewport),
+            scroll_constraints: next.scroll_constraints.or(self.scroll_constraints),
+            should_cache_ignore_zoom: next
+                .should_cache_ignore_zoom
+                .or(self.should_cache_ignore_zoom),
+        }
+    }
+
+    fn frame(viewport: Viewport) -> ViewportPatch {
+        ViewportPatch {
+            viewport: Some(viewport),
+            scroll_constraints: None,
+            should_cache_ignore_zoom: Some(true),
+        }
+    }
+
+    fn settle(target: TargetViewport) -> ViewportPatch {
+        ViewportPatch {
+            viewport: Some(target.viewport),
+            scroll_constraints: Some(target.scroll_constraints),
+            should_cache_ignore_zoom: Some(false),
+        }
+    }
+
+    /// The patch applied to a viewport state and the
+    /// `shouldCacheIgnoreZoom` flag.
+    pub fn apply(&self, state: &mut ViewportState, should_cache_ignore_zoom: &mut bool) {
+        if let Some(viewport) = self.viewport {
+            *state = state.with_viewport(viewport);
+        }
+        if let Some(constraints) = &self.scroll_constraints {
+            state.scroll_constraints = constraints.clone();
+        }
+        if let Some(flag) = self.should_cache_ignore_zoom {
+            *should_cache_ignore_zoom = flag;
+        }
+    }
+
+    /// The patch as app state keys, as upstream names them.
+    pub fn to_map(&self) -> Map<String, Value> {
+        let mut map = Map::new();
+        if let Some(v) = self.viewport {
+            map.insert("scrollX".into(), json!(v.scroll_x));
+            map.insert("scrollY".into(), json!(v.scroll_y));
+            map.insert("zoom".into(), json!({ "value": v.zoom }));
+        }
+        if let Some(constraints) = &self.scroll_constraints {
+            map.insert(
+                "scrollConstraints".into(),
+                constraints
+                    .as_ref()
+                    .map_or(Value::Null, ScrollConstraints::to_json),
+            );
+        }
+        if let Some(flag) = self.should_cache_ignore_zoom {
+            map.insert("shouldCacheIgnoreZoom".into(), json!(flag));
+        }
+        map
+    }
+}
+
+/// An animated navigation (`animateToViewport`, `App.viewport.ts:321-351`,
+/// run by `AnimationController`, `renderer/animation.ts`): eased from the
+/// viewport it started at to the target over its duration.
+#[derive(Debug, Clone, PartialEq)]
+struct Transition {
+    from: Viewport,
+    target: TargetViewport,
+    duration: f64,
+    elapsed: f64,
+    /// `AnimationRecord.lastTime`: 0 until the first frame ran.
+    last_time: f64,
+}
+
+impl Transition {
+    /// The animation callback: a frame, or the settled target once the
+    /// duration has passed.
+    fn step(&mut self, delta_time: f64) -> Result<Viewport, TargetViewport> {
+        self.elapsed += delta_time;
+        let progress = js::min(self.elapsed / self.duration, 1.0);
+        let factor = ease_out(clamp(progress, 0.0, 1.0));
+        if progress < 1.0 {
+            Ok(interpolate_viewport(
+                self.from,
+                self.target.viewport,
+                factor,
+            ))
+        } else {
+            Err(self.target.clone())
+        }
+    }
+}
+
+/// `AppViewport`'s navigation (`App.viewport.ts:437-866`): the animated
+/// `setViewport` transition, the frames that advance it and the user's
+/// translations that interrupt it. Each method returns what to set in the
+/// app state; the caller runs [`AppViewport::frame`] on every animation
+/// frame while [`AppViewport::is_animating`].
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct AppViewport {
+    transition: Option<Transition>,
+}
+
+/// What [`AppViewport::translate`] did.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AppTranslation {
+    pub translation: Translation,
+    /// A running navigation was interrupted: `shouldCacheIgnoreZoom` goes
+    /// back to `false`.
+    pub reset_should_cache_ignore_zoom: bool,
+}
+
+impl AppViewport {
+    /// `isAnimating` for the navigation: a transition is running.
+    pub fn is_animating(&self) -> bool {
+        self.transition.is_some()
+    }
+
+    /// `isLockedTransitionPending` (`App.viewport.ts:461-465`): a
+    /// transition into a locked viewport owns the user's pans and zooms.
+    pub fn is_locked_transition_pending(&self) -> bool {
+        self.transition
+            .as_ref()
+            .is_some_and(|t| t.target.scroll_constraints.is_some())
+    }
+
+    /// `cancelTransition` (`App.viewport.ts:860-863`).
+    pub fn cancel(&mut self) {
+        self.transition = None;
+    }
+
+    /// `setViewport(opts)` (`App.viewport.ts:672-760`) from `state`: `None`
+    /// when the target did not resolve (nothing changes, a running
+    /// transition goes on). Otherwise the running transition is replaced
+    /// (upstream also stops following a collaborator and cancels the
+    /// snap-back), and the patch is the target set at once without an
+    /// animation, or the scroll lock cleared and the first frame.
+    pub fn set_viewport(
+        &mut self,
+        state: &ViewportState,
+        opts: &SetViewportOptions,
+    ) -> Option<ViewportPatch> {
+        let bounds = opts.target?;
+        let target =
+            get_constrained_target_viewport(state, bounds, opts.fit, opts.offsets, opts.lock);
+        self.cancel();
+        let Some(duration) = opts.animation.duration() else {
+            return Some(ViewportPatch::settle(target));
+        };
+        // the old lock is superseded; the new one waits for the last frame
+        let clear = ViewportPatch {
+            scroll_constraints: state.scroll_constraints.as_ref().map(|_| None),
+            ..ViewportPatch::default()
+        };
+        let mut transition = Transition {
+            from: state.viewport(),
+            target,
+            duration,
+            elapsed: 0.0,
+            last_time: 0.0,
+        };
+        // AnimationController.start runs the first step at once
+        Some(clear.then(match transition.step(0.0) {
+            Ok(frame) => {
+                self.transition = Some(transition);
+                ViewportPatch::frame(frame)
+            }
+            Err(target) => ViewportPatch::settle(target),
+        }))
+    }
+
+    /// An animation frame at `now` (ms, `performance.now()`): the next
+    /// viewport of the running transition, or its target with the lock
+    /// once it is over; `None` when none runs. The first frame after the
+    /// start counts no time (`AnimationController.tick`).
+    pub fn frame(&mut self, now: f64) -> Option<ViewportPatch> {
+        let transition = self.transition.as_mut()?;
+        let delta_time = if transition.last_time == 0.0 {
+            0.0
+        } else {
+            now - transition.last_time
+        };
+        match transition.step(delta_time) {
+            Ok(frame) => {
+                transition.last_time = now;
+                Some(ViewportPatch::frame(frame))
+            }
+            Err(target) => {
+                self.transition = None;
+                Some(ViewportPatch::settle(target))
+            }
+        }
+    }
+
+    /// `translate(update, opts)` (`App.viewport.ts:771-825`) for a user
+    /// pan or zoom: `None` while a transition into a locked viewport is
+    /// pending (upstream returns `false`); otherwise a running transition
+    /// stops and [`translate`] runs.
+    pub fn translate(
+        &mut self,
+        prev: &ViewportState,
+        update: Option<ViewportUpdate>,
+        opts: TranslateOptions,
+    ) -> Option<AppTranslation> {
+        let reset_should_cache_ignore_zoom = self.interrupt()?;
+        Some(AppTranslation {
+            translation: translate(prev, update, opts),
+            reset_should_cache_ignore_zoom,
+        })
+    }
+
+    /// The start of a user translation: `None` while a locked transition
+    /// is pending (the translation is dropped), otherwise whether a
+    /// running transition was stopped (`shouldCacheIgnoreZoom` goes back
+    /// to `false`).
+    pub fn interrupt(&mut self) -> Option<bool> {
+        if self.is_locked_transition_pending() {
+            return None;
+        }
+        let running = self.transition.is_some();
+        self.cancel();
+        Some(running)
+    }
 }
 
 /// What [`scroll_bounds_into_view`] does along an axis where the bounds do

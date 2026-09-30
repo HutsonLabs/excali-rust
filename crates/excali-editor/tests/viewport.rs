@@ -507,6 +507,9 @@ fn set_viewport_matches_upstream() {
                             calls.push("cancelSnapBack");
                         }
                         calls.push("requestUnfollow");
+                        if out.translation.schedule_snap_back {
+                            calls.push("scheduleSnapBack");
+                        }
                         s = s.with_viewport(out.translation.viewport);
                     }
                 }

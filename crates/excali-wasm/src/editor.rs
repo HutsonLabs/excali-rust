@@ -137,8 +137,9 @@ use excali_editor::transform_handles::{
 };
 use excali_editor::viewport::{
     handle_wheel, perform_zoom_action, translate, viewport_coords_to_scene_coords,
-    zoom_to_fit_bounds, Fit, InputDevice, Offsets, TranslateOptions, Viewport, ViewportState,
-    ViewportUpdate, WheelContext, WheelEvent, WheelTarget, ZoomAction, ZoomToFit,
+    zoom_to_fit_bounds, AppViewport, InputDevice, Offsets, SetViewportOptions, TranslateOptions,
+    Viewport, ViewportPatch, ViewportState, ViewportUpdate, WheelContext, WheelEvent, WheelTarget,
+    ZoomAction, ZoomToFit,
 };
 use excali_math::js;
 use excali_scene::bounds::{get_common_bounds, get_element_absolute_coords, ElementsMap};
@@ -483,6 +484,8 @@ pub struct Editor<P: TextMetricsProvider + Clone> {
     /// `viewport.lastPosition`: the last pointer position in the page,
     /// which a wheel zoom zooms around.
     pub(crate) last_pointer: [f64; 2],
+    /// The animated `setViewport` navigation (`AppViewport`).
+    pub(crate) navigation: AppViewport,
     pub(crate) hit_cache: HitTestCache,
     pub(crate) events: Vec<HostEvent>,
     pub(crate) reported: (f64, bool),
@@ -534,6 +537,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             viewport: Map::new(),
             gesture: None,
             last_pointer: [0.0, 0.0],
+            navigation: AppViewport::default(),
             hit_cache: HitTestCache::new(),
             events: Vec::new(),
             reported: (0.0, false),
@@ -1134,19 +1138,62 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         f(&cx)
     }
 
-    /// `app.viewport.setViewport({target, fit, offsets})` for bounds
-    /// (`App.viewport.ts:672-760`, `getTargetViewport`): the zoom that fits
-    /// them into the viewport less `offsets` (scale-down never past 100%),
-    /// centred there. Set at once: upstream animates it over 300 ms.
-    pub fn fit_bounds(&mut self, target: [f64; 4], fit: Fit, offsets: Offsets) {
+    /// `app.viewport.setViewport(opts)` for a box (`App.viewport.ts:
+    /// 672-760`, [`AppViewport::set_viewport`]): the viewport that fits it
+    /// (with the scroll lock asked for), set at once or, animated, its
+    /// first frame; the host then runs [`Editor::viewport_frame`] on each
+    /// animation frame while [`Editor::is_viewport_animating`].
+    pub fn navigate_to(&mut self, opts: SetViewportOptions) {
         let state = self.viewport_state();
-        let options = ZoomToFit {
-            canvas_offsets: offsets,
-            fit,
-            ..ZoomToFit::new(target)
-        };
-        self.set_viewport_to(zoom_to_fit_bounds(&options, &state));
+        if let Some(patch) = self.navigation.set_viewport(&state, &opts) {
+            self.apply_viewport_patch(&patch);
+        }
+    }
+
+    /// An animation frame of the navigation at `now` (ms, the frame's
+    /// `performance.now()` timestamp).
+    pub fn viewport_frame(&mut self, now: f64) {
+        if let Some(patch) = self.navigation.frame(now) {
+            self.apply_viewport_patch(&patch);
+        }
+    }
+
+    /// Whether a navigation is running.
+    pub fn is_viewport_animating(&self) -> bool {
+        self.navigation.is_animating()
+    }
+
+    /// A navigation step's keys set, without capture.
+    fn apply_viewport_patch(&mut self, patch: &ViewportPatch) {
+        let current = self.session.app_state().as_map();
+        let changed: Map<String, Value> = patch
+            .to_map()
+            .into_iter()
+            .filter(|(k, v)| current.get(k) != Some(v))
+            .collect();
+        if !changed.is_empty() {
+            self.session.set_state(changed);
+            self.session.commit();
+        }
         self.report();
+    }
+
+    /// The start of a user pan or zoom (`AppViewport.translate`): `false`
+    /// while a navigation into a locked viewport is pending (the
+    /// translation is dropped); a running navigation stops and
+    /// `shouldCacheIgnoreZoom` goes back to `false`.
+    fn interrupt_navigation(&mut self) -> bool {
+        match self.navigation.interrupt() {
+            None => false,
+            Some(stopped) => {
+                if stopped {
+                    let mut patch = Map::new();
+                    patch.insert("shouldCacheIgnoreZoom".into(), Value::Bool(false));
+                    self.session.set_state(patch);
+                }
+                true
+            }
+        }
     }
 
     /// An action's result written back (`syncActionResult`): the
@@ -1639,7 +1686,9 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         };
         let outcome = handle_wheel(&state, &ctx, &event);
         if let Some(translation) = outcome.translation {
-            self.set_viewport_to(translation.viewport);
+            if self.interrupt_navigation() {
+                self.set_viewport_to(translation.viewport);
+            }
         }
         outcome.prevent_default
     }
@@ -2155,8 +2204,10 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                     scroll_y: Some(state.scroll_y - delta[1] / state.zoom),
                     zoom: None,
                 };
-                let translation = translate(&state, Some(update), TranslateOptions::default());
-                self.set_viewport_to(translation.viewport);
+                if self.interrupt_navigation() {
+                    let translation = translate(&state, Some(update), TranslateOptions::default());
+                    self.set_viewport_to(translation.viewport);
+                }
             }
             Some(Gesture::Select(g)) if g.box_origin.is_some() => self.box_select(input),
             Some(Gesture::Select(_)) => self.drag_selection(input),

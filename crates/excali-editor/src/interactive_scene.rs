@@ -43,7 +43,12 @@
 //!    lone element (`renderTransformHandles`, `:1328-1369`) or the dashed
 //!    box and handles of several; the crop handles of an image being
 //!    cropped (`renderCropHandles`, `:1371-1474`).
-//! 10. The snap lines ([`crate::snapping::render_snaps`], `renderSnaps.ts`).
+//! 10. The search matches (`appState.searchMatches`, `:2071-2103`): every
+//!     matched line of each match's element, in the element's frame
+//!     (rotated about its centre), the focused match in the stronger
+//!     colour; a frame name's lines are in viewport px (divided by the
+//!     zoom) and drawn only when `showOnCanvas` or focused.
+//! 11. The snap lines ([`crate::snapping::render_snaps`], `renderSnaps.ts`).
 //!
 //! The drawing goes through a small model of the 2D context (`Canvas`):
 //! upstream sets styles and transforms as it goes, sometimes outside a
@@ -51,10 +56,9 @@
 //! style and line width to what follows), and the model keeps that state,
 //! so every draw carries the style, matrix and alpha upstream's has.
 //!
-//! Left out, as the editor (single user, no search) never draws them:
+//! Left out, as the editor (single user) never draws them:
 //! collaborators' selections and cursors (`renderRemoteCursors`,
-//! `remoteSelectedElementIds`), search matches (`searchMatches`), the
-//! scrollbars (App asks for them only when its `renderScrollbars` prop is
+//! `remoteSelectedElementIds`), the scrollbars (App asks for them only when its `renderScrollbars` prop is
 //! set) and the text tool's hover affordance (`textToolHover`,
 //! `renderTextToolHover`). The binding highlight is drawn settled: the
 //! `_complex` variant behind the `COMPLEX_BINDINGS` feature flag (off by
@@ -118,6 +122,13 @@ const FRAME_STROKE_WIDTH: f64 = 2.0;
 /// `FRAME_STYLE.radius` (`common/src/constants.ts:214`).
 const FRAME_RADIUS: f64 = 8.0;
 
+/// `SEARCH_MATCH_COLOR` (`interactiveScene.ts:134-143`): per theme, the
+/// focused match's colour and the others'.
+const SEARCH_MATCH_COLOR: [(&str, &str); 2] = [
+    ("rgba(255, 124, 0, 0.4)", "rgba(255, 226, 0, 0.4)"),
+    ("rgba(250, 123, 53, 0.4)", "rgba(221, 181, 136, 0.4)"),
+];
+
 /// `TEXT_AUTO_RESIZE_HANDLE_GAP` (`textAutoResizeHandle.ts:13`).
 const TEXT_AUTO_RESIZE_HANDLE_GAP: f64 = 12.0;
 /// `TEXT_AUTO_RESIZE_HANDLE_LENGTH` (`textAutoResizeHandle.ts:14`).
@@ -169,6 +180,28 @@ impl SelectedLinearElement {
     }
 }
 
+/// A matched line of a [`SearchMatch`]: its box relative to the element's
+/// top left (for a frame, its name's, in viewport px), and whether it is
+/// drawn when its match is not focused.
+#[derive(Clone, Debug, PartialEq)]
+pub struct MatchedLine {
+    pub offset_x: f64,
+    pub offset_y: f64,
+    pub width: f64,
+    pub height: f64,
+    pub show_on_canvas: bool,
+}
+
+/// `SearchMatch` (`packages/excalidraw/types.ts:589-599`): a search hit in
+/// a text or a frame's name, as the search menu writes it to
+/// `appState.searchMatches.matches`.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SearchMatch {
+    pub id: String,
+    pub focus: bool,
+    pub matched_lines: Vec<MatchedLine>,
+}
+
 /// What the interactive canvas reads of the app state
 /// (`InteractiveCanvasAppState`, `packages/excalidraw/types.ts:223-259`).
 #[derive(Clone, Debug, PartialEq)]
@@ -210,6 +243,8 @@ pub struct InteractiveCanvasAppState {
     pub active_embeddable_id: Option<String>,
     pub is_rotating: bool,
     pub snap_lines: Vec<SnapLine>,
+    /// `searchMatches.matches` (none for `null`).
+    pub search_matches: Vec<SearchMatch>,
 }
 
 impl Default for InteractiveCanvasAppState {
@@ -244,6 +279,7 @@ impl Default for InteractiveCanvasAppState {
             active_embeddable_id: None,
             is_rotating: false,
             snap_lines: Vec::new(),
+            search_matches: Vec::new(),
         }
     }
 }
@@ -312,6 +348,28 @@ fn snap_line(value: &Value) -> Option<SnapLine> {
         }),
         _ => None,
     }
+}
+
+fn search_match(value: &Value) -> Option<SearchMatch> {
+    let number = |line: &Value, key: &str| line.get(key).and_then(Value::as_f64);
+    Some(SearchMatch {
+        id: value.get("id")?.as_str()?.to_owned(),
+        focus: truthy(value.get("focus")),
+        matched_lines: value
+            .get("matchedLines")?
+            .as_array()?
+            .iter()
+            .map(|line| {
+                Some(MatchedLine {
+                    offset_x: number(line, "offsetX")?,
+                    offset_y: number(line, "offsetY")?,
+                    width: number(line, "width")?,
+                    height: number(line, "height")?,
+                    show_on_canvas: truthy(line.get("showOnCanvas")),
+                })
+            })
+            .collect::<Option<_>>()?,
+    })
 }
 
 fn selected_linear_element(value: Option<&Value>) -> Option<SelectedLinearElement> {
@@ -420,6 +478,11 @@ impl InteractiveCanvasAppState {
             snap_lines: get("snapLines")
                 .and_then(Value::as_array)
                 .map(|list| list.iter().filter_map(snap_line).collect())
+                .unwrap_or_default(),
+            search_matches: get("searchMatches")
+                .and_then(|m| m.get("matches"))
+                .and_then(Value::as_array)
+                .map(|list| list.iter().filter_map(search_match).collect())
                 .unwrap_or_default(),
         }
     }
@@ -1798,6 +1861,46 @@ fn draw_snaps(ctx: &mut Canvas, app_state: &InteractiveCanvasAppState) {
 // ---------------------------------------------------------------------------
 // The scene
 
+/// The search matches (`interactiveScene.ts:2071-2103`): for each match
+/// whose element is in the map, its matched lines filled in the element's
+/// rotated frame, those of a frame name scaled back from viewport px, and
+/// those not shown on the canvas only when the match is focused.
+fn render_search_matches(
+    ctx: &mut Canvas,
+    app_state: &InteractiveCanvasAppState,
+    elements_map: &ElementsMap<'_>,
+) {
+    let (focus_color, match_color) =
+        SEARCH_MATCH_COLOR[usize::from(app_state.theme == Theme::Dark)];
+    for m in &app_state.search_matches {
+        let Some(element) = elements_map.get(&m.id) else {
+            continue;
+        };
+        let [x1, y1, _, _, cx, cy] = get_element_absolute_coords(element, elements_map, true);
+        ctx.save();
+        ctx.set_fill_style(if m.focus { focus_color } else { match_color });
+        let zoom_factor = if is_frame_like(element) {
+            app_state.zoom
+        } else {
+            1.0
+        };
+        ctx.translate(app_state.scroll_x, app_state.scroll_y);
+        ctx.translate(cx, cy);
+        ctx.rotate(element.base.angle.0);
+        for line in &m.matched_lines {
+            if line.show_on_canvas || m.focus {
+                ctx.fill_rect(
+                    x1 + line.offset_x / zoom_factor - cx,
+                    y1 + line.offset_y / zoom_factor - cy,
+                    line.width / zoom_factor,
+                    line.height / zoom_factor,
+                );
+            }
+        }
+        ctx.restore();
+    }
+}
+
 /// `renderInteractiveScene(renderConfig)` (`interactiveScene.ts:1614-2166`):
 /// the interactive canvas as a display list to replay from a fresh
 /// context, in the order of work described in the module documentation.
@@ -2131,6 +2234,8 @@ pub fn render_interactive_scene(scene: &InteractiveScene<'_>) -> DisplayList {
         }
         ctx.restore();
     }
+
+    render_search_matches(&mut ctx, app_state, elements_map);
 
     draw_snaps(&mut ctx, app_state);
 
