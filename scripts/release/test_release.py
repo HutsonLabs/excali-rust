@@ -29,6 +29,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = ROOT / "scripts" / "release" / "package.py"
 FETCH = ROOT / "scripts" / "release" / "fetch.sh"
 WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
+NOTES = ROOT / "scripts" / "release" / "notes"
 
 sys.path.insert(0, str(ROOT / "scripts" / "gates"))
 import version as calver  # noqa: E402
@@ -260,6 +261,33 @@ class ReleaseTest(unittest.TestCase):
             "contents: write",
         ):
             self.assertIn(needle, text)
+
+    def test_release_workflow_takes_the_notes_of_the_tag(self):
+        text = WORKFLOW.read_text()
+        self.assertIn('notes="scripts/release/notes/$TAG.md"', text)
+        self.assertIn('--notes-file "$notes"', text)
+        self.assertIn("gh release edit", text)
+
+    # scripts/release/notes (ex-804)
+
+    def test_the_workspace_version_has_release_notes(self):
+        notes = NOTES / f"v{WORKSPACE_VERSION}.md"
+        self.assertTrue(notes.is_file(), f"{notes.relative_to(ROOT)} is missing")
+        text = notes.read_text(encoding="utf-8")
+        for needle in (
+            f"excali-web_{WORKSPACE_VERSION}.tar.gz",
+            "SHA256SUMS",
+            f"scripts/release/fetch.sh {WORKSPACE_VERSION} ",
+            f'tag = "v{WORKSPACE_VERSION}"',
+            "ADR-009",
+            "Not published to crates.io, npm or any other registry",
+        ):
+            self.assertIn(needle, text)
+
+    def test_every_notes_file_is_named_for_a_calendar_tag(self):
+        for p in sorted(NOTES.glob("*")):
+            self.assertEqual(p.suffix, ".md", p.name)
+            self.assertEqual(calver.tag(p.stem[1:]), p.stem, p.name)
 
 
 if __name__ == "__main__":
