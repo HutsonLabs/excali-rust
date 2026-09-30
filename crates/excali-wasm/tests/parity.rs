@@ -11,6 +11,7 @@
 
 use excali_core::element::Element;
 use excali_editor::keyboard::Keystroke;
+use excali_editor::tools::{SetActiveToolOptions, Tool, ToolRequest, ToolType};
 use excali_editor::viewport::wheel_zoom_value;
 use excali_text::text_measurements::CharCountTextMetrics;
 use excali_ui::text_editor::{TextareaEvent, TextareaKey};
@@ -450,6 +451,113 @@ fn tool_eraser() {
     assert_eq!(state(&ed, "activeTool"), "eraser");
     key(&mut ed, Keystroke::new("z", "KeyZ").ctrl());
     assert_eq!(live(&ed).len(), 2);
+}
+
+// -- Lasso ----------------------------------------------------------------------
+
+fn lasso_tool(ed: &mut Ed) {
+    ed.tools_mut()
+        .set_active_tool(
+            ToolRequest::new(Tool::Builtin(ToolType::Lasso)),
+            SetActiveToolOptions::default(),
+        )
+        .expect("the lasso");
+}
+
+/// A lasso drawn through `points` (client coordinates), then released.
+fn lasso(ed: &mut Ed, points: &[[f64; 2]], input: PointerInput) {
+    let at = |[x, y]: [f64; 2]| PointerInput {
+        client_x: x,
+        client_y: y,
+        ..input
+    };
+    ed.pointer_down(at(points[0]));
+    for &p in &points[1..] {
+        ed.pointer_move(at(p));
+    }
+    ed.pointer_up(at(points[points.len() - 1]));
+}
+
+/// lasso.test.tsx:1875-1926: a lasso enclosing one rectangle and cutting
+/// through another selects the enclosed one in the default `contain`
+/// mode, and both in `overlap` mode.
+#[test]
+fn tool_lasso_contain_and_overlap() {
+    let path = [
+        [80.0, 80.0],
+        [320.0, 80.0],
+        [320.0, 150.0],
+        [420.0, 150.0],
+        [420.0, 220.0],
+        [80.0, 220.0],
+        [80.0, 80.0],
+    ];
+    let mut ed = editor_with(vec![rect("a", 100.0, 100.0), rect("b", 350.0, 100.0)]);
+    lasso_tool(&mut ed);
+    lasso(&mut ed, &path, PointerInput::at(0.0, 0.0));
+    assert_eq!(selected(&ed), ["a"]);
+    assert_eq!(state(&ed, "activeTool"), "lasso");
+
+    let mut ed = editor_with(vec![rect("a", 100.0, 100.0), rect("b", 350.0, 100.0)]);
+    ed.set_app_state(
+        json!({ "boxSelectionMode": "overlap" })
+            .as_object()
+            .unwrap()
+            .clone(),
+    );
+    lasso_tool(&mut ed);
+    lasso(&mut ed, &path, PointerInput::at(0.0, 0.0));
+    assert_eq!(selected(&ed), ["a", "b"]);
+}
+
+/// A new lasso replaces the selection; with Shift it adds to it
+/// (`startPath(x, y, event.shiftKey)`, App.tsx:8990-8996).
+#[test]
+fn tool_lasso_shift_keeps_the_selection() {
+    let around = |x: f64| {
+        [
+            [x - 20.0, 80.0],
+            [x + 120.0, 80.0],
+            [x + 120.0, 220.0],
+            [x - 20.0, 220.0],
+            [x - 20.0, 80.0],
+        ]
+    };
+    let mut ed = editor_with(vec![rect("a", 100.0, 100.0), rect("b", 400.0, 100.0)]);
+    lasso_tool(&mut ed);
+    lasso(&mut ed, &around(100.0), PointerInput::at(0.0, 0.0));
+    assert_eq!(selected(&ed), ["a"]);
+    lasso(&mut ed, &around(400.0), PointerInput::at(0.0, 0.0));
+    assert_eq!(selected(&ed), ["b"]);
+    lasso(&mut ed, &around(100.0), PointerInput::at(0.0, 0.0).shift());
+    assert_eq!(selected(&ed), ["a", "b"]);
+    // a lasso around nothing clears the selection
+    lasso(&mut ed, &around(700.0), PointerInput::at(0.0, 0.0));
+    assert!(selected(&ed).is_empty());
+}
+
+/// A press on a selected element drags the selection instead of starting
+/// a lasso (App.tsx:8975-8990).
+#[test]
+fn tool_lasso_drags_the_selection() {
+    let mut ed = editor_with(vec![rect("a", 100.0, 100.0)]);
+    lasso_tool(&mut ed);
+    lasso(
+        &mut ed,
+        &[
+            [80.0, 80.0],
+            [220.0, 80.0],
+            [220.0, 220.0],
+            [80.0, 220.0],
+            [80.0, 80.0],
+        ],
+        PointerInput::at(0.0, 0.0),
+    );
+    assert_eq!(selected(&ed), ["a"]);
+    drag(&mut ed, [150.0, 150.0], [250.0, 170.0]);
+    assert_eq!(get(&ed, "a").base.x, 200.0);
+    assert_eq!(get(&ed, "a").base.y, 120.0);
+    assert_eq!(selected(&ed), ["a"]);
 }
 
 // -- Bound text and arrows ----------------------------------------------------
