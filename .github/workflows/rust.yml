@@ -15,7 +15,7 @@
 # display lists in Chromium (ex-502), the catalogue render with its
 # contact sheets (ex-410), and the layered canvases at device-pixel scale
 # in Chromium (ex-503), the example Tauri app in WKWebView (ex-606), and the
-# performance budgets on a pinned macOS arm64 runner (ex-710).
+# performance budgets on a pinned ubuntu-24.04 runner (ex-710).
 #
 # The toolchain comes from rust-toolchain.toml; rustup installs it (with
 # rustfmt, clippy and the wasm32 target) on the first cargo call.
@@ -238,12 +238,14 @@ jobs:
           retention-days: 14
   # ex-710: the performance budgets (site/content/plan/phases.md#budgets),
   # first paint after module load and a pan frame at 1,000 elements, on a
-  # pinned runner: macos-15 arm64 (an Apple M1, the 2020 laptop the phase
-  # names) and Playwright's Chromium. scripts/web/perf.sh builds the
-  # release, runs tests/web/perf and fails when a measurement is over its
-  # budget (scripts/gates/perf_budget.py).
+  # pinned runner: ubuntu-24.04 x64 and Playwright's Chromium (the macos-15
+  # M1 virtual machine was too noisy to hold a budget; the phases page has
+  # the numbers). The release is built in a step of its own so the
+  # measurements do not share the machine with the build; then
+  # scripts/web/perf.sh runs tests/web/perf and fails when a measurement is
+  # over its budget (scripts/gates/perf_budget.py).
   web-perf:
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - name: toolchain (from rust-toolchain.toml)
@@ -260,6 +262,8 @@ jobs:
         with:
           path: .tools/binaryen-version_133
           key: binaryen-version_133-${{ runner.os }}-${{ runner.arch }}
+      - name: build the web runtime
+        run: scripts/web/build.sh
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -270,9 +274,9 @@ jobs:
         run: npm ci
       - name: install chromium
         working-directory: tests/web
-        run: npx playwright install chromium
+        run: npx playwright install --with-deps chromium
       - name: first paint and pan at 1,000 elements within budget
-        run: scripts/web/perf.sh
+        run: scripts/web/perf.sh --no-build
         env:
           CI: "1"
       - name: keep the measurements

@@ -13,7 +13,8 @@
 // frame's time runs from dispatching the wheel event to the static canvas
 // read back with one getImageData, which makes Chromium execute the frame's
 // deferred drawing; the budget holds the 95th percentile of the measured
-// frames after a warm-up. First paint is the median of five fresh loads.
+// frames after a warm-up. First paint is the median of five fresh loads
+// after one load that is not measured.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
@@ -25,6 +26,9 @@ const RESULTS = resolve(process.env.PERF_RESULTS || join("test-results-perf", "p
 const WARMUP = 20;
 const FRAMES = 240;
 const FIRST_PAINT_RUNS = 5;
+// a first load, not measured: the browser's own first-launch work (disk
+// cache, font and code caches) is not the editor's
+const FIRST_PAINT_WARMUP = 1;
 
 /** Merges `entry` into the results file. */
 const record = (entry) => {
@@ -94,6 +98,11 @@ test("first paint after module load", async ({ browser }) => {
   // the median of fresh loads, each in a new page, so one slow start on a
   // shared runner does not decide the budget
   const runs = [];
+  for (let i = 0; i < FIRST_PAINT_WARMUP; i++) {
+    const page = await browser.newPage();
+    await open(page);
+    await page.close();
+  }
   for (let i = 0; i < FIRST_PAINT_RUNS; i++) {
     const page = await browser.newPage();
     const errors = await open(page);
