@@ -464,7 +464,7 @@ pub fn hex_input_value(inner_value: &str) -> String {
 
 // -- top picks customisation ---------------------------------------------------
 
-/// The `appState.colorTopPicks` slots (`types.ts:573-579`): where a
+/// The `appState.colorTopPicks` slots (`types.ts:573-583`): where a
 /// customisable strip keeps its picks.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ColorTopPicksSlot {
@@ -495,7 +495,7 @@ impl ColorTopPicksSlot {
     }
 }
 
-/// `isSameColor` (`colorTopPicksDnD.ts:12-21`): value equality of colours,
+/// `isSameColor` (`colorTopPicksDnD.ts:14-20`): value equality of colours,
 /// so `#fff`, `#ffffff` and `white` cannot take two slots.
 pub fn is_same_color<S: AsRef<str> + ?Sized>(a: &S, b: &S) -> bool {
     let (a, b) = (a.as_ref(), b.as_ref());
@@ -506,7 +506,7 @@ pub fn is_same_color<S: AsRef<str> + ?Sized>(a: &S, b: &S) -> bool {
 }
 
 /// The `updateData` patch that stores a slot's picks
-/// (`ColorPicker.tsx:387-416`): `colorTopPicks` with the slot set to
+/// (`ColorPicker.tsx:387-415`): `colorTopPicks` with the slot set to
 /// `picks`, or cleared (`null`, the defaults again) for `None`.
 pub fn color_top_picks_update(
     color_top_picks: &serde_json::Map<String, serde_json::Value>,
@@ -528,14 +528,14 @@ fn is_top_picks_customizable(props: &ColorPickerProps) -> bool {
 }
 
 /// The user's pinned picks when the strip is customisable and has any
-/// (`customTopPicks`, `ColorPicker.tsx:372-376`).
+/// (`customTopPicks`, `ColorPicker.tsx:373-376`).
 fn custom_top_picks(props: &ColorPickerProps) -> Option<&[String]> {
     (is_top_picks_customizable(props) && !props.color_top_picks.is_empty())
         .then_some(props.color_top_picks.as_slice())
 }
 
 /// The picks the strip shows, which a drag edits (`effectiveTopPicks`,
-/// `ColorPicker.tsx:378-385`): the pinned ones, else the host's, else the
+/// `ColorPicker.tsx:380-385`): the pinned ones, else the host's, else the
 /// stroke or background defaults.
 pub fn effective_top_picks(props: &ColorPickerProps) -> Vec<String> {
     if let Some(custom) = custom_top_picks(props) {
@@ -553,7 +553,7 @@ pub fn effective_top_picks(props: &ColorPickerProps) -> Vec<String> {
         .collect()
 }
 
-/// The ghost's swatch (`createColorGhost`, `colorTopPicksDnD.ts:23-40`):
+/// The ghost's swatch (`createColorGhost`, `colorTopPicksDnD.ts:22-39`):
 /// the checkerboard for a transparent colour, else the colour the source
 /// renders (`rendered`, its computed background, which dark mode remaps),
 /// or the colour itself when it renders none.
@@ -574,7 +574,7 @@ pub fn color_ghost(color: &str, rendered: Option<&str>) -> Element {
 pub type ColorPickerDnd = TopPicksDnd<String>;
 
 /// A new [`ColorPickerDnd`] (`useColorTopPicksDnD`,
-/// `colorTopPicksDnD.ts:50-64`).
+/// `colorTopPicksDnD.ts:49-64`).
 pub fn color_picker_dnd() -> ColorPickerDnd {
     TopPicksDnd::new(is_same_color)
 }
@@ -756,7 +756,7 @@ fn button_separator() -> Node {
         .into()
 }
 
-/// `TopPicks` (`TopPicks.tsx:38-131`) in its `TopPicksContextMenu`
+/// `TopPicks` (`TopPicks.tsx:39-132`) in its `TopPicksContextMenu`
 /// trigger (`TopPicksContextMenu.tsx:11-50`) while customisable.
 fn top_picks(props: &ColorPickerProps) -> Node {
     let customizable = is_top_picks_customizable(props);

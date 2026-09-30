@@ -64,12 +64,13 @@ pub const DRAG_THRESHOLD: f64 = 10.0;
 /// `DRAG_TIME_THRESHOLD_MS` (`topPicksDnD.tsx:22`): how long the pointer is
 /// held before a press becomes a drag.
 pub const DRAG_TIME_THRESHOLD_MS: f64 = 100.0;
-/// The released ghost fades after this long (`topPicksDnD.tsx:331-333`).
+/// The released ghost fades after this long (`releaseGhost`,
+/// `topPicksDnD.tsx:354-356`).
 const FADE_AFTER_MS: f64 = 160.0;
-/// ...and is removed after this long (`topPicksDnD.tsx:334-336`).
+/// ...and is removed after this long (`topPicksDnD.tsx:357-359`).
 const REMOVE_AFTER_MS: f64 = 340.0;
 /// The click after a drop is swallowed for this long
-/// (`suppressNextClick`, `topPicksDnD.tsx:367-377`).
+/// (`suppressNextClick`, `topPicksDnD.tsx:390-399`).
 const SUPPRESS_CLICK_MS: f64 = 100.0;
 
 /// A client rect.
@@ -125,7 +126,7 @@ pub struct TopPicksDragState<T> {
     pub slot_span: f64,
 }
 
-/// `getTopPickReorderOffset` (`topPicksDnD.tsx:102-130`): the translation
+/// `getTopPickReorderOffset` (`topPicksDnD.tsx:100-128`): the translation
 /// (px) moving the pick at `index` to where it would be if the pick being
 /// reordered were dropped now.
 pub fn get_top_pick_reorder_offset<T>(state: Option<&TopPicksDragState<T>>, index: usize) -> f64 {
@@ -153,7 +154,7 @@ pub fn get_top_pick_reorder_offset<T>(state: Option<&TopPicksDragState<T>>, inde
     (new_index - index) as f64 * state.slot_span
 }
 
-/// `TopPicksDnDOutline` (`topPicksDnD.tsx:134-138`): the "marching ants"
+/// `TopPicksDnDOutline` (`topPicksDnD.tsx:132-136`): the "marching ants"
 /// around the strip while a drag is active.
 pub fn top_picks_dnd_outline() -> Element {
     Element::svg("svg")
@@ -162,7 +163,7 @@ pub fn top_picks_dnd_outline() -> Element {
         .child(Element::svg("rect"))
 }
 
-/// The strip's layout (`measureStrip`, `topPicksDnD.tsx:188-215`): its
+/// The strip's layout (`measureStrip`, `topPicksDnD.tsx:187-216`): its
 /// rect and its picks' in index order.
 #[derive(Clone, Debug, PartialEq)]
 pub struct StripLayout {
@@ -212,7 +213,7 @@ impl Ghost {
 }
 
 /// The ghost's element around its `content` (`activate`,
-/// `topPicksDnD.tsx:238-247`): the content gets `…-ghost__content`.
+/// `topPicksDnD.tsx:244-274`): the content gets `…-ghost__content`.
 pub fn ghost_element(ghost: &Ghost, content: Element) -> Element {
     let class = match content.attribute("class") {
         Some(c) if !c.is_empty() => format!("{c} {GHOST_CLASS}__content"),
@@ -225,7 +226,7 @@ pub fn ghost_element(ghost: &Ghost, content: Element) -> Element {
     el.child(content.attr("class", class))
 }
 
-/// A pointerdown that may start a drag (`begin`, `topPicksDnD.tsx:458-519`).
+/// A pointerdown that may start a drag (`begin`, `topPicksDnD.tsx:554-608`).
 #[derive(Clone, Debug)]
 pub struct PointerDown<T> {
     pub pointer_id: i32,
@@ -266,7 +267,7 @@ struct Timer {
     kind: TimerKind,
 }
 
-/// `DragSession` (`topPicksDnD.tsx:60-90`).
+/// `DragSession` (`topPicksDnD.tsx:62-87`).
 struct Session<T> {
     id: u64,
     pointer_id: i32,
@@ -523,7 +524,7 @@ impl<T: Clone> Core<T> {
     }
 }
 
-/// `useTopPicksDnD`'s controller (`topPicksDnD.tsx:140-633`) for picks of
+/// `useTopPicksDnD`'s controller (`topPicksDnD.tsx:138-633`) for picks of
 /// `T`: a cheap handle, cloned into the strip's and the sources'
 /// listeners.
 pub struct TopPicksDnd<T: 'static>(Rc<Inner<T>>);
@@ -663,7 +664,7 @@ impl<T: Clone + PartialEq + 'static> TopPicksDnd<T> {
         Some(id)
     }
 
-    /// `onPointerMove` (`topPicksDnD.tsx:410-449`): whether upstream
+    /// `onPointerMove` (`topPicksDnD.tsx:446-500`): whether upstream
     /// prevents the move's default (an active drag).
     pub fn pointer_move(
         &self,
@@ -710,7 +711,7 @@ impl<T: Clone + PartialEq + 'static> TopPicksDnd<T> {
         true
     }
 
-    /// `onPointerUp` (`topPicksDnD.tsx:451-490`).
+    /// `onPointerUp` (`topPicksDnD.tsx:502-538`).
     pub fn pointer_up(&self, pointer_id: i32, now: f64) -> DropOutcome<T> {
         let mut core = self.0.core.borrow_mut();
         let none = DropOutcome {
@@ -766,7 +767,7 @@ impl<T: Clone + PartialEq + 'static> TopPicksDnd<T> {
         }
     }
 
-    /// `onPointerCancel` (`topPicksDnD.tsx:492-496`).
+    /// `onPointerCancel` (`topPicksDnD.tsx:540-544`).
     pub fn pointer_cancel(&self, pointer_id: i32, now: f64) {
         let mut core = self.0.core.borrow_mut();
         if core
@@ -778,7 +779,7 @@ impl<T: Clone + PartialEq + 'static> TopPicksDnd<T> {
         }
     }
 
-    /// `onKeyDown` (`topPicksDnD.tsx:498-504`): Escape cancels an active
+    /// `onKeyDown` (`topPicksDnD.tsx:546-552`): Escape cancels an active
     /// drag; whether it was handled.
     pub fn key_down(&self, key: &str, now: f64) -> bool {
         let mut core = self.0.core.borrow_mut();
@@ -1117,7 +1118,7 @@ impl<T: Clone + PartialEq + 'static> TopPicksDnd<T> {
         });
     }
 
-    /// `settleStripInstantly` (`topPicksDnD.tsx:340-365`): cancels the
+    /// `settleStripInstantly` (`topPicksDnD.tsx:370-388`): cancels the
     /// picks' reorder-preview transitions before the strip renders its
     /// final order.
     fn settle_strip(&self) {
@@ -1143,7 +1144,7 @@ impl<T: Clone + PartialEq + 'static> TopPicksDnd<T> {
         }
     }
 
-    /// `suppressNextClick` (`topPicksDnD.tsx:367-377`): the next click on
+    /// `suppressNextClick` (`topPicksDnD.tsx:390-399`): the next click on
     /// the window, within [`SUPPRESS_CLICK_MS`], goes nowhere.
     fn suppress_next_click(&self) {
         let Some(window) = web_sys::window() else {
