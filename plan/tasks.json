@@ -2180,6 +2180,70 @@
    "labels": []
   },
   {
+   "id": "ex-541",
+   "epic": "ex-e5",
+   "title": "Shortcut performs in <excali-editor>: deselect, flip, element lock, copy and paste styles, view mode, toggle theme",
+   "priority": 1,
+   "blocked_by": [
+    "ex-540"
+   ],
+   "crates": [
+    "excali-editor",
+    "excali-wasm"
+   ],
+   "acceptance": "Esc (deselect), Shift+H and Shift+V (flipHorizontal, flipVertical), Ctrl/Cmd+Shift+L (toggleElementLock), Ctrl/Cmd+Alt+C and V (copyStyles, pasteStyles), Alt+R (viewMode) and Alt+Shift+D (toggleTheme, when the host enables it) run upstream's perform in <excali-editor>, with goldens from upstream's performs over fixture scenes; the keyboard suite's rows for these keys check the change in the scene or app state, not only the action named.",
+   "evidence": [
+    "packages/excalidraw/actions/actionDeselect.ts:65, actionFlip.ts:30-80, actionElementLock.ts:26, actionStyles.ts:52-160, actionToggleViewMode.tsx:10, actionCanvas.tsx:429 at the pinned commit",
+    "crates/excali-wasm/src/editor.rs Editor::perform_action (these names fall through to `_ => return`)",
+    "ex-m5 acceptance check 2026-09-30: key_down on a selected scene leaves the elements and app state unchanged for each of these keys"
+   ],
+   "description": "The keyboard suite (tests/web/keyboard, ex-515) checks that each of these keys reaches the action manager, which names the action; the element then does nothing, so criterion D3 (every shortcut in the shortcut table works) does not hold on desktop.",
+   "type": "task",
+   "labels": []
+  },
+  {
+   "id": "ex-542",
+   "epic": "ex-e5",
+   "title": "Clipboard and file shortcuts in <excali-editor>: copy as PNG, open (Ctrl+O), save as (Ctrl+Shift+S)",
+   "priority": 1,
+   "blocked_by": [
+    "ex-530"
+   ],
+   "crates": [
+    "excali-wasm"
+   ],
+   "acceptance": "Shift+Alt+C (copyAsPng) writes the selection's PNG export to the clipboard as upstream does; Ctrl/Cmd+O (loadScene) and Ctrl/Cmd+Shift+S (saveFileToDisk) reach the host as the element's documented host adapter requires (an event or the host's file dialogs), tested in Chromium.",
+   "evidence": [
+    "packages/excalidraw/actions/actionClipboard.tsx:193, actionExport.tsx:329-430 at the pinned commit",
+    "site/content/architecture/termhut-integration.md (host events)",
+    "ex-m5 acceptance check 2026-09-30: these keys name their action and the element does nothing"
+   ],
+   "description": "Part of criterion D3 for desktop: the shortcut table's clipboard and file rows.",
+   "type": "task",
+   "labels": []
+  },
+  {
+   "id": "ex-543",
+   "epic": "ex-e5",
+   "title": "Hyperlink editor (Ctrl+K) in <excali-editor>",
+   "priority": 1,
+   "blocked_by": [
+    "ex-530"
+   ],
+   "crates": [
+    "excali-ui",
+    "excali-wasm"
+   ],
+   "acceptance": "Ctrl/Cmd+K on a selected element opens upstream's link editor (Hyperlink.tsx) at its position; typing a URL and Enter sets the element's link with one history entry, the link icon shows, and removing the link clears it; tested in Chromium.",
+   "evidence": [
+    "packages/excalidraw/actions/actionLink.tsx:20, components/hyperlink/Hyperlink.tsx and helpers.ts at the pinned commit",
+    "ex-m5 acceptance check 2026-09-30: Ctrl+K names the hyperlink action and the element does nothing"
+   ],
+   "description": "Part of criterion D3 for desktop: the shortcut table's Ctrl+K row.",
+   "type": "task",
+   "labels": []
+  },
+  {
    "id": "ex-530",
    "epic": "ex-e5",
    "title": "<excali-editor> custom element: load/save/export/importLibrary/getState, events, host adapter",

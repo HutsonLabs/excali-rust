@@ -5002,6 +5002,7 @@ body.excalidraw-top-picks-dnd-active * {
   --ui-font: Assistant, system-ui, BlinkMacSystemFont, -apple-system, Segoe UI,
     Roboto, Helvetica, Arial, sans-serif;
   --viewport-status-frame-border-width: 0px;
+  --zIndex-layerUI: 4;
   --zIndex-eyeDropperBackdrop: 5;
   --zIndex-eyeDropperPreview: 6;
   font-family: var(--ui-font);
@@ -5043,6 +5044,9 @@ excali-editor .excali-editor__top-left {
   top: var(--editor-container-padding, 1rem);
   left: var(--editor-container-padding, 1rem);
   z-index: 4;
+}
+excali-editor .layer-ui__wrapper__footer {
+  z-index: var(--zIndex-layerUI);
 }
 .excalidraw.excalidraw-modal-container {
   overflow: hidden;

@@ -104,7 +104,11 @@ use crate::env::EditorEnv;
 /// The element's own rules: the host is a positioned block filling its
 /// parent, as the `Excalidraw` component fills its own, the container
 /// fills it, and the toolbar island sits centred at the top, as upstream's
-/// `App-menu_top` places it (`LayerUI.tsx`, `css/styles.scss`); a
+/// `App-menu_top` places it (`LayerUI.tsx`, `css/styles.scss`); the
+/// top-left section is `App-menu_top__left`'s `Stack.Col` (the main menu,
+/// then the styles panel `menuTopGap` under it), and the footer is layer
+/// UI, above the interactive canvas, as upstream's `.layer-ui__wrapper`
+/// is (`--zIndex-layerUI`, `LayerUI.scss:7-17`, `styles.scss:4-15`); a
 /// dialog's portal container in the body has upstream's `.excalidraw` box
 /// (`css/styles.scss:40-60`), so its modal covers the page. Every
 /// `.excalidraw` has upstream's UI font and text colour (`styles.scss:
@@ -115,6 +119,7 @@ pub const ELEMENT_CSS: &str = "\
   --ui-font: Assistant, system-ui, BlinkMacSystemFont, -apple-system, Segoe UI,
     Roboto, Helvetica, Arial, sans-serif;
   --viewport-status-frame-border-width: 0px;
+  --zIndex-layerUI: 4;
   --zIndex-eyeDropperBackdrop: 5;
   --zIndex-eyeDropperPreview: 6;
   font-family: var(--ui-font);
@@ -156,6 +161,9 @@ excali-editor .excali-editor__top-left {
   top: var(--editor-container-padding, 1rem);
   left: var(--editor-container-padding, 1rem);
   z-index: 4;
+}
+excali-editor .layer-ui__wrapper__footer {
+  z-index: var(--zIndex-layerUI);
 }
 .excalidraw.excalidraw-modal-container {
   overflow: hidden;
@@ -2264,7 +2272,10 @@ impl EditorCore {
         layer_ui.set_class_name("layer-ui__wrapper");
         container.append_child(&layer_ui)?;
         let top_left: HtmlElement = document.create_element("div")?.dyn_into()?;
-        top_left.set_class_name("excali-editor__top-left");
+        // App-menu_top__left: Stack.Col gap={spacing.menuTopGap}, 6 with the
+        // full styles panel (LayerUI.tsx:178-192, 315-318)
+        top_left.set_class_name("excali-editor__top-left Stack Stack_vertical");
+        top_left.style().set_property("--gap", "6")?;
         layer_ui.append_child(&top_left)?;
         let top: HtmlElement = document.create_element("div")?.dyn_into()?;
         top.set_class_name("excali-editor__top");
