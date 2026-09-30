@@ -677,6 +677,11 @@ fn props(case: &Value) -> ColorPickerProps {
         hex: HexInputState::for_color(color.as_deref().unwrap_or("")),
         popup_id: "radix-1".into(),
         on_event: None,
+        // customizableTopPicks is color_top_picks_dnd.rs's
+        customizable_top_picks: None,
+        color_top_picks: Vec::new(),
+        top_picks_menu: None,
+        dnd: None,
     }
 }
 

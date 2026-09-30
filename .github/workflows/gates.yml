@@ -486,7 +486,12 @@ jobs:
   # color-picker.mjs --check for excali-ui's color-picker.json and
   # src/color_picker/color_picker.css (ex-523), upstream's ColorPicker
   # rendered by React with radix-ui into jsdom, its keyboard map, hex input,
-  # palettes and eye-dropper placement; and library-sidebar.mjs --check for
+  # palettes and eye-dropper placement; and color-top-picks-dnd.mjs --check
+  # for excali-ui's color-top-picks-dnd.json and
+  # src/top_picks_dnd/top_picks_dnd.css (ex-536), the same ColorPicker with
+  # customizableTopPicks, its context menu and tip, and scripted drags
+  # through upstream's TopPicksDnD on a fixed layout and a fake clock; and
+  # library-sidebar.mjs --check for
   # excali-ui's library-sidebar.json and
   # src/library_sidebar/library_sidebar.css (ex-526), upstream's
   # DefaultSidebar with the LibraryMenu rendered by React with radix-ui into
@@ -603,6 +608,8 @@ jobs:
         run: node tools/goldens/hints.mjs --check
       - name: excali-ui colour picker fixture and stylesheet match upstream's ColorPicker, keyboard map, ColorInput and colors.ts
         run: node tools/goldens/color-picker.mjs --check
+      - name: excali-ui colour top-picks fixture and stylesheet match upstream's customizableTopPicks, TopPicksDnD, its context menu and tip
+        run: node tools/goldens/color-top-picks-dnd.mjs --check
       - name: excali-ui library sidebar fixture and stylesheet match upstream's DefaultSidebar, Sidebar and LibraryMenu
         run: node tools/goldens/library-sidebar.mjs --check
       - name: excali-ui font picker fixture and stylesheet match upstream's FontPicker, FontPickerList and keyboard map

@@ -69,6 +69,7 @@ web-sys = { version = "0.3.106", features = [
   "Navigator",
   "Node",
   "NodeList",
+  "Performance",
   "PointerEvent",
   "Range",
   "ResizeObserver",
