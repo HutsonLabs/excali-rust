@@ -563,7 +563,7 @@ pub fn get_sticky_note_resize_intent(
 /// ([`TransformEnv::sticky_note_layout`]) and applies the layout; then,
 /// unless `bindings` is `None` (upstream's `bindings: false`), moves the
 /// arrows bound to the note.
-fn update_sticky_note_layout(
+pub(crate) fn update_sticky_note_layout(
     container_id: &str,
     scene: &mut Scene,
     env: &mut dyn TransformEnv,

@@ -467,6 +467,9 @@ pub struct Editor<P: TextMetricsProvider + Clone> {
     /// The convert element type popup's state while it is open
     /// (`keyboard.convert_popup_open`).
     pub(crate) convert_popup: ConvertElementTypePopup,
+    /// The stats panel's label drag while it is pressed
+    /// (`DragInput.tsx:246-340`).
+    pub(crate) stats_drag: Option<crate::stats::StatsDragState>,
     /// `App.flowchart`: the pending nodes of Ctrl+Arrow and the Alt+Arrow
     /// walk.
     pub(crate) flowchart: AppFlowchart,
@@ -525,6 +528,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             tools: ToolState::default(),
             keyboard: KeyboardState::default(),
             convert_popup: ConvertElementTypePopup::default(),
+            stats_drag: None,
             flowchart: AppFlowchart::default(),
             actions: ActionManager::new(),
             props,

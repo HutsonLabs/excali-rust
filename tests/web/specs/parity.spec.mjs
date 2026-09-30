@@ -929,6 +929,36 @@ const ROWS = {
     await stats.locator(".close").click();
     await expect(stats).toHaveCount(0, SHORT);
   },
+
+  // DragInput.tsx:122-173, 246-340; Position.tsx, Dimension.tsx: a typed X
+  // moves the selection, a label dragged 25px to the right widens it by 25,
+  // each one history entry
+  "ui-stats-edit": async ({ page }) => {
+    const errors = await mount(page, sceneText([rect("a", 100, 100)]));
+    await click(page, [150, 150]);
+    await press(page, "Alt+Slash");
+    const stats = page.locator("excali-editor .exc-stats");
+    const x = stats.locator('[data-testid="X"] input');
+    await x.fill("300");
+    await x.press("Enter");
+    await expect.poll(async () => (await byId(page)).a.x, SHORT).toBe(300);
+    const label = stats.locator('[data-testid="W"] .drag-input-label');
+    const box = await label.boundingBox();
+    const [lx, ly] = [box.x + box.width / 2, box.y + box.height / 2];
+    await page.mouse.move(lx, ly);
+    await page.mouse.down();
+    // DragInput's first pointermove only records where the pointer is
+    await page.mouse.move(lx + 1, ly);
+    await page.mouse.move(lx + 11, ly);
+    await page.mouse.move(lx + 26, ly);
+    await page.mouse.up();
+    await expect.poll(async () => (await byId(page)).a.width, SHORT).toBe(125);
+    await press(page, `${MOD}+z`);
+    await expect.poll(async () => (await byId(page)).a.width, SHORT).toBe(100);
+    await press(page, `${MOD}+z`);
+    await expect.poll(async () => (await byId(page)).a.x, SHORT).toBe(100);
+    expect(errors).toEqual([]);
+  },
 };
 
 // -- the suite ----------------------------------------------------------------

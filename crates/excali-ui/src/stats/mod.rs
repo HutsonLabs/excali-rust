@@ -13,13 +13,15 @@
 //! `MultiFontSize`, `index.tsx:362-415`). A header's click toggles its bit
 //! ([`toggle_panel`]); the close button runs `toggleStats`. Each value is
 //! a `DragInput` (`DragInput.tsx`), whose typed value the panel hands back
-//! once [`typed_value`] accepts it. What the panel does is a list of
+//! once [`typed_value`] accepts it, and whose label, pressed and dragged,
+//! hands back the window's pointer moves until the release (the edits
+//! themselves are `excali_editor::stats`). What the panel does is a list of
 //! [`StatsEvent`]s the caller applies; [`StatsPanel::controls`] keeps the
 //! click handlers, in document order, so its behaviour is checkable
 //! without a browser. See `site/content/research/ui-design-system.md`
 //! section 3.9.
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use excali_core::app_state::AppState;
@@ -35,6 +37,7 @@ use excali_scene::bounds::{get_bound_text_element, get_common_bounds, ElementsMa
 use excali_scene::frame::is_frame_like;
 use excali_scene::shape::Theme;
 use serde_json::{json, Value};
+use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::Document;
 
@@ -49,16 +52,7 @@ pub const STATS_CSS: &str = include_str!("stats.css");
 pub const SMALLEST_DELTA: f64 = 0.01;
 
 /// A value the panel edits (`StatsInputProperty`, `Stats/utils.ts:34-41`).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum StatsProperty {
-    X,
-    Y,
-    Width,
-    Height,
-    Angle,
-    FontSize,
-    GridStep,
-}
+pub use excali_editor::stats::StatsProperty;
 
 /// What a handler of the panel does.
 #[derive(Clone, Debug, PartialEq)]
@@ -72,6 +66,14 @@ pub enum StatsEvent {
     Input { property: StatsProperty, value: f64 },
     /// Enter in a drag input: `app.focusContainer()`.
     FocusContainer,
+    /// A press on a drag input's label (`DragInput.tsx:246-340`): the
+    /// component's elements and the scene are copied for the drag.
+    DragStart { property: StatsProperty },
+    /// A `pointermove` of the window while the label is pressed: its
+    /// `clientX` and whether Shift is held.
+    DragMove { client_x: f64, shift: bool },
+    /// The `pointerup` that ends the drag.
+    DragEnd,
 }
 
 /// Applies an event.
@@ -481,7 +483,10 @@ fn drag_input(input: DragInput, on_event: &Option<OnStatsEvent>) -> Option<Eleme
     if !input.editable {
         return None;
     }
-    let label = Element::new("div").attr("class", "drag-input-label");
+    let mut label = Element::new("div").attr("class", "drag-input-label");
+    if let Some(on_event) = on_event {
+        label = bind_label(label, input.property, on_event.clone());
+    }
     let label = match input.icon {
         Some(icon) => label.child(inline_icon(icon)),
         None => label.child(Node::text(input.label)),
@@ -501,6 +506,74 @@ fn drag_input(input: DragInput, on_event: &Option<OnStatsEvent>) -> Option<Eleme
             .child(label)
             .child(field),
     )
+}
+
+/// The label's handlers (`DragInput.tsx:246-344`): the cursor turns to
+/// `ew-resize` over it; a press starts a drag whose window `pointermove`s
+/// and `pointerup` become [`StatsEvent`]s, with the body's
+/// `excalidraw-cursor-resize` class on until the release.
+fn bind_label(label: Element, property: StatsProperty, on_event: OnStatsEvent) -> Element {
+    label
+        .on("pointerenter", |e| {
+            if let Some(el) = e
+                .current_target()
+                .and_then(|t| t.dyn_into::<web_sys::HtmlElement>().ok())
+            {
+                let _ = el.style().set_property("cursor", "ew-resize");
+            }
+        })
+        .on("pointerdown", move |_| {
+            let Some(window) = web_sys::window() else {
+                return;
+            };
+            let body = window.document().and_then(|d| d.body());
+            if let Some(body) = &body {
+                let _ = body.class_list().add_1("excalidraw-cursor-resize");
+            }
+            on_event(StatsEvent::DragStart { property });
+            type Listener = Closure<dyn FnMut(web_sys::Event)>;
+            let listeners: Rc<RefCell<Option<(Listener, Listener)>>> = Rc::new(RefCell::new(None));
+            let on_move = {
+                let on_event = on_event.clone();
+                Closure::<dyn FnMut(web_sys::Event)>::new(move |e: web_sys::Event| {
+                    if let Some(p) = e.dyn_ref::<web_sys::MouseEvent>() {
+                        on_event(StatsEvent::DragMove {
+                            client_x: f64::from(p.client_x()),
+                            shift: p.shift_key(),
+                        });
+                    }
+                })
+            };
+            let on_up = {
+                let on_event = on_event.clone();
+                let listeners = listeners.clone();
+                let window = window.clone();
+                Closure::<dyn FnMut(web_sys::Event)>::new(move |_: web_sys::Event| {
+                    if let Some((on_move, on_up)) = listeners.borrow_mut().take() {
+                        let _ = window.remove_event_listener_with_callback(
+                            "pointermove",
+                            on_move.as_ref().unchecked_ref(),
+                        );
+                        let _ = window.remove_event_listener_with_callback(
+                            "pointerup",
+                            on_up.as_ref().unchecked_ref(),
+                        );
+                        // the closure running now is dropped once it returns
+                        std::mem::forget(on_up);
+                        drop(on_move);
+                    }
+                    on_event(StatsEvent::DragEnd);
+                    if let Some(body) = window.document().and_then(|d| d.body()) {
+                        let _ = body.class_list().remove_1("excalidraw-cursor-resize");
+                    }
+                })
+            };
+            let _ = window
+                .add_event_listener_with_callback("pointermove", on_move.as_ref().unchecked_ref());
+            let _ = window
+                .add_event_listener_with_callback("pointerup", on_up.as_ref().unchecked_ref());
+            *listeners.borrow_mut() = Some((on_move, on_up));
+        })
 }
 
 /// The input's handlers (`DragInput.tsx:366-406`): a change marks an update
