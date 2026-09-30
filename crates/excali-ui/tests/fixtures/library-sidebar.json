@@ -4,6 +4,7 @@
   "libraryBackend": "https://library-backend.test",
   "locale": {
     "toolBar.library": "Library",
+    "labels.more_options": "More options",
     "labels.sidebarLock": "Keep sidebar open",
     "buttons.close": "Close",
     "labels.personalLib": "Personal Library",

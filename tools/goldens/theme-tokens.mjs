@@ -18,8 +18,13 @@
 //   mixin, theme.scss:167-169);
 // - `largeScreen`: those `@media screen and (min-device-width: 1921px)`
 //   redeclares on `.excalidraw` (theme.scss:171-176);
-// - `container`: `--right-sidebar-width`, which App.tsx:2453 sets on the
-//   container from RIGHT_SIDEBAR_WIDTH (App.viewport.ts:62).
+// - `container`: the custom properties App.tsx:2449-2454 sets on the
+//   container: `--right-sidebar-width` from RIGHT_SIDEBAR_WIDTH
+//   (App.viewport.ts:62), `--ui-pointerEvents` as POINTER_EVENTS.enabled
+//   (common/src/constants.ts:53-55; shouldBlockPointerEvents,
+//   App.tsx:2398-2407, is false wherever setPointerCapture exists) and
+//   `--zen-mode-transition-duration` from ZEN_MODE_TRANSITION_DURATION
+//   (constants.ts:361), sorted by name (ex-709).
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
@@ -91,13 +96,26 @@ const build = async (upstream) => {
   const viewport = readFileSync(join(excalidraw, "components", "App.viewport.ts"), "utf8");
   const width = viewport.match(/^export const RIGHT_SIDEBAR_WIDTH = (\d+);$/m);
   if (!width) throw new Error("App.viewport.ts changed: no RIGHT_SIDEBAR_WIDTH");
+  const constants = readFileSync(join(upstream.dir, "packages", "common", "src", "constants.ts"), "utf8");
+  const enabled = constants.match(/^export const POINTER_EVENTS = \{\n  enabled: "(\w+)",$/m);
+  if (!enabled) throw new Error("constants.ts changed: no POINTER_EVENTS.enabled");
+  const zen = constants.match(/^export const ZEN_MODE_TRANSITION_DURATION = (\d+);$/m);
+  if (!zen) throw new Error("constants.ts changed: no ZEN_MODE_TRANSITION_DURATION");
+  const app = readFileSync(join(excalidraw, "components", "App.tsx"), "utf8");
+  for (const name of ["--ui-pointerEvents", "--right-sidebar-width", "--zen-mode-transition-duration"]) {
+    if (!app.includes(`["${name}" as any]`)) throw new Error(`App.tsx changed: no ${name}`);
+  }
   const fixture = {
     upstream: upstream.commit,
     light: need(blocks, LIGHT),
     dark: need(blocks, DARK),
     mobile: need(blocks, MOBILE),
     largeScreen: need(blocks, `${LARGE_SCREEN} ${LIGHT}`),
-    container: { "--right-sidebar-width": `${width[1]}px` },
+    container: {
+      "--right-sidebar-width": `${width[1]}px`,
+      "--ui-pointerEvents": enabled[1],
+      "--zen-mode-transition-duration": `${zen[1]}ms`,
+    },
   };
   return { [FIXTURE]: format(fixture) };
 };
