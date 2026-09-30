@@ -170,7 +170,7 @@ pub fn blit_bitmap(context: CanvasRenderingContext2d) -> Result<(), JsError> {
         .rasterize(40.0, 30.0, &bitmap_list())
         .ok_or_else(|| JsError::new("rasterize made no canvas"))?;
     let id = bitmap_id("harness");
-    canvas.bitmaps.insert(id.clone(), bitmap);
+    canvas.bitmaps.insert(id.clone(), bitmap.into());
     blit(
         &mut canvas,
         &Blit {

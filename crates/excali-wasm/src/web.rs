@@ -382,10 +382,12 @@ impl Inner {
     }
 
     /// The canvas size and page offset into the app state, when they moved.
-    fn measure(&mut self) {
+    /// Returns whether the canvases or the viewport changed.
+    fn measure(&mut self) -> bool {
         let rect = self.container.get_bounding_client_rect();
         let (w, h) = (rect.width(), rect.height());
-        if self.layers.css_size() != (w, h) {
+        let resized = self.layers.css_size() != (w, h);
+        if resized {
             let scale = self.layers.device_pixel_ratio();
             self.layers.resize(w, h, scale);
         }
@@ -397,9 +399,11 @@ impl Inner {
             app.get("offsetTop").and_then(Value::as_f64),
         ];
         let want = [Some(w), Some(h), Some(rect.left()), Some(rect.top())];
-        if now != want {
+        let moved = now != want;
+        if moved {
             self.editor.set_viewport(w, h, rect.left(), rect.top());
         }
+        resized || moved
     }
 
     fn render(&mut self) {
@@ -2790,11 +2794,15 @@ impl EditorCore {
         Ok(EditorCore { inner })
     }
 
-    /// The canvases and viewport after the host's size changed.
+    /// The canvases and viewport after the host's size changed, painted
+    /// again when anything did: the observer's first callback reports the
+    /// size the editor already has (upstream's resize handler updates the
+    /// state, and an unchanged state renders nothing).
     pub fn resize(&self) {
         let mut inner = self.inner.borrow_mut();
-        inner.measure();
-        inner.render();
+        if inner.measure() {
+            inner.render();
+        }
     }
 
     /// `theme`: `"light"`, `"dark"` or `"system"` (the page's

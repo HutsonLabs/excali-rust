@@ -243,7 +243,7 @@ impl CanvasLayers {
         let painter = &mut self.static_layer.painter;
         match painter.rasterize(width, height, content) {
             Some(canvas) => {
-                painter.bitmaps.insert(id.to_owned(), canvas);
+                painter.bitmaps.insert(id.to_owned(), canvas.into());
             }
             None => {
                 painter.bitmaps.remove(id);

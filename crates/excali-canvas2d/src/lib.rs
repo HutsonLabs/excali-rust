@@ -39,7 +39,7 @@ use excali_scene::display::{
     Rect, Rgba, Stroke, TextRun, Transform,
 };
 
-pub use web::WebCanvas;
+pub use web::{Bitmap, WebCanvas};
 
 /// The `src` [`WebCanvas`] loads a built-in image from: upstream's own data
 /// URL (`BuiltinImage::data_url`) when the document has a `width`, as the
@@ -116,7 +116,9 @@ pub trait Context2d {
 /// Paint `list` into a fresh `ctx` (identity matrix, alpha 1, black
 /// styles).
 pub fn paint<C: Context2d>(list: &DisplayList, ctx: &mut C) {
-    list.replay(&mut CanvasPainter { ctx });
+    let mut painter = CanvasPainter::new(ctx);
+    list.replay(&mut painter);
+    painter.end_images();
 }
 
 /// Paint `list` into a fresh `ctx` scaled by `device_pixel_ratio`, as
@@ -126,7 +128,9 @@ pub fn paint_scaled<C: Context2d>(list: &DisplayList, ctx: &mut C, device_pixel_
         Transform::scale(device_pixel_ratio, device_pixel_ratio),
         1.0,
     );
-    list.replay_from(&mut CanvasPainter { ctx }, base);
+    let mut painter = CanvasPainter::new(ctx);
+    list.replay_from(&mut painter, base);
+    painter.end_images();
 }
 
 /// Paint `list` into `ctx` from `base`: inside one `save()`/`restore()`,
@@ -137,7 +141,9 @@ pub fn paint_from<C: Context2d>(list: &DisplayList, ctx: &mut C, base: PaintStat
     ctx.save();
     ctx.set_fill_style(&base.fill_style.css());
     ctx.set_stroke_style(&base.stroke_style.css());
-    list.replay_from(&mut CanvasPainter { ctx }, base);
+    let mut painter = CanvasPainter::new(ctx);
+    list.replay_from(&mut painter, base);
+    painter.end_images();
     ctx.restore();
 }
 
@@ -158,7 +164,7 @@ pub fn blit<C: Context2d>(ctx: &mut C, blit: &Blit) {
     }
     if let Some((clip, transform)) = &blit.clip {
         ctx.set_transform(transform);
-        CanvasPainter { ctx: &mut *ctx }.trace(&clip.path);
+        CanvasPainter::new(&mut *ctx).trace(&clip.path);
         ctx.clip(clip.rule.as_css());
     }
     ctx.set_transform(&blit.transform);
@@ -169,10 +175,31 @@ pub fn blit<C: Context2d>(ctx: &mut C, blit: &Blit) {
 /// The [`Painter`] that turns each draw into context calls.
 struct CanvasPainter<'a, C: Context2d> {
     ctx: &'a mut C,
+    /// An open run of images: what its `save()` has since been set to.
+    images: Option<ImageRun>,
 }
 
-impl<C: Context2d> CanvasPainter<'_, C> {
+/// The matrix, alpha and smoothing assigned in an open run of images.
+struct ImageRun {
+    transform: Transform,
+    alpha: f64,
+    smoothing: bool,
+}
+
+impl<'a, C: Context2d> CanvasPainter<'a, C> {
+    fn new(ctx: &'a mut C) -> Self {
+        CanvasPainter { ctx, images: None }
+    }
+
+    /// Closes an open run of images (its `restore()`).
+    fn end_images(&mut self) {
+        if self.images.take().is_some() {
+            self.ctx.restore();
+        }
+    }
+
     fn begin(&mut self, state: &PaintState) {
+        self.end_images();
         self.ctx.save();
         self.ctx.set_transform(&state.transform);
         self.ctx.set_global_alpha(state.alpha);
@@ -234,6 +261,10 @@ impl<C: Context2d> Painter for CanvasPainter<'_, C> {
         self.ctx.restore();
     }
 
+    /// Consecutive images without a filter (the editor's bitmap blits)
+    /// share one `save()`/`restore()`, assigning the matrix, alpha and
+    /// smoothing only when they change: `drawImage` reads nothing else an
+    /// image sets, so each draws as it would isolated.
     fn image(&mut self, image: &ImageItem, state: &PaintState) {
         let Some((width, height)) = self.ctx.image_size(&image.id) else {
             return;
@@ -241,6 +272,37 @@ impl<C: Context2d> Painter for CanvasPainter<'_, C> {
         let source = image
             .source
             .unwrap_or_else(|| Rect::new(0.0, 0.0, width, height));
+        if image.filter.is_none() {
+            match &mut self.images {
+                None => {
+                    self.ctx.save();
+                    self.ctx.set_transform(&state.transform);
+                    self.ctx.set_global_alpha(state.alpha);
+                    self.ctx.set_image_smoothing_enabled(image.smoothing);
+                    self.images = Some(ImageRun {
+                        transform: state.transform,
+                        alpha: state.alpha,
+                        smoothing: image.smoothing,
+                    });
+                }
+                Some(run) => {
+                    if run.transform != state.transform {
+                        self.ctx.set_transform(&state.transform);
+                        run.transform = state.transform;
+                    }
+                    if run.alpha != state.alpha {
+                        self.ctx.set_global_alpha(state.alpha);
+                        run.alpha = state.alpha;
+                    }
+                    if run.smoothing != image.smoothing {
+                        self.ctx.set_image_smoothing_enabled(image.smoothing);
+                        run.smoothing = image.smoothing;
+                    }
+                }
+            }
+            self.ctx.draw_image(&image.id, &source, &image.dest);
+            return;
+        }
         self.begin(state);
         self.ctx.set_image_smoothing_enabled(image.smoothing);
         if let Some(filter) = image.filter {
@@ -261,6 +323,7 @@ impl<C: Context2d> Painter for CanvasPainter<'_, C> {
     }
 
     fn push_clip(&mut self, clip: &Clip, transform: &Transform) {
+        self.end_images();
         self.ctx.save();
         self.ctx.set_transform(transform);
         self.trace(&clip.path);
@@ -268,6 +331,7 @@ impl<C: Context2d> Painter for CanvasPainter<'_, C> {
     }
 
     fn pop_clip(&mut self) {
+        self.end_images();
         self.ctx.restore();
     }
 }
