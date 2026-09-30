@@ -402,6 +402,26 @@ pub fn commands_from_actions() -> Vec<PaletteActionCommand> {
     commands
 }
 
+/// The predicate of the palette's "Change stroke color" command
+/// (`CommandPalette.tsx:461-468`): a selection whose stroke can change
+/// (`canChangeStrokeColor`).
+pub fn palette_change_stroke_available(ctx: &ActionContext<'_>) -> bool {
+    let selected: Vec<_> = ctx.selected(false).into_iter().cloned().collect();
+    let active_tool = ctx
+        .field("activeTool", "type")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("");
+    !selected.is_empty() && super::can_change_stroke_color(active_tool, &selected)
+}
+
+/// The predicate of the palette's "Change background color" command
+/// (`CommandPalette.tsx:479-490`): a selection whose background can change
+/// (`canChangeBackgroundColor`).
+pub fn palette_change_background_available(ctx: &ActionContext<'_>) -> bool {
+    let selected: Vec<_> = ctx.selected(false).into_iter().cloned().collect();
+    !selected.is_empty() && super::can_change_background_color(ctx, &selected)
+}
+
 /// `isCommandAvailable(command)` (`CommandPalette.tsx:672-689`).
 /// `ctx.elements` should be the non-deleted elements.
 pub fn palette_command_available(command: &PaletteActionCommand, ctx: &ActionContext<'_>) -> bool {

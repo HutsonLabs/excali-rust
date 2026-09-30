@@ -26,12 +26,20 @@ use excali_editor::actions::{
     build_context_menu, get_context_menu_items, ActionContext, ActionName, ContextMenuKind,
     KeyLabels,
 };
-use excali_editor::keyboard::{ClipboardEventKind, ClipboardOutcome};
-use excali_editor::tools::{Tool, ToolState};
+use excali_editor::keyboard::{
+    command_palette_key_down, is_command_palette_toggle_shortcut, ClipboardEventKind,
+    ClipboardOutcome,
+};
+use excali_editor::tools::{SetActiveToolOptions, Tool, ToolRequest, ToolState};
 use excali_scene::display::FontFaceSource;
 use excali_scene::shape::Theme;
 use excali_svg::FontContent;
 use excali_text::text_measurements::TextMetricsProvider;
+use excali_ui::command_palette::{
+    command_list, command_palette, hosted_app_links, library_commands, palette_commands,
+    palette_key_down, palette_view, perform_command, CommandPaletteProps, PaletteCommand,
+    PaletteEffect, PaletteEnv, PaletteView,
+};
 use excali_ui::context_menu::{
     context_menu, ContextMenuEffect, ContextMenuProps, OnContextMenuEffect,
 };
@@ -124,6 +132,7 @@ pub fn stylesheet() -> String {
         excali_ui::toolbar::TOOLBAR_CSS,
         excali_ui::footer::FOOTER_CSS,
         excali_ui::help_dialog::HELP_DIALOG_CSS,
+        excali_ui::command_palette::COMMAND_PALETTE_CSS,
         excali_ui::main_menu::MAIN_MENU_CSS,
         excali_ui::context_menu::CONTEXT_MENU_CSS,
         excali_ui::library_sidebar::LIBRARY_SIDEBAR_CSS,
@@ -138,6 +147,7 @@ fn install_element_stylesheet(document: &Document) -> Result<(), JsValue> {
     install_stylesheet(document)?;
     excali_ui::footer::install_stylesheet(document)?;
     excali_ui::help_dialog::install_stylesheet(document)?;
+    excali_ui::command_palette::install_stylesheet(document)?;
     excali_ui::main_menu::install_stylesheet(document)?;
     excali_ui::context_menu::install_stylesheet(document)?;
     excali_ui::library_sidebar::install_stylesheet(document)?;
@@ -229,6 +239,11 @@ struct Inner {
     /// The help dialog, portalled to the body while `appState.openDialog`
     /// is `{name: "help"}`.
     help_dialog: Option<excali_ui::primitives::OpenModal>,
+    /// The command palette, portalled to the body while
+    /// `appState.openDialog` is `{name: "commandPalette"}`.
+    palette: Option<PaletteSession>,
+    /// The palette's last run command, by label (`lastUsedPaletteItem`).
+    palette_last_used: Option<String>,
     /// The top-left corner (`App-menu_top__left`) and the main menu in it.
     top_left: HtmlElement,
     main_menu: Option<Mounted>,
@@ -500,6 +515,7 @@ fn refresh_chrome(weak: &Weak<RefCell<Inner>>) {
     let _ = render_main_menu(weak);
     let _ = render_library_sidebar(weak);
     let _ = render_help_dialog(weak);
+    let _ = render_command_palette(weak);
 }
 
 /// Re-mounts the toolbar for the current tools.
@@ -1088,6 +1104,389 @@ fn render_help_dialog(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
     Ok(())
 }
 
+/// The open command palette: its modal, the commands it was opened with
+/// (upstream builds them once per opening), the search and what it shows.
+struct PaletteSession {
+    /// `None` only while it is being opened.
+    modal: Option<excali_ui::primitives::OpenModal>,
+    /// The list re-mounted after the search or the selection changed.
+    list: Option<Mounted>,
+    commands: Vec<PaletteCommand>,
+    library: Vec<PaletteCommand>,
+    search: String,
+    view: PaletteView,
+    phone: bool,
+    dark: bool,
+    previews: Rc<std::collections::HashMap<String, String>>,
+}
+
+impl PaletteSession {
+    fn close(self) {
+        if let Some(list) = self.list {
+            list.remove();
+        }
+        if let Some(modal) = self.modal {
+            modal.close();
+        }
+    }
+}
+
+fn is_command_palette_open(inner: &Inner) -> bool {
+    inner
+        .editor
+        .app_state()
+        .get("openDialog")
+        .and_then(|d| d.get("name"))
+        .and_then(Value::as_str)
+        == Some("commandPalette")
+}
+
+/// The palette's props for `session`, its handlers bound to the editor.
+fn palette_props(weak: &Weak<RefCell<Inner>>, session: &PaletteSession) -> CommandPaletteProps {
+    let on_search = {
+        let weak = weak.clone();
+        Rc::new(move |search: String| {
+            let Some(rc) = weak.upgrade() else {
+                return;
+            };
+            if let Ok(mut inner) = rc.try_borrow_mut() {
+                let last_used = inner.palette_last_used.clone();
+                if let Some(session) = inner.palette.as_mut() {
+                    session.view = palette_view(
+                        &session.commands,
+                        &session.library,
+                        &search,
+                        last_used.as_deref(),
+                    );
+                    session.search = search;
+                }
+            }
+            render_palette_list(&weak);
+        }) as Rc<dyn Fn(String)>
+    };
+    let on_hover = {
+        let weak = weak.clone();
+        Rc::new(move |label: String| {
+            let Some(rc) = weak.upgrade() else {
+                return;
+            };
+            let changed = rc.try_borrow_mut().is_ok_and(|mut inner| {
+                inner.palette.as_mut().is_some_and(|session| {
+                    let changed = session.view.current.as_deref() != Some(label.as_str());
+                    session.view.current = Some(label);
+                    changed
+                })
+            });
+            if changed {
+                render_palette_list(&weak);
+            }
+        }) as Rc<dyn Fn(String)>
+    };
+    let on_execute = {
+        let weak = weak.clone();
+        Rc::new(move |label: String| execute_palette_command(&weak, &label)) as Rc<dyn Fn(String)>
+    };
+    let on_close = {
+        let weak = weak.clone();
+        Rc::new(move || close_command_palette(&weak)) as Rc<dyn Fn()>
+    };
+    let previews = session.previews.clone();
+    CommandPaletteProps {
+        view: session.view.clone(),
+        search: session.search.clone(),
+        is_darwin: is_darwin(),
+        phone: session.phone,
+        theme: if session.dark {
+            Theme::Dark
+        } else {
+            Theme::Light
+        },
+        container_id: "excali-editor".into(),
+        on_search: Some(on_search),
+        on_execute: Some(on_execute),
+        on_hover: Some(on_hover),
+        on_close: Some(on_close),
+        library_preview: Some(Rc::new(move |id: &str| {
+            previews.get(id).map(|markup| preview_node(markup.clone()))
+        })),
+    }
+}
+
+/// Opens the command palette (`CommandPalette.tsx`) when
+/// `appState.openDialog` becomes `{name: "commandPalette"}`, in a modal on
+/// the body, with the commands of the moment (the actions', the tools',
+/// the hosted app's Links and the named library items), and removes it
+/// when that changes.
+fn render_command_palette(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
+    let Some(rc) = weak.upgrade() else {
+        return Ok(());
+    };
+    let mut inner = rc.borrow_mut();
+    let open = inner.ui != "none" && is_command_palette_open(&inner);
+    // an open palette stays mounted (with its search and focus)
+    if open && inner.palette.is_some() {
+        return Ok(());
+    }
+    if let Some(old) = inner.palette.take() {
+        old.close();
+    }
+    if !open {
+        return Ok(());
+    }
+    let ed = &inner.editor;
+    let base = ed.action_context();
+    // the palette reads the non-deleted elements
+    let live: Vec<excali_core::element::Element> = base
+        .elements
+        .iter()
+        .filter(|e| !e.base.is_deleted)
+        .cloned()
+        .collect();
+    let ctx = ActionContext {
+        elements: &live,
+        ..base
+    };
+    let phone = matches!(
+        base.env.form_factor,
+        excali_editor::actions::FormFactor::Phone
+    );
+    let env = PaletteEnv {
+        is_darwin: is_darwin(),
+        phone,
+        ..PaletteEnv::default()
+    };
+    let commands = palette_commands(&ctx, &env, hosted_app_links());
+    let library = library_commands(ed.library());
+    let dark = ed.app_state().get("theme").and_then(Value::as_str) == Some("dark");
+    let view = palette_view(&commands, &library, "", inner.palette_last_used.as_deref());
+    let previews = Rc::new(
+        inner
+            .previews
+            .iter()
+            .map(|(id, (_, markup))| (id.clone(), markup.clone()))
+            .collect(),
+    );
+    let document = inner.document();
+    let mut session = PaletteSession {
+        modal: None,
+        list: None,
+        commands,
+        library,
+        search: String::new(),
+        view,
+        phone,
+        dark,
+        previews,
+    };
+    let dialog = command_palette(palette_props(weak, &session));
+    session.modal = Some(excali_ui::primitives::open_modal(&document, dialog)?);
+    inner.palette = Some(session);
+    Ok(())
+}
+
+/// Re-mounts the open palette's list (`div.commands`) after the search or
+/// the selection changed, leaving the search field (and its focus) alone.
+fn render_palette_list(weak: &Weak<RefCell<Inner>>) {
+    let Some(rc) = weak.upgrade() else {
+        return;
+    };
+    let Ok(mut inner) = rc.try_borrow_mut() else {
+        return;
+    };
+    let document = inner.document();
+    let Some(session) = inner.palette.as_mut() else {
+        return;
+    };
+    let Some(container) = session.modal.as_ref().and_then(|m| m.container()) else {
+        return;
+    };
+    let Ok(Some(old)) = container.query_selector(".command-palette-dialog .commands") else {
+        return;
+    };
+    let Some(parent) = old.parent_node() else {
+        return;
+    };
+    if let Some(list) = session.list.take() {
+        list.remove();
+    } else {
+        old.remove();
+    }
+    let node = Node::Element(command_list(&palette_props(weak, session)));
+    if let Ok(mounted) = mount(&node, &document, &parent) {
+        session.list = Some(mounted);
+    }
+}
+
+/// `closeCommandPalette`: `setAppState({openDialog: null})`.
+fn close_command_palette(weak: &Weak<RefCell<Inner>>) {
+    let Some(rc) = weak.upgrade() else {
+        return;
+    };
+    {
+        let Ok(mut inner) = rc.try_borrow_mut() else {
+            return;
+        };
+        let mut patch = serde_json::Map::new();
+        patch.insert("openDialog".into(), Value::Null);
+        inner.editor.set_app_state(patch);
+        inner.after_event();
+    }
+    refresh_chrome(weak);
+}
+
+/// `executeCommand` (`CommandPalette.tsx:655-670`): closes the palette,
+/// runs the command and remembers it as the last used one.
+fn execute_palette_command(weak: &Weak<RefCell<Inner>>, label: &str) {
+    let Some(rc) = weak.upgrade() else {
+        return;
+    };
+    {
+        let Ok(mut inner) = rc.try_borrow_mut() else {
+            return;
+        };
+        let Some(command) = inner
+            .palette
+            .as_ref()
+            .and_then(|s| s.view.command(label))
+            .cloned()
+        else {
+            return;
+        };
+        if let Some(session) = inner.palette.take() {
+            session.close();
+        }
+        let state = inner.editor.app_state().clone();
+        for effect in perform_command(&command, &state) {
+            apply_palette_effect(&mut inner, effect);
+        }
+        inner.palette_last_used = Some(command.label);
+        inner.after_event();
+    }
+    refresh_chrome(weak);
+}
+
+fn apply_palette_effect(inner: &mut Inner, effect: PaletteEffect) {
+    match effect {
+        PaletteEffect::ExecuteAction(name, _) => {
+            apply_menu_effect(inner, MenuEffect::ExecuteAction(name))
+        }
+        PaletteEffect::SetAppState(patch) => inner.editor.set_app_state(patch),
+        PaletteEffect::ConfirmDialog(name) => {
+            apply_menu_effect(inner, MenuEffect::ConfirmDialog(name))
+        }
+        PaletteEffect::SetActiveTool(ty) => {
+            let _ = inner.editor.tools_mut().set_active_tool(
+                ToolRequest::new(Tool::Builtin(ty)),
+                SetActiveToolOptions::default(),
+            );
+        }
+        PaletteEffect::ToggleLock => {
+            inner.editor.tools_mut().toggle_lock();
+        }
+        PaletteEffect::InsertLibraryItem(id) => {
+            let items = inner.editor.library().to_vec();
+            let fits = is_sidebar_docked_and_fits(&library_context(inner, &items, &[]));
+            inner.editor.insert_library(&[id], None, fits);
+        }
+        PaletteEffect::OpenUrl(url) => {
+            if let Some(window) = web_sys::window() {
+                let _ = window.open_with_url_and_target_and_features(
+                    url,
+                    "_blank",
+                    "noopener noreferrer",
+                );
+            }
+        }
+    }
+}
+
+/// The palette's window keydown listeners, in upstream's order: the
+/// toggle (Ctrl/Cmd+/, Ctrl/Cmd+Shift+P), then, while it is open,
+/// `handleKeyDown` ([`palette_key_down`]).
+fn palette_window_key_down(rc: &Rc<RefCell<Inner>>, event: &KeyboardEvent) {
+    let weak = Rc::downgrade(rc);
+    let stroke = keystroke(event, None);
+    let darwin = is_darwin();
+    let toggle = is_command_palette_toggle_shortcut(&stroke, darwin);
+    {
+        let Ok(mut inner) = rc.try_borrow_mut() else {
+            return;
+        };
+        if inner.ui == "none" {
+            return;
+        }
+        if toggle {
+            let mut state = inner.editor.app_state().clone();
+            let out = command_palette_key_down(&mut state, &stroke, darwin);
+            apply_outcome(event, &out);
+            let mut patch = serde_json::Map::new();
+            patch.insert(
+                "openDialog".into(),
+                state.get("openDialog").cloned().unwrap_or(Value::Null),
+            );
+            inner.editor.set_app_state(patch);
+            inner.after_event();
+        }
+    }
+    if toggle {
+        refresh_chrome(&weak);
+        return;
+    }
+    let (out, input) = {
+        let Ok(inner) = rc.try_borrow() else {
+            return;
+        };
+        let Some(session) = inner.palette.as_ref() else {
+            return;
+        };
+        let input = session
+            .modal
+            .as_ref()
+            .and_then(|m| m.container())
+            .and_then(|c| {
+                c.query_selector(".command-palette-dialog input")
+                    .ok()
+                    .flatten()
+            });
+        (
+            palette_key_down(&session.view, &stroke.key, stroke.target.writable, false),
+            input,
+        )
+    };
+    if out.prevent_default {
+        event.prevent_default();
+    }
+    if out.stop_propagation {
+        event.stop_propagation();
+    }
+    if out.focus_input {
+        if let Some(input) = input.and_then(|i| i.dyn_into::<HtmlElement>().ok()) {
+            let _ = input.focus();
+        }
+    }
+    if let Some(current) = out.current {
+        if let Ok(mut inner) = rc.try_borrow_mut() {
+            if let Some(session) = inner.palette.as_mut() {
+                session.view.current = Some(current);
+            }
+        }
+        render_palette_list(&weak);
+    }
+    if out.execute {
+        let label = rc
+            .borrow()
+            .palette
+            .as_ref()
+            .and_then(|s| s.view.current.clone());
+        if let (Some(label), Some(window)) = (label, web_sys::window()) {
+            // upstream runs it on a timeout, once the Enter is handled
+            let run = Closure::once_into_js(move || execute_palette_command(&weak, &label));
+            let _ = window
+                .set_timeout_with_callback_and_timeout_and_arguments_0(run.unchecked_ref(), 0);
+        }
+    }
+}
+
 /// The editor of one `<excali-editor>`.
 #[wasm_bindgen]
 pub struct EditorCore {
@@ -1132,6 +1531,34 @@ fn listen_active(
     });
     let options = AddEventListenerOptions::new();
     options.set_passive(false);
+    target.add_event_listener_with_callback_and_add_event_listener_options(
+        name,
+        closure.as_ref().unchecked_ref(),
+        &options,
+    )?;
+    inner
+        .borrow_mut()
+        .listeners
+        .push((target.clone(), name, closure));
+    Ok(())
+}
+
+/// [`listen`] in the capture phase.
+fn listen_capture(
+    inner: &Rc<RefCell<Inner>>,
+    target: &web_sys::EventTarget,
+    name: &'static str,
+    handler: impl FnMut(&Rc<RefCell<Inner>>, Event) + 'static,
+) -> Result<(), JsValue> {
+    let weak = Rc::downgrade(inner);
+    let mut handler = handler;
+    let closure = Closure::<dyn FnMut(Event)>::new(move |event: Event| {
+        if let Some(rc) = weak.upgrade() {
+            handler(&rc, event);
+        }
+    });
+    let options = AddEventListenerOptions::new();
+    options.set_capture(true);
     target.add_event_listener_with_callback_and_add_event_listener_options(
         name,
         closure.as_ref().unchecked_ref(),
@@ -1227,6 +1654,8 @@ impl EditorCore {
             toolbar: None,
             footer: None,
             help_dialog: None,
+            palette: None,
+            palette_last_used: None,
             top_left,
             main_menu: None,
             context_menu: None,
@@ -1258,6 +1687,18 @@ impl EditorCore {
             drop(inner);
             refresh_chrome(&Rc::downgrade(rc));
         })?;
+        // the command palette's window listeners (capture phase,
+        // CommandPalette.tsx:158-186 and 810-819): the toggle, then the
+        // open palette's keys
+        if let Some(window) = web_sys::window() {
+            let window: web_sys::EventTarget = window.into();
+            listen_capture(&inner, &window, "keydown", |rc, event| {
+                let Ok(event) = event.dyn_into::<KeyboardEvent>() else {
+                    return;
+                };
+                palette_window_key_down(rc, &event);
+            })?;
+        }
         // library items dragged from the sidebar (`App.handleAppOnDrop`,
         // `App.tsx:13194-13240`): allowed over the editor, inserted where
         // they drop
@@ -1628,12 +2069,21 @@ impl EditorCore {
         for (target, name, closure) in inner.listeners.drain(..) {
             let _ =
                 target.remove_event_listener_with_callback(name, closure.as_ref().unchecked_ref());
+            // the capture-phase ones (listen_capture)
+            let _ = target.remove_event_listener_with_callback_and_bool(
+                name,
+                closure.as_ref().unchecked_ref(),
+                true,
+            );
         }
         if let Some(overlay) = inner.overlay.take() {
             overlay.unmount();
         }
         if let Some(dialog) = inner.help_dialog.take() {
             dialog.close();
+        }
+        if let Some(palette) = inner.palette.take() {
+            palette.close();
         }
         for mounted in [
             inner.toolbar.take(),

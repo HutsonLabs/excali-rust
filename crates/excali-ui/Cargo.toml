@@ -72,6 +72,8 @@ web-sys = { version = "0.3.106", features = [
   "PointerEvent",
   "Range",
   "ResizeObserver",
+  "ScrollIntoViewOptions",
+  "ScrollLogicalPosition",
   "SvgElement",
   "Text",
   "Window",

@@ -48,8 +48,9 @@ pub use keys::{
 pub use manager::{track_action, ActionManager, ActionSource, KeyDownOutcome, TrackedEvent};
 pub use menus::{
     build_context_menu, commands_from_actions, default_main_menu, full_styles_panel,
-    get_context_menu_items, palette_command_available, render_styles_panel, ContextMenuEntry,
-    ContextMenuItem, ContextMenuKind, ContextMenuRow, MainMenuEntry, MainMenuItem, MainMenuRow,
+    get_context_menu_items, palette_change_background_available, palette_change_stroke_available,
+    palette_command_available, render_styles_panel, ContextMenuEntry, ContextMenuItem,
+    ContextMenuKind, ContextMenuRow, MainMenuEntry, MainMenuItem, MainMenuRow,
     PaletteActionCommand, PaletteCategory, PaletteCommandSource, PanelControl, PanelFieldset,
     PanelGate,
 };

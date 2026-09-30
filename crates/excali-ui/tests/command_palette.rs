@@ -23,7 +23,9 @@ use excali_core::app_state::AppState;
 use excali_core::element::Element as SceneElement;
 use excali_core::library::{LibraryItem, LibraryItemStatus};
 use excali_editor::actions::{ActionContext, ActionEnv, AppProps, FormFactor};
-use excali_editor::keyboard::{command_palette_key_down, Keystroke};
+use excali_editor::keyboard::{
+    command_palette_key_down, is_command_palette_toggle_shortcut, Keystroke,
+};
 use excali_scene::shape::Theme;
 use excali_ui::command_palette::{
     command_palette, hosted_app_links, library_commands, palette_commands, palette_key_down,
@@ -169,6 +171,15 @@ fn every_case_lists_upstreams_commands() {
         let search = c["search"].as_str().unwrap();
         let last_used = c["lastUsed"].as_str();
         let mut view = case.view(search, last_used);
+        // the keys first: the fixture records the palette after them
+        let mut selections = Vec::new();
+        for key in c["keys"].as_array().unwrap() {
+            let out = palette_key_down(&view, key.as_str().unwrap(), false, false);
+            if let Some(current) = out.current {
+                view.current = Some(current);
+            }
+            selections.push(json!(view.current));
+        }
         let phone = case.palette.phone;
         let recents = view
             .recents
@@ -202,14 +213,6 @@ fn every_case_lists_upstreams_commands() {
             "{}: no match",
             case.name
         );
-        let mut selections = Vec::new();
-        for key in c["keys"].as_array().unwrap() {
-            let out = palette_key_down(&view, key.as_str().unwrap(), false, false);
-            if let Some(current) = out.current {
-                view.current = Some(current);
-            }
-            selections.push(json!(view.current));
-        }
         assert_eq!(
             Value::Array(selections),
             c["selections"],
@@ -232,9 +235,16 @@ fn keys_other_than_arrows_and_enter() {
     let out = palette_key_down(&view, "Tab", false, false);
     assert!(!out.focus_input && out.stop_propagation && out.prevent_default);
     // typing in the input, Escape and the toggle are left alone
-    for (key, writable, toggle) in [("a", true, false), ("Escape", false, false), ("/", false, true)] {
+    for (key, writable, toggle) in [
+        ("a", true, false),
+        ("Escape", false, false),
+        ("/", false, true),
+    ] {
         let out = palette_key_down(&view, key, writable, toggle);
-        assert!(!out.stop_propagation && !out.prevent_default && !out.execute, "{key}");
+        assert!(
+            !out.stop_propagation && !out.prevent_default && !out.execute,
+            "{key}"
+        );
     }
     // Enter runs the current command (after a timeout, as upstream)
     let out = palette_key_down(&view, "Enter", true, false);
@@ -346,7 +356,11 @@ fn dom_cases_render_upstreams_tree() {
     assert!(rendered >= 8, "the fixture lost DOM cases");
 }
 
-fn find_all<'a>(el: &'a excali_ui::dom::Element, class: &str, out: &mut Vec<&'a excali_ui::dom::Element>) {
+fn find_all<'a>(
+    el: &'a excali_ui::dom::Element,
+    class: &str,
+    out: &mut Vec<&'a excali_ui::dom::Element>,
+) {
     if el
         .attribute("class")
         .is_some_and(|c| c.split(' ').any(|x| x == class))
@@ -459,9 +473,18 @@ fn the_toggle_shortcut_is_upstreams() {
         }
         let before = state.get("openDialog").cloned();
         let out = command_palette_key_down(&mut state, &stroke, flag("darwin"));
-        assert_eq!(out.prevent_default, flag("prevented"), "{t}");
+        // while open, the palette's own handler sees the key too
+        let inner = flag("open")
+            && palette_key_down(
+                &PaletteView::default(),
+                &stroke.key,
+                false,
+                is_command_palette_toggle_shortcut(&stroke, flag("darwin")),
+            )
+            .prevent_default;
+        assert_eq!(out.prevent_default || inner, flag("prevented"), "{t}");
         let after = state.get("openDialog").cloned();
-        let got = if after == before && !out.prevent_default {
+        let got = if after == before {
             json!("unchanged")
         } else {
             after.unwrap_or(Value::Null)

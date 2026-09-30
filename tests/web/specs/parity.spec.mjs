@@ -835,9 +835,33 @@ const ROWS = {
   },
 
   "ui-command-palette": async ({ page }) => {
-    await mount(page);
+    const errors = await mount(page);
     await press(page, `${MOD}+Slash`);
-    await expect(page.locator("excali-editor .command-palette-dialog")).toBeVisible(SHORT);
+    // Dialog's Modal portals to the body (hooks/useCreatePortalContainer.ts)
+    const palette = page.locator("body > .excalidraw-modal-container .command-palette-dialog");
+    await expect(palette).toBeVisible(SHORT);
+    // getCategoryOrder (CommandPalette.tsx:97-114); Links are the hosted app's
+    await expect(palette.locator(".command-category-title")).toHaveText([
+      "App",
+      "Export",
+      "Editor",
+      "Tools",
+      "Elements",
+      "Links",
+    ]);
+    // the search field has the focus; the best match is selected and Enter runs it
+    await page.keyboard.type("ellipse");
+    await expect(palette.locator(".command-item.item-selected .name")).toHaveText("Ellipse", SHORT);
+    await page.keyboard.press("Enter");
+    await expect(palette).toHaveCount(0, SHORT);
+    expect((await state(page)).activeTool).toBe("ellipse");
+    // Ctrl/Cmd+Shift+P opens it again with the last command under "Recently used"
+    await press(page, `${MOD}+Shift+KeyP`);
+    await expect(palette).toBeVisible(SHORT);
+    await expect(palette.locator(".command-category-title").first()).toHaveText("Recently used");
+    await page.keyboard.press("Escape");
+    await expect(palette).toHaveCount(0, SHORT);
+    expect(errors).toEqual([]);
   },
 
   "ui-welcome-screen": async ({ page }) => {
