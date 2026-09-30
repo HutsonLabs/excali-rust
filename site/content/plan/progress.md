@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-30 02:12 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-30 02:17 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**152 issues** · 122 closed (80%) · 4 in progress · 0 blocked · 25 open
+**152 issues** · 123 closed (81%) · 4 in progress · 0 blocked · 24 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -134,7 +134,7 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
 ## ex-e5 · Phase 5: Web runtime and editor
 
-<span class="status open">open</span> 33/39 children closed
+<span class="status open">open</span> 34/39 children closed
 
 Canvas2D backend, interaction state machine, history, DOM chrome without a framework, keyboard shortcuts, the <excali-editor> custom element.
 
@@ -175,10 +175,10 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-533` | excali-math js::sin/cos match V8's libm trig bit for bit; remove the 1e-12 tolerance in excali-editor tests/transform.rs | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-534` | Flowchart creator and navigator (flowchart.ts): Ctrl+Arrow pending nodes and arrows, Alt+Arrow navigation | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-535` | Element type conversion: convertElementTypes and the Tab / Shift+Tab convert popup | task | P2 | <span class="status open">open</span> | yes |  |
-| `ex-536` | Colour picker top-picks customisation: drag a colour onto the strip, reorder, context-menu reset, tip | task | P2 | <span class="status in_progress">in progress</span> |  |  |
+| `ex-536` | Colour picker top-picks customisation: drag a colour onto the strip, reorder, context-menu reset, tip | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-537` | Library sidebar header menu: load and save library files, the reset and remove confirm dialogs, the publish dialog | task | P2 | <span class="status in_progress">in progress</span> |  |  |
-| `ex-538` | Font picker top-picks customisation: drag a font onto the strip, reorder, context-menu reset | task | P2 | <span class="status open">open</span> |  | `ex-536` |
-| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-529`, `ex-535`, `ex-536`, `ex-537`, `ex-538` |
+| `ex-538` | Font picker top-picks customisation: drag a font onto the strip, reorder, context-menu reset | task | P2 | <span class="status open">open</span> | yes |  |
+| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-529`, `ex-535`, `ex-537`, `ex-538` |
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
 
@@ -230,6 +230,6 @@ First calendar release v26.9.1 (ADR-009): ES module + WASM tarball as a GitHub r
 |---|---|---|---|---|---|---|
 | `ex-801` | Publish crates to crates.io under excali-* | task | P1 | <span class="status deferred">deferred</span> |  | `ex-712` |
 | `ex-802` | Release tarball of the ES module and WASM as a GitHub release asset | task | P1 | <span class="status open">open</span> |  | `ex-712` |
-| `ex-803` | Integration guide walked by an agent in a fresh clone | task | P2 | <span class="status open">open</span> | yes |  |
+| `ex-803` | Integration guide walked by an agent in a fresh clone | task | P2 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-804` | Tag v26.9.1 and publish the GitHub release | task | P2 | <span class="status open">open</span> |  | `ex-802`, `ex-803` |
 | `ex-m8` | M8: v26.9.1 released on GitHub | milestone | P2 | <span class="status open">open</span> |  | `ex-802`, `ex-803`, `ex-804` |
