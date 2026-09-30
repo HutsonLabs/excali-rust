@@ -57,6 +57,20 @@ class OwnerDecisionsInThePlan(unittest.TestCase):
         self.assertIn("gh release create", t["acceptance"])
         self.assertIn("v26.9.1", t["acceptance"])
 
+    def test_ex_806_cuts_v26_9_2_with_the_signed_app(self):
+        t = item("ex-806")
+        self.assertEqual(t["epic"], "ex-e8")
+        self.assertEqual(t["title"], "Release v26.9.2 with the signed macOS app and updater")
+        self.assertEqual(t["blocked_by"], ["ex-805"])
+        for needle in ("26.9.2", "v26.9.2", "latest.json", "SHA256SUMS", "notarized",
+                       "v26.9.1 is left as published", "crates.io"):
+            self.assertIn(needle, t["acceptance"])
+        self.assertTrue(any("2026-09-30" in e for e in t["evidence"]))
+        # The seed puts it under the release epic, after the updater.
+        r = rows()["ex-806"]
+        self.assertEqual(blockers(r), ["ex-805"])
+        self.assertIn("ex-e8", [d["depends_on_id"] for d in r["dependencies"] if d["type"] == "parent-child"])
+
     def test_ex_803_is_walked_by_an_agent_in_a_fresh_clone(self):
         t = item("ex-803")
         self.assertIn("fresh clone", t["acceptance"])
@@ -98,7 +112,7 @@ class SeedRows(unittest.TestCase):
     def test_deferred_task_does_not_block_its_milestone(self):
         r = rows()
         self.assertNotIn("ex-801", blockers(r["ex-m8"]))
-        self.assertEqual(blockers(r["ex-m8"]), ["ex-802", "ex-803", "ex-804", "ex-805"])
+        self.assertEqual(blockers(r["ex-m8"]), ["ex-802", "ex-803", "ex-804", "ex-805", "ex-806"])
 
     def test_deferred_task_is_still_seeded_with_its_parent(self):
         r = rows()["ex-801"]

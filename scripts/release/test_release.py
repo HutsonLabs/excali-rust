@@ -302,6 +302,28 @@ class ReleaseTest(unittest.TestCase):
             (ROOT / "site" / "content" / "architecture" / "integration-walk.md").is_file()
         )
 
+    def test_published_release_notes_are_kept(self):
+        # v26.9.1 stays as published (owner decision, 2026-09-30, ex-806).
+        text = (NOTES / "v26.9.1.md").read_text(encoding="utf-8")
+        self.assertIn("The first release of excali-rust", text)
+        self.assertIn("excali-web_26.9.1.tar.gz", text)
+
+    def test_v26_9_2_notes_name_the_signed_app_and_the_updater(self):
+        text = (NOTES / "v26.9.2.md").read_text(encoding="utf-8")
+        for needle in (
+            "since v26.9.1",
+            "Excali.Example_26.9.2_aarch64.dmg",
+            "Excali.Example_26.9.2_aarch64.app.tar.gz",
+            "Excali.Example_26.9.2_aarch64.app.tar.gz.sig",
+            "latest.json",
+            "notarized",
+            "scripts/release/macos-dmg.sh",
+            "releases/latest/download/latest.json",
+        ):
+            self.assertIn(needle, text)
+        for pr in (155, 158, 159, 160, 161, 162):
+            self.assertIn(f"/pull/{pr}", text)
+
     def test_every_notes_file_is_named_for_a_calendar_tag(self):
         for p in sorted(NOTES.glob("*")):
             self.assertEqual(p.suffix, ".md", p.name)
