@@ -57,8 +57,18 @@
 // `<template data-slot="SearchMenu">`. A preview is what
 // useLibraryItemSvg puts in the unit (exportToSvg of the item, ex-526's
 // host renders it with excali-svg): here `<svg data-library-item="id">`.
-// The confirm and publish dialogs the menu opens are not rendered: no
-// interaction selects Reset, Remove or Publish.
+// The confirm and publish dialogs the menu opens (ConfirmDialog.tsx,
+// PublishLibrary.tsx, the publish success Dialog of
+// LibraryMenuHeaderContent.tsx; ex-537) portal to the body: each step
+// records them as `dialogs` (the body's portal containers, the same
+// tree), and `storage`, the publish dialog's saved fields
+// (EditorLocalStorage's "publish-library-data", parsed, or null). The
+// dialog's item previews (exportToSvg) are markers as the units' are; its
+// submit's preview image (generatePreviewImage, canvas and pica) is
+// `"previewImage"`, and fetch to the library backend is recorded as
+// `submit` (the url and the form's fields, the library parsed) and answers
+// what the interaction says (`backend`: a url, or an error). window.alert
+// is recorded as `alert`.
 //
 // Deterministic: upstream runs in its test mode (import.meta.env.MODE
 // "test": randomId is id0, id1...), Date.now is 1, window.name is empty.
@@ -77,16 +87,22 @@ export const FIXTURE = join("tests", "fixtures", "library-sidebar.json");
 export const STYLESHEET = join("src", "library_sidebar", "library_sidebar.css");
 
 // In the order upstream's modules evaluate them (a module's imports
-// before its own stylesheet): LibraryUnit.tsx imports CheckboxItem before
+// before its own stylesheet): LibraryMenuItems.tsx imports
+// LibraryMenuHeaderContent (whose ConfirmDialog imports DialogActionButton,
+// which imports Spinner, and then PublishLibrary) before
+// LibraryMenuSection; LibraryUnit.tsx imports CheckboxItem before
 // LibraryUnit.scss, whose `.library-unit__checkbox .Checkbox-box` must win
 // over CheckboxItem.scss's; LibraryMenuItems.tsx imports LibraryUnit (via
 // LibraryMenuSection) and Spinner before LibraryMenuItems.scss; LibraryMenu
 // imports LibraryMenuItems before LibraryMenu.scss; Sidebar.tsx imports
 // SidebarTrigger before Sidebar.scss.
 export const STYLESHEETS = [
+  "components/Spinner.scss",
+  "components/DialogActionButton.scss",
+  "components/ConfirmDialog.scss",
+  "components/PublishLibrary.scss",
   "components/CheckboxItem.scss",
   "components/LibraryUnit.scss",
-  "components/Spinner.scss",
   "components/LibraryMenuItems.scss",
   "components/LibraryMenu.scss",
   "components/Sidebar/SidebarTrigger.scss",
@@ -94,6 +110,8 @@ export const STYLESHEETS = [
 ];
 
 const LIBRARY_URL = "https://libraries.excalidraw.com";
+const LIBRARY_BACKEND = "https://library-backend.test";
+const PUBLISH_KEY = "publish-library-data";
 
 const ENTRY = `
 export { DefaultSidebar } from "./packages/excalidraw/components/DefaultSidebar";
@@ -486,6 +504,8 @@ const DEFAULT_CASE = {
   libraryReturnUrl: null,
   menuOpen: false,
   trigger: false,
+  publishData: null,
+  backend: null,
 };
 
 const settle = (c) => {
@@ -509,16 +529,41 @@ const mount = async (up, window, iconNames, c) => {
   const container = document.createElement("div");
   container.className = "excalidraw";
   document.body.appendChild(container);
+  // ConfirmDialog's container?.focus() (useExcalidrawContainer's), recorded as
+  // app.focusContainer is
+  container.focus = () => globalThis.__ui.effect({ focusContainer: true });
 
   const effects = [];
   const effect = (e) => effects.push(json(e));
+  // the case's own copies: the publish dialog renames and marks published
+  // the library's items in place
+  const caseItems = c.items.map((id) => structuredClone(item(id)));
   globalThis.__jotai = { values: new Map(), listeners: new Set() };
   globalThis.__jotai.values.set(up.libraryItemsAtom, {
     status: c.status,
     isInitialized: c.initialized,
-    libraryItems: c.items.map(item),
+    libraryItems: caseItems,
   });
   if (c.menuOpen) globalThis.__jotai.values.set(up.isLibraryMenuOpenAtom, true);
+  window.localStorage.clear();
+  if (c.publishData) window.localStorage.setItem(PUBLISH_KEY, JSON.stringify(c.publishData));
+  window.alert = (message) => effect({ alert: String(message) });
+  // the library backend (PublishLibrary's fetch): records the form, answers
+  // the case's `backend`
+  globalThis.fetch = async (url, init) => {
+    const fields = [];
+    for (const [name, value] of init.body.entries()) {
+      const text = typeof value === "string" ? value : await value.text();
+      fields.push([name, name === "excalidrawLib" ? JSON.parse(text) : text]);
+    }
+    effect({ submit: { url, method: init.method, fields } });
+    if (c.backend?.error) throw new Error(c.backend.error);
+    return {
+      ok: true,
+      statusText: "OK",
+      json: () => Promise.resolve({ url: c.backend?.url ?? "" }),
+    };
+  };
 
   let state = {
     openSidebar: c.tab ? { name: "default", tab: c.tab } : null,
@@ -541,8 +586,8 @@ const mount = async (up, window, iconNames, c) => {
   };
   const library = {
     setLibrary: (items) => {
-      const list = typeof items === "function" ? items(c.items.map(item)) : items;
-      effect({ setLibrary: list.map((i) => ({ id: i.id, status: i.status, created: i.created, elements: i.elements.map((e) => e.id) })) });
+      const list = typeof items === "function" ? items(caseItems) : items;
+      effect({ setLibrary: list.map((i) => ({ id: i.id, status: i.status, ...(i.name !== undefined ? { name: i.name } : {}), created: i.created, elements: i.elements.map((e) => e.id) })) });
       return Promise.resolve(list);
     },
     resetLibrary: () => effect({ resetLibrary: true }),
@@ -550,7 +595,7 @@ const mount = async (up, window, iconNames, c) => {
       effect({ updateLibrary: { libraryItems: String(opts.libraryItems), merge: opts.merge, openLibraryMenu: opts.openLibraryMenu } });
       return Promise.resolve([]);
     },
-    getLatestLibrary: () => Promise.resolve(c.items.map(item)),
+    getLatestLibrary: () => Promise.resolve(caseItems),
   };
   const app = {
     id: "app-id",
@@ -628,11 +673,15 @@ const mount = async (up, window, iconNames, c) => {
   effects.length = 0;
   const ids = new Map();
   const snapshot = () => [...container.childNodes].map(makeTree(iconNames, ids));
+  // the portals Modal appends to the body (useCreatePortalContainer)
+  const dialogs = () =>
+    [...document.body.children].filter((el) => el !== container && el.childNodes.length).map(makeTree(iconNames, ids));
+  const storage = () => JSON.parse(window.localStorage.getItem(PUBLISH_KEY) ?? "null");
   const sidebarDocked = () => {
     const v = globalThis.__jotai.values.get(up.isSidebarDockedAtom);
     return v === undefined ? up.isSidebarDockedAtom.init : v;
   };
-  return { container, root, effects, snapshot, sidebarDocked };
+  return { container, root, effects, snapshot, dialogs, storage, sidebarDocked };
 };
 
 const render = async (up, window, iconNames, raw) => {
@@ -658,12 +707,18 @@ const caseProps = (c) => ({
   libraryReturnUrl: c.libraryReturnUrl,
   menuOpen: c.menuOpen,
   trigger: c.trigger,
+  ...(c.publishData ? { publishData: c.publishData } : {}),
+  ...(c.backend ? { backend: c.backend } : {}),
 });
 
 // -- interactions ---------------------------------------------------------------
 
 const UNIT = ".library-unit__dragger";
 const SEARCH = ".library-menu-items-container__search input";
+const MENU_ITEM = "[role=menuitem]";
+const CONFIRM_BUTTON = ".confirm-dialog-buttons .Dialog__action-button";
+// the publish entry's test id is upstream's
+const PUBLISH = "[data-testid=lib-dropdown--remove]";
 
 /**
  * [name, case, steps]; a step is [event, selector, index, extra]: `click`
@@ -794,6 +849,132 @@ const INTERACTIONS = [
       ["click", "[data-testid=lib-dropdown--export]", 0],
     ],
   ],
+  // ex-537: the confirm dialogs (ConfirmDialog.tsx)
+  [
+    "reset-cancel",
+    { items: ALL },
+    [
+      ["click", ".dropdown-menu-button", 0],
+      ["click", MENU_ITEM, 2],
+      ["click", CONFIRM_BUTTON, 0],
+    ],
+  ],
+  [
+    "reset-confirm",
+    { items: ALL },
+    [
+      ["click", ".dropdown-menu-button", 0],
+      ["click", MENU_ITEM, 2],
+      ["click", CONFIRM_BUTTON, 1],
+    ],
+  ],
+  [
+    "reset-backdrop",
+    { items: UNPUBLISHED },
+    [
+      ["click", ".dropdown-menu-button", 0],
+      ["click", MENU_ITEM, 2],
+      ["click", ".Modal__background", 0],
+    ],
+  ],
+  [
+    "remove-confirm",
+    { items: ALL },
+    [
+      ["click", UNIT, 1, { shiftKey: true }],
+      ["click", UNIT, 4, { shiftKey: true }],
+      ["click", ".dropdown-menu-button", 0],
+      ["click", MENU_ITEM, 2],
+      ["click", CONFIRM_BUTTON, 1],
+    ],
+  ],
+  [
+    "remove-cancel",
+    { items: ALL },
+    [
+      ["click", UNIT, 0, { shiftKey: true }],
+      ["click", ".dropdown-menu-button", 0],
+      ["click", MENU_ITEM, 2],
+      ["click", CONFIRM_BUTTON, 0],
+    ],
+  ],
+  // ex-537: the publish dialog (PublishLibrary.tsx) and its success dialog
+  [
+    "publish-validate",
+    { items: ALL },
+    [
+      ["click", UNIT, 0, { shiftKey: true }],
+      ["click", UNIT, 1, { shiftKey: true }],
+      ["click", ".dropdown-menu-button", 0],
+      ["click", PUBLISH, 0],
+      ["submit", ".publish-library form", 0],
+      ["input", ".single-library-item input", 1, "Tall"],
+      ["input", ".publish-library__fields input[name=name]", 0, "Shapes"],
+      ["input", ".publish-library__fields textarea", 0, "Some shapes"],
+      ["click", ".publish-library__buttons .Dialog__action-button", 0],
+    ],
+  ],
+  [
+    "publish-submit",
+    { items: ALL, backend: { url: "https://libraries.test/pr/1" } },
+    [
+      ["click", UNIT, 2, { shiftKey: true }],
+      ["click", UNIT, 5, { shiftKey: true }],
+      ["click", ".dropdown-menu-button", 0],
+      ["click", PUBLISH, 0],
+      ["input", ".single-library-item input", 0, "Wide box"],
+      ["input", ".publish-library__fields input[name=name]", 0, "Shapes"],
+      ["input", ".publish-library__fields textarea", 0, "Some shapes"],
+      ["input", ".publish-library__fields input[name=authorName]", 0, "Ada"],
+      ["input", ".publish-library__fields input[name=githubHandle]", 0, "ada"],
+      ["input", ".publish-library__fields input[name=twitterHandle]", 0, "@ada"],
+      ["input", ".publish-library__fields input[name=website]", 0, "https://ada.test"],
+      ["submit", ".publish-library form", 0],
+      ["click", ".publish-library-success-close", 0],
+    ],
+  ],
+  [
+    "publish-error",
+    { items: ALL, backend: { error: "backend down" } },
+    [
+      ["click", UNIT, 0, { shiftKey: true }],
+      ["click", ".dropdown-menu-button", 0],
+      ["click", PUBLISH, 0],
+      ["submit", ".publish-library form", 0],
+    ],
+  ],
+  [
+    "publish-saved",
+    {
+      items: ALL,
+      publishData: {
+        authorName: "Ada",
+        githubHandle: "ada",
+        name: "Saved",
+        description: "Saved shapes",
+        twitterHandle: "",
+        website: "",
+      },
+    },
+    [
+      ["click", UNIT, 4, { shiftKey: true }],
+      ["click", ".dropdown-menu-button", 0],
+      ["click", PUBLISH, 0],
+      ["click", ".Modal__background", 0],
+    ],
+  ],
+  [
+    "publish-remove",
+    { items: ALL },
+    [
+      ["click", UNIT, 0, { shiftKey: true }],
+      ["click", UNIT, 2, { shiftKey: true }],
+      ["click", ".dropdown-menu-button", 0],
+      ["click", PUBLISH, 0],
+      ["click", ".single-library-item--remove", 1],
+      ["click", ".single-library-item--remove", 0],
+    ],
+  ],
   [
     "menu-toggle",
     { items: ALL },
@@ -807,15 +988,22 @@ const INTERACTIONS = [
 const fire = async (up, window, container, step) => {
   const [event, selector, index, extra] = step;
   const { document } = window;
-  const target = selector === null ? document.body : container.querySelectorAll(selector)[index];
+  // the sidebar's controls, then the dialogs' in the body
+  const target =
+    selector === null
+      ? document.body
+      : [...container.querySelectorAll(selector), ...[...document.body.children].filter((el) => el !== container).flatMap((el) => [...el.querySelectorAll(selector)])][index];
   if (!target) throw new Error(`no ${selector}[${index}]`);
   let prevented = false;
   await up.act(async () => {
     let e;
     if (event === "click" || event === "mousedown") {
       e = new window.MouseEvent(event, { bubbles: true, cancelable: true, button: 0, shiftKey: !!extra?.shiftKey });
+    } else if (event === "submit") {
+      e = new window.Event("submit", { bubbles: true, cancelable: true });
     } else if (event === "input") {
-      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+      const proto = target.localName === "textarea" ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+      const setter = Object.getOwnPropertyDescriptor(proto, "value").set;
       setter.call(target, extra);
       e = new window.Event("input", { bubbles: true, cancelable: true });
     } else if (event === "keydown") {
@@ -840,6 +1028,8 @@ const fire = async (up, window, container, step) => {
     prevented = e.defaultPrevented;
   });
   for (let i = 0; i < 5; i++) await up.act(async () => {});
+  // the submit's Blob reads and fetch settle in later tasks
+  if (event === "submit") for (let i = 0; i < 5; i++) await up.act(() => new Promise((r) => setTimeout(r, 0)));
   return prevented;
 };
 
@@ -862,6 +1052,8 @@ const interact = async (up, window, iconNames, [name, raw, steps]) => {
       defaultPrevented,
       sidebarDocked: mounted.sidebarDocked(),
       dom: mounted.snapshot(),
+      dialogs: mounted.dialogs(),
+      storage: mounted.storage(),
     });
   }
   await up.act(async () => mounted.root.unmount());
@@ -931,6 +1123,36 @@ const LOCALE_KEYS = [
   "alerts.resetLibrary",
   "confirmDialog.resetLibrary",
   "confirmDialog.removeItemsFromLib",
+  "alerts.removeItemsFromsLibrary",
+  "buttons.confirm",
+  "buttons.cancel",
+  "buttons.saveLibNames",
+  "buttons.submit",
+  "labels.statusPublished",
+  "publishDialog.title",
+  "publishDialog.itemName",
+  "publishDialog.authorName",
+  "publishDialog.githubUsername",
+  "publishDialog.twitterUsername",
+  "publishDialog.libraryName",
+  "publishDialog.libraryDesc",
+  "publishDialog.website",
+  "publishDialog.placeholder.authorName",
+  "publishDialog.placeholder.libraryName",
+  "publishDialog.placeholder.libraryDesc",
+  "publishDialog.placeholder.githubHandle",
+  "publishDialog.placeholder.twitterHandle",
+  "publishDialog.placeholder.website",
+  "publishDialog.errors.required",
+  "publishDialog.errors.website",
+  "publishDialog.noteDescription",
+  "publishDialog.noteGuidelines",
+  "publishDialog.noteLicense",
+  "publishDialog.noteItems",
+  "publishDialog.atleastOneLibItem",
+  "publishDialog.republishWarning",
+  "publishSuccessDialog.title",
+  "publishSuccessDialog.content",
 ];
 
 /** The header's controls and the sections, as §3.6 lists them. */
@@ -968,6 +1190,22 @@ export const build = async (upstream) => {
       jsx: "automatic",
       // distributeLibraryItemsOnSquareGrid records the items it lays out
       patch: {
+        // the dialog's previews as markers (the units' too), and the submit's
+        // preview image as a name: jsdom has no canvas
+        "packages/excalidraw/components/PublishLibrary": (source) =>
+          source
+            .replace(
+              'import { exportToCanvas, exportToSvg } from "@excalidraw/utils/export";',
+              "const exportToCanvas = null;\n" +
+                "const exportToSvg = async ({ elements }) => {\n" +
+                '  const el = document.createElementNS("http://www.w3.org/2000/svg", "svg");\n' +
+                '  el.setAttribute("data-library-item", elements[0].id.replace(/-rect$/, ""));\n' +
+                "  return el;\n};",
+            )
+            .replace(
+              "const previewImage = await generatePreviewImage(clonedLibItems);",
+              'const previewImage = new File(["previewImage"], "preview", { type: "image/jpeg" });',
+            ),
         "packages/excalidraw/data/library": (source) =>
           source.replace("export const distributeLibraryItemsOnSquareGrid = (", "const distributeLibraryItemsOnSquareGrid_ = (") +
           "\nexport const distributeLibraryItemsOnSquareGrid = (items) => {\n" +
@@ -980,6 +1218,7 @@ export const build = async (upstream) => {
         "import.meta.env.PKG_NAME": "undefined",
         "import.meta.env.PKG_VERSION": "undefined",
         "import.meta.env.VITE_APP_LIBRARY_URL": JSON.stringify(LIBRARY_URL),
+        "import.meta.env.VITE_APP_LIBRARY_BACKEND": JSON.stringify(LIBRARY_BACKEND),
       },
     });
     const iconNames = new Map();
@@ -1001,6 +1240,7 @@ export const build = async (upstream) => {
     const fixture = {
       upstream: upstream.commit,
       libraryUrl: LIBRARY_URL,
+      libraryBackend: LIBRARY_BACKEND,
       locale,
       items: ITEMS.map((i) => ({ id: i.id, status: i.status, name: i.name ?? null, created: i.created, elements: i.elements })),
       canvas: CANVAS,

@@ -12,7 +12,9 @@
 //! (React 19.0.0, radix-ui 1.4.3, jsdom 22.1.0): every case's DOM, and
 //! every interaction replayed step by step through
 //! [`update`], its effects compared with what upstream's handlers did and
-//! the DOM after each step with upstream's. `src/library_sidebar/
+//! the DOM after each step with upstream's, and the dialogs the header
+//! menu opens (ConfirmDialog, PublishLibrary and its success dialog,
+//! ex-537) with the fields the publish dialog saves. `src/library_sidebar/
 //! library_sidebar.css` is the same generator's stylesheets.
 
 use std::collections::{BTreeMap, HashMap};
@@ -23,9 +25,10 @@ use excali_scene::shape::Theme;
 use excali_ui::dom::{Element, Node};
 use excali_ui::library_sidebar::{
     default_sidebar, default_sidebar_trigger, drag_data, filter_library_items, is_sidebar_docked,
-    is_sidebar_docked_and_fits, library_menu_actions, library_text, update, BrowseLink, DragStart,
-    KeyTarget, LibraryContext, LibraryEffect, LibraryMenuAction, LibraryMenuState,
-    LibrarySidebarEvent, LibrarySidebarProps, LibraryStatus, OpenSidebar, Previews,
+    is_sidebar_docked_and_fits, library_dialogs, library_menu_actions, library_text,
+    publish_form_fields, update, BrowseLink, DragStart, KeyTarget, LibraryContext, LibraryDialog,
+    LibraryDialogsProps, LibraryEffect, LibraryMenuAction, LibraryMenuState, LibrarySidebarEvent,
+    LibrarySidebarProps, LibraryStatus, OpenSidebar, Previews, PublishField, PublishLibraryData,
     SidebarTriggerProps, UnitKey, CANVAS_SEARCH_TAB, DEFAULT_SIDEBAR_NAME, LIBRARY_SIDEBAR_CSS,
     LIBRARY_SIDEBAR_TAB, LIBRARY_URL,
 };
@@ -167,6 +170,8 @@ struct World {
     app: Map<String, Value>,
     items: Vec<LibraryItem>,
     state: LibraryMenuState,
+    /// EditorLocalStorage's publish dialog fields.
+    storage: Option<Value>,
 }
 
 impl World {
@@ -179,7 +184,42 @@ impl World {
                 menu_open: case["menuOpen"].as_bool().unwrap(),
                 ..LibraryMenuState::default()
             },
+            storage: case.get("publishData").cloned(),
         }
+    }
+
+    /// The header menu's open dialogs, as the body holds them.
+    fn dialogs(&self) -> Vec<Value> {
+        let previews: HashMap<String, Node> = self
+            .items
+            .iter()
+            .map(|i| (i.id.clone(), preview(Some(&i.id))))
+            .collect();
+        let theme = if self.case["theme"] == "dark" {
+            Theme::Dark
+        } else {
+            Theme::Light
+        };
+        self.with_context(|context| {
+            library_dialogs(LibraryDialogsProps {
+                context,
+                state: &self.state,
+                theme,
+                container_id: "excalidraw-id".into(),
+                previews: &previews,
+                on_event: None,
+            })
+            .into_iter()
+            .map(|d| tree(&Node::Element(d)))
+            .collect()
+        })
+    }
+
+    /// The sidebar, then the dialogs: what the fixture's selectors query.
+    fn roots(&self) -> Vec<Value> {
+        let mut roots = self.render();
+        roots.extend(self.dialogs());
+        roots
     }
 
     fn status(&self) -> LibraryStatus {
@@ -250,6 +290,71 @@ impl World {
             }
         });
         out
+    }
+
+    /// Runs an event through [`update`], and the host's answers to its
+    /// effects (the stored publish fields, the library backend's reply as
+    /// the case gives it) in turn: every effect, in order.
+    fn update(
+        &mut self,
+        event: LibrarySidebarEvent,
+        env: &mut excali_core::restore::TestEnv,
+    ) -> (Vec<LibraryEffect>, bool) {
+        let mut run = |world: &mut World, event| {
+            let pending = pending_of(&selected_ids(&world.app));
+            let cx = LibraryContext {
+                open_sidebar: open_sidebar(&world.app),
+                docked_preference: world.app["defaultSidebarDockedPreference"]
+                    .as_bool()
+                    .unwrap(),
+                can_fit_sidebar: world.case["canFitSidebar"].as_bool().unwrap(),
+                phone: world.case["formFactor"] == "phone",
+                status: world.status(),
+                items: &world.items,
+                pending: &pending,
+            };
+            update(&mut world.state, event, &cx, env)
+        };
+        let first = run(self, event);
+        let prevented = first.prevent_default;
+        let mut effects = first.effects;
+        let mut i = 0;
+        while i < effects.len() {
+            let answer = match &effects[i] {
+                LibraryEffect::LoadPublishData => Some(LibrarySidebarEvent::PublishDataLoaded(
+                    self.storage
+                        .as_ref()
+                        .and_then(PublishLibraryData::from_json),
+                )),
+                LibraryEffect::SavePublishData(data) => {
+                    self.storage = data.as_ref().map(PublishLibraryData::to_json);
+                    None
+                }
+                LibraryEffect::SubmitLibrary { .. } => {
+                    let backend = &self.case["backend"];
+                    Some(match backend["error"].as_str() {
+                        Some(error) => {
+                            LibrarySidebarEvent::PublishFailed(format!("Error: {error}"))
+                        }
+                        None => LibrarySidebarEvent::PublishSucceeded {
+                            url: backend["url"].as_str().unwrap().to_owned(),
+                        },
+                    })
+                }
+                LibraryEffect::SetAppState(patch) => {
+                    for (k, v) in patch {
+                        self.app.insert(k.clone(), v.clone());
+                    }
+                    None
+                }
+                _ => None,
+            };
+            if let Some(event) = answer {
+                effects.extend(run(self, event).effects);
+            }
+            i += 1;
+        }
+        (effects, prevented)
     }
 
     fn docked(&self) -> bool {
@@ -475,6 +580,10 @@ fn has_class(n: &Value, class: &str) -> bool {
 }
 
 fn simple(n: &Value, sel: &str) -> bool {
+    // a tag with an attribute: `input[name=website]`
+    if let Some((tag, attr)) = sel.split_once('[').filter(|(t, _)| !t.is_empty()) {
+        return n["tag"] == tag && simple(n, &format!("[{attr}"));
+    }
     if let Some(class) = sel.strip_prefix('.') {
         has_class(n, class)
     } else if let Some(attr) = sel.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
@@ -547,7 +656,58 @@ fn event_of(step: &Value, before: &[Value], world: &World) -> LibrarySidebarEven
     let path = find_nth(before, sel, index);
     let node = path[path.len() - 1];
     let shift = step["shiftKey"].as_bool().unwrap_or(false);
+    let dialog_of = |path: &[&Value]| {
+        let modal = path
+            .iter()
+            .find(|n| has_class(n, "Modal"))
+            .expect("inside a dialog");
+        if has_class(modal, "confirm-dialog") {
+            LibraryDialog::Confirm
+        } else if has_class(modal, "publish-library-success") {
+            LibraryDialog::PublishSuccess
+        } else {
+            assert!(has_class(modal, "publish-library"));
+            LibraryDialog::Publish
+        }
+    };
+    let publish_item = |path: &[&Value]| {
+        let item = path
+            .iter()
+            .rev()
+            .find(|n| has_class(n, "single-library-item"))
+            .expect("inside a publish item");
+        match preview_in(item) {
+            Some(UnitKey::Item(id)) => id,
+            other => panic!("publish item preview {other:?}"),
+        }
+    };
     let e = match (event, sel) {
+        ("click", "[role=menuitem]") => LibrarySidebarEvent::MenuSelect(
+            library_menu_actions(world.state.selected_items.len(), world.items.len())[index],
+        ),
+        ("click", ".confirm-dialog-buttons .Dialog__action-button") => match index {
+            0 => LibrarySidebarEvent::ConfirmCancel,
+            _ => LibrarySidebarEvent::ConfirmAccept,
+        },
+        ("click", ".Modal__background") => LibrarySidebarEvent::DialogClose(dialog_of(&path)),
+        ("submit", ".publish-library form") => LibrarySidebarEvent::PublishSubmit,
+        ("input", ".single-library-item input") => LibrarySidebarEvent::PublishItemName {
+            id: publish_item(&path),
+            value: step["value"].as_str().unwrap().to_owned(),
+        },
+        ("input", sel) if sel.starts_with(".publish-library__fields") => {
+            LibrarySidebarEvent::PublishInput {
+                field: PublishField::from_key(node["attrs"]["name"].as_str().unwrap()).unwrap(),
+                value: step["value"].as_str().unwrap().to_owned(),
+            }
+        }
+        ("click", ".publish-library__buttons .Dialog__action-button") => {
+            LibrarySidebarEvent::PublishSaveNames
+        }
+        ("click", ".single-library-item--remove") => {
+            LibrarySidebarEvent::PublishRemoveItem(publish_item(&path))
+        }
+        ("click", ".publish-library-success-close") => LibrarySidebarEvent::PublishSuccessClose,
         ("mousedown", ".sidebar-tab-trigger") => {
             let id = node["attrs"]["id"].as_str().unwrap();
             LibrarySidebarEvent::SelectTab(id.rsplit("-trigger-").next().unwrap().to_owned())
@@ -593,6 +753,8 @@ fn event_of(step: &Value, before: &[Value], world: &World) -> LibrarySidebarEven
             let action = match sel {
                 "[data-testid=lib-dropdown--load]" => LibraryMenuAction::Load,
                 "[data-testid=lib-dropdown--export]" => LibraryMenuAction::Export,
+                // upstream's test id for Publish
+                "[data-testid=lib-dropdown--remove]" => LibraryMenuAction::Publish,
                 other => panic!("menu item {other}"),
             };
             LibrarySidebarEvent::MenuSelect(action)
@@ -616,6 +778,31 @@ fn expected_effects(step: &Value) -> Vec<Value> {
                 out.push(json!({"insert": ids}));
             }
             "setLibrary" => out.push(json!({"setLibrary": v})),
+            // library.resetLibrary() and clearLibraryCache(): ResetLibrary
+            "clearLibraryCache" => {}
+            "deleteItemsFromLibraryCache" => out.push(json!({"deletePreviews": v})),
+            // the library file (its items), the preview image and its type
+            // (the host's), then the text fields
+            "submit" => {
+                let fields = v["fields"].as_array().unwrap();
+                let lib = &fields[0][1];
+                assert_eq!(fields[0][0], "excalidrawLib");
+                assert_eq!(lib["type"], "excalidrawlib");
+                assert_eq!(lib["version"], 2);
+                assert_eq!(
+                    v["url"],
+                    format!("{}/submit", fixture()["libraryBackend"].as_str().unwrap())
+                );
+                out.push(json!({"submit": {
+                    "items": lib["libraryItems"].as_array().unwrap().iter().map(|i| json!({
+                        "id": i["id"],
+                        "status": i["status"],
+                        "name": i["name"],
+                        "elements": i["elements"].as_array().unwrap().iter().map(|e| e["id"].clone()).collect::<Vec<_>>(),
+                    })).collect::<Vec<_>>(),
+                    "fields": fields[3..].to_vec(),
+                }}));
+            }
             _ => out.push(e.clone()),
         }
     }
@@ -628,17 +815,35 @@ fn effect_json(e: &LibraryEffect) -> Value {
         LibraryEffect::TrackEvent(c, a, l) => json!({"trackEvent": [c, a, l]}),
         LibraryEffect::FocusContainer => json!({"focusContainer": true}),
         LibraryEffect::Insert(ids) => json!({"insert": ids}),
-        LibraryEffect::SetLibrary(items) => json!({"setLibrary": items.iter().map(|i| json!({
+        LibraryEffect::SetLibrary(items) => json!({"setLibrary": items.iter().map(|i| {
+            let mut out = json!({
             "id": i.id,
             "status": i.status.as_str(),
             // an integral time, as JSON.stringify writes it
             "created": if i.created.fract() == 0.0 { json!(i.created as i64) } else { json!(i.created) },
             "elements": i.elements.iter().map(|e| e.base.id.clone()).collect::<Vec<_>>(),
-        })).collect::<Vec<_>>()}),
+            });
+            if let Some(name) = &i.name {
+                out["name"] = json!(name);
+            }
+            out
+        }).collect::<Vec<_>>()}),
         LibraryEffect::LoadLibrary => {
             json!({"updateLibrary": {"libraryItems": "fileOpen", "merge": true, "openLibraryMenu": true}})
         }
         LibraryEffect::ExportLibrary(ids) => json!({"exportLibrary": ids}),
+        LibraryEffect::ResetLibrary => json!({"resetLibrary": true}),
+        LibraryEffect::DeletePreviews(ids) => json!({"deletePreviews": ids}),
+        LibraryEffect::SubmitLibrary { items, data } => json!({"submit": {
+            "items": items.iter().map(|i| json!({
+                "id": i.id,
+                "status": i.status.as_str(),
+                "name": i.name,
+                "elements": i.elements.iter().map(|e| e.base.id.clone()).collect::<Vec<_>>(),
+            })).collect::<Vec<_>>(),
+            "fields": publish_form_fields(data).into_iter().map(|(k, v)| json!([k, v])).collect::<Vec<_>>(),
+        }}),
+        LibraryEffect::Alert(message) => json!({"alert": message}),
         other => json!({"other": format!("{other:?}")}),
     }
 }
@@ -658,7 +863,7 @@ fn every_interaction_replays_as_upstream() {
     for interaction in interactions {
         let name = interaction["name"].as_str().unwrap();
         let mut world = World::new(interaction);
-        let mut before = world.render();
+        let mut before = world.roots();
         for (i, step) in interaction["steps"].as_array().unwrap().iter().enumerate() {
             let what = format!("{name} step {i} ({} {})", step["event"], step["selector"]);
             // the target listens for the event
@@ -709,42 +914,47 @@ fn every_interaction_replays_as_upstream() {
                 assert!(out.effects.is_empty(), "{what}");
             } else {
                 let event = event_of(step, &before, &world);
-                let out = {
-                    let pending = pending_of(&selected_ids(&world.app));
-                    let cx = LibraryContext {
-                        open_sidebar: open_sidebar(&world.app),
-                        docked_preference: world.app["defaultSidebarDockedPreference"]
-                            .as_bool()
-                            .unwrap(),
-                        can_fit_sidebar: world.case["canFitSidebar"].as_bool().unwrap(),
-                        phone: world.case["formFactor"] == "phone",
-                        status: world.status(),
-                        items: &world.items,
-                        pending: &pending,
-                    };
-                    update(&mut world.state, event, &cx, &mut env)
-                };
-                let got: Vec<Value> = out.effects.iter().map(effect_json).collect();
+                let (effects, prevent_default) = world.update(event, &mut env);
+                // the stored fields are compared as the fixture's `storage`
+                let got: Vec<Value> = effects
+                    .iter()
+                    .filter(|e| {
+                        !matches!(
+                            e,
+                            LibraryEffect::LoadPublishData | LibraryEffect::SavePublishData(_)
+                        )
+                    })
+                    .map(effect_json)
+                    .collect();
                 // ids of new library items are upstream's randomId, a
                 // counter shared with the duplicates before: compare shape
                 let got = normalized(renumber(got));
                 let want = normalized(renumber(expected_effects(step)));
                 assert_eq!(got, want, "{what}: effects");
-                assert_eq!(
-                    out.prevent_default,
-                    step["defaultPrevented"].as_bool().unwrap(),
-                    "{what}: preventDefault"
-                );
-                for effect in &out.effects {
-                    if let LibraryEffect::SetAppState(patch) = effect {
-                        for (k, v) in patch {
-                            world.app.insert(k.clone(), v.clone());
-                        }
-                    }
+                // a submit's default is the form's, which the handler
+                // prevents; the fixture dispatched the event itself
+                if step["event"] != "submit" {
+                    assert_eq!(
+                        prevent_default,
+                        step["defaultPrevented"].as_bool().unwrap(),
+                        "{what}: preventDefault"
+                    );
                 }
             }
             let after = world.render();
             assert_dom(&expected_dom(&step["dom"], &world.case), &after, &what);
+            let dialogs = world.dialogs();
+            assert_dom(
+                &expected_dom(&step["dialogs"], &world.case),
+                &dialogs,
+                &format!("{what}: dialogs"),
+            );
+            assert_eq!(
+                world.storage.as_ref(),
+                Some(&step["storage"]).filter(|v| !v.is_null()),
+                "{what}: storage"
+            );
+            let after = world.roots();
             assert_eq!(
                 world.docked(),
                 step["sidebarDocked"].as_bool().unwrap(),
@@ -1054,4 +1264,134 @@ fn escape_closes_the_open_header_menu_first() {
         out.effects.iter().map(effect_json).collect::<Vec<_>>(),
         [json!({"setAppState": {"openSidebar": null}})]
     );
+}
+
+/// Every control of the header menu's dialogs listens for the DOM event
+/// whose handler the fixture ran.
+#[test]
+fn every_dialog_control_listens_for_its_event() {
+    let items = all_items();
+    let selected = vec!["u1".to_owned(), "p1".to_owned()];
+    let state = LibraryMenuState {
+        selected_items: selected,
+        confirm_open: true,
+        publish: Some(excali_ui::library_sidebar::PublishState::default()),
+        publish_success: Some(excali_ui::library_sidebar::PublishSuccess {
+            url: "https://libraries.test/pr/1".into(),
+            author_name: "Ada".into(),
+        }),
+        ..LibraryMenuState::default()
+    };
+    let previews = HashMap::new();
+    let dialogs = library_dialogs(LibraryDialogsProps {
+        context: LibraryContext {
+            open_sidebar: Some(OpenSidebar {
+                name: DEFAULT_SIDEBAR_NAME.into(),
+                tab: Some(LIBRARY_SIDEBAR_TAB.into()),
+            }),
+            docked_preference: false,
+            can_fit_sidebar: true,
+            phone: false,
+            status: LibraryStatus::Loaded,
+            items: &items,
+            pending: &[],
+        },
+        state: &state,
+        theme: Theme::Light,
+        container_id: "excalidraw-id".into(),
+        previews: &previews,
+        on_event: None,
+    });
+    assert_eq!(dialogs.len(), 3);
+    let mut listening: Vec<(String, String, String)> = Vec::new();
+    fn walk(e: &Element, out: &mut Vec<(String, String, String)>) {
+        for ev in e.listened_events() {
+            out.push((
+                e.tag().to_owned(),
+                e.attribute("class")
+                    .or(e.attribute("name"))
+                    .unwrap_or("")
+                    .to_owned(),
+                ev.to_owned(),
+            ));
+        }
+        for c in e.children() {
+            if let Node::Element(c) = c {
+                walk(c, out);
+            }
+        }
+    }
+    for d in &dialogs {
+        walk(d, &mut listening);
+    }
+    let listens = |tag: &str, class: &str, ev: &str| {
+        listening
+            .iter()
+            .filter(|(t, c, e)| t == tag && c.split_whitespace().any(|x| x == class) && e == ev)
+            .count()
+    };
+    // Cancel, Confirm and Save names; the submit button submits the form
+    assert_eq!(listens("button", "Dialog__action-button", "click"), 3);
+    assert!(listening
+        .iter()
+        .any(|(t, _, e)| t == "form" && e == "submit"));
+    assert_eq!(listens("div", "Modal__background", "click"), 3);
+    assert_eq!(listens("button", "single-library-item--remove", "click"), 2);
+    assert_eq!(
+        listens("button", "publish-library-success-close", "click"),
+        1
+    );
+    for field in [
+        "name",
+        "description",
+        "authorName",
+        "githubHandle",
+        "twitterHandle",
+        "website",
+    ] {
+        assert!(
+            listening.iter().any(|(_, n, e)| n == field && e == "input"),
+            "{field}"
+        );
+    }
+    // the two items' names
+    assert_eq!(
+        listening
+            .iter()
+            .filter(|(t, n, e)| t == "input" && n.is_empty() && e == "input")
+            .count(),
+        2
+    );
+}
+
+/// The publish dialog's fields as EditorLocalStorage keeps them
+/// (`PublishLibraryDataParams`, in useState's key order).
+#[test]
+fn publish_data_is_stored_as_upstream_keeps_it() {
+    let data = PublishLibraryData {
+        author_name: "Ada".into(),
+        name: "Shapes".into(),
+        ..PublishLibraryData::default()
+    };
+    let stored = data.to_json();
+    assert_eq!(
+        stored.as_object().unwrap().keys().collect::<Vec<_>>(),
+        [
+            "authorName",
+            "githubHandle",
+            "name",
+            "description",
+            "twitterHandle",
+            "website"
+        ]
+    );
+    assert_eq!(PublishLibraryData::from_json(&stored), Some(data));
+    // a partial record leaves the missing fields empty
+    assert_eq!(
+        PublishLibraryData::from_json(&json!({"name": "x"}))
+            .unwrap()
+            .name,
+        "x"
+    );
+    assert_eq!(PublishLibraryData::from_json(&json!("x")), None);
 }
