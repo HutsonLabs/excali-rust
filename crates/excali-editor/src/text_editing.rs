@@ -78,8 +78,12 @@ use excali_text::text_wrapping::get_wrapped_text_lines;
 use indexmap::IndexMap;
 use serde_json::{json, Map, Value};
 
+use crate::arrow_endpoint_text::{
+    bind_text_to_arrow_endpoint, get_text_binding_for_arrow_endpoint, ArrowEndpoint,
+};
 use crate::js_value::{num, truthy};
 use crate::mutate::{bump_version, new_element_with};
+use crate::scene::{MutationEnv, Scene};
 use crate::session::{Session, SessionError};
 use crate::store::{DynStamp, HistoryEnv};
 use crate::text_layout::{
@@ -394,6 +398,10 @@ pub struct StartTextEditing {
     /// `None` selects the whole text.
     pub initial_caret: Option<[f64; 2]>,
     pub text_element: TextTarget,
+    /// `arrowEndpoint`: create the text as a label for this arrow endpoint;
+    /// the binding then dictates the text's position and alignment,
+    /// overriding the scene point, and the endpoint is bound to the text.
+    pub arrow_endpoint: Option<ArrowEndpoint>,
 }
 
 impl StartTextEditing {
@@ -407,6 +415,7 @@ impl StartTextEditing {
             auto_edit: true,
             initial_caret: None,
             text_element: TextTarget::Resolve,
+            arrow_endpoint: None,
         }
     }
 }
@@ -528,6 +537,12 @@ fn parse<T: serde::de::DeserializeOwned>(value: Option<&Value>) -> Option<T> {
 /// under it. A new text takes the app's current style, the container's
 /// angle and groups when it is a label, the note's ink in a sticky note,
 /// and the middle of an arrow.
+///
+/// With an arrow endpoint (`arrowEndpoint`) whose binding resolves, the text
+/// is always new, free (no container), placed with its bound side's
+/// midpoint on the binding's anchor (no grid, no centring on the line) in
+/// the binding's alignment, and the endpoint is bound to it at the
+/// binding's fixed point.
 pub fn start_text_editing<E: HistoryEnv, P: TextMetricsProvider>(
     ctx: &mut TextEditingContext<'_, E, P>,
     args: &StartTextEditing,
@@ -535,13 +550,32 @@ pub fn start_text_editing<E: HistoryEnv, P: TextMetricsProvider>(
     let (mut scene_x, mut scene_y) = (args.scene_x, args.scene_y);
     let mut should_bind_to_container = false;
     let elements = ctx.session.elements().to_vec();
-    let container = args
+    let mut container = args
         .container
         .as_deref()
         .and_then(|id| find(&elements, id))
         .cloned();
+    let mut insert_at_parent_center = args.insert_at_parent_center;
 
-    let mut parent_center = if args.insert_at_parent_center {
+    // Resolved here so the stroke width the binding gap derives from is the
+    // one the text is created with below.
+    let arrow_endpoint_binding = args.arrow_endpoint.as_ref().and_then(|endpoint| {
+        let arrow = find_non_deleted(&elements, &endpoint.arrow_id)?;
+        let map = ElementsMap::new(elements.iter().filter(|e| !e.base.is_deleted));
+        let stroke_width =
+            stroke_width_by_key(ElementType::Text, stroke_width_key(ctx.session.app_state()));
+        get_text_binding_for_arrow_endpoint(arrow, endpoint.start_or_end, &map, stroke_width)
+    });
+    if let Some(binding) = &arrow_endpoint_binding {
+        // an arrow endpoint is not a text container: the text is a sibling
+        // the arrow binds to
+        container = None;
+        insert_at_parent_center = false;
+        // the scene position of the text's bound side midpoint
+        [scene_x, scene_y] = binding.anchor;
+    }
+
+    let mut parent_center = if insert_at_parent_center {
         snapped_to_center_position(scene_x, scene_y, container.as_ref(), &elements)
     } else {
         None
@@ -553,6 +587,7 @@ pub fn start_text_editing<E: HistoryEnv, P: TextMetricsProvider>(
     }
     let state = ctx.session.app_state().clone();
     let existing: Option<Element> = match &args.text_element {
+        _ if arrow_endpoint_binding.is_some() => None,
         TextTarget::New => None,
         TextTarget::Existing(id) => find(&elements, id).cloned(),
         TextTarget::Resolve => selected_text_element(&state, &elements, container.as_ref())
@@ -582,7 +617,6 @@ pub fn start_text_editing<E: HistoryEnv, P: TextMetricsProvider>(
         .unwrap_or_else(|| get_line_height(font_family));
     let font_size = state_number(&state, "currentItemFontSize").unwrap_or(DEFAULT_FONT_SIZE);
 
-    let mut container = container;
     if existing.is_none() && should_bind_to_container {
         if let Some(c) = container.clone().filter(|c| !is_arrow(c) && !is_sticky(c)) {
             let font = get_font_string(font_size, font_family);
@@ -612,6 +646,9 @@ pub fn start_text_editing<E: HistoryEnv, P: TextMetricsProvider>(
 
     let grid_point = text_creation_grid_point(&state, ctx.host, scene_x, scene_y);
     let [x, y] = match (parent_center, &existing) {
+        // the anchor is dictated by the arrow: neither the grid nor the
+        // caret centring may nudge it
+        _ if arrow_endpoint_binding.is_some() => [scene_x, scene_y],
         (Some(center), _) => center,
         (None, None) => [
             grid_point.map_or(scene_x, |g| g[0]),
@@ -643,12 +680,16 @@ pub fn start_text_editing<E: HistoryEnv, P: TextMetricsProvider>(
         Some(e) => e.clone(),
         None => {
             let sticky_container = bind_container.filter(|c| is_sticky(c));
-            let text_align = if parent_center.is_some() {
+            let text_align = if let Some(binding) = &arrow_endpoint_binding {
+                binding.text_align
+            } else if parent_center.is_some() {
                 TextAlign::Center
             } else {
                 parse(state.get("currentItemTextAlign")).unwrap_or_default()
             };
-            let vertical_align = if parent_center.is_some() {
+            let vertical_align = if let Some(binding) = &arrow_endpoint_binding {
+                binding.vertical_align
+            } else if parent_center.is_some() {
                 VerticalAlign::Middle
             } else {
                 DEFAULT_VERTICAL_ALIGN
@@ -753,6 +794,20 @@ pub fn start_text_editing<E: HistoryEnv, P: TextMetricsProvider>(
         }
     }
 
+    if let (Some(endpoint), Some(binding)) = (&args.arrow_endpoint, &arrow_endpoint_binding) {
+        // `this.arrowText.bindText(arrowEndpoint, element, fixedPoint)`
+        let mut scene = Scene::new(ctx.session.elements().to_vec());
+        bind_text_to_arrow_endpoint(
+            &mut scene,
+            &mut StampEnv(&mut ctx.session.env),
+            endpoint,
+            &element.base.id,
+            binding.fixed_point,
+        );
+        ctx.session
+            .replace_all_elements(scene.elements().to_vec())?;
+    }
+
     if args.auto_edit || existing.is_some() || should_bind_to_container {
         let editor = TextEditor::open(
             ctx,
@@ -771,6 +826,19 @@ pub fn start_text_editing<E: HistoryEnv, P: TextMetricsProvider>(
         ctx.session.set_state(state);
         ctx.session.commit();
         Ok(None)
+    }
+}
+
+/// A [`HistoryEnv`]'s stamps as a scene's [`MutationEnv`].
+struct StampEnv<'a, E: HistoryEnv>(&'a mut E);
+
+impl<E: HistoryEnv> MutationEnv for StampEnv<'_, E> {
+    fn random_integer(&mut self) -> f64 {
+        self.0.version_nonce()
+    }
+
+    fn now(&mut self) -> f64 {
+        self.0.updated()
     }
 }
 

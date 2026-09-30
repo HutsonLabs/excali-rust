@@ -234,6 +234,7 @@ fn drag_new_element_matches_upstream() {
                 maintain_aspect_ratio: drag["shouldMaintainAspectRatio"].as_bool().unwrap(),
                 resize_from_center: drag["shouldResizeFromCenter"].as_bool().unwrap(),
                 width_aspect_ratio: None,
+                origin_offset: None,
             });
             let r = &drag["result"];
             let want = [

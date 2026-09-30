@@ -297,6 +297,27 @@ impl Inner {
             .view_background_color()
             .map(str::to_owned);
         self.layers.paint_static(background.as_deref(), &list);
+        // the interactive canvas (renderInteractiveScene), in the
+        // container's `--color-selection` (getSelectionColor)
+        let selection_color = self
+            .container
+            .owner_document()
+            .and_then(|d| d.default_view())
+            .and_then(|w| w.get_computed_style(&self.container).ok().flatten())
+            .and_then(|style| style.get_property_value("--color-selection").ok())
+            .map(|c| c.trim().to_owned())
+            .filter(|c| !c.is_empty())
+            .unwrap_or_else(|| {
+                excali_editor::interactive_scene::DEFAULT_SELECTION_COLOR.to_owned()
+            });
+        let size = self.layers.backing_size(Layer::Interactive);
+        let interactive = self.editor.interactive_scene(
+            f64::from(size.width),
+            f64::from(size.height),
+            self.layers.scale(),
+            &selection_color,
+        );
+        self.layers.paint_interactive(&interactive);
     }
 
     /// Paints the scene and the chrome again and dispatches the editor's

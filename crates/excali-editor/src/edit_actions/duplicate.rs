@@ -635,3 +635,110 @@ pub fn duplicate_selection<E: EditEnv>(
         capture: true,
     })
 }
+
+/// What [`duplicate_dragged_selection`] leaves: the scene with the
+/// duplicates, the duplicates, which original each one copies, and the
+/// selection of the duplicates.
+#[derive(Debug, Clone, PartialEq)]
+pub struct DraggedDuplication {
+    pub elements: Vec<Element>,
+    pub duplicated_elements: Vec<Element>,
+    pub orig_id_to_duplicate_id: HashMap<String, String>,
+    /// `getSelectionStateForElements(duplicatedElements, ...)`.
+    pub selection: Map<String, Value>,
+}
+
+/// `AppDuplicate.duplicateDraggedSelection(pointerDownState, event)`
+/// (`packages/excalidraw/components/App.duplicate.ts:163-318`), the host's
+/// `onDuplicate` left out: the selection being dragged (with its bound
+/// text and frames' children, and `hit` when the press added it) is
+/// duplicated in place with new seeds, each duplicate keeping its frame
+/// (`frameId: duplicate.frameId ?? orig.frameId`), and the originals go
+/// back to where the drag started (`originals`, `newElementWith`); the
+/// duplicates' fractional indices synced. The drag then continues with the
+/// duplicates.
+///
+/// Upstream draws each duplicate's new seed in the `overrides` callback,
+/// between the ids of the duplicates; here the seeds are drawn after.
+pub fn duplicate_dragged_selection<E: EditEnv>(
+    elements: &[Element],
+    app_state: &AppState,
+    hit: Option<&str>,
+    hit_was_added_to_selection: bool,
+    originals: &HashMap<String, Element>,
+    env: &mut E,
+) -> Option<DraggedDuplication> {
+    let selected = object_key(app_state, "selectedElementIds");
+    let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
+    let mut ids: Vec<String> = Vec::new();
+    for element in get_selected_elements(&live, &selected, true, true) {
+        if !ids.contains(&element.base.id) {
+            ids.push(element.base.id.clone());
+        }
+    }
+    if let Some(hit) = hit {
+        if hit_was_added_to_selection && !ids.iter().any(|i| i == hit) {
+            ids.push(hit.to_owned());
+        }
+    }
+    let kind = DuplicateType::InPlace {
+        ids: ids.clone(),
+        editing_group_id: editing_group_id(app_state),
+        selected_group_ids: object_key(app_state, "selectedGroupIds"),
+    };
+    let mut duplication = duplicate_elements(elements, &kind, true, env).ok()?;
+    let dup_to_orig: HashMap<String, String> = duplication
+        .orig_id_to_duplicate_id
+        .iter()
+        .map(|(o, d)| (d.clone(), o.clone()))
+        .collect();
+    let by_id: HashMap<&str, &Element> = elements.iter().map(|e| (e.base.id.as_str(), e)).collect();
+    let overrides: Vec<(Option<String>, f64)> = duplication
+        .duplicated_elements
+        .iter()
+        .map(|duplicate| {
+            let orig_frame = dup_to_orig
+                .get(&duplicate.base.id)
+                .and_then(|o| by_id.get(o.as_str()))
+                .and_then(|o| o.base.frame_id.clone());
+            let frame = duplicate.base.frame_id.clone().or(orig_frame);
+            (frame, RestoreEnv::random_integer(env))
+        })
+        .collect();
+    assign_duplicates(&mut duplication, |element, k| {
+        element.base.frame_id = overrides[k].0.clone();
+        element.base.seed = overrides[k].1;
+    });
+    let mut next = duplication.elements_with_duplicates;
+    for element in next.iter_mut() {
+        if !ids.contains(&element.base.id) {
+            continue;
+        }
+        if let Some(orig) = originals.get(&element.base.id) {
+            // newElementWith(el, { x: origEl.x, y: origEl.y })
+            element.base.x = orig.base.x;
+            element.base.y = orig.base.y;
+            bump(element, env);
+        }
+    }
+    let moved: HashSet<String> = duplication
+        .duplicated_elements
+        .iter()
+        .map(|e| e.base.id.clone())
+        .collect();
+    sync_moved_indices(&mut next, &moved, env).ok()?;
+    let live: Vec<&Element> = next.iter().filter(|e| !e.base.is_deleted).collect();
+    let duplicated: Vec<Element> = duplication
+        .duplicated_elements
+        .iter()
+        .filter_map(|d| next.iter().find(|e| e.base.id == d.base.id).cloned())
+        .collect();
+    let targets: Vec<&Element> = duplicated.iter().collect();
+    let selection = selection_state_for_elements(&targets, &live, app_state);
+    Some(DraggedDuplication {
+        elements: next,
+        duplicated_elements: duplicated,
+        orig_id_to_duplicate_id: duplication.orig_id_to_duplicate_id,
+        selection,
+    })
+}

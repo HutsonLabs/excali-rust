@@ -1025,6 +1025,63 @@ CI runs `--check` in the `goldens` job, and
 `test/snapping-fixtures.test.mjs` checks that two runs are byte-identical and
 that the fixture covers every snap line kind and the three snap colours.
 
+## Interactive scene fixture
+
+`interactive-scene.mjs` writes
+`crates/excali-editor/tests/fixtures/interactive-scene.json` for
+excali-editor's interactive canvas (ex-713): upstream's own
+`renderInteractiveScene` (`packages/excalidraw/renderer/interactiveScene.ts`,
+with `renderSnaps.ts` and `renderer/helpers.ts`) drawing on the recording
+2D context `static-scene.mjs` uses (`lib/recording-context.mjs`): per scene
+the inputs (canvas size and device pixel ratio, elements, the selection, the
+app state the interactive canvas reads, the pointer) and every draw in
+order. The 58 scenes cover selection borders (locked, groups, the edited
+group), single and multi-selection transform handles, the selection box, the
+linear element editor's point and midpoint handles, the binding highlight,
+frame and element highlights, crop handles, the text box and its reset
+handle, and snap lines, at several zooms, scrolls and device pixel ratios in
+both themes. `app` is a stub holding the pointer; the render config has no
+collaborators and no scrollbars.
+
+```sh
+node tools/goldens/interactive-scene.mjs           # write the fixture
+node tools/goldens/interactive-scene.mjs --check   # exit 1 if it is stale
+```
+
+## Crop fixture
+
+`crop-fixtures.mjs` writes `crates/excali-editor/tests/fixtures/crop.json`
+for excali-editor's image cropping (ex-713): upstream's own
+`packages/element/src/cropElement.ts` (`cropElement`,
+`getUncroppedImageElement`, `getUncroppedWidthAndHeight`,
+`getFlipAdjustedCropPosition`) over six image shapes in ten flip and angle
+variants, every handle with pointers inside and far outside the image, with
+and without an aspect ratio, and the `UI.crop` chains of upstream's
+`packages/element/tests/cropElement.test.tsx`.
+
+```sh
+node tools/goldens/crop-fixtures.mjs           # write the fixture
+node tools/goldens/crop-fixtures.mjs --check   # exit 1 if it is stale
+```
+
+## Arrow endpoint text fixture
+
+`arrow-endpoint-text-fixtures.mjs` writes
+`crates/excali-editor/tests/fixtures/arrow-endpoint-text.json` for text
+bound to a free arrow endpoint (ex-713): upstream's own
+`packages/element/src/arrowEndpointText.ts` (the endpoint under a point, the
+binding a label takes, the bound text's drag anchor) and `dragNewTextElement`
+(`packages/element/src/dragElements.ts:227-292`), text measured at 10 px per
+UTF-16 code unit as upstream's tests measure it.
+
+```sh
+node tools/goldens/arrow-endpoint-text-fixtures.mjs           # write the fixture
+node tools/goldens/arrow-endpoint-text-fixtures.mjs --check   # exit 1 if it is stale
+```
+
+CI runs each `--check` in the `goldens` job, and the matching
+`test/*.test.mjs` checks that two runs are byte-identical.
+
 ## Text editing fixture
 
 `text-editing.mjs` writes `crates/excali-editor/tests/fixtures/text-editing.json`

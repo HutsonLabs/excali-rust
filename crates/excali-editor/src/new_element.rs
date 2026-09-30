@@ -289,6 +289,9 @@ pub struct DragNewElement<'a> {
     pub maintain_aspect_ratio: bool,
     pub resize_from_center: bool,
     pub width_aspect_ratio: Option<f64>,
+    /// `originSnapOffset`: where the pointer snapped before the press,
+    /// added to the corner.
+    pub origin_offset: Option<[f64; 2]>,
 }
 
 /// `dragNewElement({...})` (`dragElements.ts:294-406`) for an element that
@@ -338,7 +341,8 @@ pub fn drag_new_element(args: &DragNewElement<'_>) -> Option<[f64; 4]> {
         new_x = origin_x - width / 2.0;
         new_y = origin_y - height / 2.0;
     }
-    (width != 0.0 && height != 0.0).then_some([new_x, new_y, width, height])
+    let [dx, dy] = args.origin_offset.unwrap_or([0.0, 0.0]);
+    (width != 0.0 && height != 0.0).then_some([new_x + dx, new_y + dy, width, height])
 }
 
 /// `MINIMUM_ARROW_SIZE` (`common/src/constants.ts:29`): a new line or
@@ -355,10 +359,42 @@ pub fn get_locked_linear_cursor_align_size(
     x: f64,
     y: f64,
 ) -> (f64, f64) {
+    get_locked_linear_cursor_align_size_with_angle(origin_x, origin_y, x, y, None)
+}
+
+/// `getLockedLinearCursorAlignSize(originX, originY, x, y, customAngle)`
+/// (`sizeHelpers.ts:187-253`): as [`get_locked_linear_cursor_align_size`],
+/// but between the two 15 degree lines around a (truthy) `custom_angle`
+/// the line's own angle is kept when the pointer is within 2.5 degrees of
+/// it, else the nearer of the two.
+pub fn get_locked_linear_cursor_align_size_with_angle(
+    origin_x: f64,
+    origin_y: f64,
+    x: f64,
+    y: f64,
+    custom_angle: Option<f64>,
+) -> (f64, f64) {
+    use excali_math::{normalize_radians, radians_between_angles, radians_difference, Radians};
     let mut width = x - origin_x;
     let mut height = y - origin_y;
     let angle = js::atan2(height, width);
-    let locked_angle = js::round(angle / SHIFT_LOCKING_ANGLE) * SHIFT_LOCKING_ANGLE;
+    let mut locked_angle = js::round(angle / SHIFT_LOCKING_ANGLE) * SHIFT_LOCKING_ANGLE;
+    if let Some(custom) = custom_angle.filter(|a| *a != 0.0 && !a.is_nan()) {
+        let lower = (custom / SHIFT_LOCKING_ANGLE).floor() * SHIFT_LOCKING_ANGLE;
+        if radians_between_angles(
+            Radians(angle),
+            Radians(lower),
+            Radians(lower + SHIFT_LOCKING_ANGLE),
+        ) {
+            if radians_difference(Radians(angle), Radians(custom)).0 < SHIFT_LOCKING_ANGLE / 6.0 {
+                locked_angle = custom;
+            } else if normalize_radians(Radians(angle)).0 > normalize_radians(Radians(custom)).0 {
+                locked_angle = lower + SHIFT_LOCKING_ANGLE;
+            } else {
+                locked_angle = lower;
+            }
+        }
+    }
     if locked_angle == 0.0 {
         height = 0.0;
     } else if locked_angle == std::f64::consts::FRAC_PI_2 {

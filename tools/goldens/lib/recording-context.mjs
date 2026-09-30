@@ -1,5 +1,5 @@
 // The recording 2D context the canvas goldens draw on (static-scene.mjs,
-// png-export.mjs): a CanvasRenderingContext2D that keeps the state the
+// png-export.mjs, interactive-scene.mjs): a CanvasRenderingContext2D that keeps the state the
 // canvas specification defines and records every draw with its path,
 // matrix, alpha and styles. See static-scene.mjs for what each event holds.
 
@@ -126,6 +126,9 @@ export class RecordingContext {
     if (list.some((v) => !Number.isFinite(v) || v < 0)) return;
     this.s.dash = list.length % 2 ? [...list, ...list] : [...list];
   }
+  getLineDash() {
+    return [...this.s.dash];
+  }
   set font(v) {
     this.s.font = v;
   }
@@ -199,6 +202,9 @@ export class RecordingContext {
   }
   arc(x, y, r, start, end, anticlockwise = false) {
     this.push(["arc", x, y, r, start, end, Boolean(anticlockwise)]);
+  }
+  ellipse(x, y, rx, ry, rotation, start, end, anticlockwise = false) {
+    this.push(["ellipse", x, y, rx, ry, rotation, start, end, Boolean(anticlockwise)]);
   }
   rect(...args) {
     this.push(["rect", ...args]);

@@ -99,6 +99,83 @@ pub enum SnapLine {
     },
 }
 
+impl SnapLineDirection {
+    fn as_str(self) -> &'static str {
+        match self {
+            SnapLineDirection::Horizontal => "horizontal",
+            SnapLineDirection::Vertical => "vertical",
+        }
+    }
+
+    fn parse(name: &str) -> Option<SnapLineDirection> {
+        match name {
+            "horizontal" => Some(SnapLineDirection::Horizontal),
+            "vertical" => Some(SnapLineDirection::Vertical),
+            _ => None,
+        }
+    }
+}
+
+fn point_json(p: &P) -> serde_json::Value {
+    serde_json::json!([p[0], p[1]])
+}
+
+fn point_from_json(v: &serde_json::Value) -> Option<P> {
+    Some([v.get(0)?.as_f64()?, v.get(1)?.as_f64()?])
+}
+
+impl SnapLine {
+    /// The line as `appState.snapLines` holds it: `{ type: "points",
+    /// points }`, `{ type: "pointer", points, direction }` or `{ type:
+    /// "gap", direction, points }`.
+    pub fn to_json(&self) -> serde_json::Value {
+        match self {
+            SnapLine::Points { points } => serde_json::json!({
+                "type": "points",
+                "points": points.iter().map(point_json).collect::<Vec<_>>(),
+            }),
+            SnapLine::Pointer { points, direction } => serde_json::json!({
+                "type": "pointer",
+                "points": points.iter().map(point_json).collect::<Vec<_>>(),
+                "direction": direction.as_str(),
+            }),
+            SnapLine::Gap { direction, points } => serde_json::json!({
+                "type": "gap",
+                "direction": direction.as_str(),
+                "points": points.iter().map(point_json).collect::<Vec<_>>(),
+            }),
+        }
+    }
+
+    /// A line of `appState.snapLines` ([`SnapLine::to_json`]'s form).
+    pub fn from_json(value: &serde_json::Value) -> Option<SnapLine> {
+        let points: Vec<P> = value
+            .get("points")?
+            .as_array()?
+            .iter()
+            .map(point_from_json)
+            .collect::<Option<_>>()?;
+        let direction = || {
+            value
+                .get("direction")
+                .and_then(serde_json::Value::as_str)
+                .and_then(SnapLineDirection::parse)
+        };
+        match value.get("type")?.as_str()? {
+            "points" => Some(SnapLine::Points { points }),
+            "pointer" => Some(SnapLine::Pointer {
+                points: points.try_into().ok()?,
+                direction: direction()?,
+            }),
+            "gap" => Some(SnapLine::Gap {
+                direction: direction()?,
+                points: points.try_into().ok()?,
+            }),
+            _ => None,
+        }
+    }
+}
+
 /// `GapSnap["direction"]` (`snapping.ts:85-91`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum GapSnapDirection {

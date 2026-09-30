@@ -364,6 +364,31 @@ const ROWS = {
     expect(await hits(page, [150, 50])).toBe(true);
   },
 
+  // renderInteractiveScene: the selection's outline and handles are drawn
+  // on the interactive canvas, which is clear with nothing selected
+  "view-interactive": async ({ page }) => {
+    await mount(page, sceneText([rect("a", 100, 100)]));
+    const painted = () =>
+      page.evaluate(() => {
+        const canvas = document.querySelector("excali-editor canvas.interactive");
+        const scale = canvas.width / canvas.getBoundingClientRect().width;
+        const ctx = canvas.getContext("2d");
+        // the south-east handle's outline, (202, 202)-(210, 210)
+        const data = ctx.getImageData(
+          Math.round(201 * scale),
+          Math.round(201 * scale),
+          Math.round(10 * scale),
+          Math.round(10 * scale),
+        ).data;
+        let alpha = 0;
+        for (let i = 3; i < data.length; i += 4) alpha = Math.max(alpha, data[i]);
+        return alpha;
+      });
+    expect(await painted()).toBe(0);
+    await click(page, [150, 150]);
+    expect(await painted()).toBeGreaterThan(0);
+  },
+
   // Tools
 
   "tool-toolbar-order": async ({ page }) => {
@@ -474,6 +499,23 @@ const ROWS = {
     });
   },
 
+  // multiPointCreate.test.tsx:88-128, moved by (300, 300) off the menu
+  "tool-arrow-points": async ({ page }) => {
+    await mount(page);
+    await press(page, "a");
+    for (const p of [[330, 330], [350, 360], [400, 440]]) {
+      const [x, y] = await client(page, p);
+      await page.mouse.move(x, y);
+      await page.mouse.down();
+      await page.mouse.up();
+    }
+    await press(page, "Enter");
+    const arrows = (await saved(page)).filter((e) => e.type === "arrow");
+    expect(arrows).toHaveLength(1);
+    expect(arrows[0]).toMatchObject({ x: 330, y: 330, points: [[0, 0], [20, 30], [70, 110]] });
+    expect((await state(page)).activeTool).toBe("selection");
+  },
+
   "tool-freedraw": async ({ page }) => {
     await mount(page);
     const e = await draw(page, "p", [100, 100], [250, 200]);
@@ -564,6 +606,54 @@ const ROWS = {
     expect((await byId(page)).a).toMatchObject({ x: 101, y: 100 });
     await press(page, "Shift+ArrowDown");
     expect((await byId(page)).a).toMatchObject({ x: 101, y: 105 });
+  },
+
+  // move.test.tsx:147-195
+  "move-alt-duplicate": async ({ page }) => {
+    await mount(page, sceneText([rect("a", 100, 100)]));
+    await click(page, [150, 150]);
+    await page.keyboard.down("Alt");
+    await drag(page, [150, 150], [190, 170]);
+    await page.keyboard.up("Alt");
+    const elements = await saved(page);
+    expect(elements).toHaveLength(2);
+    expect(elements[0]).toMatchObject({ id: "a", x: 100, y: 100 });
+    expect(elements[1]).toMatchObject({ x: 140, y: 120 });
+  },
+
+  // snapDraggedElements: b's left edge, 3 px right of a's right edge, snaps
+  "move-snap": async ({ page }) => {
+    await mount(page, sceneText([rect("a", 100, 100), rect("b", 300, 300)]));
+    await press(page, "Alt+KeyS");
+    await click(page, [350, 350]);
+    await drag(page, [350, 350], [253, 350]);
+    expect((await byId(page)).b).toMatchObject({ x: 200, y: 300 });
+  },
+
+  // frame.test.tsx:689-695
+  "move-into-frame": async ({ page }) => {
+    const frame = element("frame", "f", 0, 0, 150, 150, { name: null });
+    await mount(page, sceneText([rect("r", 200, 0, 50, 50), frame]));
+    await click(page, [225, 25]);
+    await drag(page, [225, 25], [75, 75]);
+    expect((await byId(page)).r.frameId).toBe("f");
+  },
+
+  // linearElementEditor.test.tsx:411-418, 500-530, moved by (300, 300)
+  // off the menu
+  "linear-editor": async ({ page }) => {
+    const line = element("line", "l", 320, 320, 40, 0, {
+      roughness: 0,
+      points: [[0, 0], [40, 0]],
+    });
+    await mount(page, sceneText([line]));
+    await click(page, [320, 320]);
+    await click(page, [320, 320], { clickCount: 2 });
+    expect(
+      await page.evaluate(() => JSON.parse(window.ed.save()).elements.length),
+    ).toBe(1);
+    await drag(page, [340, 320], [390, 370]);
+    expect((await byId(page)).l.points).toEqual([[0, 0], [70, 50], [40, 0]]);
   },
 
   // getTransformHandlesFromCoords at zoom 1 for the mouse (size 8, margin 4,

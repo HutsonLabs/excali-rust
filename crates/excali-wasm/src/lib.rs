@@ -20,9 +20,13 @@
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-ui`
 //! and `excali-svg`.
 
+mod cropping;
 pub mod drag;
 pub mod editor;
 pub mod env;
+mod interact;
+mod linear;
+mod multi;
 pub mod text;
 pub mod web;
 

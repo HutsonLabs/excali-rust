@@ -44,17 +44,34 @@
 //!   file [`Editor::save`] would write differs from the one loaded or last
 //!   saved.
 //!
-//! Reduced from upstream (ex-713): a line or arrow is drawn by dragging
-//! only (no point-by-point `multiElement` drawing); nothing snaps
-//! (`snapDraggedElements`, `snapNewElement`, `snapResizingElements`);
-//! drawing, dragging and resizing leave frame membership as it was; Alt+drag
-//! does not duplicate; the interactive canvas (selection outlines, handles,
-//! the box) is not painted.
+//! - The interaction state the interactive canvas draws
+//!   ([`Editor::interactive_scene`], `renderInteractiveScene`): the
+//!   selection box (`selectionElement`), snap lines, the frame and
+//!   elements to highlight, the suggested binding, the linear element
+//!   editor's hovered and selected points, the locked element pressed
+//!   (`activeLockedId`), the image being cropped.
+//! - ex-713's interactions: dragging, drawing and resizing snap to the
+//!   other elements when snapping is on (`snapDraggedElements`,
+//!   `snapNewElement`, `snapResizingElements`, and the pointer's snap
+//!   before a press); frame membership follows drawing, dragging and
+//!   resizing (`crate::interact`); Alt+drag duplicates
+//!   (`duplicateDraggedSelection`); a click with the line or arrow tool
+//!   draws point by point, Enter or Escape finalizing
+//!   (`crate::multi`); the selected line or arrow's points and midpoints,
+//!   the line editor and elbow arrow segments (`crate::linear`); image
+//!   cropping (`crate::cropping`).
+//!
+//! Reduced from upstream: an arrow's end binds on the release of a drag
+//! rather than live while it moves; a press on an arrow's label does not
+//! drag the label along the arrow; the focus point handles of bound arrow
+//! ends are not offered; hovering with Alt in the line editor does not
+//! preview the next point; the renderer's preview of a dragged element's
+//! layer above a frame's children (`getRenderableElements`) is not drawn.
 //!
 //! The history's leaf layouts are the real ones ([`EditorEnv`]), so an
 //! undo re-wraps and re-centres bound text and re-routes bound arrows.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use excali_core::app_state::{AppState, AppStateEnv};
 use excali_core::constants::{DEFAULT_COLLISION_THRESHOLD, DEFAULT_TRANSFORM_HANDLE_SPACING};
@@ -73,6 +90,7 @@ use excali_editor::binding::{
     bind_or_unbind_binding_element, BindingAppState, BindingOpts, LinearElementInitialState,
 };
 use excali_editor::collision::{hit_element, HitTestCache};
+use excali_editor::edit_actions::duplicate::duplicate_dragged_selection;
 use excali_editor::edit_actions::{
     bring_forward, bring_to_front, copy_selected, delete_selected, duplicate_selection, group,
     insert_library_items, paste_elements, select_all, selected_elements, send_backward,
@@ -81,6 +99,9 @@ use excali_editor::edit_actions::{
 use excali_editor::eraser::EraserTrail;
 use excali_editor::flowchart::{insertion_index, insertion_runs, AppFlowchart, FlowchartOperation};
 use excali_editor::groups::select_groups_for_selected_elements;
+use excali_editor::interactive_scene::{
+    render_interactive_scene, InteractiveCanvasAppState, InteractiveScene,
+};
 use excali_editor::keyboard::{
     get_selected_elements, on_clipboard_event, on_key_down, on_key_up, pan_starts,
     ClipboardEventKind, ClipboardOutcome, ClipboardTarget, KeyEffect, KeyOutcome, KeyboardEditor,
@@ -97,10 +118,15 @@ use excali_editor::scene::ElementUpdate;
 use excali_editor::scene::Scene;
 use excali_editor::selection::{get_elements_within_selection, BoxSelectionMode};
 use excali_editor::session::Session;
+use excali_editor::snapping::{
+    snap_dragged_elements, snap_new_element, snap_resizing_elements, SnapCache, SnapEvent,
+};
 use excali_editor::store::CaptureUpdateAction;
 use excali_editor::tools::{PointerType, ToolState};
 use excali_editor::transform::{get_grid_point, TransformModifiers, TransformSession};
-use excali_editor::transform_handles::EditorInterface;
+use excali_editor::transform_handles::{
+    EditorInterface, SelectedLinearElementState, TransformHandleType,
+};
 use excali_editor::viewport::{
     handle_wheel, perform_zoom_action, translate, viewport_coords_to_scene_coords,
     zoom_to_fit_bounds, InputDevice, Offsets, TranslateOptions, Viewport, ViewportState,
@@ -122,9 +148,18 @@ use excali_text::text_measurements::TextMetricsProvider;
 use excali_ui::footer::{toggle_shortcuts, toggle_zen_mode};
 use serde_json::{json, Map, Value};
 
+use crate::cropping::CropPress;
 use crate::drag::drag_selected_elements;
 use crate::env::EditorEnv;
+use crate::interact;
+use crate::linear::{LinearPress, LinearState};
+use crate::multi::MultiPoint;
+use excali_editor::binding::update_bound_elements;
+use excali_editor::frame::{
+    add_elements_to_frame, get_elements_in_new_frame, get_frame_children_insertion_index,
+};
 use excali_editor::text_editing::TextEditor;
+use excali_scene::frame::is_frame_like;
 
 /// What the editor asks of its host, in order.
 #[derive(Clone, Debug, PartialEq)]
@@ -301,10 +336,11 @@ pub(crate) enum Gesture {
     /// `AppPan`'s session (`App.pan.ts:100-285`): the last client position.
     Pan { last: [f64; 2] },
     /// The selection tool's press (`pointerDownState`).
-    Select(SelectGesture),
+    Select(Box<SelectGesture>),
     /// A press on a resize or rotation handle of the selection
     /// (`pointerDownState.resize`, `maybeHandleResize`).
-    Transform(TransformSession),
+    /// `pointerDownState.originInGrid` rides along for the snapping.
+    Transform(TransformSession, [f64; 2]),
     /// A drawing tool's press: the element being drawn (`newElement`).
     Create(CreateGesture),
     /// The eraser's press: its trail and what it erases
@@ -316,25 +352,39 @@ pub(crate) enum Gesture {
     },
     /// The text tool's press that started a new text (`newElement`),
     /// opened on release.
-    TextCreate { id: String },
+    TextCreate {
+        id: String,
+        /// `pointerDownState.originInGrid`.
+        origin_in_grid: [f64; 2],
+    },
     /// The text tool's press on an empty container's centre, decided on
     /// release (`AppTextTool.pending`).
     TextLabel { container: String, origin: [f64; 2] },
+    /// A press that finished a line or arrow drawn point by point; its
+    /// release reverts the tool (`App.tsx:12594-12620`).
+    Finalized,
+    /// A press on a crop handle of the image being cropped.
+    Crop(Box<CropPress>),
+    /// A press handled whole on the press (Alt adding a point in the
+    /// linear element editor); its release only commits.
+    Inert,
 }
 
 /// The element a drawing tool's press created (`appState.newElement`) and
 /// the press (`pointerDownState`).
 #[derive(Clone, Debug)]
 pub(crate) struct CreateGesture {
-    id: String,
+    pub(crate) id: String,
     /// `activeTool.type`.
-    tool: String,
+    pub(crate) tool: String,
     /// `pointerDownState.origin`.
-    origin: [f64; 2],
+    pub(crate) origin: [f64; 2],
     /// `pointerDownState.originInGrid`.
-    origin_in_grid: [f64; 2],
+    pub(crate) origin_in_grid: [f64; 2],
     /// `pointerDownState.drag.hasOccurred` (linear elements).
-    dragged: bool,
+    pub(crate) dragged: bool,
+    /// A press while drawing point by point (`multiElement`).
+    pub(crate) multi: bool,
 }
 
 /// The selection tool's press (`pointerDownState`).
@@ -356,6 +406,17 @@ pub(crate) struct SelectGesture {
     box_origin: Option<[f64; 2]>,
     /// The box has been dragged (`boxSelection.hasOccurred`).
     box_selected: bool,
+    /// `pointerDownState.withCmdOrCtrl`: Ctrl/Cmd was held at the press,
+    /// which blocks the drag.
+    with_cmd_or_ctrl: bool,
+    /// `hit.wasAddedToSelection`.
+    was_added_to_selection: bool,
+    /// `hit.hasBeenDuplicated`: Alt+drag duplicated the selection.
+    has_been_duplicated: bool,
+    /// The press on the selected line or arrow, for its editor.
+    linear: Option<LinearPress>,
+    /// `previousPointerMoveCoords`: the pointer at the last move.
+    last_point: [f64; 2],
 }
 
 /// `getSceneVersion`: the sum of the elements' versions.
@@ -399,6 +460,12 @@ pub struct Editor<P: TextMetricsProvider + Clone> {
     pub(crate) reported: (f64, bool),
     /// The open text editor (`textWysiwyg`), if any.
     pub(crate) text_editor: Option<TextEditor>,
+    /// `SnapCache`: the reference points and gaps of the gesture.
+    pub(crate) snap_cache: SnapCache,
+    /// The line or arrow drawn point by point (`multiElement`).
+    pub(crate) multi: Option<MultiPoint>,
+    /// Natural image sizes the host measured, by file id.
+    pub(crate) image_sizes: HashMap<String, (f64, f64)>,
 }
 
 const EMPTY_SCENE: &str =
@@ -439,6 +506,9 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             events: Vec::new(),
             reported: (0.0, false),
             text_editor: None,
+            snap_cache: SnapCache::default(),
+            multi: None,
+            image_sizes: HashMap::new(),
         };
         editor.start(editor.file.clone());
         editor
@@ -642,6 +712,20 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 effects: Vec::new(),
             };
         }
+        // image cropping's keys (App.tsx:5616-5636)
+        if !stroke.target.writable && !stroke.target.input_like {
+            let enter = stroke.key == "Enter";
+            if (enter || stroke.key == "Escape") && self.cropping_id().is_some() {
+                self.finish_image_cropping();
+                return KeyOutcome::default();
+            }
+            if enter {
+                if let Some(id) = self.selected_image() {
+                    self.start_image_cropping(&id);
+                    return KeyOutcome::default();
+                }
+            }
+        }
         let mut scene = Scene::new(self.session.elements().to_vec());
         let mut app_state = self.session.app_state().clone();
         let out = {
@@ -662,6 +746,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         for effect in &out.effects {
             match effect {
                 KeyEffect::Action(KeyDownOutcome::Perform(name)) => self.perform_action(*name),
+                KeyEffect::ExecuteAction(name) => self.perform_action(*name),
                 KeyEffect::Scrolled(translation) => self.set_viewport_to(translation.viewport),
                 _ => {}
             }
@@ -814,6 +899,8 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         match name {
             ActionName::Undo => return self.undo(),
             ActionName::Redo => return self.redo(),
+            ActionName::Finalize => return self.finalize(None),
+            ActionName::ToggleLinearEditor => return self.toggle_linear_editor(),
             _ => {}
         }
         if let Some(action) = ZoomAction::from_name(name.as_str()) {
@@ -853,6 +940,17 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 }
                 ActionName::ZenMode => {
                     toggle_zen_mode(&mut app_state);
+                    None
+                }
+                ActionName::ObjectsSnapMode => {
+                    // actionToggleObjectsSnapMode.perform
+                    // (actionToggleObjectsSnapMode.tsx:18-27)
+                    let on = app_state
+                        .get("objectsSnapModeEnabled")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false);
+                    app_state.insert("objectsSnapModeEnabled", json!(!on));
+                    app_state.insert("gridModeEnabled", json!(false));
                     None
                 }
                 _ => return,
@@ -1096,7 +1194,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// (`transformHandles.ts`): more than one element, or one that is not
     /// a line or an arrow, or a line or non-elbow arrow of more than two
     /// points.
-    fn has_bounding_box(selected: &[&Element]) -> bool {
+    pub(crate) fn has_bounding_box(selected: &[&Element]) -> bool {
         match selected {
             [] => false,
             [one] => match &one.kind {
@@ -1110,6 +1208,15 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// `getElementAtPosition(x, y)`: the topmost element hit, bound text
     /// counting as its container's.
     pub(crate) fn element_at(&mut self, point: [f64; 2]) -> Option<String> {
+        self.element_at_with(point, false)
+    }
+
+    /// `getElementAtPosition(x, y, { includeLockedElements })`.
+    pub(crate) fn element_at_with(
+        &mut self,
+        point: [f64; 2],
+        include_locked: bool,
+    ) -> Option<String> {
         let zoom = self.session.app_state().zoom().unwrap_or(1.0);
         let selected: Vec<String> = self.selected_ids();
         let elements = self.session.elements();
@@ -1123,7 +1230,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         let with_box = Self::has_bounding_box(&selected_elements);
         live.iter()
             .rev()
-            .filter(|e| !is_bound_text(e))
+            .filter(|e| !is_bound_text(e) && (include_locked || !e.base.locked))
             .find(|e| {
                 hit_element(
                     &mut self.hit_cache,
@@ -1164,7 +1271,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// `selectGroupsForSelectedElements`), and the hyperlink popup closes.
     pub fn open_context_menu(&mut self, client_x: f64, client_y: f64) -> ContextMenuKind {
         let point = self.scene_point(client_x, client_y);
-        let hit = self.element_at(point);
+        let hit = self.element_at_with(point, true);
         let selected_ids = self.selected_ids();
         let hitting_box = {
             let selected: Vec<&Element> = self
@@ -1378,6 +1485,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                     pending: Vec::new(),
                 });
             }
+            "arrow" | "line" if self.multi.is_some() => self.multi_pointer_down(input, &tool),
             "rectangle" | "diamond" | "ellipse" | "arrow" | "line" | "freedraw" | "frame" => {
                 self.create_pointer_down(input, &tool)
             }
@@ -1402,7 +1510,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
 
     /// The binding state of the app (`isBindingEnabled`, the grid, the
     /// zoom), a new arrow's press at `origin`.
-    fn binding_app_state(&self, origin: [f64; 2], alt: bool) -> BindingAppState {
+    pub(crate) fn binding_app_state(&self, origin: [f64; 2], alt: bool) -> BindingAppState {
         let app = self.session.app_state();
         let flag = |k: &str, d: bool| app.get(k).and_then(Value::as_bool).unwrap_or(d);
         BindingAppState {
@@ -1437,6 +1545,12 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             self.grid_size(input.ctrl_or_cmd)
         };
         let origin_in_grid = get_grid_point(origin[0], origin[1], grid);
+        // a frame goes in no frame (createFrameElementOnPointerDown)
+        let frame_id = if tool == "frame" {
+            None
+        } else {
+            self.top_layer_frame_at(origin_in_grid, None, None)
+        };
         let id = self.session.env.random_id();
         let seed = self.session.env.random_integer();
         let now = RestoreEnv::now(&mut self.session.env);
@@ -1444,7 +1558,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             tool,
             self.session.app_state(),
             origin_in_grid,
-            None,
+            frame_id.as_deref(),
             &id,
             seed,
             now,
@@ -1452,8 +1566,14 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             return;
         };
         let linear = matches!(tool, "arrow" | "line");
-        // Ok: a new element at the end gets an index after the last
-        let _ = self.session.insert_elements_at_index(vec![element], None);
+        // insertNewElements (App.tsx:7922-7950): a frame's new child above
+        // its highest child
+        let index = frame_id.as_deref().and_then(|f| {
+            let all: Vec<&Element> = self.session.elements().iter().collect();
+            get_frame_children_insertion_index(&all, f)
+        });
+        // Ok: the indices around the insertion are valid
+        let _ = self.session.insert_elements_at_index(vec![element], index);
         let mut scene = Scene::new(self.session.elements().to_vec());
         if linear {
             scene.mutate_element(
@@ -1489,12 +1609,21 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             app_state.insert("selectedElementIds", json!({ id.clone(): true }));
         }
         self.apply(scene, app_state);
+        // insertNewElement's updateFrameToHighlight, and newElement
+        let frame = self.element_value(frame_id.as_deref());
+        let new_element = self.element_value(Some(&id));
+        self.set_keys(vec![
+            ("frameToHighlight", frame),
+            ("newElement", new_element),
+        ]);
+        self.session.commit();
         self.gesture = Some(Gesture::Create(CreateGesture {
             id,
             tool: tool.to_owned(),
             origin,
             origin_in_grid,
             dragged: false,
+            multi: false,
         }));
         self.report();
     }
@@ -1514,10 +1643,34 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 self.session.app_state().zoom().unwrap_or(1.0),
                 PointerType::Mouse,
                 &EditorInterface::desktop(),
-                None,
+                self.linear_state().map(|l| SelectedLinearElementState {
+                    is_editing: l.is_editing,
+                    is_dragging: l.is_dragging,
+                    hover_point_index: l.hover_point_index as i64,
+                }),
             );
-            if session.handle().is_some() {
-                self.gesture = Some(Gesture::Transform(session));
+            if let Some(handle) = session.handle() {
+                let origin_in_grid =
+                    get_grid_point(origin[0], origin[1], self.grid_size(input.ctrl_or_cmd));
+                // while cropping the handles crop (App.tsx:9555-9563)
+                if let Some(id) = self.cropping_id().filter(|c| selected == [c.clone()]) {
+                    let original = session
+                        .original_elements()
+                        .iter()
+                        .find(|e| e.base.id == id)
+                        .cloned();
+                    if let Some(original) = original {
+                        self.gesture = Some(Gesture::Crop(Box::new(CropPress {
+                            id,
+                            handle,
+                            offset: session.offset(),
+                            origin_in_grid,
+                            original,
+                        })));
+                        return;
+                    }
+                }
+                self.gesture = Some(Gesture::Transform(session, origin_in_grid));
                 return;
             }
         }
@@ -1534,28 +1687,111 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             .filter(|e| !e.base.is_deleted)
             .map(|e| (e.base.id.clone(), e.clone()))
             .collect();
+        // the selected line or arrow's points and midpoints
+        // (LinearElementEditor.handlePointerDown, App.tsx:9600-9623)
+        let linear = match self.linear_pointer_down(input, origin) {
+            Some((_, true)) => {
+                self.gesture = Some(Gesture::Inert);
+                self.session.commit();
+                return self.report();
+            }
+            Some((press, false)) => Some(press),
+            None => None,
+        };
         let link = self.link_at(origin);
-        let hit = if link.is_some() {
+        // a locked element on top takes the press, unless an element under
+        // it is selected (App.tsx:9662-9708)
+        let selected_now = self.selected_ids();
+        let on_top = self.element_at_with(origin, true);
+        let locked_on_top = on_top.as_ref().is_some_and(|id| self.is_locked(id));
+        let active_locked = self
+            .session
+            .app_state()
+            .get("activeLockedId")
+            .and_then(Value::as_str)
+            .map(str::to_owned);
+        if on_top.is_none() || on_top != active_locked {
+            self.set_keys(vec![("activeLockedId", Value::Null)]);
+        }
+        let covered_selected = self
+            .elements_at(origin, false)
+            .iter()
+            .any(|id| selected_now.contains(id));
+        let hit = if link.is_some() || (locked_on_top && !covered_selected) {
             None
+        } else if let Some(press) = linear.as_ref().filter(|p| p.hit) {
+            Some(press.id.clone())
         } else {
             self.element_at(origin)
         };
-        if link.is_none() {
-            let mut selected = self.selected_ids();
-            match &hit {
-                Some(id) if selected.contains(id) => {}
-                Some(id) if input.shift_key => selected.push(id.clone()),
-                Some(id) => selected = vec![id.clone()],
-                None if input.shift_key => {}
-                None => selected.clear(),
+        // a press off the image being cropped ends the cropping
+        // (App.tsx:9718-9723)
+        if let Some(c) = self.cropping_id() {
+            if hit.as_deref() != Some(c.as_str()) {
+                self.finish_image_cropping();
             }
-            self.set_selection(&selected);
+        }
+        let was_added_to_selection = hit
+            .as_ref()
+            .is_some_and(|id| !self.selected_ids().contains(id));
+        if link.is_none() {
+            let editing = self.linear_state().filter(|l| l.is_editing);
+            if let Some(mut state) = editing {
+                // the editor stays open only for a press on its element
+                // (App.tsx:9764-9782)
+                state.is_editing = hit.as_deref() == Some(state.element_id.as_str());
+                let id = state.element_id.clone();
+                self.set_selection(std::slice::from_ref(&id));
+                self.set_linear_state(Some(&state));
+            } else {
+                let mut selected = self.selected_ids();
+                match &hit {
+                    Some(id) if selected.contains(id) => {}
+                    Some(id) if input.shift_key => selected.push(id.clone()),
+                    Some(id) => selected = vec![id.clone()],
+                    None if input.shift_key => {}
+                    None => selected.clear(),
+                }
+                self.set_selection(&selected);
+                // selectedLinearElement follows a lone line or arrow
+                // (App.tsx:9771-9790, 12428-12440), and a cleared
+                // selection clears it (clearSelection, App.tsx:13005-13024)
+                let current = self.linear_state();
+                let next = match (&hit, selected.as_slice()) {
+                    (_, []) => None,
+                    (Some(h), [only]) if h == only && self.is_linear_id(h) => Some(
+                        current
+                            .filter(|c| &c.element_id == h)
+                            .unwrap_or_else(|| LinearState::new(h, false)),
+                    ),
+                    _ => current,
+                };
+                self.set_linear_state(next.as_ref());
+            }
             self.session.commit();
         }
         // the selection element (`createGenericElementOnPointerDown`)
         let box_origin = (hit.is_none() && link.is_none())
             .then(|| get_grid_point(origin[0], origin[1], self.grid_size(input.ctrl_or_cmd)));
-        self.gesture = Some(Gesture::Select(SelectGesture {
+        if let Some(corner) = box_origin {
+            // appState.selectionElement, which the interactive canvas draws
+            let id = self.session.env.random_id();
+            let seed = self.session.env.random_integer();
+            let now = RestoreEnv::now(&mut self.session.env);
+            let element = new_element_for_tool(
+                "selection",
+                self.session.app_state(),
+                corner,
+                None,
+                &id,
+                seed,
+                now,
+            );
+            if let Some(element) = element {
+                self.set_keys(vec![("selectionElement", Value::Object(element.to_map()))]);
+            }
+        }
+        self.gesture = Some(Gesture::Select(Box::new(SelectGesture {
             origin,
             originals,
             hit,
@@ -1564,8 +1800,29 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             dragged: false,
             box_origin,
             box_selected: false,
-        }));
+            with_cmd_or_ctrl: input.ctrl_or_cmd,
+            was_added_to_selection,
+            has_been_duplicated: false,
+            linear,
+            last_point: origin,
+        })));
         self.report();
+    }
+
+    /// Whether `id` is a locked element.
+    fn is_locked(&self, id: &str) -> bool {
+        self.session
+            .elements()
+            .iter()
+            .any(|e| e.base.id == id && e.base.locked)
+    }
+
+    /// Whether `id` is a line or an arrow in the scene.
+    fn is_linear_id(&self, id: &str) -> bool {
+        self.session
+            .elements()
+            .iter()
+            .any(|e| e.base.id == id && !e.base.is_deleted && e.kind.linear().is_some())
     }
 
     /// A `pointermove`: pans during a pan, drags the selection while a press
@@ -1588,7 +1845,11 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             }
             Some(Gesture::Select(g)) if g.box_origin.is_some() => self.box_select(input),
             Some(Gesture::Select(_)) => self.drag_selection(input),
-            Some(Gesture::Transform(_)) => self.transform(input),
+            Some(Gesture::Transform(..)) => self.transform(input),
+            Some(Gesture::Crop(press)) => {
+                let press = press.clone();
+                self.crop_move(&press, input);
+            }
             Some(Gesture::Create(_)) => self.create_pointer_move(input),
             Some(Gesture::Erase { trail, pending, .. }) => {
                 let point = viewport_coords_to_scene_coords(
@@ -1605,7 +1866,10 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                     .collect();
                 *pending = trail.add_point_to_path(point.0, point.1, input.alt_key, &visible, zoom);
             }
-            Some(Gesture::TextCreate { .. } | Gesture::TextLabel { .. }) | None => {}
+            Some(Gesture::TextCreate { .. } | Gesture::TextLabel { .. }) => self.text_drag(input),
+            None if self.multi.is_some() => self.multi_hover(input),
+            None => self.hover(input),
+            Some(Gesture::Finalized | Gesture::Inert) => {}
         }
     }
 
@@ -1620,6 +1884,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         let Some(Gesture::Create(gesture)) = self.gesture.as_mut() else {
             return;
         };
+        let origin = gesture.origin;
         let Some(element) = self
             .session
             .elements()
@@ -1690,11 +1955,46 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                         .then(|| self.session.app_state().grid_size())
                         .flatten()
                 };
-                let [gx, gy] = get_grid_point(pointer[0], pointer[1], grid);
+                let [mut gx, mut gy] = get_grid_point(pointer[0], pointer[1], grid);
                 let [ox, oy] = gesture.origin_in_grid;
+                let tool = gesture.tool.clone();
+                // snapNewElement (App.tsx:13518-13545)
+                let origin_offset = self.origin_snap_offset();
+                let [sx, sy] = origin_offset.unwrap_or([0.0, 0.0]);
+                let snap_state = self.snap_state();
+                let event = Some(SnapEvent {
+                    ctrl_or_cmd: input.ctrl_or_cmd,
+                });
+                let live: Vec<&Element> = self
+                    .session
+                    .elements()
+                    .iter()
+                    .filter(|e| !e.base.is_deleted)
+                    .collect();
+                let map = ElementsMap::new(live.iter().copied());
+                self.snap_cache.maybe_cache_reference_snap_points(
+                    &snap_state,
+                    event,
+                    &[&element],
+                    &live,
+                    &map,
+                );
+                let snapped = snap_new_element(
+                    &element,
+                    &self.snap_cache,
+                    &snap_state,
+                    event,
+                    [ox + sx, oy + sy],
+                    [gx - ox, gy - oy],
+                    &map,
+                );
+                gx += snapped.snap_offset[0];
+                gy += snapped.snap_offset[1];
+                let lines = interact::snap_lines_json(&snapped.snap_lines);
+                self.set_keys(vec![("snapLines", lines)]);
                 let Some([x, y, width, height]) = drag_new_element(&DragNewElement {
                     element: &element,
-                    element_type: &gesture.tool,
+                    element_type: &tool,
                     origin: [ox, oy],
                     pointer: [gx, gy],
                     width: (gx - ox).abs(),
@@ -1702,7 +2002,9 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                     maintain_aspect_ratio: input.shift_key,
                     resize_from_center: input.alt_key,
                     width_aspect_ratio: None,
+                    origin_offset,
                 }) else {
+                    self.session.commit();
                     return;
                 };
                 ElementUpdate {
@@ -1714,9 +2016,24 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 }
             }
         };
+        let dragged_end = update.points.as_ref().and_then(|p| p.last().copied());
         scene.mutate_element(&element.base.id, update, &mut self.session.env);
         let app_state = self.session.app_state().clone();
         self.apply(scene, app_state);
+        let id = element.base.id.clone();
+        if let (Some(point), ElementKind::Arrow(_)) = (dragged_end, &element.kind) {
+            let last = element.kind.points().map_or(1, <[_]>::len) - 1;
+            self.suggest_binding(&id, last, point, pointer, origin, true, input.alt_key);
+        }
+        let new_element = self.element_value(Some(&id));
+        let mut keys = vec![("newElement", new_element)];
+        // what a frame being drawn would take in (App.tsx:13574-13588)
+        if is_frame_like(&element) {
+            let inside = self.elements_in_resizing_frame(&id);
+            keys.push(("elementsToHighlight", self.elements_value(&inside)));
+        }
+        self.set_keys(keys);
+        self.session.commit();
         self.report();
     }
 
@@ -1748,6 +2065,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             return;
         };
         gesture.box_selected = true;
+        let press = gesture.origin;
         let corner = get_grid_point(point[0], point[1], grid);
         let elements = self.session.elements();
         let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
@@ -1811,8 +2129,39 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         patch.retain(|k, v| current.get(k) != Some(v));
         if !patch.is_empty() {
             self.session.set_state(patch);
-            self.session.commit();
         }
+        // the box follows the pointer (maybeDragNewGenericElement,
+        // App.tsx:13474-13497)
+        let selection = self
+            .session
+            .app_state()
+            .get("selectionElement")
+            .and_then(Value::as_object)
+            .and_then(|m| Element::from_map(m.clone()).ok());
+        if let Some(mut selection) = selection {
+            if let Some([x, y, width, height]) = drag_new_element(&DragNewElement {
+                element: &selection,
+                element_type: "selection",
+                origin: press,
+                pointer: point,
+                width: (point[0] - press[0]).abs(),
+                height: (point[1] - press[1]).abs(),
+                maintain_aspect_ratio: false,
+                resize_from_center: false,
+                width_aspect_ratio: None,
+                origin_offset: None,
+            }) {
+                selection.base.x = x;
+                selection.base.y = y;
+                selection.base.width = width;
+                selection.base.height = height;
+                self.set_keys(vec![(
+                    "selectionElement",
+                    Value::Object(selection.to_map()),
+                )]);
+            }
+        }
+        self.session.commit();
         self.report();
     }
 
@@ -1823,13 +2172,69 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     fn transform(&mut self, input: PointerInput) {
         let point = self.scene_point(input.client_x, input.client_y);
         let grid = self.grid_size(false);
-        let Some(Gesture::Transform(session)) = self.gesture.as_ref() else {
+        let Some(Gesture::Transform(session, origin_in_grid)) = self.gesture.as_ref() else {
             return;
         };
-        let session = session.clone();
+        let (session, origin_in_grid) = (session.clone(), *origin_in_grid);
+        let handle = session.handle();
+        let rotating = handle == Some(TransformHandleType::Rotation);
+        self.set_keys(vec![
+            ("isResizing", json!(handle.is_some() && !rotating)),
+            ("isRotating", json!(rotating)),
+        ]);
+        // snapResizingElements (App.tsx:13742-13779)
+        let mut snap_offset = [0.0, 0.0];
+        if !self
+            .session
+            .app_state()
+            .get("selectedElementsAreBeingDragged")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+        {
+            let [gx, gy] = get_grid_point(point[0], point[1], self.grid_size(input.ctrl_or_cmd));
+            let drag_offset = [gx - origin_in_grid[0], gy - origin_in_grid[1]];
+            let snap_state = self.snap_state();
+            let event = Some(SnapEvent {
+                ctrl_or_cmd: input.ctrl_or_cmd,
+            });
+            let elements = self.session.elements().to_vec();
+            let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
+            let map = ElementsMap::new(live.iter().copied());
+            let selected: Vec<&Element> = live
+                .iter()
+                .copied()
+                .filter(|e| session.selected().contains(&e.base.id))
+                .collect();
+            let originals: Vec<&Element> = session
+                .original_elements()
+                .iter()
+                .filter(|e| session.selected().contains(&e.base.id))
+                .collect();
+            self.snap_cache.maybe_cache_reference_snap_points(
+                &snap_state,
+                event,
+                &selected,
+                &live,
+                &map,
+            );
+            let snapped = snap_resizing_elements(
+                &selected,
+                &originals,
+                &self.snap_cache,
+                &snap_state,
+                event,
+                drag_offset,
+                handle,
+            );
+            snap_offset = snapped.snap_offset;
+            self.set_keys(vec![(
+                "snapLines",
+                interact::snap_lines_json(&snapped.snap_lines),
+            )]);
+        }
         let mut scene = Scene::new(self.session.elements().to_vec());
         let app_state = self.session.app_state().clone();
-        let transformed = session.update(
+        let transformed = session.update_snapped(
             &mut scene,
             &mut self.session.env,
             point,
@@ -1839,51 +2244,324 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 ctrl: input.ctrl_or_cmd,
             },
             grid,
+            snap_offset,
         );
         if transformed {
             self.apply(scene, app_state);
-            self.report();
+            // the elements a resized frame would hold (App.tsx:13800-13817)
+            let frames: Vec<String> = self
+                .session
+                .elements()
+                .iter()
+                .filter(|e| {
+                    !e.base.is_deleted
+                        && is_frame_like(e)
+                        && session.selected().contains(&e.base.id)
+                })
+                .map(|e| e.base.id.clone())
+                .collect();
+            let mut highlight: Vec<String> = Vec::new();
+            for frame in frames {
+                for id in self.elements_in_resizing_frame(&frame) {
+                    if !highlight.contains(&id) {
+                        highlight.push(id);
+                    }
+                }
+            }
+            let highlight = self.elements_value(&highlight);
+            self.set_keys(vec![("elementsToHighlight", highlight)]);
         }
+        self.session.commit();
+        self.report();
     }
 
+    /// A move while a press on a selected element lasts
+    /// (`App.tsx:10988-11232`): the frame under the pointer is highlighted
+    /// (`getTopLayerFrameAtSceneCoords`); unless Ctrl/Cmd was held at the
+    /// press, the selection is dragged by the pointer's offset from the
+    /// press (one axis only with Shift), snapped to the other elements
+    /// when snapping is on (`snapDraggedElements`) and otherwise to the
+    /// grid; the first move with Alt held duplicates the selection and
+    /// drags the duplicates (`duplicateDraggedSelection`).
     fn drag_selection(&mut self, input: PointerInput) {
         let point = self.scene_point(input.client_x, input.client_y);
-        let Some(Gesture::Select(gesture)) = self.gesture.as_mut() else {
+        // the linear element editor's points and midpoints first
+        // (App.tsx:10716-10985)
+        if let Some(Gesture::Select(gesture)) = self.gesture.as_mut() {
+            if let Some(mut press) = gesture.linear.take() {
+                let handled = self.linear_drag(&mut press, input);
+                if let Some(Gesture::Select(gesture)) = self.gesture.as_mut() {
+                    gesture.linear = Some(press);
+                    if handled {
+                        gesture.dragged = true;
+                    }
+                }
+                if handled {
+                    self.session.commit();
+                    return self.report();
+                }
+            }
+        }
+        // the crop moves over the image being cropped
+        if let Some(Gesture::Select(gesture)) = self.gesture.as_mut() {
+            let last = std::mem::replace(&mut gesture.last_point, point);
+            let hit = gesture.hit.clone();
+            if let (Some(c), Some(h)) = (self.cropping_id(), hit) {
+                if c == h && !input.alt_key && self.crop_region_drag(&c, last, point) {
+                    if let Some(Gesture::Select(gesture)) = self.gesture.as_mut() {
+                        gesture.dragged = true;
+                    }
+                    return;
+                }
+            }
+        }
+        let Some(Gesture::Select(gesture)) = self.gesture.as_ref() else {
             return;
         };
         if gesture.hit.is_none() {
             return;
         }
-        let offset = [point[0] - gesture.origin[0], point[1] - gesture.origin[1]];
+        let mut offset = [point[0] - gesture.origin[0], point[1] - gesture.origin[1]];
         if offset == [0.0, 0.0] && !gesture.dragged {
             return;
         }
-        gesture.dragged = true;
-        let originals = gesture.originals.clone();
+        let with_cmd_or_ctrl = gesture.with_cmd_or_ctrl;
         let selected = self.selected_ids();
+        let selected_set: HashSet<String> = selected.iter().cloned().collect();
+        let elements = self.session.elements().to_vec();
+        let selected_elements: Vec<&Element> = elements
+            .iter()
+            .filter(|e| !e.base.is_deleted && selected_set.contains(&e.base.id))
+            .collect();
+        if !selected_elements.is_empty() && selected_elements.iter().all(|e| e.base.locked) {
+            return;
+        }
+        let frame = if selected_elements.iter().any(|e| is_frame_like(e)) {
+            None
+        } else {
+            let current = excali_editor::frame::get_common_frame_id(&selected_elements);
+            self.top_layer_frame_at(point, Some(&selected_set), current.as_deref())
+        };
+        let frame = self.element_value(frame.as_deref());
+        self.set_keys(vec![("frameToHighlight", frame)]);
+        if let Some(Gesture::Select(gesture)) = self.gesture.as_mut() {
+            gesture.dragged = true;
+        }
+        if selected_elements.is_empty() || with_cmd_or_ctrl {
+            self.session.commit();
+            self.report();
+            return;
+        }
+        if input.shift_key {
+            // lockDirection: the smaller offset is dropped
+            let (dx, dy) = (offset[0].abs(), offset[1].abs());
+            if dx < dy {
+                offset[0] = 0.0;
+            }
+            if dx > dy {
+                offset[1] = 0.0;
+            }
+        }
+        let Some(Gesture::Select(gesture)) = self.gesture.as_ref() else {
+            return;
+        };
+        let originals = gesture.originals.clone();
+        // the snap cache is filled before the first drag
+        let snap_state = self.snap_state();
+        let event = Some(SnapEvent {
+            ctrl_or_cmd: input.ctrl_or_cmd,
+        });
+        let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
+        let map = ElementsMap::new(live.iter().copied());
+        self.snap_cache.maybe_cache_visible_gaps(
+            &snap_state,
+            event,
+            &selected_elements,
+            &live,
+            &map,
+        );
+        self.snap_cache.maybe_cache_reference_snap_points(
+            &snap_state,
+            event,
+            &selected_elements,
+            &live,
+            &map,
+        );
+        let original_list: Vec<&Element> = originals.values().collect();
+        let original_ids: HashSet<&str> = selected_set.iter().map(String::as_str).collect();
+        let snapped = snap_dragged_elements(
+            &original_list,
+            &original_ids,
+            &mut offset,
+            &self.snap_cache,
+            &snap_state,
+            event,
+            &map,
+        );
         let grid = self.grid_size(input.ctrl_or_cmd);
-        let mut scene = Scene::new(self.session.elements().to_vec());
+        let mut scene = Scene::new(elements.clone());
         let app_state = self.session.app_state().clone();
         drag_selected_elements(
             &originals,
             &selected,
             offset,
             &mut scene,
+            snapped.snap_offset,
             grid,
             &mut self.session.env,
         );
         self.apply(scene, app_state);
+        self.set_keys(vec![
+            ("snapLines", interact::snap_lines_json(&snapped.snap_lines)),
+            ("selectedElementsAreBeingDragged", json!(true)),
+            ("selectionElement", Value::Null),
+        ]);
+        let duplicate = input.alt_key
+            && matches!(self.gesture.as_ref(), Some(Gesture::Select(g)) if !g.has_been_duplicated);
+        if duplicate {
+            self.duplicate_dragged_selection(point, &selected, event);
+        }
+        self.session.commit();
         self.report();
+    }
+
+    /// `duplicateDraggedSelection` (`App.duplicate.ts:163-318`) at the
+    /// pointer `point`: the originals back where the press found them, the
+    /// duplicates selected and dragged from here on.
+    fn duplicate_dragged_selection(
+        &mut self,
+        point: [f64; 2],
+        dragged: &[String],
+        event: Option<SnapEvent>,
+    ) {
+        let Some(Gesture::Select(gesture)) = self.gesture.as_mut() else {
+            return;
+        };
+        gesture.has_been_duplicated = true;
+        let hit = gesture.hit.clone();
+        let was_added = gesture.was_added_to_selection;
+        let originals = gesture.originals.clone();
+        let elements = self.session.elements().to_vec();
+        let app_state = self.session.app_state().clone();
+        let Some(dup) = duplicate_dragged_selection(
+            &elements,
+            &app_state,
+            hit.as_deref(),
+            was_added,
+            &originals,
+            &mut self.session.env,
+        ) else {
+            return;
+        };
+        if dup.duplicated_elements.is_empty() {
+            return;
+        }
+        if let Some(Gesture::Select(gesture)) = self.gesture.as_mut() {
+            for d in &dup.duplicated_elements {
+                gesture.originals.insert(d.base.id.clone(), d.clone());
+            }
+            gesture.hit = hit.and_then(|h| dup.orig_id_to_duplicate_id.get(&h).cloned());
+            gesture.origin = point;
+        }
+        let _ = self.session.replace_all_elements(dup.elements);
+        self.set_patch(dup.selection);
+        // arrows bound to the originals follow them back
+        let mut scene = Scene::new(self.session.elements().to_vec());
+        let selected: Vec<String> = originals
+            .keys()
+            .filter(|id| {
+                app_state
+                    .get("selectedElementIds")
+                    .and_then(|m| m.get(id.as_str()))
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false)
+            })
+            .cloned()
+            .collect();
+        for id in &selected {
+            let arrows = scene.get(id).is_some_and(|e| {
+                e.base
+                    .bound_elements
+                    .as_ref()
+                    .is_some_and(|b| b.iter().any(|b| b.kind == BoundElementType::Arrow))
+            });
+            if arrows {
+                update_bound_elements(&mut scene, &mut self.session.env, id, None, None);
+            }
+        }
+        let app_state = self.session.app_state().clone();
+        self.apply(scene, app_state);
+        // the caches are computed again, the dragged originals left out
+        // (`maybeCacheVisibleGaps(event, selectedElements, true)`)
+        self.snap_cache.destroy();
+        let snap_state = self.snap_state();
+        let elements = self.session.elements().to_vec();
+        let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
+        let map = ElementsMap::new(live.iter().copied());
+        let originals: Vec<&Element> = live
+            .iter()
+            .copied()
+            .filter(|e| dragged.contains(&e.base.id))
+            .collect();
+        self.snap_cache
+            .maybe_cache_visible_gaps(&snap_state, event, &originals, &live, &map);
+        self.snap_cache.maybe_cache_reference_snap_points(
+            &snap_state,
+            event,
+            &originals,
+            &live,
+            &map,
+        );
     }
 
     /// The `pointerup` ending the press.
     pub fn pointer_up(&mut self, input: PointerInput) {
         self.last_pointer = [input.client_x, input.client_y];
-        match self.gesture.take() {
-            None | Some(Gesture::Pan { .. }) => {}
-            Some(Gesture::Select(gesture)) => self.select_pointer_up(input, gesture),
-            Some(Gesture::Transform(_)) => {
+        let gesture = self.gesture.take();
+        if let Some(Gesture::Select(g)) = &gesture {
+            // the frames of the dragged selection (App.tsx:12060-12182),
+            // while the drag's state is still the app's
+            let dragging_points = self.linear_state().is_some_and(|l| l.is_dragging);
+            if g.dragged && g.hit.is_some() && !g.with_cmd_or_ctrl && !dragging_points {
+                let point = self.scene_point(input.client_x, input.client_y);
+                self.frame_membership_after_drag(point);
+            }
+        }
+        if let Some(Gesture::Transform(session, _)) = &gesture {
+            if session.handle().is_some() {
+                self.frame_membership_after_resize();
+            }
+        }
+        self.reset_after_release();
+        match gesture {
+            None | Some(Gesture::Pan { .. }) => {
+                self.session.commit();
+            }
+            Some(Gesture::Select(gesture)) => self.select_pointer_up(input, *gesture),
+            Some(Gesture::Transform(..)) => {
                 self.session.store.schedule_capture();
+                self.session.commit();
+                self.report();
+            }
+            Some(Gesture::Inert) => {
+                self.session.commit();
+                self.report();
+            }
+            Some(Gesture::Crop(_)) => {
+                self.session.store.schedule_capture();
+                self.session.commit();
+                self.report();
+            }
+            Some(Gesture::Finalized) => {
+                // the release of the press that finished the element
+                // reverts the tool (App.tsx:12594-12620)
+                if !self.tools.is_tool_locked() {
+                    self.tools.active_tool = self.tools.tool_after_finalize();
+                }
+                self.set_keys(vec![
+                    ("newElement", Value::Null),
+                    ("suggestedBinding", Value::Null),
+                ]);
                 self.session.commit();
                 self.report();
             }
@@ -1943,10 +2621,22 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 pointer[0] - gesture.origin[0],
                 pointer[1] - gesture.origin[1],
             ) * zoom;
+            if gesture.multi {
+                // the point is committed (App.tsx:11728-11745)
+                let last = element
+                    .kind
+                    .points()
+                    .map_or(0, <[_]>::len)
+                    .saturating_sub(1);
+                if let Some(m) = self.multi.as_mut() {
+                    m.last_committed = Some(last);
+                }
+                self.session.commit();
+                return self.report();
+            }
             if !gesture.dragged || distance < MINIMUM_ARROW_SIZE {
-                // upstream starts drawing point by point here; the element
-                // does not, and drops the element
-                return self.discard_new_element(&element.base.id);
+                // the element is drawn point by point from here
+                return self.start_multi_point(&element.base.id);
             }
             if gesture.tool == "arrow" {
                 let map = scene.elements_map();
@@ -1988,6 +2678,18 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         if is_invisibly_small_element(&drawn) {
             return self.discard_new_element(&drawn.base.id);
         }
+        if is_frame_like(&drawn) {
+            // getElementsInNewFrame then addElementsToFrame
+            // (App.tsx:12022-12036)
+            let elements = scene.elements().to_vec();
+            let inside = {
+                let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
+                let map = ElementsMap::new(live.iter().copied());
+                get_elements_in_new_frame(&elements, &drawn, &map)
+            };
+            let next = add_elements_to_frame(elements, &inside, &drawn, &mut self.session.env);
+            scene = Scene::new(next);
+        }
         let mut app_state = self.session.app_state().clone();
         let locked = self.tools.is_tool_locked();
         if gesture.tool != "freedraw" {
@@ -2010,6 +2712,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 json!({ "elementId": drawn.base.id, "isEditing": false }),
             );
         }
+        app_state.insert("newElement", Value::Null);
         self.apply(scene, app_state);
         self.session.store.schedule_capture();
         self.session.commit();
@@ -2028,6 +2731,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             .collect();
         let mut patch = Map::new();
         patch.insert("selectedElementIds".into(), json!({}));
+        patch.insert("newElement".into(), Value::Null);
         let _ = self.session.update_scene(
             Some(elements),
             Some(patch),
@@ -2146,6 +2850,34 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             }
             return;
         }
+        if let Some(press) = &gesture.linear {
+            if press.hit || self.linear_state().is_some_and(|l| l.is_dragging) {
+                self.linear_pointer_up(press, input);
+            }
+        }
+        // a click on a locked element marks it (App.tsx:11578-11614)
+        let hits_selected = self
+            .elements_at(gesture.origin, false)
+            .iter()
+            .any(|id| self.selected_ids().contains(id));
+        let active_locked = if !gesture.box_selected && !hits_selected {
+            self.element_at_with(point, true).and_then(|id| {
+                let e = self.session.elements().iter().find(|e| e.base.id == id)?;
+                e.base.locked.then(|| {
+                    e.base
+                        .group_ids
+                        .last()
+                        .cloned()
+                        .unwrap_or_else(|| e.base.id.clone())
+                })
+            })
+        } else {
+            None
+        };
+        self.set_keys(vec![(
+            "activeLockedId",
+            active_locked.map_or(Value::Null, Value::String),
+        )]);
         let selection = self
             .session
             .app_state()
@@ -2299,6 +3031,52 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             app_state: &state,
             render_config: &config,
             text_metrics: &self.session.env.layouter.provider,
+        })
+    }
+}
+
+impl<P: TextMetricsProvider + Clone> Editor<P> {
+    /// The interactive canvas's display list at `width` × `height` device
+    /// pixels and device pixel ratio `scale` (`renderInteractiveScene`,
+    /// `renderer/interactiveScene.ts`), with `selection_color` the
+    /// container's `--color-selection` (`getSelectionColor`): the
+    /// selection's borders and handles, the selection box, the linear
+    /// element editor's points, the binding, frame and element
+    /// highlights and the snap lines.
+    pub fn interactive_scene(
+        &self,
+        width: f64,
+        height: f64,
+        scale: f64,
+        selection_color: &str,
+    ) -> DisplayList {
+        let elements = self.session.elements();
+        let live: Vec<&Element> = elements.iter().filter(|e| !e.base.is_deleted).collect();
+        let map = ElementsMap::new(live.iter().copied());
+        let selected_ids: HashSet<String> = self.selected_ids().into_iter().collect();
+        let selected: Vec<&Element> = live
+            .iter()
+            .copied()
+            .filter(|e| selected_ids.contains(&e.base.id))
+            .collect();
+        let app_state =
+            InteractiveCanvasAppState::from_app_state(self.session.app_state().as_map());
+        let pointer = self.scene_point(self.last_pointer[0], self.last_pointer[1]);
+        render_interactive_scene(&InteractiveScene {
+            canvas_width: width,
+            canvas_height: height,
+            scale,
+            elements_map: &map,
+            elements: &live,
+            all_elements_map: &map,
+            all_elements: &live,
+            visible_elements: &live,
+            selected_elements: &selected,
+            app_state: &app_state,
+            selection_color,
+            editor_interface: EditorInterface::desktop(),
+            pointer: Some(pointer),
+            angle_locked: false,
         })
     }
 }
