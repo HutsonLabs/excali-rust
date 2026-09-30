@@ -1,0 +1,2393 @@
+{
+  "upstream": "438d89861f53d8a90ad566113ecac1b83761098f",
+  "cases": [
+    {
+      "name": "create",
+      "element": {
+        "id": "r",
+        "type": "rectangle",
+        "x": 10,
+        "y": 20,
+        "width": 100,
+        "height": 60,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 4,
+        "versionNonce": 1591223503,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": 1,
+        "link": "https://example.com/a?b=c",
+        "locked": false
+      },
+      "appState": {"showHyperlinkPopup":"editor"},
+      "steps": [
+        {
+          "step": null,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":""},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "",
+          "focused": true,
+          "selected": [0,0],
+          "link": null,
+          "showHyperlinkPopup": "editor"
+        },
+        {
+          "step": {"type":"excalidraw.com"},
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":"excalidraw.com"},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "excalidraw.com",
+          "focused": true,
+          "selected": [14,14],
+          "link": null,
+          "showHyperlinkPopup": "editor"
+        },
+        {
+          "step": {"key":"Enter"},
+          "defaultPrevented": false,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "a",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-link","href":"excalidraw.com","rel":"noopener noreferrer","target":"_blank"},
+                  "style": {},
+                  "children": ["excalidraw.com"]
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Edit",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--edit ToolIcon_type_button--show ToolIcon",
+                        "title": "Edit",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"FreedrawIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": null,
+          "focused": false,
+          "selected": null,
+          "link": "excalidraw.com",
+          "showHyperlinkPopup": "info"
+        },
+        {
+          "step": {"click":"edit"},
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":"excalidraw.com"},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "excalidraw.com",
+          "focused": true,
+          "selected": [0,14],
+          "link": "excalidraw.com",
+          "showHyperlinkPopup": "editor"
+        },
+        {
+          "step": {"type":"  https://example.com/a?b=c  "},
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":"  https://example.com/a?b=c  "},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "  https://example.com/a?b=c  ",
+          "focused": true,
+          "selected": [29,29],
+          "link": "excalidraw.com",
+          "showHyperlinkPopup": "editor"
+        },
+        {
+          "step": {"key":"Enter"},
+          "defaultPrevented": false,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "a",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-link","href":"https://example.com/a?b=c","rel":"noopener noreferrer","target":"_blank"},
+                  "style": {},
+                  "children": ["https://example.com/a?b=c"]
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Edit",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--edit ToolIcon_type_button--show ToolIcon",
+                        "title": "Edit",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"FreedrawIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": null,
+          "focused": false,
+          "selected": null,
+          "link": "https://example.com/a?b=c",
+          "showHyperlinkPopup": "info"
+        }
+      ]
+    },
+    {
+      "name": "edit-existing",
+      "element": {
+        "id": "r",
+        "type": "rectangle",
+        "x": 10,
+        "y": 20,
+        "width": 100,
+        "height": 60,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 1291342511,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": 1,
+        "link": "https://docs.excalidraw.com",
+        "locked": false
+      },
+      "appState": {"showHyperlinkPopup":"editor"},
+      "steps": [
+        {
+          "step": null,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":"https://excalidraw.com"},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "https://excalidraw.com",
+          "focused": true,
+          "selected": [0,22],
+          "link": "https://excalidraw.com",
+          "showHyperlinkPopup": "editor"
+        },
+        {
+          "step": {"key":"k","ctrl":true},
+          "defaultPrevented": true,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":"https://excalidraw.com"},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "https://excalidraw.com",
+          "focused": true,
+          "selected": [0,22],
+          "link": "https://excalidraw.com",
+          "showHyperlinkPopup": "editor"
+        },
+        {
+          "step": {"type":"https://docs.excalidraw.com"},
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":"https://docs.excalidraw.com"},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "https://docs.excalidraw.com",
+          "focused": true,
+          "selected": [27,27],
+          "link": "https://excalidraw.com",
+          "showHyperlinkPopup": "editor"
+        },
+        {
+          "step": {"key":"Escape"},
+          "defaultPrevented": false,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "a",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-link","href":"https://docs.excalidraw.com","rel":"noopener noreferrer","target":"_blank"},
+                  "style": {},
+                  "children": ["https://docs.excalidraw.com"]
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Edit",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--edit ToolIcon_type_button--show ToolIcon",
+                        "title": "Edit",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"FreedrawIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": null,
+          "focused": false,
+          "selected": null,
+          "link": "https://docs.excalidraw.com",
+          "showHyperlinkPopup": "info"
+        }
+      ]
+    },
+    {
+      "name": "clear-by-empty-input",
+      "element": {
+        "id": "r",
+        "type": "rectangle",
+        "x": 10,
+        "y": 20,
+        "width": 100,
+        "height": 60,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 1291342511,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": 1,
+        "link": null,
+        "locked": false
+      },
+      "appState": {"showHyperlinkPopup":"editor"},
+      "steps": [
+        {
+          "step": null,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":"https://excalidraw.com"},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "https://excalidraw.com",
+          "focused": true,
+          "selected": [0,22],
+          "link": "https://excalidraw.com",
+          "showHyperlinkPopup": "editor"
+        },
+        {
+          "step": {"type":"   "},
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":"   "},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "   ",
+          "focused": true,
+          "selected": [3,3],
+          "link": "https://excalidraw.com",
+          "showHyperlinkPopup": "editor"
+        },
+        {
+          "step": {"key":"Enter"},
+          "defaultPrevented": false,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {"tag":"div","attrs":{"class":"excalidraw-hyperlinkContainer-link"},"style":{},"children":["No link is set"]},
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Edit",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--edit ToolIcon_type_button--show ToolIcon",
+                        "title": "Edit",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"FreedrawIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": null,
+          "focused": false,
+          "selected": null,
+          "link": null,
+          "showHyperlinkPopup": "info"
+        }
+      ]
+    },
+    {
+      "name": "remove",
+      "element": {
+        "id": "r",
+        "type": "rectangle",
+        "x": 10,
+        "y": 20,
+        "width": 100,
+        "height": 60,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 1291342511,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": 1,
+        "link": null,
+        "locked": false
+      },
+      "appState": {"showHyperlinkPopup":"info","scrollX":30,"scrollY":-12.5,"zoom":{"value":1.5},"offsetLeft":20,"offsetTop":40},
+      "steps": [
+        {
+          "step": null,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-55px","padding":"5px","top":"-73.75px","width":"380px"},
+              "children": [
+                {
+                  "tag": "a",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-link","href":"https://excalidraw.com","rel":"noopener noreferrer","target":"_blank"},
+                  "style": {},
+                  "children": ["https://excalidraw.com"]
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Edit",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--edit ToolIcon_type_button--show ToolIcon",
+                        "title": "Edit",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"FreedrawIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": null,
+          "focused": false,
+          "selected": null,
+          "link": "https://excalidraw.com",
+          "showHyperlinkPopup": "info"
+        },
+        {"step":{"click":"remove"},"dom":[],"value":null,"focused":false,"selected":null,"link":null,"showHyperlinkPopup":false}
+      ]
+    },
+    {
+      "name": "info-without-link",
+      "element": {
+        "id": "r",
+        "type": "rectangle",
+        "x": 10,
+        "y": 20,
+        "width": 100,
+        "height": 60,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 1291342511,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": 1,
+        "link": "example.com",
+        "locked": false
+      },
+      "appState": {"showHyperlinkPopup":"info"},
+      "steps": [
+        {
+          "step": null,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {"tag":"div","attrs":{"class":"excalidraw-hyperlinkContainer-link"},"style":{},"children":["No link is set"]},
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Edit",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--edit ToolIcon_type_button--show ToolIcon",
+                        "title": "Edit",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"FreedrawIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": null,
+          "focused": false,
+          "selected": null,
+          "link": null,
+          "showHyperlinkPopup": "info"
+        },
+        {
+          "step": {"click":"edit"},
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":""},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "",
+          "focused": true,
+          "selected": [0,0],
+          "link": null,
+          "showHyperlinkPopup": "editor"
+        },
+        {
+          "step": {"type":"example.com"},
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":"example.com"},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "example.com",
+          "focused": true,
+          "selected": [11,11],
+          "link": null,
+          "showHyperlinkPopup": "editor"
+        },
+        {"step":{"close":true},"dom":[],"value":null,"focused":false,"selected":null,"link":"example.com","showHyperlinkPopup":false}
+      ]
+    },
+    {
+      "name": "sanitized",
+      "element": {
+        "id": "r",
+        "type": "rectangle",
+        "x": 10,
+        "y": 20,
+        "width": 100,
+        "height": 60,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 4,
+        "versionNonce": 1591223503,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": 1,
+        "link": "https://a.com/&quot;q&quot;",
+        "locked": false
+      },
+      "appState": {"showHyperlinkPopup":"editor"},
+      "steps": [
+        {
+          "step": null,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":""},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "",
+          "focused": true,
+          "selected": [0,0],
+          "link": null,
+          "showHyperlinkPopup": "editor"
+        },
+        {
+          "step": {"type":"javascript:alert(\"x\")"},
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":"javascript:alert(\"x\")"},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "javascript:alert(\"x\")",
+          "focused": true,
+          "selected": [21,21],
+          "link": null,
+          "showHyperlinkPopup": "editor"
+        },
+        {
+          "step": {"key":"Enter"},
+          "defaultPrevented": false,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "a",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-link","href":"about:blank","rel":"noopener noreferrer","target":"_blank"},
+                  "style": {},
+                  "children": ["about:blank"]
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Edit",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--edit ToolIcon_type_button--show ToolIcon",
+                        "title": "Edit",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"FreedrawIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": null,
+          "focused": false,
+          "selected": null,
+          "link": "about:blank",
+          "showHyperlinkPopup": "info"
+        },
+        {
+          "step": {"click":"edit"},
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":"javascript:alert(\"x\")"},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "javascript:alert(\"x\")",
+          "focused": true,
+          "selected": [0,21],
+          "link": "about:blank",
+          "showHyperlinkPopup": "editor"
+        },
+        {
+          "step": {"type":"https://a.com/\"q\""},
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":"https://a.com/\"q\""},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "https://a.com/\"q\"",
+          "focused": true,
+          "selected": [17,17],
+          "link": "about:blank",
+          "showHyperlinkPopup": "editor"
+        },
+        {
+          "step": {"key":"Enter"},
+          "defaultPrevented": false,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "a",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-link","href":"https://a.com/&quot;q&quot;","rel":"noopener noreferrer","target":"_blank"},
+                  "style": {},
+                  "children": ["https://a.com/&quot;q&quot;"]
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Edit",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--edit ToolIcon_type_button--show ToolIcon",
+                        "title": "Edit",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"FreedrawIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": null,
+          "focused": false,
+          "selected": null,
+          "link": "https://a.com/&quot;q&quot;",
+          "showHyperlinkPopup": "info"
+        }
+      ]
+    },
+    {
+      "name": "close-without-typing",
+      "element": {
+        "id": "r",
+        "type": "rectangle",
+        "x": 10,
+        "y": 20,
+        "width": 100,
+        "height": 60,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 2,
+        "versionNonce": 48271,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": 1,
+        "link": "https://excalidraw.com",
+        "locked": false
+      },
+      "appState": {"showHyperlinkPopup":"editor"},
+      "steps": [
+        {
+          "step": null,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":"https://excalidraw.com"},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "https://excalidraw.com",
+          "focused": true,
+          "selected": [0,22],
+          "link": "https://excalidraw.com",
+          "showHyperlinkPopup": "editor"
+        },
+        {
+          "step": {"key":"a"},
+          "defaultPrevented": false,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":"https://excalidraw.com"},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "https://excalidraw.com",
+          "focused": true,
+          "selected": [0,22],
+          "link": "https://excalidraw.com",
+          "showHyperlinkPopup": "editor"
+        },
+        {"step":{"close":true},"dom":[],"value":null,"focused":false,"selected":null,"link":"https://excalidraw.com","showHyperlinkPopup":false}
+      ]
+    },
+    {
+      "name": "arrow-zoomed-out",
+      "element": {
+        "id": "a",
+        "type": "arrow",
+        "x": 200,
+        "y": 150,
+        "width": 100,
+        "height": 100,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 3,
+        "versionNonce": 1291342511,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": 1,
+        "link": "https://excalidraw.com",
+        "locked": false,
+        "points": [[0,0],[-120,-80]],
+        "startBinding": null,
+        "endBinding": null,
+        "startArrowhead": null,
+        "endArrowhead": null,
+        "elbowed": false
+      },
+      "appState": {"showHyperlinkPopup":"editor","zoom":{"value":0.5},"scrollX":-40,"scrollY":10},
+      "steps": [
+        {
+          "step": null,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-145px","padding":"5px","top":"-45px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":""},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "",
+          "focused": true,
+          "selected": [0,0],
+          "link": null,
+          "showHyperlinkPopup": "editor"
+        },
+        {
+          "step": {"type":"https://excalidraw.com"},
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-145px","padding":"5px","top":"-45px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":"https://excalidraw.com"},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "https://excalidraw.com",
+          "focused": true,
+          "selected": [22,22],
+          "link": null,
+          "showHyperlinkPopup": "editor"
+        },
+        {
+          "step": {"key":"Enter"},
+          "defaultPrevented": false,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-145px","padding":"5px","top":"-45px","width":"380px"},
+              "children": [
+                {
+                  "tag": "a",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-link","href":"https://excalidraw.com","rel":"noopener noreferrer","target":"_blank"},
+                  "style": {},
+                  "children": ["https://excalidraw.com"]
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Edit",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--edit ToolIcon_type_button--show ToolIcon",
+                        "title": "Edit",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"FreedrawIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": null,
+          "focused": false,
+          "selected": null,
+          "link": "https://excalidraw.com",
+          "showHyperlinkPopup": "info"
+        }
+      ]
+    },
+    {
+      "name": "rotated",
+      "element": {
+        "id": "r",
+        "type": "rectangle",
+        "x": 100,
+        "y": 100,
+        "width": 120,
+        "height": 40,
+        "angle": 0.5,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 2,
+        "versionNonce": 48271,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": 1,
+        "link": null,
+        "locked": false
+      },
+      "appState": {"showHyperlinkPopup":"editor"},
+      "steps": [
+        {
+          "step": null,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-30px","padding":"5px","top":"15px","width":"380px"},
+              "children": [
+                {
+                  "tag": "input",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-input","placeholder":"Type or paste your link here","value":""},
+                  "style": {},
+                  "children": []
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": "",
+          "focused": true,
+          "selected": [0,0],
+          "link": null,
+          "showHyperlinkPopup": "editor"
+        }
+      ]
+    },
+    {
+      "name": "local-link",
+      "element": {
+        "id": "r",
+        "type": "rectangle",
+        "x": 10,
+        "y": 20,
+        "width": 100,
+        "height": 60,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 2,
+        "versionNonce": 48271,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": 1,
+        "link": "http://localhost/#room",
+        "locked": false
+      },
+      "appState": {"showHyperlinkPopup":"info"},
+      "steps": [
+        {
+          "step": null,
+          "dom": [
+            {
+              "tag": "div",
+              "attrs": {"class":"excalidraw-hyperlinkContainer"},
+              "style": {"left":"-130px","padding":"5px","top":"-65px","width":"380px"},
+              "children": [
+                {
+                  "tag": "a",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer-link","href":"http://localhost/#room","rel":"noopener noreferrer","target":"_self"},
+                  "style": {},
+                  "children": ["http://localhost/#room"]
+                },
+                {
+                  "tag": "div",
+                  "attrs": {"class":"excalidraw-hyperlinkContainer__buttons"},
+                  "style": {},
+                  "children": [
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Edit",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--edit ToolIcon_type_button--show ToolIcon",
+                        "title": "Edit",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"FreedrawIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Link to object",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium ToolIcon_type_button--show ToolIcon",
+                        "title": "Link to object",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"elementLinkIcon"}]
+                        }
+                      ]
+                    },
+                    {
+                      "tag": "button",
+                      "attrs": {
+                        "aria-label": "Remove",
+                        "class": "ToolIcon_type_button ToolIcon_size_medium excalidraw-hyperlinkContainer--remove ToolIcon_type_button--show ToolIcon",
+                        "title": "Remove",
+                        "type": "button"
+                      },
+                      "style": {},
+                      "children": [
+                        {
+                          "tag": "div",
+                          "attrs": {"aria-disabled":"false","aria-hidden":"true","class":"ToolIcon__icon"},
+                          "style": {},
+                          "children": [{"icon":"TrashIcon"}]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "value": null,
+          "focused": false,
+          "selected": null,
+          "link": "http://localhost/#room",
+          "showHyperlinkPopup": "info"
+        }
+      ]
+    },
+    {
+      "name": "view-mode",
+      "element": {
+        "id": "r",
+        "type": "rectangle",
+        "x": 10,
+        "y": 20,
+        "width": 100,
+        "height": 60,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 2,
+        "versionNonce": 48271,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": 1,
+        "link": "https://excalidraw.com",
+        "locked": false
+      },
+      "appState": {"showHyperlinkPopup":"info","viewModeEnabled":true},
+      "steps": [{"step":null,"dom":[],"value":null,"focused":false,"selected":null,"link":"https://excalidraw.com","showHyperlinkPopup":"info"}]
+    },
+    {
+      "name": "context-menu-open",
+      "element": {
+        "id": "r",
+        "type": "rectangle",
+        "x": 10,
+        "y": 20,
+        "width": 100,
+        "height": 60,
+        "angle": 0,
+        "strokeColor": "#1e1e1e",
+        "backgroundColor": "transparent",
+        "fillStyle": "solid",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "index": "a0",
+        "roundness": null,
+        "seed": 1,
+        "version": 2,
+        "versionNonce": 48271,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 1,
+        "created": 1,
+        "link": "https://excalidraw.com",
+        "locked": false
+      },
+      "appState": {"showHyperlinkPopup":"info","openMenu":"canvas"},
+      "steps": [{"step":null,"dom":[],"value":null,"focused":false,"selected":null,"link":"https://excalidraw.com","showHyperlinkPopup":"info"}]
+    }
+  ]
+}

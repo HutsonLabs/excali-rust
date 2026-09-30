@@ -707,3 +707,127 @@ fn ctrl_o_and_ctrl_shift_s_ask_the_host_for_its_file_dialogs() {
     ed.key_down(&Keystroke::new("o", "KeyO").ctrl());
     assert!(!ed.take_events().contains(&HostEvent::OpenRequest));
 }
+
+// ex-543: Ctrl/Cmd+K opens upstream's link editor (actionLink.tsx:24-42,
+// Hyperlink.tsx); Enter or Escape submits normalizeLink(input) || null and
+// shows the info popup; Remove clears the link and closes it; closing the
+// popup while editing submits what was typed (the layout effect's cleanup,
+// Hyperlink.tsx:180-184).
+
+fn ctrl_k(ed: &mut Editor<CharCountTextMetrics>) {
+    ed.key_down(&Keystroke::new("k", "KeyK").ctrl());
+}
+
+#[test]
+fn ctrl_k_opens_the_link_editor_above_the_selection() {
+    use excali_editor::hyperlink::HyperlinkMode;
+    let mut ed = editor();
+    ctrl_k(&mut ed);
+    assert!(ed.hyperlink_panel().is_none(), "nothing selected");
+    select(&mut ed, "box");
+    ctrl_k(&mut ed);
+    let panel = ed.hyperlink_panel().expect("the editor is open");
+    assert_eq!(panel.mode, HyperlinkMode::Editor);
+    assert_eq!(panel.element_id, "box");
+    // getCoordsForPopover: box (60, 60, 200 × 100) at scroll 0, zoom 1
+    assert_eq!((panel.left, panel.top), (160.0 - 190.0, 60.0 - 85.0));
+    assert_eq!(ed.hyperlink_input(), Some(""));
+    // opening it captured nothing
+    assert!(!ed.can_undo());
+}
+
+#[test]
+fn enter_sets_the_link_as_one_history_entry() {
+    use excali_editor::hyperlink::{HyperlinkEvent, HyperlinkMode};
+    let mut ed = editor();
+    select(&mut ed, "box");
+    ctrl_k(&mut ed);
+    ed.hyperlink_event(HyperlinkEvent::Input("excalidraw.com".into()));
+    assert_eq!(ed.hyperlink_input(), Some("excalidraw.com"));
+    assert_eq!(get(&ed, "box").base.link, None);
+    ed.take_events();
+    ed.hyperlink_event(HyperlinkEvent::Submit("  https://excalidraw.com  ".into()));
+    assert_eq!(get(&ed, "box").base.link.as_deref(), Some("https://excalidraw.com"));
+    assert_eq!(ed.hyperlink_panel().unwrap().mode, HyperlinkMode::Info);
+    assert!(ed
+        .take_events()
+        .iter()
+        .any(|e| matches!(e, HostEvent::Change { dirty: true })));
+    let saved: Value = serde_json::from_str(&ed.save()).unwrap();
+    let box_ = saved["elements"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|e| e["id"] == "box")
+        .unwrap();
+    assert_eq!(box_["link"], "https://excalidraw.com");
+    undo(&mut ed);
+    assert_eq!(get(&ed, "box").base.link, None);
+    assert!(!ed.can_undo(), "one history entry");
+    redo(&mut ed);
+    assert_eq!(get(&ed, "box").base.link.as_deref(), Some("https://excalidraw.com"));
+}
+
+#[test]
+fn an_unchanged_link_records_nothing() {
+    use excali_editor::hyperlink::HyperlinkEvent;
+    let mut ed = editor();
+    select(&mut ed, "linked");
+    ctrl_k(&mut ed);
+    assert_eq!(ed.hyperlink_input(), Some("https://example.com/docs"));
+    ed.hyperlink_event(HyperlinkEvent::Submit("https://example.com/docs".into()));
+    assert!(!ed.can_undo());
+}
+
+#[test]
+fn remove_clears_the_link_and_closes_the_popup() {
+    use excali_editor::hyperlink::{HyperlinkEvent, HyperlinkMode};
+    let mut ed = editor();
+    select(&mut ed, "linked");
+    ctrl_k(&mut ed);
+    ed.hyperlink_event(HyperlinkEvent::Submit("https://example.com/docs".into()));
+    assert_eq!(ed.hyperlink_panel().unwrap().mode, HyperlinkMode::Info);
+    ed.hyperlink_event(HyperlinkEvent::Edit);
+    assert_eq!(ed.hyperlink_panel().unwrap().mode, HyperlinkMode::Editor);
+    ed.hyperlink_event(HyperlinkEvent::Remove);
+    assert_eq!(get(&ed, "linked").base.link, None);
+    assert!(ed.hyperlink_panel().is_none());
+    assert_eq!(ed.app_state().get("showHyperlinkPopup"), Some(&Value::Bool(false)));
+    undo(&mut ed);
+    assert_eq!(
+        get(&ed, "linked").base.link.as_deref(),
+        Some("https://example.com/docs")
+    );
+}
+
+#[test]
+fn closing_the_editor_submits_what_was_typed() {
+    use excali_editor::hyperlink::HyperlinkEvent;
+    let mut ed = editor();
+    select(&mut ed, "box");
+    ctrl_k(&mut ed);
+    ed.hyperlink_event(HyperlinkEvent::Input("example.com".into()));
+    // a click on empty canvas clears the selection, unmounting the popup
+    ed.pointer_down(PointerInput::at(900.0, 100.0));
+    ed.pointer_up(PointerInput::at(900.0, 100.0));
+    assert!(ed.hyperlink_panel().is_none());
+    assert_eq!(ed.hyperlink_input(), None);
+    assert_eq!(get(&ed, "box").base.link.as_deref(), Some("example.com"));
+    // undone with the deselection that closed it
+    while ed.can_undo() {
+        undo(&mut ed);
+    }
+    assert_eq!(get(&ed, "box").base.link, None);
+}
+
+#[test]
+fn ctrl_k_while_editing_does_nothing() {
+    use excali_editor::hyperlink::{HyperlinkEvent, HyperlinkMode};
+    let mut ed = editor();
+    select(&mut ed, "box");
+    ctrl_k(&mut ed);
+    ed.hyperlink_event(HyperlinkEvent::Input("a".into()));
+    ctrl_k(&mut ed);
+    assert_eq!(ed.hyperlink_panel().unwrap().mode, HyperlinkMode::Editor);
+    assert_eq!(ed.hyperlink_input(), Some("a"));
+}
