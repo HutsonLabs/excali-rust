@@ -7,7 +7,9 @@
 //! the image ends it. While cropping, the image's handles crop it
 //! (`cropElement`, [`excali_editor::crop`]) instead of resizing it, snapped
 //! like a resize; a drag inside a cropped image moves the crop over the
-//! image.
+//! image. The static scene draws the image being cropped over its whole
+//! image at alpha 0.1 (`renderElement.ts:1220-1251`,
+//! [`excali_scene::element_canvas`]).
 //!
 //! Upstream crops only an image whose bitmap has loaded, reading its
 //! natural size; the element reads the size from the file's data URL

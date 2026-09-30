@@ -47,6 +47,11 @@ test("two runs are byte-identical and equal to the committed fixture", () => {
   assert.ok(first.equals(readFileSync(COMMITTED)), "stale fixture: run node tools/goldens/element-canvas.mjs");
 });
 
+test("the crop editor's cases are all there", () => {
+  const names = committed().cases.map((c) => c.name).filter((n) => n.startsWith("crop-editor"));
+  assert.equal(names.length, 8);
+});
+
 test("every drawn element is blitted from a bitmap, none drawn as vectors", () => {
   for (const c of committed().cases) {
     const ops = c.events.map((e) => e.op);
@@ -54,7 +59,15 @@ test("every drawn element is blitted from a bitmap, none drawn as vectors", () =
       assert.deepEqual(ops, [], c.name);
       continue;
     }
-    assert.equal(ops.filter((op) => op === "blit").length, 1, c.name);
+    // the image being cropped is blitted after its uncropped preview, at
+    // alpha 0.1 (renderElement.ts:1220-1251)
+    const cropping = c.appState.croppingElementId === c.draw && drawn(c).crop;
+    assert.equal(ops.filter((op) => op === "blit").length, cropping ? 2 : 1, c.name);
+    if (cropping) {
+      assert.equal(c.events[0].alpha, 0.1, c.name);
+      assert.ok(c.events[0].uncropped.length > 0, c.name);
+    }
+    assert.equal(c.events.filter((e) => e.uncropped).length, cropping ? 1 : 0, c.name);
     assert.deepEqual(
       ops.filter((op) => !["blit", "clip", "unclip"].includes(op)),
       [],

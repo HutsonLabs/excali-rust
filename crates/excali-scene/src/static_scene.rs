@@ -124,6 +124,9 @@ pub struct StaticCanvasAppState {
     /// per-element bitmaps keep their zoom and are not snapped
     /// ([`crate::element_canvas`]).
     pub should_cache_ignore_zoom: bool,
+    /// `croppingElementId`: the image being cropped, drawn over its
+    /// uncropped image at alpha 0.1 (`renderElement.ts:1220-1251`).
+    pub cropping_element_id: Option<String>,
 }
 
 impl Default for StaticCanvasAppState {
@@ -146,6 +149,7 @@ impl Default for StaticCanvasAppState {
             selected_elements_are_being_dragged: false,
             editing_group_id: None,
             should_cache_ignore_zoom: false,
+            cropping_element_id: None,
         }
     }
 }

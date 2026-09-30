@@ -389,6 +389,8 @@ pub fn export_to_canvas(
         Theme::Light
     };
     let static_state = StaticCanvasAppState {
+        // an export draws no crop preview (`isExporting`)
+        cropping_element_id: None,
         zoom: 1.0,
         scroll_x: -min_x + padding,
         scroll_y: -min_y + padding,

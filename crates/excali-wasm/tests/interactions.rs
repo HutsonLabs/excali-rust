@@ -1537,3 +1537,36 @@ fn one_undo_removes_an_endpoint_label_and_its_binding() {
     assert!(live(&ed).iter().all(|e| json!(e.base.id) != text_id));
     assert_eq!(json!(get(&ed, "arrow").to_map())["endBinding"], Value::Null);
 }
+
+/// The groups drawn at `globalAlpha` 0.1 in the static scene: the crop
+/// editor's uncropped preview.
+fn translucent_groups(ed: &Ed) -> usize {
+    use excali_scene::display::DisplayItem;
+    fn count(items: &[DisplayItem]) -> usize {
+        items
+            .iter()
+            .map(|item| match item {
+                DisplayItem::Group(g) => usize::from(g.opacity == 0.1) + count(&g.items),
+                _ => 0,
+            })
+            .sum()
+    }
+    count(&ed.static_scene(1000.0, 700.0, 1.0).items)
+}
+
+#[test]
+fn the_image_being_cropped_shows_its_uncropped_image_faintly() {
+    // renderElement.ts:1220-1251: while cropping a cropped image, the whole
+    // image is drawn under it at globalAlpha 0.1
+    let mut ed = image_scene();
+    enter(&mut ed);
+    // not cropped yet: nothing to preview
+    assert_eq!(translucent_groups(&ed), 0);
+    let se = se_handle_center(get(&ed, "img"));
+    drag(&mut ed, se, [se[0] - 50.0, se[1] - 30.0]);
+    assert_eq!(translucent_groups(&ed), 1);
+    // done cropping: the crop stays, the preview goes
+    escape(&mut ed);
+    assert!(!json!(get(&ed, "img").to_map())["crop"].is_null());
+    assert_eq!(translucent_groups(&ed), 0);
+}

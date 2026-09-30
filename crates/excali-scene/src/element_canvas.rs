@@ -46,8 +46,13 @@
 //!   element when exporting, are drawn as vectors ([`render_element`]).
 //!
 //! The render offset of a host override is applied in the blit, before
-//! snapping, as upstream applies it. The crop editor's translucent
-//! uncropped preview (`croppingElementId`, `:1220-1251`) is ex-707's.
+//! snapping, as upstream applies it.
+//! - The crop editor's preview (`:1220-1251`): the image being cropped
+//!   (`croppingElementId`), when it has a crop, is drawn over its whole
+//!   image ([`crate::crop::get_uncropped_image_element`]), rasterised for
+//!   that draw only and blitted at `globalAlpha` 0.1 (not times the
+//!   element's opacity) with no render offset
+//!   ([`ElementDraw::CropPreview`]).
 //!
 //! Fixture: `tests/fixtures/element-canvas.json`, from upstream's
 //! `renderElement` on its editor path (`tools/goldens/element-canvas.mjs`).
@@ -61,6 +66,7 @@ use excali_math::{is_right_angle_rads, js, Radians};
 use crate::bounds::{
     get_bound_text_element, get_container_element, get_element_absolute_coords, ElementsMap,
 };
+use crate::crop::get_uncropped_image_element;
 use crate::display::{
     bitmap_id, Blit, Clip, DisplayItem, DisplayList, FillRule, Path, Rect, Transform,
 };
@@ -550,6 +556,33 @@ pub enum ElementDraw {
     Vector(DisplayItem),
     /// From its cached bitmap.
     Blit(Blit),
+    /// The image being cropped: its uncropped preview, then its cached
+    /// bitmap.
+    CropPreview(Box<CropPreview>),
+}
+
+/// `globalAlpha` of the crop editor's uncropped preview
+/// (`renderElement.ts:1226`).
+pub const CROP_PREVIEW_ALPHA: f64 = 0.1;
+
+/// The crop editor's preview of the image being cropped
+/// (`renderElement.ts:1220-1251`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct CropPreview {
+    /// The uncropped image's bitmap, made for this draw only (upstream
+    /// does not cache it); a backend draws it under
+    /// [`CropPreview::preview`]'s id.
+    pub uncropped: ElementCanvas,
+    /// Its blit: [`CROP_PREVIEW_ALPHA`], no render offset.
+    pub preview: Blit,
+    /// The element's own blit, drawn after.
+    pub blit: Blit,
+}
+
+/// The image `element` is the one being cropped and has a crop.
+pub(crate) fn is_cropping(element: &Element, app_state: &StaticCanvasAppState) -> bool {
+    app_state.cropping_element_id.as_deref() == Some(element.base.id.as_str())
+        && matches!(&element.kind, ElementKind::Image(image) if image.crop.is_some())
 }
 
 /// `renderElement(element, elementsMap, allElementsMap, rc, context,
@@ -621,6 +654,45 @@ pub fn render_element_cached<S>(
         }
         _ => None,
     };
+    let preview = if is_cropping(element, app_state) {
+        let uncropped = get_uncropped_image_element(element, elements_map);
+        generate_element_canvas(
+            &uncropped,
+            all_elements_map,
+            config,
+            app_state,
+            device_pixel_ratio,
+        )?
+        .map(|canvas| {
+            let size = ElementCanvasSize {
+                width: canvas.width,
+                height: canvas.height,
+                scale: canvas.scale,
+            };
+            // the preview stays at document coordinates
+            let placement = draw_element_from_canvas(
+                size,
+                &uncropped,
+                config,
+                app_state,
+                all_elements_map,
+                device_pixel_ratio,
+                [0.0, 0.0],
+                base,
+            );
+            let preview = Blit {
+                id: bitmap_id(&format!("{}:uncropped", element.base.id)),
+                alpha: CROP_PREVIEW_ALPHA,
+                smoothing,
+                clip: placement.clip,
+                transform: placement.transform,
+                dest: placement.dest,
+            };
+            (canvas, preview)
+        })
+    } else {
+        None
+    };
     let placement = draw_element_from_canvas(
         size,
         element,
@@ -631,12 +703,20 @@ pub fn render_element_cached<S>(
         state.offset,
         base,
     );
-    Ok(Some(ElementDraw::Blit(Blit {
+    let blit = Blit {
         id: bitmap_id(&element.base.id),
         alpha,
         smoothing,
         clip: placement.clip,
         transform: placement.transform,
         dest: placement.dest,
-    })))
+    };
+    Ok(Some(match preview {
+        Some((uncropped, preview)) => ElementDraw::CropPreview(Box::new(CropPreview {
+            uncropped,
+            preview,
+            blit,
+        })),
+        None => ElementDraw::Blit(blit),
+    }))
 }

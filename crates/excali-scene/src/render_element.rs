@@ -381,11 +381,30 @@ pub fn render_element(
         Transform::IDENTITY
     };
     let items = draw_element(element, elements_map, config, app_state)?;
-    Ok(DisplayItem::Group(Group {
+    let drawn = DisplayItem::Group(Group {
         transform,
         opacity,
         clip: None,
         items,
+    });
+    // the crop editor's preview (`:1220-1251`), drawn on the editor path
+    // only: the whole image at alpha 0.1, not times the element's, at
+    // document coordinates, then the element
+    if config.is_exporting || !crate::element_canvas::is_cropping(element, app_state) {
+        return Ok(drawn);
+    }
+    let uncropped = crate::crop::get_uncropped_image_element(element, elements_map);
+    let preview = DisplayItem::Group(Group {
+        transform: Transform::IDENTITY,
+        opacity: crate::element_canvas::CROP_PREVIEW_ALPHA,
+        clip: None,
+        items: draw_element(&uncropped, all_elements_map, config, app_state)?,
+    });
+    Ok(DisplayItem::Group(Group {
+        transform: Transform::IDENTITY,
+        opacity: 1.0,
+        clip: None,
+        items: vec![preview, drawn],
     }))
 }
 
