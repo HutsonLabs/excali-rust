@@ -136,11 +136,46 @@ document.addEventListener("keydown", (e) => {
   run(action);
 });
 
+// In-place updates: the app checks natively (update_check answers null in
+// dev builds and smoke mode) and, on Install and restart, downloads,
+// verifies, installs and restarts (update_install). The check runs beside the
+// editor, never before it, and a failed check (offline, no release yet) only
+// reaches the console.
+const updatePrompt = document.getElementById("update");
+
+async function offerUpdate() {
+  const update = await invoke("update_check");
+  if (!update) return null;
+  document.getElementById("update-text").textContent =
+    `Update to ${update.version} (you have ${update.current})`;
+  updatePrompt.hidden = false;
+  return update.version;
+}
+
+updatePrompt.addEventListener("click", async (e) => {
+  const choice = e.target.closest("button[data-update]")?.dataset.update;
+  if (choice === "later") updatePrompt.hidden = true;
+  if (choice !== "install") return;
+  for (const button of updatePrompt.querySelectorAll("button")) button.disabled = true;
+  document.getElementById("update-text").textContent = "Installing the update…";
+  try {
+    await invoke("update_install");
+  } catch (err) {
+    updatePrompt.hidden = true;
+    status(`Update failed: ${err?.message ?? err}`, true);
+  }
+});
+
+if (!smoke) {
+  offerUpdate().catch((e) => console.warn("update check:", e));
+}
+
 // Smoke mode: the same handlers, with dialogs that answer paths in the
 // smoke directory.
 if (smoke) {
   const report = { problems };
   try {
+    report.update = await offerUpdate();
     report.mounted = editor.querySelector("canvas") !== null;
     report.opened = await openScene();
     report.stateAfterOpen = editor.getState();

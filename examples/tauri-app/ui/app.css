@@ -25,3 +25,28 @@ body {
 .status { margin-left: auto; color: #555; }
 .status.error { color: #c92a2a; }
 #host { flex: 1; min-height: 0; }
+.update {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+.update[hidden] { display: none; }
+.update button {
+  font: inherit;
+  padding: 4px 10px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+.update button[data-update="install"] { background: #6965db; border-color: #6965db; color: #fff; }
+.update button:disabled { opacity: 0.6; cursor: default; }
