@@ -4,9 +4,9 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-30 00:30 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-30 00:37 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**152 issues** · 116 closed (76%) · 4 in progress · 0 blocked · 31 open
+**152 issues** · 117 closed (77%) · 4 in progress · 0 blocked · 30 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
@@ -134,7 +134,7 @@ tiny-skia raster backend, SVG writer, PNG/SVG payload embedding, CLI.
 
 ## ex-e5 · Phase 5: Web runtime and editor
 
-<span class="status open">open</span> 30/39 children closed
+<span class="status open">open</span> 31/39 children closed
 
 Canvas2D backend, interaction state machine, history, DOM chrome without a framework, keyboard shortcuts, the <excali-editor> custom element.
 
@@ -163,7 +163,7 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-521` | Footer: zoom actions, undo/redo, help button, exit zen | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-522` | Help dialog with the three shortcut islands | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-523` | Colour picker: top picks, palette 5x3, shades, hex input, eyedropper, keyboard map | task | P1 | <span class="status closed">closed</span> |  |  |
-| `ex-524` | Font picker: three top picks, scene/available groups, deprecated badge, search | task | P2 | <span class="status in_progress">in progress</span> |  |  |
+| `ex-524` | Font picker: three top picks, scene/available groups, deprecated badge, search | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-525` | Context menus (canvas and element) generated from the actions registry | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-526` | Library sidebar: tabs, header menu, personal/excalidraw sections, drag to canvas, add to library | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-527` | Command palette with category order and item lists | task | P2 | <span class="status in_progress">in progress</span> |  |  |
@@ -177,8 +177,8 @@ Canvas2D backend, interaction state machine, history, DOM chrome without a frame
 | `ex-535` | Element type conversion: convertElementTypes and the Tab / Shift+Tab convert popup | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-536` | Colour picker top-picks customisation: drag a colour onto the strip, reorder, context-menu reset, tip | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-537` | Library sidebar header menu: load and save library files, the reset and remove confirm dialogs, the publish dialog | task | P2 | <span class="status open">open</span> | yes |  |
-| `ex-538` | Font picker top-picks customisation: drag a font onto the strip, reorder, context-menu reset | task | P2 | <span class="status open">open</span> |  | `ex-524`, `ex-536` |
-| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-524`, `ex-527`, `ex-528`, `ex-529`, `ex-535`, `ex-536` … |
+| `ex-538` | Font picker top-picks customisation: drag a font onto the strip, reorder, context-menu reset | task | P2 | <span class="status open">open</span> |  | `ex-536` |
+| `ex-m5` | M5: editor usable in a browser | milestone | P2 | <span class="status open">open</span> |  | `ex-527`, `ex-528`, `ex-529`, `ex-535`, `ex-536`, `ex-537` … |
 
 ## ex-e6 · Phase 6: Host integration (term.hut and Tauri)
 
@@ -208,7 +208,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 | `ex-701` | Compact styles panel and tablet form factor | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-702` | Phone layout: mobile menu, bottom bar, mobile toolbar order | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-703` | Sticky notes: element, rendering (shadow, edge, footer), label fitting | task | P2 | <span class="status in_progress">in progress</span> |  |  |
-| `ex-704` | Bucket fill tool | task | P2 | <span class="status open">open</span> | yes |  |
+| `ex-704` | Bucket fill tool | task | P2 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-705` | Lasso selection | task | P2 | <span class="status open">open</span> | yes |  |
 | `ex-706` | Autoshape (draw-shape) recognition | task | P3 | <span class="status open">open</span> | yes |  |
 | `ex-707` | Image crop editor | task | P2 | <span class="status open">open</span> | yes |  |
