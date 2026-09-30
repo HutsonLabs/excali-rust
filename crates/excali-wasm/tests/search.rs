@@ -202,9 +202,10 @@ fn a_pan_takes_over_from_the_navigation() {
     ed.viewport_frame(1000.0);
     ed.viewport_frame(1100.0);
     let before = viewport(&ed);
-    let mut wheel = excali_wasm::editor::WheelInput::default();
-    wheel.delta_y = 40.0;
-    ed.wheel(&wheel);
+    ed.wheel(&excali_wasm::editor::WheelInput {
+        delta_y: 40.0,
+        ..Default::default()
+    });
     assert!(!ed.is_viewport_animating());
     assert_eq!(
         ed.app_state().get("shouldCacheIgnoreZoom"),
