@@ -19,6 +19,11 @@ mod markup;
 
 pub use generated::*;
 
+/// The rule that flips an icon created with `mirror: true` (the
+/// `rtl-mirror` class) in a right-to-left document: `css/styles.scss:679-683`
+/// compiled by `tools/goldens/icons.mjs`.
+pub const ICONS_CSS: &str = include_str!("icons.css");
+
 /// The option presets icons are built with (directly or spread with
 /// overrides).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

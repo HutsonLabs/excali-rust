@@ -205,6 +205,7 @@ pub fn menu_text(key: &str) -> &str {
         "buttons.systemMode" => "System mode",
         "buttons.objectsSnapMode" => "Snap to objects",
         "buttons.zenMode" => "Zen mode",
+        "buttons.menu" => "Menu",
         "commandPalette.title" => "Command palette",
         "search.title" => "Find on canvas",
         "helpDialog.title" => "Help",

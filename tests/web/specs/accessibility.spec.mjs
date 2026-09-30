@@ -48,66 +48,89 @@ const mount = async (page, { scene = null, theme = "light", dir = null } = {}) =
       ed.setAttribute("ui", "full");
       document.getElementById("host").appendChild(ed);
       window.ed = ed;
-      if (scene) await ed.load(scene);
+      if (scene) {
+        await ed.load(scene);
+        // the scene's appState carries its own theme
+        ed.setAttribute("theme", theme === "light" ? "dark" : "light");
+        ed.setAttribute("theme", theme);
+      }
     },
     { scene, theme, dir },
   );
   return errors;
 };
 
-/** axe's WCAG A/AA violations on the page, as `id: targets` lines. */
+/** axe's WCAG A/AA violations on the page: rule, targets and why. */
 const violations = async (page) => {
+  // a menu or dialog fading in has not its final colours yet
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getTiming().iterations !== Infinity)
+        .map((a) => a.finished),
+    ),
+  );
   const result = await new AxeBuilder({ page }).withTags(WCAG).analyze();
   return result.violations.map(
-    (v) => `${v.id} (${v.impact}): ${v.nodes.map((n) => n.target.join(" ") + (process.env.AXE_DEBUG ? " " + n.failureSummary : "")).join(", ")}`,
+    (v) =>
+      `${v.id} (${v.impact}): ` +
+      v.nodes.map((n) => `${n.target.join(" ")}: ${n.failureSummary}`).join("; "),
   );
 };
 
+/** The chrome states axe checks, each opened on a mounted editor. */
+const STATES = {
+  "the empty editor with the welcome screen": {
+    scene: null,
+    open: async (page) => {
+      await expect(page.locator("excali-editor .welcome-screen-center")).toBeVisible(SHORT);
+    },
+  },
+  "a scene": { open: async () => {} },
+  "the main menu": {
+    open: async (page) => {
+      await page.locator("excali-editor .main-menu-trigger").click(SHORT);
+      await expect(page.locator("excali-editor .main-menu")).toBeVisible(SHORT);
+    },
+  },
+  "the help dialog": {
+    open: async (page) => {
+      await page.locator("excali-editor .excalidraw-container").focus();
+      await page.keyboard.press("Shift+Slash");
+      await expect(page.locator("body > .excalidraw-modal-container .HelpDialog")).toBeVisible(
+        SHORT,
+      );
+    },
+  },
+  "the command palette": {
+    open: async (page) => {
+      await page.locator("excali-editor .excalidraw-container").focus();
+      await page.keyboard.press(`${MOD}+Slash`);
+      await expect(
+        page.locator("body > .excalidraw-modal-container .command-palette-dialog"),
+      ).toBeVisible(SHORT);
+    },
+  },
+  "the library sidebar": {
+    open: async (page) => {
+      await page.locator("excali-editor .default-sidebar-trigger").click(SHORT);
+      await expect(page.locator("excali-editor .default-sidebar")).toBeVisible(SHORT);
+    },
+  },
+};
+
 test.describe("axe finds no WCAG A/AA violation", () => {
-  test("empty editor, welcome screen, light", async ({ page }) => {
-    const errors = await mount(page);
-    await expect(page.locator("excali-editor .welcome-screen-center")).toBeVisible(SHORT);
-    expect(await violations(page)).toEqual([]);
-    expect(errors).toEqual([]);
-  });
-
-  test("with a scene, dark", async ({ page }) => {
-    const errors = await mount(page, { scene: SCENE, theme: "dark" });
-    expect(await violations(page)).toEqual([]);
-    expect(errors).toEqual([]);
-  });
-
-  test("main menu open", async ({ page }) => {
-    await mount(page, { scene: SCENE });
-    await page.locator("excali-editor .main-menu-trigger").click(SHORT);
-    await expect(page.locator("excali-editor .main-menu")).toBeVisible(SHORT);
-    expect(await violations(page)).toEqual([]);
-  });
-
-  test("help dialog open", async ({ page }) => {
-    await mount(page, { scene: SCENE });
-    await page.locator("excali-editor .excalidraw-container").focus();
-    await page.keyboard.press("Shift+Slash");
-    await expect(page.locator("body > .excalidraw-modal-container .HelpDialog")).toBeVisible(SHORT);
-    expect(await violations(page)).toEqual([]);
-  });
-
-  test("command palette open", async ({ page }) => {
-    await mount(page, { scene: SCENE });
-    await page.locator("excali-editor .excalidraw-container").focus();
-    await page.keyboard.press(`${MOD}+Slash`);
-    await expect(
-      page.locator("body > .excalidraw-modal-container .command-palette-dialog"),
-    ).toBeVisible(SHORT);
-    expect(await violations(page)).toEqual([]);
-  });
-
-  test("library sidebar open", async ({ page }) => {
-    await mount(page, { scene: SCENE });
-    await page.locator("excali-editor .default-sidebar-trigger").click(SHORT);
-    await expect(page.locator("excali-editor .default-sidebar")).toBeVisible(SHORT);
-    expect(await violations(page)).toEqual([]);
-  });
+  for (const theme of ["light", "dark"]) {
+    for (const [name, { scene = SCENE, open }] of Object.entries(STATES)) {
+      test(`${name}, ${theme}`, async ({ page }) => {
+        const errors = await mount(page, { scene, theme });
+        await open(page);
+        expect(await violations(page)).toEqual([]);
+        expect(errors).toEqual([]);
+      });
+    }
+  }
 });
 
 /** The focused element: its section of the layer UI and a readable name. */
@@ -188,6 +211,26 @@ test.describe("focus order", () => {
       expect(stop.section).toBe("div");
     }
     await expect(container).toBeFocused();
+  });
+});
+
+test.describe("the command palette's list", () => {
+  test("is a tab stop after the search field, and the keys still pick commands", async ({
+    page,
+  }) => {
+    await mount(page, { scene: SCENE });
+    await page.locator("excali-editor .excalidraw-container").focus();
+    await page.keyboard.press(`${MOD}+Slash`);
+    const palette = page.locator("body > .excalidraw-modal-container .command-palette-dialog");
+    await expect(palette.locator("input")).toBeFocused(SHORT);
+    await page.keyboard.type("ellipse");
+    await page.keyboard.press("Tab");
+    await expect(palette.locator(".commands")).toBeFocused(SHORT);
+    // the palette reads its keys on the window (App.tsx's capture listener)
+    await expect(palette.locator(".command-item.item-selected .name")).toHaveText("Ellipse", SHORT);
+    await page.keyboard.press("Enter");
+    await expect(palette).toHaveCount(0, SHORT);
+    expect(await page.evaluate(() => window.ed.getState().activeTool)).toBe("ellipse");
   });
 });
 

@@ -98,8 +98,17 @@ use crate::env::EditorEnv;
 /// fills it, and the toolbar island sits centred at the top, as upstream's
 /// `App-menu_top` places it (`LayerUI.tsx`, `css/styles.scss`); a
 /// dialog's portal container in the body has upstream's `.excalidraw` box
-/// (`css/styles.scss:40-60`), so its modal covers the page.
+/// (`css/styles.scss:40-60`), so its modal covers the page. Every
+/// `.excalidraw` has upstream's UI font and text colour (`styles.scss:
+/// 41-54`), which the chrome's own rules inherit.
 pub const ELEMENT_CSS: &str = "\
+.excalidraw {
+  --ui-font: Assistant, system-ui, BlinkMacSystemFont, -apple-system, Segoe UI,
+    Roboto, Helvetica, Arial, sans-serif;
+  --viewport-status-frame-border-width: 0px;
+  font-family: var(--ui-font);
+  color: var(--text-primary-color);
+}
 excali-editor {
   display: block;
   position: relative;
@@ -169,6 +178,8 @@ pub fn stylesheet() -> String {
         excali_ui::convert_popup::CONVERT_POPUP_CSS,
         excali_ui::library_sidebar::LIBRARY_SIDEBAR_CSS,
         excali_ui::layers::CANVAS_LAYER_CSS,
+        excali_ui::icons::ICONS_CSS,
+        excali_ui::accessibility::ACCESSIBILITY_CSS,
         TEXT_EDITOR_CSS,
         ELEMENT_CSS,
     ]
@@ -196,6 +207,8 @@ fn install_element_stylesheet(document: &Document) -> Result<(), JsValue> {
     style.set_text_content(Some(
         &[
             excali_ui::layers::CANVAS_LAYER_CSS,
+            excali_ui::icons::ICONS_CSS,
+            excali_ui::accessibility::ACCESSIBILITY_CSS,
             TEXT_EDITOR_CSS,
             ELEMENT_CSS,
         ]
@@ -267,6 +280,10 @@ struct Inner {
     host: HtmlElement,
     container: HtmlElement,
     layers: CanvasLayers,
+    /// `.layer-ui__wrapper` (`LayerUI.tsx:647-660`): the welcome screen's
+    /// centre, the top sections and the footer, in that order, which is
+    /// the order Tab walks them.
+    layer_ui: HtmlElement,
     top: HtmlElement,
     toolbar: Option<Mounted>,
     footer: Option<Mounted>,
@@ -639,6 +656,9 @@ fn refresh_chrome(weak: &Weak<RefCell<Inner>>) {
     let _ = render_help_dialog(weak);
     let _ = render_command_palette(weak);
     let _ = render_welcome_center(weak);
+    if let Some(rc) = weak.upgrade() {
+        let _ = excali_ui::accessibility::name_controls(&rc.borrow().container);
+    }
 }
 
 /// The convert element type popup (`App.tsx:2770-2774`): mounted in the
@@ -760,7 +780,12 @@ fn render_welcome_center(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
         on_event: Some(on_event),
     }));
     let document = inner.document();
-    let mounted = mount(&node, &document, &inner.container)?;
+    // WelcomeScreenCenterTunnel.Out leads the wrapper (LayerUI.tsx:655)
+    let mounted = mount(&node, &document, &inner.layer_ui)?;
+    let first = inner.layer_ui.first_child();
+    inner
+        .layer_ui
+        .insert_before(mounted.root(), first.as_ref())?;
     inner.welcome_center = Some(mounted);
     Ok(())
 }
@@ -1411,7 +1436,7 @@ fn render_footer(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
         ..FooterProps::default()
     }));
     let document = inner.document();
-    let mounted = mount(&node, &document, &inner.container)?;
+    let mounted = mount(&node, &document, &inner.layer_ui)?;
     inner.footer = Some(mounted);
     Ok(())
 }
@@ -1695,6 +1720,9 @@ fn render_command_palette(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
     };
     let dialog = command_palette(palette_props(weak, &session));
     session.modal = Some(excali_ui::primitives::open_modal(&document, dialog)?);
+    if let Some(container) = session.modal.as_ref().and_then(|m| m.container()) {
+        excali_ui::accessibility::name_controls(&container)?;
+    }
     inner.palette = Some(session);
     Ok(())
 }
@@ -1729,6 +1757,7 @@ fn render_palette_list(weak: &Weak<RefCell<Inner>>) {
     let node = Node::Element(command_list(&palette_props(weak, session)));
     if let Ok(mounted) = mount(&node, &document, &parent) {
         session.list = Some(mounted);
+        let _ = excali_ui::accessibility::name_controls(&container);
     }
 }
 
@@ -2041,15 +2070,20 @@ impl EditorCore {
         let editor_box: HtmlElement = document.create_element("div")?.dyn_into()?;
         editor_box.set_class_name(TEXTAREA_ATTRIBUTES.container_class_name);
         container.append_child(&editor_box)?;
-        let top: HtmlElement = document.create_element("div")?.dyn_into()?;
-        top.set_class_name("excali-editor__top");
-        container.append_child(&top)?;
+        // App-menu_top's sections in upstream's order (LayerUI.tsx:314-430):
+        // the left one with the main menu, the toolbar, the right one
+        let layer_ui: HtmlElement = document.create_element("div")?.dyn_into()?;
+        layer_ui.set_class_name("layer-ui__wrapper");
+        container.append_child(&layer_ui)?;
         let top_left: HtmlElement = document.create_element("div")?.dyn_into()?;
         top_left.set_class_name("excali-editor__top-left");
-        container.append_child(&top_left)?;
+        layer_ui.append_child(&top_left)?;
+        let top: HtmlElement = document.create_element("div")?.dyn_into()?;
+        top.set_class_name("excali-editor__top");
+        layer_ui.append_child(&top)?;
         let top_right: HtmlElement = document.create_element("div")?.dyn_into()?;
         top_right.set_class_name("excali-editor__top-right");
-        container.append_child(&top_right)?;
+        layer_ui.append_child(&top_right)?;
 
         let source = web_sys::window()
             .and_then(|w| w.location().origin().ok())
@@ -2066,6 +2100,7 @@ impl EditorCore {
             host,
             container: container.clone(),
             layers,
+            layer_ui,
             top,
             toolbar: None,
             footer: None,

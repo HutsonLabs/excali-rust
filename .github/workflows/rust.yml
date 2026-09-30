@@ -217,9 +217,11 @@ jobs:
           if fc-list | grep -qi liberation; then fc-list | grep -i liberation; exit 1; fi
       # specs/fonts.spec.mjs (ex-307), specs/editor.spec.mjs (ex-530: the
       # <excali-editor> API from plain JS, undo re-laying out bound text and
-      # bound arrows) and specs/parity.spec.mjs (ex-531: a test per row of
-      # the parity checklist, gap rows as expected failures)
-      - name: scene fonts load by unicode range; the editor element; the parity checklist
+      # bound arrows), specs/parity.spec.mjs (ex-531: a test per row of
+      # the parity checklist, gap rows as expected failures), and
+      # specs/accessibility.spec.mjs (ex-709: axe's WCAG 2.1 A/AA rules, focus
+      # order, RTL mirroring; ADR-012)
+      - name: scene fonts load by unicode range; the editor element; the parity checklist; accessibility
         working-directory: tests/web
         run: npx playwright test
         env:

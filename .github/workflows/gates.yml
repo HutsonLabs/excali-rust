@@ -465,7 +465,8 @@ jobs:
   # and island) on hand-written and seeded selections; and icons.mjs
   # --check for excali-ui's icons.json and src/icons/generated.rs (ex-517),
   # every icons.tsx export rendered by React's renderToStaticMarkup with
-  # its size preset and mirror flag; and toolbar.mjs --check for excali-ui's
+  # its size preset and mirror flag, and src/icons/icons.css, styles.scss's
+  # .rtl-mirror rule (ex-709); and toolbar.mjs --check for excali-ui's
   # toolbar.json and src/toolbar/toolbar.css (ex-518), upstream's desktop
   # Toolbar and extra-tools dropdown rendered by React with radix-ui into
   # jsdom, per tool state; and convert-popup.mjs --check for excali-ui's
