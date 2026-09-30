@@ -272,6 +272,7 @@ const LOCALE_KEYS = [
   "buttons.systemMode",
   "buttons.objectsSnapMode",
   "buttons.zenMode",
+  "buttons.menu",
   "commandPalette.title",
   "search.title",
   "helpDialog.title",

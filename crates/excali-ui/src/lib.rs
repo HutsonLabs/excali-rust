@@ -33,11 +33,14 @@
 //! cursor hint (`components/HintViewer.tsx`, `components/CursorHint.tsx`);
 //! for [`welcome_screen`] the welcome screen
 //! (`components/welcome-screen/*`); for [`top_picks_dnd`]
-//! the pickers' top-picks drag and drop (`components/TopPicksDnD/*`).
+//! the pickers' top-picks drag and drop (`components/TopPicksDnD/*`); for
+//! [`accessibility`] the accessible names upstream's icon-only triggers
+//! lack (ADR-012).
 //!
 //! Targets: wasm32. Internal dependencies allowed by the architecture
 //! overview (`site/content/architecture/overview.md`, ADR-008): `excali-canvas2d`, `excali-editor`.
 
+pub mod accessibility;
 pub mod color_picker;
 pub mod command_palette;
 pub mod context_menu;

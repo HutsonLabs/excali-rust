@@ -126,6 +126,7 @@ pub fn install_stylesheet(document: &web_sys::Document) -> Result<(), wasm_bindg
 pub fn library_text(key: &str) -> &str {
     match key {
         "toolBar.library" => "Library",
+        "labels.more_options" => "More options",
         "labels.sidebarLock" => "Keep sidebar open",
         "buttons.close" => "Close",
         "labels.personalLib" => "Personal Library",

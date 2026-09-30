@@ -1,0 +1,13 @@
+/* ADR-012 (ex-709): contrast of upstream's secondary text raised to WCAG
+ * 2.1 AA (4.5:1). The menu's shortcuts (DropdownMenu.scss, opacity 0.5). */
+.excalidraw .dropdown-menu .dropdown-menu-item > .dropdown-menu-item__shortcut {
+  opacity: 0.7;
+}
+/* The command palette's key hints (CommandPalette.scss:64-67,
+ * --color-gray-50) and the empty library's hint (LibraryMenuItems.scss:
+ * 35-37, --color-border-outline) on the light island; the dark theme's
+ * already pass. */
+.excalidraw:not(.theme--dark) .command-palette-dialog .shortcut .shortcut-desc,
+.excalidraw:not(.theme--dark) .library-menu-items__no-items__hint {
+  color: var(--color-gray-70);
+}

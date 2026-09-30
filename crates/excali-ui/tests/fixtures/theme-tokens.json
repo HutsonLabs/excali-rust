@@ -220,5 +220,5 @@
   ],
   "mobile": [["--editor-container-padding","0.75rem"]],
   "largeScreen": [["--lg-button-size","2.375rem"],["--lg-icon-size","1.25rem"],["--default-button-size","2.25rem"],["--default-icon-size","1.25rem"]],
-  "container": {"--right-sidebar-width":"302px"}
+  "container": {"--right-sidebar-width":"302px","--ui-pointerEvents":"all","--zen-mode-transition-duration":"250ms"}
 }

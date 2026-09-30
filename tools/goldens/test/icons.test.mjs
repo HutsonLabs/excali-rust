@@ -17,7 +17,11 @@ import { REPO_ROOT, TOOL_DIR, upstreamDir } from "./helpers.mjs";
 
 const GENERATOR = join(TOOL_DIR, "icons.mjs");
 const CRATE = join(REPO_ROOT, "crates", "excali-ui");
-const FILES = [join("tests", "fixtures", "icons.json"), join("src", "icons", "generated.rs")];
+const FILES = [
+  join("tests", "fixtures", "icons.json"),
+  join("src", "icons", "generated.rs"),
+  join("src", "icons", "icons.css"),
+];
 
 const scratch = mkdtempSync(join(tmpdir(), "icons-test-"));
 after(() => rmSync(scratch, { recursive: true, force: true }));
@@ -118,4 +122,13 @@ test("kinds: themed components, path arrays and the empty icon", () => {
   for (const icon of icons.filter((i) => i.kind === "static" && i.name !== "emptyIcon")) {
     assert.ok(icon.markup.startsWith('<svg aria-hidden="true" focusable="false" role="img" viewBox="0 0 '), icon.name);
   }
+});
+
+test("icons.css: styles.scss's `.rtl-mirror` rule flips a mirrored icon in an rtl document", () => {
+  // css/styles.scss:679-683: `.rtl-mirror { :root[dir="rtl"] & { transform: scaleX(-1); } }`
+  // inside `.excalidraw`.
+  const scss = readFileSync(join(upstreamDir(), "packages", "excalidraw", "css", "styles.scss"), "utf8");
+  assert.match(scss, /\.rtl-mirror \{\n\s+:root\[dir="rtl"\] & \{\n\s+transform: scaleX\(-1\);/);
+  const css = readFileSync(join(CRATE, FILES[2]), "utf8");
+  assert.ok(css.endsWith(":root[dir=rtl] .excalidraw .rtl-mirror {\n  transform: scaleX(-1);\n}\n"), css);
 });

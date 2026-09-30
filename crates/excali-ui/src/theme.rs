@@ -132,15 +132,31 @@ pub fn tokens(theme: Theme) -> Vec<(String, String)> {
     out
 }
 
-/// The tokens `App.tsx:2453` writes into the container's inline style.
+/// `ZEN_MODE_TRANSITION_DURATION` (`common/src/constants.ts:361`), ms.
+pub const ZEN_MODE_TRANSITION_DURATION: f64 = 250.0;
+
+/// The tokens `App.tsx:2449-2454` writes into the container's inline
+/// style, by name. `--ui-pointerEvents` is `POINTER_EVENTS.enabled`
+/// (`constants.ts:53-55`): `shouldBlockPointerEvents` (`App.tsx:2398-2407`)
+/// is false wherever `setPointerCapture` exists.
 pub fn container_tokens() -> Vec<(&'static str, String)> {
-    vec![(
-        "--right-sidebar-width",
-        format!(
-            "{}px",
-            excali_core::json::number_to_string(RIGHT_SIDEBAR_WIDTH)
+    vec![
+        (
+            "--right-sidebar-width",
+            format!(
+                "{}px",
+                excali_core::json::number_to_string(RIGHT_SIDEBAR_WIDTH)
+            ),
         ),
-    )]
+        ("--ui-pointerEvents", "all".into()),
+        (
+            "--zen-mode-transition-duration",
+            format!(
+                "{}ms",
+                excali_core::json::number_to_string(ZEN_MODE_TRANSITION_DURATION)
+            ),
+        ),
+    ]
 }
 
 /// Writes [`container_tokens`] into `container`'s inline style.

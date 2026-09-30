@@ -32,4 +32,11 @@ fn the_element_rules_are_in_it() {
     assert!(css.contains(".excalidraw.theme--dark"), "theme tokens");
     assert!(css.contains("excali-editor {\n  display: block;"));
     assert!(css.contains(".excalidraw canvas.interactive"));
+    // ex-709: styles.scss's rule flipping mirrored icons in rtl documents
+    assert!(css.contains(excali_ui::icons::ICONS_CSS));
+    assert!(css.contains(":root[dir=rtl] .excalidraw .rtl-mirror {\n  transform: scaleX(-1);\n}"));
+    assert!(css.contains(excali_ui::accessibility::ACCESSIBILITY_CSS));
+    // styles.scss:41-54: the UI font and text colour every .excalidraw has
+    assert!(css.contains(".excalidraw {\n  --ui-font: Assistant, system-ui,"));
+    assert!(css.contains("  font-family: var(--ui-font);\n  color: var(--text-primary-color);\n}"));
 }

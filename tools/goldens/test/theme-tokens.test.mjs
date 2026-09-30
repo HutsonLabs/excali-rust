@@ -59,11 +59,15 @@ test("the primary colours, light and dark (theme.scss:86-91, 231-236)", () => {
   });
 });
 
-test("the other rules and the container's inline token", () => {
+test("the other rules and the container's inline tokens", () => {
   const f = committed();
   assert.deepEqual(f.mobile, [["--editor-container-padding", "0.75rem"]]);
   assert.equal(f.largeScreen.length, 4);
-  assert.deepEqual(f.container, { "--right-sidebar-width": "302px" });
+  assert.deepEqual(f.container, {
+    "--right-sidebar-width": "302px",
+    "--ui-pointerEvents": "all",
+    "--zen-mode-transition-duration": "250ms",
+  });
   // every dark token overrides a light one
   const light = new Set(f.light.map(([k]) => k));
   for (const [k] of f.dark) assert.ok(light.has(k), k);

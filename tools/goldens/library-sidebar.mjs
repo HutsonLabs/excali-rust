@@ -1108,6 +1108,7 @@ const DEBURR_INPUTS = [
 
 const LOCALE_KEYS = [
   "toolBar.library",
+  "labels.more_options",
   "labels.sidebarLock",
   "buttons.close",
   "labels.personalLib",
