@@ -27,8 +27,8 @@ use excali_scene::shape::Theme;
 use excali_ui::dom::Node;
 use excali_ui::editor_interface::FormFactor;
 use excali_ui::hints::{
-    cursor_hint, get_hints, hint_text, hint_viewer, position_element_beside_cursor,
-    ContainerRect, CursorHints, HintContext, CURSOR_HINT_COOLDOWN, HINTS_CSS,
+    cursor_hint, get_hints, hint_text, hint_viewer, position_element_beside_cursor, ContainerRect,
+    CursorHints, HintContext, CURSOR_HINT_COOLDOWN, HINTS_CSS,
 };
 use excali_ui::welcome_screen::{
     excalidraw_logo, help_hint, menu_hint, toolbar_hint, welcome_screen_center, welcome_text,
@@ -188,6 +188,11 @@ fn every_hint_case_renders_upstreams_dom() {
 fn every_hint_case_picks_the_labelled_keys() {
     for case in platforms("hintViewer")[0]["cases"].as_array().unwrap() {
         let input = hint_input(case);
+        if input.app_state.get("showHints") == Some(&json!(false)) {
+            // the viewer's switch, not getHints' (HintViewer.tsx:258)
+            assert!(hint_viewer(&context(&input), false).is_none());
+            continue;
+        }
         let keys: Vec<&str> = get_hints(&context(&input)).iter().map(|h| h.key).collect();
         let want: Vec<&str> = case["hints"]
             .as_array()
@@ -241,7 +246,10 @@ fn arrow_type(name: &str) -> ArrowType {
 #[test]
 fn cursor_hints_policy_matches_upstream() {
     let fixture = fixture();
-    assert_eq!(fixture["cursorHint"]["cooldown"], json!(CURSOR_HINT_COOLDOWN));
+    assert_eq!(
+        fixture["cursorHint"]["cooldown"].as_f64(),
+        Some(CURSOR_HINT_COOLDOWN)
+    );
     for seq in fixture["cursorHints"].as_array().unwrap() {
         let mut hints = CursorHints::default();
         let events = seq["events"].as_array().unwrap();
@@ -362,7 +370,9 @@ fn welcome_screen_menu_items_run_upstreams_actions() {
         let events = Rc::new(RefCell::new(Vec::new()));
         let sink = events.clone();
         let mut props = welcome_props(case, false);
-        props.on_event = Some(Rc::new(move |e: WelcomeScreenEvent| sink.borrow_mut().push(e)));
+        props.on_event = Some(Rc::new(move |e: WelcomeScreenEvent| {
+            sink.borrow_mut().push(e)
+        }));
         let center = welcome_screen_center(&props);
         let items = excali_ui::welcome_screen::menu_items(&props);
         assert_eq!(center.children().len(), 3);
@@ -379,12 +389,18 @@ fn welcome_screen_menu_items_run_upstreams_actions() {
             .collect();
         let got: Vec<(String, String)> = items
             .iter()
-            .map(|e| (welcome_text(e.label_key()).to_owned(), e.action().name().to_owned()))
+            .map(|e| {
+                (
+                    welcome_text(e.label_key()).to_owned(),
+                    e.action().as_str().to_owned(),
+                )
+            })
             .collect();
         assert_eq!(got, want, "case {}", case["name"]);
-        assert!(items
-            .iter()
-            .all(|e| matches!(e.action(), ActionName::LoadScene | ActionName::ToggleShortcuts)));
+        assert!(items.iter().all(|e| matches!(
+            e.action(),
+            ActionName::LoadScene | ActionName::ToggleShortcuts
+        )));
     }
 }
 
