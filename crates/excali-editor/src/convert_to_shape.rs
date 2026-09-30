@@ -2,10 +2,10 @@
 //! freehand stroke reads as, and the element that replaces it.
 //!
 //! Upstream, at the pinned commit, `packages/element/src/convertToShape.ts`:
-//! the constants (`:86-129`), `resample` (`:136-182`), the stroke features
-//! (`:184-340`, on `packages/math/src/pca.ts`), the moment-based
-//! classifier (`:342-420`), `getArrowEndpoint` (`:422-475`),
-//! `recognizeShape` (`:481-506`) and `convertToShape` (`:514-715`).
+//! the constants (`:90-134`), `resample` (`:140-182`), the stroke features
+//! (`:184-358`, on `packages/math/src/pca.ts`), the moment-based
+//! classifier (`:364-438`), `getArrowEndpoint` (`:446-495`),
+//! `recognizeShape` (`:502-527`) and `convertToShape` (`:535-728`).
 //!
 //! A moment-based recognizer: the stroke is resampled to 64 evenly spaced
 //! points, an open stroke is a line or an arrow when it is straight enough
