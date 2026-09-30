@@ -153,3 +153,34 @@ test("the footer's buttons work with the mouse", async ({ page }) => {
   expect(await live()).toBe(1);
   expect(errors).toEqual([]);
 });
+
+// Mockup 02: the dark theme. Upstream draws the static canvas with
+// `theme: this.state.theme` and `renderGrid: isGridModeEnabled(this)`
+// (App.tsx:2675-2690): the background, the grid and every element colour go
+// through applyDarkModeFilter (common/src/colors.ts), and with grid mode off
+// by default (appState.ts:76) there is no grid.
+test("the dark theme draws the canvas through the dark filter, without a grid", async ({ page }) => {
+  const errors = await mount(page);
+  await page.evaluate(() => window.ed.setAttribute("theme", "dark"));
+  await drawRectangle(page);
+  await page.mouse.click(1000, 700); // deselect: no handles over the stroke
+  const px = await page.evaluate(() => {
+    const canvas = document.querySelector("excali-editor canvas.static");
+    const ctx = canvas.getContext("2d");
+    const r = canvas.width / canvas.getBoundingClientRect().width;
+    const at = (x, y) => Array.from(ctx.getImageData(Math.round(x * r), Math.round(y * r), 1, 1).data);
+    // the brightest pixel across the rectangle's left edge (x 500)
+    let edge = [0, 0, 0, 0];
+    for (let x = 494; x <= 506; x++) {
+      const p = at(x, 375);
+      if (p[0] > edge[0]) edge = p;
+    }
+    return { background: at(300, 610), gridLine: at(300, 620), edge };
+  });
+  // applyDarkModeFilter("#ffffff") is #121212
+  expect(px.background).toEqual([18, 18, 18, 255]);
+  expect(px.gridLine).toEqual(px.background);
+  // #1e1e1e through the filter is light on the dark background
+  expect(px.edge[0]).toBeGreaterThan(160);
+  expect(errors).toEqual([]);
+});
