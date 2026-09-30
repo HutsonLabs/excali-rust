@@ -559,12 +559,23 @@ const runCase = (up, window, sceneName, elements, [id, c], mobile = false) => {
   // (renderAction passes the elements including deleted ones,
   // manager.tsx:222-224; getStylesPanelInfo reads a desktop in full mode)
   const panelApp = { ...app, editorInterface: { formFactor: "desktop", desktopUIMode: "full" } };
-  const colors = Object.fromEntries(
-    [up.actionChangeStrokeColor, up.actionChangeBackgroundColor].map((action) => [
-      action.name,
-      flatten(action.PanelComponent({ elements, appState, updateData: () => {}, app: panelApp, data: undefined })),
-    ]),
-  );
+  // getSelectedElements logs its invariant for a selected deleted element
+  // (the x1 cases); the panel renders as it does without it
+  const error = console.error;
+  console.error = (...args) => {
+    if (!String(args[0]).startsWith("[NONDELETED][INVARIANT]")) error(...args);
+  };
+  let colors;
+  try {
+    colors = Object.fromEntries(
+      [up.actionChangeStrokeColor, up.actionChangeBackgroundColor].map((action) => [
+        action.name,
+        flatten(action.PanelComponent({ elements, appState, updateData: () => {}, app: panelApp, data: undefined })),
+      ]),
+    );
+  } finally {
+    console.error = error;
+  }
   const mobileTrees = mobile ? { mobile: mobileTree(up, appState, elementsMap, app, 0) } : {};
   const widths =
     mobile && MOBILE_WIDTH_CASES.includes(id)
