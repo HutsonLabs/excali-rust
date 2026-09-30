@@ -508,7 +508,10 @@ jobs:
   # src/font_picker/font_picker.css (ex-524), upstream's FontPicker
   # rendered by React with radix-ui into jsdom under a host keeping the
   # app state, per case and step, and its keyboard map; and
-  # command-palette.mjs --check for excali-ui's command-palette.json and
+  # font-top-picks-dnd.mjs --check for excali-ui's font-top-picks-dnd.json
+  # (ex-538), the same FontPicker's strip context menu, tip and scripted
+  # drags through upstream's TopPicksDnD on a fixed layout and a fake clock;
+  # and command-palette.mjs --check for excali-ui's command-palette.json and
   # src/command_palette/command_palette.css (ex-527), upstream's
   # CommandPalette over its own actions and fuzzy search rendered by React
   # into jsdom per platform: lists, searches, keys, clicks and the toggle.
@@ -626,6 +629,8 @@ jobs:
         run: node tools/goldens/library-sidebar.mjs --check
       - name: excali-ui font picker fixture and stylesheet match upstream's FontPicker, FontPickerList and keyboard map
         run: node tools/goldens/font-picker.mjs --check
+      - name: excali-ui font top-picks fixture matches upstream's fontTopPicksDnD, TopPicksDnD, its context menu and tip
+        run: node tools/goldens/font-top-picks-dnd.mjs --check
       - name: excali-ui command palette fixture and stylesheet match upstream's CommandPalette, its actions and fuzzy search
         run: node tools/goldens/command-palette.mjs --check
       - name: excali-editor viewport fixture matches upstream's zoom, scroll constraints, zoom-to-fit, wheel handler and zoom actions

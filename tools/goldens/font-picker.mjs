@@ -42,7 +42,9 @@
 // compiled (expanded) as one entry.
 //
 // The top picks' drag and drop (fontTopPicksDnD.ts, TopPicksDnD/*) renders
-// its strip, tip and context-menu trigger here but no case drags.
+// its strip, tip and context-menu trigger here but no case drags: the drags,
+// the strip's context menu and the tip's reset link are
+// font-top-picks-dnd.mjs's.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
@@ -51,6 +53,7 @@ import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
 
 import { format } from "./lib/format.mjs";
+import { installTouchCallout } from "./lib/top-picks-dnd.mjs";
 import { loadUpstream, REPO_ROOT, verifyUpstream } from "./lib/upstream.mjs";
 
 export const OUT_DIR = join(REPO_ROOT, "crates", "excali-ui");
@@ -64,7 +67,7 @@ export const STYLESHEETS = [
   "components/TopPicksDnD/TopPicksDnD.scss",
 ];
 
-const ENTRY = `
+export const ENTRY = `
 export { FontPicker, DEFAULT_FONTS, isDefaultFont } from "./packages/excalidraw/components/FontPicker/FontPicker";
 export { getFontFamilyIcon, getFontFamilyLabel } from "./packages/excalidraw/components/FontPicker/FontPickerList";
 export { fontPickerKeyHandler } from "./packages/excalidraw/components/FontPicker/keyboardNavHandlers";
@@ -79,7 +82,7 @@ export { createRoot } from "react-dom/client";
 
 // App.tsx (the whole editor) supplies the hooks the picker reads; the shim
 // answers them from globalThis.__ui.
-const SHIMS = {
+export const SHIMS = {
   "packages/excalidraw/components/App": `
     module.exports = {
       useApp: () => globalThis.__ui.app,
@@ -103,7 +106,7 @@ const SHIMS = {
   "packages/excalidraw/analytics": `module.exports = { trackEvent: () => {} };`,
 };
 
-const STUBS = ["fuzzy", "pica", "image-blob-reduce", "browser-fs-access", "packages/excalidraw/subset/subset-main"];
+export const STUBS = ["fuzzy", "pica", "image-blob-reduce", "browser-fs-access", "packages/excalidraw/subset/subset-main"];
 
 const usage = () => {
   process.stderr.write("usage: font-picker.mjs [--check] [--out DIR]\n");
@@ -131,7 +134,7 @@ class RecordingFontFace {
   }
 }
 
-const installDom = () => {
+export const installDom = () => {
   const dom = new JSDOM("<!doctype html><html><head></head><body></body></html>", {
     url: "http://localhost/",
     pretendToBeVisual: true,
@@ -224,7 +227,7 @@ const styleOf = (node) => {
   return {};
 };
 
-const staticIcons = (icons) =>
+export const staticIcons = (icons) =>
   Object.entries(icons).filter(
     ([, value]) => value && value.$$typeof === Symbol.for("react.transitional.element") && value.type === "svg",
   );
@@ -236,14 +239,14 @@ const renameIds = (value, ids) =>
     return ids.get(id);
   });
 
-const makeTree = (iconNames, ids) => {
+export const makeTree = (iconNames, ids, plainSvg = () => false) => {
   const tree = (node) => {
     if (node.nodeType === 3) return node.data;
     if (node.localName === "svg") {
       const name = iconNames.get(node.outerHTML);
       if (name) return { icon: name };
       // radix's Popover.Arrow is the one other svg
-      if (!node.querySelector(":scope > polygon")) {
+      if (!plainSvg(node) && !node.querySelector(":scope > polygon")) {
         throw new Error(`an svg that is no icons.tsx export: ${node.outerHTML.slice(0, 120)}`);
       }
     }
@@ -252,7 +255,11 @@ const makeTree = (iconNames, ids) => {
       .map((a) => [a.name, a.name === "id" || a.name.startsWith("aria-") ? renameIds(a.value, ids) : a.value]);
     const popper = node.hasAttribute("data-radix-popper-content-wrapper");
     const placed = node.parentElement?.hasAttribute("data-radix-popper-content-wrapper");
-    const arrow = node.localName === "span" && node.firstElementChild?.localName === "svg" && !iconNames.has(node.firstElementChild.outerHTML);
+    const arrow =
+      node.localName === "span" &&
+      node.firstElementChild?.localName === "svg" &&
+      !iconNames.has(node.firstElementChild.outerHTML) &&
+      !plainSvg(node.firstElementChild);
     return {
       tag: node.localName,
       attrs: sorted(placed ? attrs.filter(([n]) => n !== "data-side" && n !== "data-align") : attrs),
@@ -265,7 +272,7 @@ const makeTree = (iconNames, ids) => {
 
 // -- cases --------------------------------------------------------------------
 
-const F = {
+export const F = {
   Virgil: 1,
   Helvetica: 2,
   Cascadia: 3,
@@ -383,7 +390,7 @@ const CASES = [
   },
 ];
 
-const KEY_CODES = { ArrowDown: "ArrowDown", ArrowUp: "ArrowUp", Enter: "Enter", Escape: "Escape", F: "KeyF", a: "KeyA" };
+export const KEY_CODES = { ArrowDown: "ArrowDown", ArrowUp: "ArrowUp", Enter: "Enter", Escape: "Escape", F: "KeyF", a: "KeyA" };
 
 const render = async (up, window, iconNames, c) => {
   const { React, act, createRoot, FontPicker } = up;
@@ -648,7 +655,7 @@ const LOCALE_KEYS = [
 // FontPickerList calls onHover/onLeave while rendering when a search
 // leaves nothing hovered (FontPickerList.tsx:199-214), which React reports
 // as a setState in render; that is upstream's behaviour, not a failure.
-const quietSetStateInRender = () => {
+export const quietSetStateInRender = () => {
   const error = console.error;
   console.error = (...args) => {
     if (typeof args[0] === "string" && args[0].startsWith("Cannot update a component")) return;
@@ -661,6 +668,7 @@ export const build = async (upstream) => {
   const css = await stylesheet(upstream);
   const restoreConsole = quietSetStateInRender();
   const window = installDom();
+  installTouchCallout(window);
   const up = await loadUpstream(upstream, {
     entry: ENTRY,
     stubs: STUBS,
