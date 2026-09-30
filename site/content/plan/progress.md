@@ -4,15 +4,15 @@ description = "The task graph as tracked in beads, rendered from .beads/issues.j
 weight = 4
 +++
 
-Generated 2026-09-30 07:19 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
+Generated 2026-09-30 07:33 UTC from `.beads/issues.jsonl`. Edit `plan/tasks.json` and run `scripts/tasks/seed.py` to change the graph; claim and close work with `bd`.
 
-**156 issues** · 139 closed (89%) · 2 in progress · 0 blocked · 13 open
+**158 issues** · 140 closed (89%) · 4 in progress · 0 blocked · 12 open
 
 Status words: open (ready or waiting on a blocker), in progress (claimed), blocked, closed. A task is *ready* when every issue it depends on is closed.
 
 ## ex-e0 · Phase 0: Foundations
 
-<span class="status open">open</span> 12/12 children closed
+<span class="status open">open</span> 12/13 children closed
 
 Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo workspace and CI. Everything later phases depend on to be reproducible.
 
@@ -28,8 +28,9 @@ Site, gates, tracker, upstream pin, fixture corpus, golden generator, Cargo work
 | `ex-008` | Record the owner decisions of 2026-09-27 (calendar versioning, agent-closed milestones, fonts, strictly a port) | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-009` | Platform-independent float maths: excali_math::js for every transcendental, std methods disallowed by clippy | task | P0 | <span class="status closed">closed</span> |  |  |
 | `ex-010` | Close issues after merge and run PR CI on the affected crates only (owner decision 2026-09-29) | task | P0 | <span class="status closed">closed</span> |  |  |
+| `ex-dm2` | CI on main: never cancel the full suite; skip rust for tracker-only commits | task | P0 | <span class="status in_progress">in progress</span> |  |  |
 | `ex-g001` | Attribution gate self-test in CI: a planted attribution line must fail the gate | task | P0 | <span class="status closed">closed</span> |  |  |
-| `ex-m0` | M0: site live, gates enforced, workspace green | milestone | P2 | <span class="status closed">closed</span> |  |  |
+| `ex-m0` | M0: site live, gates enforced, workspace green | milestone | P2 | <span class="status closed">closed</span> |  | `ex-dm2` |
 
 ## ex-e1 · Phase 1: Core model and file format (excali-core)
 
@@ -201,7 +202,7 @@ Vendored module in term.hut with CRUD and library import; tauri-plugin-excali wi
 
 ## ex-e7 · Phase 7: Parity and polish
 
-<span class="status open">open</span> 14/16 children closed
+<span class="status open">open</span> 15/16 children closed
 
 Tablet and phone layouts, remaining tools, accessibility, performance budgets, locale loader, parity checklist to 100%.
 
@@ -222,7 +223,7 @@ Tablet and phone layouts, remaining tools, accessibility, performance budgets, l
 | `ex-713` | <excali-editor>: the interactive canvas and the App interactions ex-712 reduced | task | P1 | <span class="status closed">closed</span> |  |  |
 | `ex-714` | Search matches drawn on the interactive canvas | task | P3 | <span class="status closed">closed</span> |  |  |
 | `ex-715` | Lazy UI construction to cut first paint | task | P2 | <span class="status deferred">deferred</span> |  |  |
-| `ex-m7` | M7: parity checklist 100% for v1 scope | milestone | P2 | <span class="status open">open</span> | yes |  |
+| `ex-m7` | M7: parity checklist 100% for v1 scope | milestone | P2 | <span class="status closed">closed</span> |  |  |
 
 ## ex-e8 · Phase 8: Release
 
@@ -237,3 +238,7 @@ First calendar release v26.9.1 (ADR-009): ES module + WASM tarball as a GitHub r
 | `ex-803` | Integration guide walked by an agent in a fresh clone | task | P2 | <span class="status closed">closed</span> |  |  |
 | `ex-804` | Tag v26.9.1 and publish the GitHub release | task | P2 | <span class="status open">open</span> |  | `ex-802` |
 | `ex-m8` | M8: v26.9.1 released on GitHub | milestone | P2 | <span class="status open">open</span> |  | `ex-802`, `ex-804` |
+
+## Unfiled
+
+- `ex-b4q` Fix main: CI red (gates https://github.com/HutsonLabs/excali-rust/actions/runs/36683002882 17c7440) (in_progress)
