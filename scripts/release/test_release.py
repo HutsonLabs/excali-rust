@@ -284,6 +284,16 @@ class ReleaseTest(unittest.TestCase):
         ):
             self.assertIn(needle, text)
 
+    def test_release_notes_link_the_integration_walk_transcript(self):
+        # M8 acceptance: the walk transcript from a fresh clone is linked.
+        text = (NOTES / f"v{WORKSPACE_VERSION}.md").read_text(encoding="utf-8")
+        self.assertIn(
+            "https://hutsonlabs.github.io/excali-rust/architecture/integration-walk/", text
+        )
+        self.assertTrue(
+            (ROOT / "site" / "content" / "architecture" / "integration-walk.md").is_file()
+        )
+
     def test_every_notes_file_is_named_for_a_calendar_tag(self):
         for p in sorted(NOTES.glob("*")):
             self.assertEqual(p.suffix, ".md", p.name)
