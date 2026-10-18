@@ -1,0 +1,397 @@
+# Spaces CI (ex-e0.1): .github/workflows/gates.yml for Spaces' runner. Spaces
+# reads .workflows/ and ignores .github/workflows, which GitHub still runs on
+# the push mirror. The runner (spacer) runs only run: steps and
+# actions/checkout, on this Mac's host (runs-on: macos) with its toolchains:
+# rustup (rust-toolchain.toml), node, python3, zola from scripts/site/zola.sh.
+# So: no setup-node (the host's node is the tools/goldens/.node-version one),
+# no rust-cache (scripts/ci/spaces-env.sh keeps target/ in a cache on the
+# host), no upload-artifact (reports stay in the job log), and the Linux and
+# arm64 runner jobs run on macOS arm64, where the goldens were generated
+# (macOS and Linux arm64 agree byte for byte). The jobs and their comments
+# are the GitHub workflow's; read it for the why of each check.
+#
+# The authorship gate in CI: the same script the local hooks run, so a commit
+# that bypassed the hooks still cannot merge with tool attribution or
+# invisible watermarks in it. On pull requests, also the tracker-files gate
+# (ex-010).
+name: gates
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+# Superseded pull request runs are cancelled; runs on main never are (ex-dm2).
+concurrency:
+  group: gates-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  attribution:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Spaces' checkout fetches the commit only; the gates diff against the
+      # base branch, so fetch it as origin/<base>.
+      - name: the base branch as origin/<base>
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          TOKEN: ${{ github.token }}
+        run: scripts/ci/fetch-base.sh "$BASE_REF"
+      - name: gate self-test (planted violations are rejected)
+        run: python3 scripts/gates/test_attribution.py -v
+      - name: pre-commit hook self-test (no tracker export from linked worktrees)
+        run: python3 scripts/gates/test_hooks.py -v
+      - name: tracked files
+        run: python3 scripts/gates/attribution.py files --all
+      - name: commit authors and messages
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            python3 scripts/gates/attribution.py history "origin/$BASE_REF..HEAD"
+          else
+            python3 scripts/gates/attribution.py history "HEAD~1..HEAD"
+          fi
+      - name: tracker files stay out of pull requests
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: python3 scripts/gates/tracker_files.py check "origin/$BASE_REF"
+  scripts:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: unit tests for repo scripts
+        run: python3 -m unittest discover -s scripts/site -p 'test_*.py' -v
+      - name: integration guide snippets match the example hosts
+        run: python3 scripts/site/snippets.py check
+      - name: task graph and seed tests
+        run: python3 scripts/tasks/test_plan.py -v
+      - name: tracker-files gate tests
+        run: python3 scripts/gates/test_tracker_files.py -v
+      - name: affected-crates tests
+        run: python3 scripts/gates/test_affected.py -v
+      - name: web build pipeline tests
+        run: python3 scripts/web/test_build.py -v
+      - name: release asset tests
+        run: python3 scripts/release/test_release.py -v
+      - name: wasm size gate tests
+        run: python3 scripts/gates/test_wasm_size.py -v
+      - name: performance budget gate tests
+        run: python3 scripts/gates/test_perf_budget.py -v
+      - name: pinned binaryen tests
+        run: python3 scripts/web/test_binaryen.py -v
+      - name: font licence gate self-test
+        run: python3 scripts/gates/test_fonts.py -v
+      - name: font licence gate
+        run: python3 scripts/gates/fonts.py check
+      - name: font asset manifest matches disk
+        run: python3 scripts/fonts/assets.py check
+  fixtures:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: scratch directories under the runner's temp dir
+        run: |
+          echo "UPSTREAM_DIR=$RUNNER_TEMP/upstream" >> "$GITHUB_ENV"
+      - name: upstream checkout at the pin
+        run: scripts/upstream/checkout.sh
+      - name: corpus test suite
+        run: python3 scripts/fixtures/test_corpus.py
+      - name: manifest matches disk
+        run: python3 scripts/fixtures/corpus.py check
+      - name: upstream copies equal the pinned checkout
+        run: python3 scripts/fixtures/corpus.py verify-upstream
+      - name: ADR-004 licence-gap hashes equal the pinned upstream files
+        run: python3 scripts/gates/fonts.py verify-upstream "$UPSTREAM_DIR"
+      - name: font asset pipeline test suite
+        run: python3 scripts/fonts/test_assets.py -v
+      - name: vendored fonts equal the pinned upstream files
+        run: python3 scripts/fonts/assets.py verify-upstream "$UPSTREAM_DIR"
+      - name: font face table matches upstream's registry
+        run: python3 scripts/fonts/font_faces.py check
+      - name: every file equals its origin (live)
+        run: python3 scripts/fixtures/corpus.py verify-remote
+  payload-goldens:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: scratch directories under the runner's temp dir
+        run: |
+          echo "UPSTREAM_DIR=$RUNNER_TEMP/upstream" >> "$GITHUB_ENV"
+          echo "TOOLS_DIR=$RUNNER_TEMP/tools" >> "$GITHUB_ENV"
+      - name: upstream checkout at the pin
+        run: scripts/upstream/checkout.sh
+      - name: goldens match upstream encode.ts + pako
+        run: scripts/fixtures/payload-goldens.sh --check
+  png-goldens:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: scratch directories under the runner's temp dir
+        run: |
+          echo "UPSTREAM_DIR=$RUNNER_TEMP/upstream" >> "$GITHUB_ENV"
+          echo "TOOLS_DIR=$RUNNER_TEMP/tools" >> "$GITHUB_ENV"
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh gates
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: upstream checkout at the pin
+        run: scripts/upstream/checkout.sh
+      - name: goldens match upstream image.ts; upstream decodes the port's PNGs
+        run: scripts/fixtures/png-goldens.sh --check
+  text-metrics:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: font script tests (offline)
+        run: python3 scripts/fonts/test_font_scripts.py -v
+      - name: text-width fixture matches the corpus
+        run: python3 scripts/fixtures/text_widths.py check
+      - name: fontTools in a venv (the version ADR-004's verification used)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/fonttools"
+          "$RUNNER_TEMP/fonttools/bin/pip" install fonttools==4.60.2 brotli==1.2.0
+      - name: glyph-advance fixture matches the vendored fonts
+        run: '"$RUNNER_TEMP/fonttools/bin/python" scripts/fonts/advances.py check'
+  # On macOS arm64, the platform the fixture was measured on (GitHub: macos-15).
+  text-width-causes:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: scratch directories under the runner's temp dir
+        run: |
+          echo "UPSTREAM_DIR=$RUNNER_TEMP/upstream" >> "$GITHUB_ENV"
+      - name: upstream checkout at the pin
+        run: scripts/upstream/checkout.sh
+      - name: install
+        run: |
+          npm ci --prefix tools/goldens
+          npm ci --prefix tests/web
+      - name: install chromium
+        working-directory: tests/web
+        run: npx playwright install chromium
+      - name: upstream at the pin gives the committed widths in Chrome
+        run: scripts/fixtures/text-width-causes.sh --check
+  ada-idna-tables:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: table script tests (offline)
+        run: python3 scripts/fixtures/test_ada_idna_tables.py -v
+      - name: committed tables match ada 4.0.0
+        env:
+          TOOLS_DIR: ${{ runner.temp }}/tools
+        run: python3 scripts/fixtures/ada-idna-tables.py --check
+  upstream-pin:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: checkout.sh test suite
+        run: python3 scripts/upstream/test_checkout.py
+      - name: live checkout at the pin
+        env:
+          UPSTREAM_DIR: ${{ runner.temp }}/upstream
+        run: |
+          scripts/upstream/checkout.sh
+          scripts/upstream/checkout.sh | grep -q '^upstream already at '
+          scripts/upstream/checkout.sh --verify
+  # scripts/site/zola.sh under macOS /bin/bash 3.2 (GitHub also runs it on
+  # ubuntu-latest's bash 5; Spaces has no Linux runner with the toolchains).
+  bootstrap-and-site:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: zola.sh tests under /bin/bash
+        run: /bin/bash scripts/site/zola-test.sh /bin/bash
+      - name: real zola download and SHA-256 check under /bin/bash
+        run: |
+          set -o pipefail
+          /bin/bash -c 'echo "bash $BASH_VERSION"'
+          log="$RUNNER_TEMP/zola-ensure.log"
+          /bin/bash scripts/site/zola.sh ensure | tee "$log"
+          t="$(/bin/bash scripts/site/zola.sh target)"
+          d="$(/bin/bash scripts/site/zola.sh digest "$t")"
+          grep -qF 'downloading https://github.com/getzola/zola/releases/download/' "$log"
+          grep -qF "sha256 verified ($t $d)" "$log"
+      - name: bootstrap under /bin/bash (fresh clone)
+        run: /bin/bash scripts/bootstrap.sh
+      - name: site build under /bin/bash
+        run: /bin/bash scripts/site/zola.sh build
+  # ex-006: every site page and mockup loads without console errors, failed
+  # requests or HTTP errors at 1440x900, 1024x768 and 390x844.
+  site-smoke:
+    runs-on: macos
+    defaults:
+      run:
+        working-directory: tests/site
+    steps:
+      - uses: actions/checkout@v4
+      - name: install
+        run: npm ci
+      - name: unit tests for the page inventory and static server
+        run: npm run test:unit
+      - name: install chromium
+        run: npx playwright install chromium
+      - name: smoke every page and mockup at three viewports
+        run: npm run test:smoke
+        env:
+          CI: "1"
+  # tools/goldens: upstream's own code at the pin under node, and every
+  # fixture it writes (see .github/workflows/gates.yml for the list). On arm64,
+  # where the committed goldens were generated.
+  goldens:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: upstream checkout at the pin
+        run: scripts/upstream/checkout.sh
+      - name: install pinned generator dependencies
+        run: npm ci --prefix tools/goldens --no-audit --no-fund
+      - name: golden generator test suite
+        run: node --test tools/goldens/test/
+      - name: committed goldens match the generator
+        run: node tools/goldens/generate.mjs --check
+      - name: excali-core scene fixtures match the generator
+        run: node tools/goldens/scene-fixtures.mjs --check
+      - name: excali-core restore fixtures match the generator
+        run: node tools/goldens/restore-fixtures.mjs --check
+      - name: excali-core scene-level restore fixture matches the generator
+        run: node tools/goldens/restore-elements-fixtures.mjs --check
+      - name: excali-core AppState goldens match the generator
+        run: node tools/goldens/app-state.mjs --check
+      - name: excali-core clipboard fixtures match the generator
+        run: node tools/goldens/clipboard-fixtures.mjs --check
+      - name: excali-scene rough option goldens match the generator
+        run: node tools/goldens/rough-options.mjs --check
+      - name: excali-scene dark-mode filter goldens match the generator
+        run: node tools/goldens/dark-mode.mjs --check
+      - name: excali-text font metadata goldens match the generator
+        run: node tools/goldens/font-metadata.mjs --check
+      - name: excali-text font asset goldens match the generator
+        run: node tools/goldens/font-assets.mjs --check
+      - name: excali-text text wrapping goldens match upstream's parseTokens and getWrappedTextLines
+        run: node tools/goldens/text-wrapping.mjs --check
+      - name: excali-text text element sizing goldens match upstream's newTextElement, refreshTextDimensions and actionTextAutoResize
+        run: node tools/goldens/text-element-sizing.mjs --check
+      - name: excali-core library fixtures match the generator
+        run: node tools/goldens/library-fixtures.mjs --check
+      - name: excali-core library URL fixtures match the generator
+        run: node tools/goldens/library-url-fixtures.mjs --check
+      - name: excali-core URL host fixtures match Node's new URL (ada IDNA)
+        run: node tools/goldens/url-host-fixtures.mjs --check
+      - name: excali-core D1 fixture round-trip golden matches upstream's loadFromBlob and serializeAsJSON
+        run: node tools/goldens/document-fixtures.mjs --check
+      - name: excali-editor elbow routing fixture matches upstream's updateElbowArrowPoints
+        run: node tools/goldens/elbow-routing-fixtures.mjs --check
+      - name: excali-editor hit testing fixture matches upstream's collision.ts and distance.ts
+        run: node tools/goldens/collision-fixtures.mjs --check
+      - name: excali-editor bucket fill fixture matches upstream's bucketFill.ts
+        run: node tools/goldens/bucket-fill-fixtures.mjs --check
+      - name: excali-editor lasso fixture matches upstream's LassoTrail and getLassoSelectedElementIds
+        run: node tools/goldens/lasso-fixtures.mjs --check
+      - name: excali-editor shape recognition fixture matches upstream's recognizeShape and convertToShape
+        run: node tools/goldens/shape-recognition-fixtures.mjs --check
+      - name: excali-editor transform fixture matches upstream's transformHandles.ts, resizeTest.ts and resizeElements.ts
+        run: node tools/goldens/transform-fixtures.mjs --check
+      - name: excali-editor binding fixture matches upstream's binding.ts and binding highlight
+        run: node tools/goldens/binding-fixtures.mjs --check
+      - name: excali-editor snapping fixture matches upstream's snapping.ts and renderSnaps.ts
+        run: node tools/goldens/snapping-fixtures.mjs --check
+      - name: excali-editor linear element editor fixture matches upstream's LinearElementEditor
+        run: node tools/goldens/linear-editor-fixtures.mjs --check
+      - name: excali-editor flowchart fixture matches upstream's flowchart.ts
+        run: node tools/goldens/flowchart-fixtures.mjs --check
+      - name: excali-editor convert element type fixture matches upstream's ConvertElementTypePopup.tsx
+        run: node tools/goldens/convert-element-type-fixtures.mjs --check
+      - name: excali-editor arrow endpoint text fixture matches upstream's arrowEndpointText.ts and dragNewTextElement
+        run: node tools/goldens/arrow-endpoint-text-fixtures.mjs --check
+      - name: excali-scene export bounds, excali-svg document and excali-core embed link fixtures match upstream's exportToSvg and getEmbedLink
+        run: node tools/goldens/svg-export.mjs --check
+      - name: excali-scene static scene fixture matches upstream's renderStaticScene
+        run: node tools/goldens/static-scene.mjs --check
+      - name: excali-editor interactive scene fixture matches upstream's renderInteractiveScene
+        run: node tools/goldens/interactive-scene.mjs --check
+      - name: excali-editor crop fixture matches upstream's cropElement.ts
+        run: node tools/goldens/crop-fixtures.mjs --check
+      - name: excali-scene frame clipping fixture matches upstream's frame.ts
+        run: node tools/goldens/frame-clip.mjs --check
+      - name: excali-ui canvas layer fixture matches upstream's snapScrollToDevicePixels, bootstrapCanvas and renderNewElementScene
+        run: node tools/goldens/canvas-layers.mjs --check
+      - name: excali-scene per-element bitmap cache fixture matches upstream's renderElement editor path
+        run: node tools/goldens/element-canvas.mjs --check
+      - name: excali-ui primitive fixture and stylesheet match upstream's components and SCSS
+        run: node tools/goldens/ui-primitives.mjs --check
+      - name: excali-ui theme token fixture matches upstream's theme.scss
+        run: node tools/goldens/theme-tokens.mjs --check
+      - name: excali-ui styles panel fixture matches upstream's getShapeActionPredicates and SelectedShapeActions
+        run: node tools/goldens/styles-panel.mjs --check
+      - name: excali-ui action panels fixture matches upstream's action PanelComponents
+        run: node tools/goldens/action-panels.mjs --check
+      - name: excali-ui icon set matches upstream's icons.tsx
+        run: node tools/goldens/icons.mjs --check
+      - name: excali-ui shapes toolbar fixture and stylesheet match upstream's Toolbar and ExtraToolsDropdown
+        run: node tools/goldens/toolbar.mjs --check
+      - name: excali-ui convert element type popup fixture and stylesheet match upstream's ConvertElementTypePopup
+        run: node tools/goldens/convert-popup.mjs --check
+      - name: excali-ui hyperlink editor fixture and stylesheet match upstream's Hyperlink
+        run: node tools/goldens/hyperlink.mjs --check
+      - name: excali-ui phone layout fixture and stylesheet match upstream's MobileToolbar, ToolPopover and MobileMenu
+        run: node tools/goldens/mobile-menu.mjs --check
+      - name: excali-ui main menu fixture and stylesheet match upstream's MainMenu and DefaultItems
+        run: node tools/goldens/main-menu.mjs --check
+      - name: excali-ui footer fixture and stylesheet match upstream's Footer, ZoomActions, UndoRedoActions, HelpButton and ExitZenModeButton
+        run: node tools/goldens/footer.mjs --check
+      - name: excali-ui help dialog fixture and stylesheet match upstream's HelpDialog on each platform
+        run: node tools/goldens/help-dialog.mjs --check
+      - name: excali-ui hints and welcome screen fixture, stylesheets and logo match upstream's HintViewer, CursorHint and WelcomeScreen
+        run: node tools/goldens/hints.mjs --check
+      - name: excali-ui stats panel fixture and stylesheet match upstream's Stats, its sections and drag inputs
+        run: node tools/goldens/stats.mjs --check
+      - name: excali-editor stats panel edits match upstream's Position, Dimension, Angle, FontSize and Multi* callbacks through DragInput
+        run: node tools/goldens/stats-edits.mjs --check
+      - name: excali-ui colour picker fixture and stylesheet match upstream's ColorPicker, keyboard map, ColorInput and colors.ts
+        run: node tools/goldens/color-picker.mjs --check
+      - name: excali-ui colour top-picks fixture and stylesheet match upstream's customizableTopPicks, TopPicksDnD, its context menu and tip
+        run: node tools/goldens/color-top-picks-dnd.mjs --check
+      - name: excali-ui library sidebar fixture and stylesheet match upstream's DefaultSidebar, Sidebar and LibraryMenu
+        run: node tools/goldens/library-sidebar.mjs --check
+      - name: excali-ui search menu fixture and stylesheet match upstream's SearchMenu and actionToggleSearchMenu
+        run: node tools/goldens/search-menu.mjs --check
+      - name: excali-ui locale fixture and locale files match upstream's i18n.ts and locales/*.json
+        run: node tools/goldens/i18n.mjs --check
+      - name: excali-ui font picker fixture and stylesheet match upstream's FontPicker, FontPickerList and keyboard map
+        run: node tools/goldens/font-picker.mjs --check
+      - name: excali-ui font top-picks fixture matches upstream's fontTopPicksDnD, TopPicksDnD, its context menu and tip
+        run: node tools/goldens/font-top-picks-dnd.mjs --check
+      - name: excali-ui command palette fixture and stylesheet match upstream's CommandPalette, its actions and fuzzy search
+        run: node tools/goldens/command-palette.mjs --check
+      - name: excali-editor viewport fixture matches upstream's zoom, scroll constraints, zoom-to-fit, wheel handler and zoom actions
+        run: node tools/goldens/viewport.mjs --check
+      - name: excali-editor text editing fixture matches upstream's textWysiwyg, startTextEditing and redrawTextBoundingBox
+        run: node tools/goldens/text-editing.mjs --check
+      - name: font subsetting fixture matches upstream's generateFontFaceDeclarations and harfbuzzjs subsetting
+        run: node tools/goldens/font-subset.mjs --check
+      - name: excali-scene image element fixture matches upstream's renderElement
+        run: node tools/goldens/image-elements.mjs --check
+      - name: excali-scene canvas export fixture matches upstream's exportToCanvas
+        run: node tools/goldens/png-export.mjs --check
+      - name: excali-editor editing fixture matches upstream's selection, groups, newElement and edit actions
+        run: node tools/goldens/editing-fixtures.mjs --check
+      - name: excali-editor style action fixture matches upstream's styles panel action performs
+        run: node tools/goldens/style-actions-fixtures.mjs --check
+      - name: excali-editor shortcut action fixture matches upstream's shortcut action performs
+        run: node tools/goldens/shortcut-actions-fixtures.mjs --check
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh gates
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: upstream re-imports the port's PNG exports (loadFromBlob, decodePngMetadata)
+        run: |
+          cargo run --quiet --locked -p excali-raster --example png_export -- "$RUNNER_TEMP/png-export"
+          node tools/goldens/png-export.mjs --reimport "$RUNNER_TEMP/png-export"

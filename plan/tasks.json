@@ -342,6 +342,27 @@
    ]
   },
   {
+   "id": "ex-e0.1",
+   "epic": "ex-e0",
+   "title": "CI on Spaces: port the GitHub workflows to .workflows/ for the spacer runner",
+   "priority": 1,
+   "blocked_by": [
+    "ex-dm2"
+   ],
+   "crates": [],
+   "acceptance": ".workflows/gates.yml, .workflows/rust.yml and .workflows/release.yml exist, use no uses: other than actions/checkout, run on runs-on: macos, pass actionlint, and every job of gates and rust is green on the Spaces pull request; release.yml creates a Spaces release with the tarball and SHA256SUMS on a v* tag. ex-dm2's concurrency and paths-ignore rules hold for both. Tests: scripts/tasks/test_plan.py, scripts/release/test_release.py, scripts/gates/test_affected.py.",
+   "evidence": [
+    "Found 2026-10-18: Spaces runs .github/workflows on the push of main (runs 12-14): every job fails or waits (sudo, rustup and Swatinem/rust-cache missing on the ubuntu-latest container; no runner for macos-latest, ubuntu-24.04-arm or [self-hosted, excali-perf])",
+    "spacer README (https://spaces.hutson.cloud/HutsonLabs/spacer, read 2026-10-18): runs run: steps and actions/checkout only",
+    "Spaces reads .workflows/, .gitea/workflows/, .github/workflows/ in that order and uses the first that exists (https://spaces.hutson.cloud/HutsonLabs/spaces, crates/api-v1/src/actions/workflow.rs DIRS; read 2026-10-18)"
+   ],
+   "description": "The repository's home is Spaces (origin ssh://git@spaces.hutson.cloud:2222/HutsonLabs/excali-rust.git; GitHub is a push mirror). Spaces' runner runs only run: steps and actions/checkout, and its runners are this Mac's host (macos) and Linux containers without toolchains, so gates.yml, rust.yml and release.yml are ported to .workflows/ on runs-on: macos with the host's toolchains. .github/workflows stays for GitHub; pages.yml stays GitHub-only (Spaces has no Pages).",
+   "type": "task",
+   "labels": [
+    "ci"
+   ]
+  },
+  {
    "id": "ex-g001",
    "epic": "ex-e0",
    "title": "Attribution gate self-test in CI: a planted attribution line must fail the gate",

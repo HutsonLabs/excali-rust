@@ -1,0 +1,516 @@
+# Spaces CI (ex-e0.1): .github/workflows/rust.yml for Spaces' runner (see the
+# header of .workflows/gates.yml). Every job runs on this Mac's host
+# (runs-on: macos, Apple M4 Pro): the Linux x86_64 check, the macOS
+# test-macos and the Linux arm64 goldens jobs of the GitHub workflow are one
+# job here, check, whose golden harness step is the goldens job's (macOS and
+# Linux arm64 agree byte for byte, ex-009). web-perf is the GitHub
+# workflow's self-hosted excali-perf job, which ran on this machine. The
+# Chrome jobs use Playwright's Chromium (tests/web's @playwright/test) where
+# the GitHub runner had Google Chrome. Jobs whose GitHub step was Linux only
+# (Tauri's GTK libraries, removing the system Liberation fonts) skip it:
+# macOS needs neither. The example Tauri app's job (tauri-example) is not
+# here: examples/tauri-app left the repository in 0cf7e87c.
+#
+# Rust gates on every pull request and on main: formatting, clippy with
+# warnings as errors, the test suite (on a pull request only the crates
+# scripts/gates/affected.py finds affected; every push to main runs the whole
+# workspace; ex-010), the published JSON Schemas, the crate-graph and
+# calendar-version gates, the wasm32 build, an MSRV check, the golden
+# harness, the roughr and font subsetting evaluations, the web build with its
+# gzip size budget and its Playwright suites, the Canvas 2D backend, the
+# catalogue render, the layered canvases, keyboard, UI primitives, styles
+# panel, library sidebar and text editing harnesses, and the performance
+# budgets.
+#
+# The toolchain comes from rust-toolchain.toml; rustup installs it (with
+# rustfmt, clippy and the wasm32 target). scripts/ci/spaces-env.sh keeps each
+# job's target/ in a cache on the host, as Swatinem/rust-cache did.
+name: rust
+on:
+  pull_request:
+  push:
+    branches: [main]
+    # The integrator's '<id>: close in tracker, build log' commit touches
+    # only these; it follows every merge and must not start a full-suite run.
+    paths-ignore:
+      - .beads/issues.jsonl
+      - site/content/plan/progress.md
+      - site/content/plan/build-log.md
+  workflow_dispatch:
+permissions:
+  contents: read
+# Pull requests test only the affected crates (ex-010), so every push to main
+# must finish the full suite: cancel superseded runs on pull requests only.
+concurrency:
+  group: rust-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+jobs:
+  check:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # affected.py diffs against the base branch's merge base.
+          fetch-depth: 0
+      - name: the base branch as origin/<base>
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          TOKEN: ${{ github.token }}
+        run: scripts/ci/fetch-base.sh "$BASE_REF"
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh rust
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: fmt
+        run: cargo fmt --all --check
+      - name: clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      # ex-010: on a pull request, cargo test runs on the affected crates
+      # only; pushes to main run --workspace.
+      - name: affected crates
+        id: affected
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            args="$(python3 scripts/gates/affected.py "origin/$BASE_REF")"
+          else
+            args="--workspace"
+          fi
+          echo "cargo test args: ${args:-(none, no crate affected)}"
+          echo "args=$args" >> "$GITHUB_OUTPUT"
+      - name: test
+        if: steps.affected.outputs.args != ''
+        env:
+          ARGS: ${{ steps.affected.outputs.args }}
+        run: |
+          # ARGS is a list of cargo arguments, split on purpose.
+          # shellcheck disable=SC2086
+          cargo test --locked $ARGS
+      # ex-217 / ex-009: the golden harness and every parity target that
+      # compares with goldens/ through it, on arm64, the architecture the
+      # goldens were generated on (the GitHub workflow's goldens job, which
+      # runs on every pull request).
+      - name: golden harness and parity tests
+        run: >-
+          cargo test --workspace --locked --features goldens
+          --test golden_harness --test goldens_manifest --test goldens
+          --test element_matrix
+      - name: text-width corpus report
+        run: cargo test --locked -p excali-text --test text_width_corpus report_matches_the_committed_report -- --nocapture
+      - name: JSON Schemas up to date
+        run: |
+          cargo run --locked -q -p excali-core --example write-schemas
+          git diff --exit-code -- site/static/schema
+      - name: crate-graph gate tests
+        run: python3 scripts/gates/test_workspace.py
+      - name: crate-graph gate
+        run: python3 scripts/gates/workspace.py check
+      - name: version gate tests
+        run: python3 scripts/gates/test_version.py
+      - name: version gate
+        run: python3 scripts/gates/version.py check
+      - name: wasm32 build
+        run: scripts/gates/wasm-build.sh
+  # ex-501 / ex-307 / ex-530 / ex-531 / ex-709: the web runtime built with
+  # its gzip size budget, the release tarball fetched back, and tests/web in
+  # Chromium (scene fonts, <excali-editor>, the parity checklist,
+  # accessibility).
+  web-runtime:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh rust
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: scripts/ci/wasm-bindgen.sh
+      - name: build the web runtime (dist/, gzip size budget)
+        run: scripts/web/build.sh
+      - name: gzip size budget
+        run: python3 scripts/gates/wasm_size.py check dist
+      - name: release tarball and SHA256SUMS, fetched back
+        run: |
+          v="$(python3 scripts/gates/version.py print)"
+          python3 scripts/release/package.py pack dist "$RUNNER_TEMP/download/v$v"
+          python3 scripts/release/package.py verify "$RUNNER_TEMP/download/v$v"
+          EXCALI_RELEASE_URL="file://$RUNNER_TEMP/download" sh scripts/release/fetch.sh "$v" "$RUNNER_TEMP/excali"
+          diff -r dist "$RUNNER_TEMP/excali"
+      - name: install
+        working-directory: tests/web
+        run: npm ci
+      - name: install chromium
+        working-directory: tests/web
+        run: npx playwright install chromium
+      # Chromium's document.fonts.check is true for an installed family; the
+      # suite asserts no manifest family is installed (on GitHub's Linux
+      # runner the job removes fonts-liberation first; macOS has none).
+      - name: scene fonts load by unicode range; the editor element; the parity checklist; accessibility
+        working-directory: tests/web
+        run: npx playwright test
+        env:
+          CI: "1"
+  # ex-710: the performance budgets (site/content/plan/phases.md#budgets),
+  # first paint after module load and a pan frame at 1,000 elements, on this
+  # machine (macOS arm64, Apple M4 Pro: the pinned runner the budgets were
+  # set on). Each measurement is normalised by a calibration workload timed
+  # in the same browser just before it. The repository is public: the job
+  # runs for pushes and for pull requests from its own branches, never for a
+  # fork's. The release is built in a step of its own so the measurements do
+  # not share the machine with the build (the runner takes one job at a
+  # time).
+  web-perf:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh rust
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: scripts/ci/wasm-bindgen.sh
+      - name: build the web runtime
+        run: scripts/web/build.sh
+      - name: install
+        working-directory: tests/web
+        run: npm ci
+      - name: install chromium
+        working-directory: tests/web
+        run: npx playwright install chromium
+      - name: first paint and pan at 1,000 elements within budget
+        run: scripts/web/perf.sh --no-build
+        env:
+          CI: "1"
+  # ex-401: the raster backend against Chrome's canvas: every fixture display
+  # list drawn again in this runner's Chromium, the port held to those pixels
+  # within each fixture's tolerance. On macOS arm64, where the references and
+  # tolerances were measured.
+  raster-chrome:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh rust
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: Playwright's Chromium (this runner has no Google Chrome)
+        working-directory: tests/web
+        run: |
+          npm ci
+          npx playwright install chromium
+          chrome="$(node -e "console.log(require('@playwright/test').chromium.executablePath())")"
+          "$chrome" --version
+          echo "CHROME=$chrome" >> "$GITHUB_ENV"
+      - name: port within tolerance of this Chrome's canvas
+        run: scripts/fixtures/raster-references.sh --check
+  # ex-g402: the PNG half of D2, upstream at the pin drawing every fixture
+  # scene in this runner's Chromium; on macOS arm64.
+  chrome-png-export:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh rust
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: upstream checkout at the pin
+        run: scripts/upstream/checkout.sh
+      - name: install
+        run: |
+          npm ci --prefix tools/goldens --no-audit --no-fund
+          npm ci --prefix tests/web --no-audit --no-fund
+          (cd tests/web && npx playwright install chromium)
+      - name: port within tolerance of upstream's export in this Chromium
+        run: scripts/fixtures/chrome-png-export.sh --check
+  # ex-206: the roughr evaluation behind ADR-003 (tools/roughr-eval).
+  roughr-eval:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh rust tools/roughr-eval
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: fmt
+        run: cargo fmt --manifest-path tools/roughr-eval/Cargo.toml --check
+      - name: clippy
+        run: cargo clippy --manifest-path tools/roughr-eval/Cargo.toml --all-targets --locked -- -D warnings
+      - name: tests (report.json current, ADR-003 quotes it)
+        run: cargo test --manifest-path tools/roughr-eval/Cargo.toml --locked
+      - name: report.json current
+        run: cargo run --release --locked --manifest-path tools/roughr-eval/Cargo.toml -- --check
+      - name: report-fork.json current (roughr with rough.js's generator)
+        run: python3 tools/roughr-eval/fork.py --check
+  # ex-408: the font subsetting evaluation behind ADR-010
+  # (tools/font-subset-eval).
+  font-subset-eval:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh rust tools/font-subset-eval
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: upstream checkout at the pin
+        run: scripts/upstream/checkout.sh
+      - name: fmt
+        run: cargo fmt --manifest-path tools/font-subset-eval/Cargo.toml --check
+      - name: clippy
+        run: cargo clippy --manifest-path tools/font-subset-eval/Cargo.toml --all-targets --locked -- -D warnings
+      - name: tests (report.json current, ADR-010 quotes it and its decision)
+        run: cargo test --manifest-path tools/font-subset-eval/Cargo.toml --locked
+      - name: report.json current
+        run: cargo run --release --locked --manifest-path tools/font-subset-eval/Cargo.toml -- --check
+      - name: wasm.json current (each candidate built for wasm32-unknown-unknown)
+        run: tools/font-subset-eval/wasm.sh --check
+  # ex-408: every subset drawn in Chromium next to its original face; on
+  # macOS, where browser.json was measured.
+  font-subset-browser:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh rust tools/font-subset-eval
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: upstream checkout at the pin
+        run: scripts/upstream/checkout.sh
+      - name: install the browser check
+        working-directory: tools/font-subset-eval/browser
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install chromium
+      - name: browser.json current (every subset drawn in Chromium next to its original)
+        run: |
+          cargo run --release --locked --manifest-path tools/font-subset-eval/Cargo.toml -- \
+            --browser tools/font-subset-eval/target/browser/cases.json
+          node tools/font-subset-eval/browser/render.mjs --check
+  # ex-502: the Canvas 2D backend against excali-raster on every fixture
+  # display list in Chromium; on macOS arm64, where the tolerances were
+  # measured.
+  canvas2d-fixtures:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh rust . tools/canvas2d-fixtures
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: harness fmt
+        run: cargo fmt --manifest-path tools/canvas2d-fixtures/Cargo.toml --check
+      - name: harness clippy (native and wasm32)
+        run: |
+          cargo clippy --manifest-path tools/canvas2d-fixtures/Cargo.toml --all-targets --locked -- -D warnings
+          cargo clippy --manifest-path tools/canvas2d-fixtures/Cargo.toml --target wasm32-unknown-unknown --locked -- -D warnings
+      - name: harness loader tests
+        run: cargo test --manifest-path tools/canvas2d-fixtures/Cargo.toml --locked
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: scripts/ci/wasm-bindgen.sh
+      - name: install
+        working-directory: tests/web
+        run: |
+          npm ci
+          npx playwright install chromium
+      - name: excali-canvas2d paints every fixture within tolerance of excali-raster
+        run: scripts/web/canvas2d-fixtures.sh
+        env:
+          CI: "1"
+  # ex-410: every item of the 232 catalogue libraries rendered to PNG with
+  # the release CLI, one contact sheet per library (kept in target/ on the
+  # host; Spaces' runner has no artifact upload).
+  corpus-render:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh rust
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: contact sheet script tests
+        run: python3 scripts/fixtures/test_contact_sheets.py
+      - name: build the CLI
+        run: cargo build --release --locked -p excali-cli
+      - name: render every catalogue item
+        run: python3 scripts/fixtures/contact_sheets.py --excali target/release/excali --out target/contact-sheets
+  # ex-503: the layered canvases (tools/canvas-layers) in Chromium at device pixel ratios 1 to 3.
+  canvas-layers:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh rust . tools/canvas-layers
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: harness fmt
+        run: cargo fmt --manifest-path tools/canvas-layers/Cargo.toml --check
+      - name: harness clippy (native and wasm32)
+        run: |
+          cargo clippy --manifest-path tools/canvas-layers/Cargo.toml --all-targets --locked -- -D warnings
+          cargo clippy --manifest-path tools/canvas-layers/Cargo.toml --target wasm32-unknown-unknown --locked -- -D warnings
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: scripts/ci/wasm-bindgen.sh
+      - name: install
+        working-directory: tests/web
+        run: |
+          npm ci
+          npx playwright install chromium
+      - name: the layered canvases at device-pixel scale in Chromium
+        run: scripts/web/canvas-layers.sh
+        env:
+          CI: "1"
+  # ex-515: keyboard handling (tools/keyboard), one test per row of the shortcuts page.
+  keyboard:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh rust . tools/keyboard
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: harness fmt
+        run: cargo fmt --manifest-path tools/keyboard/Cargo.toml --check
+      - name: harness clippy (native and wasm32)
+        run: |
+          cargo clippy --manifest-path tools/keyboard/Cargo.toml --all-targets --locked -- -D warnings
+          cargo clippy --manifest-path tools/keyboard/Cargo.toml --target wasm32-unknown-unknown --locked -- -D warnings
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: scripts/ci/wasm-bindgen.sh
+      - name: install
+        working-directory: tests/web
+        run: |
+          npm ci
+          npx playwright install chromium
+      - name: every row of the shortcuts page in Chromium
+        run: scripts/web/keyboard.sh
+        env:
+          CI: "1"
+  # ex-516 / ex-532: the UI primitives and theme tokens (tools/ui-primitives).
+  ui-primitives:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh rust . tools/ui-primitives
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: harness fmt
+        run: cargo fmt --manifest-path tools/ui-primitives/Cargo.toml --check
+      - name: harness clippy (native and wasm32)
+        run: |
+          cargo clippy --manifest-path tools/ui-primitives/Cargo.toml --all-targets --locked -- -D warnings
+          cargo clippy --manifest-path tools/ui-primitives/Cargo.toml --target wasm32-unknown-unknown --locked -- -D warnings
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: scripts/ci/wasm-bindgen.sh
+      - name: install
+        working-directory: tests/web
+        run: |
+          npm ci
+          npx playwright install chromium
+      - name: the UI primitives' sizes and behaviour in Chromium
+        run: scripts/web/ui-primitives.sh
+        env:
+          CI: "1"
+  # ex-519: the full styles panel (tools/styles-panel).
+  styles-panel:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh rust . tools/styles-panel
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: harness fmt
+        run: cargo fmt --manifest-path tools/styles-panel/Cargo.toml --check
+      - name: harness clippy (native and wasm32)
+        run: |
+          cargo clippy --manifest-path tools/styles-panel/Cargo.toml --all-targets --locked -- -D warnings
+          cargo clippy --manifest-path tools/styles-panel/Cargo.toml --target wasm32-unknown-unknown --locked -- -D warnings
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: scripts/ci/wasm-bindgen.sh
+      - name: install
+        working-directory: tests/web
+        run: |
+          npm ci
+          npx playwright install chromium
+      - name: every styles panel case in Chromium
+        run: scripts/web/styles-panel.sh
+        env:
+          CI: "1"
+  # ex-526: the library sidebar (tools/library-sidebar).
+  library-sidebar:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh rust . tools/library-sidebar
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: harness fmt
+        run: cargo fmt --manifest-path tools/library-sidebar/Cargo.toml --check
+      - name: harness clippy (native and wasm32)
+        run: |
+          cargo clippy --manifest-path tools/library-sidebar/Cargo.toml --all-targets --locked -- -D warnings
+          cargo clippy --manifest-path tools/library-sidebar/Cargo.toml --target wasm32-unknown-unknown --locked -- -D warnings
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: scripts/ci/wasm-bindgen.sh
+      - name: install
+        working-directory: tests/web
+        run: |
+          npm ci
+          npx playwright install chromium
+      - name: the library sidebar in Chromium
+        run: scripts/web/library-sidebar.sh
+        env:
+          CI: "1"
+  # ex-512: the text editor (tools/text-editing).
+  text-editing:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh rust . tools/text-editing
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: harness fmt
+        run: cargo fmt --manifest-path tools/text-editing/Cargo.toml --check
+      - name: harness clippy (native and wasm32)
+        run: |
+          cargo clippy --manifest-path tools/text-editing/Cargo.toml --all-targets --locked -- -D warnings
+          cargo clippy --manifest-path tools/text-editing/Cargo.toml --target wasm32-unknown-unknown --locked -- -D warnings
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: scripts/ci/wasm-bindgen.sh
+      - name: install
+        working-directory: tests/web
+        run: |
+          npm ci
+          npx playwright install chromium
+      - name: typing into the text editor in Chromium gives upstream's elements
+        run: scripts/web/text-editing.sh
+        env:
+          CI: "1"
+  msrv:
+    runs-on: macos
+    steps:
+      - uses: actions/checkout@v4
+      - name: install the MSRV toolchain named in Cargo.toml
+        id: msrv
+        run: |
+          msrv="$(sed -n 's/^rust-version = "\(.*\)"/\1/p' Cargo.toml)"
+          test -n "$msrv"
+          rustup toolchain install "$msrv" --profile minimal
+          echo "version=$msrv" >> "$GITHUB_OUTPUT"
+      - name: cargo caches on the host
+        env:
+          MSRV: ${{ steps.msrv.outputs.version }}
+        run: scripts/ci/spaces-env.sh "msrv-$MSRV"
+      - name: check with the MSRV
+        env:
+          MSRV: ${{ steps.msrv.outputs.version }}
+        run: cargo "+$MSRV" check --workspace --all-targets --locked

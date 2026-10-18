@@ -49,6 +49,8 @@ GLOBAL = (
     "rust-toolchain.toml",
     "clippy.toml",
     ".github/workflows/*",
+    ".workflows/*",
+    "scripts/ci/*",
     ".cargo/*",
     "goldens/*",
     "fixtures/*",
