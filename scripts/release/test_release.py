@@ -37,6 +37,8 @@ FETCH = ROOT / "scripts" / "release" / "fetch.sh"
 MACOS_DMG = ROOT / "scripts" / "release" / "macos-dmg.sh"
 TAURI_CONF = ROOT / "examples" / "tauri-app" / "src-tauri" / "tauri.conf.json"
 WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
+SPACES_WORKFLOW = ROOT / ".workflows" / "release.yml"
+SPACES_RELEASE = ROOT / "scripts" / "release" / "spaces-release.sh"
 NOTES = ROOT / "scripts" / "release" / "notes"
 
 sys.path.insert(0, str(ROOT / "scripts" / "gates"))
@@ -275,6 +277,39 @@ class ReleaseTest(unittest.TestCase):
         self.assertIn('notes="scripts/release/notes/$TAG.md"', text)
         self.assertIn('--notes-file "$notes"', text)
         self.assertIn("gh release edit", text)
+
+    # .workflows/release.yml (ex-e0.1): the same release on Spaces
+
+    def test_spaces_release_workflow_builds_packs_and_uploads_on_a_tag(self):
+        text = SPACES_WORKFLOW.read_text()
+        for needle in (
+            "tags:",
+            "scripts/gates/version.py tag",
+            "scripts/web/build.sh",
+            "scripts/release/package.py pack",
+            "scripts/release/package.py verify",
+            "scripts/release/spaces-release.sh download-sums release",
+            "scripts/release/spaces-release.sh upload",
+            'notes="scripts/release/notes/$TAG.md"',
+            'EXCALI_RELEASE_URL="$SERVER/$REPO/releases/download"',
+            "contents: write",
+            "runs-on: macos",
+        ):
+            self.assertIn(needle, text)
+        self.assertNotIn("gh release", text)
+
+    def test_spaces_release_script_uses_the_releases_api(self):
+        text = SPACES_RELEASE.read_text()
+        for needle in (
+            '"$api/releases/tags/$TAG"',
+            '"$api/releases"',
+            '"$api/releases/$id/assets?name=$name"',
+            '"attachment=@$f"',
+            "-X DELETE",
+        ):
+            self.assertIn(needle, text)
+        r = subprocess.run(["sh", str(SPACES_RELEASE)], capture_output=True, text=True)
+        self.assertNotEqual(r.returncode, 0)
 
     # scripts/release/notes (ex-804)
 

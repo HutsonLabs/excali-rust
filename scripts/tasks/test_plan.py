@@ -529,5 +529,67 @@ class PostMergeCloseAndAffectedCi(unittest.TestCase):
         self.assertIn("paths-ignore", r["acceptance"])
 
 
+class SpacesCi(unittest.TestCase):
+    """ex-e0.1: Spaces reads .workflows/ (in place of .github/workflows) and
+    its runner runs only run: steps and actions/checkout, on runs-on: macos."""
+
+    SPACES = ROOT / ".workflows"
+    GITHUB = ROOT / ".github" / "workflows"
+    # pages.yml deploys to GitHub Pages; Spaces has no Pages.
+    GITHUB_ONLY = {"pages.yml"}
+
+    def test_every_github_workflow_has_a_spaces_port(self):
+        github = {p.name for p in self.GITHUB.glob("*.yml")}
+        spaces = {p.name for p in self.SPACES.glob("*.yml")}
+        self.assertEqual(spaces, github - self.GITHUB_ONLY)
+
+    def test_spaces_workflows_use_checkout_only_and_run_on_macos(self):
+        for p in sorted(self.SPACES.glob("*.yml")):
+            lines = [l.strip() for l in p.read_text().splitlines()]
+            uses = [l for l in lines if l.startswith(("uses:", "- uses:"))]
+            self.assertTrue(uses, p.name)
+            for l in uses:
+                self.assertEqual(l, "- uses: actions/checkout@v4", p.name)
+            runs_on = [l for l in lines if l.startswith("runs-on:")]
+            self.assertTrue(runs_on, p.name)
+            for l in runs_on:
+                self.assertEqual(l, "runs-on: macos", p.name)
+
+    def test_spaces_main_runs_are_never_cancelled(self):
+        for name in ("rust", "gates"):
+            text = (self.SPACES / f"{name}.yml").read_text()
+            block = text.split("\nconcurrency:\n", 1)[1].split("\n", 2)[:2]
+            self.assertEqual(block[0].strip(), f"group: {name}-${{{{ github.ref }}}}", name)
+            self.assertEqual(
+                block[1].strip(),
+                "cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
+                name,
+            )
+
+    def test_spaces_rust_skips_tracker_only_pushes(self):
+        rust = (self.SPACES / "rust.yml").read_text()
+        push = rust.split("\non:\n", 1)[1].split("\npermissions:", 1)[0].split("  push:\n", 1)[1]
+        for f in PostMergeCloseAndAffectedCi.TRACKER:
+            self.assertIn(f"- {f}", push)
+        self.assertNotIn("paths-ignore", (self.SPACES / "gates.yml").read_text())
+
+    def test_spaces_gates_and_check_diff_against_the_base_branch(self):
+        gates = (self.SPACES / "gates.yml").read_text()
+        rust = (self.SPACES / "rust.yml").read_text()
+        for text in (gates, rust):
+            self.assertIn('scripts/ci/fetch-base.sh "$BASE_REF"', text)
+        self.assertIn('scripts/gates/tracker_files.py check "origin/$BASE_REF"', gates)
+        self.assertIn('attribution.py history "origin/$BASE_REF..HEAD"', gates)
+        check = rust.split("\n  check:\n", 1)[1].split("\n  # ", 1)[0]
+        for needle in ("fetch-depth: 0", "scripts/gates/affected.py", "cargo test --locked $ARGS", 'args="--workspace"', "--features goldens"):
+            self.assertIn(needle, check)
+
+    def test_ex_e0_1_row(self):
+        r = item("ex-e0.1")
+        self.assertEqual(r["epic"], "ex-e0")
+        self.assertIn(".workflows/", r["acceptance"])
+        self.assertIn("ci", r["labels"])
+
+
 if __name__ == "__main__":
     unittest.main()
