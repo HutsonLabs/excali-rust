@@ -95,6 +95,8 @@ class Global(unittest.TestCase):
             "rust-toolchain.toml",
             "clippy.toml",
             ".github/workflows/rust.yml",
+            ".workflows/rust.yml",
+            "scripts/ci/spaces-env.sh",
             ".cargo/config.toml",
             "goldens/math.json",
             "goldens/sub/dir/x.json",

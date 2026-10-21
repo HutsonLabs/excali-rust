@@ -20,6 +20,7 @@ A Rust port of the Excalidraw editor: no React, Tauri-ready, `.excalidraw` compa
 | `tools/roughr-eval/` | The ex-206 spike behind ADR-003: the `roughr` crate replayed on the rough.js goldens (`report.json`, `report-fork.json`); outside the workspace, checked by the `roughr-eval` CI job. |
 | `.githooks/` | `pre-commit`, `commit-msg`, `pre-push` (activated by bootstrap). |
 | `.github/workflows/` | `gates.yml` (authorship gate on PRs), `rust.yml` (fmt, clippy `-D warnings`, test, crate-graph gate, wasm32 build, MSRV, goldens, roughr evaluation) and `pages.yml` (site build and deploy). |
+| `.workflows/` | The same `gates.yml`, `rust.yml` and `release.yml` for [Spaces](https://spaces.hutson.cloud/HutsonLabs/excali-rust), the repository's home (GitHub is its push mirror): Spaces reads `.workflows/` in place of `.github/workflows/`, and its runner runs only `run:` steps and `actions/checkout`, on `runs-on: macos` with the host's toolchains (`scripts/ci/`). `pages.yml` stays on GitHub (Spaces has no Pages). |
 
 ## Start
 

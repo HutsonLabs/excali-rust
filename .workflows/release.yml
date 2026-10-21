@@ -1,0 +1,76 @@
+# Spaces CI (ex-e0.1): .github/workflows/release.yml for Spaces. Pushing a
+# tag v<version> (or running this workflow on one) builds the web runtime
+# with scripts/web/build.sh as rust.yml's web-runtime job does, packs it into
+# excali-web_<version>.tar.gz with scripts/release/package.py, and uploads
+# the tarball and SHA256SUMS to the Spaces release of that tag, creating the
+# release when it does not exist yet (Spaces' releases API). The release
+# notes are scripts/release/notes/<tag>.md when the tag has that file
+# (ex-804), a line naming the assets otherwise. Lines of SHA256SUMS for other
+# assets already on the release are kept. The tag must be the workspace
+# version's (scripts/gates/version.py tag). Spaces push-mirrors the tag to
+# GitHub, whose release.yml makes the GitHub release that
+# scripts/release/fetch.sh fetches by default; this one is fetched back from
+# Spaces (EXCALI_RELEASE_URL). Nothing goes to a registry (ex-801).
+name: release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and upload (v<version>)"
+        required: true
+permissions:
+  contents: write
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+jobs:
+  web-runtime:
+    runs-on: macos
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      SPACES_TOKEN: ${{ github.token }}
+      SERVER: ${{ github.server_url }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ github.event.inputs.tag || github.ref_name }}
+          fetch-depth: 0
+      - name: the tag is the workspace version's
+        run: |
+          want="$(python3 scripts/gates/version.py tag)"
+          if [ "$TAG" != "$want" ]; then
+            echo "tag $TAG, but the workspace version's tag is $want" >&2
+            exit 1
+          fi
+          python3 scripts/gates/version.py check
+      - name: cargo caches on the host
+        run: scripts/ci/spaces-env.sh rust
+      - name: toolchain (from rust-toolchain.toml)
+        run: rustup toolchain install
+      - name: wasm-bindgen-cli at the Cargo.lock version
+        run: scripts/ci/wasm-bindgen.sh
+      - name: build the web runtime (dist/, gzip size budget)
+        env:
+          RUSTFLAGS: -D warnings
+        run: scripts/web/build.sh
+      - name: SHA256SUMS already on the release
+        run: scripts/release/spaces-release.sh download-sums release
+      - name: pack excali-web_<version>.tar.gz
+        run: |
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" python3 scripts/release/package.py pack dist release
+          python3 scripts/release/package.py verify release "excali-web_${TAG#v}.tar.gz"
+      - name: upload to the release
+        run: |
+          notes="scripts/release/notes/$TAG.md"
+          if [ ! -f "$notes" ]; then
+            notes="$RUNNER_TEMP/notes.md"
+            echo "excali-rust $TAG. The web runtime: excali-web_${TAG#v}.tar.gz, its digest in SHA256SUMS (fetch with scripts/release/fetch.sh ${TAG#v} <dir>)." > "$notes"
+          fi
+          scripts/release/spaces-release.sh upload "$notes" "release/excali-web_${TAG#v}.tar.gz" release/SHA256SUMS
+      - name: fetch it back as a host does
+        run: |
+          EXCALI_RELEASE_URL="$SERVER/$REPO/releases/download" sh scripts/release/fetch.sh "${TAG#v}" "$RUNNER_TEMP/excali"
+          diff -r dist "$RUNNER_TEMP/excali"
