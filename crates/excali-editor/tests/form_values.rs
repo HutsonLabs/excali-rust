@@ -311,3 +311,23 @@ fn gates_links_and_bucket_fill() {
     );
     assert_eq!(bucket_fill_color(&w.ctx()), "#ffc9c9");
 }
+
+#[test]
+fn the_edited_text_is_read_as_the_scene_has_it_now() {
+    // a style picked in the panel while typing changes the text after the
+    // editor opened: the panel shows the scene's text, not the snapshot
+    let mut w = World::new(&[], json!({}), Some("tx2"));
+    for e in &mut w.elements {
+        if e.base.id != "tx2" {
+            continue;
+        }
+        if let excali_core::element::ElementKind::Text(t) = &mut e.kind {
+            t.text_align = TextAlign::Center;
+            t.font_size = 36.0;
+            t.font_family = FontFamily(8);
+        }
+    }
+    assert_eq!(form_text_align(&w.ctx()), Some(TextAlign::Center));
+    assert_eq!(form_font_size(&w.ctx()), Some(36.0));
+    assert_eq!(form_font_family(&w.ctx()), Some(FontFamily(8)));
+}

@@ -195,7 +195,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
 
     /// `startTextEditing(args)`: the editor opened, or the new text left
     /// as `newElement` (whose id is returned).
-    fn start_text(&mut self, args: &StartTextEditing) -> Option<String> {
+    pub(crate) fn start_text(&mut self, args: &StartTextEditing) -> Option<String> {
         match self.with_text(|ctx| start_text_editing(ctx, args)) {
             Ok(Some(editor)) => {
                 self.text_editor = Some(editor);

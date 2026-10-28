@@ -18,7 +18,8 @@
 //! - `packages/element/src/sizeHelpers.ts:158-185`: `getPerfectElementSize`.
 
 use excali_core::app_state::AppState;
-use excali_core::constants::stroke_width_by_key;
+use excali_core::color::is_transparent;
+use excali_core::constants::{stroke_width_by_key, DEFAULT_ELEMENT_PROPS, DEFAULT_STICKY_NOTE_BG};
 use excali_core::element::{Element, ElementType, StrokeWidthKey};
 use excali_math::js;
 use serde_json::{json, Map, Value};
@@ -109,7 +110,8 @@ pub(crate) fn new_element_base(
 /// `ellipse` and `selection` (`newElement`), `arrow` (`newArrowElement`),
 /// `line` (`newLinearElement`), `freedraw` (`newFreeDrawElement`, a mouse:
 /// simulated pressure, the default streamline) and `frame`
-/// (`newFrameElement` with `FRAME_STYLE`), with App's attributes. A line or
+/// (`newFrameElement` with `FRAME_STYLE`) and `stickynote`
+/// (`newStickyNoteElement`), with App's attributes. A line or
 /// an arrow has no points yet (App gives it two with `mutateElement`).
 /// `None` for any other tool. `id`, `seed` and `timestamp` are the drawn
 /// `randomId()`, `randomInteger()` and `getUpdatedTimestamp()`.
@@ -216,6 +218,37 @@ pub fn new_element_for_tool(
             m.insert("startArrowhead".into(), Value::Null);
             m.insert("endArrowhead".into(), Value::Null);
             m.insert("polygon".into(), json!(false));
+            m
+        }
+        ElementType::StickyNote => {
+            // newStickyNoteElement (newElement.ts:230-243): the sticky
+            // note's own colours, then normalizeStickyNoteStyle (never
+            // transparent, a solid fill); baseHeight is the base's height
+            let color = |key: &str, default: &str| match state(app_state, key) {
+                Value::String(c) if !c.is_empty() && !is_transparent(&c) => c,
+                _ => default.to_owned(),
+            };
+            opts.insert(
+                "strokeColor".into(),
+                json!(color(
+                    "currentItemStickynoteStrokeColor",
+                    DEFAULT_ELEMENT_PROPS.stroke_color
+                )),
+            );
+            opts.insert(
+                "backgroundColor".into(),
+                json!(color(
+                    "currentItemStickynoteBackgroundColor",
+                    DEFAULT_STICKY_NOTE_BG
+                )),
+            );
+            opts.insert("fillStyle".into(), json!("solid"));
+            opts.insert(
+                "roundness".into(),
+                roundness(round.then_some(PROPORTIONAL_RADIUS)),
+            );
+            let mut m = new_element_base("stickynote", &opts, id, seed, timestamp);
+            m.insert("baseHeight".into(), json!(0));
             m
         }
         ElementType::Freedraw => {

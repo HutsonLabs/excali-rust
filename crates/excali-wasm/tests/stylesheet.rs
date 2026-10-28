@@ -40,3 +40,19 @@ fn the_element_rules_are_in_it() {
     assert!(css.contains(".excalidraw {\n  --ui-font: Assistant, system-ui,"));
     assert!(css.contains("  font-family: var(--ui-font);\n  color: var(--text-primary-color);\n}"));
 }
+
+#[test]
+fn the_popovers_stacking_tokens_are_defined() {
+    // a z-index of an undefined custom property is `auto`: the styles
+    // panel's popovers (their inline `z-index`) then stack under the
+    // panel's later controls
+    let css = excali_wasm::web::stylesheet();
+    for token in [
+        "--zIndex-ui-styles-popup",
+        "--zIndex-popup",
+        "--zIndex-ui-top",
+        "--zIndex-ui-bottom",
+    ] {
+        assert!(css.contains(&format!("{token}: ")), "{token} is defined");
+    }
+}

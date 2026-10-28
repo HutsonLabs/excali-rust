@@ -98,6 +98,11 @@ class ExcaliEditorElement extends HTMLElement {
     return this.#editor().save();
   }
 
+  /** The text save() would write, without making it the saved state (a draft, a copy). */
+  scene() {
+    return this.#editor().sceneJson();
+  }
+
   /** "png": a Promise of an image/png Blob; "svg": the SVG text. */
   export(type, options = {}) {
     const core = this.#editor();

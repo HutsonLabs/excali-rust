@@ -1034,8 +1034,14 @@ pub(super) fn pointer_down_outside(weak: &Weak<RefCell<Inner>>, event: &Event) {
             return;
         };
         let mut changed = false;
+        // an arrowhead trigger's own click switches or closes its picker: a
+        // panel re-mounted on its press would lose that click (radix keeps
+        // the other trigger's node, so one click opens it upstream)
         if inner.styles_panel.icon_picker.open.is_some()
-            && !inside(".picker, .picker-trigger, [data-radix-popper-content-wrapper]")
+            && !inside(
+                ".picker, .picker-trigger, [data-radix-popper-content-wrapper], \
+                 button[aria-label^=\"arrowhead_\"]",
+            )
         {
             inner.styles_panel.icon_picker.open = None;
             inner.styles_panel.changed();
@@ -1053,10 +1059,16 @@ pub(super) fn pointer_down_outside(weak: &Weak<RefCell<Inner>>, event: &Event) {
                     ColorPickerType::from_popup(&open),
                     Some(ColorPickerType::ElementStroke | ColorPickerType::ElementBackground)
                 );
-            let excluded = inside(
-                "[data-radix-popper-content-wrapper], .top-picks-dnd__context-menu, \
-                 .excalidraw-eye-dropper-backdrop, [aria-expanded=\"true\"]",
-            );
+            // the other colour's trigger switches the popup on its click
+            // (`ColorPickerEvent::Trigger`); closing on its press would
+            // re-mount the panel and lose that click
+            let other_color_trigger =
+                open != "fontFamily" && inside(".color-picker__button.properties-trigger");
+            let excluded = other_color_trigger
+                || inside(
+                    "[data-radix-popper-content-wrapper], .top-picks-dnd__context-menu, \
+                     .excalidraw-eye-dropper-backdrop, [aria-expanded=\"true\"]",
+                );
             if ours && !excluded && inner.styles_panel.eye_dropper.is_none() {
                 if let Some(ty) = ColorPickerType::from_popup(&open) {
                     close_color_popup(&mut inner, ty);

@@ -1673,3 +1673,145 @@ fn a_click_on_the_popup_converts_to_its_type() {
     ed.undo();
     assert_eq!(kind(&ed, "r"), "rectangle");
 }
+
+// -- the draw to shape tool -----------------------------------------------------
+
+#[test]
+fn a_sketch_with_draw_to_shape_becomes_the_shape_it_looks_like() {
+    // AppDrawShape.finalize (App.drawshape.ts:222-263): the sketch is
+    // replaced by convertToShape's element, the tool staying
+    let mut ed = editor_with(vec![]);
+    key(&mut ed, Keystroke::new("X", "KeyX").shift());
+    assert_eq!(tool(&ed), json!("autoshape"));
+    ed.pointer_down(at(100.0, 100.0));
+    let corners = [
+        [300.0, 100.0],
+        [300.0, 250.0],
+        [100.0, 250.0],
+        [100.0, 100.0],
+    ];
+    let mut last = [100.0, 100.0];
+    for c in corners {
+        for i in 1..=10 {
+            let t = f64::from(i) / 10.0;
+            ed.pointer_move(at(
+                last[0] + (c[0] - last[0]) * t,
+                last[1] + (c[1] - last[1]) * t,
+            ));
+        }
+        last = c;
+    }
+    ed.pointer_up(at(100.0, 100.0));
+    let shape = created(&ed, &[]);
+    assert_eq!(shape.element_type().as_str(), "rectangle");
+    assert!((shape.base.width - 200.0).abs() < 20.0, "{:?}", shape.base);
+    assert_eq!(tool(&ed), json!("autoshape"));
+    ed.undo();
+    assert!(live(&ed).is_empty());
+}
+
+// -- the bucket fill tool -------------------------------------------------------
+
+#[test]
+fn a_bucket_fill_click_in_a_closed_shape_fills_its_region() {
+    // AppBucketFill.fill (App.bucketFill.ts:156-279): a strokeless polygon
+    // of the region, in the fallback green for a transparent background,
+    // unselected, the tool staying for the next fill
+    let mut ed = editor_with(vec![el("rectangle", "r", 100.0, 100.0, 200.0, json!({}))]);
+    letter(&mut ed, "b");
+    assert_eq!(tool(&ed), json!("bucketfill"));
+    click(&mut ed, [200.0, 200.0]);
+    let fill = created(&ed, &["r"]);
+    assert_eq!(fill.element_type().as_str(), "line");
+    assert_eq!(fill.base.stroke_color, "transparent");
+    assert_ne!(fill.base.background_color, "transparent");
+    assert_eq!(tool(&ed), json!("bucketfill"));
+    assert_eq!(app(&ed, "selectedElementIds"), json!({}));
+    ed.undo();
+    assert_eq!(ids(&ed), ["r"]);
+}
+
+// -- Reset the canvas -----------------------------------------------------------
+
+#[test]
+fn clear_canvas_deletes_every_element_in_one_undoable_step() {
+    // actionClearCanvas (actionCanvas.tsx:85-140), confirmed in its dialog
+    let mut ed = editor_with(vec![
+        filled("a", 100.0, 100.0, 100.0),
+        filled("b", 300.0, 100.0, 50.0),
+    ]);
+    click(&mut ed, [150.0, 150.0]);
+    ed.clear_canvas();
+    assert!(live(&ed).is_empty());
+    assert_eq!(app(&ed, "selectedElementIds"), json!({}));
+    // the grid size is the user's, kept
+    assert_eq!(app(&ed, "gridSize"), json!(20));
+    ed.undo();
+    assert_eq!(ids(&ed), ["a", "b"]);
+}
+
+// -- the sticky note tool -------------------------------------------------------
+
+/// The one sticky note of the scene (its label, if any, is beside it).
+fn sticky_note(ed: &Ed) -> Element {
+    let notes: Vec<&Element> = live(ed)
+        .into_iter()
+        .filter(|e| e.element_type().as_str() == "stickynote")
+        .collect();
+    assert_eq!(notes.len(), 1, "one sticky note");
+    notes[0].clone()
+}
+
+#[test]
+fn a_click_with_the_sticky_note_tool_makes_the_default_note_and_edits_its_label() {
+    // App.tsx:11914-11998: a click is DEFAULT_STICKY_NOTE_SIZE square,
+    // centred on the press; the label is edited, the tool back to selection
+    let mut ed = editor_with(vec![]);
+    letter(&mut ed, "n");
+    assert_eq!(tool(&ed), json!("stickynote"));
+    click(&mut ed, [400.0, 300.0]);
+    let note = sticky_note(&ed);
+    assert_eq!(note.element_type().as_str(), "stickynote");
+    assert_eq!(
+        [note.base.x, note.base.y, note.base.width, note.base.height],
+        [275.0, 175.0, 250.0, 250.0]
+    );
+    // newStickyNoteElement: never transparent, a solid fill
+    assert_eq!(note.base.background_color, "#ffdf6b");
+    assert_eq!(note.base.fill_style, excali_core::element::FillStyle::Solid);
+    assert_eq!(tool(&ed), json!("selection"));
+    assert!(ed.textarea().is_some_and(|t| t.open), "the label is edited");
+    // the typed label is the note's
+    use excali_ui::text_editor::TextareaEvent;
+    ed.textarea_event(TextareaEvent::Input {
+        value: "Hi".into(),
+        selection: (2, 2),
+    });
+    ed.textarea_event(TextareaEvent::Submit);
+    let label = live(&ed)
+        .into_iter()
+        .find(|e| e.element_type().as_str() == "text")
+        .expect("a label")
+        .clone();
+    match &label.kind {
+        excali_core::element::ElementKind::Text(t) => {
+            assert_eq!(t.text, "Hi");
+            assert_eq!(t.container_id.as_deref(), Some(note.base.id.as_str()));
+        }
+        other => panic!("a label, not {other:?}"),
+    }
+}
+
+#[test]
+fn a_drag_with_the_sticky_note_tool_keeps_its_size_square() {
+    // a drag keeps its size, squared unless Shift frees it
+    let mut ed = editor_with(vec![]);
+    letter(&mut ed, "n");
+    drag(&mut ed, [100.0, 100.0], [300.0, 180.0]);
+    let note = sticky_note(&ed);
+    assert_eq!(note.element_type().as_str(), "stickynote");
+    assert_eq!(
+        [note.base.x, note.base.y, note.base.width, note.base.height],
+        [100.0, 100.0, 200.0, 200.0]
+    );
+}

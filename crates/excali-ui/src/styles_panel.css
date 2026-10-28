@@ -59,3 +59,26 @@
   box-sizing: border-box;
   position: absolute;
 }
+/* styles.scss:927-940: the panel's button tokens. The opacity slider's
+ * track is drawn with --button-bg; without it the gradient is invalid and
+ * the track is not drawn. */
+.excalidraw .App-mobile-menu,
+.excalidraw .App-menu__left {
+  --button-border: transparent;
+  --button-bg: var(--color-surface-mid);
+}
+.excalidraw.theme--dark.excalidraw .App-mobile-menu,
+.excalidraw.theme--dark.excalidraw .App-menu__left {
+  --button-hover-bg: #363541;
+  --button-bg: var(--color-surface-high);
+}
+/* Upstream's stacking tokens (css/styles.scss, :root) the panel's popovers
+ * (colours, fonts, arrowheads), tooltips and the mobile bars use: without
+ * them a popover stacked under the panel's later controls (the opacity
+ * slider over the arrowhead picker). */
+.excalidraw {
+  --zIndex-ui-styles-popup: 40;
+  --zIndex-ui-bottom: 60;
+  --zIndex-ui-top: 100;
+  --zIndex-popup: 1001;
+}

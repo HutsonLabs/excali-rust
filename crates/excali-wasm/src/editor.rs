@@ -85,8 +85,11 @@ use std::collections::{HashMap, HashSet};
 
 use excali_core::app_state::{AppState, AppStateEnv};
 use excali_core::constants::{DEFAULT_COLLISION_THRESHOLD, DEFAULT_TRANSFORM_HANDLE_SPACING};
+use excali_core::constants::{DEFAULT_FONT_SIZE, DEFAULT_STICKY_NOTE_SIZE, DRAGGING_THRESHOLD};
 use excali_core::document::{load_scene_json, LoadSceneError, LoadedScene};
-use excali_core::element::{BindMode, BoundElement, BoundElementType, Element, ElementKind};
+use excali_core::element::{
+    BindMode, BoundElement, BoundElementType, Element, ElementKind, FontFamily,
+};
 use excali_core::library::{
     merge_library_items, parse_library_json, serialize_library_as_json, LibraryItem,
     LibraryItemStatus,
@@ -130,6 +133,7 @@ use excali_editor::new_element::{
     drag_new_element, get_locked_linear_cursor_align_size, new_element_for_tool, DragNewElement,
     MINIMUM_ARROW_SIZE,
 };
+use excali_editor::resize_elements::get_sticky_note_min_size;
 use excali_editor::restore_env::RoutingEnv;
 use excali_editor::scene::ElementUpdate;
 use excali_editor::scene::Scene;
@@ -140,7 +144,8 @@ use excali_editor::snapping::{
     SnapCache, SnapEvent,
 };
 use excali_editor::store::CaptureUpdateAction;
-use excali_editor::tools::{ActiveTool, PointerType, ToolState};
+use excali_editor::text_editing::StartTextEditing;
+use excali_editor::tools::{ActiveTool, PointerType, ToolState, ToolSwitch};
 use excali_editor::transform::{get_grid_point, TransformModifiers, TransformSession};
 use excali_editor::transform_handles::{
     EditorInterface, SelectedLinearElementState, TransformHandleType,
@@ -422,6 +427,10 @@ pub(crate) enum Gesture {
     /// A press handled whole on the press (Alt adding a point in the
     /// linear element editor); its release only commits.
     Inert,
+    /// The bucket fill's press (`AppBucketFill.handlePointerDown`): it only
+    /// arms the fill at the scene point, which a release that stayed a
+    /// click commits.
+    BucketFill { point: [f64; 2], start: [f64; 2] },
 }
 
 /// The element a drawing tool's press created (`appState.newElement`) and
@@ -729,6 +738,12 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// The elements, deleted ones included, in order.
     pub fn elements(&self) -> &[Element] {
         self.session.elements()
+    }
+
+    /// `getSceneVersion`: the sum of the elements' versions, which moves
+    /// with every scene change (`app.scene.onUpdate`).
+    pub fn scene_version(&self) -> f64 {
+        scene_version(self.session.elements())
     }
 
     /// The app state.
@@ -1505,6 +1520,54 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         }
     }
 
+    /// `actionClearCanvas.perform` (`actionCanvas.tsx:85-140`), confirmed
+    /// in its dialog: every element deleted, the app state back to its
+    /// defaults but for the user's settings (theme, pen, export, grid,
+    /// stats, the paste dialog) and the tool, as one history entry.
+    pub fn clear_canvas(&mut self) {
+        let current: Vec<Element> = self.session.elements().to_vec();
+        let env = &mut self.session.env;
+        let elements: Vec<Element> = current
+            .iter()
+            .map(|e| {
+                let mut updates = Map::new();
+                updates.insert("isDeleted".into(), Value::Bool(true));
+                excali_editor::mutate::new_element_with(e, updates, false, env)
+                    .unwrap_or_else(|_| e.clone())
+            })
+            .collect();
+        let current = self.session.app_state().as_map().clone();
+        let mut app_state = AppState::default().as_map().clone();
+        for key in [
+            "theme",
+            "penMode",
+            "penDetected",
+            "exportBackground",
+            "exportEmbedScene",
+            "gridSize",
+            "gridStep",
+            "gridModeEnabled",
+            "stats",
+            "pasteDialog",
+            "activeTool",
+            "width",
+            "height",
+            "offsetLeft",
+            "offsetTop",
+        ] {
+            match current.get(key) {
+                Some(v) => app_state.insert(key.into(), v.clone()),
+                None => app_state.remove(key),
+            };
+        }
+        self.apply_action(ActionResult {
+            elements: Some(elements),
+            app_state,
+            capture: true,
+            never: false,
+        });
+    }
+
     /// An action's result written back (`syncActionResult`): the
     /// elements, the app state keys, and a capture when it asks for one
     /// (`IMMEDIATELY`; `NEVER` never recorded, `EVENTUALLY` with the next).
@@ -1723,6 +1786,32 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
     /// The action manager.
     pub fn action_manager(&self) -> &ActionManager {
         &self.actions
+    }
+
+    /// The toolbar switched the tool (`App.setActiveTool`): the app state
+    /// follows as a tool key leaves it (`keyboard.rs` `apply_tool_outcome`),
+    /// `activeTool` and, for a drawing tool, no selection, so the styles
+    /// panel shows the new tool's defaults rather than styling what was
+    /// selected.
+    pub fn tool_switched(&mut self, switch: Option<&ToolSwitch>) {
+        let mut patch = Map::new();
+        if let Some(switch) = switch {
+            if switch.clear_selection {
+                patch.insert("selectedElementIds".into(), json!({}));
+                patch.insert("selectedGroupIds".into(), json!({}));
+                patch.insert("editingGroupId".into(), Value::Null);
+                patch.insert("multiElement".into(), Value::Null);
+            }
+            if switch.clear_suggested_binding {
+                patch.insert("suggestedBinding".into(), Value::Null);
+            }
+            if !switch.keep_selected_linear_element {
+                patch.insert("selectedLinearElement".into(), Value::Null);
+            }
+            patch.insert("activeEmbeddable".into(), Value::Null);
+        }
+        patch.insert("activeTool".into(), self.tools.active_tool.to_json());
+        self.set_app_state(patch);
     }
 
     /// `setState(patch)` from the chrome (a menu opening or closing):
@@ -2071,10 +2160,18 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 });
             }
             "arrow" | "line" if self.multi.is_some() => self.multi_pointer_down(input, &tool),
-            "rectangle" | "diamond" | "ellipse" | "arrow" | "line" | "freedraw" | "frame" => {
-                self.create_pointer_down(input, &tool)
-            }
+            "rectangle" | "stickynote" | "diamond" | "ellipse" | "arrow" | "line" | "freedraw"
+            | "frame" => self.create_pointer_down(input, &tool),
             "text" => self.text_pointer_down(input),
+            // the sketch is drawn as a freedraw while the pointer is down
+            // and recognized on release (`AppDrawShape`)
+            "autoshape" => self.create_pointer_down(input, "freedraw"),
+            "bucketfill" => {
+                self.gesture = Some(Gesture::BucketFill {
+                    point: self.scene_point(input.client_x, input.client_y),
+                    start: [input.client_x, input.client_y],
+                });
+            }
             _ => {}
         }
     }
@@ -2568,7 +2665,7 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             Some(Gesture::TextCreate { .. } | Gesture::TextLabel { .. }) => self.text_drag(input),
             None if self.multi.is_some() => self.multi_hover(input),
             None => self.hover(input),
-            Some(Gesture::Finalized | Gesture::Inert) => {}
+            Some(Gesture::Finalized | Gesture::Inert | Gesture::BucketFill { .. }) => {}
         }
     }
 
@@ -3265,6 +3362,15 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
                 self.report();
             }
             Some(Gesture::Create(gesture)) => self.create_pointer_up(input, gesture),
+            Some(Gesture::BucketFill { point, start }) => {
+                // a click: the pointer stayed within the drag threshold
+                let moved = js::hypot(input.client_x - start[0], input.client_y - start[1]);
+                if moved < DRAGGING_THRESHOLD {
+                    self.bucket_fill(point);
+                }
+                self.session.commit();
+                self.report();
+            }
             Some(Gesture::Erase { start, pending, .. }) => {
                 self.erase_pointer_up(input, start, pending);
             }
@@ -3379,6 +3485,12 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
             }
         }
         let drawn = scene.get(&element.base.id).cloned().unwrap_or(element);
+        if self.tools.active_tool.tool.type_name() == "autoshape" {
+            return self.draw_shape_pointer_up(&drawn);
+        }
+        if matches!(drawn.kind, ElementKind::StickyNote(_)) {
+            return self.sticky_note_pointer_up(input, &gesture, &drawn, scene);
+        }
         if is_invisibly_small_element(&drawn) {
             return self.discard_new_element(&drawn.base.id);
         }
@@ -3420,6 +3532,232 @@ impl<P: TextMetricsProvider + Clone> Editor<P> {
         self.apply(scene, app_state);
         self.session.store.schedule_capture();
         self.session.commit();
+        self.report();
+    }
+
+    /// `AppDrawShape.finalize` (`App.drawshape.ts:222-263`): the sketch,
+    /// drawn as a freedraw while the pointer was down, is replaced by the
+    /// element it is recognized as (`convertToShape`), at the current
+    /// opacity, unselected, the tool staying for the next sketch; an
+    /// unrecognized sketch leaves nothing. Not yet ported: a line sketch
+    /// upgraded to an arrow and the arrow's endpoints bound.
+    fn draw_shape_pointer_up(&mut self, sketch: &Element) {
+        use excali_editor::convert_to_shape::{convert_to_shape, ConvertToShape};
+        let points: Vec<[f64; 2]> = sketch
+            .kind
+            .points()
+            .map(|p| {
+                p.iter()
+                    .map(|q| [sketch.base.x + q[0], sketch.base.y + q[1]])
+                    .collect()
+            })
+            .unwrap_or_default();
+        self.discard_new_element(&sketch.base.id);
+        if points.len() < 3 {
+            return;
+        }
+        let id = self.session.env.random_id();
+        let seed = self.session.env.random_integer();
+        let now = RestoreEnv::now(&mut self.session.env);
+        let shape = {
+            let all = self.session.elements();
+            let live: Vec<&Element> = all.iter().filter(|e| !e.base.is_deleted).collect();
+            let frames: Vec<&Element> = live.iter().copied().filter(|e| is_frame_like(e)).collect();
+            let map = ElementsMap::new(live.iter().copied());
+            convert_to_shape(&ConvertToShape {
+                points: &points,
+                app_state: self.session.app_state(),
+                elements_map: &map,
+                frames: &frames,
+                previous: None,
+                id: &id,
+                seed,
+                timestamp: now,
+            })
+        };
+        let Some(mut shape) = shape else {
+            return;
+        };
+        shape.base.opacity = self
+            .session
+            .app_state()
+            .get("currentItemOpacity")
+            .and_then(Value::as_f64)
+            .unwrap_or(100.0);
+        let _ = self.session.insert_elements_at_index(vec![shape], None);
+        self.session.store.schedule_capture();
+        self.session.commit();
+        self.report();
+    }
+
+    /// `AppBucketFill.fill(scenePointer)` (`App.bucketFill.ts:156-279`): the
+    /// paint under the click restyled, a new fill of the enclosed region
+    /// inserted (unselected; the tool stays for the next fill), or a toast
+    /// when no region can be filled.
+    fn bucket_fill(&mut self, point: [f64; 2]) {
+        use excali_editor::bucket_fill::{bucket_fill_click, BucketFillClick, BucketFillOutcome};
+        let hit = self.element_at(point);
+        let frame = self.top_layer_frame_at(point, None, None);
+        let all: Vec<Element> = self.session.elements().to_vec();
+        let app = self.session.app_state();
+        let background = app
+            .get("currentItemBackgroundColor")
+            .and_then(Value::as_str)
+            .unwrap_or("transparent")
+            .to_owned();
+        let fill_style = app
+            .get("currentItemFillStyle")
+            .and_then(|v| serde_json::from_value(v.clone()).ok())
+            .unwrap_or(excali_core::element::FillStyle::Solid);
+        let opacity = app
+            .get("currentItemOpacity")
+            .and_then(Value::as_f64)
+            .unwrap_or(100.0);
+        let id = self.session.env.random_id();
+        let seed = self.session.env.random_integer();
+        let now = RestoreEnv::now(&mut self.session.env);
+        let outcome = {
+            let live: Vec<&Element> = all.iter().filter(|e| !e.base.is_deleted).collect();
+            let everything: Vec<&Element> = all.iter().collect();
+            let map = ElementsMap::new(live.iter().copied());
+            let hit_element = hit
+                .as_deref()
+                .and_then(|h| live.iter().copied().find(|e| e.base.id == h));
+            bucket_fill_click(&BucketFillClick {
+                point,
+                elements: &live,
+                elements_map: &map,
+                elements_including_deleted: &everything,
+                hit_element,
+                top_layer_frame_id: frame.as_deref(),
+                background_color: &background,
+                fill_style,
+                opacity,
+                id: &id,
+                seed,
+                timestamp: now,
+            })
+        };
+        match outcome {
+            BucketFillOutcome::Nothing | BucketFillOutcome::Unchanged => {}
+            BucketFillOutcome::Toast(key) => {
+                let message = match key {
+                    "bucketfill.tooComplex" => "This region is too complex to fill.",
+                    _ => "Couldn't find an enclosed region to fill here.",
+                };
+                self.set_keys(vec![(
+                    "toast",
+                    json!({ "message": message, "duration": 3000 }),
+                )]);
+            }
+            BucketFillOutcome::Restyle {
+                element_id,
+                background_color,
+                fill_style,
+                opacity,
+            } => {
+                let mut updates = Map::new();
+                updates.insert("backgroundColor".into(), json!(background_color));
+                updates.insert("fillStyle".into(), json!(fill_style));
+                updates.insert("opacity".into(), json!(opacity));
+                let env = &mut self.session.env;
+                let next: Vec<Element> = all
+                    .iter()
+                    .map(|e| {
+                        if e.base.id == element_id {
+                            excali_editor::mutate::new_element_with(e, updates.clone(), false, env)
+                                .unwrap_or_else(|_| e.clone())
+                        } else {
+                            e.clone()
+                        }
+                    })
+                    .collect();
+                let _ = self.session.replace_all_elements(next);
+                self.session.store.schedule_capture();
+            }
+            BucketFillOutcome::Insert { fill, index } => {
+                let _ = self.session.insert_elements_at_index(vec![*fill], index);
+                self.session.store.schedule_capture();
+            }
+        }
+    }
+
+    /// A new sticky note's release (`App.tsx:11914-11998`): a click is the
+    /// default square centred on the press, a drag keeps its size, at
+    /// least one line of the current font and square unless Shift frees
+    /// it, growing away from the origin corner; then the label is edited
+    /// (the tool back to the selection), or, with the tool locked, the next
+    /// note is ready.
+    fn sticky_note_pointer_up(
+        &mut self,
+        input: PointerInput,
+        gesture: &CreateGesture,
+        drawn: &Element,
+        mut scene: Scene,
+    ) {
+        let app = self.session.app_state();
+        let zoom = app.zoom().unwrap_or(1.0);
+        let b = &drawn.base;
+        let is_click = b.width * zoom < DRAGGING_THRESHOLD && b.height * zoom < DRAGGING_THRESHOLD;
+        let (x, y, width, height) = if is_click {
+            let size = DEFAULT_STICKY_NOTE_SIZE;
+            // snapped after centring: half the size need not be on the grid
+            let [x, y] = get_grid_point(
+                gesture.origin[0] - size / 2.0,
+                gesture.origin[1] - size / 2.0,
+                self.grid_size(input.ctrl_or_cmd),
+            );
+            (x, y, size, size)
+        } else {
+            let font_size = app
+                .get("currentItemFontSize")
+                .and_then(Value::as_f64)
+                .unwrap_or(DEFAULT_FONT_SIZE);
+            let font_family = app
+                .get("currentItemFontFamily")
+                .and_then(Value::as_f64)
+                .map_or(FontFamily::DEFAULT, |f| FontFamily(f as u32));
+            let (min_width, min_height) = get_sticky_note_min_size(font_size, font_family);
+            let mut width = b.width.max(min_width);
+            let mut height = b.height.max(min_height);
+            if !input.shift_key {
+                width = width.max(height);
+                height = width;
+            }
+            let [ox, oy] = gesture.origin_in_grid;
+            let x = if b.x < ox { ox - width } else { b.x };
+            let y = if b.y < oy { oy - height } else { b.y };
+            (x, y, width, height)
+        };
+        scene.mutate_element(
+            &b.id,
+            ElementUpdate {
+                x: Some(x),
+                y: Some(y),
+                width: Some(width),
+                height: Some(height),
+                base_height: Some(height),
+                ..ElementUpdate::default()
+            },
+            &mut self.session.env,
+        );
+        let mut app_state = self.session.app_state().clone();
+        app_state.insert("newElement", Value::Null);
+        let locked = self.tools.is_tool_locked();
+        if locked {
+            app_state.insert("selectedElementIds", json!({}));
+        } else {
+            self.tools.active_tool = self.tools.tool_after_finalize();
+        }
+        self.apply(scene, app_state);
+        self.session.store.schedule_capture();
+        self.session.commit();
+        if !locked {
+            self.start_text(&StartTextEditing {
+                container: Some(b.id.clone()),
+                ..StartTextEditing::at(x + width / 2.0, y + height / 2.0)
+            });
+        }
         self.report();
     }
 

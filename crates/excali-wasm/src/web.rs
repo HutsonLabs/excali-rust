@@ -375,6 +375,12 @@ struct Inner {
     /// textarea mounted in it while a text is edited.
     editor_box: HtmlElement,
     overlay: Option<TextEditorOverlay>,
+    /// The main menu's open confirm dialog ("Reset the canvas").
+    confirm_dialog: Option<excali_ui::primitives::OpenModal>,
+    /// The scene version the text editor last saw: a change while it is
+    /// open is `app.scene.onUpdate`, which gives the textarea the focus
+    /// back ([`TextEditorOverlay::scene_updated`]).
+    overlay_scene: f64,
     extra_tools_open: bool,
     /// What the chrome was last rendered from ([`chrome_key`]).
     chrome_key: Option<Value>,
@@ -892,6 +898,7 @@ fn sync_text_editor(weak: &Weak<RefCell<Inner>>) {
                 }
             }
             inner.overlay = Some(overlay);
+            inner.overlay_scene = inner.editor.scene_version();
         }
         (false, true) => {
             if let Some(overlay) = inner.overlay.take() {
@@ -899,8 +906,22 @@ fn sync_text_editor(weak: &Weak<RefCell<Inner>>) {
             }
         }
         (true, true) => {
-            if let Some(state) = inner.editor.text_editor_app_changed() {
-                if let Some(overlay) = &inner.overlay {
+            // a style picked in the panel while typing changes the scene:
+            // the textarea takes the focus back (`textWysiwyg.tsx:1053-1061`),
+            // so typing, Escape and the panel's state stay the text's
+            let version = inner.editor.scene_version();
+            let scene_changed = version != inner.overlay_scene;
+            inner.overlay_scene = version;
+            let changed = inner.editor.text_editor_app_changed();
+            let state = if scene_changed {
+                changed.or_else(|| inner.editor.textarea())
+            } else {
+                changed
+            };
+            if let (Some(state), Some(overlay)) = (state, &inner.overlay) {
+                if scene_changed {
+                    overlay.scene_updated(&state);
+                } else {
                     overlay.apply(&state);
                 }
             }
@@ -925,6 +946,39 @@ fn refresh_chrome(weak: &Weak<RefCell<Inner>>) {
         return;
     }
     rc.borrow_mut().chrome_key = Some(key);
+    let had_focus = focus_inside(&rc.borrow());
+    drop(rc);
+    render_chrome(weak);
+    // Not upstream, whose React chrome keeps its nodes: a re-mounted
+    // toolbar, footer or panel drops the focus of the button just pressed
+    // to the body, where the editor's keys (Cmd+Z, Delete, the tools) no
+    // longer reach it. The container takes it back; a dialog that took it
+    // keeps it.
+    if let Some(rc) = weak.upgrade() {
+        let inner = rc.borrow();
+        let lost = inner.document().active_element().is_none_or(|a| {
+            inner
+                .document()
+                .body()
+                .is_some_and(|b| b.is_same_node(Some(&a)))
+        });
+        if had_focus && lost {
+            let _ = inner.container.focus();
+        }
+    }
+}
+
+/// Whether the focus is in the editor (its chrome, its canvas, the text
+/// being edited).
+fn focus_inside(inner: &Inner) -> bool {
+    inner
+        .document()
+        .active_element()
+        .is_some_and(|a| inner.container.contains(Some(&a)))
+}
+
+/// The chrome's parts, mounted again ([`refresh_chrome`]).
+fn render_chrome(weak: &Weak<RefCell<Inner>>) {
     let _ = render_toolbar(weak);
     let _ = render_footer(weak);
     let _ = render_main_menu(weak);
@@ -1350,22 +1404,36 @@ fn render_toolbar(weak: &Weak<RefCell<Inner>>) -> Result<(), JsValue> {
         {
             let mut inner = rc.borrow_mut();
             let tools: &mut ToolState = inner.editor.tools_mut();
-            match event {
+            let switch = match event {
                 ToolbarEvent::ToolButton { tool, pointer_type } => {
-                    let _ = activate_tool_button(tools, tool, pointer_type);
+                    activate_tool_button(tools, tool, pointer_type).and_then(Result::ok)
                 }
                 ToolbarEvent::Lock => {
                     tools.toggle_lock();
+                    None
                 }
-                ToolbarEvent::PenMode => tools.toggle_pen_mode(None),
+                ToolbarEvent::PenMode => {
+                    tools.toggle_pen_mode(None);
+                    None
+                }
                 ToolbarEvent::ExtraTool(tool) => {
-                    let _ = activate_extra_tool(tools, tool);
+                    let switch = activate_extra_tool(tools, tool).ok();
                     inner.extra_tools_open = false;
+                    switch
                 }
-                ToolbarEvent::ExtraToolsToggle => inner.extra_tools_open = !inner.extra_tools_open,
-                ToolbarEvent::ExtraToolsClose => inner.extra_tools_open = false,
+                ToolbarEvent::ExtraToolsToggle => {
+                    inner.extra_tools_open = !inner.extra_tools_open;
+                    None
+                }
+                ToolbarEvent::ExtraToolsClose => {
+                    inner.extra_tools_open = false;
+                    None
+                }
                 _ => return,
-            }
+            };
+            // the app state follows the tool, as a tool key leaves it
+            inner.editor.tool_switched(switch.as_ref());
+            inner.after_event();
         }
         refresh_chrome(&events);
     }) as Rc<dyn Fn(ToolbarEvent)>;
@@ -1426,12 +1494,101 @@ fn apply_menu_effect(inner: &mut Inner, effect: MenuEffect) {
             inner.editor.set_theme(dark);
         }
         MenuEffect::Warn(message) => web_sys::console::warn_1(&JsValue::from_str(message)),
-        // the host owns files, dialogs and analytics
+        MenuEffect::ConfirmDialog("clearCanvas") => open_clear_canvas_dialog(inner),
+        // the host owns files, the other dialogs and analytics
         MenuEffect::ConfirmDialog(_)
         | MenuEffect::ConfirmOverwrite { .. }
         | MenuEffect::TrackEvent { .. }
         | MenuEffect::Select => {}
     }
+}
+
+/// The clear canvas dialog (`ClearCanvas.tsx`, a `ConfirmDialog`): Confirm
+/// runs `actionClearCanvas`, Cancel, Escape or a press outside close it.
+fn open_clear_canvas_dialog(inner: &mut Inner) {
+    use excali_ui::library_sidebar::{dialog_action_button, ActionType};
+    use excali_ui::primitives::{dialog, open_modal, DialogProps, DialogSize};
+    if let Some(old) = inner.confirm_dialog.take() {
+        old.close();
+    }
+    let weak = inner.this.clone();
+    let close: Rc<dyn Fn()> = {
+        let weak = weak.clone();
+        Rc::new(move || {
+            let Some(rc) = weak.upgrade() else {
+                return;
+            };
+            let Ok(mut inner) = rc.try_borrow_mut() else {
+                return;
+            };
+            if let Some(open) = inner.confirm_dialog.take() {
+                open.close();
+            }
+            let _ = inner.container.focus();
+        })
+    };
+    let confirm = {
+        let weak = weak.clone();
+        move || {
+            let Some(rc) = weak.upgrade() else {
+                return;
+            };
+            {
+                let Ok(mut inner) = rc.try_borrow_mut() else {
+                    return;
+                };
+                if let Some(open) = inner.confirm_dialog.take() {
+                    open.close();
+                }
+                inner.editor.clear_canvas();
+                inner.after_event();
+                let _ = inner.container.focus();
+            }
+            refresh_chrome(&weak);
+        }
+    };
+    let cancel = {
+        let close = close.clone();
+        dialog_action_button("Cancel", ActionType::Plain, false, false, None)
+            .on("click", move |_| close())
+    };
+    let ok = dialog_action_button(
+        "Confirm",
+        ActionType::Danger,
+        false,
+        false,
+        Some("confirm-dialog-confirm-button"),
+    )
+    .on("click", move |_| confirm());
+    let buttons = excali_ui::dom::Element::new("div")
+        .attr("class", "confirm-dialog-buttons")
+        .child(cancel)
+        .child(ok);
+    let dark = inner
+        .editor
+        .app_state()
+        .get("theme")
+        .and_then(Value::as_str)
+        == Some("dark");
+    let modal = dialog(
+        DialogProps {
+            class_name: Some("confirm-dialog ".into()),
+            size: DialogSize::Small,
+            title: Some(Node::text("Clear canvas")),
+            container_id: "excali-editor".into(),
+            theme: if dark { Theme::Dark } else { Theme::Light },
+            on_close_request: Some(close),
+            close_label: "Close".into(),
+            ..DialogProps::default()
+        },
+        vec![
+            excali_ui::dom::Element::new("p")
+                .child("This will clear the whole canvas. Are you sure?")
+                .into(),
+            buttons.into(),
+        ],
+    );
+    inner.confirm_dialog = open_modal(&inner.document(), modal).ok();
 }
 
 /// Re-mounts the main menu (`MainMenu`, LayerUI's default items) in the
@@ -2613,6 +2770,8 @@ impl EditorCore {
                 previews: std::collections::HashMap::new(),
                 editor_box,
                 overlay: None,
+                confirm_dialog: None,
+                overlay_scene: 0.0,
                 extra_tools_open: false,
                 chrome_key: None,
                 ui: "full".into(),

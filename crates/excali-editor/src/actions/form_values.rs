@@ -96,7 +96,12 @@ pub fn get_form_value<T: FormValue>(
 ) -> Option<T> {
     let mut ret = None;
     if let Some(editing) = state_element(ctx.get("editingTextElement")) {
-        ret = get_value(&editing);
+        // the text as the scene has it now (upstream's is the live element):
+        // a style picked while typing changed it after the editor opened
+        ret = match ctx.elements.iter().find(|e| e.base.id == editing.base.id) {
+            Some(latest) => get_value(latest),
+            None => get_value(&editing),
+        };
     }
     if !ret.as_ref().is_some_and(T::is_truthy) {
         ret = if ctx.is_some_element_selected() {
